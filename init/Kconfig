@@ -961,6 +961,14 @@ config MEMCG
 	  disable memory resource controller and you can avoid overheads.
 	  (and lose benefits of memory resource controller)
 
+config MEMCG_DISABLED
+	bool "Memory Resource Controller disabled by default"
+	depends on MEMCG
+	default n
+	help
+	  Disable the memory group resource controller unless explicitly
+	  enabled using the kernel parameter "cgroup_enable=memory".
+
 config MEMCG_SWAP
 	bool "Memory Resource Controller Swap Extension"
 	depends on MEMCG && SWAP

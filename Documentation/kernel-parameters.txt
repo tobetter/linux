@@ -569,8 +569,8 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 	ccw_timeout_log [S390]
 			See Documentation/s390/CommonIO for details.
 
-	cgroup_disable= [KNL] Disable a particular controller
-			Format: {name of the controller(s) to disable}
+	cgroup_disable= [KNL] Disable/enable a particular controller
+	cgroup_enable=	Format: {name of the controller(s) to disable/enable}
 			The effects of cgroup_disable=foo are:
 			- foo isn't auto-mounted if you mount all cgroups in
 			  a single hierarchy
