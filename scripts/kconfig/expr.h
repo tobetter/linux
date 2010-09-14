@@ -112,6 +112,8 @@ struct symbol {
 /* Set symbol to y if allnoconfig; used for symbols that hide others */
 #define SYMBOL_ALLNOCONFIG_Y 0x200000
 
+#define SYMBOL_NEW        0x200000 /* symbol is new (loaded config did not provide a value) */
+
 #define SYMBOL_MAXLENGTH	256
 #define SYMBOL_HASHSIZE		9973
 
