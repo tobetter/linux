@@ -345,16 +345,19 @@ static int fw_get_filesystem_firmware(struct device *device,
 		rc = fw_read_file_contents(file, buf);
 		fput(file);
 		if (rc)
-			dev_warn(device, "firmware, attempted to load %s, but failed with error %d\n",
+			dev_dbg(device, "firmware, attempted to load %s, but failed with error %d\n",
 				path, rc);
 		else
 			break;
 	}
 	__putname(path);
 
-	if (!rc) {
-		dev_dbg(device, "firmware: direct-loading firmware %s\n",
-			buf->fw_id);
+	if (rc) {
+		dev_err(device, "firmware: failed to load %s (%d)\n",
+			buf->fw_id, rc);
+	} else {
+		dev_info(device, "firmware: direct-loading firmware %s\n",
+			 buf->fw_id);
 		mutex_lock(&fw_lock);
 		set_bit(FW_STATUS_DONE, &buf->status);
 		complete_all(&buf->completion);
@@ -1022,7 +1025,8 @@ _request_firmware_prepare(struct firmware **firmware_p, const char *name,
 	}
 
 	if (fw_get_builtin_firmware(firmware, name)) {
-		dev_dbg(device, "firmware: using built-in firmware %s\n", name);
+		dev_info(device, "firmware: using built-in firmware %s\n",
+			 name);
 		return 0; /* assigned */
 	}
 
@@ -1110,7 +1114,7 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 	if (opt_flags & FW_OPT_NOWAIT) {
 		timeout = usermodehelper_read_lock_wait(timeout);
 		if (!timeout) {
-			dev_dbg(device, "firmware: %s loading timed out\n",
+			dev_err(device, "firmware: %s loading timed out\n",
 				name);
 			ret = -EBUSY;
 			goto out;
