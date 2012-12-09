@@ -393,11 +393,8 @@ static int slic_card_download_gbrcv(struct adapter *adapter)
 	}
 
 	ret = request_firmware(&fw, file, &adapter->pcidev->dev);
-	if (ret) {
-		dev_err(&adapter->pcidev->dev,
-			"Failed to load firmware %s\n", file);
+	if (ret)
 		return ret;
-	}
 
 	rcvucodelen = *(u32 *)(fw->data + index);
 	index += 4;
@@ -471,11 +468,8 @@ static int slic_card_download(struct adapter *adapter)
 		return -ENOENT;
 	}
 	ret = request_firmware(&fw, file, &adapter->pcidev->dev);
-	if (ret) {
-		dev_err(&adapter->pcidev->dev,
-			"Failed to load firmware %s\n", file);
+	if (ret)
 		return ret;
-	}
 	numsects = *(u32 *)(fw->data + index);
 	index += 4;
 	for (i = 0; i < numsects; i++) {

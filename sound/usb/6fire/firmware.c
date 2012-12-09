@@ -219,8 +219,6 @@ static int usb6fire_fw_ezusb_upload(
 	ret = request_firmware(&fw, fwname, &device->dev);
 	if (ret < 0) {
 		kfree(rec);
-		dev_err(&intf->dev,
-			"error requesting ezusb firmware %s.\n", fwname);
 		return ret;
 	}
 	ret = usb6fire_fw_ihex_init(fw, rec);
@@ -296,8 +294,6 @@ static int usb6fire_fw_fpga_upload(
 
 	ret = request_firmware(&fw, fwname, &device->dev);
 	if (ret < 0) {
-		dev_err(&intf->dev, "unable to get fpga firmware %s.\n",
-				fwname);
 		kfree(buffer);
 		return -EIO;
 	}

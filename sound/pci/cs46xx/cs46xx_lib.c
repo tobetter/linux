@@ -3284,11 +3284,8 @@ int snd_cs46xx_start_dsp(struct snd_cs46xx *chip)
 #ifdef CONFIG_SND_CS46XX_NEW_DSP
 	for (i = 0; i < CS46XX_DSP_MODULES; i++) {
 		err = load_firmware(chip, &chip->modules[i], module_names[i]);
-		if (err < 0) {
-			dev_err(chip->card->dev, "firmware load error [%s]\n",
-				   module_names[i]);
+		if (err < 0)
 			return err;
-		}
 		err = cs46xx_dsp_load_module(chip, chip->modules[i]);
 		if (err < 0) {
 			dev_err(chip->card->dev, "image download error [%s]\n",

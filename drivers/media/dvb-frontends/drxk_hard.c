@@ -6282,10 +6282,6 @@ static void load_firmware_cb(const struct firmware *fw,
 
 	dprintk(1, ": %s\n", fw ? "firmware loaded" : "firmware not loaded");
 	if (!fw) {
-		pr_err("Could not load firmware file %s.\n",
-			state->microcode_name);
-		pr_info("Copy %s to your hotplug directory!\n",
-			state->microcode_name);
 		state->microcode_name = NULL;
 
 		/*

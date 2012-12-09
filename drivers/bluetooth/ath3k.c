@@ -422,10 +422,8 @@ static int ath3k_load_patch(struct usb_device *udev)
 		 le32_to_cpu(fw_version.rom_version));
 
 	ret = request_firmware(&firmware, filename, &udev->dev);
-	if (ret < 0) {
-		BT_ERR("Patch file not found %s", filename);
+	if (ret)
 		return ret;
-	}
 
 	pt_rom_version = get_unaligned_le32(firmware->data +
 					    firmware->size - 8);
@@ -485,10 +483,8 @@ static int ath3k_load_syscfg(struct usb_device *udev)
 		le32_to_cpu(fw_version.rom_version), clk_value, ".dfu");
 
 	ret = request_firmware(&firmware, filename, &udev->dev);
-	if (ret < 0) {
-		BT_ERR("Configuration file not found %s", filename);
+	if (ret)
 		return ret;
-	}
 
 	ret = ath3k_load_fwfile(udev, firmware);
 	release_firmware(firmware);

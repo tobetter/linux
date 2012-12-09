@@ -1032,7 +1032,6 @@ static void carl9170_usb_firmware_step2(const struct firmware *fw,
 		return;
 	}
 
-	dev_err(&ar->udev->dev, "firmware not found.\n");
 	carl9170_usb_firmware_failed(ar);
 }
 
