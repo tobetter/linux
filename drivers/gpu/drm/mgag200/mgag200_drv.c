@@ -21,7 +21,7 @@
  * which then performs further device association and calls our graphics init
  * functions
  */
-int mgag200_modeset = -1;
+int mgag200_modeset = 0;
 
 MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
 module_param_named(modeset, mgag200_modeset, int, 0400);
