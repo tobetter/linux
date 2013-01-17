@@ -47,17 +47,6 @@ Module.symvers
 /Module.markers
 
 #
-# Debian directory (make deb-pkg)
-#
-/debian/
-
-#
-# git files that we don't want to ignore even it they are dot-files
-#
-!.gitignore
-!.mailmap
-
-#
 # Generated include files
 #
 include/config
@@ -95,3 +84,10 @@ x509.genkey
 
 # Kconfig presets
 all.config
+
+#
+# Debian packaging: ignore everything at the top level, since it isn't
+# included in our repository
+#
+/*
+!/debian/
