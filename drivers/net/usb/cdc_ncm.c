@@ -52,11 +52,7 @@
 #include <linux/usb/cdc.h>
 #include <linux/usb/cdc_ncm.h>
 
-#if IS_ENABLED(CONFIG_USB_NET_CDC_MBIM)
-static bool prefer_mbim = true;
-#else
 static bool prefer_mbim;
-#endif
 module_param(prefer_mbim, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(prefer_mbim, "Prefer MBIM setting on dual NCM/MBIM functions");
 
