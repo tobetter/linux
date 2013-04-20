@@ -753,7 +753,14 @@ static struct pci_device_id via_pci_table[] = {
 	  .driver_data = UNICHROME_VX900 },
 	{ }
 };
-MODULE_DEVICE_TABLE(pci, via_pci_table);
+
+static const struct pci_device_id via_pci_autoload_table[] __initconst = {
+	/* OLPC XO 1.5 */
+	{ PCI_DEVICE(PCI_VENDOR_ID_VIA, UNICHROME_VX855_DID),
+	  .subvendor = 0x152d, .subdevice = 0x0833 },
+	{ }
+};
+MODULE_DEVICE_TABLE(pci, via_pci_autoload_table);
 
 static struct pci_driver via_driver = {
 	.name		= "viafb",
