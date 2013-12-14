@@ -283,12 +283,15 @@ MODULE_PARM_DESC(path, "customized firmware image search path with a higher prio
 static noinline_for_stack int fw_file_size(struct file *file)
 {
 	struct kstat st;
-	if (vfs_getattr(&file->f_path, &st))
-		return -1;
+	int ret;
+
+	ret = vfs_getattr(&file->f_path, &st);
+	if (ret)
+		return ret;
 	if (!S_ISREG(st.mode))
-		return -1;
+		return -ENOTTY;
 	if (st.size != (int)st.size)
-		return -1;
+		return -EFBIG;
 	return st.size;
 }
 
@@ -299,14 +302,16 @@ static int fw_read_file_contents(struct file *file, struct firmware_buf *fw_buf)
 	int rc;
 
 	size = fw_file_size(file);
-	if (size <= 0)
+	if (size < 0)
+		return size;
+	if (size == 0)
 		return -EINVAL;
 	buf = vmalloc(size);
 	if (!buf)
 		return -ENOMEM;
 	rc = kernel_read(file, 0, buf, size);
 	if (rc != size) {
-		if (rc > 0)
+		if (rc >= 0)
 			rc = -EIO;
 		vfree(buf);
 		return rc;
@@ -333,8 +338,10 @@ static int fw_get_filesystem_firmware(struct device *device,
 		snprintf(path, PATH_MAX, "%s/%s", fw_path[i], buf->fw_id);
 
 		file = filp_open(path, O_RDONLY, 0);
-		if (IS_ERR(file))
+		if (IS_ERR(file)) {
+			rc = PTR_ERR(file);
 			continue;
+		}
 		rc = fw_read_file_contents(file, buf);
 		fput(file);
 		if (rc)
@@ -965,13 +972,6 @@ static void kill_requests_without_uevent(void)
 #endif
 
 #else /* CONFIG_FW_LOADER_USER_HELPER */
-static inline int
-fw_load_from_user_helper(struct firmware *firmware, const char *name,
-			 struct device *device, unsigned int opt_flags,
-			 long timeout)
-{
-	return -ENOENT;
-}
 
 /* No abort during direct loading */
 #define is_fw_load_aborted(buf) false
@@ -1125,6 +1125,7 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 	}
 
 	ret = fw_get_filesystem_firmware(device, fw->priv);
+#ifdef CONFIG_FW_LOADER_USER_HELPER
 	if (ret) {
 		if (opt_flags & FW_OPT_FALLBACK) {
 			dev_warn(device,
@@ -1135,6 +1136,7 @@ _request_firmware(const struct firmware **firmware_p, const char *name,
 						       opt_flags, timeout);
 		}
 	}
+#endif
 
 	if (!ret)
 		ret = assign_firmware_buf(fw, device, opt_flags);
