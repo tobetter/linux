@@ -21,7 +21,7 @@ MODULE_AUTHOR("Stas Sergeev <stsp@users.sourceforge.net>");
 MODULE_DESCRIPTION("PC-Speaker driver");
 MODULE_LICENSE("GPL");
 MODULE_SUPPORTED_DEVICE("{{PC-Speaker, pcsp}}");
-MODULE_ALIAS("platform:pcspkr");
+/*MODULE_ALIAS("platform:pcspkr");*/
 
 static int index = SNDRV_DEFAULT_IDX1;	/* Index 0-MAX */
 static char *id = SNDRV_DEFAULT_STR1;	/* ID for this card */
