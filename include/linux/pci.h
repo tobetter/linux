@@ -1492,7 +1492,9 @@ enum pci_fixup_pass {
 	pci_fixup_resume,	/* pci_device_resume() */
 	pci_fixup_suspend,	/* pci_device_suspend() */
 	pci_fixup_resume_early, /* pci_device_resume_early() */
+#ifndef __GENKSYMS__
 	pci_fixup_suspend_late,	/* pci_device_suspend_late() */
+#endif
 };
 
 /* Anonymous variables would be nice... */
