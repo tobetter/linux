@@ -45,7 +45,16 @@ create_package() {
 	arm64)
 		debarch=arm64 ;;
 	arm*)
-		debarch=arm$(grep -q CONFIG_AEABI=y $KCONFIG_CONFIG && echo el || true) ;;
+		if grep -q CONFIG_AEABI=y $KCONFIG_CONFIG; then
+		    if grep -q CONFIG_VFP=y $KCONFIG_CONFIG; then
+			debarch=armhf
+		    else
+			debarch=armel
+		    fi
+		else
+		    debarch=arm
+		fi
+		;;
 	*)
 		echo "" >&2
 		echo "** ** **  WARNING  ** ** **" >&2
