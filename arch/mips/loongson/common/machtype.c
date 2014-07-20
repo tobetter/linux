@@ -31,6 +31,7 @@ static const char *system_types[] = {
 	[MACH_LEMOTE_A1101]		"lemote-3a-itx-a1101",
 	[MACH_LEMOTE_A1201]		"lemote-2gq-notebook-a1201",
 	[MACH_LEMOTE_A1205]		"lemote-2gq-aio-a1205",
+	[MACH_LOONGSON_3A780E1W]	"loongson-ls3a-rs780e-1w",
 	[MACH_LOONGSON_END]		NULL,
 };
 
