@@ -3235,6 +3235,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 
 	switches=	[HW,M68k]
 
+	syscall.x32=	[KNL,x86_64] Enable/disable use of x32 syscalls on
+			an x86_64 kernel where CONFIG_X86_X32 is enabled.
+			Default depends on CONFIG_X86_X32_DISABLED.
+
 	sysfs.deprecated=0|1 [KNL]
 			Enable/disable old style sysfs layout for old udev
 			on older distributions. When this option is enabled

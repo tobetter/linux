@@ -418,8 +418,12 @@ system_call_fastpath:
 #if __SYSCALL_MASK == ~0
 	cmpq $__NR_syscall_max,%rax
 #else
-	andl $__SYSCALL_MASK,%eax
-	cmpl $__NR_syscall_max,%eax
+	.globl system_call_fast_compare
+	.globl system_call_fast_compare_end
+system_call_fast_compare:
+	cmpq $511,%rax			/* x32 syscalls start at 512 */
+	.byte P6_NOP4
+system_call_fast_compare_end:
 #endif
 	ja badsys
 	movq %r10,%rcx
@@ -537,8 +541,12 @@ tracesys:
 #if __SYSCALL_MASK == ~0
 	cmpq $__NR_syscall_max,%rax
 #else
-	andl $__SYSCALL_MASK,%eax
-	cmpl $__NR_syscall_max,%eax
+	.globl system_call_trace_compare
+	.globl system_call_trace_compare_end
+system_call_trace_compare:
+	cmpq $511,%rax			/* x32 syscalls start at 512 */
+	.byte P6_NOP4
+system_call_trace_compare_end:
 #endif
 	ja   int_ret_from_sys_call	/* RAX(%rsp) set to -ENOSYS above */
 	movq %r10,%rcx	/* fixup for C */
@@ -609,6 +617,16 @@ int_restore_rest:
 	jmp int_with_check
 	CFI_ENDPROC
 END(system_call)
+
+#if __SYSCALL_MASK != ~0
+	/* This replaces the usual comparisons if syscall.x32 is set */
+	.globl system_call_mask_compare
+	.globl system_call_mask_compare_end
+system_call_mask_compare:
+	andl $__SYSCALL_MASK,%eax
+	cmpl $__NR_syscall_max,%eax
+system_call_mask_compare_end:
+#endif
 
 	.macro FORK_LIKE func
 ENTRY(stub_\func)

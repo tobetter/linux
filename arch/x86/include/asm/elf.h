@@ -154,6 +154,12 @@ do {						\
 
 #else /* CONFIG_X86_32 */
 
+#ifdef CONFIG_X86_X32_ABI
+extern bool x32_enabled;
+#else
+#define x32_enabled 0
+#endif
+
 /*
  * This is used to ensure we don't load something for the wrong architecture.
  */
@@ -162,7 +168,7 @@ do {						\
 
 #define compat_elf_check_arch(x)					\
 	(elf_check_arch_ia32(x) ||					\
-	 (IS_ENABLED(CONFIG_X86_X32_ABI) && (x)->e_machine == EM_X86_64))
+	 (x32_enabled && (x)->e_machine == EM_X86_64))
 
 #if __USER32_DS != __USER_DS
 # error "The following code assumes __USER32_DS == __USER_DS"
