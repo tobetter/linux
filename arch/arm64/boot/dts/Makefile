@@ -29,7 +29,8 @@ dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(foreach d,$(dt
 
 always		:= $(dtb-y)
 
-targets += dtbs
+targets += dtbs dtbs_install
+targets += $(dtb-y)
 
 DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
 ifneq ($(DTB_NAMES),)
@@ -42,3 +43,5 @@ targets += $(DTB_LIST)
 dtbs: $(addprefix $(obj)/, $(DTB_LIST))
 
 clean-files := dts/*.dtb *.dtb
+
+dtbs_install: $(addsuffix _dtbinst_, $(dtb-y))
