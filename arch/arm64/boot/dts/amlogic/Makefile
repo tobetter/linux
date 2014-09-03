@@ -1,14 +1,11 @@
+dtb-y += g12a_s905d2_skt.dtb
+dtb-y += g12a_s905d2_skt_buildroot.dtb
+dtb-y += g12a_s905d2_u200.dtb
+dtb-y += g12a_s905d2_u200_buildroot.dtb
+dtb-y += g12a_s905d2_u200_drm_buildroot.dtb
+dtb-y += g12a_s905d2_u220.dtb
+dtb-y += s905d2_odroidc3.dtb
 
-targets += dtbs
-
-DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
-ifneq ($(DTB_NAMES),)
-DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
-else
-DTB_LIST := $(dtb-y)
-endif
-targets += $(DTB_LIST)
-
-dtbs: $(addprefix $(obj)/, $(DTB_LIST))
-
-clean-files := *.dtb
+always		:= $(dtb-y)
+subdir-y	:= $(dts-dirs)
+clean-files	:= *.dtb

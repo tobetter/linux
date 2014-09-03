@@ -71,8 +71,16 @@ zinstall install: vmlinux
 %.dtb: scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
 
-dtbs: scripts
+PHONY += dtbs dtbs_install
+
+dtbs: prepare scripts
 	$(Q)$(MAKE) $(build)=$(boot)/dts dtbs
+
+dtbs_install: prepare scripts
+	$(Q)$(MAKE) $(dtbinst)=$(boot)/dts
+
+Image-dtb Image.gz-dtb: vmlinux scripts dtbs
+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
 PHONY += vdso_install
 vdso_install:
