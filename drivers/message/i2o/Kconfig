@@ -37,6 +37,7 @@ config I2O_LCT_NOTIFY_ON_CHANGES
 
 config I2O_EXT_ADAPTEC
 	bool "Enable Adaptec extensions"
+	depends on !64BIT || BROKEN
 	default y
 	---help---
 	  Say Y for support of raidutils for Adaptec I2O controllers. You also
