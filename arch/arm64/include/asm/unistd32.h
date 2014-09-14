@@ -404,8 +404,11 @@ __SYSCALL(379, sys_finit_module)
 __SYSCALL(380, sys_sched_setattr)
 __SYSCALL(381, sys_sched_getattr)
 __SYSCALL(382, sys_renameat2)
+__SYSCALL(383, sys_ni_syscall) 		/* 383 for seccomp */
+__SYSCALL(384, sys_ni_syscall)			/* 384 for getrandom */
+__SYSCALL(385, sys_memfd_create)
 
-#define __NR_compat_syscalls		383
+#define __NR_compat_syscalls		386
 
 /*
  * Compat syscall numbers used by the AArch64 kernel.
