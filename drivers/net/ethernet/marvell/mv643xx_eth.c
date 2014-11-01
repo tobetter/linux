@@ -3112,11 +3112,11 @@ static int mv643xx_eth_probe(struct platform_device *pdev)
 	dev->watchdog_timeo = 2 * HZ;
 	dev->base_addr = 0;
 
-	dev->features = NETIF_F_SG | NETIF_F_IP_CSUM | NETIF_F_TSO;
+	dev->features = NETIF_F_SG | NETIF_F_IP_CSUM;
 	dev->vlan_features = dev->features;
 
 	dev->features |= NETIF_F_RXCSUM;
-	dev->hw_features = dev->features;
+	dev->hw_features = dev->features  | NETIF_F_TSO;
 
 	dev->priv_flags |= IFF_UNICAST_FLT;
 	dev->gso_max_segs = MV643XX_MAX_TSO_SEGS;
