@@ -2,7 +2,7 @@
     Copyright (c) 1998 - 2002  Frodo Looijaard <frodol@dds.nl>,
     Philip Edelbrock <phil@netroedge.com>, and Mark D. Studebaker
     <mdsxyz123@yahoo.com>
-    Copyright (C) 2007 - 2012  Jean Delvare <jdelvare@suse.de>
+    Copyright (C) 2007 - 2014  Jean Delvare <jdelvare@suse.de>
     Copyright (C) 2010         Intel Corporation,
                                David Woodhouse <dwmw2@infradead.org>
 
@@ -370,6 +370,7 @@ static int i801_transaction(struct i801_priv *priv, int xact)
 {
 	int status;
 	int result;
+	const struct i2c_adapter *adap = &priv->adapter;
 
 	result = i801_check_pre(priv);
 	if (result < 0)
@@ -378,7 +379,14 @@ static int i801_transaction(struct i801_priv *priv, int xact)
 	if (priv->features & FEATURE_IRQ) {
 		outb_p(xact | SMBHSTCNT_INTREN | SMBHSTCNT_START,
 		       SMBHSTCNT(priv));
-		wait_event(priv->waitq, (status = priv->status));
+		result = wait_event_timeout(priv->waitq,
+					    (status = priv->status),
+					    adap->timeout);
+		if (!result) {
+			status = -ETIMEDOUT;
+			dev_warn(&priv->pci_dev->dev,
+				 "Timeout waiting for interrupt!\n");
+		}
 		priv->status = 0;
 		return i801_check_post(priv, status);
 	}
@@ -526,6 +534,7 @@ static int i801_block_transaction_byte_by_byte(struct i801_priv *priv,
 	int smbcmd;
 	int status;
 	int result;
+	const struct i2c_adapter *adap = &priv->adapter;
 
 	result = i801_check_pre(priv);
 	if (result < 0)
@@ -554,7 +563,14 @@ static int i801_block_transaction_byte_by_byte(struct i801_priv *priv,
 		priv->data = &data->block[1];
 
 		outb_p(priv->cmd | SMBHSTCNT_START, SMBHSTCNT(priv));
-		wait_event(priv->waitq, (status = priv->status));
+		result = wait_event_timeout(priv->waitq,
+					    (status = priv->status),
+					    adap->timeout);
+		if (!result) {
+			status = -ETIMEDOUT;
+			dev_warn(&priv->pci_dev->dev,
+				 "Timeout waiting for interrupt!\n");
+		}
 		priv->status = 0;
 		return i801_check_post(priv, status);
 	}
@@ -1207,6 +1223,9 @@ static int i801_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	if (priv->features & (FEATURE_SMBUS_PEC | FEATURE_BLOCK_BUFFER))
 		outb_p(inb_p(SMBAUXCTL(priv)) &
 		       ~(SMBAUXCTL_CRC | SMBAUXCTL_E32B), SMBAUXCTL(priv));
+
+	/* Default timeout in interrupt mode: 200 ms */
+	priv->adapter.timeout = HZ / 5;
 
 	if (priv->features & FEATURE_IRQ) {
 		init_waitqueue_head(&priv->waitq);
