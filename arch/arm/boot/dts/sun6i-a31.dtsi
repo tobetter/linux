@@ -25,6 +25,16 @@
 		serial5 = &uart5;
 	};
 
+	chosen {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		framebuffer0-hdmi {
+			compatible = "simple-framebuffer";
+			status = "disabled";
+		};
+	};
 
 	cpus {
 		enable-method = "allwinner,sun6i-a31";
