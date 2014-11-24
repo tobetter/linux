@@ -546,6 +546,7 @@ static void dsps_musb_reset(struct musb *musb)
 }
 
 static struct musb_platform_ops dsps_ops = {
+	.quirks		= MUSB_INDEXED_EP,
 	.init		= dsps_musb_init,
 	.exit		= dsps_musb_exit,
 
