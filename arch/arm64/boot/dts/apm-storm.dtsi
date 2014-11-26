@@ -283,6 +283,11 @@
 			interrupts = <0x0 0x4c 0x4>;
 		};
 
+		reboot@17000014 {
+			compatible = "apm,xgene-reboot";
+			reg = <0x0 0x17000014 0x0 0x4>;
+		};
+
 		serial1: serial@1c021000 {
 			status = "disabled";
 			device_type = "serial";
