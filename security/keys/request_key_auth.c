@@ -235,7 +235,8 @@ struct key *key_get_instantiation_authkey(key_serial_t target_id)
 		.cred			= current_cred(),
 		.match			= user_match,
 		.match_data		= description,
-		.flags			= KEYRING_SEARCH_LOOKUP_DIRECT,
+		.flags			= (KEYRING_SEARCH_LOOKUP_DIRECT |
+					   KEYRING_SEARCH_DO_STATE_CHECK),
 	};
 	struct key *authkey;
 	key_ref_t authkey_ref;
