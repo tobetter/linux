@@ -431,12 +431,14 @@ i915_gem_object_create_stolen_for_preallocated(struct drm_device *dev,
 	DRM_DEBUG_KMS("creating preallocated stolen object: stolen_offset=%x, gtt_offset=%x, size=%x\n",
 			stolen_offset, gtt_offset, size);
 
-	/* KISS and expect everything to be page-aligned */
-	BUG_ON(stolen_offset & 4095);
-	BUG_ON(size & 4095);
-
 	if (WARN_ON(size == 0))
 		return NULL;
+
+	/* KISS and expect everything to be GTT page-aligned */
+	if ((stolen_offset | size) & 4095) {
+		DRM_DEBUG_KMS("request for unaligned stolen object, denied\n");
+		return NULL;
+	}
 
 	stolen = kzalloc(sizeof(*stolen), GFP_KERNEL);
 	if (!stolen)
