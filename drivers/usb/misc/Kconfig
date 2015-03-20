@@ -248,3 +248,15 @@ config USB_HSIC_USB3503
        select REGMAP_I2C
        help
          This option enables support for SMSC USB3503 HSIC to USB 2.0 Driver.
+
+config USB_CHAOSKEY
+	tristate "ChaosKey random number generator driver support"
+	help
+	  Say Y here if you want to connect an AltusMetrum ChaosKey to
+	  your computer's USB port. The ChaosKey is a hardware random
+	  number generator which hooks into the kernel entropy pool to
+	  ensure a large supply of entropy for /dev/random and
+	  /dev/urandom and also provides direct access via /dev/chaoskeyX
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called chaoskey.
