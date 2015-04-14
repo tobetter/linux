@@ -79,14 +79,6 @@ static inline unsigned long mmap_base(unsigned long rnd)
 	return STACK_TOP - stack_maxrandom_size() - rnd - gap;
 }
 
-unsigned long randomize_et_dyn(void)
-{
-	if (current->flags & PF_RANDOMIZE)
-		return arch_mmap_rnd();
-
-	return 0UL;
-}
-
 #ifndef CONFIG_64BIT
 
 /*
