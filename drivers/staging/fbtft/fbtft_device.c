@@ -20,6 +20,7 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <video/mipi_display.h>
+#include <linux/platform_data/spi-s3c64xx.h>
 
 #include "fbtft.h"
 
@@ -268,6 +269,11 @@ static const s16 waveshare32b_init_sequence[] = {
 	-1, MIPI_DCS_SET_DISPLAY_ON,
 	-1, MIPI_DCS_WRITE_MEMORY_START,
 	-3
+};
+
+static struct s3c64xx_spi_csinfo hktft9340_controller_data = {
+	.fb_delay = 1,
+	.line = 190,
 };
 
 /* Supported displays in alphabetical order */
@@ -841,7 +847,27 @@ static struct fbtft_device_display displays[] = {
 			}
 		}
 	}, {
-
+		.name = "hktft9340",
+		.spi = &(struct spi_board_info) {
+			.modalias = "fb_ili9340",
+			.max_speed_hz = 40000000,
+			.mode = SPI_MODE_0,
+			.controller_data = &hktft9340_controller_data,
+			.platform_data = &(struct fbtft_platform_data) {
+				.display = {
+					.buswidth = 8,
+					.backlight = 1,
+				},
+				.bgr = true,
+				.gpios = (const struct fbtft_gpio []) {
+					{ "reset", 21 },
+					{ "dc", 22 },
+					{ "led", 18 },
+					{},
+				},
+			}
+		}
+	}, {
 		.name = "piscreen",
 		.spi = &(struct spi_board_info) {
 			.modalias = "fb_ili9486",
