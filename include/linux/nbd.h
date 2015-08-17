@@ -41,6 +41,10 @@ struct nbd_device {
 	pid_t pid; /* pid of nbd-client, if attached */
 	int xmit_timeout;
 	int disconnect; /* a disconnect has been requested by user */
+
+	struct timer_list timeout_timer;
+	struct task_struct *task_recv;
+	struct task_struct *task_send;
 };
 
 #endif
