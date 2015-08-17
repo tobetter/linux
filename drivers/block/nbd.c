@@ -406,9 +406,9 @@ static ssize_t pid_show(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	struct gendisk *disk = dev_to_disk(dev);
+	struct nbd_device *nbd = (struct nbd_device *)disk->private_data;
 
-	return sprintf(buf, "%ld\n",
-		(long) ((struct nbd_device *)disk->private_data)->pid);
+	return sprintf(buf, "%d\n", task_pid_nr(nbd->task_recv));
 }
 
 static struct device_attribute pid_attr = {
@@ -424,18 +424,20 @@ static int nbd_do_it(struct nbd_device *nbd)
 	BUG_ON(nbd->magic != NBD_MAGIC);
 
 	sk_set_memalloc(nbd->sock->sk);
-	nbd->pid = task_pid_nr(current);
-	ret = device_create_file(disk_to_dev(nbd->disk), &pid_attr);
-	if (ret) {
-		dev_err(disk_to_dev(nbd->disk), "device_create_file failed!\n");
-		nbd->pid = 0;
-		return ret;
-	}
 
 	nbd->task_recv = current;
 
+	ret = device_create_file(disk_to_dev(nbd->disk), &pid_attr);
+	if (ret) {
+		dev_err(disk_to_dev(nbd->disk), "device_create_file failed!\n");
+		nbd->task_recv = NULL;
+		return ret;
+	}
+
 	while ((req = nbd_read_stat(nbd)) != NULL)
 		nbd_end_request(req);
+
+	device_remove_file(disk_to_dev(nbd->disk), &pid_attr);
 
 	nbd->task_recv = NULL;
 
@@ -449,8 +451,6 @@ static int nbd_do_it(struct nbd_device *nbd)
 		ret = -ETIMEDOUT;
 	}
 
-	device_remove_file(disk_to_dev(nbd->disk), &pid_attr);
-	nbd->pid = 0;
 	return ret;
 }
 
@@ -736,7 +736,7 @@ static int __nbd_ioctl(struct block_device *bdev, struct nbd_device *nbd,
 		struct socket *sock;
 		int error;
 
-		if (nbd->pid)
+		if (nbd->task_recv)
 			return -EBUSY;
 		if (!nbd->sock)
 			return -EINVAL;
