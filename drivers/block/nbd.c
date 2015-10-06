@@ -142,20 +142,22 @@ static void sock_shutdown(struct nbd_device *nbd, int lock)
 static void nbd_xmit_timeout(unsigned long arg)
 {
 	struct nbd_device *nbd = (struct nbd_device *)arg;
-	struct task_struct *task;
+	unsigned long flags;
 
 	if (list_empty(&nbd->queue_head))
 		return;
 
 	nbd->disconnect = 1;
 
-	task = READ_ONCE(nbd->task_recv);
-	if (task)
-		force_sig(SIGKILL, task);
+	spin_lock_irqsave(&nbd->tasks_lock, flags);
 
-	task = READ_ONCE(nbd->task_send);
-	if (task)
+	if (nbd->task_recv)
+		force_sig(SIGKILL, nbd->task_recv);
+
+	if (nbd->task_send)
 		force_sig(SIGKILL, nbd->task_send);
+
+	spin_unlock_irqrestore(&nbd->tasks_lock, flags);
 
 	dev_err(disk_to_dev(nbd->disk), "Connection timed out, killed receiver and sender, shutting down connection\n");
 }
@@ -420,17 +422,24 @@ static int nbd_do_it(struct nbd_device *nbd)
 {
 	struct request *req;
 	int ret;
+	unsigned long flags;
 
 	BUG_ON(nbd->magic != NBD_MAGIC);
 
 	sk_set_memalloc(nbd->sock->sk);
 
+	spin_lock_irqsave(&nbd->tasks_lock, flags);
 	nbd->task_recv = current;
+	spin_unlock_irqrestore(&nbd->tasks_lock, flags);
 
 	ret = device_create_file(disk_to_dev(nbd->disk), &pid_attr);
 	if (ret) {
 		dev_err(disk_to_dev(nbd->disk), "device_create_file failed!\n");
+
+		spin_lock_irqsave(&nbd->tasks_lock, flags);
 		nbd->task_recv = NULL;
+		spin_unlock_irqrestore(&nbd->tasks_lock, flags);
+
 		return ret;
 	}
 
@@ -439,7 +448,9 @@ static int nbd_do_it(struct nbd_device *nbd)
 
 	device_remove_file(disk_to_dev(nbd->disk), &pid_attr);
 
+	spin_lock_irqsave(&nbd->tasks_lock, flags);
 	nbd->task_recv = NULL;
+	spin_unlock_irqrestore(&nbd->tasks_lock, flags);
 
 	if (signal_pending(current)) {
 		siginfo_t info;
@@ -553,8 +564,11 @@ static int nbd_thread(void *data)
 {
 	struct nbd_device *nbd = data;
 	struct request *req;
+	unsigned long flags;
 
+	spin_lock_irqsave(&nbd->tasks_lock, flags);
 	nbd->task_send = current;
+	spin_unlock_irqrestore(&nbd->tasks_lock, flags);
 
 	set_user_nice(current, MIN_NICE);
 	while (!kthread_should_stop() || !list_empty(&nbd->waiting_queue)) {
@@ -589,7 +603,15 @@ static int nbd_thread(void *data)
 		nbd_handle_req(nbd, req);
 	}
 
+	spin_lock_irqsave(&nbd->tasks_lock, flags);
 	nbd->task_send = NULL;
+	spin_unlock_irqrestore(&nbd->tasks_lock, flags);
+
+	/* Clear maybe pending signals */
+	if (signal_pending(current)) {
+		siginfo_t info;
+		dequeue_signal_lock(current, &current->blocked, &info);
+	}
 
 	return 0;
 }
@@ -914,6 +936,7 @@ static int __init nbd_init(void)
 		nbd_dev[i].magic = NBD_MAGIC;
 		INIT_LIST_HEAD(&nbd_dev[i].waiting_queue);
 		spin_lock_init(&nbd_dev[i].queue_lock);
+		spin_lock_init(&nbd_dev[i].tasks_lock);
 		INIT_LIST_HEAD(&nbd_dev[i].queue_head);
 		mutex_init(&nbd_dev[i].tx_lock);
 		init_timer(&nbd_dev[i].timeout_timer);

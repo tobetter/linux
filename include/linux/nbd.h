@@ -42,6 +42,7 @@ struct nbd_device {
 	int disconnect; /* a disconnect has been requested by user */
 
 	struct timer_list timeout_timer;
+	spinlock_t tasks_lock;
 	struct task_struct *task_recv;
 	struct task_struct *task_send;
 };
