@@ -2522,7 +2522,7 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 			return 1;
 		return vmx_get_vmx_msr(vcpu, msr_info->index, &msr_info->data);
 	case MSR_TSC_AUX:
-		if (!to_vmx(vcpu)->rdtscp_enabled)
+		if (!to_vmx(vcpu)->rdtscp_enabled && !msr_info->host_initiated)
 			return 1;
 		/* Otherwise falls through */
 	default:
@@ -2613,7 +2613,7 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_VMX_BASIC ... MSR_IA32_VMX_VMFUNC:
 		return 1; /* they are read-only */
 	case MSR_TSC_AUX:
-		if (!vmx->rdtscp_enabled)
+		if (!vmx->rdtscp_enabled && !msr_info->host_initiated)
 			return 1;
 		/* Check reserved bit, higher 32 bits should be zero */
 		if ((data >> 32) != 0)
