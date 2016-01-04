@@ -95,35 +95,42 @@ static void call_do_xino_fwrite(void *args)
 	*a->errp = do_xino_fwrite(a->func, a->file, a->buf, a->size, a->pos);
 }
 
+static ssize_t xino_fwrite_wkq(au_writef_t func, struct file *file, void *buf,
+			       size_t size, loff_t *pos)
+{
+	ssize_t err;
+	int wkq_err;
+	struct do_xino_fwrite_args args = {
+		.errp	= &err,
+		.func	= func,
+		.file	= file,
+		.buf	= buf,
+		.size	= size,
+		.pos	= pos
+	};
+
+	/*
+	 * it breaks RLIMIT_FSIZE and normal user's limit,
+	 * users should care about quota and real 'filesystem full.'
+	 */
+	wkq_err = au_wkq_wait(call_do_xino_fwrite, &args);
+	if (unlikely(wkq_err))
+		err = wkq_err;
+
+	return err;
+}
+
 ssize_t xino_fwrite(au_writef_t func, struct file *file, void *buf, size_t size,
 		    loff_t *pos)
 {
 	ssize_t err;
 
-	/* todo: signal block and no wkq? */
 	if (rlimit(RLIMIT_FSIZE) == RLIM_INFINITY) {
 		lockdep_off();
 		err = do_xino_fwrite(func, file, buf, size, pos);
 		lockdep_on();
-	} else {
-		/*
-		 * it breaks RLIMIT_FSIZE and normal user's limit,
-		 * users should care about quota and real 'filesystem full.'
-		 */
-		int wkq_err;
-		struct do_xino_fwrite_args args = {
-			.errp	= &err,
-			.func	= func,
-			.file	= file,
-			.buf	= buf,
-			.size	= size,
-			.pos	= pos
-		};
-
-		wkq_err = au_wkq_wait(call_do_xino_fwrite, &args);
-		if (unlikely(wkq_err))
-			err = wkq_err;
-	}
+	} else
+		err = xino_fwrite_wkq(func, file, buf, size, pos);
 
 	return err;
 }
