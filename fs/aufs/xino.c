@@ -53,6 +53,9 @@ ssize_t xino_fread(au_readf_t func, struct file *file, void *kbuf, size_t size,
 
 /* ---------------------------------------------------------------------- */
 
+static ssize_t xino_fwrite_wkq(au_writef_t func, struct file *file, void *buf,
+			       size_t size, loff_t *pos);
+
 static ssize_t do_xino_fwrite(au_writef_t func, struct file *file, void *kbuf,
 			      size_t size, loff_t *pos)
 {
@@ -62,14 +65,26 @@ static ssize_t do_xino_fwrite(au_writef_t func, struct file *file, void *kbuf,
 		void *k;
 		const char __user *u;
 	} buf;
+	int i;
+	const int prevent_endless = 10;
 
+	i = 0;
 	buf.k = kbuf;
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
 	do {
-		/* todo: signal_pending? */
 		err = func(file, buf.u, size, pos);
-	} while (err == -EAGAIN || err == -EINTR);
+		if (err == -EINTR
+		    && !au_wkq_test()
+		    && fatal_signal_pending(current)) {
+			set_fs(oldfs);
+			err = xino_fwrite_wkq(func, file, kbuf, size, pos);
+			BUG_ON(err == -EINTR);
+			oldfs = get_fs();
+			set_fs(KERNEL_DS);
+		}
+	} while (i++ < prevent_endless
+		 && (err == -EAGAIN || err == -EINTR));
 	set_fs(oldfs);
 
 #if 0 /* reserved for future use */
