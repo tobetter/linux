@@ -766,6 +766,32 @@ out:
 	return err;
 }
 
+static int aufs_setfl(struct file *file, unsigned long arg)
+{
+	int err;
+	struct file *h_file;
+	struct super_block *sb;
+
+	sb = file->f_dentry->d_sb;
+	si_read_lock(sb, AuLock_FLUSH | AuLock_NOPLMW);
+	err = au_reval_and_lock_fdi(file, au_reopen_nondir, /*wlock*/0);
+	if (err)
+		goto out;
+
+	di_read_unlock(file->f_dentry, AuLock_IR);
+	h_file = au_hf_top(file);
+	get_file(h_file);
+	fi_read_unlock(file);
+
+	arg |= vfsub_file_flags(file) & FASYNC; /* stop calling h_file->fasync */
+	err = setfl(/*unused fd*/-1, h_file, arg);
+	fput(h_file); /* instead of au_read_post() */
+
+out:
+	si_read_unlock(sb);
+	return err;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /* no one supports this operation, currently */
@@ -803,6 +829,7 @@ const struct file_operations aufs_file_fop = {
 	/* .aio_fsync	= aufs_aio_fsync_nondir, */
 	.fasync		= aufs_fasync,
 	/* .sendpage	= aufs_sendpage, */
+	.setfl		= aufs_setfl,
 	.splice_write	= aufs_splice_write,
 	.splice_read	= aufs_splice_read,
 #if 0
