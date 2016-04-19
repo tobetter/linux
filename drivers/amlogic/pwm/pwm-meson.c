@@ -50,6 +50,8 @@ MODULE_PARM_DESC(npwm , "\n odroid-c1 The number of available pwm (max 2-port)\n
 #define PWM_A   0
 #define PWM_F   1
 #define FIN_FREQ		(24 * 1000)
+#define FREQ_MIN 46         /* 50Hz */
+#define FREQ_MAX 1000000    /* 1MHz */
 #define DUTY_MAX 1024
 
 struct meson_pwm_device {
@@ -139,6 +141,10 @@ static int meson_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	unsigned long temp = 0;
 	int i = 0;
 
+	if ((pwm_freq < FREQ_MIN) || (pwm_freq > FREQ_MAX)) {
+		dev_err(dev, "Can not available freq. (46Hz to 1MHz!!!\n");
+		return -EINVAL;
+	}
 	if ((duty < 0) || (duty > DUTY_MAX)) {
 		dev_err(dev, "Not available duty... error!!!\n");
 		return -EINVAL;

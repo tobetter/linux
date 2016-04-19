@@ -28,7 +28,7 @@ struct pwm_ctrl {
 	int duty0, duty1;
 };
 
-#define FREQ_MIN 10         /* 10Hz */
+#define FREQ_MIN 46         /* 50Hz */
 #define FREQ_MAX 1000000    /* 1MHz */
 #define DUTY_MAX 1024       /* Duty cycle Max */
 
@@ -136,7 +136,7 @@ static ssize_t set_freq0(struct device *dev,
 		return -EINVAL;
 
 	if ((val < FREQ_MIN) || (val > FREQ_MAX)) {
-		dev_err(dev, "PWM_0 : Invalid param. Frequency range is 10Hz to 1MHz\n");
+		dev_err(dev, "PWM_0 : Invalid param. Frequency range is 46Hz to 1MHz\n");
 		return count;
 	}
 	dev_dbg(dev, "PWM_0 : %s [%d]\n", __func__, val);
@@ -287,7 +287,7 @@ static ssize_t set_freq1(struct device *dev,
 		return -EINVAL;
 
 	if ((val < FREQ_MIN) || (val > FREQ_MAX)) {
-		dev_err(dev, "PWM_1 : Invalid param. Frequency range is 10Hz to 1MHz\n");
+		dev_err(dev, "PWM_1 : Invalid param. Frequency range is 46Hz to 1MHz\n");
 		return count;
 	}
 	dev_dbg(dev, "PWM_1 : %s [%d]\n", __func__, val);
