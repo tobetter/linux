@@ -2551,6 +2551,15 @@ static void hdmitx_setupirq(struct hdmitx_dev *phdev)
 	r = request_irq(phdev->irq_hpd, &intr_handler,
 			IRQF_SHARED, "hdmitx",
 			(void *)phdev);
+
+	if (disableHPD)	{
+		phdev->hdmitx_event |= HDMI_TX_HPD_PLUGIN;
+		phdev->hdmitx_event &= ~HDMI_TX_HPD_PLUGOUT;
+		PREPARE_DELAYED_WORK(&phdev->work_hpd_plugin,
+			hdmitx_hpd_plugin_handler);
+		queue_delayed_work(phdev->hdmi_wq,
+			&phdev->work_hpd_plugin, HZ/3);
+	}
 }
 
 static void hdmitx_uninit(struct hdmitx_dev *phdev)
