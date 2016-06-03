@@ -629,7 +629,7 @@ static int crport_ctrl_write(struct exynos5_usbdrd_phy *phy_drd,
  * SuperSpeed requirements on Exynos5420 and Exynos5800 systems,
  * which have 28nm USB 3.0 DRD PHY.
  */
-static void exynos5420_usbdrd_phy_calibrate(struct exynos5_usbdrd_phy *phy_drd)
+static int exynos5420_usbdrd_phy_calibrate(struct exynos5_usbdrd_phy *phy_drd)
 {
 	unsigned int temp;
 	int ret = 0;
