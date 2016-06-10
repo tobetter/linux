@@ -24,7 +24,7 @@
 #include <linux/gpio.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
-#include <media/gpio-ir-recv.h>
+#include <linux/platform_data/media/gpio-ir-recv.h>
 
 static unsigned gpio_nr = -1;
 module_param(gpio_nr, uint, 0);
