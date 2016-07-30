@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/phy/phy.h>
 #include <linux/usb/phy.h>
 #include <linux/slab.h>
 #include <linux/acpi.h>
@@ -242,9 +243,35 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (ret)
 		goto disable_usb_phy;
 
+	/* Get possile USB 3.0 type PHY (PIPE3) available with xhci */
+	xhci->shared_hcd->phy = devm_phy_get(pdev->dev.parent, "usb3-phy");
+	if (IS_ERR(xhci->shared_hcd->phy)) {
+		ret = PTR_ERR(xhci->shared_hcd->phy);
+		if (ret == -EPROBE_DEFER) {
+			goto put_usb3_hcd;
+		} else if (ret != -ENOSYS && ret != -ENODEV) {
+			xhci->shared_hcd->phy = NULL;
+			dev_warn(&pdev->dev,
+				 "Error retrieving usb3 phy: %d\n", ret);
+		}
+	}
+
 	ret = usb_add_hcd(xhci->shared_hcd, irq, IRQF_SHARED);
 	if (ret)
 		goto dealloc_usb2_hcd;
+
+	/* Initialize and power-on USB 3.0 PHY */
+	xhci->shared_hcd->phy->init_count = 0;
+	ret = phy_init(xhci->shared_hcd->phy);
+	if (ret)
+		goto dealloc_usb3_hcd;
+
+	xhci->shared_hcd->phy->power_count = 0;
+	ret = phy_power_on(xhci->shared_hcd->phy);
+	if (ret) {
+		phy_exit(xhci->shared_hcd->phy);
+		goto dealloc_usb3_hcd;
+	}
 
 	return 0;
 
@@ -254,6 +281,9 @@ dealloc_usb2_hcd:
 
 disable_usb_phy:
 	usb_phy_shutdown(hcd->usb_phy);
+
+dealloc_usb3_hcd:
+	usb_remove_hcd(xhci->shared_hcd);
 
 put_usb3_hcd:
 	usb_put_hcd(xhci->shared_hcd);
@@ -274,8 +304,14 @@ static int xhci_plat_remove(struct platform_device *dev)
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
 	struct clk *clk = xhci->clk;
 
+	phy_power_off(xhci->shared_hcd->phy);
+	phy_exit(xhci->shared_hcd->phy);
+
 	usb_remove_hcd(xhci->shared_hcd);
 	usb_phy_shutdown(hcd->usb_phy);
+
+	phy_power_off(hcd->phy);
+	phy_exit(hcd->phy);
 
 	usb_remove_hcd(hcd);
 	usb_put_hcd(xhci->shared_hcd);
@@ -293,6 +329,8 @@ static int xhci_plat_suspend(struct device *dev)
 	struct usb_hcd	*hcd = dev_get_drvdata(dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
 
+	phy_exit(hcd->phy);
+
 	/*
 	 * xhci_suspend() needs `do_wakeup` to know whether host is allowed
 	 * to do wakeup during suspend. Since xhci_plat_suspend is currently
@@ -308,6 +346,11 @@ static int xhci_plat_resume(struct device *dev)
 {
 	struct usb_hcd	*hcd = dev_get_drvdata(dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
+	int ret;
+
+	ret = phy_init(hcd->phy);
+	if (ret)
+		return ret;
 
 	return xhci_resume(xhci, 0);
 }
