@@ -14012,6 +14012,7 @@ static int tg3_set_coalesce(struct net_device *dev, struct ethtool_coalesce *ec)
 	if ((ec->rx_coalesce_usecs > MAX_RXCOL_TICKS) ||
 	    (!ec->rx_coalesce_usecs) ||
 	    (ec->tx_coalesce_usecs > MAX_TXCOL_TICKS) ||
+	    (!ec->tx_coalesce_usecs) ||
 	    (ec->rx_max_coalesced_frames > MAX_RXMAX_FRAMES) ||
 	    (ec->tx_max_coalesced_frames > MAX_TXMAX_FRAMES) ||
 	    (ec->rx_coalesce_usecs_irq > max_rxcoal_tick_int) ||
@@ -14020,16 +14021,6 @@ static int tg3_set_coalesce(struct net_device *dev, struct ethtool_coalesce *ec)
 	    (ec->tx_max_coalesced_frames_irq > MAX_TXCOAL_MAXF_INT) ||
 	    (ec->stats_block_coalesce_usecs > max_stat_coal_ticks) ||
 	    (ec->stats_block_coalesce_usecs < min_stat_coal_ticks))
-		return -EINVAL;
-
-	/* No rx interrupts will be generated if both are zero */
-	if ((ec->rx_coalesce_usecs == 0) &&
-	    (ec->rx_max_coalesced_frames == 0))
-		return -EINVAL;
-
-	/* No tx interrupts will be generated if both are zero */
-	if ((ec->tx_coalesce_usecs == 0) &&
-	    (ec->tx_max_coalesced_frames == 0))
 		return -EINVAL;
 
 	/* Only copy relevant parameters, ignore all others. */
@@ -18131,13 +18122,13 @@ static pci_ers_result_t tg3_io_error_detected(struct pci_dev *pdev,
 
 	rtnl_lock();
 
-	/* We needn't recover from permanent error */
-	if (state == pci_channel_io_frozen)
-		tp->pcierr_recovery = true;
-
 	/* We probably don't have netdev yet */
 	if (!netdev || !netif_running(netdev))
 		goto done;
+
+	/* We needn't recover from permanent error */
+	if (state == pci_channel_io_frozen)
+		tp->pcierr_recovery = true;
 
 	tg3_phy_stop(tp);
 
@@ -18235,7 +18226,7 @@ static void tg3_io_resume(struct pci_dev *pdev)
 
 	rtnl_lock();
 
-	if (!netif_running(netdev))
+	if (!netdev || !netif_running(netdev))
 		goto done;
 
 	tg3_full_lock(tp, 0);
