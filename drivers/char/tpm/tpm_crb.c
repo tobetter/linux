@@ -77,7 +77,6 @@ enum crb_flags {
 
 struct crb_priv {
 	unsigned int flags;
-	struct resource res;
 	void __iomem *iobase;
 	struct crb_control_area __iomem *cca;
 	u8 __iomem *cmd;
@@ -143,6 +142,11 @@ static int crb_send(struct tpm_chip *chip, u8 *buf, size_t len)
 	struct crb_priv *priv = chip->vendor.priv;
 	int rc = 0;
 
+	/* Zero the cancel register so that the next command will not get
+	 * canceled.
+	 */
+	iowrite32(0, &priv->cca->cancel);
+
 	if (len > ioread32(&priv->cca->cmd_size)) {
 		dev_err(&chip->dev,
 			"invalid command count value %x %zx\n",
@@ -176,8 +180,6 @@ static void crb_cancel(struct tpm_chip *chip)
 
 	if ((priv->flags & CRB_FL_ACPI_START) && crb_do_acpi_start(chip))
 		dev_err(&chip->dev, "ACPI Start failed\n");
-
-	iowrite32(0, &priv->cca->cancel);
 }
 
 static bool crb_req_canceled(struct tpm_chip *chip, u8 status)
@@ -224,19 +226,19 @@ static int crb_init(struct acpi_device *device, struct crb_priv *priv)
 
 static int crb_check_resource(struct acpi_resource *ares, void *data)
 {
-	struct crb_priv *priv = data;
+	struct resource *io_res = data;
 	struct resource res;
 
 	if (acpi_dev_resource_memory(ares, &res)) {
-		priv->res = res;
-		priv->res.name = NULL;
+		*io_res = res;
+		io_res->name = NULL;
 	}
 
 	return 1;
 }
 
 static void __iomem *crb_map_res(struct device *dev, struct crb_priv *priv,
-				 u64 start, u32 size)
+				 struct resource *io_res, u64 start, u32 size)
 {
 	struct resource new_res = {
 		.start	= start,
@@ -246,53 +248,74 @@ static void __iomem *crb_map_res(struct device *dev, struct crb_priv *priv,
 
 	/* Detect a 64 bit address on a 32 bit system */
 	if (start != new_res.start)
-		return ERR_PTR(-EINVAL);
+		return (void __iomem *) ERR_PTR(-EINVAL);
 
-	if (!resource_contains(&priv->res, &new_res))
+	if (!resource_contains(io_res, &new_res))
 		return devm_ioremap_resource(dev, &new_res);
 
-	return priv->iobase + (new_res.start - priv->res.start);
+	return priv->iobase + (new_res.start - io_res->start);
 }
 
 static int crb_map_io(struct acpi_device *device, struct crb_priv *priv,
 		      struct acpi_table_tpm2 *buf)
 {
 	struct list_head resources;
+	struct resource io_res;
 	struct device *dev = &device->dev;
-	u64 pa;
+	u64 cmd_pa;
+	u32 cmd_size;
+	u64 rsp_pa;
+	u32 rsp_size;
 	int ret;
 
 	INIT_LIST_HEAD(&resources);
 	ret = acpi_dev_get_resources(device, &resources, crb_check_resource,
-				     priv);
+				     &io_res);
 	if (ret < 0)
 		return ret;
 	acpi_dev_free_resource_list(&resources);
 
-	if (resource_type(&priv->res) != IORESOURCE_MEM) {
+	if (resource_type(&io_res) != IORESOURCE_MEM) {
 		dev_err(dev,
 			FW_BUG "TPM2 ACPI table does not define a memory resource\n");
 		return -EINVAL;
 	}
 
-	priv->iobase = devm_ioremap_resource(dev, &priv->res);
+	priv->iobase = devm_ioremap_resource(dev, &io_res);
 	if (IS_ERR(priv->iobase))
 		return PTR_ERR(priv->iobase);
 
-	priv->cca = crb_map_res(dev, priv, buf->control_address, 0x1000);
+	priv->cca = crb_map_res(dev, priv, &io_res, buf->control_address,
+				sizeof(struct crb_control_area));
 	if (IS_ERR(priv->cca))
 		return PTR_ERR(priv->cca);
 
-	pa = ((u64) ioread32(&priv->cca->cmd_pa_high) << 32) |
-	      (u64) ioread32(&priv->cca->cmd_pa_low);
-	priv->cmd = crb_map_res(dev, priv, pa, ioread32(&priv->cca->cmd_size));
+	cmd_pa = ((u64) ioread32(&priv->cca->cmd_pa_high) << 32) |
+		  (u64) ioread32(&priv->cca->cmd_pa_low);
+	cmd_size = ioread32(&priv->cca->cmd_size);
+	priv->cmd = crb_map_res(dev, priv, &io_res, cmd_pa, cmd_size);
 	if (IS_ERR(priv->cmd))
 		return PTR_ERR(priv->cmd);
 
-	memcpy_fromio(&pa, &priv->cca->rsp_pa, 8);
-	pa = le64_to_cpu(pa);
-	priv->rsp = crb_map_res(dev, priv, pa, ioread32(&priv->cca->rsp_size));
-	return PTR_ERR_OR_ZERO(priv->rsp);
+	memcpy_fromio(&rsp_pa, &priv->cca->rsp_pa, 8);
+	rsp_pa = le64_to_cpu(rsp_pa);
+	rsp_size = ioread32(&priv->cca->rsp_size);
+
+	if (cmd_pa != rsp_pa) {
+		priv->rsp = crb_map_res(dev, priv, &io_res, rsp_pa, rsp_size);
+		return PTR_ERR_OR_ZERO(priv->rsp);
+	}
+
+	/* According to the PTP specification, overlapping command and response
+	 * buffer sizes must be identical.
+	 */
+	if (cmd_size != rsp_size) {
+		dev_err(dev, FW_BUG "overlapping command and response buffer sizes are not identical");
+		return -EINVAL;
+	}
+
+	priv->rsp = priv->cmd;
+	return 0;
 }
 
 static int crb_acpi_add(struct acpi_device *device)

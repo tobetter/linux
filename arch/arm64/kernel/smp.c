@@ -201,12 +201,6 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 	return ret;
 }
 
-static void smp_store_cpu_info(unsigned int cpuid)
-{
-	store_cpu_topology(cpuid);
-	numa_store_cpu_info(cpuid);
-}
-
 /*
  * This is the secondary CPU boot entry.  We're using this CPUs
  * idle thread stack, but a set of temporary page tables.
@@ -254,7 +248,7 @@ asmlinkage void secondary_start_kernel(void)
 	 */
 	notify_cpu_starting(cpu);
 
-	smp_store_cpu_info(cpu);
+	store_cpu_topology(cpu);
 
 	/*
 	 * OK, now it's safe to let the boot CPU continue.  Wait for
@@ -267,7 +261,6 @@ asmlinkage void secondary_start_kernel(void)
 	set_cpu_online(cpu, true);
 	complete(&cpu_running);
 
-	local_dbg_enable();
 	local_irq_enable();
 	local_async_enable();
 
@@ -437,9 +430,9 @@ void __init smp_cpus_done(unsigned int max_cpus)
 
 void __init smp_prepare_boot_cpu(void)
 {
+	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
 	cpuinfo_store_boot_cpu();
 	save_boot_cpu_run_el();
-	set_my_cpu_offset(per_cpu_offset(smp_processor_id()));
 }
 
 static u64 __init of_get_cpu_mpidr(struct device_node *dn)
@@ -688,10 +681,20 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 {
 	int err;
 	unsigned int cpu;
+	unsigned int this_cpu;
 
 	init_cpu_topology();
 
-	smp_store_cpu_info(smp_processor_id());
+	this_cpu = smp_processor_id();
+	store_cpu_topology(this_cpu);
+	numa_store_cpu_info(this_cpu);
+
+	/*
+	 * If UP is mandated by "nosmp" (which implies "maxcpus=0"), don't set
+	 * secondary CPUs present.
+	 */
+	if (max_cpus == 0)
+		return;
 
 	/*
 	 * Initialise the present map (which describes the set of CPUs
@@ -711,6 +714,7 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 			continue;
 
 		set_cpu_present(cpu, true);
+		numa_store_cpu_info(cpu);
 	}
 }
 

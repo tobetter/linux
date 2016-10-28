@@ -876,6 +876,9 @@ void pnfs_clear_layoutreturn_waitbit(struct pnfs_layout_hdr *lo)
 static bool
 pnfs_prepare_layoutreturn(struct pnfs_layout_hdr *lo)
 {
+	/* Serialise LAYOUTGET/LAYOUTRETURN */
+	if (atomic_read(&lo->plh_outstanding) != 0)
+		return false;
 	if (test_and_set_bit(NFS_LAYOUT_RETURN, &lo->plh_flags))
 		return false;
 	lo->plh_return_iomode = 0;
@@ -1505,7 +1508,7 @@ pnfs_update_layout(struct inode *ino,
 	struct pnfs_layout_segment *lseg = NULL;
 	nfs4_stateid stateid;
 	long timeout = 0;
-	unsigned long giveup = jiffies + rpc_get_timeout(server->client);
+	unsigned long giveup = jiffies + (clp->cl_lease_time << 1);
 	bool first;
 
 	if (!pnfs_enabled_sb(NFS_SERVER(ino))) {
@@ -1527,6 +1530,7 @@ pnfs_update_layout(struct inode *ino,
 	}
 
 lookup_again:
+	nfs4_client_recover_expired_lease(clp);
 	first = false;
 	spin_lock(&ino->i_lock);
 	lo = pnfs_find_alloc_layout(ino, ctx, gfp_flags);
@@ -1645,33 +1649,44 @@ lookup_again:
 	lseg = send_layoutget(lo, ctx, &stateid, &arg, &timeout, gfp_flags);
 	trace_pnfs_update_layout(ino, pos, count, iomode, lo, lseg,
 				 PNFS_UPDATE_LAYOUT_SEND_LAYOUTGET);
+	atomic_dec(&lo->plh_outstanding);
 	if (IS_ERR(lseg)) {
 		switch(PTR_ERR(lseg)) {
-		case -ERECALLCONFLICT:
+		case -EBUSY:
 			if (time_after(jiffies, giveup))
 				lseg = NULL;
+			break;
+		case -ERECALLCONFLICT:
+			/* Huh? We hold no layouts, how is there a recall? */
+			if (first) {
+				lseg = NULL;
+				break;
+			}
+			/* Destroy the existing layout and start over */
+			if (time_after(jiffies, giveup))
+				pnfs_destroy_layout(NFS_I(ino));
 			/* Fallthrough */
 		case -EAGAIN:
-			pnfs_put_layout_hdr(lo);
-			if (first)
-				pnfs_clear_first_layoutget(lo);
-			if (lseg) {
-				trace_pnfs_update_layout(ino, pos, count,
-					iomode, lo, lseg, PNFS_UPDATE_LAYOUT_RETRY);
-				goto lookup_again;
-			}
-			/* Fallthrough */
+			break;
 		default:
 			if (!nfs_error_is_fatal(PTR_ERR(lseg))) {
 				pnfs_layout_clear_fail_bit(lo, pnfs_iomode_to_fail_bit(iomode));
 				lseg = NULL;
 			}
+			goto out_put_layout_hdr;
+		}
+		if (lseg) {
+			if (first)
+				pnfs_clear_first_layoutget(lo);
+			trace_pnfs_update_layout(ino, pos, count,
+				iomode, lo, lseg, PNFS_UPDATE_LAYOUT_RETRY);
+			pnfs_put_layout_hdr(lo);
+			goto lookup_again;
 		}
 	} else {
 		pnfs_layout_clear_fail_bit(lo, pnfs_iomode_to_fail_bit(iomode));
 	}
 
-	atomic_dec(&lo->plh_outstanding);
 out_put_layout_hdr:
 	if (first)
 		pnfs_clear_first_layoutget(lo);
