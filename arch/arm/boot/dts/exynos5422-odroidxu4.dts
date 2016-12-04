@@ -25,6 +25,34 @@
 	gpioleds {
 		/delete-node/ redled;
 	};
+
+	pinctrl@13400000 {
+		key_pullnone: key-pullnone {
+			samsung,pins = "gpx0-3";
+			samsung,pin-pud = <0>;
+		};
+	};
+
+
+	gpio_keys {
+		compatible = "gpio-keys";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <100>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&key_pullnone>;
+
+		button@1 {
+			label = "gpio-keys: KEY_POWER";
+			interrupts = <3 0 0>;
+			interrupt-parent = <&gpx0>;
+			linux,code = <116>;
+			gpios = <&gpx0 3 0xf>;
+			gpio-key,wakeup = <1>;
+		};
+	};
+
+
 };
 
 &usbdrd_dwc3_1 {
