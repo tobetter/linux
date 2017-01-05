@@ -143,6 +143,33 @@ struct hdmi_context {
 	bool				powered;
 };
 
+static bool gdvi_mode = false;
+static bool gEnableHPD = true;
+
+static int __init dvi_force_enable(char *str)
+{
+	if (!strcmp(str, "dvi")) {
+		gdvi_mode = true;
+		pr_info("hdmi: using DVI mode\n");
+	} else {
+		gdvi_mode = false;
+		pr_info("hdmi: using HDMI mode\n");
+	}
+
+	return 0;
+}
+__setup("vout=", dvi_force_enable);
+
+static int __init hdmi_hpd_enable(char *str)
+{
+	if (!strcmp(str, "false")) {
+		gEnableHPD = false;
+	}
+
+	return 0;
+}
+__setup("HPD=", hdmi_hpd_enable);
+
 static inline struct hdmi_context *encoder_to_hdmi(struct drm_encoder *e)
 {
 	return container_of(e, struct hdmi_context, encoder);
@@ -843,6 +870,9 @@ static enum drm_connector_status hdmi_detect(struct drm_connector *connector,
 {
 	struct hdmi_context *hdata = connector_to_hdmi(connector);
 
+	if (!gEnableHPD)
+		return connector_status_connected;
+
 	if (gpiod_get_value(hdata->hpd_gpio))
 		return connector_status_connected;
 
@@ -882,7 +912,10 @@ static int hdmi_get_modes(struct drm_connector *connector)
 	if (!edid)
 		return -ENODEV;
 
-	hdata->dvi_mode = !drm_detect_hdmi_monitor(edid);
+	if (gdvi_mode)
+		hdata->dvi_mode = true;
+	else
+		hdata->dvi_mode = !drm_detect_hdmi_monitor(edid);
 	DRM_DEV_DEBUG_KMS(hdata->dev, "%s : width[%d] x height[%d]\n",
 			  (hdata->dvi_mode ? "dvi monitor" : "hdmi monitor"),
 			  edid->width_cm, edid->height_cm);
@@ -1580,6 +1613,9 @@ static int hdmi_audio_hw_params(struct device *dev, void *data,
 {
 	struct hdmi_context *hdata = dev_get_drvdata(dev);
 
+	if (hdata->dvi_mode)
+		return 0;
+
 	if (daifmt->fmt != HDMI_I2S || daifmt->bit_clk_inv ||
 	    daifmt->frame_clk_inv || daifmt->bit_clk_master ||
 	    daifmt->frame_clk_master) {
@@ -1966,6 +2002,7 @@ static int hdmi_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, hdata);
 
 	hdata->dev = dev;
+	hdata->dvi_mode = gdvi_mode;
 
 	mutex_init(&hdata->mutex);
 
