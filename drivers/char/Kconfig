@@ -470,6 +470,15 @@ config ADI
 	  and SSM (Silicon Secured Memory).  Intended consumers of this
 	  driver include crash and makedumpfile.
 
+config EXYNOS_GPIOMEM
+	tristate "/dev/gpiomem rootless GPIO access via mmap() on the EXYNOS"
+	default m
+	help
+	  Provides users with root-free access to the GPIO registers
+	  on EXYNOS. Calling mmap(/dev/gpiomem) will map the GPIO register
+	  page to the user's pointer. This drvier can allow to access gpio
+	  memory area in user account.
+
 endmenu
 
 config RANDOM_TRUST_CPU
