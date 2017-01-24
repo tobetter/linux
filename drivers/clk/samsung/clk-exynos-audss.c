@@ -128,7 +128,7 @@ static void exynos_audss_clk_teardown(void)
 /* register exynos_audss clocks */
 static int exynos_audss_clk_probe(struct platform_device *pdev)
 {
-	const char *mout_audss_p[] = {"fin_pll", "fout_epll"};
+	const char *mout_audss_p[] = {"fin_pll", "mout_mau_epll_user"};
 	const char *mout_i2s_p[] = {"mout_audss", "cdclk0", "sclk_audio0"};
 	const char *sclk_pcm_p = "sclk_pcm0";
 	struct clk *pll_ref, *pll_in, *cdclk, *sclk_audio, *sclk_pcm_in;
@@ -141,8 +141,7 @@ static int exynos_audss_clk_probe(struct platform_device *pdev)
 	if (!variant)
 		return -EINVAL;
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	reg_base = devm_ioremap_resource(&pdev->dev, res);
+	reg_base = of_iomap(pdev->dev.of_node, 0);
 	if (IS_ERR(reg_base)) {
 		dev_err(&pdev->dev, "failed to map audss registers\n");
 		return PTR_ERR(reg_base);
@@ -160,23 +159,28 @@ static int exynos_audss_clk_probe(struct platform_device *pdev)
 	clk_data->num = variant->num_clks;
 	clk_table = clk_data->hws;
 
+#if 0	// ODROID
+	epll = devm_clk_get(&pdev->dev, "fout_epll");
+	ret = clk_prepare_enable(epll);
+	if (ret) {
+		dev_err(&pdev->dev,
+			"failed to prepare the epll clock\n");
+		return ret;
+	}
+	clk_set_rate(epll, 180633600);
+	dev_info(&pdev->dev, "epll %ld\n", clk_get_rate(epll));
+	clk_put(epll);
+
+	clk_data.clks = clk_table;
+	clk_data.clk_num = variant->num_clks;
+#endif
+
 	pll_ref = devm_clk_get(&pdev->dev, "pll_ref");
 	pll_in = devm_clk_get(&pdev->dev, "pll_in");
 	if (!IS_ERR(pll_ref))
 		mout_audss_p[0] = __clk_get_name(pll_ref);
 	if (!IS_ERR(pll_in)) {
 		mout_audss_p[1] = __clk_get_name(pll_in);
-
-		if (variant->enable_epll) {
-			epll = pll_in;
-
-			ret = clk_prepare_enable(epll);
-			if (ret) {
-				dev_err(&pdev->dev,
-					"failed to prepare the epll clock\n");
-				return ret;
-			}
-		}
 	}
 	clk_table[EXYNOS_MOUT_AUDSS] = clk_hw_register_mux(NULL, "mout_audss",
 				mout_audss_p, ARRAY_SIZE(mout_audss_p),
@@ -288,7 +292,17 @@ static struct platform_driver exynos_audss_clk_driver = {
 	.remove = exynos_audss_clk_remove,
 };
 
-module_platform_driver(exynos_audss_clk_driver);
+static int __init exynos_audss_clk_init(void)
+{
+	return platform_driver_register(&exynos_audss_clk_driver);
+}
+core_initcall(exynos_audss_clk_init);
+
+static void __exit exynos_audss_clk_exit(void)
+{
+	platform_driver_unregister(&exynos_audss_clk_driver);
+}
+module_exit(exynos_audss_clk_exit);
 
 MODULE_AUTHOR("Padmavathi Venna <padma.v@samsung.com>");
 MODULE_DESCRIPTION("Exynos Audio Subsystem Clock Controller");
