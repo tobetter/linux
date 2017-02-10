@@ -6307,7 +6307,7 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 			if (IS_ENABLED(CONFIG_HPERF_HMP) && sync)
 				new_cpu = prev_cpu;
 			else
-				new_cpu = select_idle_sibling(p, prev_cpu);
+				new_cpu = select_idle_sibling(p, prev_cpu, new_cpu);
 	} else {
 #ifdef CONFIG_HPERF_HMP
 		new_cpu = hmp_select_task_rq_fair(p);
@@ -8583,13 +8583,13 @@ static int is_hmp_imbalance(struct sched_domain *sd)
 static int hmp_can_migrate_task(struct task_struct *p, struct lb_env *env)
 {
 	if (!cpumask_test_cpu(env->dst_cpu, tsk_cpus_allowed(p))) {
-		schedstat_inc(p, se.statistics.nr_failed_migrations_affine);
+		schedstat_inc(p->se.statistics.nr_failed_migrations_affine);
 		return 0;
 	}
 	env->flags &= ~LBF_ALL_PINNED;
 
 	if (task_running(env->src_rq, p)) {
-		schedstat_inc(p, se.statistics.nr_failed_migrations_running);
+		schedstat_inc(p->se.statistics.nr_failed_migrations_running);
 		return 0;
 	}
 	return 1;
@@ -8623,7 +8623,7 @@ detach_specified_task(struct task_struct *p, struct lb_env *env)
 	 * is called, so we can safely collect move_task()
 	 * stats here rather than inside move_task().
 	 */
-	schedstat_inc(env->sd, lb_gained[env->idle]);
+	schedstat_inc(env->sd->lb_gained[env->idle]);
 	return p;
 exit:
 	p->se.migrate_candidate = 0;
@@ -8673,14 +8673,14 @@ static unsigned migrate_runnable_task(struct task_struct *migrate_task,
 			.idle		= CPU_NOT_IDLE,
 		};
 
-		schedstat_inc(sd, alb_count);
+		schedstat_inc(sd->alb_count);
 		p = detach_specified_task(migrate_task, &env);
 		if (p) {
 			migrate_task->se.last_migration = jiffies;
-			schedstat_inc(sd, alb_pushed);
+			schedstat_inc(sd->alb_pushed);
 			ld_moved = migrate_task->se.load.weight;
 		} else
-			schedstat_inc(sd, alb_failed);
+			schedstat_inc(sd->alb_failed);
 	}
 	rcu_read_unlock();
 
