@@ -42,6 +42,7 @@
 #include <linux/sched.h>
 #include <linux/seq_file.h>
 #include <linux/kallsyms.h>
+#include <linux/pid_namespace.h>
 
 #include <asm/uaccess.h>
 
@@ -394,6 +395,13 @@ static ssize_t tstats_write(struct file *file, const char __user *buf,
 
 static int tstats_open(struct inode *inode, struct file *filp)
 {
+	/*
+	 * We don't filter PIDs, so must only allow access from initial
+	 * PID namespace.
+	 */
+	if (task_active_pid_ns(current) != &init_pid_ns)
+		return -EPERM;
+
 	return single_open(filp, tstats_show, NULL);
 }
 
