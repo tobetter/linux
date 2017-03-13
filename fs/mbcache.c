@@ -529,6 +529,7 @@ mb_cache_entry_alloc(struct mb_cache *cache, gfp_t gfp_flags)
 					!list_empty(&ce->e_lru_list)) {
 					hlist_bl_unlock(ce->e_index_hash_p);
 					hlist_bl_unlock(ce->e_block_hash_p);
+					cond_resched();
 					l = &mb_cache_lru_list;
 					spin_lock(&mb_cache_spinlock);
 					continue;
