@@ -314,23 +314,26 @@ static void mixer_cfg_gfx_blend(struct mixer_context *ctx, unsigned int win,
 	u32 val;
 
 	val  = MXR_GRP_CFG_COLOR_KEY_DISABLE; /* no blank key */
-	switch (pixel_alpha) {
-	case DRM_MODE_BLEND_PIXEL_NONE:
-		break;
-	case DRM_MODE_BLEND_COVERAGE:
-		val |= MXR_GRP_CFG_PIXEL_BLEND_EN;
-		break;
-	case DRM_MODE_BLEND_PREMULTI:
-	default:
-		val |= MXR_GRP_CFG_BLEND_PRE_MUL;
-		val |= MXR_GRP_CFG_PIXEL_BLEND_EN;
-		break;
+	if (win) {
+		switch (pixel_alpha) {
+		case DRM_MODE_BLEND_PIXEL_NONE:
+			break;
+		case DRM_MODE_BLEND_COVERAGE:
+			val |= MXR_GRP_CFG_PIXEL_BLEND_EN;
+			break;
+		case DRM_MODE_BLEND_PREMULTI:
+		default:
+			val |= MXR_GRP_CFG_BLEND_PRE_MUL;
+			val |= MXR_GRP_CFG_PIXEL_BLEND_EN;
+			break;
+		}
+
+		if (alpha != DRM_BLEND_ALPHA_OPAQUE) {
+			val |= MXR_GRP_CFG_WIN_BLEND_EN;
+			val |= win_alpha;
+		}
 	}
 
-	if (alpha != DRM_BLEND_ALPHA_OPAQUE) {
-		val |= MXR_GRP_CFG_WIN_BLEND_EN;
-		val |= win_alpha;
-	}
 	mixer_reg_writemask(ctx, MXR_GRAPHIC_CFG(win),
 			    val, MXR_GRP_CFG_MISC_MASK);
 }
