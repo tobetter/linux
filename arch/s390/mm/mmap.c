@@ -81,6 +81,14 @@ static inline unsigned long mmap_base(void)
 	return STACK_TOP - stack_maxrandom_size() - mmap_rnd() - gap;
 }
 
+unsigned long randomize_et_dyn(void)
+{
+	unsigned long base;
+
+	base = STACK_TOP / 3 * 2;
+	return base + mmap_rnd();
+}
+
 #ifndef CONFIG_64BIT
 
 /*
