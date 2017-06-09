@@ -1,0 +1,16 @@
+obj-y += utils/
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_MPEG12)      += mpeg12/vmpeg12.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_MPEG4)       += mpeg4/vmpeg4.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_MPEG4_MULTI) +=	mpeg4/vmpeg4_multi.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_VC1)         += vc1/vvc1.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H264)        += h264/vh264.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H264_MULTI)  += h264_multi/
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H264_MVC)    += h264/vh264_mvc.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H264_4K2K)   += h264/vh264_4k2k.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H264_MVC)    += h264/vh264_mvc.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_H265)        += h265/vh265.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_VP9)         += vp9/vvp9.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_MJPEG)       += mjpeg/vmjpeg.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_MJPEG_MULTI) += mjpeg/vmjpeg_multi.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_REAL)        += real/vreal.o
+obj-$(CONFIG_AMLOGIC_MEDIA_VDEC_AVS)         += avs/
