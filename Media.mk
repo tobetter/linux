@@ -40,7 +40,11 @@ ifeq (,$(wildcard $(MEDIA_MODULES)))
 $(shell mkdir $(MEDIA_MODULES) -p)
 endif
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+MODS_OUT := $(ANDROID_BUILD_TOP)/$(TARGET_OUT_VENDOR)/lib
+else
 MODS_OUT := $(ANDROID_BUILD_TOP)/$(TARGET_OUT)/lib
+endif
 
 $(shell cp $(MEDIA_DRIVERS)/* $(MEDIA_MODULES) -rfa)
 
@@ -48,6 +52,7 @@ define media-modules
 	@$(MAKE) -C $(KDIR) M=$(MEDIA_MODULES) ARCH=$(KERNEL_ARCH) \
 	CROSS_COMPILE=$(PREFIX_CROSS_COMPILE) $(CONFIGS) \
 	EXTRA_CFLAGS+=-I$(INCLUDE) modules; \
+	mkdir -p $(MODS_OUT); \
 	find $(MEDIA_MODULES) -name "*.ko" | xargs -i cp {} $(MODS_OUT)
 endef
 
@@ -81,6 +86,7 @@ modules:
 
 copy-modules:
 	@echo "start copying media modules."
+	mkdir -p $(MODS_OUT)
 	$(call copy-media-modules, $(MEDIA_DRIVERS), $(MODS_OUT))
 
 all: modules copy-modules
