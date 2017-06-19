@@ -36,6 +36,10 @@
 #include "../utils/vdec.h"
 #include <linux/amlogic/media/registers/register.h>
 #include "../../../stream_input/amports/amports_priv.h"
+#include "../utils/decoder_mmu_box.h"
+#include "../utils/decoder_bmmu_box.h"
+#include <linux/amlogic/media/codec_mm/codec_mm.h>
+#include <linux/amlogic/media/codec_mm/configs.h>
 
 #define DRIVER_NAME "amvdec_vc1"
 #define MODULE_NAME "amvdec_vc1"
@@ -65,8 +69,14 @@
 #define VC1_OFFSET_REG      AV_SCRATCH_C
 #define MEM_OFFSET_REG      AV_SCRATCH_F
 
-#define VF_POOL_SIZE          32
-#define DECODE_BUFFER_NUM_MAX 8
+#define VF_POOL_SIZE		32
+#define DECODE_BUFFER_NUM_MAX	8
+#define WORKSPACE_SIZE		(2 * SZ_1M)
+#define MAX_BMMU_BUFFER_NUM	(DECODE_BUFFER_NUM_MAX + 1)
+#define VF_BUFFER_IDX(n)	(1 + n)
+#define DCAC_BUFF_START_ADDR	0x02e00000
+
+
 #define PUT_INTERVAL        (HZ/100)
 
 #if 1	/* /MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
@@ -75,6 +85,7 @@
 #define MEM_FIFO_CNT_BIT        16
 #define MEM_LEVEL_CNT_BIT       18
 #endif
+static struct vdec_info *gvs;
 
 static struct vframe_s *vvc1_vf_peek(void *);
 static struct vframe_s *vvc1_vf_get(void *);
@@ -82,7 +93,7 @@ static void vvc1_vf_put(struct vframe_s *, void *);
 static int vvc1_vf_states(struct vframe_states *states, void *);
 static int vvc1_event_cb(int type, void *data, void *private_data);
 
-static void vvc1_prot_init(void);
+static int vvc1_prot_init(void);
 static void vvc1_local_init(void);
 
 static const char vvc1_dec_id[] = "vvc1-dev";
@@ -95,7 +106,7 @@ static const struct vframe_operations_s vvc1_vf_provider = {
 	.event_cb = vvc1_event_cb,
 	.vf_states = vvc1_vf_states,
 };
-
+static void *mm_blk_handle;
 static struct vframe_provider_s vvc1_vf_prov;
 
 static DECLARE_KFIFO(newframe_q, struct vframe_s *, VF_POOL_SIZE);
@@ -109,8 +120,8 @@ static int cur_pool_idx;
 static s32 vfbuf_use[DECODE_BUFFER_NUM_MAX];
 static struct timer_list recycle_timer;
 static u32 stat;
-static unsigned long buf_start;
-static u32 buf_size, buf_offset;
+static u32 buf_size = 32 * 1024 * 1024;
+static u32 buf_offset;
 static u32 avi_flag;
 static u32 vvc1_ratio;
 static u32 vvc1_format;
@@ -464,6 +475,10 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 			set_aspect_ratio(vf, READ_VREG(VC1_PIC_RATIO));
 
 			vfbuf_use[buffer_index]++;
+			vf->mem_handle =
+				decoder_bmmu_box_get_mem_handle(
+					mm_blk_handle,
+					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
 
@@ -519,6 +534,10 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 			set_aspect_ratio(vf, READ_VREG(VC1_PIC_RATIO));
 
 			vfbuf_use[buffer_index]++;
+			vf->mem_handle =
+				decoder_bmmu_box_get_mem_handle(
+					mm_blk_handle,
+					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
 
@@ -600,7 +619,10 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 			set_aspect_ratio(vf, READ_VREG(VC1_PIC_RATIO));
 
 			vfbuf_use[buffer_index]++;
-
+			vf->mem_handle =
+				decoder_bmmu_box_get_mem_handle(
+					mm_blk_handle,
+					buffer_index);
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
 
 			vf_notify_receiver(PROVIDER_NAME,
@@ -609,6 +631,10 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 		}
 		frame_dur = vvc1_amstream_dec_info.rate;
 		total_frame++;
+
+		/*count info*/
+		gvs->frame_dur = frame_dur;
+		vdec_count_info(gvs, 0, offset);
 
 		/* pr_info("PicType = %d, PTS = 0x%x, repeat
 		count %d\n", picture_type, vf->pts, repeat_count); */
@@ -682,27 +708,49 @@ static int vvc1_event_cb(int type, void *data, void *private_data)
 	return 0;
 }
 
-int vvc1_dec_status(struct vdec_s *vdec, struct vdec_status *vstatus)
+int vvc1_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
-	vstatus->width = vvc1_amstream_dec_info.width;
-	vstatus->height = vvc1_amstream_dec_info.height;
-	if (0 != vvc1_amstream_dec_info.rate)
-		vstatus->fps = 96000 / vvc1_amstream_dec_info.rate;
+	vstatus->frame_width = vvc1_amstream_dec_info.width;
+	vstatus->frame_height = vvc1_amstream_dec_info.height;
+	if (vvc1_amstream_dec_info.rate != 0)
+		vstatus->frame_rate = 96000 / vvc1_amstream_dec_info.rate;
 	else
-		vstatus->fps = 96000;
-	vstatus->error_count = READ_VREG(AV_SCRATCH_4);
+		vstatus->frame_rate = -1;
+	vstatus->error_count = READ_VREG(AV_SCRATCH_C);
 	vstatus->status = stat;
+	vstatus->bit_rate = gvs->bit_rate;
+	vstatus->frame_dur = vvc1_amstream_dec_info.rate;
+	vstatus->frame_data = gvs->frame_data;
+	vstatus->total_data = gvs->total_data;
+	vstatus->frame_count = gvs->frame_count;
+	vstatus->error_frame_count = gvs->error_frame_count;
+	vstatus->drop_frame_count = gvs->drop_frame_count;
+	vstatus->total_data = gvs->total_data;
+	vstatus->samp_cnt = gvs->samp_cnt;
+	vstatus->offset = gvs->offset;
+	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
+		"%s", DRIVER_NAME);
 
 	return 0;
 }
 
-/****************************************/
-static void vvc1_canvas_init(void)
+static int vvc1_vdec_info_init(void)
 {
-	int i;
+	gvs = kzalloc(sizeof(struct vdec_info), GFP_KERNEL);
+	if (NULL == gvs) {
+		pr_info("the struct of vdec status malloc failed.\n");
+		return -ENOMEM;
+	}
+	return 0;
+}
+
+/****************************************/
+static int vvc1_canvas_init(void)
+{
+	int i, ret;
 	u32 canvas_width, canvas_height;
-	u32 decbuf_size, decbuf_y_size, decbuf_uv_size;
-	u32 disp_addr = 0xffffffff;
+	u32 alloc_size, decbuf_size, decbuf_y_size, decbuf_uv_size;
+	unsigned long buf_start;
 
 	if (buf_size <= 0x00400000) {
 		/* SD only */
@@ -720,75 +768,56 @@ static void vvc1_canvas_init(void)
 		decbuf_size = 0x300000;
 	}
 
-	if (is_vpp_postblend()) {
-		struct canvas_s cur_canvas;
+	for (i = 0; i < MAX_BMMU_BUFFER_NUM; i++) {
+		/* workspace mem */
+		if (i == (MAX_BMMU_BUFFER_NUM - 1))
+			alloc_size = WORKSPACE_SIZE;
+		else
+			alloc_size = decbuf_size;
 
-		canvas_read((READ_VCBUS_REG(VD1_IF0_CANVAS0) & 0xff),
-					&cur_canvas);
-		disp_addr = (cur_canvas.addr + 7) >> 3;
-	}
-
-	for (i = 0; i < 8; i++) {
-		if (((buf_start + i * decbuf_size + 7) >> 3) == disp_addr) {
-#ifdef NV21
-			canvas_config(2 * i + 0,
-				buf_start + 8 * decbuf_size,
-				canvas_width, canvas_height,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-			canvas_config(2 * i + 1,
-				buf_start + 8 * decbuf_size +
-				decbuf_y_size, canvas_width,
-				canvas_height / 2, CANVAS_ADDR_NOWRAP,
-				CANVAS_BLKMODE_32X32);
-#else
-			canvas_config(3 * i + 0,
-				buf_start + 8 * decbuf_size,
-				canvas_width, canvas_height,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-			canvas_config(3 * i + 1,
-				buf_start + 8 * decbuf_size +
-				decbuf_y_size, canvas_width / 2,
-				canvas_height / 2, CANVAS_ADDR_NOWRAP,
-				CANVAS_BLKMODE_32X32);
-			canvas_config(3 * i + 2,
-				buf_start + 8 * decbuf_size +
-				decbuf_y_size + decbuf_uv_size,
-				canvas_width / 2, canvas_height / 2,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-#endif
-		} else {
-#ifdef NV21
-			canvas_config(2 * i + 0,
-				buf_start + i * decbuf_size,
-				canvas_width, canvas_height,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-			canvas_config(2 * i + 1,
-				buf_start + i * decbuf_size +
-				decbuf_y_size, canvas_width,
-				canvas_height / 2, CANVAS_ADDR_NOWRAP,
-				CANVAS_BLKMODE_32X32);
-#else
-			canvas_config(3 * i + 0,
-				buf_start + i * decbuf_size,
-				canvas_width, canvas_height,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-			canvas_config(3 * i + 1,
-				buf_start + i * decbuf_size +
-				decbuf_y_size, canvas_width / 2,
-				canvas_height / 2, CANVAS_ADDR_NOWRAP,
-				CANVAS_BLKMODE_32X32);
-			canvas_config(3 * i + 2,
-				buf_start + i * decbuf_size +
-				decbuf_y_size + decbuf_uv_size,
-				canvas_width / 2, canvas_height / 2,
-				CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-#endif
+		ret = decoder_bmmu_box_alloc_buf_phy(mm_blk_handle, i,
+				alloc_size, DRIVER_NAME, &buf_start);
+		if (ret < 0)
+			return ret;
+		if (i == (MAX_BMMU_BUFFER_NUM - 1)) {
+			buf_offset = buf_start - DCAC_BUFF_START_ADDR;
+			continue;
 		}
+
+#ifdef NV21
+		canvas_config(2 * i + 0,
+			buf_start,
+			canvas_width, canvas_height,
+			CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
+		canvas_config(2 * i + 1,
+			buf_start +
+			decbuf_y_size, canvas_width,
+			canvas_height / 2, CANVAS_ADDR_NOWRAP,
+			CANVAS_BLKMODE_32X32);
+#else
+		canvas_config(3 * i + 0,
+			buf_start,
+			canvas_width, canvas_height,
+			CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
+		canvas_config(3 * i + 1,
+			buf_start +
+			decbuf_y_size, canvas_width / 2,
+			canvas_height / 2, CANVAS_ADDR_NOWRAP,
+			CANVAS_BLKMODE_32X32);
+		canvas_config(3 * i + 2,
+			buf_start +
+			decbuf_y_size + decbuf_uv_size,
+			canvas_width / 2, canvas_height / 2,
+			CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
+#endif
+
 	}
+	return 0;
 }
 
-static void vvc1_prot_init(void)
+static int vvc1_prot_init(void)
 {
+	int r;
 #if 1	/* /MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	WRITE_VREG(DOS_SW_RESET0, (1 << 7) | (1 << 6) | (1 << 4));
 	WRITE_VREG(DOS_SW_RESET0, 0);
@@ -802,20 +831,20 @@ static void vvc1_prot_init(void)
 	WRITE_VREG(DOS_SW_RESET0, 0);
 
 #else
-	WRITE_MPEG_REG(RESET0_REGISTER,
+	WRITE_RESET_REG(RESET0_REGISTER,
 				   RESET_IQIDCT | RESET_MC | RESET_VLD_PART);
-	READ_MPEG_REG(RESET0_REGISTER);
-	WRITE_MPEG_REG(RESET0_REGISTER,
+	READ_RESET_REG(RESET0_REGISTER);
+	WRITE_RESET_REG(RESET0_REGISTER,
 				   RESET_IQIDCT | RESET_MC | RESET_VLD_PART);
 
-	WRITE_MPEG_REG(RESET2_REGISTER, RESET_PIC_DC | RESET_DBLK);
+	WRITE_RESET_REG(RESET2_REGISTER, RESET_PIC_DC | RESET_DBLK);
 #endif
 
 	WRITE_VREG(POWER_CTL_VLD, 0x10);
 	WRITE_VREG_BITS(VLD_MEM_VIFIFO_CONTROL, 2, MEM_FIFO_CNT_BIT, 2);
 	WRITE_VREG_BITS(VLD_MEM_VIFIFO_CONTROL, 8, MEM_LEVEL_CNT_BIT, 6);
 
-	vvc1_canvas_init();
+	r = vvc1_canvas_init();
 
 	/* index v << 16 | u << 8 | y */
 #ifdef NV21
@@ -857,6 +886,7 @@ static void vvc1_prot_init(void)
 #ifdef NV21
 	SET_VREG_MASK(MDEC_PIC_DC_CTRL, 1 << 17);
 #endif
+	return r;
 }
 
 static void vvc1_local_init(void)
@@ -899,6 +929,18 @@ static void vvc1_local_init(void)
 			}
 		kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 	}
+	if (mm_blk_handle) {
+		decoder_bmmu_box_free(mm_blk_handle);
+		mm_blk_handle = NULL;
+	}
+
+		mm_blk_handle = decoder_bmmu_box_alloc_box(
+			DRIVER_NAME,
+			0,
+			MAX_BMMU_BUFFER_NUM,
+			4 + PAGE_SHIFT,
+			CODEC_MM_FLAGS_CMA_CLEAR |
+			CODEC_MM_FLAGS_FOR_VDECODER);
 }
 
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
@@ -960,7 +1002,7 @@ static void vvc1_put_timer_func(unsigned long arg)
 
 static s32 vvc1_init(void)
 {
-	int size = -1;
+	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
@@ -1004,7 +1046,9 @@ static s32 vvc1_init(void)
 	stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */
-	vvc1_prot_init();
+	ret = vvc1_prot_init();
+	if (ret < 0)
+		return ret;
 
 	if (vdec_request_irq(VDEC_IRQ_1, vvc1_isr,
 		    "vvc1-irq", (void *)vvc1_dec_id)) {
@@ -1056,18 +1100,17 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	buf_start = pdata->mem_start;
-	buf_size = pdata->mem_end - pdata->mem_start + 1;
-	buf_offset = buf_start - ORI_BUFFER_START_ADDR;
-
 	if (pdata->sys_info)
 		vvc1_amstream_dec_info = *pdata->sys_info;
 
 	pdata->dec_status = vvc1_dec_status;
 
+	vvc1_vdec_info_init();
+
 	if (vvc1_init() < 0) {
 		pr_info("amvdec_vc1 init failed.\n");
-
+		kfree(gvs);
+		gvs = NULL;
 		return -ENODEV;
 	}
 
@@ -1101,6 +1144,11 @@ static int amvdec_vc1_remove(struct platform_device *pdev)
 
 	amvdec_disable();
 
+	if (mm_blk_handle) {
+		decoder_bmmu_box_free(mm_blk_handle);
+		mm_blk_handle = NULL;
+	}
+
 #ifdef DEBUG_PTS
 	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", pts_hit,
 		pts_missed, pts_i_hit, pts_i_missed);
@@ -1108,6 +1156,8 @@ static int amvdec_vc1_remove(struct platform_device *pdev)
 		total_frame, avi_flag,
 		vvc1_amstream_dec_info.rate);
 #endif
+	kfree(gvs);
+	gvs = NULL;
 
 	return 0;
 }
@@ -1158,10 +1208,6 @@ static void __exit amvdec_vc1_driver_remove_module(void)
 }
 
 /****************************************/
-
-module_param(stat, uint, 0664);
-MODULE_PARM_DESC(stat, "\n amvdec_vc1 stat\n");
-
 module_init(amvdec_vc1_driver_init_module);
 module_exit(amvdec_vc1_driver_remove_module);
 

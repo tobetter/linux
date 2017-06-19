@@ -25,7 +25,7 @@
 #include <linux/mm.h>
 
 #include <linux/amlogic/media/utils/vformat.h>
-#include <linux/amlogic/media/old_cpu_version.h>
+#include <linux/amlogic/cpu_version.h>
 #include "../../stream_input/amports/amports_priv.h"
 #include "../../frame_provider/decoder/utils/vdec.h"
 #include "chips.h"
@@ -68,6 +68,7 @@ static const struct type_name cpu_type_name[] = {
 	{MESON_CPU_MAJOR_ID_GXL, "gxl"},
 	{MESON_CPU_MAJOR_ID_GXM, "gxm"},
 	{MESON_CPU_MAJOR_ID_TXL, "txl"},
+	{MESON_CPU_MAJOR_ID_TXLX, "txlx"},
 	{0, NULL},
 };
 

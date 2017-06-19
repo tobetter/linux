@@ -31,6 +31,8 @@ struct amvdec_dec_reg_s {
 	struct dec_sysinfo *dec_sysinfo;
 };				/*amvdec_dec_reg_t */
 
+struct vdec_s;
+
 extern void amvdec_start(void);
 extern void amvdec_stop(void);
 extern void amvdec_enable(void);

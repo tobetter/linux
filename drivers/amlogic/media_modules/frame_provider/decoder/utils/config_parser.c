@@ -60,3 +60,5 @@ int get_config_int(const char *configs, const char *need, int *val)
 
 	return -4;
 }
+EXPORT_SYMBOL(get_config_int);
+

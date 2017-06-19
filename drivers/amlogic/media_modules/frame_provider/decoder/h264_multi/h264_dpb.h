@@ -6,23 +6,18 @@
 #define OUTPUT_BUFFER_IN_C
 
 #define PRINT_FLAG_ERROR              0x0
-#define PRINT_FLAG_DPB                0X0001
-#define PRINT_FLAG_DPB_DETAIL         0x0002
-#define PRINT_FLAG_DUMP_DPB           0x0004
-#define PRINT_FLAG_UCODE_EVT          0x0008
-#define PRINT_FLAG_VDEC_STATUS        0x0010
-#define PRINT_FLAG_VDEC_DETAIL        0x0020
-#define PRINT_FLAG_UCODE_DBG          0x0040
-#define PRINT_FLAG_TIME_STAMP         0x0080
-#define PRINT_FLAG_RUN_SCHEDULE       0x0100
+#define PRINT_FLAG_VDEC_STATUS        0X0001
+#define PRINT_FLAG_UCODE_EVT          0x0002
+#define PRINT_FLAG_MMU_DETAIL		0x0004
+#define PRINT_FLAG_DPB_DETAIL         0x0010
+#define PRINT_FLAG_DEC_DETAIL         0x0020
+#define PRINT_FLAG_VDEC_DETAIL        0x0040
+#define PRINT_FLAG_DUMP_DPB           0x0080
+#define PRINT_FRAMEBASE_DATA          0x0100
 #define PRINT_FLAG_DEBUG_POC          0x0200
-#define PRINT_FLAG_VDEC_DATA          0x0400
+#define RRINT_FLAG_RPM                0x0400
 #define DISABLE_ERROR_HANDLE          0x10000
-#define OUTPUT_CURRENT_BUF            0x20000
-#define ONLY_RESET_AT_START           0x40000
-#define LOAD_UCODE_ALWAYS             0x80000
-#define FORCE_NO_SLICE                0x100000
-#define REINIT_DPB_TEST               0x200000
+#define DEBUG_DUMP_STAT               0x80000
 
 
 #define MVC_EXTENSION_ENABLE 0
@@ -41,10 +36,18 @@
 
 #define H264_CONFIG_REQUEST         0x11
 #define H264_DATA_REQUEST           0x12
+#define H264_WRRSP_REQUEST          0x13
+#define H264_WRRSP_DONE             0x14
 
 #define H264_DECODE_BUFEMPTY        0x20
 #define H264_DECODE_TIMEOUT         0x21
 #define H264_SEARCH_BUFEMPTY        0x22
+#define H264_DECODE_OVER_SIZE       0x23
+
+#define H264_FIND_NEXT_PIC_NAL              0x50
+#define H264_FIND_NEXT_DVEL_NAL             0x51
+#define H264_AUX_DATA_READY					0x52
+
     /* 0x8x, search state*/
 #define H264_STATE_SEARCH_AFTER_SPS  0x80
 #define H264_STATE_SEARCH_AFTER_PPS  0x81
@@ -66,11 +69,13 @@
 #define DPB_OFFSET		0x100
 #define MMCO_OFFSET		0x200
 union param {
+#if 0
 #define H_TIME_STAMP_START	0X00
 #define H_TIME_STAMP_END	0X17
 #define PTS_ZERO_0		0X18
 #define PTS_ZERO_1		0X19
-#define FIXED_FRAME_RATE_FLAG                   0X1A
+#endif
+#define FIXED_FRAME_RATE_FLAG                   0X21
 
 #define OFFSET_DELIMITER_LO                     0x2f
 #define OFFSET_DELIMITER_HI                     0x30
@@ -212,7 +217,7 @@ union param {
 #define VPTS_MAP_ADDR							0XC4
 #define H_VPTS_MAP_ADDR							0XC5
 
-#define MAX_DPB_SIZE							0XC6
+/*#define MAX_DPB_SIZE							0XC6*/
 #define PIC_INSERT_FLAG							0XC7
 
 #define TIME_STAMP_START						0XC8
@@ -242,7 +247,7 @@ union param {
 #define FIRST_MB_IN_SLICE						0XF0
 #define PREV_MB_WIDTH							0XF1
 #define PREV_FRAME_SIZE_IN_MB						0XF2
-#define MAX_REFERENCE_FRAME_NUM_IN_MEM					0XF3
+/*#define MAX_REFERENCE_FRAME_NUM_IN_MEM		0XF3*/
 /* bit 0 - aspect_ratio_info_present_flag
  * bit 1 - timing_info_present_flag
  * bit 2 - nal_hrd_parameters_present_flag
@@ -622,6 +627,7 @@ struct StorablePicture {
 
 	u32         pts;
 	u64         pts64;
+	unsigned char data_flag;
 };
 
 struct FrameStore {
@@ -655,6 +661,12 @@ struct FrameStore {
 	int         pre_output;
 	/* index in gFrameStore */
 	int       index;
+#define I_FLAG			0x01
+#define IDR_FLAG		0x02
+#define ERROR_FLAG		0x10
+#define NULL_FLAG		0x20
+#define NODISP_FLAG		0x80
+	unsigned char data_flag;
 #endif
 	int       poc;
 
@@ -675,8 +687,6 @@ struct FrameStore {
 	u32       pts;
 	u64       pts64;
 };
-
-int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame);
 
 
 /* #define DPB_SIZE_MAX     16 */
@@ -707,6 +717,7 @@ struct DecodedPictureBuffer {
 
 
 	int           init_done;
+	int           first_pic_done; /*by rain*/
 	int           num_ref_frames;
 
 	struct FrameStore   *last_picture;
@@ -726,6 +737,11 @@ struct h264_dpb_stru {
 	int buf_num;
 	int curr_POC;
 	int reorder_pic_num;
+	u8 fast_output_enable;
+		/*poc_even_flag:
+		 0, init; 1, odd; 2, even*/
+	u8 poc_even_odd_flag;
+	u32 decode_pic_count;
 	/**/
 	unsigned int max_reference_size;
 
@@ -743,6 +759,16 @@ struct h264_dpb_stru {
 	struct StorablePicture m_PIC[MAX_PIC_BUF_NUM];
 	struct FrameStore mFrameStore[DPB_SIZE_MAX];
 
+	/*vui*/
+	unsigned int vui_status;
+	unsigned int num_units_in_tick;
+	unsigned int time_scale;
+	unsigned int fixed_frame_rate_flag;
+	unsigned int aspect_ratio_idc;
+	unsigned int aspect_ratio_sar_width;
+	unsigned int aspect_ratio_sar_height;
+
+	unsigned int dec_dpb_status;
 };
 
 
@@ -750,6 +776,8 @@ extern unsigned int h264_debug_flag;
 extern unsigned int h264_debug_mask;
 
 int dpb_print(int indext, int debug_flag, const char *fmt, ...);
+
+int dpb_print_cont(int index, int debug_flag, const char *fmt, ...);
 
 unsigned char dpb_is_debug(int index, int debug_flag);
 
@@ -773,7 +801,7 @@ int release_colocate_buf(struct h264_dpb_stru *p_H264_Dpb, int index);
 int get_free_buf_idx(struct vdec_s *vdec);
 
 void store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
-			struct StorablePicture *p);
+			struct StorablePicture *p, unsigned char data_flag);
 
 int remove_picture(struct h264_dpb_stru *p_H264_Dpb,
 			struct StorablePicture *pic);
@@ -783,6 +811,14 @@ void bufmgr_post(struct h264_dpb_stru *p_H264_Dpb);
 int get_long_term_flag_by_buf_spec_num(struct h264_dpb_stru *p_H264_Dpb,
 	int buf_spec_num);
 
-void bufmgr_h264_remove_unused_frame(struct h264_dpb_stru *p_H264_Dpb);
+void bufmgr_h264_remove_unused_frame(struct h264_dpb_stru *p_H264_Dpb,
+	u8 force_flag);
+
+void flush_dpb(struct h264_dpb_stru *p_H264_Dpb);
+
+void print_pic_info(int decindex, const char *info,
+			struct StorablePicture *pic,
+			int slice_type);
+void dump_dpb(struct DecodedPictureBuffer *p_Dpb, u8 force);
 
 #endif

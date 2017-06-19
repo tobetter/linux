@@ -21,16 +21,19 @@
 #include "../../frame_provider/decoder/utils/vdec.h"
 
 extern ssize_t drm_write(struct file *file,
-	struct stream_buf_s *stbuf, const char __user *buf, size_t count);
+		struct stream_buf_s *stbuf,
+		const char __user *buf, size_t count);
 
 extern s32 esparser_init(struct stream_buf_s *buf, struct vdec_s *vdec);
 extern s32 esparser_init_s(struct stream_buf_s *buf);
 extern void esparser_release(struct stream_buf_s *buf);
 extern ssize_t esparser_write(struct file *file,
-	struct stream_buf_s *stbuf, const char __user *buf, size_t count);
-extern ssize_t esparser_write_ex(struct file *file,
 	struct stream_buf_s *stbuf,
-	const char __user *buf, size_t count, int is_phy);
+	const char __user *buf, size_t count);
+extern ssize_t esparser_write_ex(struct file *file,
+			struct stream_buf_s *stbuf,
+			const char __user *buf, size_t count,
+			int is_phy);
 
 extern s32 es_vpts_checkin_us64(struct stream_buf_s *buf, u64 us64);
 

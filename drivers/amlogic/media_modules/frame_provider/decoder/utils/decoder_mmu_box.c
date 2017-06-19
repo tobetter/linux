@@ -32,6 +32,7 @@ struct decoder_mmu_box {
 	int max_sc_num;
 	const char *name;
 	int channel_id;
+	int tvp_mode;
 	struct mutex mutex;
 	struct list_head list;
 	struct codec_mm_scatter *sc_list[1];
@@ -78,11 +79,14 @@ static int decoder_mmu_box_mgr_del_box(struct decoder_mmu_box *box)
 void *decoder_mmu_box_alloc_box(const char *name,
 	int channel_id,
 	int max_num,
-	int min_size_M)
+	int min_size_M,
+	int mem_flags)
 /*min_size_M:wait alloc this size*/
 {
 	struct decoder_mmu_box *box;
 	int size;
+
+	pr_info("decoder_mmu_box_alloc_box, mem_flags = 0x%x\n", mem_flags);
 
 	size = sizeof(struct decoder_mmu_box) +
 			sizeof(struct codec_mm_scatter *) *
@@ -96,11 +100,13 @@ void *decoder_mmu_box_alloc_box(const char *name,
 	box->max_sc_num = max_num;
 	box->name = name;
 	box->channel_id = channel_id;
+	box->tvp_mode = mem_flags;
+
 	mutex_init(&box->mutex);
 	INIT_LIST_HEAD(&box->list);
 	decoder_mmu_box_mgr_add_box(box);
 	codec_mm_scatter_mgt_delay_free_swith(1, 2000,
-		min_size_M);
+		min_size_M, box->tvp_mode);
 	return (void *)box;
 }
 EXPORT_SYMBOL(decoder_mmu_box_alloc_box);
@@ -133,7 +139,8 @@ int decoder_mmu_box_alloc_idx(
 
 	}
 	if (!sc) {
-		sc = codec_mm_scatter_alloc(num_pages + 64, num_pages);
+		sc = codec_mm_scatter_alloc(num_pages + 64, num_pages,
+			box->tvp_mode);
 		if (!sc) {
 			mutex_unlock(&box->mutex);
 			pr_err("alloc mmu failed, need pages=%d\n",
@@ -217,8 +224,8 @@ int decoder_mmu_box_free(void *handle)
 	}
 	mutex_unlock(&box->mutex);
 	decoder_mmu_box_mgr_del_box(box);
+	codec_mm_scatter_mgt_delay_free_swith(0, 2000, 0, box->tvp_mode);
 	kfree(box);
-	codec_mm_scatter_mgt_delay_free_swith(0, 2000, 0);
 	return 0;
 }
 EXPORT_SYMBOL(decoder_mmu_box_free);
@@ -242,12 +249,13 @@ static int decoder_mmu_box_dump(struct decoder_mmu_box *box,
 	int s;
 	int i;
 
-	if (!pbuf)
+	if (!buf) {
 		pbuf = sbuf;
-
+		size = 100000;
+	}
 	#define BUFPRINT(args...) \
 	do {\
-		s = sprintf(pbuf, args);\
+		s = snprintf(pbuf, size - tsize, args);\
 		tsize += s;\
 		pbuf += s; \
 	} while (0)
@@ -278,12 +286,14 @@ static int decoder_mmu_box_dump_all(void *buf, int size)
 	int i;
 	struct list_head *head, *list;
 
-	if (!pbuf)
+	if (!pbuf) {
 		pbuf = sbuf;
+		size = 100000;
+	}
 
 	#define BUFPRINT(args...) \
 	do {\
-		s = sprintf(pbuf, args);\
+		s = snprintf(pbuf, size - tsize, args);\
 		tsize += s;\
 		pbuf += s; \
 	} while (0)
@@ -294,18 +304,20 @@ static int decoder_mmu_box_dump_all(void *buf, int size)
 	i = 0;
 	while (list != head) {
 		struct decoder_mmu_box *box;
-
 		box = list_entry(list, struct decoder_mmu_box,
 							list);
-		BUFPRINT("box[%d]: %s, player_id:%d, max_num:%d\n",
+		BUFPRINT("box[%d]: %s, %splayer_id:%d, max_num:%d\n",
 			i,
 			box->name,
+			box->tvp_mode ? "TVP mode " : "",
 			box->channel_id,
 			box->max_sc_num);
 		if (buf) {
-			tsize += decoder_mmu_box_dump(box, pbuf, size - tsize);
-			if (tsize > 0)
-				pbuf += tsize;
+			s += decoder_mmu_box_dump(box, pbuf, size - tsize);
+			if (s > 0) {
+				tsize += s;
+				pbuf += s;
+			}
 		} else {
 			pr_info("%s", sbuf);
 			pbuf = sbuf;

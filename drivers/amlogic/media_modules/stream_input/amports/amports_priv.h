@@ -31,8 +31,6 @@ struct port_priv_s {
 
 struct stream_buf_s *get_buf_by_type(u32 type);
 
-extern void amvenc_dos_top_reg_fix(void);
-
 /*video.c provide*/
 extern u32 trickmode_i;
 struct amvideocap_req;
@@ -47,10 +45,9 @@ int amstream_request_firmware_from_sys(const char *file_name,
 void set_vsync_pts_inc_mode(int inc);
 
 void set_real_audio_info(void *arg);
-#define dbg() pr_info("on %s,line %d\n", __func__, __LINE__)
+#define dbg() pr_info("on %s,line %d\n", __func__, __LINE__);
 
 struct device *amports_get_dma_device(void);
 struct device *get_codec_cma_device(void);
-int amports_get_debug_flags(void);
 
 #endif

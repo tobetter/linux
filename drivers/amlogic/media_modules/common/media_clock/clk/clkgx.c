@@ -504,7 +504,7 @@ static void vdec_clock_on(void)
 	spin_unlock_irqrestore(&gclk.vdec_mux_node->lock,
 		gclk.vdec_mux_node->flags);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.vdec_mux_node->name,
 		gclk.vdec_mux_node->ref_count);
 }
@@ -537,7 +537,7 @@ static void hcodec_clock_on(void)
 	spin_unlock_irqrestore(&gclk.hcodec_mux_node->lock,
 		gclk.hcodec_mux_node->flags);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.hcodec_mux_node->name,
 		gclk.hcodec_mux_node->ref_count);
 }
@@ -570,7 +570,7 @@ static void hevc_clock_on(void)
 	spin_unlock_irqrestore(&gclk.hevc_mux_node->lock,
 		gclk.hevc_mux_node->flags);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.hevc_mux_node->name,
 		gclk.hevc_mux_node->ref_count);
 }
@@ -612,6 +612,7 @@ static int vdec_clock_get(enum vdec_type_e core)
 	MESON_CPU_MAJOR_ID_GXL,\
 	MESON_CPU_MAJOR_ID_GXM,\
 	MESON_CPU_MAJOR_ID_TXL,\
+	MESON_CPU_MAJOR_ID_TXLX,\
 	0}
 #include "clk.h"
 ARCH_VDEC_CLK_INIT();

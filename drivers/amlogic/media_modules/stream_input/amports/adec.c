@@ -21,14 +21,13 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/uio_driver.h>
-
 #include <linux/amlogic/media/utils/aformat.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
-
 #include <linux/amlogic/media/registers/register.h>
-
+#include <linux/amlogic/media/codec_mm/configs.h>
 #include "../parser/streambuf.h"
 #include <linux/module.h>
+#include <linux/of.h>
 #include "amports_priv.h"
 
 #define INFO_VALID ((astream_dev) && (astream_dev->format))
@@ -39,6 +38,7 @@ struct astream_device_s {
 	s32 channum;
 	s32 samplerate;
 	s32 datawidth;
+	int offset;
 
 	struct device dev;
 };
@@ -67,7 +67,15 @@ static char *astream_format[] = {
 	"amadec_ape",
 	"amadec_eac3",
 	"amadec_pcm_widi",
-	"amadec_wmavoi"
+	"amadec_dra",
+	"amadec_sipr",
+	"amadec_truehd",
+	"amadec_mpeg1",
+	"amadec_mpeg2",
+	"amadec_wmavoi",
+	"amadec_wmalossless",
+	"amadec_pcm_s24le",
+	"adec_max"
 };
 
 static const char *na_string = "NA";
@@ -125,12 +133,19 @@ static ssize_t pts_show(struct class *class, struct class_attribute *attr,
 		return sprintf(buf, "%s\n", na_string);
 }
 
+static ssize_t addr_offset_show(struct class *class,
+				struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", astream_dev->offset);
+}
+
 static struct class_attribute astream_class_attrs[] = {
 	__ATTR_RO(format),
 	__ATTR_RO(samplerate),
 	__ATTR_RO(channum),
 	__ATTR_RO(datawidth),
 	__ATTR_RO(pts),
+	__ATTR_RO(addr_offset),
 	__ATTR_NULL
 };
 
@@ -142,7 +157,7 @@ static struct class astream_class = {
 #if 1
 #define IO_CBUS_PHY_BASE 0xc1100000
 #define CBUS_REG_OFFSET(reg) ((reg) << 2)
-#define IO_SECBUS_PHY_BASE		0xda000000
+#define IO_SECBUS_PHY_BASE 0xda000000
 
 static struct uio_info astream_uio_info = {
 	.name = "astream_uio",
@@ -228,9 +243,61 @@ s32 adec_release(enum aformat_e vf)
 	return 0;
 }
 
+int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
+{
+	int ret = -1;
+	void *buf, *getbuf = NULL;
+	if (size < PAGE_SIZE) {
+		void *getbuf = (void *)__get_free_page(GFP_KERNEL);
+		if (!getbuf)
+			return -ENOMEM;
+		buf = getbuf;
+	} else {
+		buf = sbuf;
+	}
+	switch (trigger[0]) {
+	case 'f':
+		ret =  format_show(NULL, NULL, buf);
+		break;
+	case 's':
+		ret =  samplerate_show(NULL, NULL, buf);
+		break;
+	case 'c':
+		ret =  channum_show(NULL, NULL, buf);
+		break;
+	case 'd':
+		ret =  datawidth_show(NULL, NULL, buf);
+		break;
+	case 'p':
+		ret =  pts_show(NULL, NULL, buf);
+		break;
+	default:
+		ret = -1;
+	}
+	if (ret > 0 && getbuf != NULL) {
+		int ret = min_t(int, ret, size);
+		strncpy(sbuf, buf, ret);
+	}
+	if (getbuf != NULL)
+		free_page((unsigned long)getbuf);
+	return ret;
+}
+
+static struct mconfig adec_configs[] = {
+	MC_FUN("format", &amstream_adec_show_fun, NULL),
+	MC_FUN("samplerate", &amstream_adec_show_fun, NULL),
+	MC_FUN("channum", &amstream_adec_show_fun, NULL),
+	MC_FUN("datawidth", &amstream_adec_show_fun, NULL),
+	MC_FUN("pts", &amstream_adec_show_fun, NULL),
+};
+static struct mconfig_node adec_node;
+
+
 s32 astream_dev_register(void)
 {
 	s32 r;
+	struct device_node *node;
+	unsigned int cbus_base = 0xffd00000;
 
 	r = class_register(&astream_class);
 	if (r) {
@@ -241,13 +308,14 @@ s32 astream_dev_register(void)
 	astream_dev = kzalloc(sizeof(struct astream_device_s), GFP_KERNEL);
 
 	if (!astream_dev) {
+		pr_info("astream device create fail.\n");
 		r = -ENOMEM;
 		goto err_3;
 	}
 
 	astream_dev->dev.class = &astream_class;
 	astream_dev->dev.release = astream_release;
-
+	astream_dev->offset = 0;
 	dev_set_name(&astream_dev->dev, "astream-dev");
 
 	dev_set_drvdata(&astream_dev->dev, astream_dev);
@@ -258,6 +326,31 @@ s32 astream_dev_register(void)
 		goto err_2;
 	}
 
+	if (MESON_CPU_MAJOR_ID_TXL < get_cpu_type()) {
+		node = of_find_node_by_path("/codec_io/io_cbus_base");
+		if (!node) {
+			pr_info("No io_cbus_base node found.");
+			goto err_1;
+		}
+
+		r = of_property_read_u32_index(node, "reg", 1, &cbus_base);
+		if (r) {
+			pr_info("No find node.\n");
+			goto err_1;
+		}
+
+		/*need to offset -0x100 in txlx.*/
+		astream_dev->offset = -0x100;
+
+		astream_uio_info.mem[0].addr =
+			(cbus_base + CBUS_REG_OFFSET(AIU_AIFIFO_CTRL +
+			astream_dev->offset)) & (PAGE_MASK);
+
+		astream_uio_info.mem[3].addr =
+			(cbus_base + CBUS_REG_OFFSET(ASSIST_HW_REV +
+			0x100)) & (PAGE_MASK);
+	}
+
 #if 1
 	if (uio_register_device(&astream_dev->dev, &astream_uio_info)) {
 		pr_info("astream UIO device register fail.\n");
@@ -265,7 +358,8 @@ s32 astream_dev_register(void)
 		goto err_1;
 	}
 #endif
-
+	INIT_REG_NODE_CONFIGS("media", &adec_node,
+		"adec", adec_configs, CONFIG_FOR_R);
 	return 0;
 
 err_1:
