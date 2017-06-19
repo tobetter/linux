@@ -27,7 +27,7 @@
 #include <linux/slab.h>
 
 #include <linux/amlogic/media/utils/vformat.h>
-#include <linux/amlogic/media/old_cpu_version.h>
+#include <linux/amlogic/cpu_version.h>
 #include "../../../stream_input/amports/amports_priv.h"
 #include "../../../frame_provider/decoder/utils/vdec.h"
 #include "../../chips/chips.h"

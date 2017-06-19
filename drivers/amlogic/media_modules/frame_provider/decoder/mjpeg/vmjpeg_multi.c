@@ -33,11 +33,13 @@
 #include <linux/amlogic/media/registers/register.h>
 #include "../../../stream_input/amports/amports_priv.h"
 
-#include <linux/amlogic/media/codec_mm/codec_mm.h>
-
 #include "../utils/vdec_input.h"
 #include "../utils/vdec.h"
 #include "../utils/amvdec.h"
+#include "../utils/decoder_mmu_box.h"
+#include "../utils/decoder_bmmu_box.h"
+#include <linux/amlogic/media/codec_mm/codec_mm.h>
+#include <linux/amlogic/media/codec_mm/configs.h>
 
 #define MEM_NAME "codec_mmjpeg"
 
@@ -62,7 +64,10 @@
 #define PICINFO_INTERLACE_FIRST     0x0010
 
 #define VF_POOL_SIZE          16
-#define DECODE_BUFFER_NUM_MAX 4
+#define DECODE_BUFFER_NUM_MAX		4
+#define MAX_BMMU_BUFFER_NUM		DECODE_BUFFER_NUM_MAX
+
+#define DEFAULT_MEM_SIZE	(32*SZ_1M)
 
 static struct vframe_s *vmjpeg_vf_peek(void *);
 static struct vframe_s *vmjpeg_vf_get(void *);
@@ -127,7 +132,7 @@ struct vdec_mjpeg_hw_s {
 	u32 dec_result;
 	unsigned long buf_start;
 	u32 buf_size;
-
+	void *mm_blk_handle;
 	struct dec_sysinfo vmjpeg_amstream_dec_info;
 
 	struct vframe_chunk_s *chunk;
@@ -269,15 +274,15 @@ static int vmjpeg_vf_states(struct vframe_states *states, void *op_arg)
 	return 0;
 }
 
-static int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_status *vstatus)
+static int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mjpeg_hw_s *hw = (struct vdec_mjpeg_hw_s *)vdec->private;
-	vstatus->width = hw->frame_width;
-	vstatus->height = hw->frame_height;
+	vstatus->frame_width = hw->frame_width;
+	vstatus->frame_height = hw->frame_height;
 	if (0 != hw->frame_dur)
-		vstatus->fps = 96000 / hw->frame_dur;
+		vstatus->frame_rate = 96000 / hw->frame_dur;
 	else
-		vstatus->fps = 96000;
+		vstatus->frame_rate = 96000;
 	vstatus->error_count = 0;
 	vstatus->status = hw->stat;
 
@@ -287,12 +292,12 @@ static int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_status *vstatus)
 /****************************************/
 static void vmjpeg_canvas_init(struct vdec_s *vdec)
 {
-	int i;
+	int i, ret;
 	u32 canvas_width, canvas_height;
 	u32 decbuf_size, decbuf_y_size, decbuf_uv_size;
+	unsigned long buf_start, addr;
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)vdec->private;
-	ulong addr;
 
 	canvas_width = 1920;
 	canvas_height = 1088;
@@ -304,24 +309,16 @@ static void vmjpeg_canvas_init(struct vdec_s *vdec)
 		int canvas;
 
 		canvas = vdec->get_canvas(i, 3);
-		if (hw->buffer_spec[i].cma_alloc_count == 0) {
-			hw->buffer_spec[i].cma_alloc_count =
-				PAGE_ALIGN(decbuf_size) / PAGE_SIZE;
-			hw->buffer_spec[i].cma_alloc_addr =
-				codec_mm_alloc_for_dma(MEM_NAME,
-					hw->buffer_spec[i].cma_alloc_count,
-					16, CODEC_MM_FLAGS_FOR_VDECODER);
+
+		ret = decoder_bmmu_box_alloc_buf_phy(hw->mm_blk_handle, i,
+				decbuf_size, DRIVER_NAME, &buf_start);
+		if (ret < 0) {
+			pr_err("CMA alloc failed! size 0x%d  idx %d\n",
+				decbuf_size, i);
+			return;
 		}
 
-		if (!hw->buffer_spec[i].cma_alloc_addr) {
-			pr_err("CMA alloc failed, request buf size 0x%lx\n",
-				hw->buffer_spec[i].cma_alloc_count * PAGE_SIZE);
-			hw->buffer_spec[i].cma_alloc_count = 0;
-			break;
-		}
-
-		hw->buffer_spec[i].buf_adr =
-			hw->buffer_spec[i].cma_alloc_addr;
+		hw->buffer_spec[i].buf_adr = buf_start;
 		addr = hw->buffer_spec[i].buf_adr;
 
 		hw->buffer_spec[i].y_addr = addr;
@@ -455,11 +452,11 @@ static void init_scaler(void)
 	WRITE_VREG(DOS_SW_RESET0, (1 << 10));
 	WRITE_VREG(DOS_SW_RESET0, 0);
 #else
-	WRITE_MPEG_REG(RESET2_REGISTER, RESET_PSCALE);
+	WRITE_RESET_REG(RESET2_REGISTER, RESET_PSCALE);
 #endif
-	READ_MPEG_REG(RESET2_REGISTER);
-	READ_MPEG_REG(RESET2_REGISTER);
-	READ_MPEG_REG(RESET2_REGISTER);
+	READ_RESET_REG(RESET2_REGISTER);
+	READ_RESET_REG(RESET2_REGISTER);
+	READ_RESET_REG(RESET2_REGISTER);
 
 	WRITE_VREG(PSCALE_RST, 0x7);
 	WRITE_VREG(PSCALE_RST, 0x0);
@@ -521,6 +518,20 @@ static s32 vmjpeg_init(struct vdec_s *vdec)
 		hw->vfpool[i].index = -1;
 		kfifo_put(&hw->newframe_q, vf);
 	}
+
+	if (hw->mm_blk_handle) {
+		decoder_bmmu_box_free(hw->mm_blk_handle);
+		hw->mm_blk_handle = NULL;
+	}
+
+	hw->mm_blk_handle = decoder_bmmu_box_alloc_box(
+		DRIVER_NAME,
+		0,
+		MAX_BMMU_BUFFER_NUM,
+		4 + PAGE_SHIFT,
+		CODEC_MM_FLAGS_CMA_CLEAR |
+		CODEC_MM_FLAGS_FOR_VDECODER);
+
 
 	INIT_WORK(&hw->work, vmjpeg_work);
 
@@ -626,7 +637,6 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 	pdata->run_ready = run_ready;
 	pdata->irq_handler = vmjpeg_isr;
 
-	pdata->id = pdev->id;
 
 	if (pdata->use_vfm_path)
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
@@ -641,8 +651,6 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 
 	hw->platform_dev = pdev;
-	hw->buf_start = pdata->mem_start;
-	hw->buf_size = pdata->mem_end - pdata->mem_start + 1;
 
 	if (pdata->sys_info)
 		hw->vmjpeg_amstream_dec_info = *pdata->sys_info;
@@ -660,19 +668,13 @@ static int amvdec_mjpeg_remove(struct platform_device *pdev)
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
-	int i;
 
-	for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++) {
-		if (hw->buffer_spec[i].cma_alloc_addr) {
-			pr_info("codec_mm release buffer_spec[%d], 0x%lx\n", i,
-				hw->buffer_spec[i].cma_alloc_addr);
-			codec_mm_free_for_dma(MEM_NAME,
-				hw->buffer_spec[i].cma_alloc_addr);
-			hw->buffer_spec[i].cma_alloc_count = 0;
-		}
-	}
 
 	cancel_work_sync(&hw->work);
+	if (hw->mm_blk_handle) {
+		decoder_bmmu_box_free(hw->mm_blk_handle);
+		hw->mm_blk_handle = NULL;
+	}
 
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 

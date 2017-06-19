@@ -81,6 +81,12 @@ void *decoder_bmmu_box_alloc_box(const char *name,
 {
 	struct decoder_bmmu_box *box;
 	int size;
+	int tvp_flags;
+	tvp_flags = (mem_flags & CODEC_MM_FLAGS_TVP) ?
+		CODEC_MM_FLAGS_TVP : 0;
+
+	pr_info("decoder_bmmu_box_alloc_box, tvp_flags = %x\n", tvp_flags);
+
 	size = sizeof(struct decoder_bmmu_box) + sizeof(struct codec_mm_s *) *
 		   max_num;
 	box = kmalloc(size, GFP_KERNEL);
@@ -93,7 +99,7 @@ void *decoder_bmmu_box_alloc_box(const char *name,
 	box->name = name;
 	box->channel_id = channel_id;
 	box->align2n = aligned;
-	box->mem_flags = mem_flags;
+	box->mem_flags = mem_flags | tvp_flags;
 	mutex_init(&box->mutex);
 	INIT_LIST_HEAD(&box->list);
 	decoder_bmmu_box_mgr_add_box(box);
@@ -147,6 +153,8 @@ int decoder_bmmu_box_alloc_idx(void *handle, int idx, int size, int aligned_2n,
 		if (mm) {
 			box->mm_list[idx] = mm;
 			box->total_size += mm->buffer_size;
+			mm->ins_id = box->channel_id;
+			mm->ins_buffer_id = idx;
 		}
 	}
 	mutex_unlock(&box->mutex);
@@ -286,6 +294,41 @@ int decoder_bmmu_box_alloc_idx_wait(
 }
 EXPORT_SYMBOL(decoder_bmmu_box_alloc_idx_wait);
 
+int decoder_bmmu_box_alloc_buf_phy(
+	void *handle, int idx,
+	int size, unsigned char *driver_name,
+	unsigned long *buf_phy_addr)
+{
+	if (!decoder_bmmu_box_check_and_wait_size(
+			size,
+			1)) {
+		pr_info("%s not enough buf for buf_idx = %d\n",
+					driver_name, idx);
+		return	-ENOMEM;
+	}
+	if (!decoder_bmmu_box_alloc_idx_wait(
+			handle,
+			idx,
+			size,
+			-1,
+			-1,
+			BMMU_ALLOC_FLAGS_WAITCLEAR
+			)) {
+		*buf_phy_addr =
+			decoder_bmmu_box_get_phy_addr(
+			handle,
+			idx);
+		pr_info("%s malloc buf_idx = %d addr = %ld size = %d\n",
+			driver_name, idx, *buf_phy_addr, size);
+		} else {
+		pr_info("%s malloc failed  %d\n", driver_name, idx);
+			return -ENOMEM;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(decoder_bmmu_box_alloc_buf_phy);
+
 static int decoder_bmmu_box_dump(struct decoder_bmmu_box *box, void *buf,
 								 int size)
 {
@@ -294,20 +337,23 @@ static int decoder_bmmu_box_dump(struct decoder_bmmu_box *box, void *buf,
 	int tsize = 0;
 	int s;
 	int i;
-	if (!pbuf)
+	if (!buf) {
 		pbuf = sbuf;
-
+		size = 100000;
+	}
 #define BUFPRINT(args...) \
 	do {\
-		s = sprintf(pbuf, args);\
+		s = snprintf(pbuf, size - tsize, args);\
 		tsize += s;\
 		pbuf += s; \
 	} while (0)
 
 	for (i = 0; i < box->max_mm_num; i++) {
 		struct codec_mm_s *mm = box->mm_list[i];
-		if (buf && (size - tsize) < 128)
+		if (buf && (size - tsize) < 256) {
+			BUFPRINT("\n\t**NOT END**\n");
 			break;
+		}
 		if (mm) {
 			BUFPRINT("code mem[%d]:%p, addr=%p, size=%d,from=%d\n",
 					 i,
@@ -315,11 +361,13 @@ static int decoder_bmmu_box_dump(struct decoder_bmmu_box *box, void *buf,
 					 (void *)mm->phy_addr,
 					 mm->buffer_size,
 					 mm->from_flags);
+			if (!buf) {
+				pr_info("%s", sbuf);
+				pbuf = sbuf;
+			}
 		}
 	}
 #undef BUFPRINT
-	if (!buf)
-		pr_info("%s", sbuf);
 
 	return tsize;
 }
@@ -333,12 +381,13 @@ static int decoder_bmmu_box_dump_all(void *buf, int size)
 	int s;
 	int i;
 	struct list_head *head, *list;
-	if (!pbuf)
+	if (!buf) {
 		pbuf = sbuf;
-
+		size = 100000;
+	}
 #define BUFPRINT(args...) \
 	do {\
-		s = sprintf(pbuf, args);\
+		s = snprintf(pbuf, size - tsize, args);\
 		tsize += s;\
 		pbuf += s; \
 	} while (0)
@@ -350,15 +399,19 @@ static int decoder_bmmu_box_dump_all(void *buf, int size)
 	while (list != head) {
 		struct decoder_bmmu_box *box;
 		box = list_entry(list, struct decoder_bmmu_box, list);
-		BUFPRINT("box[%d]: %s, player_id:%d, max_num:%d, size:%d\n",
+		BUFPRINT("box[%d]: %s, %splayer_id:%d, max_num:%d, size:%d\n",
 				 i, box->name,
+				 (box->mem_flags & CODEC_MM_FLAGS_TVP) ?
+				 "TVP mode " : "",
 				 box->channel_id,
 				 box->max_mm_num,
 				 box->total_size);
 		if (buf) {
-			tsize += decoder_bmmu_box_dump(box, pbuf, size - tsize);
-			if (tsize > 0)
-				pbuf += tsize;
+			s = decoder_bmmu_box_dump(box, pbuf, size - tsize);
+			if (s > 0) {
+				tsize += s;
+				pbuf += s;
+			}
 		} else {
 			pr_info("%s", sbuf);
 			pbuf = sbuf;
@@ -383,8 +436,48 @@ static ssize_t box_dump_show(struct class *class, struct class_attribute *attr,
 	return ret;
 }
 
+static ssize_t box_debug_show(struct class *class,
+		struct class_attribute *attr,
+		char *buf)
+{
+	ssize_t size = 0;
+	size += sprintf(buf, "box debug help:\n");
+	size += sprintf(buf + size, "echo n > debug\n");
+	size += sprintf(buf + size, "n==0: clear all debugs)\n");
+	size += sprintf(buf + size,
+	"n=1: dump all box\n");
+
+	return size;
+}
+
+
+static ssize_t box_debug_store(struct class *class,
+		struct class_attribute *attr,
+		const char *buf, size_t size)
+{
+	unsigned val;
+	ssize_t ret;
+	val = -1;
+	ret = sscanf(buf, "%d", &val);
+	if (ret != 1)
+		return -EINVAL;
+	switch (val) {
+	case 1:
+		decoder_bmmu_box_dump_all(NULL , 0);
+		break;
+	default:
+		pr_err("unknow cmd! %d\n", val);
+	}
+	return size;
+
+}
+
+
+
 static struct class_attribute decoder_bmmu_box_class_attrs[] = {
 	__ATTR_RO(box_dump),
+	__ATTR(debug, S_IRUGO | S_IWUSR | S_IWGRP,
+		box_debug_show, box_debug_store),
 	__ATTR_NULL
 };
 

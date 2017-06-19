@@ -25,8 +25,9 @@ extern s32 psparser_init(u32 vid, u32 aid, u32 sid, struct vdec_s *vdec);
 extern void psparser_release(void);
 
 extern ssize_t psparser_write(struct file *file,
-	struct stream_buf_s *vbuf,
-	struct stream_buf_s *abuf, const char __user *buf, size_t count);
+		struct stream_buf_s *vbuf,
+		struct stream_buf_s *abuf,
+		const char __user *buf, size_t count);
 
 extern void psparser_change_avid(unsigned int vid, unsigned int aid);
 
