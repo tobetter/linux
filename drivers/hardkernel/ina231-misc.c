@@ -6,6 +6,7 @@
 //
 //
 //[*]------------------------------------------------------------------------[*]
+#include <asm/uaccess.h>
 #include <linux/input.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
@@ -50,8 +51,11 @@ static const struct file_operations ina231_misc_fops = {
 static long ina231_misc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	struct ina231_sensor	*sensor = (struct ina231_sensor *)file->private_data;
-	struct ina231_iocreg	*iocreg = (struct ina231_iocreg *)arg;
+	struct ina231_iocreg	ina231, *iocreg;
 
+	if (copy_from_user((void *)&ina231, (void *)arg, sizeof(struct ina231_iocreg)))
+		return -EFAULT;
+	iocreg = (struct ina231_iocreg *)&ina231;
 	switch (cmd) {
 		// Get regisger
 		case	INA231_IOCGREG:
@@ -68,6 +72,8 @@ static long ina231_misc_ioctl(struct file *file, unsigned int cmd, unsigned long
 				iocreg->cur_uA = 0;
 				iocreg->cur_uW = 0;
 			}
+			if (copy_to_user((void *)arg, (void *)&ina231, sizeof(struct ina231_iocreg)))
+                            return -EFAULT;
 			break;
 		// Set status
 		case	INA231_IOCSSTATUS:
@@ -75,12 +81,16 @@ static long ina231_misc_ioctl(struct file *file, unsigned int cmd, unsigned long
 				sensor->pd->enable = iocreg->enable;
 				if (sensor->pd->enable)  ina231_i2c_enable(sensor);
 			}
+			if (copy_to_user((void *)arg, (void *)&ina231, sizeof(struct ina231_iocreg)))
+                            return -EFAULT;
 			break;
 		// Set status
 		case	INA231_IOCGSTATUS:
 			iocreg->enable = sensor->pd->enable;
 			memset(iocreg->name, 0x00, sizeof(iocreg->name));
 			memcpy(iocreg->name, sensor->pd->name, sizeof(iocreg->name));
+			if (copy_to_user((void *)arg, (void *)&ina231, sizeof(struct ina231_iocreg)))
+                            return -EFAULT;
 			break;
 		default :
 			printk("%s : unknown message!!\n", __func__);
