@@ -41,7 +41,7 @@ $(shell mkdir $(MEDIA_MODULES) -p)
 endif
 
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
-MODS_OUT := $(ANDROID_BUILD_TOP)/$(TARGET_OUT_VENDOR)/lib
+MODS_OUT := $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/obj/lib_vendor
 else
 MODS_OUT := $(ANDROID_BUILD_TOP)/$(TARGET_OUT)/lib
 endif
