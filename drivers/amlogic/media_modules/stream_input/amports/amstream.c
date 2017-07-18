@@ -3595,7 +3595,7 @@ struct stream_buf_s *get_stream_buffer(int id)
 		return 0;
 	return &bufs[id];
 }
-
+EXPORT_SYMBOL(get_stream_buffer);
 static const struct of_device_id amlogic_mesonstream_dt_match[] = {
 	{
 		.compatible = "amlogic, codec, streambuf",
