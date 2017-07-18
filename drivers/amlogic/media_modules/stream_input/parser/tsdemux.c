@@ -67,6 +67,8 @@ static int demux_skipbyte;
 static struct tsdemux_ops *demux_ops;
 static DEFINE_SPINLOCK(demux_ops_lock);
 
+#define ENABLE_DEMUX_DRIVER 1
+
 static int enable_demux_driver(void)
 {
 #ifdef ENABLE_DEMUX_DRIVER
@@ -79,7 +81,6 @@ static int enable_demux_driver(void)
 void tsdemux_set_ops(struct tsdemux_ops *ops)
 {
 	unsigned long flags;
-
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	demux_ops = ops;
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
@@ -155,8 +156,10 @@ static int tsdemux_set_vid(int vpid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_vid)
+	if (demux_ops && demux_ops->set_vid) {
+		pr_info("set demux vpid[%d]\r\n", vpid);
 		r = demux_ops->set_vid(vpid);
+	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
@@ -168,8 +171,10 @@ static int tsdemux_set_aid(int apid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_aid)
+	if (demux_ops && demux_ops->set_aid) {
+		pr_info("set demux apid[%d]\r\n", apid);
 		r = demux_ops->set_aid(apid);
+	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
@@ -181,8 +186,10 @@ static int tsdemux_set_sid(int spid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_sid)
+	if (demux_ops && demux_ops->set_sid) {
+		pr_info("set demux spid[%d]\r\n", spid);
 		r = demux_ops->set_sid(spid);
+	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
@@ -224,7 +231,6 @@ static irqreturn_t tsdemux_isr(int irq, void *dev_id)
 {
 	u32 int_status = 0;
 	int id = (long)dev_id;
-
 	if (!enable_demux_driver()) {
 		int_status = READ_MPEG_REG(STB_INT_STATUS);
 	} else {
