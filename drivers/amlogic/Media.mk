@@ -46,6 +46,12 @@ else
 MODS_OUT := $(ANDROID_BUILD_TOP)/$(TARGET_OUT)/lib
 endif
 
+UCODE_OUT := $(ANDROID_PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/lib/modules/firmware/video
+ifeq (,$(wildcard $(UCODE_OUT)))
+$(shell mkdir $(UCODE_OUT) -p)
+endif
+
+$(shell cp $(MEDIA_DRIVERS)/../firmware/* $(UCODE_OUT) -rfa)
 $(shell cp $(MEDIA_DRIVERS)/* $(MEDIA_MODULES) -rfa)
 
 define media-modules
