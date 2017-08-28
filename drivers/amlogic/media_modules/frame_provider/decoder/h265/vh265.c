@@ -8771,7 +8771,7 @@ static void timeout_process(struct hevc_state_s *hevc)
 	hevc->decoding_pic = NULL;
 	hevc->dec_result = DEC_RESULT_DONE;
 	reset_process_time(hevc);
-	schedule_work(&hevc->work);
+	vdec_schedule_work(&hevc->work);
 }
 
 static unsigned char is_new_pic_available(struct hevc_state_s *hevc)
@@ -9274,6 +9274,11 @@ static void run(struct vdec_s *vdec,
 		(struct hevc_state_s *)vdec->private;
 	int r;
 	unsigned char check_sum = 0;
+	int size = -1;
+	char *buf = vmalloc(0x1000 * 16);
+	if (IS_ERR_OR_NULL(buf))
+		return;
+
 	run_count[hevc->index]++;
 	hevc->vdec_cb_arg = arg;
 	hevc->vdec_cb = callback;
@@ -9289,6 +9294,7 @@ static void run(struct vdec_s *vdec,
 			"ammvdec_vh265: Insufficient data\n");
 
 		vdec_schedule_work(&hevc->work);
+		vfree(buf);
 		return;
 	}
 	input_empty[hevc->index] = 0;
@@ -9334,25 +9340,30 @@ static void run(struct vdec_s *vdec,
 					"\n");
 		}
 	}
+
 	if (hevc->mmu_enable &&
 		(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)) {
-		if (amhevc_vdec_loadmc_ex(vdec, "vh265_mc_mmu") < 0) {
-			amhevc_disable();
-			hevc_print(hevc, 0,
-				"%s: Error amvdec_loadmc fail\n",
-				__func__);
-			return;
-		}
-	} else {
-		if (amhevc_vdec_loadmc_ex
-			(vdec, "vh265_mc") < 0) {
-			amhevc_disable();
-			hevc_print(hevc, 0,
-				"%s: Error amvdec_loadmc fail\n",
-				__func__);
-			return;
-		}
+		size = get_firmware_data(VIDEO_DEC_HEVC_MMU, buf);
+	} else
+		size = get_firmware_data(VIDEO_DEC_HEVC, buf);
+
+	if (size < 0) {
+		pr_err("get firmware fail.\n");
+		vfree(buf);
+		return;
 	}
+
+	if (amhevc_vdec_loadmc_ex(vdec, NULL, buf) < 0) {
+		amhevc_disable();
+		vfree(buf);
+		hevc_print(hevc, 0,
+			"%s: Error amvdec_loadmc fail\n",
+			__func__);
+		return;
+	}
+
+	vfree(buf);
+
 	if (vh265_hw_ctx_restore(hevc) < 0) {
 		vdec_schedule_work(&hevc->work);
 		return;

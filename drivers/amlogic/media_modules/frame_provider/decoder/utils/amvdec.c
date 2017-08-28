@@ -243,16 +243,19 @@ int amvdec_wake_unlock(void)
 #endif
 
 static s32 am_vdec_loadmc_ex(struct vdec_s *vdec,
-		const char *name, s32(*load)(const u32 *))
+		const char *name, char *def, s32(*load)(const u32 *))
 {
 	int err;
 
 	if (!vdec->mc_loaded) {
-		int loaded;
-		loaded = get_decoder_firmware_data(vdec->format,
-					name, (u8 *)(vdec->mc), (4096 * 4 * 4));
-		if (loaded <= 0)
-			return -1;
+		if (!def) {
+			err = get_decoder_firmware_data(vdec->format,
+						name, (u8 *)(vdec->mc),
+						(4096 * 4 * 4));
+			if (err <= 0)
+				return -1;
+		} else
+			memcpy((char *)vdec->mc, def, sizeof(vdec->mc));
 
 		vdec->mc_loaded = true;
 	}
@@ -374,9 +377,9 @@ s32 amvdec_loadmc_ex(enum vformat_e type, const char *name, char *def)
 	return am_loadmc_ex(type, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_loadmc_ex);
-s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name)
+s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
 {
-	return am_vdec_loadmc_ex(vdec, name, &amvdec_loadmc);
+	return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_ex);
 
@@ -561,10 +564,10 @@ s32 amhevc_loadmc_ex(enum vformat_e type, const char *name, char *def)
 		return 0;
 }
 EXPORT_SYMBOL(amhevc_loadmc_ex);
-s32 amhevc_vdec_loadmc_ex(struct vdec_s *vdec, const char *name)
+s32 amhevc_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
 {
 	if (has_hevc_vdec())
-		return am_vdec_loadmc_ex(vdec, name, &amhevc_loadmc);
+		return am_vdec_loadmc_ex(vdec, name, def, &amhevc_loadmc);
 	else
 		return 0;
 }
