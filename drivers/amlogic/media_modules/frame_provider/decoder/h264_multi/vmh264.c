@@ -4805,7 +4805,11 @@ static void run(struct vdec_s *vdec,
 {
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
-	int size;
+	int size, firmware_size;
+	char *buf = vmalloc(0x1000 * 16);
+	if (IS_ERR_OR_NULL(buf))
+		return;
+
 	run_count[DECODE_ID(hw)]++;
 
 	hw->vdec_cb_arg = arg;
@@ -4830,6 +4834,7 @@ static void run(struct vdec_s *vdec,
 			"vdec_prepare_input: Insufficient data\n");
 
 		vdec_schedule_work(&hw->work);
+		vfree(buf);
 		return;
 	}
 	input_empty[DECODE_ID(hw)] = 0;
@@ -4892,15 +4897,25 @@ static void run(struct vdec_s *vdec,
 
 	start_process_time(hw);
 
-	if (amvdec_vdec_loadmc_ex(vdec, "vmh264_mc") < 0) {
+	firmware_size = get_firmware_data(VIDEO_DEC_H264_MULTI, buf);
+	if (firmware_size < 0) {
+		pr_err("get firmware fail.\n");
+		vfree(buf);
+		return;
+	}
+
+	if (amvdec_vdec_loadmc_ex(vdec, NULL, buf) < 0) {
 		amvdec_enable_flag = false;
 		amvdec_disable();
 			if (mmu_enable)
 				amhevc_disable();
+		vfree(buf);
 		pr_info("%s: Error amvdec_vdec_loadmc fail\n",
 			__func__);
 		return;
 	}
+
+	vfree(buf);
 
 	if (vh264_hw_ctx_restore(hw) < 0) {
 		vdec_schedule_work(&hw->work);
