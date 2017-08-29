@@ -793,6 +793,9 @@ s32 vreal_init(struct vdec_s *vdec)
 	}
 
 	if (vreal_amstream_dec_info.format == VIDEO_DEC_FORMAT_REAL_8) {
+		if (vreal_amstream_dec_info.param == NULL) {
+			return -1;
+		}
 		load_block_data((void *)pic_sz_tbl, 12);
 
 		/* TODO: need to load the table into lmem */
