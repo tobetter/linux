@@ -949,7 +949,7 @@ static int vdec_is_paused(void)
 	}
 	/*have data,but output buffer is full */
 	if ((rp == old_rp && level > 1024) ||
-		(rp == old_rp && wp == old_wp && level == level)) {
+		(rp == old_rp && wp == old_wp && level == old_level)) {
 		/*no write && not read */
 		paused_time++;
 	} else {

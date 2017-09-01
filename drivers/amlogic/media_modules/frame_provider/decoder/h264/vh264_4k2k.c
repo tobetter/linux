@@ -707,11 +707,13 @@ static irqreturn_t vh264_4k2k_isr(int irq, void *dev_id)
 			if ((!sync_outside)
 				|| (sync_outside &&
 					(slice_type == SLICE_TYPE_I))) {
-				pts_lookup_offset_us64(PTS_TYPE_VIDEO,
+				ret = pts_lookup_offset_us64(PTS_TYPE_VIDEO,
 							stream_offset,
 							&vf->pts,
 							0,
 							&vf->pts_us64);
+				if (ret != 0)
+					pr_debug(" vpts lookup failed\n");
 			}
 #ifdef H264_4K2K_SINGLE_CORE
 			if (READ_VREG(DECODE_MODE) & 1) {

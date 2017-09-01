@@ -290,7 +290,7 @@ int vdec_source_changed_for_clk_set(int format, int width, int height, int fps)
 	if (format == VFORMAT_HEVC || format == VFORMAT_VP9) {
 		ret_clk = hevc_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HEVC] = width * height * fps;
-	} else if (format == VFORMAT_H264_ENC && format == VFORMAT_JPEG_ENC) {
+	} else if (format == VFORMAT_H264_ENC || format == VFORMAT_JPEG_ENC) {
 		ret_clk = hcodec_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HCODEC] = width * height * fps;
 	} else if (format == VFORMAT_H264_4K2K &&
