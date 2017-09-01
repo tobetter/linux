@@ -742,9 +742,10 @@ static int audio_port_reset(struct stream_port_s *port,
 
 	pbuf->flag |= BUF_FLAG_IN_USE;
 	amstream_audio_reset = 1;
-	pts_start(PTS_TYPE_AUDIO);
 
-	return 0;
+	r = pts_start(PTS_TYPE_AUDIO);
+
+	return r;
 }
 
 static int sub_port_reset(struct stream_port_s *port,
