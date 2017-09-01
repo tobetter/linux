@@ -1366,8 +1366,8 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		}
 		if (p->frame_base_video_path == FRAME_BASE_PATH_IONVIDEO) {
 #if 1
-			/*r = ionvideo_assign_map(&vdec->vf_receiver_name,
-					&vdec->vf_receiver_inst);*/ /*DEBUG_TMP*/
+			r = ionvideo_assign_map(&vdec->vf_receiver_name,
+					&vdec->vf_receiver_inst);
 #else
 		/*
 		 * temporarily just use decoder instance ID as iondriver ID
