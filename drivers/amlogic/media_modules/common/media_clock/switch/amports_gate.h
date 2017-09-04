@@ -22,8 +22,7 @@
 struct gate_switch_node {
 	struct clk *clk;
 	const char *name;
-	spinlock_t lock;
-	unsigned long flags;
+	struct mutex mutex;
 	int ref_count;
 };
 
