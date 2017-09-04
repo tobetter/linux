@@ -495,14 +495,12 @@ static int hcodec_clock_set(int clk)
 
 static void vdec_clock_on(void)
 {
-	spin_lock_irqsave(&gclk.vdec_mux_node->lock,
-		gclk.vdec_mux_node->flags);
+	mutex_lock(&gclk.vdec_mux_node->mutex);
 	if (!gclk.vdec_mux_node->ref_count)
 		clk_prepare_enable(gclk.vdec_mux_node->clk);
 
 	gclk.vdec_mux_node->ref_count++;
-	spin_unlock_irqrestore(&gclk.vdec_mux_node->lock,
-		gclk.vdec_mux_node->flags);
+	mutex_unlock(&gclk.vdec_mux_node->mutex);
 
 	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.vdec_mux_node->name,
@@ -511,15 +509,13 @@ static void vdec_clock_on(void)
 
 static void vdec_clock_off(void)
 {
-	spin_lock_irqsave(&gclk.vdec_mux_node->lock,
-		gclk.vdec_mux_node->flags);
+	mutex_lock(&gclk.vdec_mux_node->mutex);
 	gclk.vdec_mux_node->ref_count--;
 	if (!gclk.vdec_mux_node->ref_count)
 		clk_disable_unprepare(gclk.vdec_mux_node->clk);
 
 	clock_real_clk[VDEC_1] = 0;
-	spin_unlock_irqrestore(&gclk.vdec_mux_node->lock,
-		gclk.vdec_mux_node->flags);
+	mutex_unlock(&gclk.vdec_mux_node->mutex);
 
 	pr_info("the %-15s clock off, ref cnt: %d\n",
 		gclk.vdec_mux_node->name,
@@ -528,14 +524,12 @@ static void vdec_clock_off(void)
 
 static void hcodec_clock_on(void)
 {
-	spin_lock_irqsave(&gclk.hcodec_mux_node->lock,
-		gclk.hcodec_mux_node->flags);
+	mutex_lock(&gclk.hcodec_mux_node->mutex);
 	if (!gclk.hcodec_mux_node->ref_count)
 		clk_prepare_enable(gclk.hcodec_mux_node->clk);
 
 	gclk.hcodec_mux_node->ref_count++;
-	spin_unlock_irqrestore(&gclk.hcodec_mux_node->lock,
-		gclk.hcodec_mux_node->flags);
+	mutex_unlock(&gclk.hcodec_mux_node->mutex);
 
 	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.hcodec_mux_node->name,
@@ -544,14 +538,12 @@ static void hcodec_clock_on(void)
 
 static void hcodec_clock_off(void)
 {
-	spin_lock_irqsave(&gclk.hcodec_mux_node->lock,
-		gclk.hcodec_mux_node->flags);
+	mutex_lock(&gclk.hcodec_mux_node->mutex);
 	gclk.hcodec_mux_node->ref_count--;
 	if (!gclk.hcodec_mux_node->ref_count)
 		clk_disable_unprepare(gclk.hcodec_mux_node->clk);
 
-	spin_unlock_irqrestore(&gclk.hcodec_mux_node->lock,
-		gclk.hcodec_mux_node->flags);
+	mutex_unlock(&gclk.hcodec_mux_node->mutex);
 
 	pr_info("the %-15s clock off, ref cnt: %d\n",
 		gclk.hcodec_mux_node->name,
@@ -560,15 +552,13 @@ static void hcodec_clock_off(void)
 
 static void hevc_clock_on(void)
 {
-	spin_lock_irqsave(&gclk.hevc_mux_node->lock,
-		gclk.hevc_mux_node->flags);
+	mutex_lock(&gclk.hevc_mux_node->mutex);
 	if (!gclk.hevc_mux_node->ref_count)
 		clk_prepare_enable(gclk.hevc_mux_node->clk);
 
 	gclk.hevc_mux_node->ref_count++;
 	WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);
-	spin_unlock_irqrestore(&gclk.hevc_mux_node->lock,
-		gclk.hevc_mux_node->flags);
+	mutex_unlock(&gclk.hevc_mux_node->mutex);
 
 	pr_info("the %-15s clock on, ref cnt: %d\n",
 		gclk.hevc_mux_node->name,
@@ -577,15 +567,13 @@ static void hevc_clock_on(void)
 
 static void hevc_clock_off(void)
 {
-	spin_lock_irqsave(&gclk.hevc_mux_node->lock,
-		gclk.hevc_mux_node->flags);
+	mutex_lock(&gclk.hevc_mux_node->mutex);
 	gclk.hevc_mux_node->ref_count--;
 	if (!gclk.hevc_mux_node->ref_count)
 		clk_disable_unprepare(gclk.hevc_mux_node->clk);
 
 	clock_real_clk[VDEC_HEVC] = 0;
-	spin_unlock_irqrestore(&gclk.hevc_mux_node->lock,
-		gclk.hevc_mux_node->flags);
+	mutex_unlock(&gclk.hevc_mux_node->mutex);
 
 	pr_info("the %-15s clock off, ref cnt: %d\n",
 		gclk.hevc_mux_node->name,

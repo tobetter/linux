@@ -90,7 +90,7 @@ int amports_clock_gate_init(struct device *dev)
 				gates[i].clk);
 		}
 		gates[i].ref_count = 0;
-		spin_lock_init(&gates[i].lock);
+		mutex_init(&gates[i].mutex);
 	}
 
 	set_clock_gate(gates, ARRAY_SIZE(gates));
@@ -101,7 +101,7 @@ EXPORT_SYMBOL(amports_clock_gate_init);
 
 static int amports_gate_clk(struct gate_switch_node *gate_node, int enable)
 {
-	spin_lock_irqsave(&gate_node->lock, gate_node->flags);
+	mutex_lock(&gate_node->mutex);
 	if (enable) {
 		if (gate_node->ref_count == 0)
 			clk_prepare_enable(gate_node->clk);
@@ -120,7 +120,8 @@ static int amports_gate_clk(struct gate_switch_node *gate_node, int enable)
 			pr_info("the %-15s clock off, ref cnt: %d\n",
 				gate_node->name, gate_node->ref_count);
 	}
-	spin_unlock_irqrestore(&gate_node->lock, gate_node->flags);
+	mutex_unlock(&gate_node->mutex);
+
 	return 0;
 }
 
