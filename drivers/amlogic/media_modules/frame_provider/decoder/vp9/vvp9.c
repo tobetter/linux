@@ -50,6 +50,7 @@
 #include <linux/amlogic/media/video_sink/video.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/config_parser.h"
+#include "../utils/firmware.h"
 
 #define MIX_STREAM_SUPPORT
 #define SUPPORT_4K2K
@@ -1313,6 +1314,7 @@ struct VP9Decoder_s {
 	int new_frame_displayed;
 	void *mmu_box;
 	void *bmmu_box;
+	struct firmware_s *fw;
 } VP9Decoder;
 
 static int vp9_print(struct VP9Decoder_s *pbi,
@@ -6592,17 +6594,27 @@ TODO:FOR VERSION
 static s32 vvp9_init(struct VP9Decoder_s *pbi)
 {
 	int size = -1;
-	char *buf = vmalloc(0x1000 * 16);
-	if (IS_ERR_OR_NULL(buf))
-		return -ENOMEM;
+	int fw_size = 0x1000 * 16;
+	struct firmware_s *fw = NULL;
 
 	init_timer(&pbi->timer);
 
 	pbi->stat |= STAT_TIMER_INIT;
-	if (vvp9_local_init(pbi) < 0) {
-		vfree(buf);
+	if (vvp9_local_init(pbi) < 0)
 		return -EBUSY;
+
+	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
+	if (IS_ERR_OR_NULL(fw))
+		return -ENOMEM;
+
+	size = get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data);
+	if (size < 0) {
+		pr_err("get firmware fail.\n");
+		vfree(fw);
+		return -1;
 	}
+
+	fw->len = fw_size;
 
 #ifdef MULTI_INSTANCE_SUPPORT
 	if (pbi->m_ins_flag) {
@@ -6617,27 +6629,21 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 
 		INIT_WORK(&pbi->work, vp9_work);
 
-		vfree(buf);
+		pbi->fw = fw;
+
 		return 0;
 	}
 #endif
 
 	amhevc_enable();
 
-	size = get_firmware_data(VIDEO_DEC_VP9_MMU, buf);
-	if (size < 0) {
-		pr_err("get firmware fail.\n");
-		vfree(buf);
-		return -1;
-	}
-
-	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, buf) < 0) {
+	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data) < 0) {
 		amhevc_disable();
-		vfree(buf);
+		vfree(fw);
 		return -EBUSY;
 	}
 
-	vfree(buf);
+	vfree(fw);
 
 	pbi->stat |= STAT_MC_LOAD;
 
@@ -6731,6 +6737,9 @@ static int vvp9_stop(struct VP9Decoder_s *pbi)
 	amhevc_disable();
 #endif
 	uninit_mmu_buffers(pbi);
+
+	vfree(pbi->fw);
+	pbi->fw = NULL;
 
 	return 0;
 }
@@ -7132,11 +7141,7 @@ static void run(struct vdec_s *vdec,
 {
 	struct VP9Decoder_s *pbi =
 		(struct VP9Decoder_s *)vdec->private;
-	int r, size = -1;
-
-	char *buf = vmalloc(0x1000 * 16);
-	if (IS_ERR_OR_NULL(buf))
-		return;
+	int r;
 
 	run_count[pbi->index]++;
 	pbi->vdec_cb_arg = arg;
@@ -7189,22 +7194,12 @@ static void run(struct vdec_s *vdec,
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
 
-	size = get_firmware_data(VIDEO_DEC_VP9_MMU, buf);
-	if (size < 0) {
-		pr_err("get firmware fail.\n");
-		vfree(buf);
-		return;
-	}
-
-	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, buf) < 0) {
+	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data) < 0) {
 		amhevc_disable();
-		vfree(buf);
 		vp9_print(pbi, 0,
 			"%s: Error amvdec_loadmc fail\n", __func__);
 		return;
 	}
-
-	vfree(buf);
 
 	if (vp9_hw_ctx_restore(pbi) < 0) {
 		vdec_schedule_work(&pbi->work);

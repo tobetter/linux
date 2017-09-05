@@ -15,15 +15,13 @@
  *
 */
 
-#ifndef __VIDEO_FIRMWARE_HEADER_
-#define __VIDEO_FIRMWARE_HEADER_
+#ifndef __VIDEO_FIRMWARE_PRIV_HEADER_
+#define __VIDEO_FIRMWARE_PRIV_HEADER_
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/cdev.h>
 #include "firmware_type.h"
-#include <linux/amlogic/media/utils/vformat.h>
-
 
 struct firmware_mgr_s {
 	struct list_head head;
@@ -67,7 +65,6 @@ struct firmware_s {
 	char data[0];
 };
 
-
 struct package_header_s {
 	int magic;
 	int size;
@@ -98,16 +95,10 @@ struct package_info_s {
 	char data[0];
 };
 
-
 struct firmware_dev_s {
 	struct cdev cdev;
 	struct device *dev;
 	dev_t dev_no;
 };
-
-int get_decoder_firmware_data(enum vformat_e type,
-	const char *file_name, char *buf, int size);
-int get_data_from_name(const char *name, char *buf);
-int get_firmware_data(enum firmware_type_e type, char *buf);
 
 #endif

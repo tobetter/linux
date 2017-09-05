@@ -42,7 +42,7 @@
 #include <linux/amlogic/media/utils/vdec_reg.h>
 #include "amvdec.h"
 #include <linux/amlogic/media/utils/amports_config.h>
-#include "../../../common/firmware/firmware.h"
+#include "firmware.h"
 
 #define MC_SIZE (4096 * 16)
 

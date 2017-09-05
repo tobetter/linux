@@ -36,6 +36,7 @@
 
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/video_sink/video_keeper.h>
+#include "../utils/firmware.h"
 
 #define MEM_NAME "codec_264_4k"
 
