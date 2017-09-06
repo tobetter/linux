@@ -8735,9 +8735,6 @@ static int vh265_stop(struct hevc_state_s *hevc)
 	uninit_mmu_buffers(hevc);
 	amhevc_disable();
 
-	vfree(hevc->fw);
-	hevc->fw = NULL;
-
 	kfree(gvs);
 	gvs = NULL;
 
@@ -8852,6 +8849,10 @@ static int vmh265_stop(struct hevc_state_s *hevc)
 	cancel_work_sync(&hevc->work);
 	cancel_work_sync(&hevc->notify_work);
 	uninit_mmu_buffers(hevc);
+
+	vfree(hevc->fw);
+	hevc->fw = NULL;
+
 	dump_log(hevc);
 	return 0;
 }
