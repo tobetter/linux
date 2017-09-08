@@ -44,6 +44,7 @@
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
+#include <linux/amlogic/tee.h>
 
 #define TIME_TASK_PRINT_ENABLE  0x100
 #define PUT_PRINT_ENABLE    0x200
@@ -1403,45 +1404,52 @@ static s32 vh264mvc_init(void)
 
 	amvdec_enable();
 
-	/* -- ucode loading (amrisc and swap code) */
-	mc_cpu_addr = dma_alloc_coherent(amports_get_dma_device(),
-		MC_TOTAL_SIZE, &mc_dma_handle, GFP_KERNEL);
-	if (!mc_cpu_addr) {
-		amvdec_disable();
+	if (is_secload_get()) {
+		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MVC) != 0) {
+			amvdec_disable();
+			return -1;
+		}
+	} else {
+		/* -- ucode loading (amrisc and swap code) */
+		mc_cpu_addr = dma_alloc_coherent(amports_get_dma_device(),
+			MC_TOTAL_SIZE, &mc_dma_handle, GFP_KERNEL);
+		if (!mc_cpu_addr) {
+			amvdec_disable();
+			vfree(buf);
+			pr_err("vh264_mvc init: Can not allocate mc memory.\n");
+			return -ENOMEM;
+		}
+
+		WRITE_VREG(UCODE_START_ADDR, mc_dma_handle);
+
+		size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
+		if (size < 0) {
+			pr_err("get firmware fail.");
+			vfree(buf);
+			return -1;
+		}
+
+		ret = amvdec_loadmc_ex(VFORMAT_H264MVC, NULL, buf);
+
+		/*header*/
+		memcpy((u8 *) mc_cpu_addr, buf + 0x1000, 0x1000);
+		/*mmco*/
+		memcpy((u8 *) mc_cpu_addr + 0x1000, buf + 0x2000, 0x2000);
+		/*slice*/
+		memcpy((u8 *) mc_cpu_addr + 0x3000, buf + 0x4000, 0x3000);
+
 		vfree(buf);
-		pr_err("vh264_mvc init: Can not allocate mc memory.\n");
-		return -ENOMEM;
+
+		if (ret < 0) {
+			amvdec_disable();
+
+			dma_free_coherent(amports_get_dma_device(),
+					MC_TOTAL_SIZE,
+					mc_cpu_addr, mc_dma_handle);
+			mc_cpu_addr = NULL;
+			return -EBUSY;
+		}
 	}
-
-	WRITE_VREG(UCODE_START_ADDR, mc_dma_handle);
-
-	size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
-	if (size < 0) {
-		pr_err("get firmware fail.");
-		vfree(buf);
-		return -1;
-	}
-
-	ret = amvdec_loadmc_ex(VFORMAT_H264MVC, NULL, buf);
-
-	/*header*/
-	memcpy((u8 *) mc_cpu_addr, buf + 0x1000, 0x1000);
-	/*mmco*/
-	memcpy((u8 *) mc_cpu_addr + 0x1000, buf + 0x2000, 0x2000);
-	/*slice*/
-	memcpy((u8 *) mc_cpu_addr + 0x3000, buf + 0x4000, 0x3000);
-
-	vfree(buf);
-
-	if (ret < 0) {
-		amvdec_disable();
-
-		dma_free_coherent(amports_get_dma_device(),
-				MC_TOTAL_SIZE, mc_cpu_addr, mc_dma_handle);
-		mc_cpu_addr = NULL;
-		return -EBUSY;
-	}
-
 	stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */

@@ -16,6 +16,7 @@
 #define PRINT_FRAMEBASE_DATA          0x0100
 #define PRINT_FLAG_DEBUG_POC          0x0200
 #define RRINT_FLAG_RPM                0x0400
+#define DEBUG_DISABLE_RUNREADY_RMBUF  0x0800
 #define DISABLE_ERROR_HANDLE          0x10000
 #define DEBUG_DUMP_STAT               0x80000
 
@@ -769,6 +770,8 @@ struct h264_dpb_stru {
 	unsigned int aspect_ratio_sar_height;
 
 	unsigned int dec_dpb_status;
+	unsigned char buf_alloc_fail;
+	unsigned int dpb_error_flag;
 };
 
 
@@ -821,4 +824,11 @@ void print_pic_info(int decindex, const char *info,
 			int slice_type);
 void dump_dpb(struct DecodedPictureBuffer *p_Dpb, u8 force);
 
+void dump_pic(struct h264_dpb_stru *p_H264_Dpb);
+
+enum PictureStructure get_cur_slice_picture_struct(
+	struct h264_dpb_stru *p_H264_Dpb);
+
+int dpb_check_ref_list_error(
+	struct h264_dpb_stru *p_H264_Dpb);
 #endif

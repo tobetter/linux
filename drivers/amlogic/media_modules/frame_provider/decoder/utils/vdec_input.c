@@ -44,6 +44,7 @@
 
 #define MIN_FRAME_PADDING_SIZE ((u32)(L1_CACHE_BYTES))
 
+#define EXTRA_PADDING_SIZE  (16 * SZ_1K) /*HEVC_PADDING_SIZE*/
 
 #define MEM_NAME "VFRAME_INPUT"
 static int vdec_input_get_duration_u64(struct vdec_input_s *input);
@@ -149,7 +150,9 @@ static void vframe_block_free_block(struct vframe_block_list_s *block)
 	if (block->addr) {
 		codec_mm_free_for_dma(MEM_NAME,	block->addr);
 	}
-	pr_err("free block %d, size=%d\n", block->id, block->size);
+	/*
+	*pr_err("free block %d, size=%d\n", block->id, block->size);
+	*/
 	kfree(block);
 }
 
@@ -277,9 +280,11 @@ int vdec_input_dump_blocks(struct vdec_input_s *input,
 	char sbuf[256];
 	int s = 0;
 
+	if (size <= 0)
+		return 0;
 	if (!bufs)
 		lbuf = sbuf;
-	s += sprintf(lbuf + s,
+	s += snprintf(lbuf + s, size - s,
 		"blocks:vdec-%d id:%d,bufsize=%d,dsize=%d,frames:%d,dur:%dms\n",
 		input->id,
 		input->block_nums,
@@ -299,15 +304,21 @@ int vdec_input_dump_blocks(struct vdec_input_s *input,
 	list_for_each_safe(p, tmp, &input->vframe_block_list) {
 		struct vframe_block_list_s *block = list_entry(
 			p, struct vframe_block_list_s, list);
-		if (bufs != NULL)
+		if (bufs != NULL) {
 			lbuf = bufs + s;
+			if (size - s < 128)
+				break;
+		}
 		s += vdec_input_dump_block_locked(block, lbuf, size - s);
 	}
 	list_for_each_safe(p, tmp, &input->vframe_block_free_list) {
 		struct vframe_block_list_s *block = list_entry(
 			p, struct vframe_block_list_s, list);
-		if (bufs != NULL)
+		if (bufs != NULL) {
 			lbuf = bufs + s;
+			if (size - s < 128)
+				break;
+		}
 		s += vdec_input_dump_block_locked(block, lbuf, size - s);
 	}
 	vdec_input_unlock(input, flags);
@@ -363,10 +374,11 @@ int vdec_input_dump_chunks(struct vdec_input_s *input,
 	char *lbuf = bufs;
 	char sbuf[256];
 	int s = 0;
-
+	if (size <= 0)
+		return 0;
 	if (!bufs)
 		lbuf = sbuf;
-	s += sprintf(lbuf + s,
+	snprintf(lbuf + s, size - s,
 		"blocks:vdec-%d id:%d,bufsize=%d,dsize=%d,frames:%d,maxframe:%d\n",
 		input->id,
 		input->block_nums,
@@ -515,11 +527,13 @@ static struct vframe_block_list_s *
 
 	vdec_input_add_block(input, block);
 
-	pr_info("vdec-%d:new block id=%d, total_blocks:%d, size=%d\n",
-		input->id,
-		block->id,
-		input->block_nums,
-		block->size);
+	/*
+	 *pr_info("vdec-%d:new block id=%d, total_blocks:%d, size=%d\n",
+	 *	input->id,
+	 *	block->id,
+	 *	input->block_nums,
+	 *	block->size);
+	 */
 	if (0 && input->size > VFRAME_BLOCK_MAX_LEVEL * 2) {
 		/*
 		used
@@ -726,7 +740,7 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 	}
 	if (!block) {/*try new block.*/
 		int ret = vdec_input_get_free_block(input,
-			count + need_pading_size,
+			count + need_pading_size + EXTRA_PADDING_SIZE,
 			&block);
 		if (ret < 0)/*no enough block now.*/
 			return ret;
@@ -899,8 +913,6 @@ void vdec_input_release(struct vdec_input_s *input)
 				p, struct vframe_chunk_s, list);
 		vdec_input_release_chunk(input, chunk);
 	}
-
-	/* release input blocks */
 	list_for_each_safe(p, tmp, &input->vframe_block_list) {
 		/*should never here.*/
 		list_move_tail(p, &input->vframe_block_free_list);

@@ -1137,6 +1137,7 @@ static void run(struct vdec_s *vdec, void (*callback)(struct vdec_s *, void *),
 	hw->dec_result = DEC_RESULT_NONE;
 
 	if (amvdec_vdec_loadmc_buf_ex(vdec, hw->fw->data, hw->fw->len) < 0) {
+		pr_err("VIDEO_DEC_FORMAT_MPEG4 ucode loading failed\n");
 		hw->dec_result = DEC_RESULT_ERROR;
 		schedule_work(&hw->work);
 		return;

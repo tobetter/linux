@@ -52,11 +52,18 @@
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
+#include <linux/amlogic/tee.h>
 
 #define DRIVER_NAME "amvdec_h264"
 #define MODULE_NAME "amvdec_h264"
 #define MEM_NAME "codec_264"
 #define HANDLE_H264_IRQ
+
+#if 0
+/* currently, only iptv supports this function*/
+#define SUPPORT_BAD_MACRO_BLOCK_REDUNDANCY
+#endif
+
 /* #define DEBUG_PTS */
 #if 0 /* MESON_CPU_TYPE <= MESON_CPU_TYPE_MESON6TV */
 #define DROP_B_FRAME_FOR_1080P_50_60FPS
@@ -233,6 +240,11 @@ static u32 max_refer_buf = 1;
 static u32 decoder_force_reset;
 static unsigned int no_idr_error_count;
 static unsigned int no_idr_error_max = 60;
+#ifdef SUPPORT_BAD_MACRO_BLOCK_REDUNDANCY
+/* 0~128*/
+static u32 bad_block_scale;
+#endif
+
 static unsigned int enable_switch_fense = 1;
 #define EN_SWITCH_FENCE() (enable_switch_fense && !is_4k)
 #if 0
@@ -245,6 +257,7 @@ static struct vframe_s *p_last_vf;
 static s32 iponly_early_mode;
 static void *mm_blk_handle;
 static int tvp_flag;
+static bool is_reset;
 
 /*TODO irq*/
 #if 1
@@ -2013,10 +2026,7 @@ static void vh264_isr(void)
 		fatal_error_flag = DECODER_FATAL_ERROR_UNKNOWN;
 		/* this is fatal error, need restart */
 		pr_info("fatal error happend\n");
-		vh264_stream_switching_state = SWITCHING_STATE_ON_CMD3;
 		amvdec_stop();
-		pr_info("fatal error  switching mode cmd3.\n");
-			schedule_work(&stream_switching_work);
 		if (!fatal_error_reset)
 			schedule_work(&error_wd_work);
 	} else if ((cpu_cmd & 0xff) == 7) {
@@ -2287,6 +2297,12 @@ int vh264_set_trickmode(struct vdec_s *vdec, unsigned long trickmode)
 	return 0;
 }
 
+int vh264_set_isreset(struct vdec_s *vdec, int isreset)
+{
+	is_reset = isreset;
+	return 0;
+}
+
 static void vh264_prot_init(void)
 {
 
@@ -2332,11 +2348,18 @@ static void vh264_prot_init(void)
 
 	WRITE_VREG(AV_SCRATCH_0, 0);
 	WRITE_VREG(AV_SCRATCH_1, buf_offset);
-	WRITE_VREG(AV_SCRATCH_G, mc_dma_handle);
+	if (!is_secload_get())
+		WRITE_VREG(AV_SCRATCH_G, mc_dma_handle);
 	WRITE_VREG(AV_SCRATCH_7, 0);
 	WRITE_VREG(AV_SCRATCH_8, 0);
 	WRITE_VREG(AV_SCRATCH_9, 0);
 	WRITE_VREG(AV_SCRATCH_N, 0);
+
+#ifdef SUPPORT_BAD_MACRO_BLOCK_REDUNDANCY
+	if (bad_block_scale > 128)
+		bad_block_scale = 128;
+	WRITE_VREG(AV_SCRATCH_A, bad_block_scale);
+#endif
 
 	error_recovery_mode_use =
 		(error_recovery_mode !=
@@ -2542,7 +2565,12 @@ static s32 vh264_init(void)
 	query_video_status(0, &trickmode_fffb);
 
 	amvdec_enable();
-
+	if (!firmwareloaded && is_secload_get()) {
+		if (tee_load_video_fw((u32)VIDEO_DEC_H264) != 0) {
+			amvdec_disable();
+			return -1;
+		}
+	} else {
 	/* -- ucode loading (amrisc and swap code) */
 	mc_cpu_addr =
 		dma_alloc_coherent(amports_get_dma_device(), MC_TOTAL_SIZE,
@@ -2652,6 +2680,7 @@ static s32 vh264_init(void)
 			return -EBUSY;
 		}
 	}
+	}
 
 	stat |= STAT_MC_LOAD;
 
@@ -2683,9 +2712,10 @@ static s32 vh264_init(void)
 #endif
 
 	if (frame_dur != 0) {
-		vf_notify_receiver(PROVIDER_NAME,
-				VFRAME_EVENT_PROVIDER_FR_HINT,
-				(void *)((unsigned long)frame_dur));
+		if (!is_reset)
+			vf_notify_receiver(PROVIDER_NAME,
+					VFRAME_EVENT_PROVIDER_FR_HINT,
+					(void *)((unsigned long)frame_dur));
 		fr_hint_status = VDEC_HINTED;
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
@@ -2738,7 +2768,7 @@ static int vh264_stop(int mode)
 
 	if (stat & STAT_VF_HOOK) {
 		if (mode == MODE_FULL) {
-			if (fr_hint_status == VDEC_HINTED)
+			if (fr_hint_status == VDEC_HINTED && !is_reset)
 				vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_FR_END_HINT,
 					NULL);
@@ -2787,7 +2817,7 @@ static void error_do_work(struct work_struct *work)
 	 * free_irq/deltimer/..and some other.
 	 */
 	if (atomic_read(&vh264_active)) {
-
+		amvdec_stop();
 		do {
 			msleep(20);
 		} while (vh264_stream_switching_state != SWITCHING_STATE_OFF);
@@ -3001,6 +3031,8 @@ static int amvdec_h264_probe(struct platform_device *pdev)
 	}
 	pdata->dec_status = vh264_dec_status;
 	pdata->set_trickmode = vh264_set_trickmode;
+	pdata->set_isreset = vh264_set_isreset;
+	is_reset = 0;
 
 	if (vh264_init() < 0) {
 		pr_info("\namvdec_h264 init failed.\n");
@@ -3163,6 +3195,11 @@ module_param(enable_switch_fense, uint, 0664);
 MODULE_PARM_DESC(enable_switch_fense,
 		"\n enable switch fense\n");
 
+#ifdef SUPPORT_BAD_MACRO_BLOCK_REDUNDANCY
+module_param(bad_block_scale, uint, 0664);
+MODULE_PARM_DESC(bad_block_scale,
+				"\n print bad_block_scale\n");
+#endif
 
 module_init(amvdec_h264_driver_init_module);
 module_exit(amvdec_h264_driver_remove_module);

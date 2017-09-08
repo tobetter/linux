@@ -67,8 +67,6 @@ static int demux_skipbyte;
 static struct tsdemux_ops *demux_ops;
 static DEFINE_SPINLOCK(demux_ops_lock);
 
-#define ENABLE_DEMUX_DRIVER 1
-
 static int enable_demux_driver(void)
 {
 #ifdef ENABLE_DEMUX_DRIVER
@@ -156,10 +154,8 @@ static int tsdemux_set_vid(int vpid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_vid) {
-		pr_info("set demux vpid[%d]\r\n", vpid);
+	if (demux_ops && demux_ops->set_vid)
 		r = demux_ops->set_vid(vpid);
-	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
@@ -171,10 +167,8 @@ static int tsdemux_set_aid(int apid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_aid) {
-		pr_info("set demux apid[%d]\r\n", apid);
+	if (demux_ops && demux_ops->set_aid)
 		r = demux_ops->set_aid(apid);
-	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
@@ -186,10 +180,8 @@ static int tsdemux_set_sid(int spid)
 	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
-	if (demux_ops && demux_ops->set_sid) {
-		pr_info("set demux spid[%d]\r\n", spid);
+	if (demux_ops && demux_ops->set_sid)
 		r = demux_ops->set_sid(spid);
-	}
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
 
 	return r;
