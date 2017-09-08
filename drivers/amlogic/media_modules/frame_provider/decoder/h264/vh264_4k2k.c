@@ -1363,8 +1363,9 @@ static s32 vh264_4k2k_init(void)
 
 	stat |= STAT_TIMER_INIT;
 
-	vh264_4k2k_local_init();
-
+	ret = vh264_4k2k_local_init();
+	if (ret < 0)
+		return ret;
 	amvdec_enable();
 
 	/* -- ucode loading (amrisc and swap code) */

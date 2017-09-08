@@ -43,6 +43,7 @@
 #include "amvdec.h"
 #include <linux/amlogic/media/utils/amports_config.h>
 #include "firmware.h"
+#include <linux/amlogic/tee.h>
 
 #define MC_SIZE (4096 * 16)
 
@@ -372,11 +373,68 @@ static s32 amvdec_loadmc(const u32 *p)
 	return ret;
 }
 
+s32 optee_load_fw(enum vformat_e type, const char *name)
+{
+	s32 ret = 0;
+	switch ((u32)type) {
+	case VFORMAT_VC1:
+		ret = tee_load_video_fw((u32)VIDEO_DEC_VC1);
+		break;
+
+	case VFORMAT_AVS:
+		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS);
+		break;
+
+	case VFORMAT_MPEG12:
+		ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG12);
+		break;
+
+	case VFORMAT_MJPEG:
+		ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG);
+		break;
+
+	case VFORMAT_VP9:
+		ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU);
+		break;
+
+	case VFORMAT_HEVC:
+		if (!strcmp(name, "vh265_mc"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC);
+		else if (!strcmp(name, "vh265_mc_mmu"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU);
+		break;
+
+	case VFORMAT_REAL:
+		if (!strcmp(name, "vreal_mc_8"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8);
+		else if (!strcmp(name, "vreal_mc_9"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9);
+		break;
+
+	case VFORMAT_MPEG4:
+		if (!strcmp(name, "vmpeg4_mc_311"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3);
+		else if (!strcmp(name, "vmpeg4_mc_4"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4);
+		else if (!strcmp(name, "vmpeg4_mc_5"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5);
+		else if (!strcmp(name, "h263_mc"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263);
+		break;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(optee_load_fw);
+
 s32 amvdec_loadmc_ex(enum vformat_e type, const char *name, char *def)
 {
-	return am_loadmc_ex(type, name, def, &amvdec_loadmc);
+	if (is_secload_get())
+		return optee_load_fw(type, name);
+	else
+		return am_loadmc_ex(type, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_loadmc_ex);
+
 s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
 {
 	return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
@@ -559,11 +617,15 @@ static s32 amhevc_loadmc(const u32 *p)
 s32 amhevc_loadmc_ex(enum vformat_e type, const char *name, char *def)
 {
 	if (has_hevc_vdec())
-		return am_loadmc_ex(type, name, def, &amhevc_loadmc);
+		if (is_secload_get())
+			return optee_load_fw(type, name);
+		else
+			return am_loadmc_ex(type, name, def, &amhevc_loadmc);
 	else
 		return 0;
 }
 EXPORT_SYMBOL(amhevc_loadmc_ex);
+
 s32 amhevc_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
 {
 	if (has_hevc_vdec())
@@ -812,7 +874,7 @@ int amvdec_suspend(struct platform_device *dev, pm_message_t event)
 
 	if (has_hevc_vdec())
 		amhevc_pg_enable(false);
-
+	/*vdec_set_suspend_clk(1, 0);*//*DEBUG_TMP*/
 	return 0;
 }
 EXPORT_SYMBOL(amvdec_suspend);
@@ -830,23 +892,27 @@ int amvdec_resume(struct platform_device *dev)
 	if (has_hevc_vdec())
 		amhevc_pg_enable(true);
 	/* #endif */
-
+	/*vdec_set_suspend_clk(0, 0);*//*DEBUG_TMP*/
 	return 0;
 }
 EXPORT_SYMBOL(amvdec_resume);
 
 int amhevc_suspend(struct platform_device *dev, pm_message_t event)
 {
-	if (has_hevc_vdec())
+	if (has_hevc_vdec()) {
 		amhevc_pg_enable(false);
+		/*vdec_set_suspend_clk(1, 1);*//*DEBUG_TMP*/
+	}
 	return 0;
 }
 EXPORT_SYMBOL(amhevc_suspend);
 
 int amhevc_resume(struct platform_device *dev)
 {
-	if (has_hevc_vdec())
+	if (has_hevc_vdec()) {
 		amhevc_pg_enable(true);
+		/*vdec_set_suspend_clk(0, 1);*//*DEBUG_TMP*/
+	}
 	return 0;
 }
 EXPORT_SYMBOL(amhevc_resume);

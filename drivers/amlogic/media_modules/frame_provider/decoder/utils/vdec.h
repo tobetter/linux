@@ -193,12 +193,14 @@ struct vdec_s {
 	bool use_vfm_path;
 	char config[PAGE_SIZE];
 	int config_len;
+	bool is_reset;
 
 	/* canvas */
 	int (*get_canvas)(unsigned int index, unsigned int base);
 
 	int (*dec_status)(struct vdec_s *vdec, struct vdec_info *vstatus);
 	int (*set_trickmode)(struct vdec_s *vdec, unsigned long trickmode);
+	int (*set_isreset)(struct vdec_s *vdec, int isreset);
 
 	bool (*run_ready)(struct vdec_s *vdec);
 	void (*run)(struct vdec_s *vdec,
@@ -320,6 +322,8 @@ extern int vdec_status(struct vdec_s *vdec, struct vdec_info *vstatus);
 
 extern int vdec_set_trickmode(struct vdec_s *vdec, unsigned long trickmode);
 
+extern int vdec_set_isreset(struct vdec_s *vdec, int isreset);
+
 extern void vdec_set_flag(struct vdec_s *vdec, u32 flag);
 
 extern void vdec_set_eos(struct vdec_s *vdec, bool eos);
@@ -341,8 +345,11 @@ extern bool vdec_need_more_data(struct vdec_s *vdec);
 
 extern void hevc_reset_core(struct vdec_s *vdec);
 
+extern void vdec_set_suspend_clk(int mode, int hevc);
+
 int vdec_get_debug_flags(void);
 
 unsigned char is_mult_inc(unsigned int);
 
+int is_secload_get(void);
 #endif				/* VDEC_H */

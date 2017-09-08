@@ -186,6 +186,7 @@ static u32 first_i_frame_ready;
 static struct work_struct userdata_push_work;
 static struct work_struct notify_work;
 static struct work_struct reset_work;
+static bool is_reset;
 
 static inline int pool_index(struct vframe_s *vf)
 {
@@ -516,7 +517,10 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 #ifdef NV21
 			vf->type |= VIDTYPE_VIU_NV21;
 #endif
-			vf->duration >>= 1;
+			if (info & PICINFO_RPT_FIRST)
+				vf->duration /= 3;
+			else
+				vf->duration >>= 1;
 			vf->duration_pulldown = (info & PICINFO_RPT_FIRST) ?
 						vf->duration >> 1 : 0;
 			vf->duration += vf->duration_pulldown;
@@ -562,7 +566,10 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 #ifdef NV21
 			vf->type |= VIDTYPE_VIU_NV21;
 #endif
-			vf->duration >>= 1;
+			if (info & PICINFO_RPT_FIRST)
+				vf->duration /= 3;
+			else
+				vf->duration >>= 1;
 			vf->duration_pulldown = (info & PICINFO_RPT_FIRST) ?
 					vf->duration >> 1 : 0;
 			vf->duration += vf->duration_pulldown;
@@ -611,7 +618,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 #ifdef NV21
 				vf->type |= VIDTYPE_VIU_NV21;
 #endif
-				vf->duration >>= 1;
+				vf->duration /= 3;
 				vf->duration_pulldown =
 					(info & PICINFO_RPT_FIRST) ?
 						vf->duration >> 1 : 0;
@@ -816,6 +823,12 @@ int vmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 
+	return 0;
+}
+
+int vmpeg12_set_isreset(struct vdec_s *vdec, int isreset)
+{
+	is_reset = isreset;
 	return 0;
 }
 
@@ -1103,11 +1116,12 @@ static s32 vmpeg12_init(void)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	if (vmpeg12_amstream_dec_info.rate != 0) {
-		vf_notify_receiver(PROVIDER_NAME,
-			VFRAME_EVENT_PROVIDER_FR_HINT,
-			(void *)
-			((unsigned long)
-			vmpeg12_amstream_dec_info.rate));
+		if (!is_reset)
+			vf_notify_receiver(PROVIDER_NAME,
+				VFRAME_EVENT_PROVIDER_FR_HINT,
+				(void *)
+				((unsigned long)
+				vmpeg12_amstream_dec_info.rate));
 		fr_hint_status = VDEC_HINTED;
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
@@ -1145,6 +1159,8 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 		vmpeg12_amstream_dec_info = *pdata->sys_info;
 
 	pdata->dec_status = vmpeg12_dec_status;
+	pdata->set_isreset = vmpeg12_set_isreset;
+	is_reset = 0;
 
 	vmpeg12_vdec_info_init();
 
@@ -1186,7 +1202,7 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 	}
 
 	if (stat & STAT_VF_HOOK) {
-		if (fr_hint_status == VDEC_HINTED)
+		if (fr_hint_status == VDEC_HINTED && !is_reset)
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
 		fr_hint_status = VDEC_NO_NEED_HINT;

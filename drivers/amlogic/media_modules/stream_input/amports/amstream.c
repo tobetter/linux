@@ -66,10 +66,7 @@
 #include <linux/amlogic/media/utils/amports_config.h>
 #include <linux/amlogic/media/frame_sync/tsync_pcr.h>
 #include "../parser/thread_rw.h"
-
-
 #include <linux/firmware.h>
-
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 #include <linux/libfdt_env.h>
@@ -90,6 +87,8 @@
 #define MAX_AMSTREAM_PORT_NUM ARRAY_SIZE(ports)
 u32 amstream_port_num;
 u32 amstream_buf_num;
+
+u32 amstream_audio_reset = 0;
 
 #if 0
 #if  MESON_CPU_TYPE == MESON_CPU_TYPE_MESONG9TV
@@ -557,6 +556,7 @@ static void video_port_release(struct port_priv_s *priv,
 {
 	struct stream_port_s *port = priv->port;
 	struct vdec_s *vdec = priv->vdec;
+	struct vdec_s *slave = NULL;
 	bool is_multidec = !vdec_single(vdec);
 
 	switch (release_num) {
@@ -570,8 +570,10 @@ static void video_port_release(struct port_priv_s *priv,
 	/*fallthrough*/
 	case 3:
 		if (vdec->slave)
-			vdec_release(vdec->slave);
+			slave = vdec->slave;
 		vdec_release(vdec);
+		if (slave)
+			vdec_release(slave);
 		priv->vdec = NULL;
 	/*fallthrough*/
 	case 2:
@@ -696,6 +698,8 @@ static void audio_port_release(struct stream_port_s *port,
 	case 1:
 		;
 	}
+	amstream_audio_reset = 0;
+	return;
 }
 
 static int audio_port_reset(struct stream_port_s *port,
@@ -737,7 +741,7 @@ static int audio_port_reset(struct stream_port_s *port,
 #endif
 
 	pbuf->flag |= BUF_FLAG_IN_USE;
-
+	amstream_audio_reset = 1;
 	pts_start(PTS_TYPE_AUDIO);
 
 	return 0;
@@ -818,15 +822,13 @@ static void sub_port_release(struct stream_port_s *port,
 static int sub_port_init(struct stream_port_s *port, struct stream_buf_s *pbuf)
 {
 	int r;
-
+	r = stbuf_init(pbuf, NULL, false);
+	if (r < 0)
+		return r;
 	if ((port->flag & PORT_FLAG_SID) == 0) {
 		pr_err("subtitle id not set\n");
 		return 0;
 	}
-
-	r = stbuf_init(pbuf, NULL, false);
-	if (r < 0)
-		return r;
 
 	if ((port->sid == 0xffff) &&
 		((port->type & (PORT_TYPE_MPPS | PORT_TYPE_MPTS)) == 0)) {
@@ -1652,9 +1654,9 @@ static int amstream_release(struct inode *inode, struct file *file)
 {
 	struct port_priv_s *priv = file->private_data;
 	struct stream_port_s *port = priv->port;
+	struct vdec_s *slave = NULL;
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 	u32 port_flag = 0;
-	u32 is_4k = 0;
 #endif
 
 	if (iminor(inode) >= amstream_port_num)
@@ -1669,13 +1671,11 @@ static int amstream_release(struct inode *inode, struct file *file)
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 		port_flag = priv->vdec->port_flag;
 #endif
-		if ((priv->vdec->sys_info->height *
-			priv->vdec->sys_info->width) > 1920*1088)
-			is_4k = 1;
 		if (priv->vdec->slave)
-			vdec_release(priv->vdec->slave);
-
+			slave = priv->vdec->slave;
 		vdec_release(priv->vdec);
+		if (slave)
+			vdec_release(slave);
 		priv->vdec = NULL;
 	}
 
@@ -1714,7 +1714,7 @@ static int amstream_release(struct inode *inode, struct file *file)
 #else
 			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX
 				&& port->vformat == VFORMAT_H264
-				&& is_4k)
+				&& bufs[BUF_TYPE_VIDEO].for_4k)
 				vdec_poweroff(VDEC_HEVC);
 
 			 if ((port->vformat == VFORMAT_HEVC
@@ -2195,7 +2195,10 @@ static long amstream_ioctl_set(struct port_priv_s *priv, ulong arg)
 		else
 			r = -EINVAL;
 		break;
-
+	case AMSTREAM_SET_IS_RESET:
+		if (priv->vdec)
+			vdec_set_isreset(priv->vdec, parm.data_32);
+		break;
 	default:
 		r = -ENOIOCTLCMD;
 		break;
@@ -3803,6 +3806,11 @@ void wakeup_sub_poll(void)
 int get_sub_type(void)
 {
 	return sub_type;
+}
+
+u32 get_audio_reset(void)
+{
+	return amstream_audio_reset;
 }
 
 /*get pes buffers */

@@ -150,6 +150,7 @@ static u32 real_err_count;
 
 static u32 fatal_flag;
 static s32 wait_buffer_counter;
+static bool is_reset;
 
 static DEFINE_SPINLOCK(lock);
 
@@ -515,6 +516,12 @@ int vreal_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	return 0;
 }
 
+int vreal_set_isreset(struct vdec_s *vdec, int isreset)
+{
+	is_reset = isreset;
+	return 0;
+}
+
 /****************************************/
 static int  vreal_canvas_init(void)
 {
@@ -854,8 +861,9 @@ s32 vreal_init(struct vdec_s *vdec)
 	vf_reg_provider(&vreal_vf_prov);
 #endif
 
-	vf_notify_receiver(PROVIDER_NAME, VFRAME_EVENT_PROVIDER_FR_HINT,
-		(void *)((unsigned long)vreal_amstream_dec_info.rate));
+	if (!is_reset)
+		vf_notify_receiver(PROVIDER_NAME, VFRAME_EVENT_PROVIDER_FR_HINT,
+			(void *)((unsigned long)vreal_amstream_dec_info.rate));
 
 	stat |= STAT_VF_HOOK;
 
@@ -894,6 +902,8 @@ static int amvdec_real_probe(struct platform_device *pdev)
 		vreal_amstream_dec_info = *pdata->sys_info;
 
 	pdata->dec_status = vreal_dec_status;
+	pdata->set_isreset = vreal_set_isreset;
+	is_reset = 0;
 
 	if (vreal_init(pdata) < 0) {
 		pr_info("amvdec_real init failed.\n");
@@ -921,8 +931,9 @@ static int amvdec_real_remove(struct platform_device *pdev)
 	}
 
 	if (stat & STAT_VF_HOOK) {
-		vf_notify_receiver(PROVIDER_NAME,
-			VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
+		if (!is_reset)
+			vf_notify_receiver(PROVIDER_NAME,
+				VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
 
 		vf_unreg_provider(&vreal_vf_prov);
 		stat &= ~STAT_VF_HOOK;

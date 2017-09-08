@@ -65,6 +65,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
 #include "secprot.h"
+#include <linux/amlogic/tee.h>
 
 static DEFINE_MUTEX(vdec_mutex);
 
@@ -77,7 +78,7 @@ static int keep_vdec_mem;
 static unsigned int debug_trace_num = 16 * 20;
 static int step_mode;
 static unsigned int clk_config;
-
+static int is_secload;
 static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
@@ -220,6 +221,16 @@ int vdec_set_trickmode(struct vdec_s *vdec, unsigned long trickmode)
 	return -1;
 }
 EXPORT_SYMBOL(vdec_set_trickmode);
+
+int vdec_set_isreset(struct vdec_s *vdec, int isreset)
+{
+	vdec->is_reset = isreset;
+	pr_info("is_reset=%d\n", isreset);
+	if (vdec->set_isreset)
+		return vdec->set_isreset(vdec, isreset);
+	return 0;
+}
+EXPORT_SYMBOL(vdec_set_isreset);
 
 void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 	unsigned int offset)
@@ -1456,10 +1467,12 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 
 		if (vdec_core->hint_fr_vdec == vdec) {
 			if (p->sys_info->rate != 0) {
-				vf_notify_receiver(p->vf_provider_name,
-					VFRAME_EVENT_PROVIDER_FR_HINT,
-					(void *)
-					((unsigned long)p->sys_info->rate));
+				if (!vdec->is_reset)
+					vf_notify_receiver(p->vf_provider_name,
+						VFRAME_EVENT_PROVIDER_FR_HINT,
+						(void *)
+						((unsigned long)
+						p->sys_info->rate));
 				vdec->fr_hint_state = VDEC_HINTED;
 			} else {
 				vdec->fr_hint_state = VDEC_NEED_HINT;
@@ -1493,7 +1506,8 @@ void vdec_release(struct vdec_s *vdec)
 	if (vdec->vframe_provider.name) {
 		if (!vdec_single(vdec)) {
 			if (vdec_core->hint_fr_vdec == vdec
-			&& vdec->fr_hint_state == VDEC_HINTED)
+			&& vdec->fr_hint_state == VDEC_HINTED
+			&& !vdec->is_reset)
 				vf_notify_receiver(
 					vdec->vf_provider_name,
 					VFRAME_EVENT_PROVIDER_FR_END_HINT,
@@ -1679,7 +1693,10 @@ static inline bool vdec_ready_to_run(struct vdec_s *vdec)
 	if ((vdec->slave || vdec->master) &&
 		(vdec->sched == 0))
 		return false;
-
+	/* check frame based input underrun */
+	if (input && input_frame_based(input) &&
+		(!vdec_input_next_chunk(input)))
+		return false;
 	/* check streaming prepare level threshold if not EOS */
 	if (input && input_stream_based(input) && !input->eos) {
 		u32 rp, wp, level;
@@ -3019,7 +3036,6 @@ static ssize_t dump_vdec_chunks_show(struct class *class,
 	return pbuf - buf;
 }
 
-#if 0 /*DEBUG_TMP*/
 static ssize_t dump_decoder_state_show(struct class *class,
 			struct class_attribute *attr, char *buf)
 {
@@ -3043,7 +3059,35 @@ static ssize_t dump_decoder_state_show(struct class *class,
 
 	return pbuf - buf;
 }
-#endif
+
+int is_secload_get(void)
+{
+	return is_secload;
+}
+EXPORT_SYMBOL(is_secload_get);
+
+static ssize_t is_secload_show(struct class *cla,
+					struct class_attribute *attr,
+					char *buf)
+{
+	return sprintf(buf, "%d\n", is_secload ? 1 : 0);
+}
+
+static ssize_t is_secload_store(struct class *cla,
+					     struct class_attribute *attr,
+					     const char *buf, size_t count)
+{
+	size_t r;
+	int value;
+
+	r = sscanf(buf, "%d", &value);
+
+	if (r != 1)
+		return -EINVAL;
+
+	is_secload = value & tee_enabled();
+	return count;
+}
 
 static struct class_attribute vdec_class_attrs[] = {
 	__ATTR_RO(amrisc_regs),
@@ -3059,6 +3103,9 @@ static struct class_attribute vdec_class_attrs[] = {
 	__ATTR_RO(vdec_status),
 	__ATTR_RO(dump_vdec_blocks),
 	__ATTR_RO(dump_vdec_chunks),
+	__ATTR_RO(dump_decoder_state),
+	__ATTR(is_secload, S_IRUGO | S_IWUSR | S_IWGRP, is_secload_show,
+	is_secload_store),
 	__ATTR_NULL
 };
 
@@ -3166,7 +3213,6 @@ static const struct of_device_id amlogic_vdec_dt_match[] = {
 };
 
 static struct mconfig vdec_configs[] = {
-	MC_PI32("debugflags", &debugflags),
 	MC_PU32("debug_trace_num", &debug_trace_num),
 	MC_PI32("hevc_max_reset_count", &hevc_max_reset_count),
 	MC_PU32("clk_config", &clk_config),
@@ -3245,9 +3291,6 @@ module_param(debug_trace_num, uint, 0664);
 module_param(hevc_max_reset_count, int, 0664);
 module_param(clk_config, uint, 0664);
 module_param(step_mode, int, 0664);
-
-module_param(debugflags, uint, 0664);
-MODULE_PARM_DESC(debugflags, "\n vdec debugflags\n");
 
 /*
 *module_init(vdec_module_init);
