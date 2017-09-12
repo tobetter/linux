@@ -1315,6 +1315,8 @@ struct VP9Decoder_s {
 	void *mmu_box;
 	void *bmmu_box;
 	struct firmware_s *fw;
+	int max_pic_w;
+	int max_pic_h;
 } VP9Decoder;
 
 static int vp9_print(struct VP9Decoder_s *pbi,
@@ -5107,14 +5109,14 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	vp9_bufmgr_init(pbi, cur_buf_info, &pbi->mc_buf_spec);
 #endif
 
-	pbi->init_pic_w = buf_alloc_width ? buf_alloc_width :
+	pbi->init_pic_w = pbi->max_pic_w ? pbi->max_pic_w : (buf_alloc_width ? buf_alloc_width :
 		(pbi->vvp9_amstream_dec_info.width ?
 		pbi->vvp9_amstream_dec_info.width :
-		pbi->work_space_buf->max_width);
-	pbi->init_pic_h = buf_alloc_height ? buf_alloc_height :
+		pbi->work_space_buf->max_width));
+	pbi->init_pic_h = pbi->max_pic_h ? pbi->max_pic_h : (buf_alloc_height ? buf_alloc_height :
 		(pbi->vvp9_amstream_dec_info.height ?
 		pbi->vvp9_amstream_dec_info.height :
-		pbi->work_space_buf->max_height);
+		pbi->work_space_buf->max_height));
 #ifndef MV_USE_FIXED_BUF
 	if (init_mv_buf_list(pbi) < 0) {
 		pr_err("%s: init_mv_buf_list fail\n", __func__);
@@ -6750,9 +6752,13 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 		CODEC_MM_FLAGS_TVP : 0;
 
 #ifdef VP9_10B_MMU
+	int buf_size = 48;
+	if((pbi->max_pic_w * pbi->max_pic_h) > 0 && (pbi->max_pic_w * pbi->max_pic_h) <= 1920*1088) {
+		buf_size = 12;
+	}
 	pbi->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 		pbi->index, FRAME_BUFFERS,
-		48 * SZ_1M,
+		buf_size * SZ_1M,
 		tvp_flag
 		);
 	if (!pbi->mmu_box) {
@@ -7457,6 +7463,16 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 			pbi->double_write_mode = config_val;
 		else
 			pbi->double_write_mode = double_write_mode;
+
+		/*use ptr config for max_pic_w, etc*/
+		if (get_config_int(pdata->config, "vp9_max_pic_w",
+				&config_val) == 0) {
+				pbi->max_pic_w = config_val;
+		}
+		if (get_config_int(pdata->config, "vp9_max_pic_h",
+				&config_val) == 0) {
+				pbi->max_pic_h = config_val;
+		}
 #endif
 	} else
 #endif
