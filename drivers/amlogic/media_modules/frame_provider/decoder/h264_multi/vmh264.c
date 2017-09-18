@@ -1057,11 +1057,11 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 			PRINT_FLAG_MMU_DETAIL,
 			"release unused buf , used_4k_num %ld index %d\n",
 			used_4k_num, hw->hevc_cur_buf_idx);
-			decoder_mmu_box_free_idx_tail(
-				hw->mmu_box,
-				hw->hevc_cur_buf_idx,
-				used_4k_num);
-			hw->hevc_cur_buf_idx = 0xffff;
+		decoder_mmu_box_free_idx_tail(
+			hw->mmu_box,
+			hw->hevc_cur_buf_idx,
+			used_4k_num);
+		hw->hevc_cur_buf_idx = 0xffff;
 	}
 
 	WRITE_VREG(CURR_CANVAS_CTRL, pic->buf_spec_num << 24);
