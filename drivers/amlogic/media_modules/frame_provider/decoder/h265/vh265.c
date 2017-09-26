@@ -8613,7 +8613,9 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 #endif
 	amhevc_enable();
 
-	if (amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data) < 0) {
+	if (size == 1)
+		pr_info ("tee load ok");
+	else if (amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data) < 0) {
 		amhevc_disable();
 		vfree(fw);
 		return -EBUSY;
@@ -9423,7 +9425,12 @@ static void run(struct vdec_s *vdec,
 		}
 	}
 
-	if (amhevc_vdec_loadmc_ex(vdec, NULL, hevc->fw->data) < 0) {
+	if (hevc->mmu_enable &&(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL))
+		r = amhevc_vdec_loadmc_ex(vdec, "vh265_mc_mmu", hevc->fw->data);
+	else
+		r = amhevc_vdec_loadmc_ex(vdec, "vh265_mc", hevc->fw->data);
+
+	if (r < 0) {
 		amhevc_disable();
 		hevc_print(hevc, 0,
 			"%s: Error amvdec_loadmc fail\n",

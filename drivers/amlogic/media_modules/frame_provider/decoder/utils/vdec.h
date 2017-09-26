@@ -351,5 +351,4 @@ int vdec_get_debug_flags(void);
 
 unsigned char is_mult_inc(unsigned int);
 
-int is_secload_get(void);
 #endif				/* VDEC_H */

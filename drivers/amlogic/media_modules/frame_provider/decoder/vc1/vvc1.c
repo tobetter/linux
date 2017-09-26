@@ -1038,12 +1038,15 @@ static s32 vvc1_init(void)
 
 	size = get_firmware_data(VIDEO_DEC_VC1, buf);
 	if (size < 0) {
+		amvdec_disable();
 		pr_err("get firmware fail.");
 		vfree(buf);
 		return -1;
 	}
 
-	if (amvdec_loadmc_ex(VFORMAT_VC1, NULL, buf) < 0) {
+	if (size == 1)
+		pr_info ("tee load ok");
+	else if (amvdec_loadmc_ex(VFORMAT_VC1, NULL, buf) < 0) {
 		amvdec_disable();
 		vfree(buf);
 		return -EBUSY;

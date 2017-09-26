@@ -727,12 +727,15 @@ static s32 vmjpeg_init(void)
 
 	size = get_firmware_data(VIDEO_DEC_MJPEG, buf);
 	if (size < 0) {
+		amvdec_disable();
 		pr_err("get firmware fail.");
 		vfree(buf);
 		return -1;
 	}
 
-	if (amvdec_loadmc_ex(VFORMAT_MJPEG, NULL, buf) < 0) {
+	if (size == 1)
+		pr_info ("tee load ok");
+	else if (amvdec_loadmc_ex(VFORMAT_MJPEG, NULL, buf) < 0) {
 		amvdec_disable();
 		vfree(buf);
 		return -EBUSY;

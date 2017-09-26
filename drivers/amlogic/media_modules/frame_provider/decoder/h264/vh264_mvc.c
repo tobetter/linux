@@ -31,6 +31,7 @@
 #include <linux/workqueue.h>
 #include <linux/dma-mapping.h>
 #include <linux/atomic.h>
+#include <linux/amlogic/tee.h>
 
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -1404,7 +1405,7 @@ static s32 vh264mvc_init(void)
 
 	amvdec_enable();
 
-	if (is_secload_get()) {
+	if (tee_enabled()) {
 		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MVC) != 0) {
 			amvdec_disable();
 			return -1;

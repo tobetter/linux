@@ -45,7 +45,7 @@
 #include "../../../stream_input/parser/streambuf.h"
 #include <linux/delay.h>
 #include <linux/amlogic/media/video_sink/video.h>
-
+#include <linux/amlogic/tee.h>
 #include <linux/amlogic/media/ge2d/ge2d.h>
 #include "../utils/decoder_mmu_box.h"
 #include "../utils/decoder_bmmu_box.h"
@@ -2348,7 +2348,7 @@ static void vh264_prot_init(void)
 
 	WRITE_VREG(AV_SCRATCH_0, 0);
 	WRITE_VREG(AV_SCRATCH_1, buf_offset);
-	if (!is_secload_get())
+	if (!tee_enabled())
 		WRITE_VREG(AV_SCRATCH_G, mc_dma_handle);
 	WRITE_VREG(AV_SCRATCH_7, 0);
 	WRITE_VREG(AV_SCRATCH_8, 0);
@@ -2565,7 +2565,7 @@ static s32 vh264_init(void)
 	query_video_status(0, &trickmode_fffb);
 
 	amvdec_enable();
-	if (!firmwareloaded && is_secload_get()) {
+	if (!firmwareloaded && tee_enabled()) {
 		if (tee_load_video_fw((u32)VIDEO_DEC_H264) != 0) {
 			amvdec_disable();
 			return -1;

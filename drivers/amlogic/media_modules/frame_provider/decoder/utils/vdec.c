@@ -65,7 +65,6 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
 #include "secprot.h"
-#include <linux/amlogic/tee.h>
 
 static DEFINE_MUTEX(vdec_mutex);
 
@@ -78,7 +77,7 @@ static int keep_vdec_mem;
 static unsigned int debug_trace_num = 16 * 20;
 static int step_mode;
 static unsigned int clk_config;
-static int is_secload;
+
 static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
@@ -3062,34 +3061,7 @@ static ssize_t dump_decoder_state_show(struct class *class,
 	return pbuf - buf;
 }
 
-int is_secload_get(void)
-{
-	return is_secload;
-}
-EXPORT_SYMBOL(is_secload_get);
 
-static ssize_t is_secload_show(struct class *cla,
-					struct class_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%d\n", is_secload ? 1 : 0);
-}
-
-static ssize_t is_secload_store(struct class *cla,
-					     struct class_attribute *attr,
-					     const char *buf, size_t count)
-{
-	size_t r;
-	int value;
-
-	r = sscanf(buf, "%d", &value);
-
-	if (r != 1)
-		return -EINVAL;
-
-	is_secload = value & tee_enabled();
-	return count;
-}
 
 static struct class_attribute vdec_class_attrs[] = {
 	__ATTR_RO(amrisc_regs),
@@ -3106,8 +3078,6 @@ static struct class_attribute vdec_class_attrs[] = {
 	__ATTR_RO(dump_vdec_blocks),
 	__ATTR_RO(dump_vdec_chunks),
 	__ATTR_RO(dump_decoder_state),
-	__ATTR(is_secload, S_IRUGO | S_IWUSR | S_IWGRP, is_secload_show,
-	is_secload_store),
 	__ATTR_NULL
 };
 
