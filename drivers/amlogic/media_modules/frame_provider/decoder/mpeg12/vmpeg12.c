@@ -1082,7 +1082,9 @@ static s32 vmpeg12_init(void)
 		return -1;
 	}
 
-	if (amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf) < 0) {
+	if (size == 1)
+		pr_info ("tee load ok");
+	else if (amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf) < 0) {
 		amvdec_disable();
 		vfree(buf);
 		return -EBUSY;

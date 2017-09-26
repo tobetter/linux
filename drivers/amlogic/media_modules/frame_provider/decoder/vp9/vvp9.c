@@ -6649,8 +6649,9 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 #endif
 
 	amhevc_enable();
-
-	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data) < 0) {
+	if (size == 1)
+		pr_info ("tee load ok\n");
+	else if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data) < 0) {
 		amhevc_disable();
 		vfree(fw);
 		return -EBUSY;

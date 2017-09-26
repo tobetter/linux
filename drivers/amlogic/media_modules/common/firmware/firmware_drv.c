@@ -34,6 +34,7 @@
 #include <linux/string.h>
 #include <linux/amlogic/media/utils/log.h>
 #include <linux/firmware.h>
+#include <linux/amlogic/tee.h>
 #include <linux/amlogic/major.h>
 #include <linux/cdev.h>
 #include <linux/crc32.h>
@@ -67,7 +68,15 @@ int get_firmware_data(enum firmware_type_e type, char *buf)
 	int data_len, ret = -1;
 	struct firmware_mgr_s *mgr = g_mgr;
 	struct firmware_info_s *info;
-
+	if (tee_enabled()) {
+		pr_info ("tee load firmware type= %d\n",(u32)type);
+		ret = tee_load_video_fw((u32)type);
+		if (ret == 0)
+			ret = 1;
+		else
+			ret = -1;
+		return ret;
+	}
 	if (list_empty(&mgr->head)) {
 		pr_info("the info list is empty.\n");
 		return 0;
@@ -143,7 +152,7 @@ static int request_firmware_from_sys(const char *file_name,
 		goto release;
 	}
 
-	memcpy(buf, (char *)firmware->data, firmware->size);
+	memcpy(buf, (char *)firmware->data+256, firmware->size-256);
 
 	pr_info("load firmware size : %zd, Name : %s.\n",
 		firmware->size, file_name);
