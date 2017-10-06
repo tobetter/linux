@@ -55,6 +55,11 @@ int s5p_mfc_load_firmware(struct s5p_mfc_dev *dev)
 	 * into kernel. */
 	mfc_debug_enter();
 
+	if (!dev->fw_buf.virt) {
+		mfc_err("MFC firmware is not allocated\n");
+		return -EINVAL;
+	}
+
 	for (i = MFC_FW_MAX_VERSIONS - 1; i >= 0; i--) {
 		if (!dev->variant->fw_name[i])
 			continue;
@@ -74,11 +79,6 @@ int s5p_mfc_load_firmware(struct s5p_mfc_dev *dev)
 		mfc_err("MFC firmware is too big to be loaded\n");
 		release_firmware(fw_blob);
 		return -ENOMEM;
-	}
-	if (!dev->fw_buf.virt) {
-		mfc_err("MFC firmware is not allocated\n");
-		release_firmware(fw_blob);
-		return -EINVAL;
 	}
 	memcpy(dev->fw_buf.virt, fw_blob->data, fw_blob->size);
 	wmb();
