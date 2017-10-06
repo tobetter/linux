@@ -1315,6 +1315,10 @@ static int s5p_mfc_probe(struct platform_device *pdev)
 		goto err_dma;
 	}
 
+	ret = s5p_mfc_load_firmware(dev);
+	if (ret)
+		mfc_err("Failed to load FW - try loading from open()\n");
+
 	mutex_init(&dev->mfc_mutex);
 	init_waitqueue_head(&dev->queue);
 	dev->hw_lock = 0;
