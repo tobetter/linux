@@ -45,6 +45,9 @@
 #define FRIMWARE_SIZE (64*1024) /*64k*/
 #define BUFF_SIZE (512*1024)
 
+/*the first 256 bytes are signature data*/
+#define SEC_OFFSET (256)
+
 #define PACK ('P' << 24 | 'A' << 16 | 'C' << 8 | 'K')
 #define CODE ('C' << 24 | 'O' << 16 | 'D' << 8 | 'E')
 
@@ -132,11 +135,20 @@ int get_data_from_name(const char *name, char *buf)
 }
 EXPORT_SYMBOL(get_data_from_name);
 
+static int firmware_probe(char *buf)
+{
+	int magic = 0;
+
+	memcpy(&magic, buf, sizeof(int));
+	return magic;
+}
+
 static int request_firmware_from_sys(const char *file_name,
 		char *buf, int size)
 {
 	int ret = -1;
 	const struct firmware *firmware;
+	int magic, offset = 0;
 
 	pr_info("Try load %s  ...\n", file_name);
 
@@ -152,7 +164,23 @@ static int request_firmware_from_sys(const char *file_name,
 		goto release;
 	}
 
-	memcpy(buf, (char *)firmware->data+256, firmware->size-256);
+	magic = firmware_probe((char *)firmware->data);
+	if (magic != PACK && magic != CODE) {
+		if (firmware->size < SEC_OFFSET) {
+			pr_info("This is an invalid firmware file.\n");
+			goto release;
+		}
+
+		magic = firmware_probe((char *)firmware->data + SEC_OFFSET);
+		if (magic != PACK) {
+			pr_info("The firmware file is not packet.\n");
+			goto release;
+		}
+
+		offset = SEC_OFFSET;
+	}
+
+	memcpy(buf, (char *)firmware->data + offset, firmware->size - offset);
 
 	pr_info("load firmware size : %zd, Name : %s.\n",
 		firmware->size, file_name);
@@ -333,14 +361,6 @@ static int set_firmware_info(void)
 	__putname(path);
 
 	return ret;
-}
-
-static int firmware_probe(char *buf)
-{
-	int magic = 0;
-
-	memcpy(&magic, buf, sizeof(int));
-	return magic;
 }
 
 static int checksum(struct firmware_s *firmware)
