@@ -2260,8 +2260,7 @@ s32 amvenc_loadmc(const char *p, struct encode_wq_s *wq)
 	}
 
 	enc_pr(LOG_ALL, "avc encode ucode name is %s\n", p);
-	ret = get_decoder_firmware_data(VFORMAT_H264_ENC, p,
-		(u8 *)mc_addr, MC_SIZE);
+	ret = get_data_from_name(p, (u8 *)mc_addr);
 	if (ret < 0) {
 		enc_pr(LOG_ERROR,
 			"avc microcode fail ret=%d, name: %s, wq:%p.\n",
