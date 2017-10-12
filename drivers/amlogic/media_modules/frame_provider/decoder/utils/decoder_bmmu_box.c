@@ -14,6 +14,7 @@
  * more details.
  *
  */
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -85,7 +86,7 @@ void *decoder_bmmu_box_alloc_box(const char *name,
 	tvp_flags = (mem_flags & CODEC_MM_FLAGS_TVP) ?
 		CODEC_MM_FLAGS_TVP : 0;
 
-	pr_info("decoder_bmmu_box_alloc_box, tvp_flags = %x\n", tvp_flags);
+	pr_debug("decoder_bmmu_box_alloc_box, tvp_flags = %x\n", tvp_flags);
 
 	size = sizeof(struct decoder_bmmu_box) + sizeof(struct codec_mm_s *) *
 		   max_num;

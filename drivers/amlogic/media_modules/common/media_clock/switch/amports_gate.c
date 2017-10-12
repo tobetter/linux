@@ -14,6 +14,7 @@
  * more details.
  *
 */
+#define DEBUG
 #include <linux/compiler.h>
 #include <linux/clk-provider.h>
 #include <linux/err.h>
@@ -109,7 +110,7 @@ static int amports_gate_clk(struct gate_switch_node *gate_node, int enable)
 		gate_node->ref_count++;
 
 		if (DEBUG_REF)
-			pr_info("the %-15s clock on, ref cnt: %d\n",
+			pr_debug("the %-15s clock on, ref cnt: %d\n",
 				gate_node->name, gate_node->ref_count);
 	} else {
 		gate_node->ref_count--;
@@ -117,7 +118,7 @@ static int amports_gate_clk(struct gate_switch_node *gate_node, int enable)
 			clk_disable_unprepare(gate_node->clk);
 
 		if (DEBUG_REF)
-			pr_info("the %-15s clock off, ref cnt: %d\n",
+			pr_debug("the %-15s clock off, ref cnt: %d\n",
 				gate_node->name, gate_node->ref_count);
 	}
 	mutex_unlock(&gate_node->mutex);
