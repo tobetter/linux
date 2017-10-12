@@ -86,7 +86,7 @@ void *decoder_mmu_box_alloc_box(const char *name,
 	struct decoder_mmu_box *box;
 	int size;
 
-	pr_info("decoder_mmu_box_alloc_box, mem_flags = 0x%x\n", mem_flags);
+	pr_debug("decoder_mmu_box_alloc_box, mem_flags = 0x%x\n", mem_flags);
 
 	size = sizeof(struct decoder_mmu_box) +
 			sizeof(struct codec_mm_scatter *) *

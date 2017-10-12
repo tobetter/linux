@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -1360,7 +1360,7 @@ void reset_userdata_fifo(int bInit)
 	last_read_wi = userdata_poc_wi;
 
 	mutex_unlock(&userdata_mutex);
-	pr_info("reset_userdata_fifo, bInit=%d, wi=%d, ri=%d, rp=%d, wp=%d\n",
+	pr_debug("reset_userdata_fifo, bInit=%d, wi=%d, ri=%d, rp=%d, wp=%d\n",
 		bInit, wi, ri, rp, wp);
 }
 EXPORT_SYMBOL(reset_userdata_fifo);
@@ -2159,14 +2159,14 @@ static long amstream_ioctl_set(struct port_priv_s *priv, ulong arg)
 		break;
 	case AMSTREAM_SET_DRMMODE:
 		if (parm.data_32 == 1) {
-			pr_err("set drmmode\n");
+			pr_debug("set drmmode\n");
 			this->flag |= PORT_FLAG_DRM;
 			if ((this->type & PORT_TYPE_VIDEO) &&
 				(priv->vdec))
 				priv->vdec->port_flag |= PORT_FLAG_DRM;
 		} else {
 			this->flag &= (~PORT_FLAG_DRM);
-			pr_err("no drmmode\n");
+			pr_debug("no drmmode\n");
 		}
 		break;
 	case AMSTREAM_SET_APTS: {

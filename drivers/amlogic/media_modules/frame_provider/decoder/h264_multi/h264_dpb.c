@@ -1,3 +1,4 @@
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -21,7 +22,7 @@ int dpb_print(int index, int debug_flag, const char *fmt, ...)
 		va_start(args, fmt);
 		len = sprintf(buf, "%d: ", index);
 		vsnprintf(buf + len, 512-len, fmt, args);
-		pr_info("%s", buf);
+		pr_debug("%s", buf);
 		va_end(args);
 	}
 	return 0;

@@ -15,6 +15,7 @@
  *
 */
 
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -2430,7 +2431,7 @@ static int vh264_local_init(void)
 			tvp_flag);
 	}
 	pr_info
-	("H264 sysinfo: %dx%d duration=%d, pts_outside=%d, ",
+	("H264 sysinfo: %dx%d duration=%d, pts_outside=%d \n",
 	 frame_width, frame_height, frame_dur, pts_outside);
 	pr_debug("sync_outside=%d, use_idr_framerate=%d\n",
 	 sync_outside, use_idr_framerate);
@@ -2556,8 +2557,6 @@ static s32 vh264_init(void)
 	ret = vh264_vdec_info_init();
 	if (0 != ret)
 		return -ret;
-
-
 
 	ret = vh264_local_init();
 	if (ret < 0)

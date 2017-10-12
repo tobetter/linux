@@ -14,6 +14,7 @@
  * more details.
  *
 */
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -2095,7 +2096,7 @@ int vp9_bufmgr_init(struct VP9Decoder_s *pbi, struct BuffInfo_s *buf_spec_i,
 	pbi->used_4k_num = -1;
 	cm->cur_fb_idx_mmu = INVALID_IDX;
 #endif
-	pr_info
+	pr_debug
 	("After vp9_bufmgr_init, prev_fb_idx : %d, new_fb_idx : %d\r\n",
 		cm->prev_fb_idx, cm->new_fb_idx);
 	pbi->need_resync = 1;
@@ -6227,7 +6228,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 			== VDEC_STATUS_DISCONNECTED) {
 			pbi->dec_result = DEC_RESULT_FORCE_EXIT;
 			vdec_schedule_work(&pbi->work);
-			pr_info(
+			pr_debug(
 			"vdec requested to be disconnected\n");
 			return;
 		}
@@ -6803,7 +6804,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 #ifndef MULTI_INSTANCE_SUPPORT
 	int i;
 #endif
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	mutex_lock(&vvp9_mutex);
 
 	memcpy(&BUF[0], &pbi->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);

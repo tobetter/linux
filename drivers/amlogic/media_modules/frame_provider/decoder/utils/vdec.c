@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
@@ -383,7 +383,7 @@ struct vdec_s *vdec_create(struct stream_port_s *port,
 		}
 	}
 
-	pr_info("vdec_create instance %p, total %d\n", vdec,
+	pr_debug("vdec_create instance %p, total %d\n", vdec,
 		atomic_read(&vdec_core->vdec_nr));
 
 	//trace_vdec_create(vdec); /*DEBUG_TMP*/
@@ -1296,7 +1296,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 	 */
 	if (vdec_stream_based(vdec) && !vdec_dual(vdec)) {
 		if (vdec_core->vfm_vdec == NULL) {
-			pr_info("vdec_init set vfm decoder %p\n", vdec);
+			pr_debug("vdec_init set vfm decoder %p\n", vdec);
 			vdec_core->vfm_vdec = vdec;
 		} else {
 			pr_info("vdec_init vfm path busy.\n");
@@ -1435,7 +1435,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 			goto error;
 		}
 
-		pr_info("vfm map %s created\n", vdec->vfm_map_id);
+		pr_debug("vfm map %s created\n", vdec->vfm_map_id);
 
 		/*
 		*assume IONVIDEO driver already have a few vframe_receiver
@@ -1479,7 +1479,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		}
 	}
 
-	pr_info("vdec_init, vf_provider_name = %s\n", p->vf_provider_name);
+	pr_debug("vdec_init, vf_provider_name = %s\n", p->vf_provider_name);
 	vdec_input_prepare_bufs(/*prepared buffer for fast playing.*/
 		&vdec->input,
 		vdec->sys_info->width,
@@ -1536,7 +1536,7 @@ void vdec_release(struct vdec_s *vdec)
 	inited_vcodec_num--;
 	mutex_unlock(&vdec_mutex);
 
-	pr_info("vdec_release instance %p, total %d\n", vdec,
+	pr_debug("vdec_release instance %p, total %d\n", vdec,
 		atomic_read(&vdec_core->vdec_nr));
 }
 EXPORT_SYMBOL(vdec_release);
@@ -2365,7 +2365,7 @@ int vdec_source_changed(int format, int width, int height, int fps)
 
 	on_setting = 1;
 	ret = vdec_source_changed_for_clk_set(format, width, height, fps);
-	pr_info("vdec1 video changed to %d x %d %d fps clk->%dMHZ\n",
+	pr_debug("vdec1 video changed to %d x %d %d fps clk->%dMHZ\n",
 			width, height, fps, vdec_clk_get(VDEC_1));
 	on_setting = 0;
 	return ret;
@@ -2436,7 +2436,7 @@ int vdec2_source_changed(int format, int width, int height, int fps)
 		on_setting = 1;
 		ret = vdec_source_changed_for_clk_set(format,
 					width, height, fps);
-		pr_info("vdec2 video changed to %d x %d %d fps clk->%dMHZ\n",
+		pr_debug("vdec2 video changed to %d x %d %d fps clk->%dMHZ\n",
 			width, height, fps, vdec_clk_get(VDEC_2));
 		on_setting = 0;
 		return ret;
@@ -2459,7 +2459,7 @@ int hevc_source_changed(int format, int width, int height, int fps)
 
 	on_setting = 1;
 	ret = vdec_source_changed_for_clk_set(format, width, height, fps);
-	pr_info("hevc video changed to %d x %d %d fps clk->%dMHZ\n",
+	pr_debug("hevc video changed to %d x %d %d fps clk->%dMHZ\n",
 			width, height, fps, vdec_clk_get(VDEC_HEVC));
 	on_setting = 0;
 
@@ -2775,7 +2775,7 @@ EXPORT_SYMBOL(vdec_request_threaded_irq);
 s32 vdec_request_irq(enum vdec_irq_num num, irq_handler_t handler,
 				const char *devname, void *dev)
 {
-	pr_info("vdec_request_irq %p, %s\n", handler, devname);
+	pr_debug("vdec_request_irq %p, %s\n", handler, devname);
 
 	return vdec_request_threaded_irq(num,
 		handler,

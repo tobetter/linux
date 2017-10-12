@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 #include <linux/timer.h>
@@ -106,7 +106,7 @@ static s32 _stbuf_alloc(struct stream_buf_s *buf, bool is_secure)
 
 		buf->is_secure = is_secure;
 
-		pr_info("%s stbuf alloced at %p, secure = %d, size = %d\n",
+		pr_debug("%s stbuf alloced at %p, secure = %d, size = %d\n",
 				(buf->type == BUF_TYPE_HEVC) ? "HEVC" :
 				(buf->type == BUF_TYPE_VIDEO) ? "Video" :
 				(buf->type == BUF_TYPE_AUDIO) ? "Audio" :

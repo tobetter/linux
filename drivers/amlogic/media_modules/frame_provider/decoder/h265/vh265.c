@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -1713,7 +1713,7 @@ static int hevc_print(struct hevc_state_s *hevc,
 		if (hevc)
 			len = sprintf(buf, "[%d]", hevc->index);
 		vsnprintf(buf + len, HEVC_PRINT_BUF - len, fmt, args);
-		pr_info("%s", buf);
+		pr_debug("%s", buf);
 		va_end(args);
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 	}

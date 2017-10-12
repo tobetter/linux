@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -42,7 +42,7 @@ struct clk_mux_s gclk;
 
 void vdec1_set_clk(int source, int div)
 {
-	pr_info("vdec1_set_clk %d, %d\n", source, div);
+	pr_debug("vdec1_set_clk %d, %d\n", source, div);
 	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, (source << 9) | (div - 1), 0, 16);
 }
 EXPORT_SYMBOL(vdec1_set_clk);
@@ -63,7 +63,7 @@ EXPORT_SYMBOL(vdec2_set_clk);
 
 void hevc_set_clk(int source, int div)
 {
-	pr_info("hevc_set_clk %d, %d\n", source, div);
+	pr_debug("hevc_set_clk %d, %d\n", source, div);
 	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL,
 		(source << 9) | (div - 1), 16, 16);
 }
@@ -414,7 +414,7 @@ static int vdec_clock_set(int clk)
 
 	clock_real_clk[VDEC_1] = clk;
 
-	pr_info("vdec mux clock is %lu Hz\n",
+	pr_debug("vdec mux clock is %lu Hz\n",
 		clk_get_rate(gclk.vdec_mux_node->clk));
 
 	return clk;
@@ -453,7 +453,7 @@ static int hevc_clock_set(int clk)
 
 	clock_real_clk[VDEC_HEVC] = clk;
 
-	pr_info("hevc mux clock is %lu Hz\n",
+	pr_debug("hevc mux clock is %lu Hz\n",
 		clk_get_rate(gclk.hevc_mux_node->clk));
 
 	return clk;
@@ -487,7 +487,7 @@ static int hcodec_clock_set(int clk)
 
 	clock_real_clk[VDEC_HCODEC] = clk;
 
-	pr_info("hcodec mux clock is %lu Hz\n",
+	pr_debug("hcodec mux clock is %lu Hz\n",
 		clk_get_rate(gclk.hcodec_mux_node->clk));
 
 	return clk;
@@ -502,7 +502,7 @@ static void vdec_clock_on(void)
 	gclk.vdec_mux_node->ref_count++;
 	mutex_unlock(&gclk.vdec_mux_node->mutex);
 
-	pr_info("the %-15s clock on, ref cnt: %d\n",
+	pr_debug("the %-15s clock on, ref cnt: %d\n",
 		gclk.vdec_mux_node->name,
 		gclk.vdec_mux_node->ref_count);
 }
@@ -517,7 +517,7 @@ static void vdec_clock_off(void)
 	clock_real_clk[VDEC_1] = 0;
 	mutex_unlock(&gclk.vdec_mux_node->mutex);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_debug("the %-15s clock off, ref cnt: %d\n",
 		gclk.vdec_mux_node->name,
 		gclk.vdec_mux_node->ref_count);
 }
@@ -531,7 +531,7 @@ static void hcodec_clock_on(void)
 	gclk.hcodec_mux_node->ref_count++;
 	mutex_unlock(&gclk.hcodec_mux_node->mutex);
 
-	pr_info("the %-15s clock on, ref cnt: %d\n",
+	pr_debug("the %-15s clock on, ref cnt: %d\n",
 		gclk.hcodec_mux_node->name,
 		gclk.hcodec_mux_node->ref_count);
 }
@@ -545,7 +545,7 @@ static void hcodec_clock_off(void)
 
 	mutex_unlock(&gclk.hcodec_mux_node->mutex);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_debug("the %-15s clock off, ref cnt: %d\n",
 		gclk.hcodec_mux_node->name,
 		gclk.hcodec_mux_node->ref_count);
 }
@@ -560,7 +560,7 @@ static void hevc_clock_on(void)
 	WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);
 	mutex_unlock(&gclk.hevc_mux_node->mutex);
 
-	pr_info("the %-15s clock on, ref cnt: %d\n",
+	pr_debug("the %-15s clock on, ref cnt: %d\n",
 		gclk.hevc_mux_node->name,
 		gclk.hevc_mux_node->ref_count);
 }
@@ -575,7 +575,7 @@ static void hevc_clock_off(void)
 	clock_real_clk[VDEC_HEVC] = 0;
 	mutex_unlock(&gclk.hevc_mux_node->mutex);
 
-	pr_info("the %-15s clock off, ref cnt: %d\n",
+	pr_debug("the %-15s clock off, ref cnt: %d\n",
 		gclk.hevc_mux_node->name,
 		gclk.hevc_mux_node->ref_count);
 }

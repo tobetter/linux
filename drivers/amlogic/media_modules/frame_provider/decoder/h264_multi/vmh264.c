@@ -14,7 +14,7 @@
  * more details.
  *
 */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -2935,9 +2935,8 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		reg_val = param4;
 		level_idc = reg_val & 0xff;
 		max_reference_size = (reg_val >> 8) & 0xff;
-		dpb_print(DECODE_ID(hw), 0,
-			"mb height/widht/total: %x/%x/%x level_idc %x max_ref_num %x\n",
-			mb_height, mb_width, mb_total,
+		pr_info("%d: mb height/widht/total: %x/%x/%x level_idc %x max_ref_num %x\n",
+			DECODE_ID(hw), mb_height, mb_width, mb_total,
 			level_idc, max_reference_size);
 
 		p_H264_Dpb->colocated_buf_size = mb_total * 96;
@@ -2966,9 +2965,8 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 
 		if (hw->no_poc_reorder_flag)
 			hw->dpb.reorder_pic_num = 1;
-		dpb_print(DECODE_ID(hw), 0,
-			"%s active_buf_spec_num %d reorder_pic_num %d collocate_buf_num %d\r\n",
-			__func__, active_buffer_spec_num,
+		pr_debug("%d: %s active_buf_spec_num %d reorder_pic_num %d collocate_buf_num %d\r\n",
+			DECODE_ID(hw), __func__, active_buffer_spec_num,
 			hw->dpb.reorder_pic_num,
 			hw->max_reference_size);
 
@@ -4172,7 +4170,7 @@ static void check_timer_func(unsigned long arg)
 	if (vdec->next_status == VDEC_STATUS_DISCONNECTED) {
 		hw->dec_result = DEC_RESULT_FORCE_EXIT;
 		vdec_schedule_work(&hw->work);
-		pr_info("vdec requested to be disconnected\n");
+		pr_debug("vdec requested to be disconnected\n");
 		return;
 	}
 
@@ -4419,9 +4417,9 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 	}
 
 	pr_info
-	("H264 sysinfo: %dx%d duration=%d, pts_outside=%d, ",
+	("H264 sysinfo: %dx%d duration=%d, pts_outside=%d\n",
 	 hw->frame_width, hw->frame_height, hw->frame_dur, hw->pts_outside);
-	pr_info("sync_outside=%d, use_idr_framerate=%d\n",
+	pr_debug("sync_outside=%d, use_idr_framerate=%d\n",
 	 hw->sync_outside, hw->use_idr_framerate);
 	if (i_only_flag & 0x100)
 		hw->i_only = i_only_flag & 0xff;
@@ -4525,7 +4523,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		int fw_size = 0x1000 * 16;
 		struct firmware_s *fw = NULL;
 
-		pr_info("start load orignal firmware ...\n");
+		pr_debug("start load orignal firmware ...\n");
 
 		fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 		if (IS_ERR_OR_NULL(fw))
@@ -4602,7 +4600,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			return -ENOMEM;
 		}
 
-		pr_info("%s, vaddr=%lx phy_addr=%p\n",
+		pr_debug("%s, vaddr=%lx phy_addr=%p\n",
 			__func__, hw->lmem_addr, (void *)hw->lmem_addr_remap);
 	}
 
@@ -5294,7 +5292,7 @@ int ammvdec_h264_mmu_init(struct vdec_h264_hw_s *hw)
 	int tvp_flag = vdec_secure(hw_to_vdec(hw)) ?
 		CODEC_MM_FLAGS_TVP : 0;
 
-	pr_info("ammvdec_h264_mmu_init tvp = 0x%x mmu_enable %d\n",
+	pr_debug("ammvdec_h264_mmu_init tvp = 0x%x mmu_enable %d\n",
 			tvp_flag, mmu_enable);
 	if (mmu_enable && !hw->mmu_box) {
 		hw->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
@@ -5464,7 +5462,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 		   (u32)sei_data_buffer_remap); */
 	}
 #endif
-	pr_info("ammvdec_h264 mem-addr=%lx,buff_offset=%x,buf_start=%lx\n",
+	pr_debug("ammvdec_h264 mem-addr=%lx,buff_offset=%x,buf_start=%lx\n",
 		pdata->mem_start, hw->buf_offset, hw->cma_alloc_addr);
 
 
