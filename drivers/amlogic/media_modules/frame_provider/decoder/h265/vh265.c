@@ -9361,7 +9361,7 @@ static void run(struct vdec_s *vdec,
 {
 	struct hevc_state_s *hevc =
 		(struct hevc_state_s *)vdec->private;
-	int r;
+	int r, loadr;
 	unsigned char check_sum = 0;
 
 	run_count[hevc->index]++;
@@ -9426,11 +9426,11 @@ static void run(struct vdec_s *vdec,
 	}
 
 	if (hevc->mmu_enable &&(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL))
-		r = amhevc_vdec_loadmc_ex(vdec, "vh265_mc_mmu", hevc->fw->data);
+		loadr = amhevc_vdec_loadmc_ex(vdec, "vh265_mc_mmu", hevc->fw->data);
 	else
-		r = amhevc_vdec_loadmc_ex(vdec, "vh265_mc", hevc->fw->data);
+		loadr = amhevc_vdec_loadmc_ex(vdec, "vh265_mc", hevc->fw->data);
 
-	if (r < 0) {
+	if (loadr < 0) {
 		amhevc_disable();
 		hevc_print(hevc, 0,
 			"%s: Error amvdec_loadmc fail\n",
