@@ -154,11 +154,11 @@
 				 */
 				map5 {
 					trip = <&cpu0_alert4>;
-					cooling-device = <&cpu0 3 7>;
+					cooling-device = <&cpu0 3 8>;
 				};
 				map6 {
 					trip = <&cpu0_alert4>;
-					cooling-device = <&cpu4 3 12>;
+					cooling-device = <&cpu4 3 13>;
 				};
 			};
 		};
@@ -809,22 +809,27 @@
 
 &tmu_cpu0 {
 	vtmu-supply = <&ldo7_reg>;
+	status = "okay";
 };
 
 &tmu_cpu1 {
 	vtmu-supply = <&ldo7_reg>;
+	status = "okay";
 };
 
 &tmu_cpu2 {
 	vtmu-supply = <&ldo7_reg>;
+	status = "okay";
 };
 
 &tmu_cpu3 {
 	vtmu-supply = <&ldo7_reg>;
+	status = "okay";
 };
 
 &tmu_gpu {
 	vtmu-supply = <&ldo7_reg>;
+	status = "okay";
 };
 
 &mali {
