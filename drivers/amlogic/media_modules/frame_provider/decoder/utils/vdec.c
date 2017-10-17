@@ -81,7 +81,7 @@ static unsigned int clk_config;
 static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
-
+static int no_powerdown;
 static DEFINE_SPINLOCK(vdec_spin_lock);
 
 #define HEVC_TEST_LIMIT 100
@@ -230,6 +230,20 @@ int vdec_set_isreset(struct vdec_s *vdec, int isreset)
 	return 0;
 }
 EXPORT_SYMBOL(vdec_set_isreset);
+
+int vdec_set_dv_metawithel(struct vdec_s *vdec, int isdvmetawithel)
+{
+	vdec->dolby_meta_with_el = isdvmetawithel;
+	pr_info("isdvmetawithel=%d\n", isdvmetawithel);
+	return 0;
+}
+
+void vdec_set_no_powerdown(int flag)
+{
+	no_powerdown = flag;
+	pr_info("no_powerdown=%d\n", no_powerdown);
+	return;
+}
 
 void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 	unsigned int offset)
@@ -1479,6 +1493,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		}
 	}
 
+	p->dolby_meta_with_el = 0;
 	pr_debug("vdec_init, vf_provider_name = %s\n", p->vf_provider_name);
 	vdec_input_prepare_bufs(/*prepared buffer for fast playing.*/
 		&vdec->input,
@@ -1714,7 +1729,8 @@ static inline bool vdec_ready_to_run(struct vdec_s *vdec)
 				vdec->input.total_rd_count) < 2)) {
 			vdec->need_more_data |= VDEC_NEED_MORE_DATA;
 			return false;
-		}
+		} else if (level > input->prepare_level)
+			vdec->need_more_data &= ~VDEC_NEED_MORE_DATA;
 	}
 
 	if (step_mode) {
@@ -2227,8 +2243,9 @@ void vdec_poweroff(enum vdec_type_e core)
 		}
 	} else if (core == VDEC_HEVC) {
 		if (has_hevc_vdec()) {
-			/* enable hevc isolation */
-			WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
+			if (no_powerdown == 0) {
+				/* enable hevc isolation */
+				WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
 					READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
 					0xc00);
 			/* power off hevc memories */
@@ -2239,6 +2256,11 @@ void vdec_poweroff(enum vdec_type_e core)
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
 					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
 					0xc0);
+			} else {
+				pr_info("!!!!!!!!not power down\n");
+				hevc_reset_core(NULL);
+				no_powerdown = 0;
+			}
 		}
 	}
 	mutex_unlock(&vdec_mutex);
@@ -2386,7 +2408,7 @@ void hevc_reset_core(struct vdec_s *vdec)
 		& (1 << 4)))
 		;
 
-	if (input_frame_based(vdec))
+	if (vdec == NULL || input_frame_based(vdec))
 		WRITE_VREG(HEVC_STREAM_CONTROL, 0);
 
 		/*

@@ -382,7 +382,21 @@ enum SliceType {
 	NUM_SLICE_TYPES = 5
 };
 
+enum ProfileIDC {
+	FREXT_CAVLC444 = 44,   /*!< YUV 4:4:4/14 "CAVLC 4:4:4"*/
+	BASELINE       = 66,   /*!< YUV 4:2:0/8  "Baseline"*/
+	MAIN           = 77,   /*!< YUV 4:2:0/8  "Main"*/
+	EXTENDED       = 88,   /*!< YUV 4:2:0/8  "Extended"*/
+	FREXT_HP       = 100,  /*!< YUV 4:2:0/8  "High"*/
+	FREXT_Hi10P    = 110,  /*!< YUV 4:2:0/10 "High 10"*/
+	FREXT_Hi422    = 122,  /*!< YUV 4:2:2/10 "High 4:2:2"*/
+	FREXT_Hi444    = 244,  /*!< YUV 4:4:4/14 "High 4:4:4"*/
+	MVC_HIGH       = 118,  /*!< YUV 4:2:0/8  "Multiview High"*/
+	STEREO_HIGH    = 128   /*!< YUV 4:2:0/8  "Stereo High"*/
+};
+
 struct SPSParameters {
+	unsigned int profile_idc;
 	int pic_order_cnt_type;
 	int log2_max_pic_order_cnt_lsb_minus4;
 	int num_ref_frames_in_pic_order_cnt_cycle;
@@ -806,8 +820,10 @@ int get_free_buf_idx(struct vdec_s *vdec);
 void store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 			struct StorablePicture *p, unsigned char data_flag);
 
-int remove_picture(struct h264_dpb_stru *p_H264_Dpb,
+int release_picture(struct h264_dpb_stru *p_H264_Dpb,
 			struct StorablePicture *pic);
+
+void remove_dpb_pictures(struct h264_dpb_stru *p_H264_Dpb);
 
 void bufmgr_post(struct h264_dpb_stru *p_H264_Dpb);
 

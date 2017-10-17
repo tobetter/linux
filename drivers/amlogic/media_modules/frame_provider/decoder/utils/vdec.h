@@ -194,6 +194,7 @@ struct vdec_s {
 	char config[PAGE_SIZE];
 	int config_len;
 	bool is_reset;
+	bool dolby_meta_with_el;
 
 	/* canvas */
 	int (*get_canvas)(unsigned int index, unsigned int base);
