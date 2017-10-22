@@ -256,9 +256,7 @@ static u32 bit_depth_chroma;
 static u32 frame_width;
 static u32 frame_height;
 static u32 video_signal_type;
-static u32 pts_unstable;
 static u32 on_no_keyframe_skiped;
-
 
 #define PROB_SIZE    (496 * 2 * 4)
 #define PROB_BUF_SIZE    (0x5000)
@@ -403,6 +401,8 @@ void WRITE_VREG_DBG2(unsigned adr, unsigned val)
 #define WRITE_VREG WRITE_VREG_DBG2
 #endif
 
+#define FRAME_CNT_WINDOW_SIZE 59
+#define RATE_CORRECTION_THRESHOLD 5
 /**************************************************
 
 VP9 buffer management start
@@ -1255,6 +1255,14 @@ struct VP9Decoder_s {
 	u64 last_lookup_pts_us64;
 	u64 last_pts_us64;
 	u64 shift_byte_count;
+
+	u32 pts_unstable;
+	u32 frame_cnt_window;
+	u32 pts1, pts2;
+	u32 last_duration;
+	u32 duration_from_pts_done;
+	bool vp9_first_pts_ready;
+
 	u32 shift_byte_count_lo;
 	u32 shift_byte_count_hi;
 	int pts_mode_switching_count;
@@ -1339,6 +1347,11 @@ static int vp9_print(struct VP9Decoder_s *pbi,
 		va_end(args);
 	}
 	return 0;
+}
+
+static inline bool close_to(int a, int b, int m)
+{
+	return (abs(a - b) < m) ? true : false;
 }
 
 #ifdef MULTI_INSTANCE_SUPPORT
@@ -5069,6 +5082,9 @@ static void vp9_local_uninit(struct VP9Decoder_s *pbi)
 	pbi->gvs = NULL;
 }
 
+
+
+
 static int vp9_local_init(struct VP9Decoder_s *pbi)
 {
 	int ret = -1;
@@ -5142,7 +5158,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 #endif
 	init_pic_list(pbi);
 
-	pts_unstable = ((unsigned long)(pbi->vvp9_amstream_dec_info.param)
+	pbi->pts_unstable = ((unsigned long)(pbi->vvp9_amstream_dec_info.param)
 			& 0x40) >> 6;
 
 	if ((debug & VP9_DEBUG_SEND_PARAM_WITH_REG) == 0) {
@@ -5463,6 +5479,71 @@ void inc_vf_ref(struct VP9Decoder_s *pbi, int index)
 			cm->buffer_pool->frame_bufs[index].buf.vf_ref);
 }
 
+static int frame_duration_adapt(struct VP9Decoder_s *pbi, struct vframe_s *vf, u32 valid)
+{
+	u32 old_duration, pts_duration = 0;
+	u32 pts = vf->pts;
+
+	if (pbi->get_frame_dur == true)
+		return true;
+
+	pbi->frame_cnt_window++;
+	if (!(pbi->vp9_first_pts_ready == 1)) {
+		if (valid) {
+			pbi->pts1 = pts;
+			pbi->frame_cnt_window = 0;
+			pbi->duration_from_pts_done = 0;
+			pbi->vp9_first_pts_ready = 1;
+		} else {
+			return false;
+		}
+	} else {
+		if (pts < pbi->pts1) {
+			if (pbi->frame_cnt_window > FRAME_CNT_WINDOW_SIZE) {
+				pbi->pts1 = pts;
+				pbi->frame_cnt_window = 0;
+			}
+		}
+
+		if (valid && (pbi->frame_cnt_window > FRAME_CNT_WINDOW_SIZE) &&
+			(pts > pbi->pts1) && (pbi->duration_from_pts_done == 0)) {
+				old_duration = pbi->frame_dur;
+				pbi->pts2 = pts;
+				pts_duration = (((pbi->pts2 - pbi->pts1) * 16) /
+					(pbi->frame_cnt_window * 15));
+
+			if (close_to(pts_duration, old_duration, 2000)) {
+				pbi->frame_dur = pts_duration;
+				if ((debug & VP9_DEBUG_OUT_PTS) != 0)
+					pr_info("use calc duration %d\n", pts_duration);
+			}
+
+			if (pbi->duration_from_pts_done == 0) {
+				if (close_to(pts_duration, old_duration, RATE_CORRECTION_THRESHOLD)) {
+					pbi->duration_from_pts_done = 1;
+				} else {
+					if (!close_to(pts_duration,
+						 old_duration, 1000) &&
+						!close_to(pts_duration,
+						pbi->frame_dur, 1000) &&
+						close_to(pts_duration,
+						pbi->last_duration, 200)) {
+						/* frame_dur must
+						 *  wrong,recover it.
+						 */
+						pbi->frame_dur = pts_duration;
+					}
+					pbi->pts1 = pbi->pts2;
+					pbi->frame_cnt_window = 0;
+					pbi->duration_from_pts_done = 0;
+				}
+			}
+			pbi->last_duration = pts_duration;
+		}
+	}
+	return true;
+}
+
 
 static int prepare_display_buf(struct VP9Decoder_s *pbi,
 				struct PIC_BUFFER_CONFIG_s *pic_config)
@@ -5470,6 +5551,8 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 	struct vframe_s *vf = NULL;
 	int stream_offset = pic_config->stream_offset;
 	unsigned short slice_type = pic_config->slice_type;
+
+	unsigned int pts_valid = 0, pts_us64_valid = 0;
 
 	if (debug & VP9_DEBUG_BUFMGR)
 		pr_info("%s index = %d\r\n", __func__, pic_config->index);
@@ -5487,6 +5570,13 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		if (vdec_frame_based(hw_to_vdec(pbi))) {
 			vf->pts = pic_config->pts;
 			vf->pts_us64 = pic_config->pts64;
+			if (vf->pts != 0 || vf->pts_us64 != 0) {
+				pts_valid = 1;
+				pts_us64_valid = 1;
+			} else {
+				pts_valid = 0;
+				pts_us64_valid = 0;
+			}
 		} else
 #endif
 		/* if (pts_lookup_offset(PTS_TYPE_VIDEO,
@@ -5499,13 +5589,25 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 #endif
 			vf->pts = 0;
 			vf->pts_us64 = 0;
-		}
+			pts_valid = 0;
+			pts_us64_valid = 0;
+		} else {
 #ifdef DEBUG_PTS
-		else
 			pbi->pts_hit++;
 #endif
-		if (pts_unstable)
-			pbi->pts_mode = PTS_NONE_REF_USE_DURATION;
+			pts_valid = 1;
+			pts_us64_valid = 1;
+		}
+
+		if (pbi->pts_unstable) {
+			frame_duration_adapt(pbi, vf, pts_valid);
+			if (pbi->duration_from_pts_done) {
+				pbi->pts_mode = PTS_NONE_REF_USE_DURATION;
+			} else {
+				if (pts_valid || pts_us64_valid)
+					pbi->pts_mode = PTS_NORMAL;
+			}
+		}
 
 		if ((pbi->pts_mode == PTS_NORMAL) && (vf->pts != 0)
 			&& pbi->get_frame_dur) {
@@ -5553,8 +5655,8 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		pbi->last_pts_us64 = vf->pts_us64;
 		if ((debug & VP9_DEBUG_OUT_PTS) != 0) {
 			pr_info
-			("VP9 dec out pts: vf->pts=%d, vf->pts_us64 = %lld\n",
-			 vf->pts, vf->pts_us64);
+			("VP9 dec out pts: pts_mode=%d,frame_dur=%d,pts=%d,pts_us64=%lld\n",
+			 pbi->pts_mode, pbi->frame_dur, vf->pts, vf->pts_us64);
 		}
 
 		vf->index = 0xff00 | pic_config->index;
@@ -6573,11 +6675,14 @@ static int vvp9_local_init(struct VP9Decoder_s *pbi)
 	pbi->saved_resolution = 0;
 	pbi->get_frame_dur = false;
 	on_no_keyframe_skiped = 0;
+	pbi->duration_from_pts_done = 0;
+	pbi->vp9_first_pts_ready = 0;
+	pbi->frame_cnt_window = 0;
 	width = pbi->vvp9_amstream_dec_info.width;
 	height = pbi->vvp9_amstream_dec_info.height;
 	pbi->frame_dur =
 		(pbi->vvp9_amstream_dec_info.rate ==
-		 0) ? 3600 : pbi->vvp9_amstream_dec_info.rate;
+		 0) ? 3200 : pbi->vvp9_amstream_dec_info.rate;
 	if (width && height)
 		pbi->frame_ar = height * 0x100 / width;
 /*
@@ -6601,6 +6706,12 @@ TODO:FOR VERSION
 
 
 	ret = vp9_local_init(pbi);
+
+	if (!pbi->pts_unstable) {
+		pbi->pts_unstable =
+		(pbi->vvp9_amstream_dec_info.rate == 0)?1:0;
+		pr_info("set pts unstable\n");
+	}
 
 	return ret;
 }
