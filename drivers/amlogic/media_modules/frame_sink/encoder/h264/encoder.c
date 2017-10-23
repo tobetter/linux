@@ -1022,7 +1022,7 @@ static void mfdin_basic(u32 input, u8 iformat,
 			(1 << 18) | (0 << 21));
 }
 
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 static int scale_frame(struct encode_wq_s *wq,
 	struct encode_request_s *request,
 	struct config_para_ex_s *ge2d_config,
@@ -1197,7 +1197,7 @@ static s32 set_input_format(struct encode_wq_s *wq,
 			picsize_y = wq->pic.encoder_height;
 		}
 		if (request->scale_enable) {
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 			struct config_para_ex_s ge2d_config;
 			memset(&ge2d_config, 0,
 				sizeof(struct config_para_ex_s));
@@ -1325,7 +1325,7 @@ static s32 set_input_format(struct encode_wq_s *wq,
 	} else if (request->type == CANVAS_BUFF) {
 		r2y_en = 0;
 		if (request->scale_enable) {
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 			struct config_para_ex_s ge2d_config;
 			memset(&ge2d_config, 0,
 				sizeof(struct config_para_ex_s));
@@ -1373,7 +1373,9 @@ static s32 set_input_format(struct encode_wq_s *wq,
 		} else
 			ret = -1;
 	}
-
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
+MFDIN:
+#endif
 	if (ret == 0)
 		mfdin_basic(input, iformat, oformat,
 			picsize_x, picsize_y, r2y_en,
@@ -3265,7 +3267,8 @@ Again:
 					ENCODER_BUFFER_DUMP);
 				size = wq->mem.dump_info_ddr_size;
 				cache_flush(buf_start, size);
-			enc_pr(LOG_DEBUG, "CBR flush dump_info done--- ");
+			//enc_pr(LOG_INFO, "CBR flush dump_info done--- ");
+			enc_pr(LOG_DEBUG, "CBR flush dump_info done");
 			}
 			if (request->flush_flag &
 				AMVENC_FLUSH_FLAG_REFERENCE) {
@@ -3537,7 +3540,7 @@ static s32 encode_monitor_thread(void *data)
 				manager->current_wq = first_wq;
 				spin_unlock(&manager->event.sem_lock);
 				if (first_wq) {
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 					if (!manager->context)
 						manager->context =
 						create_ge2d_work_queue();
@@ -3565,7 +3568,7 @@ static s32 encode_monitor_thread(void *data)
 			spin_unlock(&manager->event.sem_lock);
 			manager->inited = false;
 			amvenc_avc_stop();
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 			if (manager->context) {
 				destroy_ge2d_work_queue(manager->context);
 				manager->context = NULL;
