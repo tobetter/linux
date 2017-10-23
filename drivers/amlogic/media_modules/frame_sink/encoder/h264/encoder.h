@@ -26,8 +26,9 @@
 #include <linux/spinlock.h>
 #include <linux/wait.h>
 #include <linux/slab.h>
-#ifdef CONFIG_AM_GE2D
-#include <linux/amlogic/ge2d/ge2d.h>
+
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
+#include <linux/amlogic/media/ge2d/ge2d.h>
 #endif
 
 #define AMVENC_DEVINFO_M8 "AML-M8"
@@ -336,7 +337,7 @@ struct encode_manager_s {
 	u32 wq_count;
 	u32 ucode_index;
 	u32 max_instance;
-#ifdef CONFIG_AM_GE2D
+#ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 	struct ge2d_context_s *context;
 #endif
 	bool irq_requested;
