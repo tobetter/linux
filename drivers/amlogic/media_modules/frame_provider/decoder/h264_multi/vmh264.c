@@ -4383,7 +4383,7 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 
 	WRITE_VREG(FRAME_COUNTER_REG, hw->decode_pic_count);
 	WRITE_VREG(AV_SCRATCH_8, hw->buf_offset);
-	if (!is_secload_get())
+	if (!tee_enabled())
 		WRITE_VREG(AV_SCRATCH_G, hw->mc_dma_handle);
 
 	/* hw->error_recovery_mode = (error_recovery_mode != 0) ?
@@ -4541,7 +4541,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			return -ENOMEM;
 		}
 	}
-	if (is_secload_get() && !firmwareloaded) {
+	if (tee_enabled() && !firmwareloaded) {
 		pr_info("VMH264 start load sec firmware ...\n");
 		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI)
 			!= 0) {
@@ -5153,7 +5153,7 @@ static void run(struct vdec_s *vdec,
 
 	start_process_time(hw);
 
-	if (is_secload_get()) {
+	if (tee_enabled()) {
 		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI)
 			!= 0) {
 			amvdec_enable_flag = false;
