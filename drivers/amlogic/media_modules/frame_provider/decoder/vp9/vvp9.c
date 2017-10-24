@@ -1343,7 +1343,7 @@ static int vp9_print(struct VP9Decoder_s *pbi,
 		if (pbi)
 			len = sprintf(buf, "[%d]", pbi->index);
 		vsnprintf(buf + len, HEVC_PRINT_BUF - len, fmt, args);
-		pr_info("%s", buf);
+		pr_debug("%s", buf);
 		va_end(args);
 	}
 	return 0;
@@ -1366,7 +1366,7 @@ static int vp9_print_cont(struct VP9Decoder_s *pbi,
 		va_list args;
 		va_start(args, fmt);
 		vsnprintf(buf + len, HEVC_PRINT_BUF - len, fmt, args);
-		pr_info("%s", buf);
+		pr_debug("%s", buf);
 		va_end(args);
 	}
 	return 0;
