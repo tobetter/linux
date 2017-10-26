@@ -1579,7 +1579,6 @@ static int amstream_open(struct inode *inode, struct file *file)
 			/* TODO: mod gate */
 			/* switch_mod_gate_by_name("vdec", 1); */
 			amports_switch_gate("vdec", 1);
-			amports_switch_gate("clk_hcodec_mux", 1);
 
 			if (has_hevc_vdec()) {
 				if (port->type &
@@ -1729,7 +1728,6 @@ static int amstream_release(struct inode *inode, struct file *file)
 			/* TODO: mod gate */
 			/* switch_mod_gate_by_name("vdec", 0); */
 			amports_switch_gate("vdec", 0);
-			amports_switch_gate("clk_hcodec_mux", 0);
 		}
 
 		if (port->type & PORT_TYPE_AUDIO) {
