@@ -6706,13 +6706,14 @@ TODO:FOR VERSION
 
 
 	ret = vp9_local_init(pbi);
-
+	/*
+	//note: drop for vts test
 	if (!pbi->pts_unstable) {
 		pbi->pts_unstable =
 		(pbi->vvp9_amstream_dec_info.rate == 0)?1:0;
 		pr_info("set pts unstable\n");
 	}
-
+	*/
 	return ret;
 }
 
