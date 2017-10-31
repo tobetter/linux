@@ -237,6 +237,7 @@ int vdec_set_dv_metawithel(struct vdec_s *vdec, int isdvmetawithel)
 	pr_info("isdvmetawithel=%d\n", isdvmetawithel);
 	return 0;
 }
+EXPORT_SYMBOL(vdec_set_dv_metawithel);
 
 void vdec_set_no_powerdown(int flag)
 {
@@ -244,6 +245,7 @@ void vdec_set_no_powerdown(int flag)
 	pr_info("no_powerdown=%d\n", no_powerdown);
 	return;
 }
+EXPORT_SYMBOL(vdec_set_no_powerdown);
 
 void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 	unsigned int offset)
@@ -274,6 +276,12 @@ void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 	return;
 }
 EXPORT_SYMBOL(vdec_count_info);
+int vdec_is_support_4k(void)
+{
+	//return !is_meson_gxl_package_805X();
+	return 1;
+}
+EXPORT_SYMBOL(vdec_is_support_4k);
 
 /*
 * clk_config:
