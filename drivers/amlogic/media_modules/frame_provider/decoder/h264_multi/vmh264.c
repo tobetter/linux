@@ -212,6 +212,7 @@ static unsigned int i_only_flag;
 	bit[4] check inactive of receiver
 	bit[5] reset buffmgr if in deadlock
 	bit[6] reset buffmgr if bufspec, collocate buf, pic alloc fail
+	bit[7] reset buffmgr if dpb error
 
 	bit[8] check total mbx/mby of decoded frame
 	bit[9] check ERROR_STATUS_REG

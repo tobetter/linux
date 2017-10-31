@@ -414,6 +414,7 @@ static u32 mmu_enable = 1;
 static u32 mmu_enable_force;
 static u32 work_buf_size;
 static unsigned int force_disp_pic_index;
+static unsigned int disp_vframe_valve_level;
 
 #ifdef MULTI_INSTANCE_SUPPORT
 static unsigned int max_decode_instance_num
@@ -446,7 +447,7 @@ static u32 dv_debug;
 #define get_dbg_flag(hevc) debug
 #define get_dbg_flag2(hevc) debug
 #define is_log_enable(hevc) (log_mask ? 1 : 0)
-#define get_double_write_mode(hevc) double_write_mode
+#define get_valid_double_write_mode(hevc) double_write_mode
 #define get_buf_alloc_width(hevc) buf_alloc_width
 #define get_buf_alloc_height(hevc) buf_alloc_height
 #define get_dynamic_buf_num_margin(hevc) dynamic_buf_num_margin
@@ -1242,6 +1243,7 @@ struct PIC_s {
 	u32 aspect_ratio_idc;
 	u32 sar_width;
 	u32 sar_height;
+	u32 double_write_mode;
 } /*PIC_t */;
 
 #define MAX_TILE_COL_NUM    5
@@ -1525,6 +1527,7 @@ struct hevc_state_s {
 	u32 vf_get_count;
 	u32 vf_put_count;
 	u8 head_error_flag;
+	int valve_count;
 	struct firmware_s *fw;
 } /*hevc_stru_t */;
 
@@ -1668,7 +1671,7 @@ static int get_pic_poc(struct hevc_state_s *hevc,
 }
 
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
-static int get_double_write_mode(struct hevc_state_s *hevc)
+static int get_valid_double_write_mode(struct hevc_state_s *hevc)
 {
 	return (hevc->m_ins_flag &&
 		((double_write_mode & 0x80000000) == 0)) ?
@@ -1685,6 +1688,44 @@ static int get_dynamic_buf_num_margin(struct hevc_state_s *hevc)
 }
 #endif
 
+static int get_double_write_mode(struct hevc_state_s *hevc)
+{
+	u32 valid_dw_mode = get_valid_double_write_mode(hevc);
+	u32 dw;
+	if (valid_dw_mode == 0x100) {
+		int w = hevc->pic_w;
+		int h = hevc->pic_h;
+		if (w > 1920 && h > 1088)
+			dw = 0x4; /*1:2*/
+		else
+			dw = 0x1; /*1:1*/
+
+	} else
+		dw = valid_dw_mode;
+	return dw;
+}
+
+/* for double write buf alloc */
+static int get_double_write_mode_init(struct hevc_state_s *hevc)
+{
+	u32 valid_dw_mode = get_valid_double_write_mode(hevc);
+	if (valid_dw_mode == 0x100)
+		return 0x1;
+
+	return valid_dw_mode;
+}
+
+static int get_double_write_ratio(struct hevc_state_s *hevc,
+	int dw_mode)
+{
+	int ratio = 1;
+	if ((dw_mode == 2) ||
+			(dw_mode == 3))
+		ratio = 4;
+	else if (dw_mode == 4)
+		ratio = 2;
+	return ratio;
+}
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 static unsigned char get_idx(struct hevc_state_s *hevc)
 {
@@ -1882,6 +1923,7 @@ static void hevc_init_stru(struct hevc_state_s *hevc,
 	hevc->pre_bot_pic = NULL;
 
 	hevc->sei_present_flag = 0;
+	hevc->valve_count = 0;
 #ifdef MULTI_INSTANCE_SUPPORT
 	hevc->decoded_poc = INVALID_POC;
 	hevc->start_process_time = 0;
@@ -2059,6 +2101,11 @@ static void dealloc_mv_bufs(struct hevc_state_s *hevc)
 			hevc->m_mv_BUF[i].used_flag = 0;
 		}
 	}
+	for (i = 0; i < MAX_REF_PIC_NUM; i++) {
+		if (hevc->m_PIC[i] != NULL)
+			hevc->m_PIC[i]->mv_buf_index = -1;
+	}
+
 }
 
 static int alloc_mv_buf(struct hevc_state_s *hevc, int i)
@@ -2169,6 +2216,7 @@ static void put_mv_buf(struct hevc_state_s *hevc,
 	if (hevc->m_mv_BUF[i].start_adr &&
 		hevc->m_mv_BUF[i].used_flag)
 		hevc->m_mv_BUF[i].used_flag = 0;
+	pic->mv_buf_index = -1;
 #endif
 }
 
@@ -2195,6 +2243,8 @@ static int cal_current_buf_size(struct hevc_state_s *hevc,
 	int mc_buffer_size_h = (mc_buffer_size + 0xffff) >> 16;
 	int mc_buffer_size_u_v_h = 0;
 
+	int dw_mode = get_double_write_mode_init(hevc);
+
 	if (hevc->mmu_enable)
 		buf_size =
 		((MMU_COMPRESS_HEADER_SIZE + 0xffff) >> 16)
@@ -2202,13 +2252,11 @@ static int cal_current_buf_size(struct hevc_state_s *hevc,
 	else
 		buf_size = 0;
 
-	if (get_double_write_mode(hevc)) {
-		int pic_width_dw = ((get_double_write_mode(hevc) == 2) ||
-			(get_double_write_mode(hevc) == 3)) ?
-			pic_width / 4 : pic_width;
-		int pic_height_dw = ((get_double_write_mode(hevc) == 2) ||
-			(get_double_write_mode(hevc) == 3)) ?
-			pic_height / 4 : pic_height;
+	if (dw_mode) {
+		int pic_width_dw = pic_width /
+			get_double_write_ratio(hevc, dw_mode);
+		int pic_height_dw = pic_height /
+			get_double_write_ratio(hevc, dw_mode);
 
 		int pic_width_lcu_dw = (pic_width_dw % lcu_size) ?
 			pic_width_dw / lcu_size + 1 :
@@ -2225,7 +2273,7 @@ static int cal_current_buf_size(struct hevc_state_s *hevc,
 	}
 
 	if ((!hevc->mmu_enable) &&
-		((get_double_write_mode(hevc) & 0x10) == 0)) {
+		((dw_mode & 0x10) == 0)) {
 		/* use compress mode without mmu,
 		need buf for compress decoding*/
 		buf_size += (mc_buffer_size_h << 16);
@@ -2400,6 +2448,7 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 	unsigned int y_adr = 0;
 	struct buf_stru_s buf_stru;
 	int buf_size = cal_current_buf_size(hevc, &buf_stru);
+	int dw_mode = get_double_write_mode_init(hevc);
 
 	for (i = 0; i < BUF_POOL_SIZE; i++) {
 		if (hevc->m_BUF[i].start_adr != 0 &&
@@ -2425,14 +2474,14 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 	pic->BUF_index = i;
 
 	if ((!hevc->mmu_enable) &&
-		((get_double_write_mode(hevc) & 0x10) == 0)
+		((dw_mode & 0x10) == 0)
 		) {
 		pic->mc_y_adr = y_adr;
 		y_adr += (buf_stru.mc_buffer_size_h << 16);
 	}
 	pic->mc_canvas_y = pic->index;
 	pic->mc_canvas_u_v = pic->index;
-	if (get_double_write_mode(hevc) & 0x10) {
+	if (dw_mode & 0x10) {
 		pic->mc_y_adr = y_adr;
 		pic->mc_u_v_adr = y_adr +
 			((buf_stru.mc_buffer_size_u_v_h << 16) << 1);
@@ -2442,7 +2491,7 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 
 		pic->dw_y_adr = pic->mc_y_adr;
 		pic->dw_u_v_adr = pic->mc_u_v_adr;
-	} else if (get_double_write_mode(hevc)) {
+	} else if (dw_mode) {
 		pic->dw_y_adr = y_adr;
 		pic->dw_u_v_adr = pic->dw_y_adr +
 		((buf_stru.mc_buffer_size_u_v_h << 16) << 1);
@@ -2455,7 +2504,7 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 		 __func__, pic->index,
 		 pic->BUF_index, pic->mc_y_adr);
 		if (hevc->mmu_enable &&
-			get_double_write_mode(hevc))
+			dw_mode)
 			hevc_print(hevc, 0,
 			"mmu double write  adr %ld\n",
 			 pic->cma_alloc_addr);
@@ -2471,6 +2520,7 @@ static void init_pic_list(struct hevc_state_s *hevc)
 {
 	int i;
 	int init_buf_num = get_work_pic_num(hevc);
+	int dw_mode = get_double_write_mode_init(hevc);
 
 	/*alloc decoder buf*/
 	for (i = 0; i < init_buf_num; i++) {
@@ -2498,6 +2548,7 @@ static void init_pic_list(struct hevc_state_s *hevc)
 		hevc->m_PIC[i] = pic;
 		pic->index = i;
 		pic->BUF_index = -1;
+		pic->mv_buf_index = -1;
 		if (config_pic(hevc, pic) < 0) {
 			if (get_dbg_flag(hevc))
 				hevc_print(hevc, 0,
@@ -2508,7 +2559,8 @@ static void init_pic_list(struct hevc_state_s *hevc)
 		}
 		pic->width = hevc->pic_w;
 		pic->height = hevc->pic_h;
-		if (get_double_write_mode(hevc))
+		pic->double_write_mode = dw_mode;
+		if (pic->double_write_mode)
 			set_canvas(hevc, pic);
 	}
 
@@ -2610,7 +2662,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 {
 	int i;
 	int cur_pic_num = MAX_REF_PIC_NUM;
-
+	int dw_mode = get_double_write_mode_init(hevc);
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
 		WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
 			(0x1 << 1) | (0x1 << 2));
@@ -2634,7 +2686,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 			WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
 				hevc->m_PIC[i]->mc_y_adr |
 				(hevc->m_PIC[i]->mc_canvas_y << 8) | 0x1);
-		if (get_double_write_mode(hevc) & 0x10) {
+		if (dw_mode & 0x10) {
 			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
 				if (hevc->mmu_enable)
 					WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
@@ -2687,7 +2739,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR, 0);
 
 #ifdef LOSLESS_COMPRESS_MODE
-	if ((get_double_write_mode(hevc) & 0x10) == 0)
+	if ((dw_mode & 0x10) == 0)
 		init_decode_head_hw(hevc);
 #endif
 
@@ -2830,6 +2882,14 @@ static int config_mc_buffer(struct hevc_state_s *hevc, struct PIC_s *cur_pic)
 						m_aiRefPOCList0[cur_pic->
 						slice_idx][i]);
 			if (pic) {
+				if ((pic->width != hevc->pic_w) ||
+					(pic->height != hevc->pic_h)) {
+					hevc_print(hevc, 0,
+						"%s: Wrong reference pic (poc %d) width/height %d/%d\n",
+						__func__, pic->POC,
+						pic->width, pic->height);
+					cur_pic->error_mark = 1;
+				}
 				if (pic->error_mark)
 					cur_pic->error_mark = 1;
 				WRITE_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR,
@@ -2872,6 +2932,15 @@ static int config_mc_buffer(struct hevc_state_s *hevc, struct PIC_s *cur_pic)
 						m_aiRefPOCList1[cur_pic->
 						slice_idx][i]);
 			if (pic) {
+				if ((pic->width != hevc->pic_w) ||
+					(pic->height != hevc->pic_h)) {
+					hevc_print(hevc, 0,
+						"%s: Wrong reference pic (poc %d) width/height %d/%d\n",
+						__func__, pic->POC,
+						pic->width, pic->height);
+					cur_pic->error_mark = 1;
+				}
+
 				if (pic->error_mark)
 					cur_pic->error_mark = 1;
 				WRITE_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR,
@@ -3540,7 +3609,7 @@ static void hevc_init_decoder_hw(struct hevc_state_s *hevc,
 			   (0 << 0)	/* software reset ipp and mpp */
 			  );
 
-	if (get_double_write_mode(hevc) & 0x10)
+	if (get_double_write_mode_init(hevc) & 0x10)
 		WRITE_VREG(HEVCD_MPP_DECOMP_CTL1,
 			0x1 << 31  /*/Enable NV21 reference read mode for MC*/
 			);
@@ -4014,8 +4083,13 @@ static void config_sao_hw(struct hevc_state_s *hevc, union param_u *params)
 	if ((get_double_write_mode(hevc) & 0x10) == 0) {
 		data32 = READ_VREG(HEVC_SAO_CTRL5);
 		data32 &= (~(0xff << 16));
-		if (get_double_write_mode(hevc) != 1)
+
+		if (get_double_write_mode(hevc) == 2 ||
+			get_double_write_mode(hevc) == 3)
 			data32 |= (0xff<<16);
+		else if (get_double_write_mode(hevc) == 4)
+			data32 |= (0x33<<16);
+
 		if (hevc->mem_saving_mode == 1)
 			data32 |= (1 << 9);
 		else
@@ -4352,6 +4426,11 @@ static struct PIC_s *get_new_pic(struct hevc_state_s *hevc,
 	}
 
 	if (new_pic) {
+		new_pic->double_write_mode =
+			get_double_write_mode(hevc);
+		if (new_pic->double_write_mode)
+			set_canvas(hevc, new_pic);
+
 #ifdef TEST_NO_BUF
 		if (test_flag) {
 			test_flag = 0;
@@ -5380,6 +5459,19 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 				if (is_log_enable(hevc))
 					add_log(hevc,
 					"WRONG, Col_POC error_mark is 1");
+			} else {
+				if ((hevc->col_pic->width
+					!= hevc->pic_w) ||
+					(hevc->col_pic->height
+					!= hevc->pic_h)) {
+					hevc_print(hevc, 0,
+						"Wrong reference pic (poc %d) width/height %d/%d\n",
+						hevc->col_pic->POC,
+						hevc->col_pic->width,
+						hevc->col_pic->height);
+					hevc->cur_pic->error_mark = 1;
+				}
+
 			}
 
 			if (hevc->cur_pic->error_mark
@@ -5542,7 +5634,11 @@ static int hevc_local_init(struct hevc_state_s *hevc)
 
 	cur_buf_info = &hevc->work_space_buf_store;
 #ifdef SUPPORT_4K2K
-	memcpy(cur_buf_info, &amvh265_workbuff_spec[1],	/* 4k2k work space */
+	if (vdec_is_support_4k())
+		memcpy(cur_buf_info, &amvh265_workbuff_spec[1],	/* 4k */
+		sizeof(struct BuffInfo_s));
+	else
+		memcpy(cur_buf_info, &amvh265_workbuff_spec[0],	/* 1080p */
 		sizeof(struct BuffInfo_s));
 #else
 	memcpy(cur_buf_info, &amvh265_workbuff_spec[0],	/* 1080p work space */
@@ -5665,14 +5761,11 @@ static void set_canvas(struct hevc_state_s *hevc, struct PIC_s *pic)
 
 	/*CANVAS_BLKMODE_64X32*/
 #ifdef SUPPORT_10BIT
-	if	(get_double_write_mode(hevc)) {
-		canvas_w = pic->width;
-		canvas_h = pic->height;
-		if ((get_double_write_mode(hevc) == 2) ||
-			(get_double_write_mode(hevc) == 3)) {
-			canvas_w >>= 2;
-			canvas_h >>= 2;
-		}
+	if	(pic->double_write_mode) {
+		canvas_w = pic->width /
+			get_double_write_ratio(hevc, pic->double_write_mode);
+		canvas_h = pic->height /
+			get_double_write_ratio(hevc, pic->double_write_mode);
 
 		if (mem_map_mode == 0)
 			canvas_w = ALIGN(canvas_w, 32);
@@ -5932,14 +6025,11 @@ static void set_frame_info(struct hevc_state_s *hevc, struct vframe_s *vf,
 	struct vframe_master_display_colour_s *vf_dp
 		= &vf->prop.master_display_colour;
 
-	if ((get_double_write_mode(hevc) == 2) ||
-		(get_double_write_mode(hevc) == 3)) {
-		vf->width = pic->width/4;
-		vf->height = pic->height/4;
-	} else {
-		vf->width = pic->width;
-		vf->height = pic->height;
-	}
+	vf->width = pic->width /
+		get_double_write_ratio(hevc, pic->double_write_mode);
+	vf->height = pic->height /
+		get_double_write_ratio(hevc, pic->double_write_mode);
+
 	vf->duration = hevc->frame_dur;
 	vf->duration_pulldown = 0;
 	vf->flag = 0;
@@ -6140,14 +6230,11 @@ static struct vframe_s *vh265_vf_get(void *op_arg)
 		vf->pts = 0;
 		vf->pts_us64 = 0;
 		set_frame_info(hevc, vf);
-		if ((get_double_write_mode(hevc) == 2) ||
-			(get_double_write_mode(hevc) == 3)) {
-			vf->width = pic->width/4;
-			vf->height = pic->height/4;
-		}	else {
-			vf->width = pic->width;
-			vf->height = pic->height;
-		}
+
+		vf->width = pic->width /
+			get_double_write_ratio(hevc, pic->double_write_mode);
+		vf->height = pic->height /
+			get_double_write_ratio(hevc, pic->double_write_mode);
 
 		force_disp_pic_index |= 0x200;
 		return vf;
@@ -6533,7 +6620,7 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		vf->index = 0xff00 | pic->index;
 #if 1
 /*SUPPORT_10BIT*/
-		if (get_double_write_mode(hevc) & 0x10) {
+		if (pic->double_write_mode & 0x10) {
 			/* double write only */
 			vf->compBodyAddr = 0;
 			vf->compHeadAddr = 0;
@@ -6552,10 +6639,10 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 					/*head adr*/
 			vf->canvas0Addr = vf->canvas1Addr = 0;
 		}
-		if (get_double_write_mode(hevc)) {
+		if (pic->double_write_mode) {
 			vf->type = VIDTYPE_PROGRESSIVE | VIDTYPE_VIU_FIELD;
 			vf->type |= VIDTYPE_VIU_NV21;
-			if (get_double_write_mode(hevc) == 3) {
+			if (pic->double_write_mode == 3) {
 				vf->type |= VIDTYPE_COMPRESS;
 				if (hevc->mmu_enable)
 					vf->type |= VIDTYPE_SCATTER;
@@ -6626,14 +6713,11 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		/* hevc_print(hevc, 0,
 			"aaa: %d/%d, %d/%d\n",
 		   vf->width,vf->height, pic->width, pic->height); */
-		if ((get_double_write_mode(hevc) == 2) ||
-			(get_double_write_mode(hevc) == 3)) {
-			vf->width = pic->width/4;
-			vf->height = pic->height/4;
-		}	else {
-			vf->width = pic->width;
-			vf->height = pic->height;
-		}
+		vf->width = pic->width /
+			get_double_write_ratio(hevc, pic->double_write_mode);
+		vf->height = pic->height /
+			get_double_write_ratio(hevc, pic->double_write_mode);
+
 		if (force_w_h != 0) {
 			vf->width = (force_w_h >> 16) & 0xffff;
 			vf->height = force_w_h & 0xffff;
@@ -7063,7 +7147,7 @@ static int hevc_recover(struct hevc_state_s *hevc)
 
 	hevc->have_valid_start_slice = 0;
 
-	if (get_double_write_mode(hevc) & 0x10)
+	if (get_double_write_mode_init(hevc) & 0x10)
 		WRITE_VREG(HEVCD_MPP_DECOMP_CTL1,
 			0x1 << 31  /*/Enable NV21 reference read mode for MC*/
 			);
@@ -7207,7 +7291,7 @@ static void dolby_get_meta(struct hevc_state_s *hevc)
 	if (get_dbg_flag(hevc) &
 		H265_DEBUG_BUFMGR_MORE)
 		dump_aux_buf(hevc);
-	if (dolby_meta_with_el || vdec->slave) {
+	if (vdec->dolby_meta_with_el || vdec->slave) {
 		set_aux_data(hevc,
 		hevc->cur_pic, 0, 0);
 	} else if (vdec->master) {
@@ -9343,6 +9427,16 @@ static bool run_ready(struct vdec_s *vdec)
 	if (hevc->eos)
 		return 0;
 
+	if (disp_vframe_valve_level &&
+		kfifo_len(&hevc->display_q) >=
+		disp_vframe_valve_level) {
+		hevc->valve_count--;
+		if (hevc->valve_count <= 0)
+			hevc->valve_count = 2;
+		else
+			return 0;
+	}
+
 	ret = is_new_pic_available(hevc);
 	if (!ret) {
 		hevc_print(hevc,
@@ -10086,7 +10180,10 @@ static int __init amvdec_h265_driver_init_module(void)
 {
 	struct BuffInfo_s *p_buf_info;
 #ifdef SUPPORT_4K2K
-	p_buf_info = &amvh265_workbuff_spec[1];
+	if (vdec_is_support_4k())
+		p_buf_info = &amvh265_workbuff_spec[1];
+	else
+		p_buf_info = &amvh265_workbuff_spec[0];
 #else
 	p_buf_info = &amvh265_workbuff_spec[0];
 #endif
@@ -10121,14 +10218,17 @@ static int __init amvdec_h265_driver_init_module(void)
 	if (!has_hevc_vdec()) {
 		/* not support hevc */
 		amvdec_h265_profile.name = "hevc_unsupport";
-	} else if (is_meson_m8m2_cpu()) {
-		/* m8m2 support 4k */
-		amvdec_h265_profile.profile = "4k";
-	} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB) {
-		amvdec_h265_profile.profile =
-			"4k, 9bit, 10bit, dwrite, compressed";
-	} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_MG9TV)
-		amvdec_h265_profile.profile = "4k";
+	}
+	if (vdec_is_support_4k()) {
+		if (is_meson_m8m2_cpu()) {
+			/* m8m2 support 4k */
+			amvdec_h265_profile.profile = "4k";
+		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB) {
+			amvdec_h265_profile.profile =
+				"4k, 9bit, 10bit, dwrite, compressed";
+		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_MG9TV)
+			amvdec_h265_profile.profile = "4k";
+	}
 #endif
 	if (codec_mm_get_total_size() < 80 * SZ_1M) {
 		pr_info("amvdec_h265 default mmu enabled.\n");
