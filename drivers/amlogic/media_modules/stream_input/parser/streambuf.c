@@ -385,7 +385,7 @@ void stbuf_vdec2_init(struct stream_buf_s *buf)
 s32 stbuf_wait_space(struct stream_buf_s *stream_buf, size_t count)
 {
 	struct stream_buf_s *p = stream_buf;
-	long time_out = 20;
+	long time_out = 200;
 
 	p->wcnt = count;
 
@@ -394,7 +394,8 @@ s32 stbuf_wait_space(struct stream_buf_s *stream_buf, size_t count)
 	mod_timer(&p->timer, jiffies + STBUF_WAIT_INTERVAL);
 
 	if (wait_event_interruptible_timeout
-		(p->wq, stbuf_space(p) >= count, time_out) == 0) {
+		(p->wq, stbuf_space(p) >= count,
+		 msecs_to_jiffies(time_out)) == 0) {
 		del_timer_sync(&p->timer);
 
 		return -EAGAIN;
