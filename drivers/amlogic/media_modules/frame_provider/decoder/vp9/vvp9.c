@@ -6036,8 +6036,9 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 	struct vframe_s *vf = NULL;
 	int stream_offset = pic_config->stream_offset;
 	unsigned short slice_type = pic_config->slice_type;
-
-	unsigned int pts_valid = 0, pts_us64_valid = 0;
+	u32 pts_valid = 0, pts_us64_valid = 0;
+	u32 pts_save;
+	u64 pts_us64_save;
 
 	if (debug & VP9_DEBUG_BUFMGR)
 		pr_info("%s index = %d\r\n", __func__, pic_config->index);
@@ -6084,6 +6085,8 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 			pts_us64_valid = 1;
 		}
 
+		pts_save = vf->pts;
+		pts_us64_save = vf->pts_us64;
 		if (pbi->pts_unstable) {
 			frame_duration_adapt(pbi, vf, pts_valid);
 			if (pbi->duration_from_pts_done) {
@@ -6142,6 +6145,16 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 			pr_info
 			("VP9 dec out pts: pts_mode=%d,frame_dur=%d,pts=%d,pts_us64=%lld\n",
 			 pbi->pts_mode, pbi->frame_dur, vf->pts, vf->pts_us64);
+		}
+
+		if (pbi->pts_mode == PTS_NONE_REF_USE_DURATION) {
+			vf->disp_pts = vf->pts;
+			vf->disp_pts_us64 = vf->pts_us64;
+			vf->pts = pts_save;
+			vf->pts_us64 = pts_us64_save;
+		} else {
+			vf->disp_pts = 0;
+			vf->disp_pts_us64 = 0;
 		}
 
 		vf->index = 0xff00 | pic_config->index;
@@ -7206,14 +7219,13 @@ TODO:FOR VERSION
 
 
 	ret = vp9_local_init(pbi);
-	/*
-	//note: drop for vts test
+
 	if (!pbi->pts_unstable) {
 		pbi->pts_unstable =
 		(pbi->vvp9_amstream_dec_info.rate == 0)?1:0;
 		pr_info("set pts unstable\n");
 	}
-	*/
+
 	return ret;
 }
 
