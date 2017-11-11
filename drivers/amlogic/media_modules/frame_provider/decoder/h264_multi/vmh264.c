@@ -3489,6 +3489,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec)
 				is_i_slice = is_idr;
 			if (!is_i_slice) {
 				if (hw->has_i_frame == 0) {
+					amvdec_stop();
 					hw->dec_result = DEC_RESULT_DONE;
 					vdec_schedule_work(&hw->work);
 					dpb_print(DECODE_ID(hw),
