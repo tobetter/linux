@@ -15,6 +15,7 @@
  *
 */
 
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -927,7 +928,7 @@ static int vmpeg4_prot_init(void)
 #endif
 
 #if 1/* /MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8 */
-	printk("mpeg4 meson8 prot init\n");
+	pr_debug("mpeg4 meson8 prot init\n");
 	WRITE_VREG(MDEC_PIC_DC_THRESH, 0x404038aa);
 #endif
 
