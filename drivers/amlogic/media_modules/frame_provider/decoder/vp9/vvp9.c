@@ -8108,7 +8108,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 
 	struct BUF_s BUF[MAX_BUF_NUM];
 	struct VP9Decoder_s *pbi = NULL;
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	if (pdata == NULL) {
 		pr_info("\nammvdec_vp9 memory resource undefined.\n");
 		return -EFAULT;
