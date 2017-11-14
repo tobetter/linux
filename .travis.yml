@@ -1,0 +1,53 @@
+language: c
+env:
+  global:
+  - TARGET_BOARD=odroidxu4
+  - TRAVIS_SECURE_ENV_VARS=true
+  - ARCH=arm
+  - CROSS_COMPILE=arm-linux-gnueabihf-
+  - DEB_PACKAGES="kernel-image kernel-headers"
+addons:
+  apt:
+    packages:
+    - gcc-arm-linux-gnueabihf
+    - fakeroot
+    - po-debconf
+    - xmlto
+    - wput
+git:
+  depth: 3
+
+before_install:
+- wget http://archive.ubuntu.com/ubuntu/pool/universe/k/kernel-package/kernel-package_13.018_all.deb
+- sudo dpkg -i kernel-package_13.018_all.deb
+
+install: 
+
+script:
+- make ${TARGET_BOARD}_defconfig
+- if [ ! -f REPORTING-BUGS ]; then ln -s Documentation/admin-guide/reporting-bugs.rst
+  REPORTING-BUGS; fi
+- sed -i "s/^CONFIG_LOCALVERSION.*/CONFIG_LOCALVERSION=\"-${TARGET_BOARD}\"/g" .config
+- sed -i "s/^CONFIG_LOCALVERSION_AUTO.*/CONFIG_LOCALVERSION_AUTO=n\"/g" .config
+- touch .scmversion
+- CONCURRENCY_LEVEL=5 KDEB_PKGVERSION=1 DEB_HOST_ARCH=armhf make-kpkg --arch ${ARCH}
+  --cross-compile ${CROSS_COMPILE} --rootcmd fakeroot --initrd --append-to-version
+  -armmp-lpae --revision ${TRAVIS_BUILD_NUMBER} ${DEB_PACKAGES}
+before_deploy:
+- export RELEASE_PACKAGES=$(ls ../*.deb)
+- git config --global user.email "tobetter@gmail.com"
+- git config --global user.name "Dongjin Kim"
+- export GIT_TAG=travis/${TARGET_BOARD}-${TRAVIS_BUILD_NUMBER}
+- git tag ${GIT_TAG} -a -m "Tagged by Travis (${TRAVIS_BUILD_NUMBER})"
+- git push --quiet https://tobetter:${PRIVATE_ACCESS_TOKEN}@github.com/tobetter/linux ${GIT_TAG}
+
+
+deploy:
+  provider: releases
+  api_key:
+    secure: ${PRIVATE_ACCESS_TOKEN}
+  file: ${RELEASE_PACKAGES}
+  skip_cleanup: true
+  on:
+    tags: false
+    all_branches: true
