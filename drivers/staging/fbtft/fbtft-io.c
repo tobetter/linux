@@ -3,7 +3,11 @@
 #include <linux/errno.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
+#include <linux/module.h>
 #include "fbtft.h"
+
+unsigned int force32b_enable = 0;
+EXPORT_SYMBOL(force32b_enable);
 
 int fbtft_write_spi(struct fbtft_par *par, void *buf, size_t len)
 {
@@ -15,6 +19,18 @@ int fbtft_write_spi(struct fbtft_par *par, void *buf, size_t len)
 
 	fbtft_par_dbg_hex(DEBUG_WRITE, par, par->info->device, u8, buf, len,
 		"%s(len=%d): ", __func__, len);
+
+	/* Exynos5 SPI FIFO max size is 64 */
+	if (force32b_enable && (len >= 64) && ((len % 4) == 0))	{
+		unsigned int i;
+		unsigned char tmp;
+		unsigned char *txbuf = (unsigned char *)buf;
+
+		for (i = 0; i < len; i += 4) {
+			tmp = txbuf[i+0]; txbuf[i+0] = txbuf[i+3]; txbuf[i+3] = tmp;
+			tmp = txbuf[i+1]; txbuf[i+1] = txbuf[i+2]; txbuf[i+2] = tmp;
+		}
+	}
 
 	if (!par->spi) {
 		dev_err(par->info->device,

@@ -112,6 +112,11 @@ module_param(verbose, uint, 0000);
 MODULE_PARM_DESC(verbose,
 "0 silent, >0 show gpios, >1 show devices, >2 show devices before (default=3)");
 
+static unsigned int force32b = 0;
+extern unsigned int force32b_enable;
+module_param(force32b, uint, 0);
+MODULE_PARM_DESC(force32b, "override force 32bits fb data");
+
 struct fbtft_device_display {
 	char *name;
 	struct spi_board_info *spi;
@@ -1428,6 +1433,8 @@ static int fbtft_device_spi_device_register(struct spi_board_info *spi)
 		dev_err(&master->dev, "spi_new_device() returned NULL\n");
 		return -EPERM;
 	}
+	force32b_enable = force32b;
+
 	return 0;
 }
 #else

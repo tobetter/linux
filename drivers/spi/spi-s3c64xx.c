@@ -29,6 +29,10 @@
 
 #include <linux/platform_data/spi-s3c64xx.h>
 
+static unsigned int force32b = 0;
+module_param(force32b, uint, 0);
+MODULE_PARM_DESC(force32b, "force 32bits fb data");
+
 #define MAX_SPI_PORTS		6
 #define S3C64XX_SPI_QUIRK_POLL		(1 << 0)
 #define S3C64XX_SPI_QUIRK_CS_AUTO	(1 << 1)
@@ -650,12 +654,18 @@ static int s3c64xx_spi_transfer_one(struct spi_master *master,
 	u8 bpw;
 	unsigned long flags;
 	int use_dma;
+	static u8 old_bpw = 0;
 
 	reinit_completion(&sdd->xfer_completion);
 
 	/* Only BPW and Speed may change across transfers */
 	bpw = xfer->bits_per_word;
 	speed = xfer->speed_hz;
+
+	if (force32b && (xfer->len >= 64)) {
+		if ((bpw == 8) && ((xfer->len % 4) == 0))
+			bpw = 32;
+	}
 
 	if (bpw != sdd->cur_bpw || speed != sdd->cur_speed) {
 		sdd->cur_bpw = bpw;
@@ -1188,6 +1198,8 @@ static int s3c64xx_spi_probe(struct platform_device *pdev)
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
+
+pr_err("charles %s : force32b = %d\n", __func__, force32b);
 
 	return 0;
 
