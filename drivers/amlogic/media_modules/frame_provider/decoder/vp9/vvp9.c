@@ -857,263 +857,6 @@ static void setup_display_size(struct VP9_Common_s *cm, union param_u *params,
 	}
 }
 
-static void resize_context_buffers(struct VP9_Common_s *cm, int width,
-								int height)
-{
-	if (cm->width != width || cm->height != height) {
-		/* to do ..*/
-		cm->width = width;
-		cm->height = height;
-		pr_info("%s (%d,%d)=>(%d,%d)\r\n", __func__, cm->width,
-			cm->height, width, height);
-	}
-	/*
-	if (cm->cur_frame->mvs == NULL ||
-		cm->mi_rows > cm->cur_frame->mi_rows ||
-		cm->mi_cols > cm->cur_frame->mi_cols) {
-		resize_mv_buffer(cm);
-	}
-	*/
-}
-
-static int valid_ref_frame_size(int ref_width, int ref_height,
-				int this_width, int this_height) {
-	return 2 * this_width >= ref_width &&
-		2 * this_height >= ref_height &&
-		this_width <= 16 * ref_width &&
-		this_height <= 16 * ref_height;
-}
-
-/*
-static int valid_ref_frame_img_fmt(enum vpx_bit_depth_t ref_bit_depth,
-					int ref_xss, int ref_yss,
-					enum vpx_bit_depth_t this_bit_depth,
-					int this_xss, int this_yss) {
-	return ref_bit_depth == this_bit_depth && ref_xss == this_xss &&
-		ref_yss == this_yss;
-}
-*/
-
-
-static int setup_frame_size(
-		struct VP9Decoder_s *pbi,
-		struct VP9_Common_s *cm, union param_u *params,
-		unsigned int *mmu_index_adr,
-		int print_header_info) {
-	int width, height;
-	struct BufferPool_s * const pool = cm->buffer_pool;
-	struct PIC_BUFFER_CONFIG_s *ybf;
-	int ret = 0;
-
-	width = params->p.width;
-	height = params->p.height;
-	/*vp9_read_frame_size(rb, &width, &height);*/
-	if (print_header_info)
-		pr_info(" * 16-bits w read : %d (width : %d)\n", width, height);
-	if (print_header_info)
-		pr_info
-		(" * 16-bits h read : %d (height : %d)\n", width, height);
-
-	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
-
-#ifdef VP9_10B_MMU
-	/* if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);*/
-	/* cm->prev_fb_idx = cm->new_fb_idx;*/
-	/*pr_info
-	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
-	cm->prev_fb_idx, cm->new_fb_idx);*/
-	ret = vp9_alloc_mmu(pbi,
-		cm->new_fb_idx,
-		params->p.width,
-		params->p.height,
-		params->p.bit_depth,
-		mmu_index_adr);
-	if (ret != 0) {
-		pr_err("can't alloc need mmu1,idx %d ret =%d\n",
-			cm->new_fb_idx,
-			ret);
-		return ret;
-	}
-	cm->cur_fb_idx_mmu = cm->new_fb_idx;
-#endif
-
-	resize_context_buffers(cm, width, height);
-	setup_display_size(cm, params, print_header_info);
-#if 0
-	lock_buffer_pool(pool);
-	if (vp9_realloc_frame_buffer(
-		get_frame_new_buffer(cm), cm->width, cm->height,
-		cm->subsampling_x, cm->subsampling_y,
-#if CONFIG_VP9_HIGHBITDEPTH
-		cm->use_highbitdepth,
-#endif
-		VP9_DEC_BORDER_IN_PIXELS,
-		cm->byte_alignment,
-		&pool->frame_bufs[cm->new_fb_idx].raw_frame_buffer,
-		pool->get_fb_cb, pool->cb_priv)) {
-		unlock_buffer_pool(pool);
-		vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
-			"Failed to allocate frame buffer");
-	}
-	unlock_buffer_pool(pool);
-#else
-	/* porting */
-	ybf = get_frame_new_buffer(cm);
-	ybf->y_crop_width = width;
-	ybf->y_crop_height = height;
-	ybf->bit_depth = params->p.bit_depth;
-#endif
-	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_x = cm->subsampling_x;
-	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_y = cm->subsampling_y;
-	pool->frame_bufs[cm->new_fb_idx].buf.bit_depth =
-						(unsigned int)cm->bit_depth;
-	pool->frame_bufs[cm->new_fb_idx].buf.color_space = cm->color_space;
-	return ret;
-}
-
-static int setup_frame_size_with_refs(
-		struct VP9Decoder_s *pbi,
-		struct VP9_Common_s *cm,
-		union param_u *params,
-		unsigned int *mmu_index_adr,
-		int print_header_info) {
-
-	int width, height;
-	int found = 0, i;
-	int has_valid_ref_frame = 0;
-	struct PIC_BUFFER_CONFIG_s *ybf;
-	struct BufferPool_s * const pool = cm->buffer_pool;
-	int ret = 0;
-
-	for (i = 0; i < REFS_PER_FRAME; ++i) {
-		if ((params->p.same_frame_size >>
-				(REFS_PER_FRAME - i - 1)) & 0x1) {
-			struct PIC_BUFFER_CONFIG_s *const buf =
-							cm->frame_refs[i].buf;
-			/*if (print_header_info)
-				pr_info
-				("1-bit same_frame_size[%d] read : 1\n", i);*/
-				width = buf->y_crop_width;
-				height = buf->y_crop_height;
-			/*if (print_header_info)
-				pr_info
-				(" - same_frame_size width : %d\n", width);*/
-			/*if (print_header_info)
-				pr_info
-				(" - same_frame_size height : %d\n", height);*/
-			found = 1;
-			break;
-		} else {
-			/*if (print_header_info)
-				pr_info
-				("1-bit same_frame_size[%d] read : 0\n", i);*/
-		}
-	}
-
-	if (!found) {
-		/*vp9_read_frame_size(rb, &width, &height);*/
-		width = params->p.width;
-		height = params->p.height;
-		/*if (print_header_info)
-			pr_info
-			(" * 16-bits w read : %d (width : %d)\n",
-				width, height);
-		if (print_header_info)
-			pr_info
-			(" * 16-bits h read : %d (height : %d)\n",
-				width, height);*/
-	}
-
-	if (width <= 0 || height <= 0) {
-		pr_err("Error: Invalid frame size\r\n");
-		return -1;
-	}
-
-	params->p.width = width;
-	params->p.height = height;
-
-	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
-#ifdef VP9_10B_MMU
-	/*if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);
-	cm->prev_fb_idx = cm->new_fb_idx;*/
-/*	pr_info
-	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
-	cm->prev_fb_idx, cm->new_fb_idx);*/
-	ret = vp9_alloc_mmu(pbi, cm->new_fb_idx,
-			params->p.width, params->p.height,
-	params->p.bit_depth, mmu_index_adr);
-	if (ret != 0) {
-		pr_err("can't alloc need mmu,idx %d\r\n",
-			cm->new_fb_idx);
-		return ret;
-	}
-	cm->cur_fb_idx_mmu = cm->new_fb_idx;
-#endif
-
-	/*Check to make sure at least one of frames that this frame references
-	has valid dimensions.*/
-	for (i = 0; i < REFS_PER_FRAME; ++i) {
-		struct RefBuffer_s * const ref_frame = &cm->frame_refs[i];
-		has_valid_ref_frame |=
-			valid_ref_frame_size(ref_frame->buf->y_crop_width,
-			ref_frame->buf->y_crop_height,
-			width, height);
-	}
-	if (!has_valid_ref_frame) {
-		pr_err("Error: Referenced frame has invalid size\r\n");
-		return -1;
-	}
-#if 0
-	for (i = 0; i < REFS_PER_FRAME; ++i) {
-			struct RefBuffer_s * const ref_frame =
-							&cm->frame_refs[i];
-			if (!valid_ref_frame_img_fmt(
-				ref_frame->buf->bit_depth,
-				ref_frame->buf->subsampling_x,
-				ref_frame->buf->subsampling_y,
-				cm->bit_depth,
-				cm->subsampling_x,
-				cm->subsampling_y))
-				pr_err
-				("Referenced frame incompatible color fmt\r\n");
-				return -1;
-	}
-#endif
-	resize_context_buffers(cm, width, height);
-	setup_display_size(cm, params, print_header_info);
-
-#if 0
-	lock_buffer_pool(pool);
-	if (vp9_realloc_frame_buffer(
-		get_frame_new_buffer(cm), cm->width, cm->height,
-		cm->subsampling_x, cm->subsampling_y,
-#if CONFIG_VP9_HIGHBITDEPTH
-		cm->use_highbitdepth,
-#endif
-		VP9_DEC_BORDER_IN_PIXELS,
-		cm->byte_alignment,
-		&pool->frame_bufs[cm->new_fb_idx].raw_frame_buffer,
-		pool->get_fb_cb,
-		pool->cb_priv)) {
-			unlock_buffer_pool(pool);
-			vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
-			"Failed to allocate frame buffer");
-	}
-	unlock_buffer_pool(pool);
-#else
-	/* porting */
-	ybf = get_frame_new_buffer(cm);
-	ybf->y_crop_width = width;
-	ybf->y_crop_height = height;
-	ybf->bit_depth = params->p.bit_depth;
-#endif
-	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_x = cm->subsampling_x;
-	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_y = cm->subsampling_y;
-	pool->frame_bufs[cm->new_fb_idx].buf.bit_depth =
-						(unsigned int)cm->bit_depth;
-	pool->frame_bufs[cm->new_fb_idx].buf.color_space = cm->color_space;
-	return ret;
-}
 
 uint8_t print_header_info = 0;
 
@@ -1340,6 +1083,271 @@ struct VP9Decoder_s {
 	int max_pic_w;
 	int max_pic_h;
 } VP9Decoder;
+
+static void resize_context_buffers(struct VP9Decoder_s *pbi,
+	struct VP9_Common_s *cm, int width, int height)
+{
+	if (cm->width != width || cm->height != height) {
+		/* to do ..*/
+		if (pbi != NULL) {
+			pbi->vp9_first_pts_ready = 0;
+			pbi->duration_from_pts_done = 0;
+		}
+		cm->width = width;
+		cm->height = height;
+		pr_info("%s (%d,%d)=>(%d,%d)\r\n", __func__, cm->width,
+			cm->height, width, height);
+	}
+	/*
+	if (cm->cur_frame->mvs == NULL ||
+		cm->mi_rows > cm->cur_frame->mi_rows ||
+		cm->mi_cols > cm->cur_frame->mi_cols) {
+		resize_mv_buffer(cm);
+	}
+	*/
+}
+
+static int valid_ref_frame_size(int ref_width, int ref_height,
+				int this_width, int this_height) {
+	return 2 * this_width >= ref_width &&
+		2 * this_height >= ref_height &&
+		this_width <= 16 * ref_width &&
+		this_height <= 16 * ref_height;
+}
+
+/*
+static int valid_ref_frame_img_fmt(enum vpx_bit_depth_t ref_bit_depth,
+					int ref_xss, int ref_yss,
+					enum vpx_bit_depth_t this_bit_depth,
+					int this_xss, int this_yss) {
+	return ref_bit_depth == this_bit_depth && ref_xss == this_xss &&
+		ref_yss == this_yss;
+}
+*/
+
+
+static int setup_frame_size(
+		struct VP9Decoder_s *pbi,
+		struct VP9_Common_s *cm, union param_u *params,
+		unsigned int *mmu_index_adr,
+		int print_header_info) {
+	int width, height;
+	struct BufferPool_s * const pool = cm->buffer_pool;
+	struct PIC_BUFFER_CONFIG_s *ybf;
+	int ret = 0;
+
+	width = params->p.width;
+	height = params->p.height;
+	/*vp9_read_frame_size(rb, &width, &height);*/
+	if (print_header_info)
+		pr_info(" * 16-bits w read : %d (width : %d)\n", width, height);
+	if (print_header_info)
+		pr_info
+		(" * 16-bits h read : %d (height : %d)\n", width, height);
+
+	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
+
+#ifdef VP9_10B_MMU
+	/* if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);*/
+	/* cm->prev_fb_idx = cm->new_fb_idx;*/
+	/*pr_info
+	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
+	cm->prev_fb_idx, cm->new_fb_idx);*/
+	ret = vp9_alloc_mmu(pbi,
+		cm->new_fb_idx,
+		params->p.width,
+		params->p.height,
+		params->p.bit_depth,
+		mmu_index_adr);
+	if (ret != 0) {
+		pr_err("can't alloc need mmu1,idx %d ret =%d\n",
+			cm->new_fb_idx,
+			ret);
+		return ret;
+	}
+	cm->cur_fb_idx_mmu = cm->new_fb_idx;
+#endif
+
+	resize_context_buffers(pbi, cm, width, height);
+	setup_display_size(cm, params, print_header_info);
+#if 0
+	lock_buffer_pool(pool);
+	if (vp9_realloc_frame_buffer(
+		get_frame_new_buffer(cm), cm->width, cm->height,
+		cm->subsampling_x, cm->subsampling_y,
+#if CONFIG_VP9_HIGHBITDEPTH
+		cm->use_highbitdepth,
+#endif
+		VP9_DEC_BORDER_IN_PIXELS,
+		cm->byte_alignment,
+		&pool->frame_bufs[cm->new_fb_idx].raw_frame_buffer,
+		pool->get_fb_cb, pool->cb_priv)) {
+		unlock_buffer_pool(pool);
+		vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
+			"Failed to allocate frame buffer");
+	}
+	unlock_buffer_pool(pool);
+#else
+	/* porting */
+	ybf = get_frame_new_buffer(cm);
+	ybf->y_crop_width = width;
+	ybf->y_crop_height = height;
+	ybf->bit_depth = params->p.bit_depth;
+#endif
+	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_x = cm->subsampling_x;
+	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_y = cm->subsampling_y;
+	pool->frame_bufs[cm->new_fb_idx].buf.bit_depth =
+						(unsigned int)cm->bit_depth;
+	pool->frame_bufs[cm->new_fb_idx].buf.color_space = cm->color_space;
+	return ret;
+}
+
+static int setup_frame_size_with_refs(
+		struct VP9Decoder_s *pbi,
+		struct VP9_Common_s *cm,
+		union param_u *params,
+		unsigned int *mmu_index_adr,
+		int print_header_info) {
+
+	int width, height;
+	int found = 0, i;
+	int has_valid_ref_frame = 0;
+	struct PIC_BUFFER_CONFIG_s *ybf;
+	struct BufferPool_s * const pool = cm->buffer_pool;
+	int ret = 0;
+
+	for (i = 0; i < REFS_PER_FRAME; ++i) {
+		if ((params->p.same_frame_size >>
+				(REFS_PER_FRAME - i - 1)) & 0x1) {
+			struct PIC_BUFFER_CONFIG_s *const buf =
+							cm->frame_refs[i].buf;
+			/*if (print_header_info)
+				pr_info
+				("1-bit same_frame_size[%d] read : 1\n", i);*/
+				width = buf->y_crop_width;
+				height = buf->y_crop_height;
+			/*if (print_header_info)
+				pr_info
+				(" - same_frame_size width : %d\n", width);*/
+			/*if (print_header_info)
+				pr_info
+				(" - same_frame_size height : %d\n", height);*/
+			found = 1;
+			break;
+		} else {
+			/*if (print_header_info)
+				pr_info
+				("1-bit same_frame_size[%d] read : 0\n", i);*/
+		}
+	}
+
+	if (!found) {
+		/*vp9_read_frame_size(rb, &width, &height);*/
+		width = params->p.width;
+		height = params->p.height;
+		/*if (print_header_info)
+			pr_info
+			(" * 16-bits w read : %d (width : %d)\n",
+				width, height);
+		if (print_header_info)
+			pr_info
+			(" * 16-bits h read : %d (height : %d)\n",
+				width, height);*/
+	}
+
+	if (width <= 0 || height <= 0) {
+		pr_err("Error: Invalid frame size\r\n");
+		return -1;
+	}
+
+	params->p.width = width;
+	params->p.height = height;
+
+	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
+#ifdef VP9_10B_MMU
+	/*if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);
+	cm->prev_fb_idx = cm->new_fb_idx;*/
+/*	pr_info
+	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
+	cm->prev_fb_idx, cm->new_fb_idx);*/
+	ret = vp9_alloc_mmu(pbi, cm->new_fb_idx,
+			params->p.width, params->p.height,
+	params->p.bit_depth, mmu_index_adr);
+	if (ret != 0) {
+		pr_err("can't alloc need mmu,idx %d\r\n",
+			cm->new_fb_idx);
+		return ret;
+	}
+	cm->cur_fb_idx_mmu = cm->new_fb_idx;
+#endif
+
+	/*Check to make sure at least one of frames that this frame references
+	has valid dimensions.*/
+	for (i = 0; i < REFS_PER_FRAME; ++i) {
+		struct RefBuffer_s * const ref_frame = &cm->frame_refs[i];
+		has_valid_ref_frame |=
+			valid_ref_frame_size(ref_frame->buf->y_crop_width,
+			ref_frame->buf->y_crop_height,
+			width, height);
+	}
+	if (!has_valid_ref_frame) {
+		pr_err("Error: Referenced frame has invalid size\r\n");
+		return -1;
+	}
+#if 0
+	for (i = 0; i < REFS_PER_FRAME; ++i) {
+			struct RefBuffer_s * const ref_frame =
+							&cm->frame_refs[i];
+			if (!valid_ref_frame_img_fmt(
+				ref_frame->buf->bit_depth,
+				ref_frame->buf->subsampling_x,
+				ref_frame->buf->subsampling_y,
+				cm->bit_depth,
+				cm->subsampling_x,
+				cm->subsampling_y))
+				pr_err
+				("Referenced frame incompatible color fmt\r\n");
+				return -1;
+	}
+#endif
+	resize_context_buffers(pbi, cm, width, height);
+	setup_display_size(cm, params, print_header_info);
+
+#if 0
+	lock_buffer_pool(pool);
+	if (vp9_realloc_frame_buffer(
+		get_frame_new_buffer(cm), cm->width, cm->height,
+		cm->subsampling_x, cm->subsampling_y,
+#if CONFIG_VP9_HIGHBITDEPTH
+		cm->use_highbitdepth,
+#endif
+		VP9_DEC_BORDER_IN_PIXELS,
+		cm->byte_alignment,
+		&pool->frame_bufs[cm->new_fb_idx].raw_frame_buffer,
+		pool->get_fb_cb,
+		pool->cb_priv)) {
+			unlock_buffer_pool(pool);
+			vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
+			"Failed to allocate frame buffer");
+	}
+	unlock_buffer_pool(pool);
+#else
+	/* porting */
+	ybf = get_frame_new_buffer(cm);
+	ybf->y_crop_width = width;
+	ybf->y_crop_height = height;
+	ybf->bit_depth = params->p.bit_depth;
+#endif
+	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_x = cm->subsampling_x;
+	pool->frame_bufs[cm->new_fb_idx].buf.subsampling_y = cm->subsampling_y;
+	pool->frame_bufs[cm->new_fb_idx].buf.bit_depth =
+						(unsigned int)cm->bit_depth;
+	pool->frame_bufs[cm->new_fb_idx].buf.color_space = cm->color_space;
+	return ret;
+}
+
+
+
 
 static int vp9_print(struct VP9Decoder_s *pbi,
 	int flag, const char *fmt, ...)
@@ -6143,8 +6151,9 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		pbi->last_pts_us64 = vf->pts_us64;
 		if ((debug & VP9_DEBUG_OUT_PTS) != 0) {
 			pr_info
-			("VP9 dec out pts: pts_mode=%d,frame_dur=%d,pts=%d,pts_us64=%lld\n",
-			 pbi->pts_mode, pbi->frame_dur, vf->pts, vf->pts_us64);
+			("VP9 dec out pts: pts_mode=%d,dur=%d,pts(%d,%lld)(%d,%lld)\n",
+			pbi->pts_mode, pbi->frame_dur, vf->pts,
+			vf->pts_us64, pts_save, pts_us64_save);
 		}
 
 		if (pbi->pts_mode == PTS_NONE_REF_USE_DURATION) {
