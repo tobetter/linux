@@ -1122,9 +1122,6 @@
 			opp-shared;
 
 			opp00 {
-				opp-hz = /bits/ 64 <100000000>;
-			};
-			opp01 {
 				opp-hz = /bits/ 64 <200000000>;
 			};
 		};
