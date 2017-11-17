@@ -37,6 +37,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
 #include <linux/slab.h>
+#include <linux/amlogic/tee.h>
 #include "../../../stream_input/amports/amports_priv.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include "../utils/decoder_mmu_box.h"
@@ -7260,7 +7261,12 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-
+#ifdef MULTI_INSTANCE_SUPPORT
+	if (tee_enabled()) {
+		size = 1;
+		pr_debug ("laod\n");
+	} else
+#endif
 	size = get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data);
 	if (size < 0) {
 		pr_err("get firmware fail.\n");
@@ -7808,6 +7814,11 @@ static void vp9_work(struct work_struct *work)
 			vdec_free_irq(VDEC_IRQ_1, (void *)pbi);
 			pbi->stat &= ~STAT_ISR_REG;
 		}
+	}
+
+	if (pbi->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		pbi->stat &= ~STAT_VDEC_RUN;
 	}
 
 	if (pbi->stat & STAT_TIMER_ARM) {

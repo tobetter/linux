@@ -38,6 +38,7 @@
 #include <linux/dma-contiguous.h>
 #include <linux/slab.h>
 #include <linux/mm.h>
+#include <linux/amlogic/tee.h>
 #include "../../../stream_input/amports/amports_priv.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include "../utils/decoder_mmu_box.h"
@@ -8663,7 +8664,11 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-
+#ifdef MULTI_INSTANCE_SUPPORT
+		if (tee_enabled())
+			size = 1;
+		else
+#endif
 	if (mmu_enable && (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)) {
 		size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
 		hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
@@ -9384,6 +9389,11 @@ static void vh265_work(struct work_struct *work)
 			vdec_free_irq(VDEC_IRQ_1, (void *)hevc);
 			hevc->stat &= ~STAT_ISR_REG;
 		}
+	}
+
+	if (hevc->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		hevc->stat &= ~STAT_VDEC_RUN;
 	}
 
 	if (hevc->stat & STAT_TIMER_ARM) {
