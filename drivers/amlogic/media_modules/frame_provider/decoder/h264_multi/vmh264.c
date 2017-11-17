@@ -4545,11 +4545,6 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	}
 	if (tee_enabled() && !firmwareloaded) {
 		pr_info("VMH264 start load sec firmware ...\n");
-		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI)
-			!= 0) {
-			amvdec_disable();
-			return -1;
-		}
 	} else {
 	/* -- ucode loading (amrisc and swap code) */
 	hw->mc_cpu_addr =
@@ -4950,6 +4945,9 @@ result_done:
 			READ_VREG(VLD_MEM_VIFIFO_WP),
 			READ_VREG(VLD_MEM_VIFIFO_RP));
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		amvdec_stop();
+		if (mmu_enable)
+			amhevc_stop();
 	} else if (hw->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
@@ -4970,6 +4968,9 @@ result_done:
 		hw->eos = 1;
 		flush_dpb(p_H264_Dpb);
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		amvdec_stop();
+		if (mmu_enable)
+			amhevc_stop();
 	} else if (hw->dec_result == DEC_RESULT_FORCE_EXIT) {
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s: force exit\n",
