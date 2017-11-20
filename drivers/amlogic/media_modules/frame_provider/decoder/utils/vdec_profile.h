@@ -27,10 +27,11 @@ struct vdec_s;
 #define VDEC_PROFILE_EVENT_RUN_READY   4
 #define VDEC_PROFILE_EVENT_DISCONNECT  5
 #define VDEC_PROFILE_EVENT_DEC_WORK    6
-#define VDEC_PROFILE_MAX_EVENT         7
+#define VDEC_PROFILE_EVENT_INFO        7
+#define VDEC_PROFILE_MAX_EVENT         8
 
 extern void vdec_profile(struct vdec_s *vdec, int event);
-
+extern void vdec_profile_more(struct vdec_s *vdec, int event, int para1, int para2);
 extern void vdec_profile_flush(struct vdec_s *vdec);
 
 int vdec_profile_init_debugfs(void);
