@@ -5152,11 +5152,11 @@ static void vp9_init_decoder_hw(struct VP9Decoder_s *pbi)
 	WRITE_VREG(HEVC_DEC_STATUS_REG, 0);
 
 	/*Initial IQIT_SCALELUT memory -- just to avoid X in simulation*/
-
+	#if 0 /*by CS:only need for simulation*/
 	WRITE_VREG(HEVC_IQIT_SCALELUT_WR_ADDR, 0);/*cfg_p_addr*/
 	for (i = 0; i < 1024; i++)
 		WRITE_VREG(HEVC_IQIT_SCALELUT_DATA, 0);
-
+	#endif
 
 #ifdef ENABLE_SWAP_TEST
 	WRITE_VREG(HEVC_STREAM_SWAP_TEST, 100);
@@ -7920,14 +7920,20 @@ static void run(struct vdec_s *vdec,
 		}
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
-
-	if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data) < 0) {
+	if (vdec->mc_loaded) {
+		/*firmware have load before,
+		  and not changes to another.
+		  ignore reload.
+		*/
+	} else if ( amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data) < 0) {
+		vdec->mc_loaded = 0;
 		amhevc_disable();
 		vp9_print(pbi, 0,
 			"%s: Error amvdec_loadmc fail\n", __func__);
 		return;
+	} else {
+		vdec->mc_loaded = 1;
 	}
-
 	if (vp9_hw_ctx_restore(pbi) < 0) {
 		vdec_schedule_work(&pbi->work);
 		return;

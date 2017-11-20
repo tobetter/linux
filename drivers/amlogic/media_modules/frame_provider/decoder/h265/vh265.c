@@ -49,7 +49,7 @@
 /*#define TEST_NO_BUF*/
 /*#define HEVC_PIC_STRUCT_SUPPORT*/
 #define MULTI_INSTANCE_SUPPORT
-
+#define USE_UNINIT_SEMA
 			/* .buf_size = 0x100000*16,
 			//4k2k , 0x100000 per buffer */
 			/* 4096x2304 , 0x120000 per buffer */
@@ -1530,6 +1530,8 @@ struct hevc_state_s {
 	u8 head_error_flag;
 	int valve_count;
 	struct firmware_s *fw;
+	int max_pic_w;
+	int max_pic_h;
 } /*hevc_stru_t */;
 
 #ifdef SEND_LMEM_WITH_RPM
@@ -2045,7 +2047,11 @@ static int init_mmu_buffers(struct hevc_state_s *hevc)
 {
 	int tvp_flag = vdec_secure(hw_to_vdec(hevc)) ?
 		CODEC_MM_FLAGS_TVP : 0;
-
+	int buf_size = 64;
+	if ((hevc->max_pic_w * hevc->max_pic_h) > 0 && (hevc->max_pic_w * hevc->max_pic_h) <= 1920*1088) {
+		buf_size = 24;
+	}
+	pr_err("William max_w %d max_h %d\n",hevc->max_pic_w,hevc->max_pic_h);
 	if (hevc->mmu_enable) {
 		hevc->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 			hevc->index,
@@ -8694,7 +8700,10 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		hevc->stat |= STAT_TIMER_ARM;*/
 
 		INIT_WORK(&hevc->work, vh265_work);
-
+#ifdef USE_UNINIT_SEMA
+		sema_init(
+			&hevc->h265_uninit_done_sema, 0);
+#endif
 		hevc->fw = fw;
 
 		return 0;
@@ -9996,6 +10005,16 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 			hevc->double_write_mode = config_val;
 		else
 			hevc->double_write_mode = double_write_mode;
+
+		/*use ptr config for max_pic_w, etc*/
+		if (get_config_int(pdata->config, "hevc_buf_width",
+				&config_val) == 0) {
+				hevc->max_pic_w = config_val;
+		}
+		if (get_config_int(pdata->config, "hevc_buf_height",
+				&config_val) == 0) {
+				hevc->max_pic_h = config_val;
+		}
 #endif
 	} else {
 		hevc->vh265_amstream_dec_info.width = 0;

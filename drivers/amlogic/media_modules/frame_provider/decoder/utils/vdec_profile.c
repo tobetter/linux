@@ -39,6 +39,8 @@ struct vdec_profile_rec_s {
 	struct vdec_s *vdec;
 	u64 timestamp;
 	int event;
+	int para1;
+	int para2;
 };
 
 static struct vdec_profile_rec_s recs[PROFILE_REC_SIZE];
@@ -49,7 +51,8 @@ static const char *event_name[VDEC_PROFILE_MAX_EVENT] = {
 	"check run ready",
 	"run ready",
 	"disconnect",
-	"dec_work"
+	"dec_work",
+	"info"
 };
 
 static u64 get_us_time(void)
@@ -65,13 +68,15 @@ static u64 get_us_time(void)
 	return (((u64)hi1) << 32) | lo;
 }
 
-void vdec_profile(struct vdec_s *vdec, int event)
+void vdec_profile_more(struct vdec_s *vdec, int event, int para1, int para2)
 {
 	mutex_lock(&vdec_profile_mutex);
 
 	recs[rec_wp].vdec = vdec;
 	recs[rec_wp].timestamp = get_us_time();
 	recs[rec_wp].event = event;
+	recs[rec_wp].para1 = para1;
+	recs[rec_wp].para2 = para2;
 
 	rec_wp++;
 	if (rec_wp == PROFILE_REC_SIZE) {
@@ -81,6 +86,13 @@ void vdec_profile(struct vdec_s *vdec, int event)
 
 	mutex_unlock(&vdec_profile_mutex);
 }
+EXPORT_SYMBOL(vdec_profile_more);
+
+void vdec_profile(struct vdec_s *vdec, int event)
+{
+	vdec_profile_more(vdec, event, 0 , 0);
+}
+EXPORT_SYMBOL(vdec_profile);
 
 void vdec_profile_flush(struct vdec_s *vdec)
 {
@@ -125,13 +137,24 @@ static int vdec_profile_dbg_show(struct seq_file *m, void *v)
 			break;
 
 		if (recs[i].vdec) {
-			seq_printf(m, "[%s:%d] %016llu us : %s\n",
+			seq_printf(m, "[%s:%d] \t%016llu us : %s (%d,%d)\n",
 				vdec_device_name_str(recs[i].vdec),
 				recs[i].vdec->id,
 				recs[i].timestamp - base_timestamp,
-				event_str(recs[i].event));
+				event_str(recs[i].event),
+				recs[i].para1,
+				recs[i].para2
+				);
+		} else {
+			seq_printf(m, "[%s:%d] \t%016llu us : %s (%d,%d)\n",
+				"N/A",
+				0,
+				recs[i].timestamp - base_timestamp,
+				event_str(recs[i].event),
+				recs[i].para1,
+				recs[i].para2
+				);
 		}
-
 		if (++i == PROFILE_REC_SIZE)
 			i = 0;
 

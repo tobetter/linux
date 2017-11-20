@@ -78,6 +78,12 @@ static unsigned int debug_trace_num = 16 * 20;
 static int step_mode;
 static unsigned int clk_config;
 
+/*
+&1: sched_priority to MAX_RT_PRIO -1.
+&2: always reload firmware.
+*/
+static unsigned int debug;
+
 static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
@@ -116,6 +122,7 @@ struct vdec_core_s {
 
 	struct vdec_isr_context_s isr_context[VDEC_IRQ_MAX];
 	int power_ref_count[VDEC_MAX];
+	void *last_vdec;
 };
 
 static struct vdec_core_s *vdec_core;
@@ -1583,7 +1590,7 @@ int vdec_reset(struct vdec_s *vdec)
 		if (vdec->slave)
 			vdec->slave->reset(vdec->slave);
 	}
-
+	vdec->mc_loaded = 0;/*clear for reload firmware.*/
 	vdec_input_release(&vdec->input);
 
 	vf_reg_provider(&vdec->vframe_provider);
@@ -1594,6 +1601,7 @@ int vdec_reset(struct vdec_s *vdec)
 		vf_reg_provider(&vdec->slave->vframe_provider);
 		vf_notify_receiver(vdec->slave->vf_provider_name,
 			VFRAME_EVENT_PROVIDER_START, vdec->slave);
+		vdec->slave->mc_loaded = 0;/*clear for reload firmware.*/
 	}
 
 	vdec_connect(vdec);
@@ -1802,13 +1810,13 @@ static inline void vdec_prepare_run(struct vdec_s *vdec)
 static int vdec_core_thread(void *data)
 {
 	struct vdec_core_s *core = (struct vdec_core_s *)data;
-
-	struct sched_param param = {.sched_priority = MAX_RT_PRIO - 1};
+	struct vdec_s *lastvdec;
+	struct sched_param param = {.sched_priority = MAX_RT_PRIO/2};
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
 
 	allow_signal(SIGTERM);
-
+	lastvdec = NULL;
 	while (down_interruptible(&core->sem) == 0) {
 		struct vdec_s *vdec, *tmp;
 		LIST_HEAD(disconnecting_list);
@@ -1910,6 +1918,10 @@ static int vdec_core_thread(void *data)
 
 		/* start the vdec instance */
 		if ((vdec) && (vdec->status != VDEC_STATUS_ACTIVE)) {
+			if (lastvdec != vdec)
+				vdec->mc_loaded = 0;/*clear for reload firmware.*/
+			if (debug & 2)
+				vdec->mc_loaded = 0;/*alway reload firmware.*/
 			vdec_set_status(vdec, VDEC_STATUS_ACTIVE);
 
 			/* activatate the decoder instance to run */
@@ -1920,6 +1932,7 @@ static int vdec_core_thread(void *data)
 			vdec_prepare_run(vdec);
 
 			vdec->run(vdec, vdec_callback, core);
+			lastvdec = vdec;
 		}
 
 		/* remove disconnected decoder from active list */
@@ -1933,6 +1946,7 @@ static int vdec_core_thread(void *data)
 			msleep(20);
 			up(&core->sem);
 		}
+
 	}
 
 	return 0;
@@ -3179,8 +3193,13 @@ static int vdec_probe(struct platform_device *pdev)
 	vdec_core->thread = kthread_run(vdec_core_thread, vdec_core,
 					"vdec-core");
 
-	vdec_core->vdec_core_wq = create_singlethread_workqueue("threadvdec");
-
+	vdec_core->vdec_core_wq = alloc_ordered_workqueue("%s",
+				__WQ_LEGACY |
+				WQ_MEM_RECLAIM |
+				WQ_HIGHPRI/*high priority*/
+				,
+				"vdec-work");
+	/*work queue priority lower than vdec-core.*/
 	return 0;
 }
 
@@ -3288,7 +3307,7 @@ static int __init vdec_mem_setup(struct reserved_mem *rmem)
 }
 
 RESERVEDMEM_OF_DECLARE(vdec, "amlogic, vdec-memory", vdec_mem_setup);
-
+module_param(debug, uint, 0664);
 module_param(debug_trace_num, uint, 0664);
 module_param(hevc_max_reset_count, int, 0664);
 module_param(clk_config, uint, 0664);
