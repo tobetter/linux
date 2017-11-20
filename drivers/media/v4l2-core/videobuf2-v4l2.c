@@ -118,6 +118,21 @@ static int __verify_length(struct vb2_buffer *vb, const struct v4l2_buffer *b)
 	return 0;
 }
 
+static inline long long __pack_timeval(const struct timeval *t)
+{
+	long tmp[2] = {t->tv_sec, t->tv_usec};
+	return *((long long *)&tmp[0]);
+}
+
+static struct timeval __unpack_timeval(long long t)
+{
+	long* tmp = (long *)&t;
+	struct timeval tt;
+	tt.tv_sec = tmp[0];
+	tt.tv_usec = tmp[1];
+	return tt;
+}
+
 static void __copy_timestamp(struct vb2_buffer *vb, const void *pb)
 {
 	const struct v4l2_buffer *b = pb;
@@ -130,7 +145,7 @@ static void __copy_timestamp(struct vb2_buffer *vb, const void *pb)
 		 * and the timecode field and flag if needed.
 		 */
 		if (q->copy_timestamp)
-			vb->timestamp = timeval_to_ns(&b->timestamp);
+			vb->timestamp = __pack_timeval(&b->timestamp);
 		vbuf->flags |= b->flags & V4L2_BUF_FLAG_TIMECODE;
 		if (b->flags & V4L2_BUF_FLAG_TIMECODE)
 			vbuf->timecode = b->timecode;
@@ -200,7 +215,7 @@ static void __fill_v4l2_buffer(struct vb2_buffer *vb, void *pb)
 
 	b->flags = vbuf->flags;
 	b->field = vbuf->field;
-	b->timestamp = ns_to_timeval(vb->timestamp);
+	b->timestamp = __unpack_timeval(vb->timestamp);
 	b->timecode = vbuf->timecode;
 	b->sequence = vbuf->sequence;
 	b->reserved2 = 0;
