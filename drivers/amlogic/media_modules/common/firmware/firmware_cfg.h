@@ -21,6 +21,7 @@
 {MESON_CPU_MAJOR_ID_GXL, VIDEO_PACKAGE, "video_ucode.bin"},
 {MESON_CPU_MAJOR_ID_GXM, VIDEO_PACKAGE, "video_ucode.bin"},
 {MESON_CPU_MAJOR_ID_TXL, VIDEO_PACKAGE, "video_ucode.bin"},
+{MESON_CPU_MAJOR_ID_TXLX, VIDEO_PACKAGE, "video_ucode.bin"},
 
 /*firmware for a special format, to replace the format in the package.*/
 {MESON_CPU_MAJOR_ID_GXL, VIDEO_DEC_HEVC, "h265.bin"},
