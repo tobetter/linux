@@ -438,6 +438,8 @@ s32 optee_load_fw(enum vformat_e type, const char *name)
 			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8);
 		else if (!strcmp(name, "vreal_mc_9"))
 			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9);
+		else if (!strcmp(name, "vmmjpeg_mc"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG_MULTI);
 		else
 			pr_info("unknow dec format\n");
 		break;
@@ -457,6 +459,9 @@ EXPORT_SYMBOL(amvdec_loadmc_ex);
 
 s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
 {
+	if (tee_enabled())
+		return optee_load_fw(FIRMWARE_MAX, name);
+	else
 	return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_ex);
