@@ -409,6 +409,7 @@ static void vavs_isr(void)
 	u32 picture_type;
 	u32 buffer_index;
 	u32 picture_struct;
+	u64 pts_us64;
 	unsigned int pts, pts_valid = 0, offset;
 	if (debug_flag & AVS_DEBUG_UCODE) {
 		if (READ_VREG(AV_SCRATCH_E) != 0) {
@@ -440,8 +441,8 @@ static void vavs_isr(void)
 			offset = READ_VREG(AVS_OFFSET_REG);
 			if (debug_flag & AVS_DEBUG_PRINT)
 				pr_info("AVS OFFSET=%x\n", offset);
-			if (pts_lookup_offset(PTS_TYPE_VIDEO, offset, &pts, 0)
-				== 0) {
+			if (pts_lookup_offset_us64(PTS_TYPE_VIDEO, offset, &pts,
+				0, &pts_us64) == 0) {
 				pts_valid = 1;
 #ifdef DEBUG_PTS
 				pts_hit++;
@@ -541,7 +542,7 @@ static void vavs_isr(void)
 			vf->canvas0Addr = vf->canvas1Addr =
 				index2canvas(buffer_index);
 			vf->type_original = vf->type;
-
+			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
 			if (debug_flag & AVS_DEBUG_PRINT) {
 				pr_info("buffer_index %d, canvas addr %x\n",
 					   buffer_index, vf->canvas0Addr);
@@ -595,6 +596,7 @@ static void vavs_isr(void)
 			vf->canvas0Addr = vf->canvas1Addr =
 				index2canvas(buffer_index);
 			vf->type_original = vf->type;
+			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
 			vfbuf_use[buffer_index]++;
 			vf->mem_handle =
 				decoder_bmmu_box_get_mem_handle(
