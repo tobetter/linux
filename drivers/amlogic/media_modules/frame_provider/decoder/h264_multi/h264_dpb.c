@@ -1657,6 +1657,7 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 
 	fs->pts = p->pts;
 	fs->pts64 = p->pts64;
+	fs->timestamp = p->timestamp;
 }
 
 void reset_frame_store(struct h264_dpb_stru *p_H264_Dpb,

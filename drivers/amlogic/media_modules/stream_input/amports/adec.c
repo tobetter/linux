@@ -230,6 +230,7 @@ s32 adec_init(struct stream_port_s *port)
 		astream_dev->format = NULL;
 	return 0;
 }
+EXPORT_SYMBOL(adec_init);
 
 s32 adec_release(enum aformat_e vf)
 {
@@ -242,6 +243,7 @@ s32 adec_release(enum aformat_e vf)
 
 	return 0;
 }
+EXPORT_SYMBOL(adec_release);
 
 int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
 {

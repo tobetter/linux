@@ -175,6 +175,8 @@ struct vdec_s {
 	u32 pts;
 	u64 pts64;
 	bool pts_valid;
+	u64 timestamp;
+	bool timestamp_valid;
 	int flag;
 	int sched;
 	int need_more_data;
@@ -416,5 +418,9 @@ extern void vdec_set_step_mode(void);
 int vdec_get_debug_flags(void);
 
 unsigned char is_mult_inc(unsigned int);
+
+int vdec_get_status(struct vdec_s *vdec);
+
+void vdec_set_timestamp(struct vdec_s *vdec, u64 timestamp);
 
 #endif				/* VDEC_H */

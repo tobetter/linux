@@ -609,6 +609,7 @@ Err_1:
 	mutex_unlock(&esparser_mutex);
 	return r;
 }
+EXPORT_SYMBOL(esparser_init);
 
 void esparser_audio_reset_s(struct stream_buf_s *buf)
 {
@@ -714,6 +715,7 @@ void esparser_release(struct stream_buf_s *buf)
 	buf->flag &= ~BUF_FLAG_PARSER;
 	pts_stop(pts_type);
 }
+EXPORT_SYMBOL(esparser_release);
 
 ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 				  const char __user *buf, size_t count)
@@ -821,6 +823,8 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 
 	return re_count;
 }
+EXPORT_SYMBOL(drm_write);
+
 /*
  *flags:
  *1:phy
@@ -914,7 +918,7 @@ ssize_t esparser_write(struct file *file,
 	}
 	return esparser_write_ex(file, stbuf, buf, count, 0);
 }
-
+EXPORT_SYMBOL(esparser_write);
 
 void esparser_sub_reset(void)
 {

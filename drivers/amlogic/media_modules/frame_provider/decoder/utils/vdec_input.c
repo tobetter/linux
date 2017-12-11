@@ -47,7 +47,7 @@
 #define EXTRA_PADDING_SIZE  (16 * SZ_1K) /*HEVC_PADDING_SIZE*/
 
 #define MEM_NAME "VFRAME_INPUT"
-static int vdec_input_get_duration_u64(struct vdec_input_s *input);
+//static int vdec_input_get_duration_u64(struct vdec_input_s *input);
 static struct vframe_block_list_s *
 	vdec_input_alloc_new_block(struct vdec_input_s *input);
 
@@ -551,7 +551,7 @@ static struct vframe_block_list_s *
 	}
 	return block;
 }
-static int vdec_input_get_duration_u64(struct vdec_input_s *input)
+int vdec_input_get_duration_u64(struct vdec_input_s *input)
 {
 	int duration = (input->last_inpts_u64 - input->last_comsumed_pts_u64);
 	if (input->last_in_nopts_cnt > 0 &&
@@ -571,6 +571,8 @@ static int vdec_input_get_duration_u64(struct vdec_input_s *input)
 		duration = 0;
 	return duration;
 }
+EXPORT_SYMBOL(vdec_input_get_duration_u64);
+
 /*
 	ret >= 13: have enough buffer, blocked add more buffers
 */
@@ -758,6 +760,10 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 		chunk->pts = vdec->pts;
 		chunk->pts64 = vdec->pts64;
 	}
+
+	if (vdec->timestamp_valid)
+		chunk->timestamp = vdec->timestamp;
+
 	if (vdec->pts_valid &&
 		input->last_inpts_u64 > 0 &&
 		input->last_in_nopts_cnt == 0) {

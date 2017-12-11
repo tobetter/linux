@@ -1025,6 +1025,7 @@ void psparser_release(void)
 	pr_info("psparser release subtitle info\n");
 #endif
 }
+EXPORT_SYMBOL(psparser_release);
 
 ssize_t psparser_write(struct file *file,
 	struct stream_buf_s *vbuf,

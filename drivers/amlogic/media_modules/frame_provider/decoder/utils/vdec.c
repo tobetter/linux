@@ -526,6 +526,13 @@ int vdec_set_pts(struct vdec_s *vdec, u32 pts)
 }
 EXPORT_SYMBOL(vdec_set_pts);
 
+void vdec_set_timestamp(struct vdec_s *vdec, u64 timestamp)
+{
+	vdec->timestamp = timestamp;
+	vdec->timestamp_valid = true;
+}
+EXPORT_SYMBOL(vdec_set_timestamp);
+
 int vdec_set_pts64(struct vdec_s *vdec, u64 pts64)
 {
 	vdec->pts64 = pts64;
@@ -536,6 +543,12 @@ int vdec_set_pts64(struct vdec_s *vdec, u64 pts64)
 	return 0;
 }
 EXPORT_SYMBOL(vdec_set_pts64);
+
+int vdec_get_status(struct vdec_s *vdec)
+{
+	return vdec->status;
+}
+EXPORT_SYMBOL(vdec_get_status);
 
 void vdec_set_status(struct vdec_s *vdec, int status)
 {
@@ -1554,6 +1567,11 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				"ppmgr amlvideo.1 amvide2");
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
+		} else if (p->frame_base_video_path == FRAME_BASE_PATH_V4L_VIDEO) {
+			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
+				"%s %s", vdec->vf_provider_name, "v4l2-video");
+			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
+				"vdec-map-%d", vdec->id);
 		}
 
 		if (vfm_map_add(vdec->vfm_map_id,
@@ -1709,6 +1727,11 @@ int vdec_reset(struct vdec_s *vdec)
 	}
 
 	vdec_input_release(&vdec->input);
+
+	vdec_input_init(&vdec->input, vdec);
+
+	vdec_input_prepare_bufs(&vdec->input, vdec->sys_info->width,
+		vdec->sys_info->height);
 
 	vf_reg_provider(&vdec->vframe_provider);
 	vf_notify_receiver(vdec->vf_provider_name,

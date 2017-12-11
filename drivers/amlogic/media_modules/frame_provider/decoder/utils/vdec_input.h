@@ -49,6 +49,8 @@ struct vframe_chunk_s {
 	u32 pading_size;
 	u64 pts64;
 	bool pts_valid;
+	u64 timestamp;
+	bool timestamp_valid;
 	u64 sequence;
 	struct vframe_block_list_s *block;
 };
@@ -160,5 +162,7 @@ int vdec_input_dump_chunks(struct vdec_input_s *input,
 	char *bufs, int size);
 int vdec_input_dump_blocks(struct vdec_input_s *input,
 	char *bufs, int size);
+
+int vdec_input_get_duration_u64(struct vdec_input_s *input);
 
 #endif /* VDEC_INPUT_H */
