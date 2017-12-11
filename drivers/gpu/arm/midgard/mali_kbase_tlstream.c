@@ -1042,12 +1042,10 @@ static void kbasep_tlstream_flush_stream(enum tl_stream_type stype)
  * Timer is executed periodically to check if any of the stream contains
  * buffer ready to be submitted to user space.
  */
-static void kbasep_tlstream_autoflush_timer_callback(unsigned long data)
+static void kbasep_tlstream_autoflush_timer_callback(struct timer_list *unused)
 {
 	enum tl_stream_type stype;
 	int                 rcode;
-
-	CSTD_UNUSED(data);
 
 	for (stype = 0; stype < TL_STREAM_TYPE_COUNT; stype++) {
 		struct tl_stream *stream = tl_stream[stype];
@@ -1371,7 +1369,7 @@ int kbase_tlstream_init(void)
 
 	/* Initialize autoflush timer. */
 	atomic_set(&autoflush_timer_active, 0);
-	setup_timer(&autoflush_timer,
+	timer_setup(&autoflush_timer,
 			kbasep_tlstream_autoflush_timer_callback,
 			0);
 
