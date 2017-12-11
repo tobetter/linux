@@ -19,6 +19,7 @@
 #define RRINT_FLAG_RPM                0x0400
 #define DEBUG_DISABLE_RUNREADY_RMBUF  0x0800
 #define PRINT_FLAG_DUMP_BUFSPEC       0x1000
+#define PRINT_FLAG_V4L_DETAIL         0x8000
 #define DISABLE_ERROR_HANDLE          0x10000
 #define DEBUG_DUMP_STAT               0x80000
 
@@ -646,6 +647,7 @@ struct StorablePicture {
 
 	u32         pts;
 	u64         pts64;
+	u64         timestamp;
 	unsigned char data_flag;
 };
 
@@ -709,6 +711,7 @@ struct FrameStore {
 
 	u32       pts;
 	u64       pts64;
+	u64       timestamp;
 };
 
 

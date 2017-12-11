@@ -747,6 +747,7 @@ void tsdemux_release(void)
 	amports_switch_gate("demux", 0);
 
 }
+EXPORT_SYMBOL(tsdemux_release);
 
 static int limited_delay_check(struct file *file,
 		struct stream_buf_s *vbuf,

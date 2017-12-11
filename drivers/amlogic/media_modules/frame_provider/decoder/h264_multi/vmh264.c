@@ -57,6 +57,7 @@
 #include <linux/amlogic/tee.h>
 #include <linux/uaccess.h>
 #include "../utils/config_parser.h"
+#include "../../../amvdec_ports/vdec_drv_base.h"
 
 #undef pr_info
 #define pr_info printk
@@ -765,6 +766,8 @@ struct vdec_h264_hw_s {
 	struct mh264_ud_record_wait_node_t free_nodes[MAX_FREE_USERDATA_NODES];
 	int wait_for_udr_send;
 #endif
+	bool is_used_v4l;
+	void *v4l2_ctx;
 };
 
 static u32 again_threshold = 0x40;
@@ -811,7 +814,6 @@ static void h264_clear_dpb(struct vdec_h264_hw_s *hw);
 #define H265_LOSLESS_COMPRESS_MODE
 #define MAX_FRAME_4K_NUM 0x1200
 #define FRAME_MMU_MAP_SIZE  (MAX_FRAME_4K_NUM * 4)
-
 
 /* 0:linear 1:32x32 2:64x32 ; m8baby test1902 */
 static u32 mem_map_mode = H265_MEM_MAP_MODE;
@@ -1551,23 +1553,113 @@ static int alloc_one_buf_spec(struct vdec_h264_hw_s *hw, int i)
 	return 0;
 }
 
+static int v4l_get_fb(struct aml_vcodec_ctx *ctx, struct vdec_fb **out)
+{
+	int ret = 0;
+
+	ret = ctx->dec_if->get_param(ctx->drv_handle,
+		GET_PARAM_FREE_FRAME_BUFFER, out);
+	if (ret)
+		pr_err("get frame buffer failed.\n");
+
+	return ret;
+}
+
+static int alloc_one_buf_spec_from_queue(struct vdec_h264_hw_s *hw, int idx)
+{
+	int ret = 0;
+	struct buffer_spec_s *bs = &hw->buffer_spec[idx];
+	struct canvas_config_s *y_canvas_cfg = NULL;
+	struct canvas_config_s *c_canvas_cfg = NULL;
+	struct vdec_fb *fb = NULL;
+	unsigned int y_addr, c_addr;
+
+	int buf_size = (hw->mb_total << 8) + (hw->mb_total << 7);
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], buf size: %d\n", __FUNCTION__, __LINE__, buf_size);
+
+	if (IS_ERR_OR_NULL(hw->v4l2_ctx)) {
+		pr_err("the v4l context has err.\n");
+		return -1;
+	}
+
+	if (bs->cma_alloc_addr)
+		return 0;
+
+	ret = v4l_get_fb(hw->v4l2_ctx, &fb);
+	if (ret) {
+		pr_err("get fb fail.\n");
+		return ret;
+	}
+
+	bs->cma_alloc_addr = (unsigned long)fb;
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], cma alloc addr: 0x%x\n",
+		__FUNCTION__, __LINE__, bs->cma_alloc_addr);
+
+	y_addr = virt_to_phys(fb->base_y.va);
+	c_addr = virt_to_phys(fb->base_c.va);
+
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], y_addr: %x, va: %p\n",
+		__FUNCTION__, __LINE__, y_addr, fb->base_y.va);
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], c_addr: %x, va: %p\n",
+		__FUNCTION__, __LINE__, c_addr, fb->base_c.va);
+
+	bs->y_addr = y_addr;
+	bs->u_addr = c_addr;
+	bs->v_addr = c_addr;
+
+	y_canvas_cfg = &bs->canvas_config[0];
+	c_canvas_cfg = &bs->canvas_config[1];
+
+	y_canvas_cfg->phy_addr	= y_addr;
+	y_canvas_cfg->width	= hw->mb_width << 4;
+	y_canvas_cfg->height	= hw->mb_height << 4;
+	y_canvas_cfg->block_mode = CANVAS_BLKMODE_LINEAR;
+	fb->base_y.bytes_used = y_canvas_cfg->width * y_canvas_cfg->height;
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], y_w: %d, y_h: %d\n", __FUNCTION__, __LINE__,
+		y_canvas_cfg->width,y_canvas_cfg->height);
+
+	c_canvas_cfg->phy_addr	= c_addr;
+	c_canvas_cfg->width	= hw->mb_width << 4;
+	c_canvas_cfg->height	= hw->mb_height << 3;
+	c_canvas_cfg->block_mode = CANVAS_BLKMODE_LINEAR;
+	fb->base_c.bytes_used = c_canvas_cfg->width * c_canvas_cfg->height;
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s() [%d], c_w: %d, c_h: %d\n", __FUNCTION__, __LINE__,
+		c_canvas_cfg->width, c_canvas_cfg->height);
+
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+		"%s, alloc buf for bufspec%d\n", __FUNCTION__, idx);
+
+	return ret;
+}
+
 static void config_decode_canvas(struct vdec_h264_hw_s *hw, int i)
 {
-	canvas_config(hw->buffer_spec[i].
+	canvas_config_ex(hw->buffer_spec[i].
 		y_canvas_index,
 		hw->buffer_spec[i].y_addr,
 		hw->mb_width << 4,
 		hw->mb_height << 4,
 		CANVAS_ADDR_NOWRAP,
-		CANVAS_BLKMODE_32X32);
+		hw->is_used_v4l ? CANVAS_BLKMODE_LINEAR :
+			CANVAS_BLKMODE_32X32,
+		hw->is_used_v4l ? 7 : 0);
 
-	canvas_config(hw->buffer_spec[i].
+	canvas_config_ex(hw->buffer_spec[i].
 		u_canvas_index,
 		hw->buffer_spec[i].u_addr,
 		hw->mb_width << 4,
 		hw->mb_height << 3,
 		CANVAS_ADDR_NOWRAP,
-		CANVAS_BLKMODE_32X32);
+		hw->is_used_v4l ? CANVAS_BLKMODE_LINEAR :
+			CANVAS_BLKMODE_32X32,
+		hw->is_used_v4l ? 7 : 0);
+
 	WRITE_VREG(ANC0_CANVAS_ADDR + hw->buffer_spec[i].canvas_pos,
 		spec2canvas(&hw->buffer_spec[i]));
 }
@@ -1773,9 +1865,11 @@ static void dealloc_buf_specs(struct vdec_h264_hw_s *hw,
 
 			if (!hw->mmu_enable) {
 				if (hw->buffer_spec[i].cma_alloc_addr) {
-					decoder_bmmu_box_free_idx(
-						hw->bmmu_box,
-						i);
+					if (!hw->is_used_v4l) {
+						decoder_bmmu_box_free_idx(
+							hw->bmmu_box,
+							i);
+					}
 					spin_lock_irqsave
 						(&hw->bufspec_lock, flags);
 					hw->buffer_spec[i].cma_alloc_addr = 0;
@@ -1837,7 +1931,10 @@ unsigned char have_free_buf_spec(struct vdec_s *vdec)
 		dealloc_buf_specs(hw, 0);
 		if (max_alloc_buf_count == 0 ||
 			allocated_count < max_alloc_buf_count) {
-			if (alloc_one_buf_spec(hw, index) >= 0)
+			if (hw->is_used_v4l) {
+				if (alloc_one_buf_spec_from_queue(hw, index) >= 0)
+					ret = 1;
+			} else if (alloc_one_buf_spec(hw, index) >= 0)
 				ret = 1;
 		}
 		mutex_unlock(&vmh264_mutex);
@@ -1995,7 +2092,17 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 		vf->duration_pulldown = 0;
 		vf->pts = frame->pts;
 		vf->pts_us64 = frame->pts64;
+		vf->timestamp = frame->timestamp;
 		vf->index = VF_INDEX(frame->index, buffer_index);
+
+		if (hw->is_used_v4l) {
+			vf->v4l_mem_handle
+				= hw->buffer_spec[buffer_index].cma_alloc_addr;
+			dpb_print(DECODE_ID(hw), PRINT_FLAG_V4L_DETAIL,
+				"%s() [%d], v4l mem handle: 0x%x\n",
+				__FUNCTION__, __LINE__, vf->v4l_mem_handle);
+		}
+
 		if (hw->mmu_enable) {
 			if (hw->double_write_mode & 0x10) {
 				/* double write only */
@@ -2040,6 +2147,7 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 					VIDTYPE_COMPRESS | VIDTYPE_VIU_FIELD;
 				vf->canvas0Addr = vf->canvas1Addr = 0;
 			}
+
 			vf->bitdepth =
 				BITDEPTH_Y8 | BITDEPTH_U8 | BITDEPTH_V8;
 
@@ -2102,6 +2210,38 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 	if (dpb_is_debug(DECODE_ID(hw),
 		PRINT_FLAG_DUMP_BUFSPEC))
 		dump_bufspec(hw, __func__);
+
+	return 0;
+}
+
+int notify_v4l_eos(struct vdec_s *vdec)
+{
+	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
+	struct vframe_s *vf = NULL;
+	struct vdec_fb *fb = NULL;
+
+	if (hw->is_used_v4l && hw->eos) {
+		if (kfifo_get(&hw->newframe_q, &vf) == 0 || vf == NULL) {
+			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+				"%s fatal error, no available buffer slot.\n",
+				__func__);
+			return -1;
+		}
+
+		if (v4l_get_fb(hw->v4l2_ctx, &fb)) {
+			pr_err("get fb fail.\n");
+			return -1;
+		}
+
+		vf->timestamp = ULONG_MAX;
+		vf->v4l_mem_handle = (unsigned long)fb;
+		vf->flag = VFRAME_FLAG_EMPTY_FRAME_V4L;
+
+		kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
+		pr_info("264 EOS notify \n");
+		vf_notify_receiver(vdec->vf_provider_name,
+			VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
+	}
 
 	return 0;
 }
@@ -3070,6 +3210,7 @@ static void vh264_vf_put(struct vframe_s *vf, void *op_arg)
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
 	int buf_spec_num;
 	int frame_index;
+
 	if (vf == (&hw->vframe_dummy))
 		return;
 	if (vf->index == -1) {
@@ -3477,10 +3618,17 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		if (!hw->mmu_enable) {
 			config_buf_specs(vdec);
 			i = get_buf_spec_by_canvas_pos(hw, 0);
-			if (alloc_one_buf_spec(hw, i) >= 0)
-				config_decode_canvas(hw, i);
-			else
-				ret = -1;
+
+			if (hw->is_used_v4l) {
+				ret = alloc_one_buf_spec_from_queue(hw, i);
+				if (!ret)
+					config_decode_canvas(hw, i);
+			} else {
+				if (alloc_one_buf_spec(hw, i) >= 0)
+					config_decode_canvas(hw, i);
+				else
+					ret = -1;
+			}
 		} else {
 			if (hw->double_write_mode) {
 				config_buf_specs_ex(vdec);
@@ -3548,11 +3696,22 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		if (!hw->mmu_enable) {
 			mutex_lock(&vmh264_mutex);
 			if (ret >= 0 && hw->decode_pic_count == 0) {
+				int buf_cnt;
 				/* h264_reconfig: alloc later*/
-				for (j = 1; j < hw->dpb.mDPB.size; j++) {
+				buf_cnt = hw->dpb.mDPB.size;
+
+				for (j = 1; j < buf_cnt; j++) {
 					i = get_buf_spec_by_canvas_pos(hw, j);
-					if (alloc_one_buf_spec(hw, i) < 0)
+
+					if (hw->is_used_v4l &&
+						alloc_one_buf_spec_from_queue
+						(hw, i) < 0) {
+						if (j++ != buf_cnt)
+							ret = -1;
 						break;
+					} else if (alloc_one_buf_spec(hw, i) < 0)
+						break;
+
 					config_decode_canvas(hw, i);
 				}
 			}
@@ -4212,6 +4371,8 @@ pic_done_proc:
 					hw->chunk->pts;
 				p_H264_Dpb->mVideo.dec_picture->pts64 =
 					hw->chunk->pts64;
+				p_H264_Dpb->mVideo.dec_picture->timestamp =
+					hw->chunk->timestamp;
 #ifdef MH264_USERDATA_ENABLE
 				vmh264_udc_fill_vpts(hw,
 					p_H264_Dpb->mSlice.slice_type,
@@ -5110,11 +5271,17 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 		hw->frame_dur = 96000/30;
 	}
 
-	pr_info
-	("H264 sysinfo: %dx%d duration=%d, pts_outside=%d\n",
-	 hw->frame_width, hw->frame_height, hw->frame_dur, hw->pts_outside);
-	pr_debug("sync_outside=%d, use_idr_framerate=%d\n",
-	 hw->sync_outside, hw->use_idr_framerate);
+	hw->is_used_v4l = (((unsigned long)
+		hw->vh264_amstream_dec_info.param & 0x80) >> 7);
+
+	if (hw->is_used_v4l)
+		mem_map_mode = CANVAS_BLKMODE_LINEAR;
+
+	pr_info("H264 sysinfo: %dx%d duration=%d, pts_outside=%d\n",
+		hw->frame_width, hw->frame_height, hw->frame_dur, hw->pts_outside);
+	pr_debug("sync_outside=%d, use_idr_framerate=%d, is_used_v4l: %d\n",
+		hw->sync_outside, hw->use_idr_framerate, hw->is_used_v4l);
+
 	if (i_only_flag & 0x100)
 		hw->i_only = i_only_flag & 0xff;
 
@@ -6300,7 +6467,10 @@ result_done:
 			amhevc_stop();
 		hw->eos = 1;
 		flush_dpb(p_H264_Dpb);
+		if (hw->is_used_v4l)
+			notify_v4l_eos(hw_to_vdec(hw));
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		vdec_clean_input(vdec);
 	} else if (hw->dec_result == DEC_RESULT_FORCE_EXIT) {
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s: force exit\n",
@@ -6619,7 +6789,27 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 static void reset(struct vdec_s *vdec)
 {
-	pr_info("ammvdec_h264: reset.\n");
+	struct vdec_h264_hw_s *hw =
+		(struct vdec_h264_hw_s *)vdec->private;
+
+	cancel_work_sync(&hw->work);
+	cancel_work_sync(&hw->notify_work);
+	cancel_work_sync(&hw->user_data_work);
+	if (hw->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		hw->stat &= ~STAT_VDEC_RUN;
+	}
+
+	if (hw->stat & STAT_TIMER_ARM) {
+		del_timer_sync(&hw->check_timer);
+		hw->stat &= ~STAT_TIMER_ARM;
+	}
+	hw->eos = 0;
+	hw->decode_pic_count = 0;
+	hw->dec_result = DEC_RESULT_NONE;
+	reset_process_time(hw);
+	h264_reset_bufmgr(vdec);
+	dpb_print(DECODE_ID(hw), 0, "%s\n", __func__);
 }
 
 static void h264_reconfig(struct vdec_h264_hw_s *hw)
@@ -6856,6 +7046,10 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	}
 	hw->id = pdev->id;
 	hw->platform_dev = pdev;
+
+	/* the ctx from v4l2 driver. */
+	hw->v4l2_ctx = pdata->private;
+
 	platform_set_drvdata(pdev, pdata);
 
 	hw->mmu_enable = 0;
@@ -7057,6 +7251,7 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 	ammvdec_h264_mmu_release(hw);
 	h264_free_hw_stru(&pdev->dev, (void *)hw);
+
 	return 0;
 }
 
@@ -7138,7 +7333,6 @@ static void __exit ammvdec_h264_driver_remove_module(void)
 }
 
 /****************************************/
-
 module_param(h264_debug_flag, uint, 0664);
 MODULE_PARM_DESC(h264_debug_flag, "\n ammvdec_h264 h264_debug_flag\n");
 
