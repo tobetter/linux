@@ -77,6 +77,7 @@
 #endif
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include "../../frame_provider/decoder/utils/firmware.h"
 
 #define CONFIG_AM_VDEC_REAL //DEBUG_TMP
 
@@ -857,7 +858,7 @@ static void amstream_user_buffer_init(void)
 
 static int amstream_port_init(struct port_priv_s *priv)
 {
-	int r;
+	int r = 0;
 	struct stream_buf_s *pvbuf = &bufs[BUF_TYPE_VIDEO];
 	struct stream_buf_s *pabuf = &bufs[BUF_TYPE_AUDIO];
 	struct stream_buf_s *psbuf = &bufs[BUF_TYPE_SUBTITLE];
@@ -865,6 +866,11 @@ static int amstream_port_init(struct port_priv_s *priv)
 	struct vdec_s *vdec = priv->vdec;
 
 	mutex_lock(&amstream_mutex);
+
+	/* try to reload the fw.*/
+	r = firmware_reload(FW_LOAD_TRY);
+	if (r)
+		pr_err("the firmware reload fail.\n");
 
 	stbuf_fetch_init();
 
