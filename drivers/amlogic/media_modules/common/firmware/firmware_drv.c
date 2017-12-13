@@ -39,17 +39,14 @@
 #include <linux/cdev.h>
 #include <linux/crc32.h>
 
-#define CLASS_NAME	"firmware_codec"
-#define DEV_NAME	"firmware_vdec"
-#define DIR		"video"
-#define FRIMWARE_SIZE	(128 * 1024) /*128k*/
-#define BUFF_SIZE	(1024 * 1024)
-
-#define FW_LOAD_FORCE	(0x1)
-#define FW_LOAD_TRY	(0X2)
+#define CLASS_NAME "firmware_codec"
+#define DEV_NAME "firmware_vdec"
+#define DIR "video"
+#define FRIMWARE_SIZE (64*1024) /*64k*/
+#define BUFF_SIZE (512*1024)
 
 /*the first 256 bytes are signature data*/
-#define SEC_OFFSET	(256)
+#define SEC_OFFSET (256)
 
 #define PACK ('P' << 24 | 'A' << 16 | 'C' << 8 | 'K')
 #define CODE ('C' << 24 | 'O' << 16 | 'D' << 8 | 'E')
@@ -409,7 +406,6 @@ static int firmware_parse_package(char *buf, int size)
 	struct firmware_s *data;
 	char *pack_data;
 	int info_len, len;
-	int try_cnt = 100;
 	char *path = __getname();
 
 	if (IS_ERR_OR_NULL(path))
@@ -419,7 +415,7 @@ static int firmware_parse_package(char *buf, int size)
 	pack_info = (struct package_info_s *)pack_data;
 	info_len = sizeof(struct package_info_s);
 
-	do {
+	for (;;) {
 		if (!pack_info->header.length)
 			break;
 
@@ -473,7 +469,7 @@ static int firmware_parse_package(char *buf, int size)
 
 		info->data = data;
 		add_info(info);
-	} while (try_cnt--);
+	}
 out:
 	__putname(path);
 
@@ -530,8 +526,6 @@ static int set_firmware_data(void)
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
-	memset(buf, 0, BUFF_SIZE);
-
 	list_for_each_entry_safe(info, temp, &mgr->head, node) {
 		size = get_firmware_from_sys(info->path, buf, BUFF_SIZE);
 		magic = firmware_probe(buf);
@@ -550,7 +544,6 @@ static int set_firmware_data(void)
 
 		default:
 			del_info(info);
-			kfree(info);
 			pr_info("invaild type.\n");
 		}
 
@@ -596,79 +589,8 @@ static int firmware_mgr_init(void)
 	return 0;
 }
 
-static ssize_t reload_show(struct class *class,
-			struct class_attribute *attr, char *buf)
-{
-	char *pbuf = buf;
-
-	pbuf += sprintf(pbuf, "The fw reload usage.\n");
-	pbuf += sprintf(pbuf, "> set 1 means that the fw is forced to update\n");
-	pbuf += sprintf(pbuf, "> set 2 means that the fw is try to reload\n");
-
-	return pbuf - buf;
-}
-
-int firmware_reload(int mode)
-{
-	int ret = 0;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info = NULL;
-
-	if (tee_enabled())
-		return 0;
-
-	mutex_lock(&mutex);
-
-	if (mode & FW_LOAD_FORCE) {
-		while (!list_empty(&mgr->head)) {
-			info = list_entry(mgr->head.next,
-				struct firmware_info_s, node);
-			list_del(&info->node);
-			kfree(info->data);
-			kfree(info);
-		}
-
-		ret = firmware_pre_load();
-		if (ret < 0)
-			pr_err("The fw reload fail.\n");
-	} else if (mode & FW_LOAD_TRY) {
-		if (!list_empty(&mgr->head)) {
-			pr_info("The fw has been loaded.\n");
-			goto out;
-		}
-
-		ret = firmware_pre_load();
-		if (ret < 0)
-			pr_err("The fw try to reload fail.\n");
-	}
-out:
-	mutex_unlock(&mutex);
-
-	return ret;
-}
-EXPORT_SYMBOL(firmware_reload);
-
-static ssize_t reload_store(struct class *class,
-		struct class_attribute *attr,
-		const char *buf, size_t size)
-{
-	int ret = -1;
-	unsigned int val;
-
-	ret = kstrtoint(buf, 0, &val);
-	if (ret != 0)
-		return -EINVAL;
-
-	ret = firmware_reload(val);
-	if (ret < 0)
-		pr_err("fw reload fail.\n");
-
-	return size;
-}
-
 static struct class_attribute firmware_class_attrs[] = {
 	__ATTR_RO(info),
-	__ATTR(reload, 0664, reload_show, reload_store),
 	__ATTR_NULL
 };
 
@@ -753,9 +675,6 @@ static int __init firmware_module_init(void)
 {
 	int ret = -1;
 
-	if (tee_enabled())
-		return 0;
-
 	ret = firmware_driver_init();
 	if (ret) {
 		pr_info("Error %d firmware driver init fail.\n", ret);
@@ -779,9 +698,6 @@ err:
 
 static void __exit firmware_module_exit(void)
 {
-	if (tee_enabled())
-		return;
-
 	firmware_info_clean();
 	firmware_driver_exit();
 	pr_info("Firmware driver cleaned up.\n");
