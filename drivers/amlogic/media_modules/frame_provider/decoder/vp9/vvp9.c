@@ -7454,8 +7454,12 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 
 #ifdef VP9_10B_MMU
 	int buf_size = 48;
-	if((pbi->max_pic_w * pbi->max_pic_h) > 0 && (pbi->max_pic_w * pbi->max_pic_h) <= 1920*1088) {
+	if ((pbi->max_pic_w * pbi->max_pic_h > 1280*736) &&
+		(pbi->max_pic_w * pbi->max_pic_h <= 1920*1088)) {
 		buf_size = 12;
+	} else if ((pbi->max_pic_w * pbi->max_pic_h > 0) &&
+		(pbi->max_pic_w * pbi->max_pic_h <= 1280*736)) {
+		buf_size = 4;
 	}
 	pbi->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 		pbi->index, FRAME_BUFFERS,
