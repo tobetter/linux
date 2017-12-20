@@ -59,25 +59,25 @@ struct spi_board_info aml_ci_spi_bdinfo = {
 #define PULLHIGH 0
 
 /*
-sendbuf data struct
-----------------------------------------------------
-|start flag| cmd   | data  |  addr   |end flag  |
-----------------------------------------------------
-| 2 byte   | 1byte | 1byte |   2 byte|   2 byte |
-----------------------------------------------------
-*/
+ *sendbuf data struct
+ *----------------------------------------------------
+ *|start flag| cmd   | data  |  addr   |end flag  |
+ *----------------------------------------------------
+ *| 2 byte   | 1byte | 1byte |   2 byte|   2 byte |
+ *----------------------------------------------------
+ */
 
 #define SENDBUFLEN  8
 static u8 sendbuf[SENDBUFLEN];/* send data */
 static u8 rbuf[SENDBUFLEN];/*save get data */
 /**\brief aml_init_send_buf:init spi send buf
-* \param cmd: ci cmd
-* \param data: write value
-* \param addr: read or write addr
-* \return
-*   - read value:ok
-*   - -EINVAL : error
-*/
+ * \param cmd: ci cmd
+ * \param data: write value
+ * \param addr: read or write addr
+ * \return
+ *   - read value:ok
+ *   - -EINVAL : error
+ */
 static int aml_init_send_buf(u8 cmd, u8 data, u16 addr)
 {
 	/* start flag */
@@ -96,20 +96,20 @@ static int aml_init_send_buf(u8 cmd, u8 data, u16 addr)
 	return 0;
 }
 /**\brief aml_ci_spi_reciver
-* \param[out] None
-* \param[in] value,get from spi
-* \return
-*   - 0:reciver end,-1:reciver
-*   -
-*/
+ * \param[out] None
+ * \param[in] value,get from spi
+ * \return
+ *   - 0:reciver end,-1:reciver
+ *   -
+ */
 /*
-data strouct
-----------------------------------------------------
-|start flag| cmd   | data  |  addr   |end flag  |
-----------------------------------------------------
-| 2 byte   | 1byte | 1byte |   2 byte|   2 byte |
-----------------------------------------------------
-*/
+ *data strouct
+ *----------------------------------------------------
+ *|start flag| cmd   | data  |  addr   |end flag  |
+ *----------------------------------------------------
+ *| 2 byte   | 1byte | 1byte |   2 byte|   2 byte |
+ *----------------------------------------------------
+ */
 int aml_ci_spi_paser_bit(uint8_t value)
 {
 	/* read spi data from slave */
@@ -161,20 +161,21 @@ int aml_ci_spi_paser_bit(uint8_t value)
 }
 
 /**\brief aml_spi_io_api:spi read or write api with mcu
-* \param spi_dev: aml_spi obj,used this data to get spi obj
-* \param val: write value
-* \param len: write value len
-* \param mode: read or write
-* \return
-*   - read value:ok
-*   - -EINVAL : error
-*/
+ * \param spi_dev: aml_spi obj,used this data to get spi obj
+ * \param val: write value
+ * \param len: write value len
+ * \param mode: read or write
+ * \return
+ *   - read value:ok
+ *   - -EINVAL : error
+ */
 static int aml_spi_io_api(struct aml_spi *spi_dev, u8 *val, int len, int mode)
 {
 	u8 rb[32] = {0};
 	int ret = 0;
 	int i = 0;
 	u8 rd = 0;
+
 	if (spi_dev->spi == NULL) {
 		pr_error("%s spi is null\r\n", __func__);
 		return -EINVAL;
@@ -225,15 +226,16 @@ static int aml_spi_io_api(struct aml_spi *spi_dev, u8 *val, int len, int mode)
 /********************************************************/
 /********************************************************/
 /**\brief aml_set_gpio_out:set gio out and set val value
-* \param gpio: gpio_desc obj,
-* \param val:  set val
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param gpio: gpio_desc obj,
+ * \param val:  set val
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int aml_set_gpio_out(struct gpio_desc *gpio, int val)
 {
 	int ret = 0;
+
 	if (val < 0) {
 		pr_dbg("gpio out val = -1.\n");
 		return -1;
@@ -245,49 +247,50 @@ static int aml_set_gpio_out(struct gpio_desc *gpio, int val)
 	return ret;
 }
 /**\brief aml_set_gpio_in:set gio in
-* \param gpio: gpio_desc obj,
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param gpio: gpio_desc obj,
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static inline int aml_set_gpio_in(struct gpio_desc *gpio)
 {
 	gpiod_direction_input(gpio);
 	return 0;
 }
 /**\brief aml_get_gpio_value:get gio value
-* \param gpio: gpio_desc obj,
-* \return
-*   - gpio value:ok
-*   - -EINVAL : error
-*/
+ * \param gpio: gpio_desc obj,
+ * \return
+ *   - gpio value:ok
+ *   - -EINVAL : error
+ */
 static inline int aml_get_gpio_value(struct gpio_desc *gpio)
 {
 	int ret = 0;
+
 	ret = gpiod_get_value(gpio);
 	return ret;
 }
 /**\brief aml_gpio_free:free gio
-* \param gpio: gpio_desc obj,
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param gpio: gpio_desc obj,
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int aml_gpio_free(struct gpio_desc *gpio)
 {
 	gpiod_put(gpio);
 	return 0;
 }
 /**\brief spi_get_gpio_by_name:get gpio desc from dts file
-* \param spi_dev: aml_spi obj
-* \param gpiod:   gpio_desc * obj
-* \param str: gpio name at dts file
-* \param input_output: gpio input or output type
-* \param output_value: gpio out put value
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param spi_dev: aml_spi obj
+ * \param gpiod:   gpio_desc * obj
+ * \param str: gpio name at dts file
+ * \param input_output: gpio input or output type
+ * \param output_value: gpio out put value
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int spi_get_gpio_by_name(struct aml_spi *spi_dev,
 struct gpio_desc **gpiod, int *pin_value,
 char *str, int input_output, int output_level)
@@ -330,29 +333,30 @@ char *str, int input_output, int output_level)
 /********************************************************/
 /********************************************************/
 /**\brief aml_ci_cis_test_by_spi:test cis
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: read addr
-* \return
-*   - test :ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: read addr
+ * \return
+ *   - test :ok
+ *   - -EINVAL : error
+ */
 /**\brief aml_ci_full_test_by_spi:ci full test
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: read addr
-* \return
-*   - read value:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: read addr
+ * \return
+ *   - read value:ok
+ *   - -EINVAL : error
+ */
 static  int aml_ci_full_test_by_spi(
 	struct aml_ci *ci_dev, int slot, int addr)
 {
 	u8  data = 0;
-	u16 addres = addr;
+	u16 address = addr;
 	int value = 0;
 	struct aml_spi *spi_dev = ci_dev->data;
-	aml_init_send_buf(AM_CI_CMD_FULLTEST, data, addres);
+
+	aml_init_send_buf(AM_CI_CMD_FULLTEST, data, address);
 	value = aml_spi_io_api(spi_dev,
 		sendbuf, SENDBUFLEN, AM_CI_CMD_FULLTEST);
 	pr_dbg("FULL : TEST END \r\n");
@@ -360,85 +364,88 @@ static  int aml_ci_full_test_by_spi(
 }
 
 /**\brief aml_ci_mem_read_by_spi:io read from cam
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: read addr
-* \return
-*   - read value:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: read addr
+ * \return
+ *   - read value:ok
+ *   - -EINVAL : error
+ */
 static  int aml_ci_mem_read_by_spi(
 	struct aml_ci *ci_dev, int slot, int addr)
 {
 	u8  data = 0;
-	u16 addres = addr;
+	u16 address = addr;
 	int value = 0;
 	struct aml_spi *spi_dev = ci_dev->data;
-	aml_init_send_buf(AM_CI_CMD_MEMR, data, addres);
+
+	aml_init_send_buf(AM_CI_CMD_MEMR, data, address);
 	value = aml_spi_io_api(spi_dev, sendbuf, SENDBUFLEN, AM_CI_CMD_MEMR);
 	/*pr_dbg("Read : mem[%d] = 0x%x\n", addr, value);*/
 	return value;
 }
 /**\brief aml_ci_mem_write_by_spi:io write to cam by spi api
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: write addr
-* \param addr: write value
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: write addr
+ * \param addr: write value
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int aml_ci_mem_write_by_spi(
 	struct aml_ci *ci_dev, int slot, int addr,  u8 val)
 {
 	u8  data = val;
-	u16 addres = addr;
+	u16 address = addr;
 	int value = 0;
 	struct aml_spi *spi_dev = ci_dev->data;
-	aml_init_send_buf(AM_CI_CMD_MEMW, data, addres);
+
+	aml_init_send_buf(AM_CI_CMD_MEMW, data, address);
 	value = aml_spi_io_api(spi_dev, sendbuf, SENDBUFLEN, AM_CI_CMD_MEMW);
 	/*pr_dbg("write : mem[%d] = 0x%x\n", addr, data);*/
 	return value;
 }
 /**\brief aml_ci_io_read_by_spi:io read from cam by spi api
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: read addr
-* \return
-*   - read value:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: read addr
+ * \return
+ *   - read value:ok
+ *   - -EINVAL : error
+ */
 static int aml_ci_io_read_by_spi(
 	struct aml_ci *ci_dev, int slot, int addr)
 {
 	u8  data = 0;
-	u16 addres = addr;
+	u16 address = addr;
 	int value = 0;
 	struct aml_spi *spi_dev = ci_dev->data;
-	aml_init_send_buf(AM_CI_CMD_IOR, data, addres);
+
+	aml_init_send_buf(AM_CI_CMD_IOR, data, address);
 	value = aml_spi_io_api(spi_dev, sendbuf, SENDBUFLEN, AM_CI_CMD_IOR);
 	/*pr_dbg("read : io[%d] = 0x%x\n", addr, value);*/
 	return value;
 }
 /**\brief aml_ci_io_write_by_spi:io write to cam
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param addr: write addr
-* \param addr: write value
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param addr: write addr
+ * \param addr: write value
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int aml_ci_io_write_by_spi(
 	struct aml_ci *ci_dev, int slot, int addr, u8 val)
 {
 	u8  data = val;
-	u16 addres = addr;
+	u16 address = addr;
 	int value = 0;
 	struct aml_spi *spi_dev = ci_dev->data;
 	/*add by chl,need add time delay*/
 	mdelay(10);
-	aml_init_send_buf(AM_CI_CMD_IOW, data, addres);
+	aml_init_send_buf(AM_CI_CMD_IOW, data, address);
 	value = aml_spi_io_api(spi_dev, sendbuf, SENDBUFLEN, AM_CI_CMD_IOW);
 	/*pr_dbg("write : ATTR[%d] = 0x%x\n", addr, data);*/
 	return value;
@@ -446,54 +453,55 @@ static int aml_ci_io_write_by_spi(
 
 
 /**\brief aml_ci_slot_reset:reset slot
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
 static int aml_ci_slot_reset(struct aml_ci *ci_dev, int slot)
 {
 	struct aml_spi *spi_dev = ci_dev->data;
+
 	pr_dbg("Slot(%d): Slot RESET\n", slot);
 	aml_pcmcia_reset(&spi_dev->pc);
 	dvb_ca_en50221_camready_irq(&ci_dev->en50221, 0);
 	return 0;
 }
 /**\brief aml_ci_slot_shutdown:show slot
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-* readme:no use this api
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ * readme:no use this api
+ */
 static int aml_ci_slot_shutdown(struct aml_ci *ci_dev, int slot)
 {
 	pr_dbg("Slot(%d): Slot shutdown\n", slot);
 	return 0;
 }
 /**\brief aml_ci_ts_control:control slot ts
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \return
-*   - 0:ok
-*   - -EINVAL : error
-* readme:no use this api
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ * readme:no use this api
+ */
 static int aml_ci_ts_control(struct aml_ci *ci_dev, int slot)
 {
 	pr_dbg("Slot(%d): TS control\n", slot);
 	return 0;
 }
 /**\brief aml_ci_slot_status:get slot status
-* \param ci_dev: aml_ci obj,used this data to get spi_dev obj
-* \param slot: slot index
-* \param open: no used
-* \return
-*   - cam status
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,used this data to get spi_dev obj
+ * \param slot: slot index
+ * \param open: no used
+ * \return
+ *   - cam status
+ *   - -EINVAL : error
+ */
 static int aml_ci_slot_status(struct aml_ci *ci_dev, int slot, int open)
 {
 	struct aml_spi *spi_dev = ci_dev->data;
@@ -511,13 +519,14 @@ static int aml_ci_slot_status(struct aml_ci *ci_dev, int slot, int open)
 }
 
 /**\brief aml_ci_gio_get_irq:get gpio cam irq pin value
-* \return
-*   - irq pin value
-*   - -EINVAL : error
-*/
+ * \return
+ *   - irq pin value
+ *   - -EINVAL : error
+ */
 static int aml_ci_gio_get_irq(void)
 {
 	int ret = 0;
+
 	ret = aml_get_gpio_value(g_spi_dev->irq_cam_pin);
 	return ret;
 }
@@ -527,16 +536,17 @@ static int aml_ci_gio_get_irq(void)
 /********************************************************/
 /********************************************************/
 /**\brief aml_gio_power:set power gpio hi or low
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \param enable: power pin hi or low
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \param enable: power pin hi or low
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int aml_gio_power(struct aml_pcmcia *pc, int enable)
 {
 	int ret = 0;
 	struct aml_spi *spi_dev = pc->priv;
+
 	if (spi_dev == NULL) {
 		pr_dbg("spi dev is null %s : %d\r\n", __func__, enable);
 		return -1;
@@ -552,17 +562,18 @@ static int aml_gio_power(struct aml_pcmcia *pc, int enable)
 	return ret;
 }
 /**\brief aml_gio_reset:set reset gpio hi or low
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \param enable: reset pin hi or low
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \param enable: reset pin hi or low
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int aml_gio_reset(struct aml_pcmcia *pc, int enable)
 {
 	/*need set hi and sleep set low*/
 	int ret = 0;
 	struct aml_spi *spi_dev = pc->priv;
+
 	pr_dbg("%s : %d\r\n", __func__, enable);
 	if (enable == AML_L)
 		ret = aml_set_gpio_out(spi_dev->reset_pin, AML_GPIO_LOW);
@@ -572,12 +583,12 @@ static int aml_gio_reset(struct aml_pcmcia *pc, int enable)
 }
 
 /**\brief aml_gio_init_irq:set gpio irq
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \param flag: rising or falling or hi or low
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \param flag: rising or falling or hi or low
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 /*need change*/
 static int aml_gio_init_irq(struct aml_pcmcia *pc, int flag)
 {
@@ -587,6 +598,7 @@ static int aml_gio_init_irq(struct aml_pcmcia *pc, int flag)
 	int cd1_pin = desc_to_gpio(spi_dev->cd_pin1);
 
 	int irq = pc->irq-AML_CI_GPIO_IRQ_BASE;
+
 	printk("----cd1_pin=%d irq=%d\r\n", cd1_pin, irq);
 	aml_set_gpio_in(spi_dev->cd_pin1);
 
@@ -610,39 +622,41 @@ static int aml_gio_init_irq(struct aml_pcmcia *pc, int flag)
 	return 0;
 }
 /**\brief aml_gio_get_cd1:get gpio cd1 pin value
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \return
-*   - cd1 pin value
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \return
+ *   - cd1 pin value
+ *   - -EINVAL : error
+ */
 static int aml_gio_get_cd1(struct aml_pcmcia *pc)
 {
 	int ret = 0;
 	struct aml_spi *spi_dev = pc->priv;
+
 	ret = aml_get_gpio_value(spi_dev->cd_pin1);
 	return ret;
 }
 /**\brief aml_gio_get_cd2:get gpio cd2 pin value
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \return
-*   - cd2 pin value
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \return
+ *   - cd2 pin value
+ *   - -EINVAL : error
+ */
 static int aml_gio_get_cd2(struct aml_pcmcia *pc)
 {
 	int ret = 0;
 	struct aml_spi *spi_dev = pc->priv;
+
 	ret = aml_get_gpio_value(spi_dev->cd_pin2);
 	pr_dbg("%s : %d\r\n", __func__, ret);
 	return ret;
 }
 /**\brief aml_cam_plugin:notify en50221 cam card in or out
-* \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
-* \plugin: 0:remove;1:in
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param pc: aml_pcmcia obj,used this priv to get spi_dev obj
+ * \plugin: 0:remove;1:in
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int aml_cam_plugin(struct aml_pcmcia *pc, int plugin)
 {
 	struct aml_ci *ci = (struct aml_ci *)
@@ -658,12 +672,12 @@ static int aml_cam_plugin(struct aml_pcmcia *pc, int plugin)
 	return 0;
 }
 /**\brief aml_pcmcia_alloc:alloc nad init pcmcia obj
-* \param spi_dev: aml_spi obj,
-* \param pcmcia: aml_pcmcia * obj,
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param spi_dev: aml_spi obj,
+ * \param pcmcia: aml_pcmcia * obj,
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static void aml_pcmcia_alloc(struct aml_spi *spi_dev,
 	struct aml_pcmcia **pcmcia)
 {
@@ -682,11 +696,11 @@ static void aml_pcmcia_alloc(struct aml_spi *spi_dev,
 }
 
 /**\brief aml_spi_get_config_from_dts:get spi config and gpio config from dts
-* \param spi_dev: aml_spi obj,
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param spi_dev: aml_spi obj,
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int aml_spi_get_config_from_dts(struct aml_spi *spi_dev)
 {
 	struct device_node *child = NULL;
@@ -694,6 +708,7 @@ static int aml_spi_get_config_from_dts(struct aml_spi *spi_dev)
 	struct device_node *np = pdev->dev.of_node;
 	unsigned int temp[5], val;
 	int ret = 0;
+
 	pr_dbg("into get spi dts \r\n");
 
 	/*get spi and gpio config from dts*/
@@ -755,10 +770,11 @@ static int aml_spi_get_config_from_dts(struct aml_spi *spi_dev)
 		spi_dev->irq = 5;
 	} else {
 		/*set irq value need add
-		AML_CI_GPIO_IRQ_BASE,but
-		we need minus
-		AML_CI_GPIO_IRQ_BASE
-		when gpio request irq */
+		 *AML_CI_GPIO_IRQ_BASE,but
+		 *we need minus
+		 *AML_CI_GPIO_IRQ_BASE
+		 *when gpio request irq
+		 */
 		spi_dev->irq = val+AML_CI_GPIO_IRQ_BASE;
 	}
 
@@ -790,7 +806,8 @@ static int aml_spi_get_config_from_dts(struct aml_spi *spi_dev)
 	/*set irq*/
 	spi_dev->irq = gpiod_to_irq(spi_dev->cd_pin1);
 	spi_dev->pwr_pin = NULL;
-	pr_dbg("spi_dev->cd_pin1_value==%d irq=%d\r\n", spi_dev->cd_pin1_value, spi_dev->irq);
+	pr_dbg("spi_dev->cd_pin1_value==%d irq=%d\r\n",
+			spi_dev->cd_pin1_value, spi_dev->irq);
 	ret = spi_get_gpio_by_name(spi_dev,
 		&spi_dev->pwr_pin, &spi_dev->pwr_pin_value,
 		"pwr_pin", OUTPUT, OUTLEVEL_HIGH);
@@ -810,11 +827,11 @@ static int aml_spi_get_config_from_dts(struct aml_spi *spi_dev)
 	return 0;
 }
 /**\brief aml_ci_free_gpio:free ci gpio
-* \param spi_dev: aml_spi obj,
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param spi_dev: aml_spi obj,
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static void aml_ci_free_gpio(struct aml_spi *spi_dev)
 {
 	if (spi_dev == NULL) {
@@ -839,23 +856,23 @@ static void aml_ci_free_gpio(struct aml_spi *spi_dev)
 		aml_gpio_free(spi_dev->irq_cam_pin);
 		spi_dev->irq_cam_pin = NULL;
 	}
-	return;
 }
 
 
 /**\brief ci_spi_dev_remove:spi probe api
-* \param spi: spi obj,
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param spi: spi obj,
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int ci_spi_dev_probe(struct spi_device *spi)
 {
 	int ret;
+
 	pr_dbg("spi Dev probe--\n");
 	if (g_spi_dev)
 		g_spi_dev->spi = spi;
-	 else
+	else
 		pr_dbg("spi Dev probe-error-\n");
 	spi->bits_per_word = 8;
 	ret = spi_setup(spi);
@@ -864,11 +881,11 @@ static int ci_spi_dev_probe(struct spi_device *spi)
 	return ret;
 }
 /**\brief ci_spi_dev_remove:spi remove api
-* \param spi: spi obj,
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param spi: spi obj,
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 static int ci_spi_dev_remove(struct spi_device *spi)
 {
 	pr_dbg("spi Dev remove--\n");
@@ -887,12 +904,12 @@ static struct spi_driver ci_spi_dev_driver = {
 	},
 };
 /**\brief aml_spi_init:spi_dev init
-* \param ci_dev: aml_ci obj,
-* \param pdev: platform_device obj,used to get dts info
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \param ci_dev: aml_ci obj,
+ * \param pdev: platform_device obj,used to get dts info
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 int aml_spi_init(struct platform_device *pdev, struct aml_ci *ci_dev)
 {
 	struct aml_spi *spi_dev = NULL;
@@ -944,10 +961,10 @@ err:
 }
 EXPORT_SYMBOL(aml_spi_init);
 /**\brief aml_spi_exit:spi exit
-* \return
-*   - 0
-*   - -EINVAL : error
-*/
+ * \return
+ *   - 0
+ *   - -EINVAL : error
+ */
 int aml_spi_exit(void)
 {
 	/*exit pc card*/
@@ -994,6 +1011,7 @@ static void aml_spi_ca_full_test(struct aml_ci *ci_dev)
 		int cnt = 0;
 		unsigned char buf[10];
 		int count = 1000;
+
 		mdelay(1000);
 		pr_dbg("READ CIS START\r\n");
 		for (i = 0; i < 267; i++) {
@@ -1022,17 +1040,18 @@ static void aml_spi_ca_full_test(struct aml_ci *ci_dev)
 			unsigned char reg;
 			unsigned char reg1;
 			int count1 = 4000;
+
 			while (1) {
 				mdelay(20);
 				count1--;
 				reg1 = aml_ci_io_read_by_spi(
 					ci_dev, 0, COM_STA_REG);
 				if (FR != (FR & reg1)) {
-						continue;
-					} else {
-						pr_dbg("CAM Reset Ok\r\n");
-						break;
-					}
+					continue;
+				} else {
+					pr_dbg("CAM Reset Ok\r\n");
+					break;
+				}
 			}
 			reg = aml_ci_io_read_by_spi(ci_dev, 0, COM_STA_REG);
 			pr_dbg("STA_REG = 0x%2.2x\r\n", reg);
@@ -1057,9 +1076,11 @@ end:
 			if ((reg & DA) == DA) {
 				pr_dbg("Buffer negotiate size date avalible.\r\n");
 				break;
-			} else {
+			}
+			{
 				/*pr_dbg("Buffer negotiate
-				size date NOT avalible\r\n");*/
+				 *size date NOT avalible\r\n");
+				 */
 				continue;
 			}
 			mdelay(100);
@@ -1175,7 +1196,8 @@ end:
 		if (WE == (WE & reg)) {
 			pr_dbg("Write CAM ERR!\r\n");
 			return;
-		} else {
+		}
+		{
 			aml_ci_io_write_by_spi(ci_dev, 0, COM_STA_REG, SW);
 			mdelay(100);
 			aml_ci_io_write_by_spi(ci_dev, 0, COM_STA_REG, 0);
@@ -1186,17 +1208,17 @@ end:
 }
 
 /**
-* Read a tuple from attribute memory.
-*
-* @param ca CA instance.
-* @param slot Slot id.
-* @param address Address to read from. Updated.
-* @param tupleType Tuple id byte. Updated.
-* @param tupleLength Tuple length. Updated.
-* @param tuple Dest buffer for tuple (must be 256 bytes). Updated.
-*
-* @return 0 on success, nonzero on error.
-*/
+ * Read a tuple from attribute memory.
+ *
+ * @param ca CA instance.
+ * @param slot Slot id.
+ * @param address Address to read from. Updated.
+ * @param tupleType Tuple id byte. Updated.
+ * @param tupleLength Tuple length. Updated.
+ * @param tuple Dest buffer for tuple (must be 256 bytes). Updated.
+ *
+ * @return 0 on success, nonzero on error.
+ */
 static int dvb_ca_en50221_read_tuple(
 int *address, int *tupleType, int *tupleLength, u8 *tuple)
 {
@@ -1257,14 +1279,15 @@ static char *findstr(char *haystack, int hlen, char *needle, int nlen)
 }
 
 /**
-* Parse attribute memory of a CAM module, extracting Config register, and checking
-* it is a DVB CAM module.
-*
-* @param ca CA instance.
-* @param slot Slot id.
-*
-* @return 0 on success, <0 on failure.
-*/
+ * Parse attribute memory of a CAM module,
+ * extracting Config register, and checking
+ * it is a DVB CAM module.
+ *
+ * @param ca CA instance.
+ * @param slot Slot id.
+ *
+ * @return 0 on success, <0 on failure.
+ */
 static int dvb_ca_en50221_parse_attributes(void)
 {
 	int address = 0;
@@ -1390,13 +1413,13 @@ static int dvb_ca_en50221_parse_attributes(void)
 	}
 
 /* process the CFTABLE_ENTRY tuples, and any after those */
-while ((!end_chain) && (address < 0x1000)) {
+	while ((!end_chain) && (address < 0x1000)) {
 		status = dvb_ca_en50221_read_tuple(&address, &tupleType,
-	&tupleLength, tuple);
-	if (status < 0) {
-		pr_error("process the CFTABLE_ENTRY tuples error\r\n");
-		return status;
-	}
+		&tupleLength, tuple);
+		if (status < 0) {
+			pr_error("process the CFTABLE_ENTRY tuples error\r\n");
+			return status;
+		}
 
 	switch (tupleType) {
 	case 0x1B:	/* CISTPL_CFTABLE_ENTRY */
@@ -1430,9 +1453,9 @@ while ((!end_chain) && (address < 0x1000)) {
 
 	default:
 		/* Unknown tuple type - just skip
-		*this tuple and move to the next one
-		*/
-pr_error("Skipping unknown tupletype:0x%x L:0x%x\n",
+		 *this tuple and move to the next one
+		 */
+		pr_error("Skipping unknown tupletype:0x%x L:0x%x\n",
 				tupleType, tupleLength);
 			break;
 		}
@@ -1451,6 +1474,7 @@ static ssize_t aml_spi_ci_reset_help(struct class *class,
 struct class_attribute *attr, char *buf)
 {
 	int ret;
+
 	ret = sprintf(buf, "echo 1 > %s\n\t", attr->attr.name);
 	return ret;
 }
@@ -1460,6 +1484,7 @@ struct class_attribute *attr, const char *buf, size_t size)
 {
 	int ret;
 	struct aml_ci *ci = (struct aml_ci *)g_spi_dev->priv;
+
 	ret = aml_ci_slot_reset(ci, 0);
 	return size;
 }
@@ -1468,6 +1493,7 @@ static ssize_t aml_spi_ci_pwr_help(struct class *class,
 struct class_attribute *attr, char *buf)
 {
 	int ret;
+
 	ret = sprintf(buf, "echo 1|0> %s\n\t", attr->attr.name);
 	return ret;
 }
@@ -1478,6 +1504,7 @@ struct class_attribute *attr, const char *buf, size_t size)
 	int ret = 0;
 	int enable = 0;
 	long value;
+
 	if (kstrtol(buf, 0, &value) == 0)
 		enable = (int)value;
 	ret = aml_gio_power(&g_spi_dev->pc, enable);
@@ -1488,6 +1515,7 @@ struct class_attribute *attr, char *buf)
 {
 	int ret;
 	struct aml_ci *ci = (struct aml_ci *)g_spi_dev->priv;
+
 	ret = aml_ci_slot_status(ci, 0, 0);
 	ret = sprintf(buf, "%s: %d;\n\t", attr->attr.name, ret);
 	return ret;
@@ -1497,6 +1525,7 @@ static ssize_t aml_spi_ci_irq_show(struct class *class,
 struct class_attribute *attr, char *buf)
 {
 	int ret;
+
 	ret = aml_ci_gio_get_irq();
 	ret = sprintf(buf, "%s irq: %d\n\t", attr->attr.name, ret);
 	return ret;
@@ -1506,6 +1535,7 @@ static ssize_t aml_spi_io_test_help(struct class *class,
 struct class_attribute *attr, char *buf)
 {
 	int ret;
+
 	ret = sprintf(buf, "echo (r|w|f|c)(i|a) addr data > %s\n",
 	attr->attr.name);
 	return ret;
@@ -1520,6 +1550,7 @@ struct class_attribute *attr, const char *buf, size_t size)
 	unsigned int addr = 0, val = 0, retval = 0;
 	long value = 0;
 	struct aml_ci *ci = (struct aml_ci *)g_spi_dev->priv;
+
 	buf_orig = kstrdup(buf, GFP_KERNEL);
 	ps = buf_orig;
 	while (1) {
@@ -1548,15 +1579,16 @@ struct class_attribute *attr, const char *buf, size_t size)
 		addr = (int)value;
 		pr_err("%s 0x%x\n", parm[0], addr);
 	/*	switch ((char)parm[0][1]) {
-			case 'i':
-				retval = aml_ci_io_read_by_spi(ci, 0, addr);
-				break;
-			case 'a':
-				retval = aml_ci_mem_read_by_spi(ci, 0, addr);
-				break;
-			default:
-				break;
-		}*/
+	 *		case 'i':
+	 *			retval = aml_ci_io_read_by_spi(ci, 0, addr);
+	 *			break;
+	 *		case 'a':
+	 *			retval = aml_ci_mem_read_by_spi(ci, 0, addr);
+	 *			break;
+	 *		default:
+	 *			break;
+	 *	}
+	 */
 		pr_dbg("%s: 0x%x --> 0x%x\n", parm[0], addr, retval);
 	} else if ((parm[0][0] == 'w')) {
 		if (n != 3) {
@@ -1565,21 +1597,22 @@ struct class_attribute *attr, const char *buf, size_t size)
 			return size;
 		}
 		if (kstrtol(parm[1], 0, &value) == 0)
-				addr = (int)value;
+			addr = (int)value;
 		if (kstrtol(parm[2], 0, &value) == 0)
-				val = (int)value;
+			val = (int)value;
 
 		pr_err("%s 0x%x 0x%x", parm[0], addr, val);
 		/*switch ((char)parm[0][1]) {
-			case 'i':
+		 *	case 'i':
 retval = aml_ci_io_write_by_spi(ci, 0, addr, val);
-				break;
-			case 'a':
+		 *		break;
+		 *	case 'a':
 retval = aml_ci_mem_write_by_spi(ci, 0, addr, val);
-				break;
-			default:
-				break;
-		}*/
+		 *		break;
+		 *	default:
+		 *		break;
+		 *}
+		 */
 		pr_dbg("%s: 0x%x <-- 0x%x\n", parm[0], addr, retval);
 	} else if ((parm[0][0] == 'f')) {
 		pr_dbg("full test----\r\n");
@@ -1597,15 +1630,15 @@ retval = aml_ci_mem_write_by_spi(ci, 0, addr, val);
 }
 
 static struct class_attribute aml_spi_class_attrs[] = {
-	__ATTR(reset,  S_IRUGO | S_IWUSR,
+	__ATTR(reset,  0644,
 		aml_spi_ci_reset_help, aml_spi_ci_reset),
-	__ATTR(pwr,  S_IRUGO | S_IWUSR,
+	__ATTR(pwr,  0644,
 		aml_spi_ci_pwr_help, aml_spi_ci_pwr),
-	__ATTR(irq,  S_IRUGO | S_IWUSR,
+	__ATTR(irq,  0644,
 		aml_spi_ci_irq_show, NULL),
-	__ATTR(status,  S_IRUGO | S_IWUSR,
+	__ATTR(status,  0644,
 		aml_spi_ci_state_show, NULL),
-	__ATTR(iotest,  S_IRUGO | S_IWUSR,
+	__ATTR(iotest,  0644,
 		aml_spi_io_test_help, aml_spi_io_test),
 	__ATTR_NULL
 };

@@ -9,7 +9,7 @@ static int debug_amldvbc = 1;
 #define dprintk(a ...) do { if (debug_amldvbc) printk(a); } while (0)
 
 static struct task_struct *cci_task;
-int cciflag = 0;
+int cciflag;
 struct timer_list mytimer;
 
 static void dvbc_cci_timer(unsigned long data)
@@ -19,6 +19,7 @@ static void dvbc_cci_timer(unsigned long data)
 	int maxCCI_p, re, im, j, i, times, maxCCI, sum, sum1, reg_0xf0, tmp1,
 	    tmp, tmp2, reg_0xa8, reg_0xac;
 	int reg_0xa8_t, reg_0xac_t;
+
 	count = 100;
 	if ((((apb_read_reg(QAM_BASE + 0x18)) & 0x1) == 1)) {
 		dprintk("[cci]lock ");
@@ -287,7 +288,8 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x07c, 0x003001e9);
 		/* EQ_NORM and EQ_TH_MMA */
 		/*apb_write_reg(QAM_BASE+0x080, 0x000be1ff);
-		 * // EQ_TH_SMMA0*/
+		 * // EQ_TH_SMMA0
+		 */
 		apb_write_reg(QAM_BASE + 0x080, 0x000e01fe);
 		/* EQ_TH_SMMA0 */
 		apb_write_reg(QAM_BASE + 0x084, 0x00000000);
@@ -297,11 +299,14 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2b);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292b);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292d);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092d);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f66);
@@ -314,7 +319,8 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074, 0x5000260);
-		 * // EQ_TH_LMS      40db  19db*/
+		 * // EQ_TH_LMS      40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x50001f0);
 		/* EQ_TH_LMS  40db      17.5db */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00500102);
@@ -328,9 +334,11 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2b);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292b);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092b);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f66);
@@ -339,13 +347,15 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 
 	case 2:		/* 64 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2256033a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2336043a);
 		/* EQ_FIR_CTL, by raymond */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074, 0x5000260);
-		 * // EQ_TH_LMS  40db  19db*/
+		 * // EQ_TH_LMS  40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000230);
 		/* EQ_TH_LMS  40db      17.5db */
 		apb_write_reg(QAM_BASE + 0x07c, 0x007001bd);
@@ -359,32 +369,39 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips & maxlinear Tuner*/
+		 * // Pilips & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f802b3d);
 		/* Pilips Tuner & maxlinear Tuner */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f802b3a);
-		 * // Pilips Tuner & maxlinear Tuner*/
+		 * // Pilips Tuner & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f66);
 		/* by raymond 20121213 */
 		break;
 
 	case 3:		/* 128 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2557046a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2437067a);
 		/* EQ_FIR_CTL, by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000d0);
 		/* EQ_CRTH_SNR */
 		/* apb_write_reg(QAM_BASE+0x074, 0x02440240);
-		 * // EQ_TH_LMS  18.5db  18db*/
+		 * // EQ_TH_LMS  18.5db  18db
+		 */
 		/* apb_write_reg(QAM_BASE+0x074, 0x04000400);
-		 * // EQ_TH_LMS  22db  22.5db*/
+		 * // EQ_TH_LMS  22db  22.5db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000260);
 		/* EQ_TH_LMS  40db      19db */
 		/*apb_write_reg(QAM_BASE+0x07c, 0x00b000f2);
-		 * // EQ_TH_MMA0x000000b2*/
+		 * // EQ_TH_MMA0x000000b2
+		 */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00b00132);
 		/* EQ_TH_MMA0x000000b2 by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x080, 0x0003a09d);
@@ -396,9 +413,11 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092c);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f66);
@@ -407,13 +426,15 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 
 	case 4:		/* 256 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0xa2580588);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0xa25905f9);
 		/* EQ_FIR_CTL, by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x068, 0x01e00220);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074,  0x50002a0);
-		 * // EQ_TH_LMS      40db  19db*/
+		 * // EQ_TH_LMS      40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000270);
 		/* EQ_TH_LMS  40db      19db by raymond 201211213 */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00f001a5);
@@ -427,26 +448,32 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x01bc01f9);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292d);
-		 * // Maxlinear Tuner*/
+		 * // Maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092d);
 		/* Maxlinear Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
 		/* by raymond 20121213, when adc=35M,sys=70M,
-		 * its better than 0x61f2f66*/
+		 * its better than 0x61f2f66
+		 */
 		break;
 	default:		/*64qam */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2256033a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2336043a);
 		/* EQ_FIR_CTL, by raymond */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074, 0x5000260);
-		 * // EQ_TH_LMS  40db  19db*/
+		 * // EQ_TH_LMS  40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000230);
 		/* EQ_TH_LMS  40db      17.5db */
 		apb_write_reg(QAM_BASE + 0x07c, 0x007001bd);
@@ -460,13 +487,16 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips & maxlinear Tuner*/
+		 * // Pilips & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f802b3d);
 		/* Pilips Tuner & maxlinear Tuner */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f802b3a);
-		 * // Pilips Tuner & maxlinear Tuner*/
+		 * // Pilips Tuner & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f66);
 		/* by raymond 20121213 */
 		break;
@@ -476,10 +506,9 @@ u32 dvbc_set_qam_mode(unsigned char mode)
 
 u32 dvbc_get_status(void)
 {
-/*      dprintk("c4 is %x\n",apb_read_reg(QAM_BASE+0xc4));*/
+/* dprintk("c4 is %x\n",apb_read_reg(QAM_BASE+0xc4));*/
 	return apb_read_reg(QAM_BASE + 0xc4) & 0xf;
 }
-
 EXPORT_SYMBOL(dvbc_get_status);
 
 static u32 dvbc_get_ch_power(void)
@@ -704,7 +733,8 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x07c, 0x003001e9);
 		/* EQ_NORM and EQ_TH_MMA */
 		/*apb_write_reg(QAM_BASE+0x080, 0x000be1ff);
-		 * // EQ_TH_SMMA0*/
+		 * // EQ_TH_SMMA0
+		 */
 		apb_write_reg(QAM_BASE + 0x080, 0x000e01fe);
 		/* EQ_TH_SMMA0 */
 		apb_write_reg(QAM_BASE + 0x084, 0x00000000);
@@ -714,11 +744,14 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2b);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292b);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292d);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092d);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
@@ -731,7 +764,8 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074, 0x5000260);
-		 * // EQ_TH_LMS  40db  19db*/
+		 * // EQ_TH_LMS  40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x50001f0);
 		/* EQ_TH_LMS  40db  17.5db */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00500102);
@@ -745,9 +779,11 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2b);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292b);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092b);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
@@ -756,13 +792,15 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 
 	case 2:		/* 64 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2256033a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2336043a);
 		/* EQ_FIR_CTL, by raymond */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074, 0x5000260);
-		 * // EQ_TH_LMS  40db  19db*/
+		 * // EQ_TH_LMS  40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000230);
 		/* EQ_TH_LMS  40db  17.5db */
 		apb_write_reg(QAM_BASE + 0x07c, 0x007001bd);
@@ -776,32 +814,39 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips & maxlinear Tuner*/
+		 * // Pilips & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f802b3d);
 		/* Pilips Tuner & maxlinear Tuner */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f802b3a);
-		 * // Pilips Tuner & maxlinear Tuner*/
+		 * // Pilips Tuner & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
 		/* by raymond 20121213 */
 		break;
 
 	case 3:		/* 128 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2557046a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2437067a);
 		/* EQ_FIR_CTL, by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000d0);
 		/* EQ_CRTH_SNR */
 		/* apb_write_reg(QAM_BASE+0x074, 0x02440240);
-		 * // EQ_TH_LMS  18.5db  18db*/
+		 * // EQ_TH_LMS  18.5db  18db
+		 */
 		/* apb_write_reg(QAM_BASE+0x074, 0x04000400);
-		 * // EQ_TH_LMS  22db  22.5db*/
+		 * // EQ_TH_LMS  22db  22.5db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000260);
 		/* EQ_TH_LMS  40db  19db */
 		/*apb_write_reg(QAM_BASE+0x07c, 0x00b000f2);
-		 * // EQ_TH_MMA0x000000b2*/
+		 * // EQ_TH_MMA0x000000b2
+		 */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00b00132);
 		/* EQ_TH_MMA0x000000b2 by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x080, 0x0003a09d);
@@ -813,9 +858,11 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092c);
 		/* Pilips Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
@@ -824,13 +871,15 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 
 	case 4:		/* 256 QAM */
 		/*apb_write_reg(QAM_BASE+0x054, 0xa2580588);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0xa25905f9);
 		/* EQ_FIR_CTL, by raymond 20121213 */
 		apb_write_reg(QAM_BASE + 0x068, 0x01e00220);
 		/* EQ_CRTH_SNR */
 		/*apb_write_reg(QAM_BASE+0x074,  0x50002a0);
-		 * // EQ_TH_LMS  40db  19db*/
+		 * // EQ_TH_LMS  40db  19db
+		 */
 		apb_write_reg(QAM_BASE + 0x074, 0x5000270);
 		/* EQ_TH_LMS  40db  19db by raymond 201211213 */
 		apb_write_reg(QAM_BASE + 0x07c, 0x00f001a5);
@@ -844,20 +893,25 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x01bc01f9);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips Tuner*/
+		 * // Pilips Tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292d);
-		 * // Maxlinear Tuner*/
+		 * // Maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f80092d);
 		/* Maxlinear Tuner */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
 		/* by raymond 20121213, when adc=35M,sys=70M,
-		 * its better than 0x61f2f66*/
+		 * its better than 0x61f2f66
+		 */
 		break;
 	default:		/*64qam */
 		/*apb_write_reg(QAM_BASE+0x054, 0x2256033a);
-		 * // EQ_FIR_CTL,*/
+		 * // EQ_FIR_CTL,
+		 */
 		apb_write_reg(QAM_BASE + 0x054, 0x2336043a);
 		/* EQ_FIR_CTL, by raymond */
 		apb_write_reg(QAM_BASE + 0x068, 0x00c000c0);
@@ -876,20 +930,24 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 		apb_write_reg(QAM_BASE + 0x08c, 0x00000000);
 		/* EQ_TH_SMMA3 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f800d2c);
-		 * // AGC_CTRL  ALPS tuner*/
+		 * // AGC_CTRL  ALPS tuner
+		 */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f80292c);
-		 * // Pilips & maxlinear Tuner*/
+		 * // Pilips & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x094, 0x7f802b3d);
 		/* Pilips Tuner & maxlinear Tuner */
 		/*apb_write_reg(QAM_BASE+0x094, 0x7f802b3a);
-		 * // Pilips Tuner & maxlinear Tuner*/
+		 * // Pilips Tuner & maxlinear Tuner
+		 */
 		apb_write_reg(QAM_BASE + 0x0c0, 0x061f2f67);
 		/* by raymond 20121213 */
 		break;
 	}
 
 	/*apb_write_reg(QAM_BASE+0x00c, 0xfffffffe);
-	 * // adc_cnt, symb_cnt*/
+	 * // adc_cnt, symb_cnt
+	 */
 	apb_write_reg(QAM_BASE + 0x00c, 0xffff8ffe);
 	/* adc_cnt, symb_cnt    by raymond 20121213 */
 	if (clk_freq == 0)
@@ -902,13 +960,16 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	/* afifo, rs_cnt_cfg */
 
 	/*apb_write_reg(QAM_BASE+0x020, 0x21353e54);
-	 * // PHS_reset & TIM_CTRO_ACCURATE  sw_tim_select=0*/
+	 * // PHS_reset & TIM_CTRO_ACCURATE  sw_tim_select=0
+	 */
 	/*apb_write_reg(QAM_BASE+0x020, 0x21b53e54);
-	 * //modified by qiancheng*/
+	 * //modified by qiancheng
+	 */
 	apb_write_reg(QAM_BASE + 0x020, 0x61b53e54);
 	/*modified by qiancheng by raymond 20121208  0x63b53e54 for cci */
 	/*  apb_write_reg(QAM_BASE+0x020, 0x6192bfe2);
-	 * //modifed by ligg 20130613 auto symb_rate scan*/
+	 * //modifed by ligg 20130613 auto symb_rate scan
+	 */
 	if (adc_freq == 0)
 		phs_cfg = 0;
 	else
@@ -923,7 +984,8 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	} else {
 		max_frq_off = (1 << 29) / symb_rate;
 		/* max_frq_off = (400KHz * 2^29) /
-		   (AD=28571 * symbol_rate=6875) */
+		 *   (AD=28571 * symbol_rate=6875)
+		 */
 		tmp = 40000000 / adc_freq;
 		max_frq_off = tmp * max_frq_off;
 	}
@@ -932,11 +994,13 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	/* max frequency offset, by raymond 20121208 */
 
 	/*apb_write_reg(QAM_BASE+0x030, 0x011bf400);
-	 * // TIM_CTL0 start speed is 0,  when know symbol rate*/
+	 * // TIM_CTL0 start speed is 0,  when know symbol rate
+	 */
 	apb_write_reg(QAM_BASE + 0x030, 0x245cf451);
 	/*MODIFIED BY QIANCHENG */
 /*      apb_write_reg(QAM_BASE+0x030, 0x245bf451);
- * //modified by ligg 20130613 --auto symb_rate scan*/
+ * //modified by ligg 20130613 --auto symb_rate scan
+ */
 	apb_write_reg(QAM_BASE + 0x034,
 		      ((adc_freq & 0xffff) << 16) | (symb_rate & 0xffff));
 
@@ -951,7 +1015,8 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	apb_write_reg(QAM_BASE + 0x044, (symb_rate & 0xffff) * 256);
 	/* blind search, configure max symbol_rate      for 7218  fb=3.6M */
 	/*apb_write_reg(QAM_BASE+0x048, 3600*256);
-	 * // configure min symbol_rate fb = 6.95M*/
+	 * // configure min symbol_rate fb = 6.95M
+	 */
 	apb_write_reg(QAM_BASE + 0x048, 3400 * 256);
 	/* configure min symbol_rate fb = 6.95M */
 
@@ -961,10 +1026,12 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	/*apb_write_reg(QAM_BASE+0x0c0, 0xffffff68); // threshold */
 	/*apb_write_reg(QAM_BASE+0x0c0, 0xffffff68); // threshold */
 	/*apb_write_reg(QAM_BASE+0x0c0, 0xffff2f67);
-	 * // threshold for skyworth*/
+	 * // threshold for skyworth
+	 */
 	/* apb_write_reg(QAM_BASE+0x0c0, 0x061f2f67); // by raymond 20121208 */
 	/* apb_write_reg(QAM_BASE+0x0c0, 0x061f2f66);
-	 * // by raymond 20121213, remove it to every constellation*/
+	 * // by raymond 20121213, remove it to every constellation
+	 */
 /************* hw state machine config **********/
 
 	apb_write_reg(QAM_BASE + 0x04c, 0x00008800);	/* reserved */
@@ -1008,20 +1075,26 @@ static void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	apb_write_reg(QAM_BASE + 0x098, 0x9fcc8190);
 	/* AGC_IFGAIN_CTRL */
 	/*apb_write_reg(QAM_BASE+0x0a0, 0x0e028c00);
-	 * // AGC_RFGAIN_CTRL 0x0e020800*/
+	 * // AGC_RFGAIN_CTRL 0x0e020800
+	 */
 	/*apb_write_reg(QAM_BASE+0x0a0, 0x0e03cc00);
-	 * // AGC_RFGAIN_CTRL 0x0e020800*/
+	 * // AGC_RFGAIN_CTRL 0x0e020800
+	 */
 	/*apb_write_reg(QAM_BASE+0x0a0, 0x0e028700);
-	 * // AGC_RFGAIN_CTRL 0x0e020800 now*/
+	 * // AGC_RFGAIN_CTRL 0x0e020800 now
+	 */
 	/*apb_write_reg(QAM_BASE+0x0a0, 0x0e03cd00);
-	 * // AGC_RFGAIN_CTRL 0x0e020800*/
+	 * // AGC_RFGAIN_CTRL 0x0e020800
+	 */
 	/*apb_write_reg(QAM_BASE+0x0a0, 0x0603cd11);
 	 * // AGC_RFGAIN_CTRL 0x0e020800 by raymond,
-	 * if Adjcent channel test, maybe it need change.20121208 ad invert*/
+	 * if Adjcent channel test, maybe it need change.20121208 ad invert
+	 */
 	apb_write_reg(QAM_BASE + 0x0a0, 0x0603cd10);
 	/* AGC_RFGAIN_CTRL 0x0e020800 by raymond,
 	 * if Adjcent channel test, maybe it need change.
-	 * 20121208 ad invert,20130221, suit for two path channel.*/
+	 * 20121208 ad invert,20130221, suit for two path channel.
+	 */
 
 	apb_write_reg(QAM_BASE + 0x004, apb_read_reg(QAM_BASE + 0x004) | 0x33);
 	/* IMQ, QAM Enable */
@@ -1063,6 +1136,7 @@ int dvbc_set_ch(struct aml_demod_sta *demod_sta,
 	u16 symb_rate;
 	u8 mode;
 	u32 ch_freq;
+
 	dprintk("f=%d, s=%d, q=%d\n",
 		demod_dvbc->ch_freq, demod_dvbc->symb_rate, demod_dvbc->mode);
 	demod_i2c->tuner = 7;

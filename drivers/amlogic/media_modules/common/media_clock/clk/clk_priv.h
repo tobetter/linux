@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef AMPORTS_CLK_PRIV_HEADER
 #define AMPORTS_CLK_PRIV_HEADER

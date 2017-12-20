@@ -10,6 +10,7 @@ int tuner_get_ch_power(struct aml_fe_dev *adap)
 	int agc_if_gain;
 
 	struct dvb_frontend *dvbfe;
+
 	dvbfe = get_si2177_tuner();
 	if (dvbfe != NULL)
 		if (dvbfe->ops.tuner_ops.get_strength)
@@ -18,7 +19,7 @@ int tuner_get_ch_power(struct aml_fe_dev *adap)
 		agc_if_gain =
 			((dtmb_read_reg(DTMB_TOP_FRONT_AGC))&0x3ff);
 		strength = dtmb_get_power_strength(agc_if_gain);
-	 }
+	}
 
 	return strength;
 }

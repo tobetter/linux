@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef __H264_H__
 #define __H264_H__
@@ -369,7 +369,8 @@ extern s32 destroy_encode_work_queue(struct encode_wq_s *encode_work_queue);
 
 /********************************************
  *  AV Scratch Register Re-Define
-********************************************/
+ ****************************************** *
+ */
 #define ENCODER_STATUS            HCODEC_HENC_SCRATCH_0
 #define MEM_OFFSET_REG            HCODEC_HENC_SCRATCH_1
 #define DEBUG_REG                 HCODEC_HENC_SCRATCH_2
@@ -437,8 +438,9 @@ extern s32 destroy_encode_work_queue(struct encode_wq_s *encode_work_queue);
 #define ENCODER_ERROR     0xff
 
 /********************************************
-* defines for H.264 mb_type
-********************************************/
+ * defines for H.264 mb_type
+ *******************************************
+ */
 #define HENC_MB_Type_PBSKIP                      0x0
 #define HENC_MB_Type_PSKIP                       0x0
 #define HENC_MB_Type_BSKIP_DIRECT                0x0

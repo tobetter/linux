@@ -41,6 +41,7 @@ unsigned char *local_alloc(int num, int size)
 {
 	unsigned char *ret_buf = NULL;
 	int alloc_size = num * size;
+
 	if ((local_heap_pos + alloc_size) <= local_heap_size) {
 		ret_buf = local_heap_adr + local_heap_pos;
 		local_heap_pos += alloc_size;
@@ -1073,8 +1074,9 @@ struct datapartition {
 	int (*read_syntax_element)(struct syntaxelement *, struct img_par *,
 			struct datapartition *);
 /*!< virtual function;
- actual method depends on chosen data partition and
- entropy coding method  */
+ * actual method depends on chosen data partition and
+ * entropy coding method
+ */
 };
 
 struct slice_s {
@@ -1248,8 +1250,9 @@ struct macroblock {
 	int delta_quant;
 	struct macroblock *mb_available[3][3];
 	/*!< pointer to neighboring MBs in a 3x3 window of current MB,
-	which is located at [1][1]
-	 NULL pointer identifies neighboring MBs which are unavailable */
+	 *which is located at [1][1]
+	 * NULL pointer identifies neighboring MBs which are unavailable
+	 */
 
 	int mb_type;
 	int mvd[2][BLOCK_MULTIPLE][BLOCK_MULTIPLE][2];
@@ -1467,7 +1470,7 @@ int u_1(char *tracestring)
 /*
  *************************************************************************
  * Function:mapping rule for ue(v) syntax elements
- * Input:lenght and info
+ * Input:length and info
  * Output:number in the code table
  * Return:
  * Attention:
@@ -1497,7 +1500,7 @@ int u_v(int leninbits, char *tracestring)
 /*
  *************************************************************************
  * Function:mapping rule for se(v) syntax elements
- * Input:lenght and info
+ * Input:length and info
  * Output:signed mvd
  * Return:
  * Attention:
@@ -1507,6 +1510,7 @@ int u_v(int leninbits, char *tracestring)
 void linfo_se(int len, int info, int *value1, int *dummy)
 {
 	int n;
+
 	n = (int)pow2(2, (len / 2)) + info - 1;
 	*value1 = (n + 1) / 2;
 	if ((n & 0x01) == 0)
@@ -1516,7 +1520,7 @@ void linfo_se(int len, int info, int *value1, int *dummy)
 
 /*
  *************************************************************************
- * Function:lenght and info
+ * Function:length and info
  * Input:
  * Output:cbp (intra)
  * Return:
@@ -1633,6 +1637,7 @@ unsigned int biari_decode_symbol(struct decoding_environment_s *dep,
 		value_s = 0;
 		while (value_t < QUARTER) {
 			int j;
+
 			if (--dbits_to_go < 0)
 				get_byte();
 			j = (dbuffer >> dbits_to_go) & 0x01;
@@ -1778,6 +1783,7 @@ unsigned int biari_decode_symbolw(struct decoding_environment_s *dep,
 		value_s = 0;
 		while (value_t < QUARTER) {
 			int j;
+
 			if (--dbits_to_go < 0)
 				get_byte();
 			j = (dbuffer >> dbits_to_go) & 0x01;
@@ -1883,6 +1889,7 @@ unsigned int biari_decode_symbol_eq_prob(struct decoding_environment_s *dep)
 	unsigned char bit;
 	struct bi_context_type_s octx;
 	struct bi_context_type_s *ctx = &octx;
+
 	ctx->LG_PMPS = (QUARTER << LG_PMPS_SHIFTNO) - 1;
 	ctx->MPS = 0;
 	ctx->cycno = 0xfe;
@@ -1897,6 +1904,7 @@ unsigned int biari_decode_final(struct decoding_environment_s *dep)
 	unsigned char bit;
 	struct bi_context_type_s octx;
 	struct bi_context_type_s *ctx = &octx;
+
 	ctx->LG_PMPS = 1 << LG_PMPS_SHIFTNO;
 	ctx->MPS = 0;
 	ctx->cycno = 0xff;
@@ -1978,6 +1986,7 @@ void readrunlenghtfrombuffer_aec(struct syntaxelement *se, struct img_par *img,
 {
 	struct bi_context_type_s *pctx;
 	int ctx, symbol;
+
 	pctx = img->current_slice->tex_ctx->one_contexts[0];
 	symbol = 0;
 	ctx = 0;
@@ -2008,6 +2017,7 @@ void read_intrapredmode_aec(struct syntaxelement *se, struct img_par *img,
 {
 	struct bi_context_type_s *pctx;
 	int ctx, symbol;
+
 	pctx = img->current_slice->tex_ctx->one_contexts[1];
 	symbol = 0;
 	ctx = 0;
@@ -2056,19 +2066,18 @@ unsigned int unary_bin_max_decode(struct decoding_environment_s *dep_dp,
 
 	if (symbol == 0)
 		return 0;
-	else {
-		if (max_symbol == 1)
-			return symbol;
-		symbol = 0;
-		ictx = ctx + ctx_offset;
-		do {
-			l = biari_decode_symbol(dep_dp, ictx);
-			symbol++;
-		} while ((l != 0) && (symbol < max_symbol - 1));
-		if ((l != 0) && (symbol == max_symbol - 1))
-			symbol++;
+
+	if (max_symbol == 1)
 		return symbol;
-	}
+	symbol = 0;
+	ictx = ctx + ctx_offset;
+	do {
+		l = biari_decode_symbol(dep_dp, ictx);
+		symbol++;
+	} while ((l != 0) && (symbol < max_symbol - 1));
+	if ((l != 0) && (symbol == max_symbol - 1))
+		symbol++;
+	return symbol;
 }
 
 /*!
@@ -2089,15 +2098,13 @@ unsigned int unary_bin_decode(struct decoding_environment_s *dep_dp,
 
 	if (symbol == 0)
 		return 0;
-	else {
-		symbol = 0;
-		ictx = ctx + ctx_offset;
-		do {
-			l = 1 - biari_decode_symbol(dep_dp, ictx);
-			symbol++;
-		} while (l != 0);
-		return symbol;
-	}
+	symbol = 0;
+	ictx = ctx + ctx_offset;
+	do {
+		l = 1 - biari_decode_symbol(dep_dp, ictx);
+		symbol++;
+	} while (l != 0);
+	return symbol;
 }
 
 /*!
@@ -2120,8 +2127,9 @@ void read_cipredmode_aec(struct syntaxelement *se,
 		b = 0;
 	else {
 		/*if ( (curr_mb->mb_available_up)->mb_type==IPCM)
-		 b=0;
-		 else*/
+		 * b=0;
+		 * else
+		 */
 		b = (((curr_mb->mb_available_up)->c_ipred_mode != 0) ? 1 : 0);
 	}
 
@@ -2129,8 +2137,9 @@ void read_cipredmode_aec(struct syntaxelement *se,
 		a = 0;
 	else {
 		/* if ( (curr_mb->mb_available_left)->mb_type==IPCM)
-		 a=0;
-		 else*/
+		 * a=0;
+		 * else
+		 */
 		a = (((curr_mb->mb_available_left)->c_ipred_mode != 0) ? 1 : 0);
 	}
 
@@ -2385,6 +2394,7 @@ int clear_nextbyte(struct inputstream_s *p)
 {
 	int i, k, j;
 	unsigned char temp[3];
+
 	i = p->ibyte_position;
 	k = p->ibuf_bytesnum - i;
 	if (k < 3) {
@@ -2461,6 +2471,7 @@ int read_n_bit(struct inputstream_s *p, int n, int *v)
 {
 	int r;
 	unsigned int t;
+
 	while (n > p->iclear_bitsnum) {
 		r = clear_nextbyte(p);
 		if (r) {
@@ -2569,6 +2580,7 @@ int read_bitstream(unsigned char *buf, int size)
 #ifdef AVSP_LONG_CABAC
 
 	unsigned int *TMP_BUF_32 = (unsigned int *)bitstream_read_tmp;
+
 	if (tmp_buf_count < size) {
 		dma_sync_single_for_cpu(amports_get_dma_device(),
 				bitstream_read_tmp_phy, SVA_STREAM_BUF_SIZE,
@@ -2640,6 +2652,7 @@ int next_startcode(struct inputstream_s *p)
 {
 	int i, m;
 	unsigned char a = 0, b = 0;
+
 	m = 0;
 
 	while (1) {
@@ -2708,6 +2721,7 @@ int next_startcode(struct inputstream_s *p)
 int get_oneunit(char *buf, int *startcodepos, int *length)
 {
 	int i, j, k;
+
 	i = next_startcode(p_irabs);
 
 	if (i != 0) {
@@ -2745,6 +2759,7 @@ int get_oneunit(char *buf, int *startcodepos, int *length)
 	}
 	if (p_irabs->iclear_bitsnum > 0) {
 		int shift;
+
 		shift = 8 - p_irabs->iclear_bitsnum;
 		i = read_n_bit(p_irabs, p_irabs->iclear_bitsnum, &j);
 
@@ -2764,6 +2779,7 @@ int header(void)
 	int startcodepos, length;
 
 	unsigned char *tmp_buf;
+
 	tmp_buf = (unsigned char *)avsp_heap_adr;
 
 	buf = &tmp_buf[0];
@@ -2852,7 +2868,8 @@ int header(void)
 
 				temp_slice_buf = &tmp_buf[0];
 				return SOP;
-			} else {
+			}
+			{
 				io_printf("Can't find start code");
 				return -EOS;
 			}
@@ -3193,6 +3210,7 @@ void arideco_start_decoding(struct decoding_environment_s *dep,
 
 	{
 		int i;
+
 		dbits_to_go = 0;
 		for (i = 0; i < B_BITS - 1; i++) {
 			if (--dbits_to_go < 0)
@@ -3343,6 +3361,7 @@ void checkavailabilityofneighborsaec(void)
 	const int mb_nr = img->current_mb_nr;
 	struct macroblock *curr_mb = &(mb_data[mb_nr]);
 	int check_value;
+
 	for (i = 0; i < 3; i++)
 		for (j = 0; j < 3; j++)
 			mb_data[mb_nr].mb_available[i][j] = NULL;
@@ -3860,6 +3879,7 @@ void readrunlevel_aec_ref(struct syntaxelement *se, struct img_par *img,
 		struct bi_context_type_s *pctx;
 		struct bi_context_type_s *pCTX2;
 		int ctx, ctx2, offset;
+
 		if (se->context == LUMA_8x8) {
 			if (img->picture_structure == 0) {
 				primary =
@@ -4052,7 +4072,7 @@ void encode_multilayer_golomb_word(unsigned int symbol,
 		const unsigned int *grad, const unsigned int *max_levels,
 		unsigned int *res_bits, unsigned int *res_len)
 {
-	unsigned accbits, acclen, bits, len, tmp;
+	unsigned int accbits, acclen, bits, len, tmp;
 
 	accbits = acclen = 0UL;
 
@@ -4505,16 +4525,16 @@ void read_cbpandcoeffsfrom_nal(struct img_par *img)
 						write_to_stream);
 
 				/*
-				 if (write_to_stream)
-				 {
-				 bitCount[BITS_COEFF_UV_MB]+=e_currse->len;
-				 e_currse++;
-				 curr_mb->currSEnr++;
-				 }
-				 no_bits+=e_currse->len;
+				 * if (write_to_stream)
+				 * {
+				 * bitCount[BITS_COEFF_UV_MB]+=e_currse->len;
+				 * e_currse++;
+				 * curr_mb->currSEnr++;
+				 * }
+				 * no_bits+=e_currse->len;
 
 
-				 if (icoef == 0) break;
+				 * if (icoef == 0) break;
 				 */
 
 				if (symbol2D >= CODE2D_ESCAPE_SYMBOL) {

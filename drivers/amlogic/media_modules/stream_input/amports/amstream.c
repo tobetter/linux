@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -1251,7 +1251,8 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 				stbuf_sub_rp_set(sub_rp + data_size - res);
 
 			return data_size - res;
-		} else {
+		}
+		{
 			if (first_num > 0) {
 				res = copy_to_user((void *)buf,
 				(void *)(codec_mm_phys_to_virt(sub_rp)),
@@ -2083,7 +2084,7 @@ static long amstream_ioctl_set(struct port_priv_s *priv, ulong arg)
 
 			if (this->type & PORT_TYPE_FRAME) {
 				/*
-				*todo: check upper layer for decoder handler
+				 *todo: check upper layer for decoder handler
 				 * life sequence or multi-tasking management
 				 */
 				r = vdec_set_pts64(priv->vdec, pts);
@@ -2254,7 +2255,7 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 				struct vdec_input_status_s status;
 
 				/*
-				*todo: check upper layer for decoder
+				 *todo: check upper layer for decoder
 				 * handler lifecycle
 				 */
 				if (priv->vdec == NULL) {
@@ -2301,7 +2302,8 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 		if ((this->type & PORT_TYPE_VIDEO) == 0) {
 			pr_err("no video\n");
 			return -EINVAL;
-		} else {
+		}
+		{
 			struct vdec_info vstatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
@@ -2323,12 +2325,11 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 		}
 		if (amstream_adec_status == NULL) {
 			/*
-			*pr_err("no amstream_adec_status\n");
-			*return -ENODEV;
-			*/
+			 *pr_err("no amstream_adec_status\n");
+			 *return -ENODEV;
+			 */
 			memset(&parm.astatus, 0, sizeof(parm.astatus));
-		}
-		else {
+		} else {
 			struct adec_status astatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
@@ -2352,7 +2353,7 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 					sizeof(struct userdata_poc_info_t));
 
 			userdata_poc_ri++;
-			if (USERDATA_FIFO_NUM == userdata_poc_ri)
+			if (userdata_poc_ri == USERDATA_FIFO_NUM)
 				userdata_poc_ri = 0;
 		} else
 			r = -EINVAL;
@@ -2640,7 +2641,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 				struct vdec_input_status_s status;
 
 				/*
-				*todo: check upper layer for decoder
+				 *todo: check upper layer for decoder
 				 * handler lifecycle
 				 */
 				if (priv->vdec == NULL) {
@@ -2750,7 +2751,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 				return -EFAULT;
 			if (this->type & PORT_TYPE_FRAME) {
 				/*
-				*todo: check upper layer for decoder handler
+				 *todo: check upper layer for decoder handler
 				 * life sequence or multi-tasking management
 				 */
 				if (priv->vdec)
@@ -2820,7 +2821,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			return -EINVAL;
 		if (amstream_adec_status == NULL)
 			return -ENODEV;
-		else {
+		{
 			struct adec_status astatus;
 			struct am_io_param para;
 			struct am_io_param *p = &para;
@@ -3570,7 +3571,7 @@ static ssize_t store_canuse_buferlevel(struct class *class,
 			struct class_attribute *attr,
 			const char *buf, size_t size)
 {
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 
 	/*ret = sscanf(buf, "%d", &val);*/
@@ -3587,7 +3588,7 @@ static ssize_t store_maxdelay(struct class *class,
 		struct class_attribute *attr,
 		const char *buf, size_t size)
 {
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 	int i;
 
@@ -3716,14 +3717,14 @@ static int amstream_probe(struct platform_device *pdev)
 	amstream_port_num = MAX_AMSTREAM_PORT_NUM;
 	amstream_buf_num = BUF_MAX_NUM;
 /*
-*	r = of_reserved_mem_device_init(&pdev->dev);
-*	if (r == 0)
-*		pr_info("of probe done");
-*	else {
-*		r = -ENOMEM;
-*		return r;
-*	}
-*/
+ *	r = of_reserved_mem_device_init(&pdev->dev);
+ *	if (r == 0)
+ *		pr_info("of probe done");
+ *	else {
+ *		r = -ENOMEM;
+ *		return r;
+ *	}
+ */
 	r = class_register(&amstream_class);
 	if (r) {
 		pr_err("amstream class create fail.\n");
@@ -3767,7 +3768,7 @@ static int amstream_probe(struct platform_device *pdev)
 	return 0;
 
 	/*
-	*   error4:
+	 *   error4:
 	 *  tsdemux_class_unregister();
 	 */
 error3:
@@ -3869,7 +3870,6 @@ static int __init amstream_module_init(void)
 static void __exit amstream_module_exit(void)
 {
 	platform_driver_unregister(&amstream_driver);
-	return;
 }
 
 module_init(amstream_module_init);

@@ -30,7 +30,7 @@
 
 MODULE_PARM_DESC(aml_ci_debug, "\n\t\t dvb ci debug");
 static int aml_ci_debug = 1;
-module_param(aml_ci_debug, int, S_IRUGO);
+module_param(aml_ci_debug, int, 0444);
 
 #define pr_dbg(args...)\
 	do {\
@@ -144,6 +144,7 @@ static int aml_ci_io_write(
 static int aml_ci_slot_reset(struct dvb_ca_en50221 *en50221, int slot)
 {
 	struct aml_ci *ci = en50221->data;
+
 	pr_dbg("Slot(%d): Slot RESET\n", slot);
 	if (ci->ci_slot_reset != NULL) {
 		ci->ci_slot_reset(ci, slot);
@@ -163,6 +164,7 @@ static int aml_ci_slot_reset(struct dvb_ca_en50221 *en50221, int slot)
 static int aml_ci_slot_shutdown(struct dvb_ca_en50221 *en50221, int slot)
 {
 	struct aml_ci *ci = en50221->data;
+
 	pr_dbg("Slot(%d): Slot shutdown\n", slot);
 	if (ci->ci_slot_shutdown != NULL) {
 		ci->ci_slot_shutdown(ci, slot);
@@ -183,6 +185,7 @@ static int aml_ci_ts_control(struct dvb_ca_en50221 *en50221, int slot)
 {
 
 		struct aml_ci *ci = en50221->data;
+
 		pr_dbg("Slot(%d): TS control\n", slot);
 		if (ci->ci_slot_ts_enable != NULL) {
 			ci->ci_slot_ts_enable(ci, slot);
@@ -207,13 +210,9 @@ static int aml_ci_slot_status(
 
 	pr_dbg("Slot(%d): Poll Slot status\n", slot);
 
-	if (ci->ci_poll_slot_status != NULL) {
+	if (ci->ci_poll_slot_status != NULL)
 		return ci->ci_poll_slot_status(ci, slot, open);
-	} else {
-		pr_error("ci_poll_slot_status is null %s\r\n", __func__);
-		return -EINVAL;
-	}
-
+	pr_error("ci_poll_slot_status is null %s\r\n", __func__);
 	return -EINVAL;
 }
 
@@ -291,7 +290,7 @@ int aml_ci_init(struct platform_device *pdev,
 		aml_spi_init(pdev, ci);
 	} else {
 		/* no io dev init,is error */
-		pr_dbg("io dev no init,we do not kown use spi or iobus or other,please check io_type in dts file\r\n");
+		pr_dbg("io dev no init,we do not known use spi or iobus or other,please check io_type in dts file\r\n");
 	}
 	return 0;
 err:
@@ -318,12 +317,13 @@ static ssize_t aml_ci_ts_show(struct class *class,
 struct class_attribute *attr, char *buf)
 {
 		int ret;
+
 		ret = sprintf(buf, "ts%d\n", 1);
 	return ret;
 }
 
 static struct class_attribute amlci_class_attrs[] = {
-	__ATTR(ts,  S_IRUGO | S_IWUSR, aml_ci_ts_show, NULL),
+	__ATTR(ts,  0644, aml_ci_ts_show, NULL),
 	__ATTR_NULL
 };
 
@@ -361,6 +361,7 @@ static int aml_ci_probe(struct platform_device *pdev)
 {
 	struct aml_dvb *dvb = aml_get_dvb_device();
 	int err = 0;
+
 	pr_dbg("---Amlogic CI Init---\n");
 	err = aml_ci_init(pdev, dvb, &ci_dev);
 	if (err < 0)
@@ -377,7 +378,7 @@ static int aml_ci_remove(struct platform_device *pdev)
 	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
 		aml_spi_exit();
 	else
-	  pr_dbg("---Amlogic CI remove unkown io type---\n");
+	  pr_dbg("---Amlogic CI remove unknown io type---\n");
 
 	aml_ci_exit(ci_dev);
 	return 0;
@@ -389,7 +390,7 @@ static int aml_ci_suspend(struct platform_device *pdev, pm_message_t state)
 	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
 		aml_spi_exit();
 	else
-	  pr_dbg("---Amlogic CI remove unkown io type---\n");
+	  pr_dbg("---Amlogic CI remove unknown io type---\n");
 
 	return 0;
 }
@@ -397,11 +398,12 @@ static int aml_ci_suspend(struct platform_device *pdev, pm_message_t state)
 static int aml_ci_resume(struct platform_device *pdev)
 {
 	int err = 0;
+
 	pr_dbg("Amlogic CI Resume!\n");
 	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
 		aml_spi_init(pdev, ci_dev);
 	else
-	  pr_dbg("---Amlogic CI remove unkown io type---\n");
+	  pr_dbg("---Amlogic CI remove unknown io type---\n");
 	return err;
 }
 

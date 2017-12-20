@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/compiler.h>
 #include <linux/clk-provider.h>
@@ -55,24 +55,24 @@ struct gate_switch_node gates[] = {
 };
 
 /*
-mesonstream {
-	compatible = "amlogic, codec, streambuf";
-	dev_name = "mesonstream";
-	status = "okay";
-	clocks = <&clkc CLKID_DOS_PARSER
-		&clkc CLKID_DEMUX
-		&clkc CLKID_DOS
-		&clkc CLKID_VDEC_MUX
-		&clkc CLKID_HCODEC_MUX
-		&clkc CLKID_HEVC_MUX>;
-	clock-names = "parser_top",
-		"demux",
-		"vdec",
-		"clk_vdec_mux",
-		"clk_hcodec_mux",
-		"clk_hevc_mux";
-};
-*/
+ *mesonstream {
+ *	compatible = "amlogic, codec, streambuf";
+ *	dev_name = "mesonstream";
+ *	status = "okay";
+ *	clocks = <&clkc CLKID_DOS_PARSER
+ *		&clkc CLKID_DEMUX
+ *		&clkc CLKID_DOS
+ *		&clkc CLKID_VDEC_MUX
+ *		&clkc CLKID_HCODEC_MUX
+ *		&clkc CLKID_HEVC_MUX>;
+ *	clock-names = "parser_top",
+ *		"demux",
+ *		"vdec",
+ *		"clk_vdec_mux",
+ *		"clk_hcodec_mux",
+ *		"clk_hevc_mux";
+ *};
+ */
 
 int amports_clock_gate_init(struct device *dev)
 {
@@ -134,7 +134,8 @@ int amports_switch_gate(const char *name, int enable)
 		if (!strcmp(name, gates[i].name)) {
 
 			/*pr_info("openclose:%d gate %s control\n", enable,
-				gates[i].name);*/
+			 *	gates[i].name);
+			 */
 
 			if (gates[i].clk)
 				amports_gate_clk(&gates[i], enable);
@@ -146,9 +147,9 @@ EXPORT_SYMBOL(amports_switch_gate);
 
 #else
 /*
-*can used for debug.
-*on chip bringup.
-*/
+ *can used for debug.
+ *on chip bringup.
+ */
 int amports_clock_gate_init(struct device *dev)
 {
 	static int gate_inited;
@@ -156,12 +157,12 @@ int amports_clock_gate_init(struct device *dev)
 	if (gate_inited)
 		return 0;
 /*
-*#define HHI_GCLK_MPEG0    0x1050
-*#define HHI_GCLK_MPEG1    0x1051
-*#define HHI_GCLK_MPEG2    0x1052
-*#define HHI_GCLK_OTHER    0x1054
-*#define HHI_GCLK_AO       0x1055
-*/
+ *#define HHI_GCLK_MPEG0    0x1050
+ *#define HHI_GCLK_MPEG1    0x1051
+ *#define HHI_GCLK_MPEG2    0x1052
+ *#define HHI_GCLK_OTHER    0x1054
+ *#define HHI_GCLK_AO       0x1055
+ */
 	WRITE_HHI_REG_BITS(HHI_GCLK_MPEG0, 1, 1, 1);/*dos*/
 	WRITE_HHI_REG_BITS(HHI_GCLK_MPEG1, 1, 25, 1);/*U_parser_top()*/
 	WRITE_HHI_REG_BITS(HHI_GCLK_MPEG1, 0xff, 6, 8);/*aiu()*/

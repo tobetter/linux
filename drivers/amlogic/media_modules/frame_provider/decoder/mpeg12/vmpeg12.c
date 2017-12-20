@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -215,7 +215,7 @@ static inline u32 index2canvas(u32 index)
 
 static void set_frame_info(struct vframe_s *vf)
 {
-	unsigned ar_bits;
+	unsigned int ar_bits;
 	u32 temp;
 
 #ifdef CONFIG_AM_VDEC_MPEG12_LOG
@@ -474,7 +474,8 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 
 #ifdef INTERLACE_SEQ_ALWAYS
 			/* once an interlaced sequence exist,
-			always force interlaced type */
+			 *always force interlaced type
+			 */
 			/* to make DI easy. */
 			dec_control |= DEC_CONTROL_FLAG_FORCE_SEQ_INTERLACE;
 #endif
@@ -679,6 +680,7 @@ static int vmpeg_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vmpeg_vf_prov);
@@ -698,6 +700,7 @@ static int vmpeg_event_cb(int type, void *data, void *private_data)
 static int vmpeg_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 
 	states->vf_pool_size = VF_POOL_SIZE;
@@ -742,13 +745,15 @@ static void vmpeg_put_timer_func(unsigned long arg)
 	int fatal_reset = 0;
 
 	enum receviver_start_e state = RECEIVER_INACTIVE;
+
 	if (vf_get_receiver(PROVIDER_NAME)) {
 		state = vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_QUREY_STATE, NULL);
 		if ((state == RECEIVER_STATE_NULL)
 			|| (state == RECEIVER_STATE_NONE)) {
 			/* receiver has no event_cb or
-			receiver's event_cb does not process this event */
+			 *receiver's event_cb does not process this event
+			 */
 			state = RECEIVER_INACTIVE;
 		}
 	} else
@@ -773,6 +778,7 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 	while (!kfifo_is_empty(&recycle_q) && (READ_VREG(MREG_BUFFERIN) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index < DECODE_BUFFER_NUM_MAX) &&
 			 (--vfbuf_use[vf->index] == 0)) {
@@ -790,6 +796,7 @@ static void vmpeg_put_timer_func(unsigned long arg)
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_MPEG12,
 			frame_width, frame_height, fps);
@@ -1025,6 +1032,7 @@ static void vmpeg12_local_init(void)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf;
+
 		if (cur_pool_idx == 0) {
 			vf = &vfpool[i];
 			vfpool[i].index = DECODE_BUFFER_NUM_MAX;
@@ -1064,6 +1072,7 @@ static s32 vmpeg12_init(void)
 {
 	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 

@@ -8,8 +8,8 @@
 #include "aml_ci.h"
 
 /*
-aml spi dev
-*/
+ *aml spi dev
+ */
 struct aml_spi {
 		spinlock_t spi_lock;
 

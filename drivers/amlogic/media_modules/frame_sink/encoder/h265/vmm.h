@@ -15,7 +15,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef __CNM_VIDEO_MEMORY_MANAGEMENT_H__
 #define __CNM_VIDEO_MEMORY_MANAGEMENT_H__
@@ -99,6 +99,7 @@ static struct avl_node_t *make_avl_node(
 static s32 get_balance_factor(struct avl_node_t *tree)
 {
 	s32 factor = 0;
+
 	if (tree)
 		factor = VMEM_HEIGHT(tree->right) - VMEM_HEIGHT(tree->left);
 	return factor;
@@ -176,6 +177,7 @@ static struct avl_node_t *rotation_right(struct avl_node_t *tree)
 static struct avl_node_t *do_balance(struct avl_node_t *tree)
 {
 	s32 bfactor = 0, child_bfactor;
+
 	bfactor = get_balance_factor(tree);
 	if (bfactor >= 2) {
 		child_bfactor = get_balance_factor(tree->right);
@@ -280,6 +282,7 @@ static struct avl_node_t *do_unlink(struct avl_node_t *tree)
 {
 	struct avl_node_t *node;
 	struct avl_node_t *end_node;
+
 	node = unlink_end_node(tree->right, LEFT, &end_node);
 	if (node) {
 		tree->right = node;
@@ -458,7 +461,7 @@ s32 vmem_init(struct video_mm_t *mm, ulong addr, ulong size)
 {
 	s32 i;
 
-	if (NULL == mm)
+	if (mm == NULL)
 		return -1;
 
 	mm->base_addr = (addr + (VMEM_PAGE_SIZE - 1))
@@ -548,6 +551,7 @@ ulong vmem_alloc(struct video_mm_t *mm, s32 size, ulong pid)
 	set_blocks_alloc(mm, alloc_pageno, npages);
 	if (npages != free_size) {
 		s32 free_pageno = alloc_pageno + npages;
+
 		set_blocks_free(mm, free_pageno, (free_size-npages));
 	}
 	VMEM_P_FREE(node);

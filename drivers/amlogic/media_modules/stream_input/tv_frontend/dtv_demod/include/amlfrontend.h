@@ -1,13 +1,14 @@
 /*****************************************************************
-**
-**  Copyright (C) 2010 Amlogic,Inc.
-**  All rights reserved
-**        Filename : amlfrontend.h
-**
-**  comment:
-**        Driver for aml demodulator
-**
-*****************************************************************/
+ **
+ **  Copyright (C) 2010 Amlogic,Inc.
+ **  All rights reserved
+ **        Filename : amlfrontend.h
+ **
+ **  comment:
+ **        Driver for aml demodulator
+ **
+ ****************************************************************
+ */
 
 #ifndef _AMLFRONTEND_H
 #define _AMLFRONTEND_H

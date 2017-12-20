@@ -1,19 +1,19 @@
  /*
- * drivers/amlogic/amports/vvp9.c
- *
- * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
-*/
+  * drivers/amlogic/amports/vvp9.c
+  *
+  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation; either version 2 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful, but WITHOUT
+  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  * more details.
+  *
+  */
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -103,8 +103,9 @@
 
 #define MV_MEM_UNIT 0x240
 /*---------------------------------------------------
- Include "parser_cmd.h"
----------------------------------------------------*/
+ * Include "parser_cmd.h"
+ *---------------------------------------------------
+ */
 #define PARSER_CMD_SKIP_CFG_0 0x0000090b
 
 #define PARSER_CMD_SKIP_CFG_1 0x1b14140f
@@ -277,8 +278,8 @@ static u32 on_no_keyframe_skiped;
 static inline int div_r32(int64_t m, int n)
 {
 /*
-return (int)(m/n)
-*/
+ *return (int)(m/n)
+ */
 #ifndef CONFIG_ARM64
 	do_div(m, n);
 	return (int)m;
@@ -400,7 +401,7 @@ static u32 udebug_pause_decode_idx;
 
 #define DEBUG_REG
 #ifdef DEBUG_REG
-void WRITE_VREG_DBG2(unsigned adr, unsigned val)
+void WRITE_VREG_DBG2(unsigned int adr, unsigned int val)
 {
 	if (debug & VP9_DEBUG_REG)
 		pr_info("%s(%x, %x)\n", __func__, adr, val);
@@ -415,10 +416,11 @@ void WRITE_VREG_DBG2(unsigned adr, unsigned val)
 #define FRAME_CNT_WINDOW_SIZE 59
 #define RATE_CORRECTION_THRESHOLD 5
 /**************************************************
-
-VP9 buffer management start
-
-***************************************************/
+ *
+ *VP9 buffer management start
+ *
+ ***************************************************
+ */
 #ifdef VP9_10B_MMU
 #define MMU_COMPRESS_HEADER_SIZE  0x48000
 #endif
@@ -449,16 +451,16 @@ union param_u {
 		unsigned short display_width;
 		unsigned short display_height;
 	/*
-	bit[11:8] - ref_frame_info_0 (ref(3-bits), ref_frame_sign_bias(1-bit))
-	bit[7:4]  - ref_frame_info_1 (ref(3-bits), ref_frame_sign_bias(1-bit))
-	bit[3:0]  - ref_frame_info_2 (ref(3-bits), ref_frame_sign_bias(1-bit))
-	*/
+	 *bit[11:8] - ref_frame_info_0 (ref(3-bits), ref_frame_sign_bias(1-bit))
+	 *bit[7:4]  - ref_frame_info_1 (ref(3-bits), ref_frame_sign_bias(1-bit))
+	 *bit[3:0]  - ref_frame_info_2 (ref(3-bits), ref_frame_sign_bias(1-bit))
+	 */
 		unsigned short ref_info;
 		/*
-		bit[2]: same_frame_size0
-		bit[1]: same_frame_size1
-		bit[0]: same_frame_size2
-		*/
+		 *bit[2]: same_frame_size0
+		 *bit[1]: same_frame_size1
+		 *bit[0]: same_frame_size2
+		 */
 		unsigned short same_frame_size;
 
 		unsigned short mode_ref_delta_enabled;
@@ -605,11 +607,12 @@ enum REFERENCE_MODE {
 #define REF_FRAMES (1 << REF_FRAMES_LOG2)
 
 /*4 scratch frames for the new frames to support a maximum of 4 cores decoding
-in parallel, 3 for scaled references on the encoder.
-TODO(hkuang): Add ondemand frame buffers instead of hardcoding the number
-// of framebuffers.
-TODO(jkoleszar): These 3 extra references could probably come from the
-normal reference pool.*/
+ *in parallel, 3 for scaled references on the encoder.
+ *TODO(hkuang): Add ondemand frame buffers instead of hardcoding the number
+ * // of framebuffers.
+ *TODO(jkoleszar): These 3 extra references could probably come from the
+ *normal reference pool.
+ */
 #define FRAME_BUFFERS (REF_FRAMES + 16)
 #define HEADER_FRAME_BUFFERS (FRAME_BUFFERS)
 #define MAX_BUF_NUM (FRAME_BUFFERS)
@@ -639,21 +642,23 @@ struct RefCntBuffer_s {
 	struct PIC_BUFFER_CONFIG_s buf;
 
 /*The Following variables will only be used in frame parallel decode.
-
-frame_worker_owner indicates which FrameWorker owns this buffer. NULL means
-that no FrameWorker owns, or is decoding, this buffer.
-VP9Worker *frame_worker_owner;
-
-row and col indicate which position frame has been decoded to in real
-pixel unit. They are reset to -1 when decoding begins and set to INT_MAX
-when the frame is fully decoded.*/
+ *
+ *frame_worker_owner indicates which FrameWorker owns this buffer. NULL means
+ *that no FrameWorker owns, or is decoding, this buffer.
+ *VP9Worker *frame_worker_owner;
+ *
+ *row and col indicate which position frame has been decoded to in real
+ *pixel unit. They are reset to -1 when decoding begins and set to INT_MAX
+ *when the frame is fully decoded.
+ */
 	int row;
 	int col;
 } RefCntBuffer;
 
 struct RefBuffer_s {
 /*TODO(dkovalev): idx is not really required and should be removed, now it
-is used in vp9_onyxd_if.c*/
+ *is used in vp9_onyxd_if.c
+ */
 	int idx;
 	struct PIC_BUFFER_CONFIG_s *buf;
 	/*struct scale_factors sf;*/
@@ -672,14 +677,15 @@ struct InternalFrameBufferList_s {
 
 struct BufferPool_s {
 /*Protect BufferPool from being accessed by several FrameWorkers at
-the same time during frame parallel decode.
-TODO(hkuang): Try to use atomic variable instead of locking the whole pool.
-
-Private data associated with the frame buffer callbacks.
-void *cb_priv;
-
-vpx_get_frame_buffer_cb_fn_t get_fb_cb;
-vpx_release_frame_buffer_cb_fn_t release_fb_cb;*/
+ *the same time during frame parallel decode.
+ *TODO(hkuang): Try to use atomic variable instead of locking the whole pool.
+ *
+ *Private data associated with the frame buffer callbacks.
+ *void *cb_priv;
+ *
+ *vpx_get_frame_buffer_cb_fn_t get_fb_cb;
+ *vpx_release_frame_buffer_cb_fn_t release_fb_cb;
+ */
 
 	struct RefCntBuffer_s frame_bufs[FRAME_BUFFERS];
 
@@ -719,11 +725,13 @@ struct VP9_Common_s {
 	int ref_frame_map[REF_FRAMES]; /* maps fb_idx to reference slot */
 
 	/*Prepare ref_frame_map for the next frame.
-	Only used in frame parallel decode.*/
+	 *Only used in frame parallel decode.
+	 */
 	int next_ref_frame_map[REF_FRAMES];
 
 	/* TODO(jkoleszar): could expand active_ref_idx to 4,
-	with 0 as intra, and roll new_fb_idx into it.*/
+	 *with 0 as intra, and roll new_fb_idx into it.
+	 */
 
 	/*Each frame can reference REFS_PER_FRAME buffers*/
 	struct RefBuffer_s frame_refs[REFS_PER_FRAME];
@@ -748,12 +756,14 @@ struct VP9_Common_s {
 	int allow_high_precision_mv;
 
 	/*Flag signaling that the frame context should be reset to default
-	values. 0 or 1 implies don't reset, 2 reset just the context
-	specified in the  frame header, 3 reset all contexts.*/
+	 *values. 0 or 1 implies don't reset, 2 reset just the context
+	 *specified in the  frame header, 3 reset all contexts.
+	 */
 	int reset_frame_context;
 
 	/*MBs, mb_rows/cols is in 16-pixel units; mi_rows/cols is in
-		MODE_INFO (8-pixel) units.*/
+	 *	MODE_INFO (8-pixel) units.
+	 */
 	int MBs;
 	int mb_rows, mi_rows;
 	int mb_cols, mi_cols;
@@ -818,14 +828,16 @@ static void ref_cnt_fb(struct RefCntBuffer_s *bufs, int *idx, int new_idx)
 	if (ref_index >= 0 && bufs[ref_index].ref_count > 0) {
 		bufs[ref_index].ref_count--;
 		/*pr_info("[MMU DEBUG 2] dec ref_count[%d] : %d\r\n",
-				ref_index, bufs[ref_index].ref_count);*/
+		 *		ref_index, bufs[ref_index].ref_count);
+		 */
 	}
 
 	*idx = new_idx;
 
 	bufs[new_idx].ref_count++;
 	/*pr_info("[MMU DEBUG 3] inc ref_count[%d] : %d\r\n",
-				new_idx, bufs[new_idx].ref_count);*/
+	 *			new_idx, bufs[new_idx].ref_count);
+	 */
 }
 
 int vp9_release_frame_buffer(struct vpx_codec_frame_buffer_s *fb)
@@ -851,7 +863,8 @@ static void setup_display_size(struct VP9_Common_s *cm, union param_u *params,
 		cm->display_width = params->p.display_width;
 		cm->display_height = params->p.display_height;
 		/*vp9_read_frame_size(rb, &cm->display_width,
-							&cm->display_height);*/
+		 *					&cm->display_height);
+		 */
 	} else {
 		if (print_header_info)
 			pr_info(" * 1-bit display_size_present read : 0\n");
@@ -1100,12 +1113,12 @@ static void resize_context_buffers(struct VP9Decoder_s *pbi,
 			cm->height, width, height);
 	}
 	/*
-	if (cm->cur_frame->mvs == NULL ||
-		cm->mi_rows > cm->cur_frame->mi_rows ||
-		cm->mi_cols > cm->cur_frame->mi_cols) {
-		resize_mv_buffer(cm);
-	}
-	*/
+	 *if (cm->cur_frame->mvs == NULL ||
+	 *	cm->mi_rows > cm->cur_frame->mi_rows ||
+	 *	cm->mi_cols > cm->cur_frame->mi_cols) {
+	 *	resize_mv_buffer(cm);
+	 *}
+	 */
 }
 
 static int valid_ref_frame_size(int ref_width, int ref_height,
@@ -1117,14 +1130,14 @@ static int valid_ref_frame_size(int ref_width, int ref_height,
 }
 
 /*
-static int valid_ref_frame_img_fmt(enum vpx_bit_depth_t ref_bit_depth,
-					int ref_xss, int ref_yss,
-					enum vpx_bit_depth_t this_bit_depth,
-					int this_xss, int this_yss) {
-	return ref_bit_depth == this_bit_depth && ref_xss == this_xss &&
-		ref_yss == this_yss;
-}
-*/
+ *static int valid_ref_frame_img_fmt(enum vpx_bit_depth_t ref_bit_depth,
+ *					int ref_xss, int ref_yss,
+ *					enum vpx_bit_depth_t this_bit_depth,
+ *					int this_xss, int this_yss) {
+ *	return ref_bit_depth == this_bit_depth && ref_xss == this_xss &&
+ *		ref_yss == this_yss;
+ *}
+ */
 
 
 static int setup_frame_size(
@@ -1152,8 +1165,10 @@ static int setup_frame_size(
 	/* if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);*/
 	/* cm->prev_fb_idx = cm->new_fb_idx;*/
 	/*pr_info
-	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
-	cm->prev_fb_idx, cm->new_fb_idx);*/
+	 *("[DEBUG DEBUG]Before alloc_mmu,
+	 *prev_fb_idx : %d, new_fb_idx : %d\r\n",
+	 *cm->prev_fb_idx, cm->new_fb_idx);
+	 */
 	ret = vp9_alloc_mmu(pbi,
 		cm->new_fb_idx,
 		params->p.width,
@@ -1223,22 +1238,27 @@ static int setup_frame_size_with_refs(
 			struct PIC_BUFFER_CONFIG_s *const buf =
 							cm->frame_refs[i].buf;
 			/*if (print_header_info)
-				pr_info
-				("1-bit same_frame_size[%d] read : 1\n", i);*/
+			 *	pr_info
+			 *	("1-bit same_frame_size[%d] read : 1\n", i);
+			 */
 				width = buf->y_crop_width;
 				height = buf->y_crop_height;
 			/*if (print_header_info)
-				pr_info
-				(" - same_frame_size width : %d\n", width);*/
+			 *	pr_info
+			 *	(" - same_frame_size width : %d\n", width);
+			 */
 			/*if (print_header_info)
-				pr_info
-				(" - same_frame_size height : %d\n", height);*/
+			 *	pr_info
+			 *	(" - same_frame_size height : %d\n", height);
+			 */
 			found = 1;
 			break;
-		} else {
+		}
+		{
 			/*if (print_header_info)
-				pr_info
-				("1-bit same_frame_size[%d] read : 0\n", i);*/
+			 *	pr_info
+			 *	("1-bit same_frame_size[%d] read : 0\n", i);
+			 */
 		}
 	}
 
@@ -1247,13 +1267,14 @@ static int setup_frame_size_with_refs(
 		width = params->p.width;
 		height = params->p.height;
 		/*if (print_header_info)
-			pr_info
-			(" * 16-bits w read : %d (width : %d)\n",
-				width, height);
-		if (print_header_info)
-			pr_info
-			(" * 16-bits h read : %d (height : %d)\n",
-				width, height);*/
+		 *	pr_info
+		 *	(" * 16-bits w read : %d (width : %d)\n",
+		 *		width, height);
+		 *if (print_header_info)
+		 *	pr_info
+		 *	(" * 16-bits h read : %d (height : %d)\n",
+		 *		width, height);
+		 */
 	}
 
 	if (width <= 0 || height <= 0) {
@@ -1267,10 +1288,12 @@ static int setup_frame_size_with_refs(
 	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
 #ifdef VP9_10B_MMU
 	/*if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);
-	cm->prev_fb_idx = cm->new_fb_idx;*/
+	 *cm->prev_fb_idx = cm->new_fb_idx;
+	 */
 /*	pr_info
-	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
-	cm->prev_fb_idx, cm->new_fb_idx);*/
+ *	("[DEBUG DEBUG]Before alloc_mmu, prev_fb_idx : %d, new_fb_idx : %d\r\n",
+ *	cm->prev_fb_idx, cm->new_fb_idx);
+ */
 	ret = vp9_alloc_mmu(pbi, cm->new_fb_idx,
 			params->p.width, params->p.height,
 	params->p.bit_depth, mmu_index_adr);
@@ -1283,9 +1306,11 @@ static int setup_frame_size_with_refs(
 #endif
 
 	/*Check to make sure at least one of frames that this frame references
-	has valid dimensions.*/
+	 *has valid dimensions.
+	 */
 	for (i = 0; i < REFS_PER_FRAME; ++i) {
 		struct RefBuffer_s * const ref_frame = &cm->frame_refs[i];
+
 		has_valid_ref_frame |=
 			valid_ref_frame_size(ref_frame->buf->y_crop_width,
 			ref_frame->buf->y_crop_height,
@@ -1297,18 +1322,19 @@ static int setup_frame_size_with_refs(
 	}
 #if 0
 	for (i = 0; i < REFS_PER_FRAME; ++i) {
-			struct RefBuffer_s * const ref_frame =
-							&cm->frame_refs[i];
-			if (!valid_ref_frame_img_fmt(
-				ref_frame->buf->bit_depth,
-				ref_frame->buf->subsampling_x,
-				ref_frame->buf->subsampling_y,
-				cm->bit_depth,
-				cm->subsampling_x,
-				cm->subsampling_y))
-				pr_err
+		struct RefBuffer_s * const ref_frame =
+				&cm->frame_refs[i];
+		if (!valid_ref_frame_img_fmt(
+			ref_frame->buf->bit_depth,
+			ref_frame->buf->subsampling_x,
+			ref_frame->buf->subsampling_y,
+			cm->bit_depth,
+			cm->subsampling_x,
+			cm->subsampling_y)) {
+			pr_err
 				("Referenced frame incompatible color fmt\r\n");
 				return -1;
+		}
 	}
 #endif
 	resize_context_buffers(pbi, cm, width, height);
@@ -1327,9 +1353,9 @@ static int setup_frame_size_with_refs(
 		&pool->frame_bufs[cm->new_fb_idx].raw_frame_buffer,
 		pool->get_fb_cb,
 		pool->cb_priv)) {
-			unlock_buffer_pool(pool);
-			vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
-			"Failed to allocate frame buffer");
+		unlock_buffer_pool(pool);
+		vpx_internal_error(&cm->error, VPX_CODEC_MEM_ERROR,
+		"Failed to allocate frame buffer");
 	}
 	unlock_buffer_pool(pool);
 #else
@@ -1350,16 +1376,19 @@ static int setup_frame_size_with_refs(
 
 
 
+
 static int vp9_print(struct VP9Decoder_s *pbi,
 	int flag, const char *fmt, ...)
 {
 #define HEVC_PRINT_BUF		256
 	unsigned char buf[HEVC_PRINT_BUF];
 	int len = 0;
+
 	if (pbi == NULL ||
 		(flag == 0) ||
 		(debug & flag)) {
 		va_list args;
+
 		va_start(args, fmt);
 		if (pbi)
 			len = sprintf(buf, "[%d]", pbi->index);
@@ -1381,10 +1410,12 @@ static int vp9_print_cont(struct VP9Decoder_s *pbi,
 {
 	unsigned char buf[HEVC_PRINT_BUF];
 	int len = 0;
+
 	if (pbi == NULL ||
 		(flag == 0) ||
 		(debug & flag)) {
 		va_list args;
+
 		va_start(args, fmt);
 		vsnprintf(buf + len, HEVC_PRINT_BUF - len, fmt, args);
 		pr_debug("%s", buf);
@@ -1720,12 +1751,14 @@ static void decrease_ref_count(int idx, struct RefCntBuffer_s *const frame_bufs,
 	if (idx >= 0) {
 		--frame_bufs[idx].ref_count;
 		/*pr_info("[MMU DEBUG 7] dec ref_count[%d] : %d\r\n", idx,
-			frame_bufs[idx].ref_count);*/
+		 *	frame_bufs[idx].ref_count);
+		 */
 		/*A worker may only get a free framebuffer index when
-		calling get_free_fb. But the private buffer is not set up
-		until finish decoding header. So any error happens during
-		decoding header, the frame_bufs will not have valid priv
-		buffer.*/
+		 *calling get_free_fb. But the private buffer is not set up
+		 *until finish decoding header. So any error happens during
+		 *decoding header, the frame_bufs will not have valid priv
+		 *buffer.
+		 */
 
 		if (frame_bufs[idx].ref_count == 0 &&
 			frame_bufs[idx].raw_frame_buffer.priv)
@@ -1749,7 +1782,8 @@ static void generate_next_ref_frames(struct VP9Decoder_s *pbi)
 			cm->next_ref_frame_map[ref_index] = cm->new_fb_idx;
 			++frame_bufs[cm->new_fb_idx].ref_count;
 			/*pr_info("[MMU DEBUG 4] inc ref_count[%d] : %d\r\n",
-			cm->new_fb_idx, frame_bufs[cm->new_fb_idx].ref_count);*/
+			 *cm->new_fb_idx, frame_bufs[cm->new_fb_idx].ref_count);
+			 */
 		} else
 			cm->next_ref_frame_map[ref_index] =
 				cm->ref_frame_map[ref_index];
@@ -1757,9 +1791,10 @@ static void generate_next_ref_frames(struct VP9Decoder_s *pbi)
 		if (cm->ref_frame_map[ref_index] >= 0) {
 			++frame_bufs[cm->ref_frame_map[ref_index]].ref_count;
 			/*pr_info
-			("[MMU DEBUG 5] inc ref_count[%d] : %d\r\n",
-			cm->ref_frame_map[ref_index],
-			frame_bufs[cm->ref_frame_map[ref_index]].ref_count);*/
+			 *("[MMU DEBUG 5] inc ref_count[%d] : %d\r\n",
+			 *cm->ref_frame_map[ref_index],
+			 *frame_bufs[cm->ref_frame_map[ref_index]].ref_count);
+			 */
 		}
 		++ref_index;
 	}
@@ -1771,8 +1806,9 @@ static void generate_next_ref_frames(struct VP9Decoder_s *pbi)
 		if (cm->ref_frame_map[ref_index] >= 0) {
 			++frame_bufs[cm->ref_frame_map[ref_index]].ref_count;
 			/*pr_info("[MMU DEBUG 6] inc ref_count[%d] : %d\r\n",
-			cm->ref_frame_map[ref_index],
-			frame_bufs[cm->ref_frame_map[ref_index]].ref_count);*/
+			 *cm->ref_frame_map[ref_index],
+			 *frame_bufs[cm->ref_frame_map[ref_index]].ref_count);
+			 */
 		}
 	}
 	unlock_buffer_pool(pool, flags);
@@ -1806,6 +1842,7 @@ static void refresh_ref_frames(struct VP9Decoder_s *pbi)
 	for (; ref_index < REF_FRAMES && !cm->show_existing_frame;
 		++ref_index) {
 		const int old_idx = cm->ref_frame_map[ref_index];
+
 		decrease_ref_count(old_idx, frame_bufs, pool);
 		cm->ref_frame_map[ref_index] =
 			cm->next_ref_frame_map[ref_index];
@@ -1873,8 +1910,9 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 	pbi->cur_buf = &frame_bufs[cm->new_fb_idx];
 #ifdef VP9_10B_MMU
 	/* moved to after picture size ready
-	alloc_mmu(cm, params->p.width, params->p.height,
-	params->p.bit_depth, pbi->frame_mmu_map_addr);*/
+	 *alloc_mmu(cm, params->p.width, params->p.height,
+	 *params->p.bit_depth, pbi->frame_mmu_map_addr);
+	 */
 	cm->prev_fb_idx = cm->new_fb_idx;
 #endif
 	/*read_uncompressed_header()*/
@@ -1916,12 +1954,12 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 		cm->show_frame = 1;
 
 		/*
-		if (pbi->frame_parallel_decode) {
-			for (i = 0; i < REF_FRAMES; ++i)
-				cm->next_ref_frame_map[i] =
-				cm->ref_frame_map[i];
-		}
-		*/
+		 *if (pbi->frame_parallel_decode) {
+		 *	for (i = 0; i < REF_FRAMES; ++i)
+		 *		cm->next_ref_frame_map[i] =
+		 *		cm->ref_frame_map[i];
+		 *}
+		 */
 		/* do not decode, search next start code */
 		return 1;
 	}
@@ -1951,13 +1989,14 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 	} else {
 		cm->intra_only = cm->show_frame ? 0 : params->p.intra_only;
 		/*if (print_header_info) {
-			if (cm->show_frame)
-				pr_info
-				("intra_only set to 0 because of show_frame\n");
-			else
-				pr_info
-				("1-bit intra_only read: %d\n", cm->intra_only);
-		}*/
+		 *	if (cm->show_frame)
+		 *		pr_info
+		 *		("intra_only set to 0 because of show_frame\n");
+		 *	else
+		 *		pr_info
+		 *		("1-bit intra_only read: %d\n", cm->intra_only);
+		 *}
+		 */
 
 
 		cm->reset_frame_context = cm->error_resilient_mode ?
@@ -1975,14 +2014,17 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 		if (cm->intra_only) {
 			if (cm->profile > PROFILE_0) {
 				/*read_bitdepth_colorspace_sampling(cm,
-					rb, print_header_info);*/
+				 *	rb, print_header_info);
+				 */
 			} else {
 				/*NOTE: The intra-only frame header
-				does not include the specification
-				of either the color format or color sub-sampling
-				in profile 0. VP9 specifies that the default
-				color format should be YUV 4:2:0 in this
-				case (normative).*/
+				 *does not include the specification
+				 *of either the color format or
+				 *color sub-sampling
+				 *in profile 0. VP9 specifies that the default
+				 *color format should be YUV 4:2:0 in this
+				 *case (normative).
+				 */
 				cm->color_space = VPX_CS_BT_601;
 				cm->subsampling_y = cm->subsampling_x = 1;
 				cm->bit_depth = VPX_BITS_8;
@@ -1992,75 +2034,76 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 			pbi->refresh_frame_flags =
 				params->p.refresh_frame_flags;
 			/*if (print_header_info)
-				pr_info("*%d-bits refresh_frame read:0x%x\n",
-				REF_FRAMES, pbi->refresh_frame_flags);*/
+			 *	pr_info("*%d-bits refresh_frame read:0x%x\n",
+			 *	REF_FRAMES, pbi->refresh_frame_flags);
+			 */
 			ret = setup_frame_size(pbi,
 				cm,
 				params,
 				pbi->frame_mmu_map_addr,
 				print_header_info);
-			if (ret) {
+			if (ret)
 				return -1;
-			}
 			if (pbi->need_resync) {
 				memset(&cm->ref_frame_map, -1,
 					sizeof(cm->ref_frame_map));
 				pbi->need_resync = 0;
 			}
 		} else if (pbi->need_resync != 1) {  /* Skip if need resync */
-				pbi->refresh_frame_flags =
-						params->p.refresh_frame_flags;
+			pbi->refresh_frame_flags =
+					params->p.refresh_frame_flags;
+			if (print_header_info)
+				pr_info
+				("*%d-bits refresh_frame read:0x%x\n",
+				REF_FRAMES, pbi->refresh_frame_flags);
+			for (i = 0; i < REFS_PER_FRAME; ++i) {
+				const int ref =
+					(params->p.ref_info >>
+					(((REFS_PER_FRAME-i-1)*4)+1))
+					& 0x7;
+				const int idx =
+					cm->ref_frame_map[ref];
+				struct RefBuffer_s * const ref_frame =
+					&cm->frame_refs[i];
 				if (print_header_info)
-					pr_info
-					("*%d-bits refresh_frame read:0x%x\n",
-					REF_FRAMES, pbi->refresh_frame_flags);
-				for (i = 0; i < REFS_PER_FRAME; ++i) {
-					const int ref =
-						(params->p.ref_info >>
-						(((REFS_PER_FRAME-i-1)*4)+1))
-						& 0x7;
-					const int idx =
-						cm->ref_frame_map[ref];
-					struct RefBuffer_s * const ref_frame =
-						&cm->frame_refs[i];
-					if (print_header_info)
-						pr_info
-						("*%d-bits ref[%d]read:%d\n",
+					pr_info("*%d-bits ref[%d]read:%d\n",
 						REF_FRAMES_LOG2, i, ref);
-					ref_frame->idx = idx;
-					ref_frame->buf = &frame_bufs[idx].buf;
-					cm->ref_frame_sign_bias[LAST_FRAME + i]
-					= (params->p.ref_info >>
-					((REFS_PER_FRAME-i-1)*4)) & 0x1;
-					if (print_header_info)
-						pr_info
-						("1bit ref_frame_sign_bias");
-						/*pr_info
-						("%dread: %d\n",
-						LAST_FRAME+i,
-						cm->ref_frame_sign_bias
-						[LAST_FRAME + i]);*/
-					/*pr_info
-					("[VP9 DEBUG]%s(get ref):%d\r\n",
-					__func__, ref_frame->idx);*/
+				ref_frame->idx = idx;
+				ref_frame->buf = &frame_bufs[idx].buf;
+				cm->ref_frame_sign_bias[LAST_FRAME + i]
+				= (params->p.ref_info >>
+				((REFS_PER_FRAME-i-1)*4)) & 0x1;
+				if (print_header_info)
+					pr_info("1bit ref_frame_sign_bias");
+				/*pr_info
+				 *("%dread: %d\n",
+				 *LAST_FRAME+i,
+				 *cm->ref_frame_sign_bias
+				 *[LAST_FRAME + i]);
+				 */
+				/*pr_info
+				 *("[VP9 DEBUG]%s(get ref):%d\r\n",
+				 *__func__, ref_frame->idx);
+				 */
 
-				}
+			}
 
-				ret = setup_frame_size_with_refs(
-					pbi,
-					cm,
-					params,
-					pbi->frame_mmu_map_addr,
-					print_header_info);
-				if (ret) {
-					return -1;
-				}
-				for (i = 0; i < REFS_PER_FRAME; ++i) {
-					/*struct RefBuffer_s *const ref_buf =
-					&cm->frame_refs[i];*/
-					/* to do:
-					vp9_setup_scale_factors_for_frame*/
-				}
+			ret = setup_frame_size_with_refs(
+				pbi,
+				cm,
+				params,
+				pbi->frame_mmu_map_addr,
+				print_header_info);
+			if (ret)
+				return -1;
+			for (i = 0; i < REFS_PER_FRAME; ++i) {
+				/*struct RefBuffer_s *const ref_buf =
+				 *&cm->frame_refs[i];
+				 */
+				/* to do:
+				 *vp9_setup_scale_factors_for_frame
+				 */
+			}
 		}
 	}
 
@@ -2102,11 +2145,12 @@ int vp9_bufmgr_process(struct VP9Decoder_s *pbi, union param_u *params)
 			(cm->last_frame_type != KEY_FRAME);
 
 	/*pr_info
-	("set use_prev_frame_mvs to %d (last_width %d last_height %d",
-	cm->use_prev_frame_mvs, cm->last_width, cm->last_height);
-	pr_info
-	(" last_intra_only %d last_show_frame %d last_frame_type %d)\n",
-	cm->last_intra_only, cm->last_show_frame, cm->last_frame_type);*/
+	 *("set use_prev_frame_mvs to %d (last_width %d last_height %d",
+	 *cm->use_prev_frame_mvs, cm->last_width, cm->last_height);
+	 *pr_info
+	 *(" last_intra_only %d last_show_frame %d last_frame_type %d)\n",
+	 *cm->last_intra_only, cm->last_show_frame, cm->last_frame_type);
+	 */
 	return 0;
 }
 
@@ -2126,7 +2170,8 @@ void swap_frame_buffers(struct VP9Decoder_s *pbi)
 	lock_buffer_pool(pool, flags);
 	--frame_bufs[cm->new_fb_idx].ref_count;
 	/*pr_info("[MMU DEBUG 8] dec ref_count[%d] : %d\r\n", cm->new_fb_idx,
-		frame_bufs[cm->new_fb_idx].ref_count);*/
+	 *	frame_bufs[cm->new_fb_idx].ref_count);
+	 */
 	unlock_buffer_pool(pool, flags);
 	/*}*/
 
@@ -2234,6 +2279,7 @@ int vp9_bufmgr_postproc(struct VP9Decoder_s *pbi)
 {
 	struct VP9_Common_s *cm = &pbi->common;
 	struct PIC_BUFFER_CONFIG_s sd;
+
 	swap_frame_buffers(pbi);
 	if (!cm->show_existing_frame) {
 		cm->last_show_frame = cm->show_frame;
@@ -2253,10 +2299,13 @@ int vp9_bufmgr_postproc(struct VP9Decoder_s *pbi)
 		sd.stream_offset = pbi->pre_stream_offset;
 		prepare_display_buf(pbi, &sd);
 		pbi->pre_stream_offset = READ_VREG(HEVC_SHIFT_BYTE_COUNT);
-	} /*else
-		pr_info
-		("Not display this frame,ready_for_new_data%d show_frame%d\r\n",
-		pbi->ready_for_new_data, cm->show_frame);*/
+	}
+
+/* else
+ *		pr_info
+ *		("Not display this frame,ready_for_new_data%d show_frame%d\r\n",
+ *		pbi->ready_for_new_data, cm->show_frame);
+ */
 	return 0;
 }
 
@@ -2264,10 +2313,11 @@ struct VP9Decoder_s vp9_decoder;
 union param_u vp9_param;
 
 /**************************************************
-
-VP9 buffer management end
-
-***************************************************/
+ *
+ *VP9 buffer management end
+ *
+ ***************************************************
+ */
 
 
 #define HEVC_CM_BODY_START_ADDR                    0x3626
@@ -2320,54 +2370,54 @@ static u32 dynamic_buf_num_margin = 7;
 static u32 buf_alloc_depth = 10;
 static u32 buf_alloc_size;
 /*
-bit[0]: 0,
-    bit[1]: 0, always release cma buffer when stop
-    bit[1]: 1, never release cma buffer when stop
-bit[0]: 1, when stop, release cma buffer if blackout is 1;
-do not release cma buffer is blackout is not 1
-
-bit[2]: 0, when start decoding, check current displayed buffer
-	 (only for buffer decoded by vp9) if blackout is 0
-	 1, do not check current displayed buffer
-
-bit[3]: 1, if blackout is not 1, do not release current
-			displayed cma buffer always.
-*/
+ *bit[0]: 0,
+ *    bit[1]: 0, always release cma buffer when stop
+ *    bit[1]: 1, never release cma buffer when stop
+ *bit[0]: 1, when stop, release cma buffer if blackout is 1;
+ *do not release cma buffer is blackout is not 1
+ *
+ *bit[2]: 0, when start decoding, check current displayed buffer
+ *	 (only for buffer decoded by vp9) if blackout is 0
+ *	 1, do not check current displayed buffer
+ *
+ *bit[3]: 1, if blackout is not 1, do not release current
+ *			displayed cma buffer always.
+ */
 /* set to 1 for fast play;
-	set to 8 for other case of "keep last frame"
-*/
+ *	set to 8 for other case of "keep last frame"
+ */
 static u32 buffer_mode = 1;
 /* buffer_mode_dbg: debug only*/
 static u32 buffer_mode_dbg = 0xffff0000;
 /**/
 
 /*
-bit 0, 1: only display I picture;
-bit 1, 1: only decode I picture;
-*/
+ *bit 0, 1: only display I picture;
+ *bit 1, 1: only decode I picture;
+ */
 static u32 i_only_flag;
 
 
 static u32 max_decoding_time;
 /*
-error handling
-*/
+ *error handling
+ */
 /*error_handle_policy:
-bit 0: 0, auto skip error_skip_nal_count nals before error recovery;
-1, skip error_skip_nal_count nals before error recovery;
-bit 1 (valid only when bit0 == 1):
-1, wait vps/sps/pps after error recovery;
-bit 2 (valid only when bit0 == 0):
-0, auto search after error recovery (vp9_recover() called);
-1, manual search after error recovery
-(change to auto search after get IDR: WRITE_VREG(NAL_SEARCH_CTL, 0x2))
-
-bit 4: 0, set error_mark after reset/recover
-    1, do not set error_mark after reset/recover
-bit 5: 0, check total lcu for every picture
-    1, do not check total lcu
-
-*/
+ *bit 0: 0, auto skip error_skip_nal_count nals before error recovery;
+ *1, skip error_skip_nal_count nals before error recovery;
+ *bit 1 (valid only when bit0 == 1):
+ *1, wait vps/sps/pps after error recovery;
+ *bit 2 (valid only when bit0 == 0):
+ *0, auto search after error recovery (vp9_recover() called);
+ *1, manual search after error recovery
+ *(change to auto search after get IDR: WRITE_VREG(NAL_SEARCH_CTL, 0x2))
+ *
+ *bit 4: 0, set error_mark after reset/recover
+ *    1, do not set error_mark after reset/recover
+ *bit 5: 0, check total lcu for every picture
+ *    1, do not check total lcu
+ *
+ */
 
 static u32 error_handle_policy;
 /*static u32 parser_sei_enable = 1;*/
@@ -2410,23 +2460,23 @@ static struct device *cma_dev;
 
 
 /*
-ucode parser/search control
-bit 0:  0, header auto parse; 1, header manual parse
-bit 1:  0, auto skip for noneseamless stream; 1, no skip
-bit [3:2]: valid when bit1==0;
-0, auto skip nal before first vps/sps/pps/idr;
-1, auto skip nal before first vps/sps/pps
-2, auto skip nal before first  vps/sps/pps,
-	and not decode until the first I slice (with slice address of 0)
-
-3, auto skip before first I slice (nal_type >=16 && nal_type<=21)
-bit [15:4] nal skip count (valid when bit0 == 1 (manual mode) )
-bit [16]: for NAL_UNIT_EOS when bit0 is 0:
-	0, send SEARCH_DONE to arm ;  1, do not send SEARCH_DONE to arm
-bit [17]: for NAL_SEI when bit0 is 0:
-	0, do not parse SEI in ucode; 1, parse SEI in ucode
-bit [31:20]: used by ucode for debug purpose
-*/
+ *ucode parser/search control
+ *bit 0:  0, header auto parse; 1, header manual parse
+ *bit 1:  0, auto skip for noneseamless stream; 1, no skip
+ *bit [3:2]: valid when bit1==0;
+ *0, auto skip nal before first vps/sps/pps/idr;
+ *1, auto skip nal before first vps/sps/pps
+ *2, auto skip nal before first  vps/sps/pps,
+ *	and not decode until the first I slice (with slice address of 0)
+ *
+ *3, auto skip before first I slice (nal_type >=16 && nal_type<=21)
+ *bit [15:4] nal skip count (valid when bit0 == 1 (manual mode) )
+ *bit [16]: for NAL_UNIT_EOS when bit0 is 0:
+ *	0, send SEARCH_DONE to arm ;  1, do not send SEARCH_DONE to arm
+ *bit [17]: for NAL_SEI when bit0 is 0:
+ *	0, do not parse SEI in ucode; 1, parse SEI in ucode
+ *bit [31:20]: used by ucode for debug purpose
+ */
 #define NAL_SEARCH_CTL            HEVC_ASSIST_SCRATCH_I
 #define DECODE_MODE              HEVC_ASSIST_SCRATCH_J
 #define DECODE_STOP_POS         HEVC_ASSIST_SCRATCH_K
@@ -2446,7 +2496,8 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		.max_height = 1088,
 		.ipp = {
 			/* IPP work space calculation :
-			   4096 * (Y+CbCr+Flags) = 12k, round to 16k */
+			 *   4096 * (Y+CbCr+Flags) = 12k, round to 16k
+			 */
 			.buf_size = 0x4000,
 		},
 		.sao_abv = {
@@ -2457,32 +2508,38 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		},
 		.short_term_rps = {
 			/* SHORT_TERM_RPS - Max 64 set, 16 entry every set,
-			   total 64x16x2 = 2048 bytes (0x800) */
+			 *   total 64x16x2 = 2048 bytes (0x800)
+			 */
 			.buf_size = 0x800,
 		},
 		.vps = {
 			/* VPS STORE AREA - Max 16 VPS, each has 0x80 bytes,
-			   total 0x0800 bytes */
+			 *   total 0x0800 bytes
+			 */
 			.buf_size = 0x800,
 		},
 		.sps = {
 			/* SPS STORE AREA - Max 16 SPS, each has 0x80 bytes,
-			   total 0x0800 bytes */
+			 *   total 0x0800 bytes
+			 */
 			.buf_size = 0x800,
 		},
 		.pps = {
 			/* PPS STORE AREA - Max 64 PPS, each has 0x80 bytes,
-			   total 0x2000 bytes */
+			 *   total 0x2000 bytes
+			 */
 			.buf_size = 0x2000,
 		},
 		.sao_up = {
 			/* SAO UP STORE AREA - Max 640(10240/16) LCU,
-			   each has 16 bytes total 0x2800 bytes */
+			 *   each has 16 bytes total 0x2800 bytes
+			 */
 			.buf_size = 0x2800,
 		},
 		.swap_buf = {
 			/* 256cyclex64bit = 2K bytes 0x800
-			   (only 144 cycles valid) */
+			 *   (only 144 cycles valid)
+			 */
 			.buf_size = 0x800,
 		},
 		.swap_buf2 = {
@@ -2490,13 +2547,15 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		},
 		.scalelut = {
 			/* support up to 32 SCALELUT 1024x32 =
-			   32Kbytes (0x8000) */
+			 *   32Kbytes (0x8000)
+			 */
 			.buf_size = 0x8000,
 		},
 		.dblk_para = {
 			/* DBLK -> Max 256(4096/16) LCU,
-			each para 1024bytes(total:0x40000),
-			data 1024bytes(total:0x40000)*/
+			 *each para 1024bytes(total:0x40000),
+			 *data 1024bytes(total:0x40000)
+			 */
 			.buf_size = 0x80000,
 		},
 		.dblk_data = {
@@ -2539,7 +2598,8 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		.max_height = 2304,
 		.ipp = {
 			/* IPP work space calculation :
-			   4096 * (Y+CbCr+Flags) = 12k, round to 16k */
+			 *   4096 * (Y+CbCr+Flags) = 12k, round to 16k
+			 */
 			.buf_size = 0x4000,
 		},
 		.sao_abv = {
@@ -2550,32 +2610,38 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		},
 		.short_term_rps = {
 			/* SHORT_TERM_RPS - Max 64 set, 16 entry every set,
-			   total 64x16x2 = 2048 bytes (0x800) */
+			 *   total 64x16x2 = 2048 bytes (0x800)
+			 */
 			.buf_size = 0x800,
 		},
 		.vps = {
 			/* VPS STORE AREA - Max 16 VPS, each has 0x80 bytes,
-			   total 0x0800 bytes */
+			 *   total 0x0800 bytes
+			 */
 			.buf_size = 0x800,
 		},
 		.sps = {
 			/* SPS STORE AREA - Max 16 SPS, each has 0x80 bytes,
-			   total 0x0800 bytes */
+			 *   total 0x0800 bytes
+			 */
 			.buf_size = 0x800,
 		},
 		.pps = {
 			/* PPS STORE AREA - Max 64 PPS, each has 0x80 bytes,
-			   total 0x2000 bytes */
+			 *   total 0x2000 bytes
+			 */
 			.buf_size = 0x2000,
 		},
 		.sao_up = {
 			/* SAO UP STORE AREA - Max 640(10240/16) LCU,
-			   each has 16 bytes total 0x2800 bytes */
+			 *   each has 16 bytes total 0x2800 bytes
+			 */
 			.buf_size = 0x2800,
 		},
 		.swap_buf = {
 			/* 256cyclex64bit = 2K bytes 0x800
-			   (only 144 cycles valid) */
+			 *   (only 144 cycles valid)
+			 */
 			.buf_size = 0x800,
 		},
 		.swap_buf2 = {
@@ -2583,13 +2649,15 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		},
 		.scalelut = {
 			/* support up to 32 SCALELUT 1024x32 = 32Kbytes
-			   (0x8000) */
+			 *   (0x8000)
+			 */
 			.buf_size = 0x8000,
 		},
 		.dblk_para = {
 			/* DBLK -> Max 256(4096/16) LCU,
-			each para 1024bytes(total:0x40000),
-			data 1024bytes(total:0x40000)*/
+			 *each para 1024bytes(total:0x40000),
+			 *data 1024bytes(total:0x40000)
+			 */
 			.buf_size = 0x80000,
 		},
 		.dblk_data = {
@@ -2618,7 +2686,8 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 #ifdef MV_USE_FIXED_BUF
 		.mpred_mv = {
 			/* .buf_size = 0x100000*16,
-			//4k2k , 0x100000 per buffer */
+			 * //4k2k , 0x100000 per buffer
+			 */
 			/* 4096x2304 , 0x120000 per buffer */
 			.buf_size = 0x120000 * FRAME_BUFFERS,
 		},
@@ -2640,6 +2709,7 @@ int  compute_losless_comp_body_size(int width, int height,
 	int     width_x64;
 	int     height_x32;
 	int     bsize;
+
 	width_x64 = width + 63;
 	width_x64 >>= 6;
 	height_x32 = height + 31;
@@ -2663,6 +2733,7 @@ static  int  compute_losless_comp_header_size(int width, int height)
 	int     width_x128;
 	int     height_x64;
 	int     hsize;
+
 	width_x128 = width + 127;
 	width_x128 >>= 7;
 	height_x64 = height + 63;
@@ -2681,6 +2752,7 @@ static void init_buff_spec(struct VP9Decoder_s *pbi,
 	struct BuffInfo_s *buf_spec)
 {
 	void *mem_start_virt;
+
 	buf_spec->ipp.buf_start = buf_spec->start_adr;
 	buf_spec->sao_abv.buf_start =
 		buf_spec->ipp.buf_start + buf_spec->ipp.buf_size;
@@ -2756,39 +2828,39 @@ static void init_buff_spec(struct VP9Decoder_s *pbi,
 		if (debug) {
 			pr_info("%s workspace (%x %x) size = %x\n", __func__,
 				   buf_spec->start_adr, buf_spec->end_adr,
-				   buf_spec->end_adr - buf_spec->start_adr);
-		}
-		if (debug) {
-			pr_info("ipp.buf_start             :%x\n",
-				   buf_spec->ipp.buf_start);
-			pr_info("sao_abv.buf_start          :%x\n",
-				   buf_spec->sao_abv.buf_start);
-			pr_info("sao_vb.buf_start          :%x\n",
-				   buf_spec->sao_vb.buf_start);
-			pr_info("short_term_rps.buf_start  :%x\n",
-				   buf_spec->short_term_rps.buf_start);
-			pr_info("vps.buf_start             :%x\n",
-				   buf_spec->vps.buf_start);
-			pr_info("sps.buf_start             :%x\n",
-				   buf_spec->sps.buf_start);
-			pr_info("pps.buf_start             :%x\n",
-				   buf_spec->pps.buf_start);
-			pr_info("sao_up.buf_start          :%x\n",
-				   buf_spec->sao_up.buf_start);
-			pr_info("swap_buf.buf_start        :%x\n",
-				   buf_spec->swap_buf.buf_start);
-			pr_info("swap_buf2.buf_start       :%x\n",
-				   buf_spec->swap_buf2.buf_start);
-			pr_info("scalelut.buf_start        :%x\n",
-				   buf_spec->scalelut.buf_start);
-			pr_info("dblk_para.buf_start       :%x\n",
-				   buf_spec->dblk_para.buf_start);
-			pr_info("dblk_data.buf_start       :%x\n",
-				   buf_spec->dblk_data.buf_start);
-			pr_info("seg_map.buf_start       :%x\n",
-				buf_spec->seg_map.buf_start);
-	#ifdef VP9_10B_MMU
-			pr_info("mmu_vbh.buf_start     :%x\n",
+			   buf_spec->end_adr - buf_spec->start_adr);
+	}
+	if (debug) {
+		pr_info("ipp.buf_start             :%x\n",
+			   buf_spec->ipp.buf_start);
+		pr_info("sao_abv.buf_start          :%x\n",
+			   buf_spec->sao_abv.buf_start);
+		pr_info("sao_vb.buf_start          :%x\n",
+			   buf_spec->sao_vb.buf_start);
+		pr_info("short_term_rps.buf_start  :%x\n",
+			   buf_spec->short_term_rps.buf_start);
+		pr_info("vps.buf_start             :%x\n",
+			   buf_spec->vps.buf_start);
+		pr_info("sps.buf_start             :%x\n",
+			   buf_spec->sps.buf_start);
+		pr_info("pps.buf_start             :%x\n",
+			   buf_spec->pps.buf_start);
+		pr_info("sao_up.buf_start          :%x\n",
+			   buf_spec->sao_up.buf_start);
+		pr_info("swap_buf.buf_start        :%x\n",
+			   buf_spec->swap_buf.buf_start);
+		pr_info("swap_buf2.buf_start       :%x\n",
+			   buf_spec->swap_buf2.buf_start);
+		pr_info("scalelut.buf_start        :%x\n",
+			   buf_spec->scalelut.buf_start);
+		pr_info("dblk_para.buf_start       :%x\n",
+			   buf_spec->dblk_para.buf_start);
+		pr_info("dblk_data.buf_start       :%x\n",
+			   buf_spec->dblk_data.buf_start);
+		pr_info("seg_map.buf_start       :%x\n",
+			buf_spec->seg_map.buf_start);
+#ifdef VP9_10B_MMU
+		pr_info("mmu_vbh.buf_start     :%x\n",
 				buf_spec->mmu_vbh.buf_start);
 	#endif
 			pr_info("mpred_above.buf_start     :%x\n",
@@ -3032,9 +3104,10 @@ static void decomp_get_comprate(void)
 /* cache_util.c end */
 
 /*====================================================
-========================================================================
-vp9_prob define
-========================================================================*/
+ *========================================================================
+ *vp9_prob define
+ *========================================================================
+ */
 #define VP9_PARTITION_START      0
 #define VP9_PARTITION_SIZE_STEP  (3 * 4)
 #define VP9_PARTITION_ONE_SIZE   (4 * VP9_PARTITION_SIZE_STEP)
@@ -3127,8 +3200,9 @@ vp9_prob define
 
 
 /*========================================================================
-	vp9_count_mem define
-========================================================================*/
+ *	vp9_count_mem define
+ *========================================================================
+ */
 #define VP9_COEF_COUNT_START           0
 #define VP9_COEF_COUNT_BAND_0_OFFSET   0
 #define VP9_COEF_COUNT_BAND_1_OFFSET   \
@@ -3260,6 +3334,7 @@ void   vp9_tree_merge_probs(unsigned int *prev_prob, unsigned int *cur_prob,
 	int prob_32, prob_res, prob_shift;
 	int pre_prob, new_prob;
 	int den, m_count, get_prob, factor;
+
 	prob_32 = prev_prob[coef_node_start / 4 * 2];
 	prob_res = coef_node_start & 3;
 	prob_shift = prob_res * 8;
@@ -3284,8 +3359,9 @@ void   vp9_tree_merge_probs(unsigned int *prev_prob, unsigned int *cur_prob,
 			& (~(0xff << prob_shift))) | (new_prob << prob_shift);
 
 	/*pr_info(" - [%d][%d] 0x%02X --> 0x%02X (0x%X 0x%X) (%X)\n",
-	tree_i, node, pre_prob, new_prob, tree_left, tree_right,
-	cur_prob[coef_node_start/4*2]);*/
+	 *tree_i, node, pre_prob, new_prob, tree_left, tree_right,
+	 *cur_prob[coef_node_start/4*2]);
+	 */
 }
 
 
@@ -3294,10 +3370,11 @@ void adapt_coef_probs(int pic_count, int prev_kf, int cur_kf, int pre_fc,
 	unsigned int *prev_prob, unsigned int *cur_prob, unsigned int *count)
 {
 	/* 80 * 64bits = 0xF00 ( use 0x1000 4K bytes)
-	unsigned int prev_prob[496*2];
-	unsigned int cur_prob[496*2];
-	0x300 * 128bits = 0x3000 (32K Bytes)
-	unsigned int count[0x300*4];*/
+	 *unsigned int prev_prob[496*2];
+	 *unsigned int cur_prob[496*2];
+	 *0x300 * 128bits = 0x3000 (32K Bytes)
+	 *unsigned int count[0x300*4];
+	 */
 
 	int tx_size, coef_tx_size_start, coef_count_tx_size_start;
 	int plane, coef_plane_start, coef_count_plane_start;
@@ -3312,7 +3389,8 @@ void adapt_coef_probs(int pic_count, int prev_kf, int cur_kf, int pre_fc,
 
 	int count_sat = 24;
 	/*int update_factor = 112;*/ /*If COEF_MAX_UPDATE_FACTOR_AFTER_KEY,
-	use 128*/
+	 *use 128
+	 */
 	/* If COEF_MAX_UPDATE_FACTOR_AFTER_KEY, use 128*/
 	/*int update_factor = (pic_count == 1) ? 128 : 112;*/
 	int update_factor =   cur_kf ? 112 :
@@ -3453,7 +3531,7 @@ void adapt_coef_probs(int pic_count, int prev_kf, int cur_kf, int pre_fc,
 		}
 	}
 
-if (cur_kf == 0) {
+	if (cur_kf == 0) {
 		/*mode_mv_merge_probs - merge_intra_inter_prob*/
 		for (coef_count_node_start = VP9_INTRA_INTER_COUNT_START;
 		coef_count_node_start < (VP9_MV_CLASS0_HP_1_COUNT_START +
@@ -3471,17 +3549,17 @@ if (cur_kf == 0) {
 				coef_node_start = VP9_COMP_INTER_START;
 			}
 			/*
-			else if (coef_count_node_start ==
-				VP9_COMP_REF_COUNT_START) {
-				pr_info(" # merge_comp_inter_prob\n");
-				coef_node_start = VP9_COMP_REF_START;
-			}
-			else if (coef_count_node_start ==
-				VP9_SINGLE_REF_COUNT_START) {
-				pr_info(" # merge_comp_inter_prob\n");
-				coef_node_start = VP9_SINGLE_REF_START;
-			}
-			*/
+			 *else if (coef_count_node_start ==
+			 *	VP9_COMP_REF_COUNT_START) {
+			 *	pr_info(" # merge_comp_inter_prob\n");
+			 *	coef_node_start = VP9_COMP_REF_START;
+			 *}
+			 *else if (coef_count_node_start ==
+			 *	VP9_SINGLE_REF_COUNT_START) {
+			 *	pr_info(" # merge_comp_inter_prob\n");
+			 *	coef_node_start = VP9_SINGLE_REF_START;
+			 *}
+			 */
 			else if (coef_count_node_start ==
 				VP9_TX_MODE_COUNT_START) {
 				if (debug & VP9_DEBUG_MERGE)
@@ -4137,9 +4215,9 @@ static int config_pic(struct VP9Decoder_s *pbi,
 	int buf_size = 0;
 
 	int losless_comp_header_size =
-			compute_losless_comp_header_size(pic_width ,
+			compute_losless_comp_header_size(pic_width,
 			pic_height);
-	int losless_comp_body_size = compute_losless_comp_body_size(pic_width ,
+	int losless_comp_body_size = compute_losless_comp_body_size(pic_width,
 			pic_height, buf_alloc_depth == 10);
 	int mc_buffer_size = losless_comp_header_size + losless_comp_body_size;
 	int mc_buffer_size_h = (mc_buffer_size + 0xffff) >> 16;
@@ -4244,7 +4322,8 @@ static int config_pic(struct VP9Decoder_s *pbi,
 #endif
 		{
 			/*ensure get_pic_by_POC()
-			not get the buffer not decoded*/
+			 *not get the buffer not decoded
+			 */
 			pic_config->BUF_index = i;
 			pic_config->lcu_total = lcu_total;
 
@@ -4379,19 +4458,22 @@ static void init_pic_list_hw(struct VP9Decoder_s *pbi)
 
 #ifdef VP9_10B_MMU
 	/*WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
-		pic_config->header_adr
-		| (pic_config->mc_canvas_y << 8)|0x1);*/
+	 *	pic_config->header_adr
+	 *	| (pic_config->mc_canvas_y << 8)|0x1);
+	 */
 	WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA, pic_config->header_adr >> 5);
 #else
 	/*WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
-		pic_config->mc_y_adr
-		| (pic_config->mc_canvas_y << 8) | 0x1);*/
+	 *	pic_config->mc_y_adr
+	 *	| (pic_config->mc_canvas_y << 8) | 0x1);
+	 */
 	WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA, pic_config->mc_y_adr >> 5);
 #endif
 #ifndef LOSLESS_COMPRESS_MODE
 	/*WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
-		pic_config->mc_u_v_adr
-		| (pic_config->mc_canvas_u_v << 8)| 0x1);*/
+	 *	pic_config->mc_u_v_adr
+	 *	| (pic_config->mc_canvas_u_v << 8)| 0x1);
+	 */
 	WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA, pic_config->mc_u_v_adr >> 5);
 #endif
 	}
@@ -4440,6 +4522,7 @@ static int config_pic_size(struct VP9Decoder_s *pbi, unsigned short bit_depth)
 	int losless_comp_header_size, losless_comp_body_size;
 	struct VP9_Common_s *cm = &pbi->common;
 	struct PIC_BUFFER_CONFIG_s *cur_pic_config = &cm->cur_frame->buf;
+
 	frame_width = cur_pic_config->y_crop_width;
 	frame_height = cur_pic_config->y_crop_height;
 	cur_pic_config->bit_depth = bit_depth;
@@ -4555,6 +4638,7 @@ static int config_mc_buffer(struct VP9Decoder_s *pbi, unsigned short bit_depth)
 static void clear_mpred_hw(struct VP9Decoder_s *pbi)
 {
 	unsigned int data32;
+
 	data32 = READ_VREG(HEVC_MPRED_CTRL4);
 	data32 &=  (~(1 << 6));
 	WRITE_VREG(HEVC_MPRED_CTRL4, data32);
@@ -4638,7 +4722,8 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 #endif
 	data32 = (mc_buffer_size_u_v_h << 16) << 1;
 	/*pr_info("data32=%x,mc_buffer_size_u_v_h=%x,lcu_total=%x\n",
-		data32, mc_buffer_size_u_v_h, pic_config->lcu_total);*/
+	 *	data32, mc_buffer_size_u_v_h, pic_config->lcu_total);
+	 */
 	WRITE_VREG(HEVC_SAO_Y_LENGTH, data32);
 
 	data32 = (mc_buffer_size_u_v_h << 16);
@@ -4654,7 +4739,8 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 |= 0x1; /* [1]:dw_disable [0]:cm_disable*/
 	WRITE_VREG(HEVC_SAO_CTRL1, data32);
 	/*[23:22] dw_v1_ctrl [21:20] dw_v0_ctrl [19:18] dw_h1_ctrl
-		[17:16] dw_h0_ctrl*/
+	 *	[17:16] dw_h0_ctrl
+	 */
 	data32 = READ_VREG(HEVC_SAO_CTRL5);
 	/*set them all 0 for H265_NV21 (no down-scale)*/
 	data32 &= ~(0xff << 16);
@@ -4677,7 +4763,8 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 |= 0x1; /*[1]:dw_disable [0]:cm_disable*/
 	WRITE_VREG(HEVC_SAO_CTRL1, data32);
 	/* [23:22] dw_v1_ctrl [21:20] dw_v0_ctrl
-	[19:18] dw_h1_ctrl [17:16] dw_h0_ctrl*/
+	 *[19:18] dw_h1_ctrl [17:16] dw_h0_ctrl
+	 */
 	data32 = READ_VREG(HEVC_SAO_CTRL5);
 	/* set them all 0 for H265_NV21 (no down-scale)*/
 	data32 &= ~(0xff << 16);
@@ -4695,8 +4782,11 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 = READ_VREG(HEVC_SAO_CTRL1);
 	data32 &= (~0x3000);
 	data32 |= (MEM_MAP_MODE <<
-			   12);	/* [13:12] axi_aformat, 0-Linear,
-				   1-32x32, 2-64x32 */
+			   12);
+
+/*  [13:12] axi_aformat, 0-Linear,
+ *				   1-32x32, 2-64x32
+ */
 	data32 &= (~0xff0);
 	/* data32 |= 0x670;  // Big-Endian per 64-bit */
 	data32 |= endian;	/* Big-Endian per 64-bit */
@@ -4712,10 +4802,10 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 
 	if (get_double_write_mode(pbi) & 0x10) {
 		/* [23:22] dw_v1_ctrl
-		[21:20] dw_v0_ctrl
-		[19:18] dw_h1_ctrl
-		[17:16] dw_h0_ctrl
-		*/
+		 *[21:20] dw_v0_ctrl
+		 *[19:18] dw_h1_ctrl
+		 *[17:16] dw_h0_ctrl
+		 */
 		data32 = READ_VREG(HEVC_SAO_CTRL5);
 		/*set them all 0 for H265_NV21 (no down-scale)*/
 		data32 &= ~(0xff << 16);
@@ -4796,7 +4886,8 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi)
 	WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, 0);
 #else
 	/*if(cur_pic_config->bit_depth == VPX_BITS_10)
-		WRITE_VREG(P_HEVCD_MPP_DECOMP_CTL1, (0<<3));*/
+	 *	WRITE_VREG(P_HEVCD_MPP_DECOMP_CTL1, (0<<3));
+	 */
 	/*bit[3] smem mdoe*/
 	/*else WRITE_VREG(P_HEVCD_MPP_DECOMP_CTL1, (1<<3));*/
 	/*bit[3] smem mdoe*/
@@ -4882,10 +4973,12 @@ struct segmentation {
 	uint8_t temporal_update;
 
 	/*no use for loop filter, if this struct
-	for common use, pls add it back*/
+	 *for common use, pls add it back
+	 */
 	/*vp9_prob tree_probs[SEG_TREE_PROBS]; */
 	/* no use for loop filter, if this struct
-		for common use, pls add it back*/
+	 *	for common use, pls add it back
+	 */
 	/*vp9_prob pred_probs[PREDICTION_PROBS];*/
 
 	int16_t feature_data[MAX_SEGMENTS][SEG_LVL_MAX];
@@ -4978,12 +5071,14 @@ void vp9_loop_filter_init(struct VP9Decoder_s *pbi)
 	vp9_update_sharpness(lfi, lf->sharpness_level);
 	lf->last_sharpness_level = lf->sharpness_level;
 	/*init hev threshold const vectors (actually no use)
-	for (i = 0; i <= MAX_LOOP_FILTER; i++)
-		lfi->lfthr[i].hev_thr = (uint8_t)(i >> 4);*/
+	 *for (i = 0; i <= MAX_LOOP_FILTER; i++)
+	 *	lfi->lfthr[i].hev_thr = (uint8_t)(i >> 4);
+	 */
 
 	/*Write to register*/
 	for (i = 0; i < 32; i++) {
 		unsigned int thr;
+
 		thr = ((lfi->lfthr[i * 2 + 1].lim & 0x3f)<<8) |
 			(lfi->lfthr[i * 2 + 1].mblim & 0xff);
 		thr = (thr<<16) | ((lfi->lfthr[i*2].lim & 0x3f)<<8) |
@@ -5001,8 +5096,9 @@ void vp9_loop_filter_frame_init(struct segmentation *seg,
 	int i;
 	int seg_id;
 	/*n_shift is the multiplier for lf_deltas
-	the multiplier is 1 for when filter_lvl is between 0 and 31;
-	2 when filter_lvl is between 32 and 63*/
+	 *the multiplier is 1 for when filter_lvl is between 0 and 31;
+	 *2 when filter_lvl is between 32 and 63
+	 */
 	const int scale = 1 << (default_filt_lvl >> 5);
 
 	/*update limits if sharpness has changed*/
@@ -5013,6 +5109,7 @@ void vp9_loop_filter_frame_init(struct segmentation *seg,
 	/*Write to register*/
 	for (i = 0; i < 32; i++) {
 		unsigned int thr;
+
 		thr = ((lfi->lfthr[i * 2 + 1].lim & 0x3f) << 8)
 			| (lfi->lfthr[i * 2 + 1].mblim & 0xff);
 		thr = (thr << 16) | ((lfi->lfthr[i * 2].lim & 0x3f) << 8)
@@ -5023,6 +5120,7 @@ void vp9_loop_filter_frame_init(struct segmentation *seg,
 
 	for (seg_id = 0; seg_id < MAX_SEGMENTS; seg_id++) {/*MAX_SEGMENTS = 8*/
 		int lvl_seg = default_filt_lvl;
+
 		if (segfeature_active(seg, seg_id, SEG_LVL_ALT_LF)) {
 			const int data = get_segdata(seg, seg_id,
 						SEG_LVL_ALT_LF);
@@ -5036,7 +5134,8 @@ void vp9_loop_filter_frame_init(struct segmentation *seg,
 
 	if (!lf->mode_ref_delta_enabled) {
 		/*we could get rid of this if we assume that deltas are set to
-		zero when not in use; encoder always uses deltas*/
+		 *zero when not in use; encoder always uses deltas
+		 */
 		memset(lfi->lvl[seg_id], lvl_seg, sizeof(lfi->lvl[seg_id]));
 	} else {
 		int ref, mode;
@@ -5087,6 +5186,7 @@ void vp9_loop_filter_frame_init(struct segmentation *seg,
 	/*Write to register */
 	for (i = 0; i < 16; i++) {
 		unsigned int level;
+
 		level = ((lfi->lvl[i >> 1][3][i & 1] & 0x3f) << 24) |
 			((lfi->lvl[i >> 1][2][i & 1] & 0x3f) << 16) |
 			((lfi->lvl[i >> 1][1][i & 1] & 0x3f) << 8) |
@@ -5194,11 +5294,11 @@ static void vp9_init_decoder_hw(struct VP9Decoder_s *pbi)
 	);
 	/*Changed to Start MPRED in microcode*/
 	/*
-	pr_info("[test.c] Start MPRED\n");
-	WRITE_VREG(HEVC_MPRED_INT_STATUS,
-	(1<<31)
-	);
-	*/
+	 *pr_info("[test.c] Start MPRED\n");
+	 *WRITE_VREG(HEVC_MPRED_INT_STATUS,
+	 *(1<<31)
+	 *);
+	 */
 	WRITE_VREG(HEVCD_IPP_TOP_CNTL,
 		(0 << 1) | /*enable ipp*/
 		(1 << 0)   /*software reset ipp and mpp*/
@@ -5312,7 +5412,6 @@ static void  config_mcrcc_axi_hw(struct VP9Decoder_s *pbi)
 	WRITE_VREG(HEVCD_MCRCC_CTL3, rdata32);
 	/*enable mcrcc progressive-mode*/
 	WRITE_VREG(HEVCD_MCRCC_CTL1, 0xff0);
-	return;
 }
 
 static void  config_mcrcc_axi_hw_new(struct VP9Decoder_s *pbi)
@@ -5523,12 +5622,11 @@ static void vp9_local_uninit(struct VP9Decoder_s *pbi)
 		pbi->rpm_addr = NULL;
 	}
 	if (pbi->lmem_addr) {
-			if (pbi->lmem_phy_addr)
-				dma_free_coherent(amports_get_dma_device(),
-						LMEM_BUF_SIZE, pbi->lmem_addr,
-						pbi->lmem_phy_addr);
-
-			pbi->lmem_addr = NULL;
+		if (pbi->lmem_phy_addr)
+			dma_free_coherent(amports_get_dma_device(),
+				LMEM_BUF_SIZE, pbi->lmem_addr,
+				pbi->lmem_phy_addr);
+		pbi->lmem_addr = NULL;
 	}
 	if (pbi->prob_buffer_addr) {
 		if (pbi->prob_buffer_phy_addr)
@@ -5574,6 +5672,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	/*int losless_comp_header_size, losless_comp_body_size;*/
 
 	struct BuffInfo_s *cur_buf_info = NULL;
+
 	memset(&pbi->param, 0, sizeof(union param_u));
 	memset(&pbi->common, 0, sizeof(struct VP9_Common_s));
 #ifdef MULTI_INSTANCE_SUPPORT
@@ -5684,17 +5783,17 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 		return -1;
 	}
 /*
-	pbi->lmem_phy_addr = dma_map_single(amports_get_dma_device(),
-		pbi->lmem_addr, LMEM_BUF_SIZE, DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(amports_get_dma_device(),
-		pbi->lmem_phy_addr)) {
-		pr_err("%s: failed to map lmem buffer\n", __func__);
-		kfree(pbi->lmem_addr);
-		pbi->lmem_addr = NULL;
-		return -1;
-	}
-*/
-	pbi->lmem_ptr = pbi->lmem_addr;
+ *		pbi->lmem_phy_addr = dma_map_single(amports_get_dma_device(),
+ *			pbi->lmem_addr, LMEM_BUF_SIZE, DMA_BIDIRECTIONAL);
+ *		if (dma_mapping_error(amports_get_dma_device(),
+ *			pbi->lmem_phy_addr)) {
+ *			pr_err("%s: failed to map lmem buffer\n", __func__);
+ *			kfree(pbi->lmem_addr);
+ *			pbi->lmem_addr = NULL;
+ *			return -1;
+ *		}
+ */
+		pbi->lmem_ptr = pbi->lmem_addr;
 
 	pbi->prob_buffer_addr = dma_alloc_coherent(amports_get_dma_device(),
 				PROB_BUF_SIZE,
@@ -5705,15 +5804,15 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	}
 	memset(pbi->prob_buffer_addr, 0, PROB_BUF_SIZE);
 /*	pbi->prob_buffer_phy_addr = dma_map_single(amports_get_dma_device(),
-	pbi->prob_buffer_addr, PROB_BUF_SIZE, DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(amports_get_dma_device(),
-	pbi->prob_buffer_phy_addr)) {
-		pr_err("%s: failed to map prob_buffer\n", __func__);
-		kfree(pbi->prob_buffer_addr);
-		pbi->prob_buffer_addr = NULL;
-		return -1;
-	}
-*/
+ *	pbi->prob_buffer_addr, PROB_BUF_SIZE, DMA_BIDIRECTIONAL);
+ *	if (dma_mapping_error(amports_get_dma_device(),
+ *	pbi->prob_buffer_phy_addr)) {
+ *		pr_err("%s: failed to map prob_buffer\n", __func__);
+ *		kfree(pbi->prob_buffer_addr);
+ *		pbi->prob_buffer_addr = NULL;
+ *		return -1;
+ *	}
+ */
 	pbi->count_buffer_addr = dma_alloc_coherent(amports_get_dma_device(),
 				COUNT_BUF_SIZE,
 				&pbi->count_buffer_phy_addr, GFP_KERNEL);
@@ -5723,15 +5822,15 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	}
 	memset(pbi->count_buffer_addr, 0, COUNT_BUF_SIZE);
 /*	pbi->count_buffer_phy_addr = dma_map_single(amports_get_dma_device(),
-	pbi->count_buffer_addr, COUNT_BUF_SIZE, DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(amports_get_dma_device(),
-		pbi->count_buffer_phy_addr)) {
-		pr_err("%s: failed to map count_buffer\n", __func__);
-		kfree(pbi->count_buffer_addr);
-		pbi->count_buffer_addr = NULL;
-		return -1;
-	}
-*/
+ *	pbi->count_buffer_addr, COUNT_BUF_SIZE, DMA_BIDIRECTIONAL);
+ *	if (dma_mapping_error(amports_get_dma_device(),
+ *		pbi->count_buffer_phy_addr)) {
+ *		pr_err("%s: failed to map count_buffer\n", __func__);
+ *		kfree(pbi->count_buffer_addr);
+ *		pbi->count_buffer_addr = NULL;
+ *		return -1;
+ *	}
+ */
 #ifdef VP9_10B_MMU
 	pbi->frame_mmu_map_addr = dma_alloc_coherent(amports_get_dma_device(),
 				FRAME_MMU_MAP_SIZE,
@@ -5742,14 +5841,15 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	}
 	memset(pbi->frame_mmu_map_addr, 0, COUNT_BUF_SIZE);
 /*	pbi->frame_mmu_map_phy_addr = dma_map_single(amports_get_dma_device(),
-	pbi->frame_mmu_map_addr, FRAME_MMU_MAP_SIZE, DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(amports_get_dma_device(),
-	pbi->frame_mmu_map_phy_addr)) {
-		pr_err("%s: failed to map count_buffer\n", __func__);
-		kfree(pbi->frame_mmu_map_addr);
-		pbi->frame_mmu_map_addr = NULL;
-		return -1;
-	}*/
+ *	pbi->frame_mmu_map_addr, FRAME_MMU_MAP_SIZE, DMA_BIDIRECTIONAL);
+ *	if (dma_mapping_error(amports_get_dma_device(),
+ *	pbi->frame_mmu_map_phy_addr)) {
+ *		pr_err("%s: failed to map count_buffer\n", __func__);
+ *		kfree(pbi->frame_mmu_map_addr);
+ *		pbi->frame_mmu_map_addr = NULL;
+ *		return -1;
+ *	}
+ */
 #endif
 
 	ret = 0;
@@ -5858,7 +5958,6 @@ static void set_frame_info(struct VP9Decoder_s *pbi, struct vframe_s *vf)
 	ar = min_t(u32, pbi->frame_ar, DISP_RATIO_ASPECT_RATIO_MAX);
 	vf->ratio_control = (ar << DISP_RATIO_ASPECT_RATIO_BIT);
 
-	return;
 }
 
 static int vvp9_vf_states(struct vframe_states *states, void *op_arg)
@@ -5878,6 +5977,7 @@ static struct vframe_s *vvp9_vf_peek(void *op_arg)
 {
 	struct vframe_s *vf;
 	struct VP9Decoder_s *pbi = (struct VP9Decoder_s *)op_arg;
+
 	if (step == 2)
 		return NULL;
 
@@ -5891,6 +5991,7 @@ static struct vframe_s *vvp9_vf_get(void *op_arg)
 {
 	struct vframe_s *vf;
 	struct VP9Decoder_s *pbi = (struct VP9Decoder_s *)op_arg;
+
 	if (step == 2)
 		return NULL;
 	else if (step == 1)
@@ -5944,6 +6045,7 @@ static int vvp9_event_cb(int type, void *data, void *private_data)
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 #if 0
 		unsigned long flags;
+
 		amhevc_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vvp9_vf_prov);
@@ -5965,6 +6067,7 @@ static int vvp9_event_cb(int type, void *data, void *private_data)
 void inc_vf_ref(struct VP9Decoder_s *pbi, int index)
 {
 	struct VP9_Common_s *cm = &pbi->common;
+
 	cm->buffer_pool->frame_bufs[index].buf.vf_ref++;
 
 	if (debug & VP9_DEBUG_BUFMGR_MORE)
@@ -6075,7 +6178,8 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		} else
 #endif
 		/* if (pts_lookup_offset(PTS_TYPE_VIDEO,
-		   stream_offset, &vf->pts, 0) != 0) { */
+		 *   stream_offset, &vf->pts, 0) != 0) {
+		 */
 		if (pts_lookup_offset_us64
 			(PTS_TYPE_VIDEO, stream_offset, &vf->pts, 0,
 			 &vf->pts_us64) != 0) {
@@ -6124,6 +6228,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 
 			} else {
 				int p = PTS_MODE_SWITCHING_RECOVERY_THREASHOLD;
+
 				pbi->pts_mode_recovery_count++;
 				if (pbi->pts_mode_recovery_count > p) {
 					pbi->pts_mode_switching_count = 0;
@@ -6196,17 +6301,16 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 			}
 #ifdef MULTI_INSTANCE_SUPPORT
 			if (pbi->m_ins_flag) {
-					vf->canvas0Addr = vf->canvas1Addr = -1;
-					vf->plane_num = 2;
-					vf->canvas0_config[0] =
-						pic_config->canvas_config[0];
-					vf->canvas0_config[1] =
-						pic_config->canvas_config[1];
-
-					vf->canvas1_config[0] =
-						pic_config->canvas_config[0];
-					vf->canvas1_config[1] =
-						pic_config->canvas_config[1];
+				vf->canvas0Addr = vf->canvas1Addr = -1;
+				vf->plane_num = 2;
+				vf->canvas0_config[0] =
+					pic_config->canvas_config[0];
+				vf->canvas0_config[1] =
+					pic_config->canvas_config[1];
+				vf->canvas1_config[0] =
+					pic_config->canvas_config[0];
+				vf->canvas1_config[1] =
+					pic_config->canvas_config[1];
 
 			} else
 #endif
@@ -6243,7 +6347,8 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 
 		set_frame_info(pbi, vf);
 		/* if((vf->width!=pic_config->width)|
-			(vf->height!=pic_config->height)) */
+		 *	(vf->height!=pic_config->height))
+		 */
 		/* pr_info("aaa: %d/%d, %d/%d\n",
 		   vf->width,vf->height, pic_config->width,
 			pic_config->height); */
@@ -6261,6 +6366,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		vf->compHeight = pic_config->y_crop_height;
 		if (force_fps & 0x100) {
 			u32 rate = force_fps & 0xff;
+
 			if (rate)
 				vf->duration = 96000/rate;
 			else
@@ -6315,6 +6421,7 @@ static void get_rpm_param(union param_u *params)
 {
 	int i;
 	unsigned int data32;
+
 	if (debug & VP9_DEBUG_BUFMGR)
 		pr_info("enter %s\r\n", __func__);
 	for (i = 0; i < 128; i++) {
@@ -6332,6 +6439,7 @@ static void get_rpm_param(union param_u *params)
 static void debug_buffer_mgr_more(struct VP9Decoder_s *pbi)
 {
 	int i;
+
 	if (!(debug & VP9_DEBUG_BUFMGR_MORE))
 		return;
 	pr_info("vp9_param: (%d)\n", pbi->slice_idx);
@@ -6454,8 +6562,8 @@ static irqreturn_t vvp9_isr_thread_fn(int irq, void *data)
 	int i, ret;
 
 	/*if (pbi->wait_buf)
-		pr_info("set wait_buf to 0\r\n");
-	*/
+	 *	pr_info("set wait_buf to 0\r\n");
+	 */
 	if (pbi->eos)
 		return IRQ_HANDLED;
 	pbi->wait_buf = 0;
@@ -6553,10 +6661,11 @@ static irqreturn_t vvp9_isr_thread_fn(int irq, void *data)
 
 		for (i = 0; i < (RPM_END - RPM_BEGIN); i += 4) {
 			int ii;
+
 			for (ii = 0; ii < 4; ii++)
 				vp9_param.l.data[i + ii] =
 					pbi->rpm_ptr[i + 3 - ii];
-		   }
+		}
 	}
 	debug_buffer_mgr_more(pbi);
 
@@ -6662,10 +6771,11 @@ static irqreturn_t vvp9_isr_thread_fn(int irq, void *data)
 		& 0x100) ? -(vp9_param.p.seg_lf_info[i]
 		& 0x3f) : (vp9_param.p.seg_lf_info[i] & 0x3f);
 	/*
-	* Update loop filter Thr/Lvl table for every frame
-	*/
+	 * Update loop filter Thr/Lvl table for every frame
+	 */
 	/*pr_info
-	("vp9_loop_filter (run before every frame decoding start)\n");*/
+	 *("vp9_loop_filter (run before every frame decoding start)\n");
+	 */
 	vp9_loop_filter_frame_init(pbi->seg_4lf,
 		pbi->lfi, pbi->lf, pbi->default_filt_lvl);
 #endif
@@ -6847,6 +6957,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 	unsigned int buf_level;
 
 	enum receviver_start_e state = RECEIVER_INACTIVE;
+
 	if (pbi->m_ins_flag) {
 		if (hw_to_vdec(pbi)->next_status
 			== VDEC_STATUS_DISCONNECTED) {
@@ -6897,9 +7008,10 @@ static void vvp9_put_timer_func(unsigned long arg)
 			if ((debug & VP9_DEBUG_DIS_SYS_ERROR_PROC) == 0) {
 				/* receiver has no buffer to recycle */
 				/*if ((state == RECEIVER_INACTIVE) &&
-					(kfifo_is_empty(&pbi->display_q))) {
-				pr_info("vp9 something error,need reset\n");
-				}*/
+				 *	(kfifo_is_empty(&pbi->display_q))) {
+				 *pr_info("vp9 something error,need reset\n");
+				 *}
+				 */
 			}
 		}
 	}
@@ -6997,6 +7109,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 	if (pop_shorts != 0) {
 		int i;
 		u32 sum = 0;
+
 		pr_info("pop stream 0x%x shorts\r\n", pop_shorts);
 		for (i = 0; i < pop_shorts; i++) {
 			u32 data =
@@ -7016,12 +7129,14 @@ static void vvp9_put_timer_func(unsigned long arg)
 	if (dbg_cmd != 0) {
 		if (dbg_cmd == 1) {
 			u32 disp_laddr;
+
 			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB &&
 				get_double_write_mode(pbi) == 0) {
 				disp_laddr =
 					READ_VCBUS_REG(AFBC_BODY_BADDR) << 4;
 			} else {
 				struct canvas_s cur_canvas;
+
 				canvas_read((READ_VCBUS_REG(VD1_IF0_CANVAS0)
 					& 0xff), &cur_canvas);
 				disp_laddr = cur_canvas.addr;
@@ -7037,6 +7152,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 		frame_width * frame_height *
 			(96000 / pbi->frame_dur)) {
 		int fps = 96000 / pbi->frame_dur;
+
 		if (hevc_source_changed(VFORMAT_VP9,
 			frame_width, frame_height, fps) > 0)
 			pbi->saved_resolution = frame_width *
@@ -7209,8 +7325,8 @@ static int vvp9_local_init(struct VP9Decoder_s *pbi)
 	if (width && height)
 		pbi->frame_ar = height * 0x100 / width;
 /*
-TODO:FOR VERSION
-*/
+ *TODO:FOR VERSION
+ */
 	pr_info("vp9: ver (%d,%d) decinfo: %dx%d rate=%d\n", vp9_version,
 		   0, width, height, pbi->frame_dur);
 
@@ -7223,6 +7339,7 @@ TODO:FOR VERSION
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &pbi->vfpool[i];
+
 		pbi->vfpool[i].index = -1;
 		kfifo_put(&pbi->newframe_q, vf);
 	}
@@ -7296,6 +7413,7 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 #endif
 
 	amhevc_enable();
+
 	if (size == 1)
 		pr_info ("tee load ok\n");
 	else if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data) < 0) {
@@ -7395,7 +7513,6 @@ static int vmvp9_stop(struct VP9Decoder_s *pbi)
 	return 0;
 }
 
-
 static int vvp9_stop(struct VP9Decoder_s *pbi)
 {
 
@@ -7443,7 +7560,6 @@ static int vvp9_stop(struct VP9Decoder_s *pbi)
 
 	vfree(pbi->fw);
 	pbi->fw = NULL;
-
 	return 0;
 }
 
@@ -7590,6 +7706,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 static int amvdec_vp9_remove(struct platform_device *pdev)
 {
 	struct VP9Decoder_s *pbi = &gHevc;
+
 	if (debug)
 		pr_info("amvdec_vp9_remove\n");
 

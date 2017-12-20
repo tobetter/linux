@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -113,7 +113,7 @@ static u32 error_watchdog_count;
 static uint error_recovery_mode;
 static u32 sync_outside;
 static u32 vh264_4k2k_rotation;
-static u32 first_i_recieved;
+static u32 first_i_received;
 static struct vframe_s *p_last_vf;
 
 #ifdef DEBUG_PTS
@@ -194,7 +194,8 @@ static struct device *cma_dev;
 
 /********************************************
  *  DECODE_STATUS Define
-********************************************/
+ *******************************************
+ */
 #define DECODE_IDLE             0
 #define DECODE_START_HEADER     1
 #define DECODE_HEADER           2
@@ -206,7 +207,8 @@ static struct device *cma_dev;
 
 /********************************************
  *  Dual Core Communication
-********************************************/
+ ********************************************
+ */
 #define FATAL_ERROR             DOS_SCRATCH16
 #define PRE_MASTER_UPDATE_TIMES DOS_SCRATCH20
 /* bit[31] - REQUEST */
@@ -308,12 +310,12 @@ static void set_frame_info(struct vframe_s *vf)
 	vf->ratio_control = (ar << DISP_RATIO_ASPECT_RATIO_BIT);
 	vf->orientation = vh264_4k2k_rotation;
 
-	return;
 }
 
 static int vh264_4k2k_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 
 	states->vf_pool_size = VF_POOL_SIZE;
@@ -354,6 +356,7 @@ static int vh264_4k2k_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 
 		if (!H264_4K2K_SINGLE_CORE)
@@ -573,12 +576,12 @@ static void do_alloc_work(struct work_struct *work)
 
 	ret = READ_VREG(MAILBOX_DATA_0);
 	/*  MAILBOX_DATA_1 :
-		bit15    : frame_mbs_only_flag
-		bit 0-7 : chroma_format_idc
-	    MAILBOX_DATA_2:
-		bit31-16: (left << 8 | right ) << 1
-		bit15-0 : (top << 8  | bottom ) <<  (2 - frame_mbs_only_flag)
-	*/
+	 *	bit15    : frame_mbs_only_flag
+	 *	bit 0-7 : chroma_format_idc
+	 *    MAILBOX_DATA_2:
+	 *	bit31-16: (left << 8 | right ) << 1
+	 *	bit15-0 : (top << 8  | bottom ) <<  (2 - frame_mbs_only_flag)
+	 */
 	frame_mbs_only_flag = READ_VREG(MAILBOX_DATA_1);
 	crop_infor = READ_VREG(MAILBOX_DATA_2);
 	level_idc = (ret >> 24) & 0xff;
@@ -671,7 +674,7 @@ static void do_alloc_work(struct work_struct *work)
 static irqreturn_t vh264_4k2k_isr(int irq, void *dev_id)
 {
 	int drop_status, display_buff_id, display_POC, slice_type, error;
-	unsigned stream_offset;
+	unsigned int stream_offset;
 	struct vframe_s *vf = NULL;
 	int ret = READ_VREG(MAILBOX_COMMAND);
 
@@ -718,8 +721,9 @@ static irqreturn_t vh264_4k2k_isr(int irq, void *dev_id)
 #ifdef H264_4K2K_SINGLE_CORE
 			if (READ_VREG(DECODE_MODE) & 1) {
 				/* for I only mode, ignore the PTS information
-				   and only uses 10fps for each
-				   I frame decoded */
+				 *   and only uses 10fps for each
+				 *   I frame decoded
+				 */
 				if (p_last_vf) {
 					vf->pts = 0;
 					vf->pts_us64 = 0;
@@ -742,13 +746,13 @@ static irqreturn_t vh264_4k2k_isr(int irq, void *dev_id)
 			vdec_count_info(gvs, error, stream_offset);
 
 			if (((error_recovery_mode & 2) && error)
-				|| (!first_i_recieved
+				|| (!first_i_received
 					&& (slice_type != SLICE_TYPE_I))) {
 				kfifo_put(&recycle_q,
 						  (const struct vframe_s *)vf);
 			} else {
 				p_last_vf = vf;
-				first_i_recieved = 1;
+				first_i_received = 1;
 				vf->mem_handle =
 				decoder_bmmu_box_get_mem_handle(
 					mm_blk_handle,
@@ -897,10 +901,13 @@ static void vh264_4k2k_put_timer_func(unsigned long arg)
 		(kfifo_is_empty(&recycle_q)) &&	/* no buf to recycle */
 		(READ_VREG(MS_ID) & 0x100)
 #ifdef CONFIG_H264_2K4K_SINGLE_CORE
-		&& (READ_VREG(VDEC2_MS_ID) & 0x100)/* with both decoder
-						      have started decoding */
+		&& (READ_VREG(VDEC2_MS_ID) & 0x100)
+
+/*  with both decoder
+ *						      have started decoding
+ */
 #endif
-		&& first_i_recieved) {
+		&& first_i_received) {
 		if (++error_watchdog_count == ERROR_RESET_COUNT) {
 			/* and it lasts for a while */
 			pr_info("H264 4k2k decoder fatal error watchdog.\n");
@@ -918,6 +925,7 @@ static void vh264_4k2k_put_timer_func(unsigned long arg)
 	while (!kfifo_is_empty(&recycle_q) &&
 			(READ_VREG(BUFFER_RECYCLE) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index >= 0)
 					&& (vf->index < DECODE_BUFFER_NUM_MAX)
@@ -929,10 +937,11 @@ static void vh264_4k2k_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	if (first_i_recieved &&/*do switch after first i frame ready.*/
+	if (first_i_received &&/*do switch after first i frame ready.*/
 		frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		pr_info("H264 4k2k resolution changed!!\n");
 		if (vdec_source_changed(VFORMAT_H264_4K2K,
 			frame_width, frame_height, fps) > 0)/*changed clk ok*/
@@ -1228,55 +1237,88 @@ static void vh264_4k2k_prot_init(void)
 #ifdef DOUBLE_WRITE
 	WRITE_VREG(MDEC_DOUBLEW_CFG0, (0 << 31) |	/* half y address */
 			   (1 << 30) |	/* 0:No Merge 1:Automatic Merge */
-			   (0 << 28) |	/* Field Picture, 0x:no skip
-					   10:top only
-					   11:bottom only */
+			   (0 << 28) |
+
+/*  Field Picture, 0x:no skip
+ *					   10:top only
+ *					   11:bottom only
+ */
 			   (0 << 27) |	/* Source from, 1:MCW 0:DBLK */
 			   (0 << 24) |	/* Endian Control for Chroma */
 			   (0 << 18) |	/* DMA ID */
 			   (0 << 12) |	/* DMA Burst Number */
 			   (0 << 11) |	/* DMA Urgent */
 			   (0 << 10) |	/* 1:Round 0:Truncation */
-			   (1 << 9) |	/* Size by vertical,   0:original size
-					   1: 1/2 shrunken size */
-			   (1 << 8) |	/* Size by horizontal, 0:original size
-					   1: 1/2 shrunken size */
-			   (0 << 6) |	/* Pixel sel by vertical,   0x:1/2
-					   10:up
-					   11:down */
-			   (0 << 4) |	/* Pixel sel by horizontal, 0x:1/2
-					   10:left
-					   11:right */
+			   (1 << 9) |
+
+/*  Size by vertical,   0:original size
+ *					   1: 1/2 shrunken size
+ */
+			   (1 << 8) |
+
+/*  Size by horizontal, 0:original size
+ *					   1: 1/2 shrunken size
+ */
+			   (0 << 6) |
+
+/*  Pixel sel by vertical,   0x:1/2
+ *					   10:up
+ *					   11:down
+ */
+			   (0 << 4) |
+
+/*  Pixel sel by horizontal, 0x:1/2
+ *					   10:left
+ *					   11:right
+ */
 			   (0 << 1) |	/* Endian Control for Luma */
 			   (1 << 0));	/* Double Write Enable */
 	if (!H264_4K2K_SINGLE_CORE) {
 		WRITE_VREG(VDEC2_MDEC_DOUBLEW_CFG0,
 				(0 << 31) |	/* half y address */
-				   (1 << 30) |	/* 0:No Merge
-						   1:Automatic Merge */
-				   (0 << 28) |	/* Field Picture, 0x:no skip
-						   10:top only
-						   11:bottom only */
+				   (1 << 30) |
+
+/*  0:No Merge
+ *						   1:Automatic Merge
+ */
+				   (0 << 28) |
+
+/*  Field Picture, 0x:no skip
+ *						   10:top only
+ *						   11:bottom only
+ */
 				   (0 << 27) |	/* Source from, 1:MCW 0:DBLK */
 				   (0 << 24) |	/* Endian Control for Chroma */
 				   (0 << 18) |	/* DMA ID */
 				   (0 << 12) |	/* DMA Burst Number */
 				   (0 << 11) |	/* DMA Urgent */
 				   (0 << 10) |	/* 1:Round 0:Truncation */
-				   (1 << 9) |	/* Size by vertical,
-						   0:original size
-						   1: 1/2 shrunken size */
-				   (1 << 8) |	/* Size by horizontal,
-						   0:original size
-						   1: 1/2 shrunken size */
-				   (0 << 6) |	/* Pixel sel by vertical,
-						   0x:1/2
-						   10:up
-						   11:down */
-				   (0 << 4) |	/* Pixel sel by horizontal,
-						   0x:1/2
-						   10:left
-						   11:right */
+				   (1 << 9) |
+
+/*  Size by vertical,
+ *						   0:original size
+ *						   1: 1/2 shrunken size
+ */
+				   (1 << 8) |
+
+/*  Size by horizontal,
+ *						   0:original size
+ *						   1: 1/2 shrunken size
+ */
+				   (0 << 6) |
+
+/*  Pixel sel by vertical,
+ *						   0x:1/2
+ *						   10:up
+ *						   11:down
+ */
+				   (0 << 4) |
+
+/*  Pixel sel by horizontal,
+ *						   0x:1/2
+ *						   10:left
+ *						   11:right
+ */
 				   (0 << 1) |	/* Endian Control for Luma */
 				   (1 << 0));	/* Double Write Enable */
 	}
@@ -1324,13 +1366,14 @@ static int vh264_4k2k_local_init(void)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &vfpool[i];
+
 		vfpool[i].index = DECODE_BUFFER_NUM_MAX;
 		kfifo_put(&newframe_q, vf);
 	}
 
 	reserved_buffer = 0;
 	p_last_vf = NULL;
-	first_i_recieved = 0;
+	first_i_received = 0;
 	INIT_WORK(&alloc_work, do_alloc_work);
 
 	if (mm_blk_handle) {
@@ -1356,6 +1399,7 @@ static s32 vh264_4k2k_init(void)
 {
 	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
@@ -1569,6 +1613,7 @@ static int vh264_4k2k_stop(void)
 void vh264_4k_free_cmabuf(void)
 {
 	int i;
+
 	if (atomic_read(&vh264_4k2k_active))
 		return;
 	mutex_lock(&vh264_4k2k_mutex);
@@ -1659,7 +1704,7 @@ static int amvdec_h264_4k2k_remove(struct platform_device *pdev)
 
 	vh264_4k2k_stop();
 
-	vdec_source_changed(VFORMAT_H264_4K2K , 0 , 0 , 0);
+	vdec_source_changed(VFORMAT_H264_4K2K, 0, 0, 0);
 
 	if (!H264_4K2K_SINGLE_CORE) {
 		vdec_poweroff(VDEC_2);

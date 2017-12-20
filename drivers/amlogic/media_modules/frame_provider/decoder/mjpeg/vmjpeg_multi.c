@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -50,9 +50,9 @@
 #define CHECK_INTERVAL        (HZ/100)
 
 /* protocol register usage
-    AV_SCRATCH_4 : decode buffer spec
-    AV_SCRATCH_5 : decode buffer index
-*/
+ *    AV_SCRATCH_4 : decode buffer spec
+ *    AV_SCRATCH_5 : decode buffer index
+ */
 
 #define MREG_DECODE_PARAM   AV_SCRATCH_2	/* bit 0-3: pico_addr_mode */
 /* bit 15-4: reference height */
@@ -418,7 +418,7 @@ static void vmjpeg_canvas_init(struct vdec_s *vdec)
 static void init_scaler(void)
 {
 	/* 4 point triangle */
-	const unsigned filt_coef[] = {
+	const unsigned int filt_coef[] = {
 		0x20402000, 0x20402000, 0x1f3f2101, 0x1f3f2101,
 		0x1e3e2202, 0x1e3e2202, 0x1d3d2303, 0x1d3d2303,
 		0x1c3c2404, 0x1c3c2404, 0x1b3b2505, 0x1b3b2505,
@@ -631,6 +631,7 @@ static s32 vmjpeg_init(struct vdec_s *vdec)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &hw->vfpool[i];
+
 		hw->vfpool[i].index = -1;
 		kfifo_put(&hw->newframe_q, vf);
 	}

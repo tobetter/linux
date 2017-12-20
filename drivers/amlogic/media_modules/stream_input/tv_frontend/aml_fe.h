@@ -122,7 +122,7 @@ struct aml_fe_dev {
 	/*i2c and reset gpio for all demod and tune*/
 	int						i2c_adap_id;
 	int						i2c_addr;
-	struct i2c_adapter 		*i2c_adap;
+	struct i2c_adapter		*i2c_adap;
 	int						reset_gpio;
 	int						reset_value;
 };
@@ -137,7 +137,8 @@ struct aml_fe {
 	int				init;
 	int				dev_id;
 	enum fe_delivery_system         sys;
-	int         				sub_sys;/*used to identify T T2 OR C-A C-B C-C,S S2,ISDBT ISDBS ISDBC*/
+	int	sub_sys;
+/*used to identify T T2 OR C-A C-B C-C,S S2,ISDBT ISDBS ISDBC*/
 	enum aml_ts_source_t		ts;
 	struct aml_fe_dev              *tuner;
 	struct aml_fe_dev              *atv_demod;
@@ -149,10 +150,10 @@ struct aml_fe {
 	struct dvbsx_blindscanpara		blind_scan_para;
 
 	/*Driver's work function.*/
-	void (*do_work) (struct aml_fe *fe);
+	void (*do_work)(struct aml_fe *fe);
 	/*Driver's property function.*/
-	int (*get_property)(struct dvb_frontend* fe, struct dtv_property* tvp);
-	int (*set_property)(struct dvb_frontend* fe, struct dtv_property* tvp);
+	int (*get_property)(struct dvb_frontend *fe, struct dtv_property *tvp);
+	int (*set_property)(struct dvb_frontend *fe, struct dtv_property *tvp);
 };
 
 struct aml_fe_man {
@@ -177,10 +178,10 @@ extern int aml_fe_of_property_u32(struct aml_fe_dev *dev,
 			const char *name, u32 *v);
 
 extern void  aml_fe_set_pdata(struct aml_fe_dev *dev, void *pdata);
-extern void* aml_fe_get_pdata(struct aml_fe_dev *dev);
+extern void *aml_fe_get_pdata(struct aml_fe_dev *dev);
 
 extern void aml_fe_schedule_work(struct aml_fe *fe,
-			void(*func)(struct aml_fe *fe));
+			void (*func)(struct aml_fe *fe));
 extern void aml_fe_cancel_work(struct aml_fe *fe);
 extern int  aml_fe_work_cancelled(struct aml_fe *fe);
 extern int  aml_fe_work_sleep(struct aml_fe *fe, unsigned long delay);

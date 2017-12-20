@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -195,7 +195,7 @@ static inline u32 index2canvas(u32 index)
 	return canvas_tab[index];
 }
 
-static void set_aspect_ratio(struct vframe_s *vf, unsigned pixel_ratio)
+static void set_aspect_ratio(struct vframe_s *vf, unsigned int pixel_ratio)
 {
 	int ar = 0;
 
@@ -334,7 +334,8 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 #ifdef DEBUG_PTS
 		if (picture_type == I_PICTURE) {
 			/* pr_info("I offset 0x%x,
-			pts_valid %d\n", offset, pts_valid); */
+			 *pts_valid %d\n", offset, pts_valid);
+			 */
 			if (!pts_valid)
 				pts_i_missed++;
 			else
@@ -358,7 +359,8 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 					frm.num);
 					/* check if measured rate is same as
 					 * settings from upper layer
-					 * and correct it if necessary */
+					 * and correct it if necessary
+					 */
 					if ((close_to(frm.rate, RATE_30_FPS,
 						RATE_CORRECTION_THRESHOLD) &&
 						close_to(
@@ -369,13 +371,13 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 						||
 						(close_to(
 						frm.rate, RATE_24_FPS,
-						  RATE_CORRECTION_THRESHOLD)
-						 &&
-						 close_to(DUR2PTS(
+						RATE_CORRECTION_THRESHOLD)
+						&&
+						close_to(DUR2PTS(
 						vvc1_amstream_dec_info.rate),
 						RATE_30_FPS,
 						RATE_CORRECTION_THRESHOLD))) {
-							pr_info(
+						pr_info(
 						"vvc1: frate from %d to %d\n",
 						vvc1_amstream_dec_info.rate,
 						PTS2DUR(frm.rate));
@@ -388,8 +390,11 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 						vvc1_amstream_dec_info.rate),
 						RATE_CORRECTION_THRESHOLD))
 						frm.state = RATE_MEASURE_DONE;
-					else {	/*maybe still have problem,
-						try next double frames.... */
+					else {
+
+/* maybe still have problem,
+ *						try next double frames....
+ */
 						frm.state = RATE_MEASURE_DONE;
 						frm.start_pts = pts;
 						frm.state =
@@ -403,7 +408,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 
 		if (frm.state != RATE_MEASURE_DONE)
 			frm.num += (repeat_count > 1) ? repeat_count : 1;
-		if (0 == vvc1_amstream_dec_info.rate)
+		if (vvc1_amstream_dec_info.rate == 0)
 			vvc1_amstream_dec_info.rate = PTS2DUR(frm.rate);
 
 		if (reg & INTERLACE_FLAG) {	/* interlace */
@@ -639,7 +644,8 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 		vdec_count_info(gvs, 0, offset);
 
 		/* pr_info("PicType = %d, PTS = 0x%x, repeat
-		count %d\n", picture_type, vf->pts, repeat_count); */
+		 *count %d\n", picture_type, vf->pts, repeat_count);
+		 */
 		WRITE_VREG(VC1_BUFFEROUT, 0);
 	}
 
@@ -694,6 +700,7 @@ static int vvc1_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vvc1_vf_prov);
@@ -928,6 +935,7 @@ static void vvc1_local_init(void)
 	cur_pool_idx ^= 1;
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf;
+
 		if (cur_pool_idx == 0) {
 			vf = &vfpool[i];
 			vfpool[i].index = DECODE_BUFFER_NUM_MAX;
@@ -959,7 +967,8 @@ static void vvc1_ppmgr_reset(void)
 	vvc1_local_init();
 
 	/* vf_notify_receiver(PROVIDER_NAME,
-	* VFRAME_EVENT_PROVIDER_START,NULL); */
+	 * VFRAME_EVENT_PROVIDER_START,NULL);
+	 */
 
 	pr_info("vvc1dec: vf_ppmgr_reset\n");
 }
@@ -986,6 +995,7 @@ static void vvc1_put_timer_func(unsigned long arg)
 
 	while (!kfifo_is_empty(&recycle_q) && (READ_VREG(VC1_BUFFERIN) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index < DECODE_BUFFER_NUM_MAX) &&
 				(--vfbuf_use[vf->index] == 0)) {
@@ -999,6 +1009,7 @@ static void vvc1_put_timer_func(unsigned long arg)
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_VC1,
 			frame_width, frame_height, fps);
@@ -1012,6 +1023,7 @@ static s32 vvc1_init(void)
 {
 	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 

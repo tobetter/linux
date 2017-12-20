@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -21,12 +21,12 @@
 
 #include "config_parser.h"
 /*
-sample config:
-configs: width:1920;height:1080;
-need:width
-ok: return 0;
-*val = value;
-*/
+ *sample config:
+ *configs: width:1920;height:1080;
+ *need:width
+ *ok: return 0;
+ **val = value;
+ */
 int get_config_int(const char *configs, const char *need, int *val)
 {
 	const char *str;
@@ -40,11 +40,11 @@ int get_config_int(const char *configs, const char *need, int *val)
 	if (str != NULL) {
 		if (str > configs && str[-1] != ';') {
 			/*
-			   if not the first config val.
-			   make sure before is ';'
-			   to recognize:
-			   ;crop_width:100
-			   ;width:100
+			 *   if not the first config val.
+			 *   make sure before is ';'
+			 *   to recognize:
+			 *   ;crop_width:100
+			 *   ;width:100
 			 */
 			return -2;
 		}

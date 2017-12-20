@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -751,7 +751,7 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 		isphybuf = drm->drm_flag;
 		/* DRM_PRNT("drm_get_rawdata
 		 *onlydrminfo drm->drm_hasesdata[0x%x]
-		* stbuf->type %d buf[0x%x]\n",
+		 * stbuf->type %d buf[0x%x]\n",
 		 *drm->drm_hasesdata,stbuf->type,buf);
 		 */
 	} else if (drm->drm_hasesdata == 1) {	/* buf is drminfo+es; */
@@ -759,18 +759,18 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 		realbuf = (unsigned long)buf + sizeof(struct drm_info);
 		isphybuf = 0;
 		/* DRM_PRNT("drm_get_rawdata
-		*   drminfo+es drm->drm_hasesdata[0x%x]
-		  * stbuf->type %d\n",drm->drm_hasesdata,stbuf->type);
-		  */
+		 *   drminfo+es drm->drm_hasesdata[0x%x]
+		 * stbuf->type %d\n",drm->drm_hasesdata,stbuf->type);
+		 */
 	} else {		/* buf is hwhead; */
 		realcount = count;
 		isphybuf = 0;
 		realbuf = (unsigned long)buf;
 		/* DRM_PRNT("drm_get_rawdata
 		 *  drm->drm_hasesdata[0x%x]
-		  * len[%d] count[%d] realcout[%d]\n",
-		  * drm->drm_hasesdata,len,count,realcount);
-		  */
+		 * len[%d] count[%d] realcout[%d]\n",
+		 * drm->drm_hasesdata,len,count,realcount);
+		 */
 	}
 
 	len = realcount;
@@ -822,10 +822,10 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 	return re_count;
 }
 /*
-*flags:
-*1:phy
-*2:noblock
-*/
+ *flags:
+ *1:phy
+ *2:noblock
+ */
 ssize_t esparser_write_ex(struct file *file,
 			struct stream_buf_s *stbuf,
 			const char __user *buf, size_t count,
@@ -878,10 +878,12 @@ ssize_t esparser_write(struct file *file,
 {
 	if (stbuf->write_thread) {
 		ssize_t ret;
+
 		ret = threadrw_write(file, stbuf, buf, count);
 		if (ret == -EAGAIN) {
 			u32 a, b;
 			int vdelay, adelay;
+
 			if ((stbuf->type != BUF_TYPE_VIDEO) &&
 				(stbuf->type != BUF_TYPE_HEVC))
 				return ret;
@@ -899,10 +901,11 @@ ssize_t esparser_write(struct file *file,
 				(adelay > 0 && adelay < 1000))/*audio is low.*/
 				) {
 				/*on buffer fulled.
-				if delay is less than 100ms we think errors,
-				And we add more buffer on delay < 2s.
-				*/
+				 *if delay is less than 100ms we think errors,
+				 *And we add more buffer on delay < 2s.
+				 */
 				int new_size = 2 * 1024 * 1024;
+
 				threadrw_alloc_more_buffer_size(
 						stbuf, new_size);
 			}

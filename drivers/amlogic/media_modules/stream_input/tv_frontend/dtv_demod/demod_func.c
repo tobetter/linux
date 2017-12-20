@@ -21,7 +21,7 @@
 		if (debug_demod) \
 			pr_info("FE: " fmt, ## args); \
 	} while (0)
-#define pr_error(fmt, args ...) printk("FE: " fmt, ## args)
+#define pr_error(fmt, args ...) pr_info("FE: " fmt, ## args)
 
 MODULE_PARM_DESC(debug_demod, "\n\t\t Enable frontend debug information");
 static int debug_demod;
@@ -330,6 +330,7 @@ void dtvpll_init_flag(int on)
 int get_dtvpll_init_flag(void)
 {
 	int val;
+
 	mutex_lock(&dtvpll_init_lock);
 	val = dtvpll_init;
 	mutex_unlock(&dtvpll_init_lock);
@@ -555,20 +556,22 @@ void demod_set_adc_core_clk(int adc_clk, int sys_clk, int dvb_mode)
 	adc_dpll_setup(25, adc_clk, sys_clk);
 }
 
-void demod_set_cbus_reg(unsigned data, unsigned addr)
+void demod_set_cbus_reg(unsigned int data, unsigned int addr)
 {
 	void __iomem *vaddr;
+
 	pr_dbg("[cbus][write]%x\n", (IO_CBUS_PHY_BASE + (addr << 2)));
 	vaddr = ioremap((IO_CBUS_PHY_BASE + (addr << 2)), 0x4);
 	writel(data, vaddr);
 	iounmap(vaddr);
 }
 
-unsigned demod_read_cbus_reg(unsigned addr)
+unsigned int demod_read_cbus_reg(unsigned int addr)
 {
 /* return __raw_readl(CBUS_REG_ADDR(addr)); */
-	unsigned tmp;
+	unsigned int tmp;
 	void __iomem *vaddr;
+
 	vaddr = ioremap((IO_CBUS_PHY_BASE + (addr << 2)), 0x4);
 	tmp = readl(vaddr);
 	iounmap(vaddr);
@@ -578,7 +581,7 @@ unsigned demod_read_cbus_reg(unsigned addr)
 	return tmp;
 }
 
-void demod_set_ao_reg(unsigned data, unsigned addr)
+void demod_set_ao_reg(unsigned int data, unsigned int addr)
 {
 	void __iomem *vaddr;
 
@@ -588,9 +591,9 @@ void demod_set_ao_reg(unsigned data, unsigned addr)
 	iounmap(vaddr);
 }
 
-unsigned demod_read_ao_reg(unsigned addr)
+unsigned int demod_read_ao_reg(unsigned int addr)
 {
-	unsigned tmp;
+	unsigned int tmp;
 	void __iomem *vaddr;
 
 /* pr_dbg("[ao][read]%x\n",(IO_AOBUS_BASE+addr)); */
@@ -601,9 +604,10 @@ unsigned demod_read_ao_reg(unsigned addr)
 	return tmp;
 }
 
-void demod_set_demod_reg(unsigned data, unsigned addr)
+void demod_set_demod_reg(unsigned int data, unsigned int addr)
 {
 	void __iomem *vaddr;
+
 	mutex_lock(&mp);
 /* printk("[demod][write]%x,data is %x\n",(addr),data); */
 	vaddr = ioremap((addr), 0x4);
@@ -612,10 +616,11 @@ void demod_set_demod_reg(unsigned data, unsigned addr)
 	mutex_unlock(&mp);
 }
 
-unsigned demod_read_demod_reg(unsigned addr)
+unsigned int demod_read_demod_reg(unsigned int addr)
 {
-	unsigned tmp;
+	unsigned int tmp;
 	void __iomem *vaddr;
+
 	mutex_lock(&mp);
 	vaddr = ioremap((addr), 0x4);
 	tmp = readl(vaddr);
@@ -852,8 +857,9 @@ void atsc_initial(struct aml_demod_sta *demod_sta)
 	cr = (fc * (1 << 17) / fs) * (1 << 6);
 	ck = fs * j / 10 - (1 << 25);
 	/* ck_rate = (f_samp / f_vsb /2 -1)*(1<<25);
-	double f_vsb = 10.76238;// double f_64q = 5.056941;
-	// double f_256q = 5.360537; */
+	 *double f_vsb = 10.76238;// double f_64q = 5.056941;
+	 * // double f_256q = 5.360537;
+	 */
 
 	atsc_write_reg(0x070e, cr & 0xff);
 	atsc_write_reg(0x070d, (cr >> 8) & 0xff);
@@ -1000,6 +1006,7 @@ static dtmb_cfg_t list_dtmb_v1[99] = {
 void dtmb_all_reset(void)
 {
 	int temp_data = 0;
+
 	if (is_meson_txl_cpu()) {
 		dtmb_write_reg(DTMB_FRONT_AFIFO_ADC, 0x1f);
 		/*modified bu xiaotong*/
@@ -1071,6 +1078,7 @@ void dtmb_initial(struct aml_demod_sta *demod_sta)
 	dtmb_all_reset();
 #if 0
 	int i;
+
 	for (i = 0; list_dtmb_v1[i].adr != 0; i++) {
 		if (list_dtmb_v1[i].rw)
 			apb_read_reg(DTMB_BASE + ((list_dtmb_v1[i].adr) << 2));
@@ -1086,6 +1094,7 @@ void dtmb_initial(struct aml_demod_sta *demod_sta)
 int check_dtmb_fec_lock(void)
 {
 	int fec_lock, snr, status;
+
 	fec_lock = (dtmb_read_reg(DTMB_TOP_FEC_LOCK_SNR) >> 14) & 0x1;
 	snr = dtmb_read_reg(DTMB_TOP_FEC_LOCK_SNR) & 0x3fff;
 	if (fec_lock && (snr > 4))
@@ -1098,6 +1107,7 @@ int check_dtmb_fec_lock(void)
 int check_dtmb_mobile_det(void)
 {
 	int mobile_det = 0;
+
 	mobile_det = (dtmb_read_reg(DTMB_TOP_CTRL_SYS_OFDM_CNT) >> 8) & 0x7ffff;
 	return mobile_det;
 
@@ -1169,14 +1179,15 @@ int dtmb_information(void)
 int dtmb_check_cci(void)
 {
 	int cci_det = 0;
+
 	cci_det =
 	((dtmb_read_reg(DTMB_TOP_SYNC_CCI_NF2_POSITION) >> 22)
 		& 0x3);
 	if (cci_det > 0) {
-			pr_dbg("find cci\n");
-			dtmb_write_reg(DTMB_CHE_CCIDET_CONFIG, 0x20210290);
-			dtmb_write_reg(DTMB_CHE_M_CCI_THR_CONFIG3, 0x20081f6);
-			dtmb_write_reg(DTMB_CHE_M_CCI_THR_CONFIG2, 0x3f08020);
+		pr_dbg("find cci\n");
+		dtmb_write_reg(DTMB_CHE_CCIDET_CONFIG, 0x20210290);
+		dtmb_write_reg(DTMB_CHE_M_CCI_THR_CONFIG3, 0x20081f6);
+		dtmb_write_reg(DTMB_CHE_M_CCI_THR_CONFIG2, 0x3f08020);
 	}
 	return cci_det;
 }
@@ -1184,6 +1195,7 @@ int dtmb_check_cci(void)
 int dtmb_bch_check(void)
 {
 	int fec_bch_add, i;
+
 	fec_bch_add = dtmb_read_reg(DTMB_TOP_FEC_BCH_ACC);
 	pr_dbg("[debug]fec lock,fec_bch_add is %d\n", fec_bch_add);
 	msleep(100);
@@ -1204,6 +1216,7 @@ int dtmb_bch_check(void)
 int dtmb_constell_check(void)
 {
 	int constell;
+
 	constell = dtmb_read_reg(DTMB_TOP_CTRL_CHE_WORKCNT)>>16 & 0x3;
 	if (constell == 0)/*4qam*/
 		dtmb_write_reg(DTMB_FRONT_47_CONFIG, 0x133221);
@@ -1220,19 +1233,20 @@ int dtmb_constell_check(void)
 
 int dtmb_check_fsm(void)
 {
-	int tmp, fsm_status, i, has_singal;
+	int tmp, fsm_status, i, has_singnal;
+
 	tmp = dtmb_read_reg(DTMB_TOP_CTRL_FSM_STATE0);
 	fsm_status =  tmp&0xffffffff;
-	has_singal = 0;
+	has_singnal = 0;
 	pr_dbg("[rsj1] fsm_status is %x\n", fsm_status);
 	for (i = 0 ; i < 8 ; i++) {
 		if (((fsm_status >> (i*4)) & 0xf) > 3) {
 			/*has signal*/
 		/*	pr_dbg("has signal\n");*/
-			has_singal = 1;
+			has_singnal = 1;
 		}
 	}
-	return has_singal;
+	return has_singnal;
 
 }
 
@@ -1256,6 +1270,7 @@ int patch_ts3(int delay1_us, int delay2_us)
 int read_cfo_all(void)
 {
 	int icfo_all, fcfo_all;
+
 	icfo_all = dtmb_read_reg(DTMB_TOP_CTRL_ICFO_ALL) & 0xfffff;
 	fcfo_all = dtmb_read_reg(DTMB_TOP_CTRL_FCFO_ALL) & 0x3fff;
 	if (icfo_all > (1 << 19))
@@ -1369,6 +1384,7 @@ int dtmb_check_status_gxtv(struct dvb_frontend *fe)
 int dtmb_check_status_txl(struct dvb_frontend *fe)
 {
 	int time_cnt;
+
 	time_cnt = 0;
 	dtmb_information();
 	if (check_dtmb_fec_lock() != 1) {
@@ -1477,14 +1493,16 @@ int dvbt_set_ch(struct aml_demod_sta *demod_sta,
 	demod_mode = demod_dvbt->dat0;
 	if (ch_freq < 1000 || ch_freq > 900000000) {
 		/* pr_dbg("Error: Invalid Channel Freq option %d\n",
-		ch_freq); */
+		 *ch_freq);
+		 */
 		ch_freq = 474000;
 		ret = -1;
 	}
 
 	if (demod_mode < 0 || demod_mode > 4) {
 		/* pr_dbg("Error: Invalid demod mode option %d\n",
-		demod_mode); */
+		 *demod_mode);
+		 */
 		demod_mode = 1;
 		ret = -1;
 	}
@@ -1501,7 +1519,8 @@ int dvbt_set_ch(struct aml_demod_sta *demod_sta,
 	 * else if (demod_i2c->tuner == 3)
 	 *     demod_sta->ch_if = 4000;// It is nouse.(alan)
 	 * else if (demod_i2c->tuner == 7)
-	 *     demod_sta->ch_if = 5000;//silab 5000kHz IF*/
+	 *     demod_sta->ch_if = 5000;//silab 5000kHz IF
+	 */
 
 	demod_sta->ch_bw = (8 - bw) * 1000;
 	demod_sta->symb_rate = 0;	/* TODO */
@@ -1669,9 +1688,10 @@ unsigned long apb_read_reg_collect(unsigned long addr)
 {
 	unsigned long tmp;
 /*	void __iomem *vaddr;
-	vaddr = ioremap(((unsigned long)phys_to_virt(addr)), 0x4);
-	tmp = readl(vaddr);
-	iounmap(vaddr);*/
+ *	vaddr = ioremap(((unsigned long)phys_to_virt(addr)), 0x4);
+ *	tmp = readl(vaddr);
+ *	iounmap(vaddr);
+ */
 	tmp = readl((void __iomem *)(phys_to_virt(addr)));
 /*tmp = *(volatile unsigned long *)((unsigned long)phys_to_virt(addr));*/
 /* printk("[all][read]%lx,data is %lx\n",addr,tmp); */
@@ -1688,6 +1708,7 @@ void apb_write_reg(unsigned int addr, unsigned int data)
 unsigned long apb_read_reg_high(unsigned long addr)
 {
 	unsigned long tmp;
+
 	tmp = 0;
 	return (tmp >> 32) & 0xffffffff;
 }
@@ -1882,6 +1903,7 @@ void ofdm_initial(int bandwidth,
 	int tmp;
 	int ch_if;
 	int adc_freq;
+
 	pr_dbg
 	    ("[ofdm_initial]bandwidth is %d,samplerate is %d",
 	     bandwidth, samplerate);
@@ -2010,7 +2032,8 @@ void ofdm_initial(int bandwidth,
 	if (tc_mode == 1)
 		apb_write_regb(DVBT_BASE + (0x15 << 2), 11, 0);
 	/* For TC mode. Notice, For ADC input is Unsigned,
-	For Capture Data, It is TC. */
+	 *For Capture Data, It is TC.
+	 */
 	apb_write_regb(DVBT_BASE + (0x15 << 2), 26, 1);
 	/* [19:0] = [I , Q], I is high, Q is low. This bit is swap I/Q. */
 
@@ -2185,9 +2208,12 @@ void ofdm_initial(int bandwidth,
 		case 0:
 			ini_acf_iireq_src_45m_6m();
 			apb_write_reg(DVBT_BASE + (0x44 << 2), 0x00589800);
-			break;	/* 45M
-			SampleRate/(symbolRate)*2^20,
-			symbolRate = 512/63 for isdbt */
+			break;
+
+/*  45M
+ *			SampleRate/(symbolRate)*2^20,
+ *			symbolRate = 512/63 for isdbt
+ */
 		case 1:
 			ini_acf_iireq_src_207m_6m();
 			apb_write_reg(DVBT_BASE + (0x44 << 2), 0x002903d4);
@@ -2216,7 +2242,7 @@ void ofdm_initial(int bandwidth,
 			      (bandwidth << 20) | 0x10002);
 	else			/* ISDBT */
 		apb_write_reg(DVBT_BASE + (0x02 << 2), (1 << 20) | 0x1001a);
-	/* {0x000,2'h1,20'h1_001a});    // For ISDBT , bandwith should be 1, */
+	/* {0x000,2'h1,20'h1_001a});    // For ISDBT , bandwidth should be 1, */
 
 	apb_write_reg(DVBT_BASE + (0x45 << 2), 0x00000000);
 	/* SRC SFO_ADJ_CTRL */
@@ -2358,7 +2384,8 @@ void check_fsm_state(void)
 
 	tmp = apb_read_reg(DVBT_BASE + 0xa8);
 	/* printk(">>>>>>>>>>>>>>>>>>>>>>>>> OFDM FSM From %d
-	to %d\n", tmp>>4&0xf, tmp&0xf); */
+	 *to %d\n", tmp>>4&0xf, tmp&0xf);
+	 */
 
 	if ((tmp & 0xf) == 3) {
 		apb_write_regb(DVBT_BASE + (0x9b << 2), 8, 1);
@@ -2366,7 +2393,8 @@ void check_fsm_state(void)
 		apb_write_regb(DVBT_BASE + (0x0f << 2), 0, 1);
 		tmp = apb_read_reg(DVBT_BASE + (0x9f << 2));
 		/* printk(">>>>>>>>>>>>>>>>>>>>>>>>> STOP DUMP DATA To DDR :
-		End Addr %d,Is it overflow?%d\n", tmp>>1, tmp&0x1); */
+		 *End Addr %d,Is it overflow?%d\n", tmp>>1, tmp&0x1);
+		 */
 	}
 }
 
@@ -2476,7 +2504,8 @@ void monitor_isdbt(void)
 	cnt = 0;
 
 /* app_apb_write_reg(0x8, app_apb_read_reg(0x8) & ~(1 << 17));
-// TPS symbol index update : active high */
+ * // TPS symbol index update : active high
+ */
 	time_stamp = app_apb_read_reg(0x07) & 0xffff;
 	SNR = app_apb_read_reg(0x0a);
 	FECFlag = (app_apb_read_reg(0x00) >> 11) & 0x3;
@@ -2562,8 +2591,10 @@ int read_atsc_all_reg(void)
 	return 0;
 #if 0
 	int i, j, k;
+
 	j = 4;
 	unsigned long data;
+
 	pr_dbg("system agc is:");	/* system agc */
 	for (i = 0xc00; i <= 0xc0c; i++) {
 		data = atsc_read_reg(i);
@@ -2941,5 +2972,6 @@ int check_atsc_fsm_status(void)
 	 * printk(">>>>>>>>>>>>>>>>>>>>>>>>>
 	 OFDM FSM %x    SNR %x\n", sm&0xff, snr);
 	 *
-	 * if (sm == 0x79) stimulus_finish_pass();*/
+	 * if (sm == 0x79) stimulus_finish_pass();
+	 */
 }

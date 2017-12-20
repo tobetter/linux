@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -109,8 +109,8 @@ static u32 video_data_parsed;
 static u32 audio_data_parsed;
 static u32 pts_equ_dts_flag;
 
-static unsigned first_apts, first_vpts;
-static unsigned audio_got_first_pts, video_got_first_dts, sub_got_first_pts;
+static unsigned int first_apts, first_vpts;
+static unsigned int audio_got_first_pts, video_got_first_dts, sub_got_first_pts;
 atomic_t sub_block_found = ATOMIC_INIT(0);
 
 #define DEBUG_VOB_SUB
@@ -616,9 +616,9 @@ static void on_start_code_found(int start_code)
 {
 	unsigned short packet_len;
 	unsigned short temp;
-	unsigned next_action;
+	unsigned int next_action;
 #if SAVE_SCR
-	unsigned scr;
+	unsigned int scr;
 #endif
 
 	if (atomic_read(&sub_block_found)) {
@@ -628,9 +628,9 @@ static void on_start_code_found(int start_code)
 
 	if (audio_first_access == AUDIO_FIRST_ACCESS_POPING) {
 		/*
-		*we are in the procedure of poping data for audio first
-		  * access, continue with last packet
-		  */
+		 *we are in the procedure of poping data for audio first
+		 * access, continue with last packet
+		 */
 		audio_first_access = AUDIO_FIRST_ACCESS_DONE;
 
 		if (packet_remaining) {

@@ -108,11 +108,14 @@ static u32 me_mv_merge_ctl =
 	/* [11:0] me_merge_min_sad - SAD >= 0x180 can be merged with other MV */
 	(0x80 << 0);
 	/* ( 0x4 << 18)  |
-	// [23:18] me_merge_mv_diff_16 - MV diff <= n pixel can be merged */
+	 * // [23:18] me_merge_mv_diff_16 - MV diff <= n pixel can be merged
+	 */
 	/* ( 0x3f << 12)  |
-	// [17:12] me_merge_mv_diff_8 - MV diff <= n pixel can be merged */
+	 * // [17:12] me_merge_mv_diff_8 - MV diff <= n pixel can be merged
+	 */
 	/* ( 0xc0 << 0);
-	// [11:0] me_merge_min_sad - SAD >= 0x180 can be merged with other MV */
+	 * // [11:0] me_merge_min_sad - SAD >= 0x180 can be merged with other MV
+	 */
 
 static u32 me_mv_weight_01 = (0x40 << 24) | (0x30 << 16) | (0x20 << 8) | 0x30;
 static u32 me_mv_weight_23 = (0x40 << 8) | 0x30;
@@ -245,7 +248,7 @@ static DEFINE_SPINLOCK(lock);
 #define V3_IE_F_ZERO_SAD_I4 (I4MB_WEIGHT_OFFSET + 0x20)
 
 #define V3_SKIP_WEIGHT_0 0x10
-/* 4 Blocks  8 seperate search sad can be very low */
+/* 4 Blocks  8 separate search sad can be very low */
 #define V3_SKIP_WEIGHT_1 0x8 /* (4 * ME_MV_STEP_WEIGHT_1 + 0x100) */
 #define V3_SKIP_WEIGHT_2 0x3
 
@@ -417,11 +420,12 @@ const char *ucode_name[] = {
 };
 
 static void dma_flush(u32 buf_start, u32 buf_size);
-static void cache_flush(u32 buf_start , u32 buf_size);
+static void cache_flush(u32 buf_start, u32 buf_size);
 
 static const char *select_ucode(u32 ucode_index)
 {
 	enum ucode_type_e ucode = UCODE_GX;
+
 	switch (ucode_index) {
 	case UCODE_MODE_FULL:
 		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXL)
@@ -504,7 +508,6 @@ static void hcodec_prog_qtbl(struct encode_wq_s *wq)
 		wq->quant_tbl_me[6]);
 	WRITE_HREG(HCODEC_QUANT_TABLE_DATA,
 		wq->quant_tbl_me[7]);
-	return;
 }
 
 static void InitEncodeWeight(void)
@@ -520,13 +523,16 @@ static void InitEncodeWeight(void)
 		(0x1 << 24)  |  /* [24] me_merge_sad_en_8 */
 		(0x12 << 18) |
 		/* [23:18] me_merge_mv_diff_16 - MV diff
-			<= n pixel can be merged */
+		 *	<= n pixel can be merged
+		 */
 		(0x2b << 12) |
 		/* [17:12] me_merge_mv_diff_8 - MV diff
-			<= n pixel can be merged */
+		 *	<= n pixel can be merged
+		 */
 		(0x80 << 0);
 		/* [11:0] me_merge_min_sad - SAD
-			>= 0x180 can be merged with other MV */
+		 *	>= 0x180 can be merged with other MV
+		 */
 
 	me_mv_weight_01 = (ME_MV_STEP_WEIGHT_1 << 24) |
 		(ME_MV_PRE_WEIGHT_1 << 16) |
@@ -545,7 +551,8 @@ static void InitEncodeWeight(void)
 
 	me_step0_close_mv = (0x100 << 10) |
 		/* me_step0_big_sad -- two MV sad
-		  diff bigger will use use 1 */
+		 *  diff bigger will use use 1
+		 */
 		(2 << 5) | /* me_step0_close_mv_y */
 		(2 << 0); /* me_step0_close_mv_x */
 
@@ -743,9 +750,13 @@ static void avc_buffspec_init(struct encode_wq_s *wq)
 		wq->mem.buf_start + wq->mem.bufspec.scale_buff.buf_start;
 	wq->mem.dump_info_ddr_start_addr =
 		wq->mem.buf_start + wq->mem.bufspec.dump_info.buf_start;
-enc_pr(LOG_INFO, "CBR: dump_info_ddr_start_addr:%x.\n",  wq->mem.dump_info_ddr_start_addr);
-enc_pr(LOG_INFO, "CBR: buf_start :%d.\n", wq->mem.buf_start);
-enc_pr(LOG_INFO, "CBR: dump_info.buf_start :%d.\n", wq->mem.bufspec.dump_info.buf_start);
+	enc_pr(LOG_INFO,
+		"CBR: dump_info_ddr_start_addr:%x.\n",
+		wq->mem.dump_info_ddr_start_addr);
+	enc_pr(LOG_INFO, "CBR: buf_start :%d.\n",
+		wq->mem.buf_start);
+	enc_pr(LOG_INFO, "CBR: dump_info.buf_start :%d.\n",
+		wq->mem.bufspec.dump_info.buf_start);
 	wq->mem.dump_info_ddr_size =
 		DUMP_INFO_BYTES_PER_MB * mbs;
 	wq->mem.dump_info_ddr_size =
@@ -784,6 +795,7 @@ static void avc_init_ie_me_parameter(struct encode_wq_s *wq, u32 quant)
 	else if (wq->pic.rows_per_slice !=
 			(wq->pic.encoder_height + 15) >> 4) {
 		u32 mb_per_slice = (wq->pic.encoder_height + 15) >> 4;
+
 		mb_per_slice = mb_per_slice * wq->pic.rows_per_slice;
 		WRITE_HREG(FIXED_SLICE_CFG, mb_per_slice);
 	} else
@@ -815,16 +827,20 @@ static void mfdin_basic(u32 input, u8 iformat,
 	u8 y_size;     /* 0:16 Pixels for y direction pickup; 1:8 pixels */
 	u8 r2y_mode;   /* RGB2YUV Mode, range(0~3) */
 	/* mfdin_reg3_canv[25:24];
-	  // bytes per pixel in x direction for index0, 0:half 1:1 2:2 3:3 */
+	 *  // bytes per pixel in x direction for index0, 0:half 1:1 2:2 3:3
+	 */
 	u8 canv_idx0_bppx;
 	/* mfdin_reg3_canv[27:26];
-	  // bytes per pixel in x direction for index1-2, 0:half 1:1 2:2 3:3 */
+	 *  // bytes per pixel in x direction for index1-2, 0:half 1:1 2:2 3:3
+	 */
 	u8 canv_idx1_bppx;
 	/* mfdin_reg3_canv[29:28];
-	  // bytes per pixel in y direction for index0, 0:half 1:1 2:2 3:3 */
+	 *  // bytes per pixel in y direction for index0, 0:half 1:1 2:2 3:3
+	 */
 	u8 canv_idx0_bppy;
 	/* mfdin_reg3_canv[31:30];
-	  // bytes per pixel in y direction for index1-2, 0:half 1:1 2:2 3:3 */
+	 *  // bytes per pixel in y direction for index1-2, 0:half 1:1 2:2 3:3
+	 */
 	u8 canv_idx1_bppy;
 	u8 ifmt444, ifmt422, ifmt420, linear_bytes4p;
 	u8 nr_enable;
@@ -1037,6 +1053,7 @@ static int scale_frame(struct encode_wq_s *wq,
 	u32 dst_w = ((wq->pic.encoder_width + 15) >> 4) << 4;
 	u32 dst_h = ((wq->pic.encoder_height + 15) >> 4) << 4;
 	int input_format = GE2D_FORMAT_M24_NV21;
+
 	src_top = request->crop_top;
 	src_left = request->crop_left;
 	src_width = request->src_w - src_left - request->crop_right;
@@ -1199,6 +1216,7 @@ static s32 set_input_format(struct encode_wq_s *wq,
 		if (request->scale_enable) {
 #ifdef CONFIG_AMLOGIC_MEDIA_GE2D
 			struct config_para_ex_s ge2d_config;
+
 			memset(&ge2d_config, 0,
 				sizeof(struct config_para_ex_s));
 			scale_frame(
@@ -1389,6 +1407,7 @@ static void ConvertTable2Risc(void *table, u32 len)
 	u32 i, j;
 	u16 temp;
 	u16 *tbl = (u16 *)table;
+
 	if ((len < 8) || (len % 8) || (!table)) {
 		enc_pr(LOG_ERROR, "ConvertTable2Risc tbl %p, len %d error\n",
 			table, len);
@@ -1419,6 +1438,7 @@ static void avc_prot_init(struct encode_wq_s *wq,
 	u32 i_pic_qp_c, p_pic_qp_c;
 	u32 pic_width_in_mb;
 	u32 slice_qp;
+
 	pic_width  = wq->pic.encoder_width;
 	pic_height = wq->pic.encoder_height;
 	pic_mb_nr  = 0;
@@ -1441,7 +1461,7 @@ static void avc_prot_init(struct encode_wq_s *wq,
 		(0 << 7) |
 		/* mc_hcmd_mixed_type -- will enable in P Picture */
 		(0 << 6) |
-		(1 << 5) | /* use_seperate_int_control */
+		(1 << 5) | /* use_separate_int_control */
 		(1 << 4) | /* hcmd_intra_use_q_info */
 		(1 << 3) | /* hcmd_left_use_prev_info */
 		(1 << 2) | /* hcmd_use_q_info */
@@ -2092,6 +2112,7 @@ static void avc_prot_init(struct encode_wq_s *wq,
 			(V3_SKIP_WEIGHT_2 << 0));
 		if (request != NULL) {
 			unsigned int off1, off2;
+
 			off1 = V3_IE_F_ZERO_SAD_I4 - I4MB_WEIGHT_OFFSET;
 			off2 = V3_IE_F_ZERO_SAD_I16
 				- I16MB_WEIGHT_OFFSET;
@@ -2460,6 +2481,7 @@ static s32 reload_mc(struct encode_wq_s *wq)
 static void encode_isr_tasklet(ulong data)
 {
 	struct encode_manager_s *manager = (struct encode_manager_s *)data;
+
 	enc_pr(LOG_INFO, "encoder is done %d\n", manager->encode_hw_status);
 	if (((manager->encode_hw_status == ENCODER_IDR_DONE)
 		|| (manager->encode_hw_status == ENCODER_NON_IDR_DONE)
@@ -2474,6 +2496,7 @@ static void encode_isr_tasklet(ulong data)
 static irqreturn_t enc_isr(s32 irq_number, void *para)
 {
 	struct encode_manager_s *manager = (struct encode_manager_s *)para;
+
 	WRITE_HREG(HCODEC_IRQ_MBOX_CLR, 1);
 
 	manager->encode_hw_status  = READ_HREG(ENCODER_STATUS);
@@ -2504,6 +2527,7 @@ static s32 convert_request(struct encode_wq_s *wq, u32 *cmd_info)
 	u8 *ptr;
 	u32 data_offset;
 	u32 cmd = cmd_info[0];
+
 	if (!wq)
 		return -1;
 	memset(&wq->request, 0, sizeof(struct encode_request_s));
@@ -2563,6 +2587,7 @@ static s32 convert_request(struct encode_wq_s *wq, u32 *cmd_info)
 				cmd_info[data_offset++];
 			if (qp_table_debug) {
 				u8 *qp_tb = (u8 *)(&wq->quant_tbl_i4[0]);
+
 				for (i = 0; i < 32; i++) {
 					enc_pr(LOG_INFO, "%d ", *qp_tb);
 					qp_tb++;
@@ -2613,6 +2638,7 @@ void amvenc_avc_start_cmd(struct encode_wq_s *wq,
 			  struct encode_request_s *request)
 {
 	u32 reload_flag = 0;
+
 	if (request->ucode_mode != encode_manager.ucode_index) {
 		encode_manager.ucode_index = request->ucode_mode;
 		if (reload_mc(wq)) {
@@ -2670,6 +2696,7 @@ void amvenc_avc_start_cmd(struct encode_wq_s *wq,
 	else if (wq->pic.rows_per_slice !=
 		(wq->pic.encoder_height + 15) >> 4) {
 		u32 mb_per_slice = (wq->pic.encoder_height + 15) >> 4;
+
 		mb_per_slice = mb_per_slice * wq->pic.rows_per_slice;
 		WRITE_HREG(FIXED_SLICE_CFG, mb_per_slice);
 	} else
@@ -2680,7 +2707,7 @@ void amvenc_avc_start_cmd(struct encode_wq_s *wq,
 
 	encode_manager.encode_hw_status = request->cmd;
 	wq->hw_status = request->cmd;
-	WRITE_HREG(ENCODER_STATUS , request->cmd);
+	WRITE_HREG(ENCODER_STATUS, request->cmd);
 	if ((request->cmd == ENCODER_IDR)
 		|| (request->cmd == ENCODER_NON_IDR)
 		|| (request->cmd == ENCODER_SEQUENCE)
@@ -2692,7 +2719,7 @@ void amvenc_avc_start_cmd(struct encode_wq_s *wq,
 	enc_pr(LOG_ALL, "amvenc_avc_start cmd, wq:%p.\n", (void *)wq);
 }
 
-static void dma_flush(u32 buf_start , u32 buf_size)
+static void dma_flush(u32 buf_start, u32 buf_size)
 {
 	if ((buf_start == 0) || (buf_size == 0))
 		return;
@@ -2701,7 +2728,7 @@ static void dma_flush(u32 buf_start , u32 buf_size)
 		buf_size, DMA_TO_DEVICE);
 }
 
-static void cache_flush(u32 buf_start , u32 buf_size)
+static void cache_flush(u32 buf_start, u32 buf_size)
 {
 	if ((buf_start == 0) || (buf_size == 0))
 		return;
@@ -2776,7 +2803,7 @@ s32 amvenc_avc_start(struct encode_wq_s *wq, u32 clock)
 	avc_init_assit_buffer(wq); /* assitant buffer for microcode */
 	ie_me_mb_type = 0;
 	avc_init_ie_me_parameter(wq, wq->pic.init_qppicture);
-	WRITE_HREG(ENCODER_STATUS , ENCODER_IDLE);
+	WRITE_HREG(ENCODER_STATUS, ENCODER_IDLE);
 
 #ifdef MULTI_SLICE_MC
 	if (fixed_slice_cfg)
@@ -2784,6 +2811,7 @@ s32 amvenc_avc_start(struct encode_wq_s *wq, u32 clock)
 	else if (wq->pic.rows_per_slice !=
 		(wq->pic.encoder_height + 15) >> 4) {
 		u32 mb_per_slice = (wq->pic.encoder_height + 15) >> 4;
+
 		mb_per_slice = mb_per_slice * wq->pic.rows_per_slice;
 		WRITE_HREG(FIXED_SLICE_CFG, mb_per_slice);
 	} else
@@ -2840,6 +2868,7 @@ static s32 amvenc_avc_light_reset(struct encode_wq_s *wq, u32 value)
 static u32 checkCMA(void)
 {
 	u32 ret;
+
 	if (encode_manager.cma_pool_size > 0) {
 		ret = encode_manager.cma_pool_size;
 		ret = ret / MIN_SIZE;
@@ -2854,6 +2883,7 @@ static s32 amvenc_avc_open(struct inode *inode, struct file *file)
 {
 	s32 r = 0;
 	struct encode_wq_s *wq = NULL;
+
 	file->private_data = NULL;
 	enc_pr(LOG_DEBUG, "avc open\n");
 #ifdef CONFIG_AM_JPEG_ENCODER
@@ -2870,7 +2900,7 @@ static s32 amvenc_avc_open(struct inode *inode, struct file *file)
 		encode_manager.max_instance = checkCMA();
 		if (encode_manager.max_instance > 0) {
 			enc_pr(LOG_DEBUG,
-				"amvenc_avc  check CMA pool sucess, max instance: %d.\n",
+				"amvenc_avc  check CMA pool success, max instance: %d.\n",
 				encode_manager.max_instance);
 		} else {
 			enc_pr(LOG_ERROR,
@@ -2922,7 +2952,7 @@ static s32 amvenc_avc_open(struct inode *inode, struct file *file)
 	       sizeof(struct BuffInfo_s));
 
 	enc_pr(LOG_DEBUG,
-		"amvenc_avc  memory config sucess, buff start:0x%x, size is 0x%x, wq:%p.\n",
+		"amvenc_avc  memory config success, buff start:0x%x, size is 0x%x, wq:%p.\n",
 		wq->mem.buf_start, wq->mem.buf_size, (void *)wq);
 
 	file->private_data = (void *) wq;
@@ -2932,6 +2962,7 @@ static s32 amvenc_avc_open(struct inode *inode, struct file *file)
 static s32 amvenc_avc_release(struct inode *inode, struct file *file)
 {
 	struct encode_wq_s *wq = (struct encode_wq_s *)file->private_data;
+
 	if (wq) {
 		enc_pr(LOG_DEBUG, "avc release, wq:%p\n", (void *)wq);
 		destroy_encode_work_queue(wq);
@@ -2950,6 +2981,7 @@ static long amvenc_avc_ioctl(struct file *file, u32 cmd, ulong arg)
 	u32 buf_start;
 	s32 canvas = -1;
 	struct canvas_s dst;
+
 	switch (cmd) {
 	case AMVENC_AVC_IOC_GET_ADDR:
 		if ((wq->mem.ref_buf_canvas & 0xff) == (ENC_CANVAS_OFFSET))
@@ -2984,7 +3016,7 @@ static long amvenc_avc_ioctl(struct file *file, u32 cmd, ulong arg)
 		addr_info[2] = wq->i4_weight;
 		addr_info[3] = wq->i16_weight;
 		r = copy_to_user((u32 *)arg,
-			addr_info , 4 * sizeof(u32));
+			addr_info, 4 * sizeof(u32));
 		break;
 	case AMVENC_AVC_IOC_CONFIG_INIT:
 		if (copy_from_user(addr_info, (void *)arg,
@@ -3018,7 +3050,7 @@ static long amvenc_avc_ioctl(struct file *file, u32 cmd, ulong arg)
 		if (wq->pic.encoder_width *
 			wq->pic.encoder_height >= 1280 * 720)
 			clock_level = 6;
-		 else
+		else
 			clock_level = 5;
 		avc_buffspec_init(wq);
 		complete(&encode_manager.event.request_in_com);
@@ -3032,7 +3064,7 @@ static long amvenc_avc_ioctl(struct file *file, u32 cmd, ulong arg)
 		addr_info[8] = wq->mem.bufspec.dump_info.buf_size;
 		addr_info[9] = wq->mem.bufspec.cbr_info.buf_start;
 		addr_info[10] = wq->mem.bufspec.cbr_info.buf_size;
-		r = copy_to_user((u32 *)arg, addr_info , 11*sizeof(u32));
+		r = copy_to_user((u32 *)arg, addr_info, 11*sizeof(u32));
 		break;
 	case AMVENC_AVC_IOC_FLUSH_CACHE:
 		if (copy_from_user(addr_info, (void *)arg,
@@ -3114,7 +3146,7 @@ static long amvenc_avc_ioctl(struct file *file, u32 cmd, ulong arg)
 			addr_info[1] = 0;
 		}
 		dma_flush(dst.addr, dst.width * dst.height * 3 / 2);
-		r = copy_to_user((u32 *)arg, addr_info , 2 * sizeof(u32));
+		r = copy_to_user((u32 *)arg, addr_info, 2 * sizeof(u32));
 		break;
 	case AMVENC_AVC_IOC_MAX_INSTANCE:
 		put_user(encode_manager.max_instance, (u32 *)arg);
@@ -3152,7 +3184,7 @@ static s32 avc_mmap(struct file *filp, struct vm_area_struct *vma)
 		off += wq->mem.buf_start;
 	enc_pr(LOG_ALL,
 		"vma_size is %ld , off is %ld, wq:%p.\n",
-		vma_size , off, (void *)wq);
+		vma_size, off, (void *)wq);
 	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_IO;
 	/* vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot); */
 	if (remap_pfn_range(vma, vma->vm_start, off >> PAGE_SHIFT,
@@ -3168,6 +3200,7 @@ static s32 avc_mmap(struct file *filp, struct vm_area_struct *vma)
 static u32 amvenc_avc_poll(struct file *file, poll_table *wait_table)
 {
 	struct encode_wq_s *wq = (struct encode_wq_s *)file->private_data;
+
 	poll_wait(file, &wq->request_complete, wait_table);
 
 	if (atomic_read(&wq->request_ready)) {
@@ -3267,12 +3300,12 @@ Again:
 					ENCODER_BUFFER_DUMP);
 				size = wq->mem.dump_info_ddr_size;
 				cache_flush(buf_start, size);
-			//enc_pr(LOG_INFO, "CBR flush dump_info done--- ");
 			enc_pr(LOG_DEBUG, "CBR flush dump_info done");
 			}
 			if (request->flush_flag &
 				AMVENC_FLUSH_FLAG_REFERENCE) {
 				u32 ref_id = ENCODER_BUFFER_REF0;
+
 				if ((wq->mem.ref_buf_canvas & 0xff) ==
 					(ENC_CANVAS_OFFSET))
 					ref_id = ENCODER_BUFFER_REF0;
@@ -3452,7 +3485,7 @@ static void _destroy_encode_work_queue(struct encode_manager_s *manager,
 			*find = true;
 			manager->wq_count--;
 			enc_pr(LOG_DEBUG,
-				"remove  encode_work_queue %p sucess, %s line %d.\n",
+				"remove  encode_work_queue %p success, %s line %d.\n",
 				(void *)encode_work_queue,
 				__func__, __LINE__);
 			break;
@@ -3467,13 +3500,14 @@ s32 destroy_encode_work_queue(struct encode_wq_s *encode_work_queue)
 	bool find = false;
 
 	struct list_head *head;
+
 	if (encode_work_queue) {
 		spin_lock(&encode_manager.event.sem_lock);
 		if (encode_manager.current_wq == encode_work_queue) {
 			encode_manager.remove_flag = true;
 			spin_unlock(&encode_manager.event.sem_lock);
 			enc_pr(LOG_DEBUG,
-				"warning--Destory the running queue, should not be here.\n");
+				"warning--Destroy the running queue, should not be here.\n");
 			wait_for_completion(
 				&encode_manager.event.process_complete);
 			spin_lock(&encode_manager.event.sem_lock);
@@ -3515,6 +3549,7 @@ static s32 encode_monitor_thread(void *data)
 	struct encode_queue_item_s *pitem = NULL;
 	struct sched_param param = {.sched_priority = MAX_RT_PRIO - 1 };
 	s32 ret = 0;
+
 	enc_pr(LOG_DEBUG, "encode workqueue monitor start.\n");
 	sched_setscheduler(current, SCHED_FIFO, &param);
 	allow_signal(SIGTERM);
@@ -3643,6 +3678,7 @@ static s32  encode_stop_monitor(void)
 		spin_lock(&encode_manager.event.sem_lock);
 		if (!list_empty(&encode_manager.wq)) {
 			u32 count = encode_manager.wq_count;
+
 			spin_unlock(&encode_manager.event.sem_lock);
 			enc_pr(LOG_ERROR,
 				"stop encode monitor thread error, active wq (%d) is not 0.\n",
@@ -3712,6 +3748,7 @@ static s32 encode_wq_uninit(void)
 	struct list_head *head;
 	u32 count = 0;
 	s32 r = -1;
+
 	enc_pr(LOG_DEBUG, "uninit encode wq.\n");
 	if (encode_stop_monitor() == 0) {
 		if ((encode_manager.irq_num >= 0) &&
@@ -3773,14 +3810,14 @@ static ssize_t encode_status_show(struct class *cla,
 
 	spin_lock(&encode_manager.event.sem_lock);
 	head = &encode_manager.free_queue;
-	list_for_each_entry(pitem, head , list) {
+	list_for_each_entry(pitem, head, list) {
 		free_count++;
 		if (free_count > MAX_ENCODE_REQUEST)
 			break;
 	}
 
 	head = &encode_manager.process_queue;
-	list_for_each_entry(pitem, head , list) {
+	list_for_each_entry(pitem, head, list) {
 		process_count++;
 		if (free_count > MAX_ENCODE_REQUEST)
 			break;
@@ -3856,6 +3893,7 @@ static struct class amvenc_avc_class = {
 s32 init_avc_device(void)
 {
 	s32  r = 0;
+
 	r = register_chrdev(0, DEVICE_NAME, &amvenc_avc_fops);
 	if (r <= 0) {
 		enc_pr(LOG_ERROR, "register amvenc_avc device error.\n");
@@ -3896,6 +3934,7 @@ static s32 avc_mem_device_init(struct reserved_mem *rmem, struct device *dev)
 {
 	s32 r;
 	struct resource res;
+
 	if (!rmem) {
 		enc_pr(LOG_ERROR,
 			"Can not obtain I/O memory, and will allocate avc buffer!\n");
@@ -3921,6 +3960,7 @@ static s32 avc_mem_device_init(struct reserved_mem *rmem, struct device *dev)
 			u32 i;
 			struct Buff_s *reserve_buff;
 			u32 max_instance = encode_manager.max_instance;
+
 			for (i = 0; i < max_instance; i++) {
 				reserve_buff = &encode_manager.reserve_buff[i];
 				reserve_buff->buf_start =
@@ -4024,9 +4064,8 @@ static s32 amvenc_avc_remove(struct platform_device *pdev)
 {
 	kfree(encode_manager.reserve_buff);
 	encode_manager.reserve_buff = NULL;
-	if (encode_wq_uninit()) {
+	if (encode_wq_uninit())
 		enc_pr(LOG_ERROR, "encode work queue uninit error.\n");
-	}
 	uninit_avc_device();
 	enc_pr(LOG_INFO, "amvenc_avc remove.\n");
 	return 0;
