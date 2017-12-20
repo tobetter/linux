@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 /*all firmwares in one bin.*/
 {MESON_CPU_MAJOR_ID_GXBB, VIDEO_PACKAGE, "video_ucode.bin"},

@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -79,6 +79,7 @@ static int enable_demux_driver(void)
 void tsdemux_set_ops(struct tsdemux_ops *ops)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	demux_ops = ops;
 	spin_unlock_irqrestore(&demux_ops_lock, flags);
@@ -223,6 +224,7 @@ static irqreturn_t tsdemux_isr(int irq, void *dev_id)
 {
 	u32 int_status = 0;
 	int id = (long)dev_id;
+
 	if (!enable_demux_driver()) {
 		int_status = READ_DEMUX_REG(STB_INT_STATUS);
 	} else {
@@ -439,7 +441,7 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	/*TODO clk */
 	/*
-	   *switch_mod_gate_by_type(MOD_DEMUX, 1);
+	 *switch_mod_gate_by_type(MOD_DEMUX, 1);
 	 */
 	/* #endif */
 
@@ -726,7 +728,7 @@ void tsdemux_release(void)
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	/*TODO clk */
 	/*
-	   *switch_mod_gate_by_type(MOD_DEMUX, 0);
+	 *switch_mod_gate_by_type(MOD_DEMUX, 0);
 	 */
 	/* #endif */
 	amports_switch_gate("demux", 0);
@@ -911,9 +913,10 @@ ssize_t tsdemux_write(struct file *file,
 
 				if (r < 0) {
 					/* pr_info("write no space--- ");
-					   pr_info("no space,%d--%d,r-%d\n",
-					   stbuf_space(vbuf),
-					   stbuf_space(abuf),r); */
+					 *   pr_info("no space,%d--%d,r-%d\n",
+					 *   stbuf_space(vbuf),
+					 *   stbuf_space(abuf),r);
+					 */
 					return r;
 				}
 			}
@@ -924,9 +927,10 @@ ssize_t tsdemux_write(struct file *file,
 
 				if (r < 0) {
 					/* pr_info("write no stbuf_wait_space")'
-					   pr_info{"--- no space,%d--%d,r-%d\n",
-					   stbuf_space(vbuf),
-					   stbuf_space(abuf),r); */
+					 * pr_info{"---no space,%d--%d,r-%d\n",
+					 * stbuf_space(vbuf),
+					 * stbuf_space(abuf),r);
+					 */
 					return r;
 				}
 			}

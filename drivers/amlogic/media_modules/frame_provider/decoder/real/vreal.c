@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -112,8 +112,8 @@ static const char vreal_dec_id[] = "vreal-dev";
 #define PROVIDER_NAME   "decoder.real"
 
 /*
-int query_video_status(int type, int *value);
-*/
+ *int query_video_status(int type, int *value);
+ */
 static const struct vframe_operations_s vreal_vf_provider = {
 	.peek = vreal_vf_peek,
 	.get = vreal_vf_get,
@@ -185,7 +185,7 @@ static inline u32 index2canvas(u32 index)
 	return canvas_tab[index];
 }
 
-static void set_aspect_ratio(struct vframe_s *vf, unsigned pixel_ratio)
+static void set_aspect_ratio(struct vframe_s *vf, unsigned int pixel_ratio)
 {
 	int ar = 0;
 
@@ -248,7 +248,8 @@ static irqreturn_t vreal_isr(int irq, void *dev_id)
 		/* decoder or parser error */
 		real_err_count++;
 		/* pr_info("real decoder or parser
-		error, status 0x%x\n", status); */
+		 *error, status 0x%x\n", status);
+		 */
 	}
 
 	if (r == 2) {
@@ -287,7 +288,8 @@ static irqreturn_t vreal_isr(int irq, void *dev_id)
 
 			if (vf->duration > 10 * frame_dur) {
 				/* not a reasonable duration,
-				should not happen */
+				 *should not happen
+				 */
 				vf->duration = frame_dur;
 			}
 #if 0
@@ -303,7 +305,7 @@ static irqreturn_t vreal_isr(int irq, void *dev_id)
 		last_tr = tr;
 		buffer_index = from & 0x03;
 
-		if (0 == pictype) {	/* I */
+		if (pictype == 0) {	/* I */
 			current_vdts = vdts * 90 + 1;
 			vf->pts = current_vdts;
 			if (wait_key_frame)
@@ -315,7 +317,8 @@ static irqreturn_t vreal_isr(int irq, void *dev_id)
 				WRITE_VREG(TO_AMRISC, ~(1 << buffer_index));
 				WRITE_VREG(FROM_AMRISC, 0);
 				return IRQ_HANDLED;
-			} else {
+			}
+			{
 				current_vdts +=
 					vf->duration - (vf->duration >> 4);
 				vf->pts = current_vdts;
@@ -392,6 +395,7 @@ static int vreal_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vreal_vf_prov);
@@ -411,6 +415,7 @@ static int vreal_event_cb(int type, void *data, void *private_data)
 static int vreal_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 
 	states->vf_pool_size = VF_POOL_SIZE;
@@ -441,6 +446,7 @@ static void vreal_put_timer_func(unsigned long arg)
 
 #if 0
 	enum receviver_start_e state = RECEIVER_INACTIVE;
+
 	if (vf_get_receiver(PROVIDER_NAME)) {
 		state =
 			vf_notify_receiver(PROVIDER_NAME,
@@ -448,7 +454,8 @@ static void vreal_put_timer_func(unsigned long arg)
 		if ((state == RECEIVER_STATE_NULL)
 			|| (state == RECEIVER_STATE_NONE)) {
 			/* receiver has no event_cb
-			or receiver's event_cb does not process this event */
+			 *or receiver's event_cb does not process this event
+			 */
 			state = RECEIVER_INACTIVE;
 		}
 	} else
@@ -476,6 +483,7 @@ static void vreal_put_timer_func(unsigned long arg)
 
 	while (!kfifo_is_empty(&recycle_q) && (READ_VREG(TO_AMRISC) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index >= 0) && (vf->index < VF_BUF_NUM)
 				&& (--vfbuf_use[vf->index] == 0)) {
@@ -491,6 +499,7 @@ static void vreal_put_timer_func(unsigned long arg)
 		saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_REAL,
 			frame_width, frame_height, fps);
@@ -544,6 +553,7 @@ static int  vreal_canvas_init(void)
 		int h = vreal_amstream_dec_info.height;
 		int align_w, align_h;
 		int max, min;
+
 		align_w = ALIGN(w, 64);
 		align_h = ALIGN(h, 64);
 		if (align_w > align_h) {
@@ -772,13 +782,13 @@ static void load_block_data(void *dest, unsigned int count)
 	pic_sz_tbl_map = dma_map_single(amports_get_dma_device(), &pic_sz_tbl,
 				sizeof(pic_sz_tbl), DMA_TO_DEVICE);
 
-	return;
 }
 
 s32 vreal_init(struct vdec_s *vdec)
 {
-	int ret = -1,size = -1;
+	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
@@ -807,10 +817,11 @@ s32 vreal_init(struct vdec_s *vdec)
 		load_block_data((void *)pic_sz_tbl, 12);
 
 		/* TODO: need to load the table into lmem */
-		WRITE_VREG(LMEM_DMA_ADR, (unsigned)pic_sz_tbl_map);
+		WRITE_VREG(LMEM_DMA_ADR, (unsigned int)pic_sz_tbl_map);
 		WRITE_VREG(LMEM_DMA_COUNT, 10);
 		WRITE_VREG(LMEM_DMA_CTRL, 0xc178 | (3 << 11));
-		while (READ_VREG(LMEM_DMA_CTRL) & 0x8000);
+		while (READ_VREG(LMEM_DMA_CTRL) & 0x8000)
+			;
 		size = get_firmware_data(VIDEO_DEC_REAL_V8, buf);
 
 		pr_info("load VIDEO_DEC_FORMAT_REAL_8\n");

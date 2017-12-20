@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -134,8 +134,9 @@ static int vh264mvc_stop(void);
 static s32 vh264mvc_init(void);
 
 /***************************
-*   new
-***************************/
+ *   new
+ **************************
+ */
 
 /* bit[3:0] command : */
 /* 0 - command finished */
@@ -180,8 +181,8 @@ static s32 vh264mvc_init(void);
 #define MC_TOTAL_SIZE        (28*SZ_1K)
 #define MC_SWAP_SIZE         (4*SZ_1K)
 
-unsigned DECODE_BUFFER_START = 0x00200000;
-unsigned DECODE_BUFFER_END = 0x05000000;
+unsigned int DECODE_BUFFER_START = 0x00200000;
+unsigned int DECODE_BUFFER_END = 0x05000000;
 
 #define DECODE_BUFFER_NUM_MAX    16
 #define DISPLAY_BUFFER_NUM         4
@@ -226,12 +227,12 @@ static struct buffer_spec_s buffer_spec1[MAX_BMMU_BUFFER_NUM];
 static void *mm_blk_handle;
 
 /*
-    dbg_mode:
-    bit 0: 1, print debug information
-    bit 4: 1, recycle buffer without displaying;
-    bit 5: 1, buffer single frame step , set dbg_cmd to 1 to step
-
-*/
+ *    dbg_mode:
+ *    bit 0: 1, print debug information
+ *    bit 4: 1, recycle buffer without displaying;
+ *    bit 5: 1, buffer single frame step , set dbg_cmd to 1 to step
+ *
+ */
 static int dbg_mode;
 static int dbg_cmd;
 static int view_mode =
@@ -249,7 +250,7 @@ struct mvc_buf_s {
 	int view0_drop;
 	int view1_drop;
 	int stream_offset;
-	unsigned pts;
+	unsigned int pts;
 } /*mvc_buf_t */;
 
 #define spec2canvas(x)  \
@@ -283,7 +284,7 @@ struct mvc_info_s {
 	int display_pos;
 	int used;
 	int slot;
-	unsigned stream_offset;
+	unsigned int stream_offset;
 };
 
 #define VF_POOL_SIZE        20
@@ -325,19 +326,19 @@ static void set_frame_info(struct vframe_s *vf)
 				DISP_RATIO_ASPECT_RATIO_BIT);
 	} else {
 		/* h264mvc_ar = ((float)frame_height/frame_width)
-		 *customer_ratio; */
+		 *customer_ratio;
+		 */
 		ar =  min_t(u32, h264mvc_ar, DISP_RATIO_ASPECT_RATIO_MAX);
 
 		vf->ratio_control = (ar << DISP_RATIO_ASPECT_RATIO_BIT);
 	}
-
-	return;
 }
 
 static int vh264mvc_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
 	int i;
+
 	spin_lock_irqsave(&lock, flags);
 	states->vf_pool_size = VF_POOL_SIZE;
 
@@ -365,6 +366,7 @@ void send_drop_cmd(void)
 	int ready_cnt = 0;
 	int temp_get_ptr = get_ptr;
 	int temp_fill_ptr = fill_ptr;
+
 	while (temp_get_ptr != temp_fill_ptr) {
 		if ((vfpool_idx[temp_get_ptr].view0_buf_id >= 0)
 			&& (vfpool_idx[temp_get_ptr].view1_buf_id >= 0)
@@ -390,6 +392,7 @@ int get_valid_frame(void)
 	int ready_cnt = 0;
 	int temp_get_ptr = get_ptr;
 	int temp_fill_ptr = fill_ptr;
+
 	while (temp_get_ptr != temp_fill_ptr) {
 		if ((vfpool_idx[temp_get_ptr].view0_buf_id >= 0)
 			&& (vfpool_idx[temp_get_ptr].view1_buf_id >= 0)
@@ -417,6 +420,7 @@ static struct vframe_s *vh264mvc_vf_get(void *op_arg)
 	struct vframe_s *vf;
 	int view0_buf_id;
 	int view1_buf_id;
+
 	if (get_ptr == fill_ptr)
 		return NULL;
 
@@ -520,6 +524,7 @@ static int vh264mvc_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vh264mvc_vf_prov);
@@ -700,6 +705,7 @@ int check_in_list(int pos, int *slot)
 {
 	int i;
 	int ret = 0;
+
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		if ((vfpool_idx[i].display_pos == pos)
 			&& (vfpool_idx[i].used == 0)) {
@@ -931,6 +937,7 @@ static void vh264mvc_isr(void)
 			unsigned char in_list_flag = 0;
 
 			int slot = 0;
+
 			in_list_flag = check_in_list(display_POC, &slot);
 
 			if ((dbg_mode & 0x40) && (drop_status)) {
@@ -1019,7 +1026,8 @@ static void vh264mvc_isr(void)
 				vf->pts = (pts_valid) ? pts : 0;
 				vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
 				/* vf->pts =  vf->pts_us64 ? vf->pts_us64
-				   : vf->pts ; */
+				 *   : vf->pts ;
+				 */
 				/* vf->pts =  vf->pts_us64; */
 				if (dbg_mode & 0x80)
 					pr_info("vf->pts:%d\n", vf->pts);
@@ -1057,6 +1065,7 @@ static void vh264mvc_put_timer_func(unsigned long arg)
 	struct timer_list *timer = (struct timer_list *)arg;
 
 	int valid_frame = 0;
+
 	if (enable_recycle == 0) {
 		if (dbg_mode & TIME_TASK_PRINT_ENABLE) {
 			/* valid_frame = get_valid_frame(); */
@@ -1070,6 +1079,7 @@ static void vh264mvc_put_timer_func(unsigned long arg)
 	while ((putting_ptr != put_ptr) && (READ_VREG(BUFFER_RECYCLE) == 0)) {
 		int view0_buf_id = vfpool_idx[put_ptr].view0_buf_id;
 		int view1_buf_id = vfpool_idx[put_ptr].view1_buf_id;
+
 		if ((view0_buf_id >= 0) &&
 				(view0_vfbuf_use[view0_buf_id] == 1)) {
 			if (dbg_mode & 0x100) {
@@ -1104,6 +1114,7 @@ static void vh264mvc_put_timer_func(unsigned long arg)
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_H264MVC,
 			frame_width, frame_height, fps * 2);
@@ -1168,6 +1179,7 @@ int vh264mvc_set_trickmode(struct vdec_s *vdec, unsigned long trickmode)
 static void H264_DECODE_INIT(void)
 {
 	int i;
+
 	i = READ_VREG(DECODE_SKIP_PICTURE);
 
 #if 1				/* /MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
@@ -1387,6 +1399,7 @@ static s32 vh264mvc_init(void)
 {
 	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
@@ -1511,6 +1524,7 @@ static int vh264mvc_stop(void)
 
 	if (stat & STAT_VF_HOOK) {
 		ulong flags;
+
 		spin_lock_irqsave(&lock, flags);
 		spin_unlock_irqrestore(&lock, flags);
 		vf_unreg_provider(&vh264mvc_vf_prov);

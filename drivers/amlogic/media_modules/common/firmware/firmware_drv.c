@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -67,7 +67,7 @@ static const struct file_operations firmware_fops = {
 struct firmware_mgr_s *g_mgr;
 struct firmware_dev_s *g_dev;
 
-static u32 debug = 0;
+static u32 debug;
 
 int get_firmware_data(enum firmware_type_e type, char *buf)
 {
@@ -276,7 +276,7 @@ static void walk_firmware_info(void)
 
 	if (list_empty(&mgr->head)) {
 		pr_info("the info list is empty.\n");
-		return ;
+		return;
 	}
 
 	list_for_each_entry(info, &mgr->head, node) {
@@ -320,18 +320,18 @@ static ssize_t info_show(struct class *class,
 		if (IS_ERR_OR_NULL(info->data))
 			continue;
 
-		pr_info( "%10s : %s\n", "name", info->name);
-		pr_info( "%10s : %d\n", "size",
+		pr_info("%10s : %s\n", "name", info->name);
+		pr_info("%10s : %d\n", "size",
 			info->data->header.data_size);
-		pr_info( "%10s : %s\n", "ver",
+		pr_info("%10s : %s\n", "ver",
 			info->data->header.version);
-		pr_info( "%10s : 0x%x\n", "sum",
+		pr_info("%10s : 0x%x\n", "sum",
 			info->data->header.checksum);
-		pr_info( "%10s : %s\n", "commit",
+		pr_info("%10s : %s\n", "commit",
 			info->data->header.commit);
-		pr_info( "%10s : %s\n", "author",
+		pr_info("%10s : %s\n", "author",
 			info->data->header.author);
-		pr_info( "%10s : %s\n\n", "date",
+		pr_info("%10s : %s\n\n", "date",
 			info->data->header.date);
 	}
 out:

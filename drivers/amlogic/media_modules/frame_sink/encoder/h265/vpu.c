@@ -15,7 +15,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 
 #include <linux/kernel.h>
@@ -106,7 +106,7 @@ static struct platform_device *hevc_pdev;
 
 static struct vpu_bit_firmware_info_t s_bit_firmware_info[MAX_NUM_VPU_CORE];
 
-static void dma_flush(u32 buf_start , u32 buf_size)
+static void dma_flush(u32 buf_start, u32 buf_size)
 {
 	if (hevc_pdev)
 		dma_sync_single_for_device(
@@ -114,7 +114,7 @@ static void dma_flush(u32 buf_start , u32 buf_size)
 			buf_size, DMA_TO_DEVICE);
 }
 
-static void cache_flush(u32 buf_start , u32 buf_size)
+static void cache_flush(u32 buf_start, u32 buf_size)
 {
 	if (hevc_pdev)
 		dma_sync_single_for_cpu(
@@ -171,8 +171,7 @@ static s32 vpu_free_instances(struct file *filp)
 
 	enc_pr(LOG_DEBUG, "vpu_free_instances\n");
 
-	list_for_each_entry_safe(vil, n, &s_inst_list_head, list)
-	{
+	list_for_each_entry_safe(vil, n, &s_inst_list_head, list) {
 		if (vil->filp == filp) {
 			vip_base = (void *)s_instance_pool.base;
 			enc_pr(LOG_INFO,
@@ -183,8 +182,9 @@ static s32 vpu_free_instances(struct file *filp)
 			vip = (struct vpudrv_instance_pool_t *)vip_base;
 			if (vip) {
 				/* only first 4 byte is key point
-					(inUse of CodecInst in vpuapi)
-				    to free the corresponding instance. */
+				 *	(inUse of CodecInst in vpuapi)
+				 *    to free the corresponding instance.
+				 */
 				memset(&vip->codecInstPool[vil->inst_idx],
 					0x00, 4);
 			}
@@ -203,8 +203,7 @@ static s32 vpu_free_buffers(struct file *filp)
 
 	enc_pr(LOG_DEBUG, "vpu_free_buffers\n");
 
-	list_for_each_entry_safe(pool, n, &s_vbp_head, list)
-	{
+	list_for_each_entry_safe(pool, n, &s_vbp_head, list) {
 		if (pool->filp == filp) {
 			vb = pool->vb;
 			if (vb.base) {
@@ -226,8 +225,7 @@ static u32 vpu_is_buffer_cached(struct file *filp, ulong vm_pgoff)
 
 	enc_pr(LOG_ALL, "[+]vpu_is_buffer_cached\n");
 	spin_lock(&s_vpu_lock);
-	list_for_each_entry_safe(pool, n, &s_vbp_head, list)
-	{
+	list_for_each_entry_safe(pool, n, &s_vbp_head, list) {
 		if (pool->filp == filp) {
 			vb = pool->vb;
 			if (((vb.phys_addr  >> PAGE_SHIFT) == vm_pgoff)
@@ -245,6 +243,7 @@ static u32 vpu_is_buffer_cached(struct file *filp, ulong vm_pgoff)
 static void hevcenc_isr_tasklet(ulong data)
 {
 	struct vpu_drv_context_t *dev = (struct vpu_drv_context_t *)data;
+
 	enc_pr(LOG_INFO, "hevcenc_isr_tasklet  interruput:0x%08lx\n",
 		dev->interrupt_reason);
 	if (dev->interrupt_reason) {
@@ -263,16 +262,19 @@ static irqreturn_t vpu_irq_handler(s32 irq, void *dev_id)
 {
 	struct vpu_drv_context_t *dev = (struct vpu_drv_context_t *)dev_id;
 	/* this can be removed.
-		it also work in VPU_WaitInterrupt of API function */
+	 *	it also work in VPU_WaitInterrupt of API function
+	 */
 	u32 core;
 	ulong interrupt_reason = 0;
+
 	enc_pr(LOG_ALL, "[+]%s\n", __func__);
 
 	for (core = 0; core < MAX_NUM_VPU_CORE; core++) {
 		if (s_bit_firmware_info[core].size == 0) {
 			/* it means that we didn't get an information
-				the current core from API layer.
-				No core activated.*/
+			 *	the current core from API layer.
+			 *	No core activated.
+			 */
 			enc_pr(LOG_ERROR,
 				"s_bit_firmware_info[core].size is zero\n");
 			continue;
@@ -297,6 +299,7 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 {
 	bool alloc_buffer = false;
 	s32 r = 0;
+
 	enc_pr(LOG_DEBUG, "[+] %s\n", __func__);
 	spin_lock(&s_vpu_lock);
 	s_vpu_drv_context.open_count++;
@@ -366,8 +369,10 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 	if (alloc_buffer) {
 		ulong flags;
 		u32 data32;
+
 		if ((s_vpu_irq >= 0) && (s_vpu_irq_requested == false)) {
 			s32 err;
+
 			err = request_irq(s_vpu_irq, vpu_irq_handler, 0,
 				"HevcEnc-irq", (void *)(&s_vpu_drv_context));
 			if (err) {
@@ -399,7 +404,8 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		vpu_clk_config(1);
 #endif
 		/* Enable wave420l_vpu_idle_rise_irq,
-			Disable wave420l_vpu_idle_fall_irq */
+		 *	Disable wave420l_vpu_idle_fall_irq
+		 */
 		WRITE_VREG(DOS_WAVE420L_CNTL_STAT, 0x1);
 		WRITE_VREG(DOS_MEM_PD_WAVE420L, 0x0);
 
@@ -424,6 +430,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY:
 		{
 			struct vpudrv_buffer_pool_t *vbp;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY\n");
 			ret = down_interruptible(&s_vpu_sem);
@@ -475,6 +482,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 		{
 			struct vpudrv_buffer_pool_t *vbp;
 			struct compat_vpudrv_buffer_t buf32;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY32\n");
 			ret = down_interruptible(&s_vpu_sem);
@@ -543,6 +551,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 		{
 			struct vpudrv_buffer_pool_t *vbp, *n;
 			struct vpudrv_buffer_t vb;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_FREE_PHYSICALMEMORY\n");
 			ret = down_interruptible(&s_vpu_sem);
@@ -560,8 +569,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 
 				spin_lock(&s_vpu_lock);
 				list_for_each_entry_safe(vbp, n,
-					&s_vbp_head, list)
-				{
+					&s_vbp_head, list) {
 					if (vbp->vb.base == vb.base) {
 						list_del(&vbp->list);
 						kfree(vbp);
@@ -580,6 +588,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			struct vpudrv_buffer_pool_t *vbp, *n;
 			struct compat_vpudrv_buffer_t buf32;
 			struct vpudrv_buffer_t vb;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_FREE_PHYSICALMEMORY32\n");
 			ret = down_interruptible(&s_vpu_sem);
@@ -605,8 +614,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 
 				spin_lock(&s_vpu_lock);
 				list_for_each_entry_safe(vbp, n,
-					&s_vbp_head, list)
-				{
+					&s_vbp_head, list) {
 					if ((compat_ulong_t)vbp->vb.base
 						== buf32.base) {
 						list_del(&vbp->list);
@@ -641,6 +649,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32\n");
 
@@ -667,6 +676,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_WAIT_INTERRUPT:
 		{
 			struct vpudrv_intr_info_t info;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_WAIT_INTERRUPT\n");
 			ret = copy_from_user(&info,
@@ -685,6 +695,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			}
 			if (dev->interrupt_reason & (1 << W4_INT_ENC_PIC)) {
 				u32 start, end, size, core = 0;
+
 				start = ReadVpuRegister(W4_BS_RD_PTR);
 				end = ReadVpuRegister(W4_BS_WR_PTR);
 				size = ReadVpuRegister(W4_RET_ENC_PIC_BYTE);
@@ -721,6 +732,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_SET_CLOCK_GATE:
 		{
 			u32 clkgate;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_SET_CLOCK_GATE\n");
 			if (get_user(clkgate, (u32 __user *) arg))
@@ -782,6 +794,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_GET_INSTANCE_POOL32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_INSTANCE_POOL32\n");
 			ret = down_interruptible(&s_vpu_sem);
@@ -884,6 +897,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_GET_COMMON_MEMORY32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_COMMON_MEMORY32\n");
 
@@ -962,8 +976,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			/* counting the current open instance number */
 			inst_info.inst_open_count = 0;
 			list_for_each_entry_safe(vil, n,
-				&s_inst_list_head, list)
-			{
+				&s_inst_list_head, list) {
 				if (vil->core_idx == inst_info.core_idx)
 					inst_info.inst_open_count++;
 			}
@@ -1005,8 +1018,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 
 			spin_lock(&s_vpu_lock);
 			list_for_each_entry_safe(vil, n,
-				&s_inst_list_head, list)
-			{
+				&s_inst_list_head, list) {
 				if (vil->inst_idx == inst_info.inst_idx &&
 					vil->core_idx == inst_info.core_idx) {
 					list_del(&vil->list);
@@ -1018,8 +1030,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			/* counting the current open instance number */
 			inst_info.inst_open_count = 0;
 			list_for_each_entry_safe(vil, n,
-				&s_inst_list_head, list)
-			{
+				&s_inst_list_head, list) {
 				if (vil->core_idx == inst_info.core_idx)
 					inst_info.inst_open_count++;
 			}
@@ -1049,6 +1060,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 		{
 			struct vpudrv_inst_info_t inst_info;
 			struct vpudrv_instanace_list_t *vil, *n;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_INSTANCE_NUM\n");
 
@@ -1062,8 +1074,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 
 			spin_lock(&s_vpu_lock);
 			list_for_each_entry_safe(vil, n,
-				&s_inst_list_head, list)
-			{
+				&s_inst_list_head, list) {
 				if (vil->core_idx == inst_info.core_idx)
 					inst_info.inst_open_count++;
 			}
@@ -1112,6 +1123,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 	case VDI_IOCTL_GET_REGISTER_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_REGISTER_INFO32\n");
 
@@ -1151,6 +1163,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			struct vpudrv_buffer_t vb;
 			bool find = false;
 			u32 cached = 0;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_FLUSH_BUFFER32\n");
 
@@ -1161,8 +1174,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				return -EFAULT;
 			spin_lock(&s_vpu_lock);
 			list_for_each_entry_safe(pool, n,
-				&s_vbp_head, list)
-			{
+				&s_vbp_head, list) {
 				if (pool->filp == filp) {
 					vb = pool->vb;
 					if (((compat_ulong_t)vb.phys_addr
@@ -1188,6 +1200,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			struct vpudrv_buffer_t vb, buf;
 			bool find = false;
 			u32 cached = 0;
+
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_FLUSH_BUFFER\n");
 
@@ -1198,8 +1211,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				return -EFAULT;
 			spin_lock(&s_vpu_lock);
 			list_for_each_entry_safe(pool, n,
-				&s_vbp_head, list)
-			{
+				&s_vbp_head, list) {
 				if (pool->filp == filp) {
 					vb = pool->vb;
 					if ((vb.phys_addr
@@ -1254,6 +1266,7 @@ static ssize_t vpu_write(struct file *filp,
 
 	if (len == sizeof(struct vpu_bit_firmware_info_t))	{
 		struct vpu_bit_firmware_info_t *bit_firmware_info;
+
 		bit_firmware_info =
 			kmalloc(sizeof(struct vpu_bit_firmware_info_t),
 			GFP_KERNEL);
@@ -1307,6 +1320,7 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 {
 	s32 ret = 0;
 	ulong flags;
+
 	enc_pr(LOG_DEBUG, "vpu_release\n");
 	ret = down_interruptible(&s_vpu_sem);
 	if (ret == 0) {
@@ -1369,6 +1383,7 @@ static s32 vpu_fasync(s32 fd, struct file *filp, s32 mode)
 static s32 vpu_map_to_register(struct file *fp, struct vm_area_struct *vm)
 {
 	ulong pfn;
+
 	vm->vm_flags |= VM_IO | VM_RESERVED;
 	vm->vm_page_prot =
 		pgprot_noncached(vm->vm_page_prot);
@@ -1475,6 +1490,7 @@ static struct class hevcenc_class = {
 s32 init_HevcEnc_device(void)
 {
 	s32  r = 0;
+
 	r = register_chrdev(0, VPU_DEV_NAME, &vpu_fops);
 	if (r <= 0) {
 		enc_pr(LOG_ERROR, "register hevcenc device error.\n");
@@ -1515,6 +1531,7 @@ static s32 hevc_mem_device_init(
 	struct reserved_mem *rmem, struct device *dev)
 {
 	s32 r;
+
 	if (!rmem) {
 		enc_pr(LOG_ERROR,
 			"Can not obtain I/O memory, will allocate hevc buffer!\n");
@@ -1784,16 +1801,17 @@ static void Wave4BitIssueCommand(u32 core, u32 cmd)
 	/* coreIdx = ReadVpuRegister(W4_VPU_BUSY_STATUS); */
 	/* coreIdx = 0; */
 	/* WriteVpuRegister(W4_INST_INDEX,
-		(instanceIndex & 0xffff) | (codecMode << 16)); */
+	 *	(instanceIndex & 0xffff) | (codecMode << 16));
+	 */
 	WriteVpuRegister(W4_COMMAND, cmd);
 	WriteVpuRegister(W4_VPU_HOST_INT_REQ, 1);
-	return;
 }
 
 static s32 vpu_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	u32 core;
 	ulong timeout = jiffies + HZ; /* vpu wait timeout to 1sec */
+
 	enc_pr(LOG_DEBUG, "vpu_suspend\n");
 
 	vpu_clk_config(1);
@@ -1951,6 +1969,7 @@ static struct platform_driver vpu_driver = {
 static s32 __init vpu_init(void)
 {
 	s32 res;
+
 	enc_pr(LOG_DEBUG, "vpu_init\n");
 	if (get_cpu_type() != MESON_CPU_MAJOR_ID_GXM) {
 		enc_pr(LOG_DEBUG,
@@ -1968,7 +1987,6 @@ static void __exit vpu_exit(void)
 	enc_pr(LOG_DEBUG, "vpu_exit\n");
 	if (get_cpu_type() == MESON_CPU_MAJOR_ID_GXM)
 		platform_driver_unregister(&vpu_driver);
-	return;
 }
 
 static const struct reserved_mem_ops rmem_hevc_ops = {

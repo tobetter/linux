@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -232,11 +232,11 @@ static const u32 frame_rate_tab[16] = {
 	96000 / 24, 96000 / 24, 96000 / 24
 };
 
-static void set_frame_info(struct vframe_s *vf, unsigned *duration)
+static void set_frame_info(struct vframe_s *vf, unsigned int *duration)
 {
 	int ar = 0;
 
-	unsigned pixel_ratio = READ_VREG(AVS_PIC_RATIO);
+	unsigned int pixel_ratio = READ_VREG(AVS_PIC_RATIO);
 #ifndef USE_AVS_SEQ_INFO
 	if (vavs_amstream_dec_info.width > 0
 		&& vavs_amstream_dec_info.height > 0) {
@@ -411,6 +411,7 @@ static void vavs_isr(void)
 	u32 picture_struct;
 	u64 pts_us64;
 	unsigned int pts, pts_valid = 0, offset;
+
 	if (debug_flag & AVS_DEBUG_UCODE) {
 		if (READ_VREG(AV_SCRATCH_E) != 0) {
 			pr_info("dbg%x: %x\n", READ_VREG(AV_SCRATCH_E),
@@ -467,7 +468,8 @@ static void vavs_isr(void)
 #ifdef DEBUG_PTS
 		if (picture_type == I_PICTURE) {
 			/* pr_info("I offset 0x%x, pts_valid %d\n",
-			   offset, pts_valid); */
+			 *   offset, pts_valid);
+			 */
 			if (!pts_valid)
 				pts_i_missed++;
 			else
@@ -498,12 +500,13 @@ static void vavs_isr(void)
 			set_frame_info(vf, &dur);
 			vf->bufWidth = 1920;
 			pic_type = 2;
-			if ((I_PICTURE == picture_type) && pts_valid) {
+			if ((picture_type == I_PICTURE) && pts_valid) {
 				vf->pts = pts;
 				if ((repeat_count > 1) && avi_flag) {
 					/* next_pts = pts +
-					   (vavs_amstream_dec_info.rate *
-					   repeat_count >> 1)*15/16; */
+					 *   (vavs_amstream_dec_info.rate *
+					 *   repeat_count >> 1)*15/16;
+					 */
 					next_pts =
 						pts +
 						(dur * repeat_count >> 1) *
@@ -514,8 +517,9 @@ static void vavs_isr(void)
 				vf->pts = next_pts;
 				if ((repeat_count > 1) && avi_flag) {
 					/* vf->duration =
-					   vavs_amstream_dec_info.rate *
-					   repeat_count >> 1; */
+					 *   vavs_amstream_dec_info.rate *
+					 *   repeat_count >> 1;
+					 */
 					vf->duration = dur * repeat_count >> 1;
 					if (next_pts != 0) {
 						next_pts +=
@@ -524,7 +528,8 @@ static void vavs_isr(void)
 					}
 				} else {
 					/* vf->duration =
-					   vavs_amstream_dec_info.rate >> 1; */
+					 *   vavs_amstream_dec_info.rate >> 1;
+					 */
 					vf->duration = dur >> 1;
 					next_pts = 0;
 				}
@@ -570,7 +575,8 @@ static void vavs_isr(void)
 			vf->pts = next_pts;
 			if ((repeat_count > 1) && avi_flag) {
 				/* vf->duration = vavs_amstream_dec_info.rate *
-				   repeat_count >> 1; */
+				 *   repeat_count >> 1;
+				 */
 				vf->duration = dur * repeat_count >> 1;
 				if (next_pts != 0) {
 					next_pts +=
@@ -579,7 +585,8 @@ static void vavs_isr(void)
 				}
 			} else {
 				/* vf->duration = vavs_amstream_dec_info.rate
-				   >> 1; */
+				 *   >> 1;
+				 */
 				vf->duration = dur >> 1;
 				next_pts = 0;
 			}
@@ -625,12 +632,13 @@ static void vavs_isr(void)
 			vf->bufWidth = 1920;
 			pic_type = 1;
 
-			if ((I_PICTURE == picture_type) && pts_valid) {
+			if ((picture_type == I_PICTURE) && pts_valid) {
 				vf->pts = pts;
 				if ((repeat_count > 1) && avi_flag) {
 					/* next_pts = pts +
-					   (vavs_amstream_dec_info.rate *
-					   repeat_count)*15/16; */
+					 *   (vavs_amstream_dec_info.rate *
+					 *   repeat_count)*15/16;
+					 */
 					next_pts =
 						pts +
 						(dur * repeat_count) * 15 / 16;
@@ -640,8 +648,9 @@ static void vavs_isr(void)
 				vf->pts = next_pts;
 				if ((repeat_count > 1) && avi_flag) {
 					/* vf->duration =
-					   vavs_amstream_dec_info.rate *
-					   repeat_count; */
+					 *   vavs_amstream_dec_info.rate *
+					 *   repeat_count;
+					 */
 					vf->duration = dur * repeat_count;
 					if (next_pts != 0) {
 						next_pts +=
@@ -650,7 +659,8 @@ static void vavs_isr(void)
 					}
 				} else {
 					/* vf->duration =
-					   vavs_amstream_dec_info.rate; */
+					 *   vavs_amstream_dec_info.rate;
+					 */
 					vf->duration = dur;
 					next_pts = 0;
 				}
@@ -688,7 +698,8 @@ static void vavs_isr(void)
 		vdec_count_info(gvs, 0, offset);
 
 		/* pr_info("PicType = %d, PTS = 0x%x\n",
-		   picture_type, vf->pts); */
+		 *   picture_type, vf->pts);
+		 */
 		WRITE_VREG(AVS_BUFFEROUT, 0);
 	}
 
@@ -701,15 +712,15 @@ static void vavs_isr(void)
 #endif
 }
 /*
-static int run_flag = 1;
-static int step_flag;
-*/
+ *static int run_flag = 1;
+ *static int step_flag;
+ */
 static int error_recovery_mode;   /*0: blocky  1: mosaic*/
 /*
-static uint error_watchdog_threshold=10;
-static uint error_watchdog_count;
-static uint error_watchdog_buf_threshold = 0x4000000;
-*/
+ *static uint error_watchdog_threshold=10;
+ *static uint error_watchdog_count;
+ *static uint error_watchdog_buf_threshold = 0x4000000;
+ */
 static uint long_cabac_busy;
 
 static struct vframe_s *vavs_vf_peek(void *op_arg)
@@ -743,6 +754,7 @@ static struct vframe_s *vavs_vf_get(void *op_arg)
 static void vavs_vf_put(struct vframe_s *vf, void *op_arg)
 {
 	int i;
+
 	if (recover_flag)
 		return;
 
@@ -796,7 +808,6 @@ static int vavs_vdec_info_init(void)
 	}
 	return 0;
 }
-
 /****************************************/
 static int vavs_canvas_init(void)
 {
@@ -805,6 +816,7 @@ static int vavs_canvas_init(void)
 	u32 decbuf_size, decbuf_y_size, decbuf_uv_size;
 	unsigned long buf_start;
 	int need_alloc_buf_num;
+
 	vf_buf_num_used = vf_buf_num;
 	if (buf_size <= 0x00400000) {
 		/* SD only */
@@ -926,6 +938,7 @@ void vavs_recover(void)
 		WRITE_VREG(AV_SCRATCH_1, vf_buf_num_used);
 	} else {
 		int ii;
+
 		for (ii = 0; ii < 4; ii++) {
 			WRITE_VREG(AV_SCRATCH_0 + ii,
 				(canvas_base + canvas_num * ii) |
@@ -1019,6 +1032,7 @@ static int vavs_prot_init(void)
 			WRITE_VREG(AV_SCRATCH_1, vf_buf_num_used);
 		} else {
 			int ii;
+
 			for (ii = 0; ii < 4; ii++) {
 				WRITE_VREG(AV_SCRATCH_0 + ii,
 					(canvas_base + canvas_num * ii) |
@@ -1029,11 +1043,11 @@ static int vavs_prot_init(void)
 				);
 			}
 			/*
-			WRITE_VREG(AV_SCRATCH_0, 0x010100);
-			WRITE_VREG(AV_SCRATCH_1, 0x040403);
-			WRITE_VREG(AV_SCRATCH_2, 0x070706);
-			WRITE_VREG(AV_SCRATCH_3, 0x0a0a09);
-			*/
+			 *WRITE_VREG(AV_SCRATCH_0, 0x010100);
+			 *WRITE_VREG(AV_SCRATCH_1, 0x040403);
+			 *WRITE_VREG(AV_SCRATCH_2, 0x070706);
+			 *WRITE_VREG(AV_SCRATCH_3, 0x0a0a09);
+			 */
 		}
 #else
 	/* index v << 16 | u << 8 | y */
@@ -1120,6 +1134,7 @@ static void vavs_local_init(void)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &vfpool[i];
+
 		vfpool[i].index = vf_buf_num;
 		vfpool[i].bufWidth = 1920;
 		kfifo_put(&newframe_q, vf);
@@ -1146,6 +1161,7 @@ static void vavs_local_init(void)
 static int vavs_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 	states->vf_pool_size = VF_POOL_SIZE;
 	states->buf_free_num = kfifo_len(&newframe_q);
@@ -1299,6 +1315,7 @@ static void vavs_put_timer_func(unsigned long arg)
 
 	if (!kfifo_is_empty(&recycle_q) && (READ_VREG(AVS_BUFFERIN) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index < vf_buf_num) &&
 			 (--vfbuf_use[vf->index] == 0)) {
@@ -1313,6 +1330,7 @@ static void vavs_put_timer_func(unsigned long arg)
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		if (firmware_sel == 0 &&
 			(debug_flag & AVS_DEBUG_USE_FULL_SPEED)) {
@@ -1387,9 +1405,9 @@ static void init_avsp_long_cabac_buf(void)
 		GFP_KERNEL);
 #else
 	/*es_write_addr_virt = kmalloc(MAX_CODED_FRAME_SIZE, GFP_KERNEL);
-		es_write_addr_virt = (void *)__get_free_pages(GFP_KERNEL,
-		get_order(MAX_CODED_FRAME_SIZE));
-	*/
+	 *	es_write_addr_virt = (void *)__get_free_pages(GFP_KERNEL,
+	 *	get_order(MAX_CODED_FRAME_SIZE));
+	 */
 	es_write_addr_virt = &es_write_addr[0];
 	if (es_write_addr_virt == NULL) {
 		pr_err("%s: failed to alloc es_write_addr_virt buffer\n",
@@ -1421,8 +1439,8 @@ static void init_avsp_long_cabac_buf(void)
 
 	bitstream_read_tmp = kmalloc(SVA_STREAM_BUF_SIZE, GFP_KERNEL);
 		/*bitstream_read_tmp = (void *)__get_free_pages(GFP_KERNEL,
-		get_order(MAX_CODED_FRAME_SIZE));
-		*/
+		 *get_order(MAX_CODED_FRAME_SIZE));
+		 */
 	if (bitstream_read_tmp == NULL) {
 		pr_err("%s: failed to alloc bitstream_read_tmp buffer\n",
 			__func__);
@@ -1448,6 +1466,7 @@ static s32 vavs_init(void)
 {
 	int r, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
@@ -1553,7 +1572,10 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		canvas_base = 0;
 		canvas_num = 3;
 	} else {
-
+		/*if(vf_buf_num <= 4)
+		 *	canvas_base = 0;
+		 *else
+		 */
 		canvas_base = 128;
 		canvas_num = 2; /*NV21*/
 	}
@@ -1759,12 +1781,13 @@ module_param(stat, uint, 0664);
 MODULE_PARM_DESC(stat, "\n amvdec_avs stat\n");
 
 /******************************************
-module_param(run_flag, uint, 0664);
-MODULE_PARM_DESC(run_flag, "\n run_flag\n");
-
-module_param(step_flag, uint, 0664);
-MODULE_PARM_DESC(step_flag, "\n step_flag\n");
-*******************************************/
+ *module_param(run_flag, uint, 0664);
+ *MODULE_PARM_DESC(run_flag, "\n run_flag\n");
+ *
+ *module_param(step_flag, uint, 0664);
+ *MODULE_PARM_DESC(step_flag, "\n step_flag\n");
+ *******************************************
+ */
 
 module_param(debug_flag, uint, 0664);
 MODULE_PARM_DESC(debug_flag, "\n debug_flag\n");
@@ -1773,13 +1796,14 @@ module_param(error_recovery_mode, uint, 0664);
 MODULE_PARM_DESC(error_recovery_mode, "\n error_recovery_mode\n");
 
 /******************************************
-module_param(error_watchdog_threshold, uint, 0664);
-MODULE_PARM_DESC(error_watchdog_threshold, "\n error_watchdog_threshold\n");
-
-module_param(error_watchdog_buf_threshold, uint, 0664);
-MODULE_PARM_DESC(error_watchdog_buf_threshold,
-			"\n error_watchdog_buf_threshold\n");
-*******************************************/
+ *module_param(error_watchdog_threshold, uint, 0664);
+ *MODULE_PARM_DESC(error_watchdog_threshold, "\n error_watchdog_threshold\n");
+ *
+ *module_param(error_watchdog_buf_threshold, uint, 0664);
+ *MODULE_PARM_DESC(error_watchdog_buf_threshold,
+ *			"\n error_watchdog_buf_threshold\n");
+ *******************************************
+ */
 
 module_param(pic_type, uint, 0444);
 MODULE_PARM_DESC(pic_type, "\n amdec_vas picture type\n");

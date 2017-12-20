@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -190,8 +190,8 @@ static int vmpeg4_hw_ctx_restore(struct vdec_mpeg4_hw_s *hw);
 #define PROVIDER_NAME   "vdec.mpeg4"
 
 /*
-int query_video_status(int type, int *value);
-*/
+ *int query_video_status(int type, int *value);
+ */
 static const struct vframe_operations_s vf_provider_ops = {
 	.peek = vmpeg_vf_peek,
 	.get = vmpeg_vf_get,
@@ -242,7 +242,7 @@ static void set_frame_info(struct vdec_mpeg4_hw_s *hw, struct vframe_s *vf,
 	int ar = 0;
 	unsigned int num = 0;
 	unsigned int den = 0;
-	unsigned pixel_ratio = READ_VREG(MP4_PIC_RATIO);
+	unsigned int pixel_ratio = READ_VREG(MP4_PIC_RATIO);
 
 	if (hw->vmpeg4_ratio64 != 0) {
 		num = hw->vmpeg4_ratio64>>32;
@@ -376,7 +376,7 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
 		/* timeout when decoding next frame */
 
 		/* for frame based case, insufficient result may happen
-		 * at the begining when only VOL head is available save
+		 * at the beginning when only VOL head is available save
 		 * HW context also, such as for the QTable from VCOP register
 		 */
 		if (input_frame_based(vdec))
@@ -387,7 +387,8 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
 		schedule_work(&hw->work);
 
 		return IRQ_HANDLED;
-	} else {
+	}
+	{
 		picture_type = (reg >> 3) & 7;
 		repeat_cnt = READ_VREG(MP4_NOT_CODED_CNT);
 		vop_time_inc = READ_VREG(MP4_VOP_TIME_INC);
@@ -463,8 +464,8 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
 #endif
 		}
 
-		if ((I_PICTURE == picture_type) ||
-			(P_PICTURE == picture_type)) {
+		if ((picture_type == I_PICTURE) ||
+			(picture_type == P_PICTURE)) {
 			offset = READ_VREG(MP4_OFFSET_REG);
 			if (hw->chunk) {
 				hw->pts_valid[index] = hw->chunk->pts_valid;
@@ -558,9 +559,9 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
 				(hw->vmpeg4_amstream_dec_info.rate == 0)) {
 				/* variable PTS rate */
 				/*bug on variable pts calc,
-				do as dixed vop first if we
-				have rate setting before.
-				*/
+				 *do as dixed vop first if we
+				 *have rate setting before.
+				 */
 				if (vop_time_inc > hw->last_vop_time_inc) {
 					duration = vop_time_inc -
 						hw->last_vop_time_inc;
@@ -1036,6 +1037,7 @@ static void vmpeg4_local_init(struct vdec_mpeg4_hw_s *hw)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &hw->vfpool[i];
+
 		hw->vfpool[i].index = DECODE_BUFFER_NUM_MAX;
 		kfifo_put(&hw->newframe_q, (const struct vframe_s *)vf);
 	}

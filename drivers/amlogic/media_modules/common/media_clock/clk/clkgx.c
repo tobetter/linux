@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -192,33 +192,33 @@ EXPORT_SYMBOL(vdec_get_clk_source);
 static int clock_real_clk[VDEC_MAX + 1];
 
 /*
-*enum vformat_e {
-*	VFORMAT_MPEG12 = 0,
-*	VFORMAT_MPEG4,
-*	VFORMAT_H264,
-*	VFORMAT_MJPEG,
-*	VFORMAT_REAL,
-*	VFORMAT_JPEG,
-*	VFORMAT_VC1,
-*	VFORMAT_AVS,
-*	VFORMAT_YUV,
-*	VFORMAT_H264MVC,
-*	VFORMAT_H264_4K2K,
-*	VFORMAT_HEVC,
-*	VFORMAT_H264_ENC,
-*	VFORMAT_JPEG_ENC,
-*	VFORMAT_VP9,
-*	VFORMAT_MAX
-*};
-*sample:
-*{{1280*720*30, 100}, {1920*1080*30, 166}, {1920*1080*60, 333},
-*	{4096*2048*30, 600}, {4096*2048*60, 600}, {INT_MAX, 600},}
-*mean:
-*width * height * fps
-*<720p30fps						clk=100MHZ
-*>=720p30fps & < 1080p30fps		clk=166MHZ
-*>=1080p 30fps & < 1080p60fps	clk=333MHZ
-*/
+ *enum vformat_e {
+ *	VFORMAT_MPEG12 = 0,
+ *	VFORMAT_MPEG4,
+ *	VFORMAT_H264,
+ *	VFORMAT_MJPEG,
+ *	VFORMAT_REAL,
+ *	VFORMAT_JPEG,
+ *	VFORMAT_VC1,
+ *	VFORMAT_AVS,
+ *	VFORMAT_YUV,
+ *	VFORMAT_H264MVC,
+ *	VFORMAT_H264_4K2K,
+ *	VFORMAT_HEVC,
+ *	VFORMAT_H264_ENC,
+ *	VFORMAT_JPEG_ENC,
+ *	VFORMAT_VP9,
+ *	VFORMAT_MAX
+ *};
+ *sample:
+ *{{1280*720*30, 100}, {1920*1080*30, 166}, {1920*1080*60, 333},
+ *	{4096*2048*30, 600}, {4096*2048*60, 600}, {INT_MAX, 600},}
+ *mean:
+ *width * height * fps
+ *<720p30fps						clk=100MHZ
+ *>=720p30fps & < 1080p30fps		clk=166MHZ
+ *>=1080p 30fps & < 1080p60fps	clk=333MHZ
+ */
 static struct clk_set_setting clks_for_formats[] = {
 	{			/*[VFORMAT_MPEG12] */
 			{{1280 * 720 * 30, 100}, {1920 * 1080 * 30, 166},
@@ -335,7 +335,7 @@ void set_clock_gate(struct gate_switch_node *nodes, int num)
 			gclk.hcodec_mux_node = node;
 		else if (!strcmp(node->name, "clk_hevc_mux"))
 			gclk.hevc_mux_node = node;
-	} while(--num);
+	} while (--num);
 }
 EXPORT_SYMBOL(set_clock_gate);
 

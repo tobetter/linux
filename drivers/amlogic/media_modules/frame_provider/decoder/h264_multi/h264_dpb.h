@@ -294,7 +294,8 @@ union param {
 		unsigned short NAL_info_mmco;
 
 		/* [1:0] : 00 - top field, 01 - bottom field,
-		   10 - frame, 11 - mbaff frame */
+		 *   10 - frame, 11 - mbaff frame
+		 */
 		unsigned short picture_structure_mmco;
 
 		unsigned short frame_num;
@@ -470,10 +471,10 @@ struct Slice {
 };
 
 struct OldSliceParams {
-	unsigned field_pic_flag;
-	unsigned frame_num;
+	unsigned int field_pic_flag;
+	unsigned int frame_num;
 	int      nal_ref_idc;
-	unsigned pic_oder_cnt_lsb;
+	unsigned int pic_oder_cnt_lsb;
 	int      delta_pic_oder_cnt_bottom;
 	int      delta_pic_order_cnt[2];
 	unsigned char     bottom_field_flag;
@@ -578,8 +579,8 @@ struct StorablePicture {
 	int         size_x_m1, size_y_m1, size_x_cr_m1, size_y_cr_m1;
 	int         coded_frame;
 	int         mb_aff_frame_flag;
-	unsigned    PicWidthInMbs;
-	unsigned    PicSizeInMbs;
+	unsigned int PicWidthInMbs;
+	unsigned int PicSizeInMbs;
 	int         iLumaPadY, iLumaPadX;
 	int         iChromaPadY, iChromaPadX;
 
@@ -654,19 +655,22 @@ struct FrameStore {
 	/* 0=empty; 1=top; 2=bottom; 3=both fields (or frame) */
 	int       is_used;
 	/* 0=not used for ref; 1=top used; 2=bottom used;
-	 * 3=both fields (or frame) used */
+	 * 3=both fields (or frame) used
+	 */
 	int       is_reference;
 	/* 0=not used for ref; 1=top used; 2=bottom used;
-	 * 3=both fields (or frame) used */
+	 * 3=both fields (or frame) used
+	 */
 	int       is_long_term;
 	/* original marking by nal_ref_idc: 0=not used for ref; 1=top used;
-	 * 2=bottom used; 3=both fields (or frame) used */
+	 * 2=bottom used; 3=both fields (or frame) used
+	 */
 	int       is_orig_reference;
 
 	int       is_non_existent;
 
-	unsigned  frame_num;
-	unsigned  recovery_frame;
+	unsigned int frame_num;
+	unsigned int recovery_frame;
 
 	int       frame_num_wrap;
 	int       long_term_frame_idx;
@@ -720,10 +724,10 @@ struct DecodedPictureBuffer {
 	struct FrameStore *fs_listlt[DPB_SIZE_MAX];
 
 	/**/
-	unsigned      size;
-	unsigned      used_size;
-	unsigned      ref_frames_in_buffer;
-	unsigned      ltref_frames_in_buffer;
+	unsigned int size;
+	unsigned int used_size;
+	unsigned int ref_frames_in_buffer;
+	unsigned int ltref_frames_in_buffer;
 	int           last_output_poc;
 #if (MVC_EXTENSION_ENABLE)
 	int           last_output_view_id;
@@ -736,7 +740,7 @@ struct DecodedPictureBuffer {
 	int           num_ref_frames;
 
 	struct FrameStore   *last_picture;
-	unsigned     used_size_il;
+	unsigned int used_size_il;
 	int          layer_id;
 
 	/* DPB related function; */

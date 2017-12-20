@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -112,9 +112,9 @@ static int force_enable_mmu = 1;
 unsigned int h264_debug_flag; /* 0xa0000000; */
 unsigned int h264_debug_mask = 0xff;
 	/*
-	h264_debug_cmd:
-		0x1xx, force decoder id of xx to be disconnected
-	*/
+	 *h264_debug_cmd:
+	 *	0x1xx, force decoder id of xx to be disconnected
+	 */
 unsigned int h264_debug_cmd;
 static unsigned int dec_control;
 static unsigned int force_rate_streambase;
@@ -176,10 +176,10 @@ static unsigned int run_count[H264_DEV_NUM];
 static unsigned int input_empty[H264_DEV_NUM];
 static unsigned int not_run_ready[H264_DEV_NUM];
 		/* bit[3:0]:
-		0, run ; 1, pause; 3, step
-		bit[4]:
-		1, schedule run
-		*/
+		 *0, run ; 1, pause; 3, step
+		 *bit[4]:
+		 *1, schedule run
+		 */
 static unsigned int step[H264_DEV_NUM];
 
 #define AUX_BUF_ALIGN(adr) ((adr + 0xf) & (~0xf))
@@ -350,7 +350,7 @@ struct buffer_spec_s {
 	5, in disp queue, isolated (but not to release)
 		do not use for dpb when vf_put;
 	*/
-	int used;
+	unsigned int used;
 	unsigned int info0;
 	unsigned int info1;
 	unsigned int info2;
@@ -426,16 +426,16 @@ static const struct vframe_operations_s vf_provider_ops = {
 #define DEC_RESULT_FORCE_EXIT       8
 
 /*
-static const char *dec_result_str[] = {
-    "DEC_RESULT_NONE        ",
-    "DEC_RESULT_DONE        ",
-    "DEC_RESULT_AGAIN       ",
-    "DEC_RESULT_CONFIG_PARAM",
-    "DEC_RESULT_GET_DATA    ",
-    "DEC_RESULT_GET_DA_RETRY",
-    "DEC_RESULT_ERROR       ",
-};
-*/
+ *static const char *dec_result_str[] = {
+ *    "DEC_RESULT_NONE        ",
+ *    "DEC_RESULT_DONE        ",
+ *    "DEC_RESULT_AGAIN       ",
+ *    "DEC_RESULT_CONFIG_PARAM",
+ *    "DEC_RESULT_GET_DATA    ",
+ *    "DEC_RESULT_GET_DA_RETRY",
+ *    "DEC_RESULT_ERROR       ",
+ *};
+ */
 
 #define UCODE_IP_ONLY 2
 #define UCODE_IP_ONLY_PARAM 1
@@ -634,21 +634,21 @@ struct vdec_h264_hw_s {
 	struct timer_list check_timer;
 
 	/**/
-	unsigned last_frame_time;
+	unsigned int last_frame_time;
 	u32 vf_pre_count;
 	u32 vf_get_count;
 	u32 vf_put_count;
 
 	/* timeout handle */
 	unsigned long int start_process_time;
-	unsigned last_mby_mbx;
-	unsigned last_vld_level;
-	unsigned decode_timeout_count;
-	unsigned timeout_num;
-	unsigned search_dataempty_num;
-	unsigned decode_timeout_num;
-	unsigned decode_dataempty_num;
-	unsigned buffer_empty_recover_num;
+	unsigned int last_mby_mbx;
+	unsigned int last_vld_level;
+	unsigned int decode_timeout_count;
+	unsigned int timeout_num;
+	unsigned int search_dataempty_num;
+	unsigned int decode_timeout_num;
+	unsigned int decode_dataempty_num;
+	unsigned int buffer_empty_recover_num;
 
 	unsigned get_data_count;
 	unsigned get_data_start_time;
@@ -662,7 +662,6 @@ struct vdec_h264_hw_s {
 	unsigned int total_read_size_pre;
 	unsigned int total_read_size;
 	unsigned int frame_count_pre;
-
 #ifdef CONFIG_AM_VDEC_DV
 	u8 switch_dvlayer_flag;
 	u8 got_valid_nal;
@@ -2030,7 +2029,6 @@ static void config_decode_mode(struct vdec_h264_hw_s *hw)
 	else
 		WRITE_VREG(INIT_FLAG_REG, 1);
 }
-
 int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 {
 	/* static int count = 0; */
@@ -2049,31 +2047,31 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 
 #define H264_CO_MB_WR_ADDR        VLD_C38 /* 0xc38 */
 /* bit 31:30 -- L1[0] picture coding structure,
-	00 - top field,	01 - bottom field,
-	10 - frame, 11 - mbaff frame
-   bit 29 - L1[0] top/bot for B field pciture , 0 - top, 1 - bot
-   bit 28:0 h264_co_mb_mem_rd_addr[31:3]
-	-- only used for B Picture Direct mode [2:0] will set to 3'b000
-*/
+ *	00 - top field,	01 - bottom field,
+ *	10 - frame, 11 - mbaff frame
+ *   bit 29 - L1[0] top/bot for B field pciture , 0 - top, 1 - bot
+ *   bit 28:0 h264_co_mb_mem_rd_addr[31:3]
+ *	-- only used for B Picture Direct mode [2:0] will set to 3'b000
+ */
 #define H264_CO_MB_RD_ADDR        VLD_C39 /* 0xc39 */
 
 /* bit 15 -- flush co_mb_data to DDR -- W-Only
-   bit 14 -- h264_co_mb_mem_wr_addr write Enable -- W-Only
-   bit 13 -- h264_co_mb_info_wr_ptr write Enable -- W-Only
-   bit 9 -- soft_reset -- W-Only
-   bit 8 -- upgent
-   bit 7:2 -- h264_co_mb_mem_wr_addr
-   bit 1:0 -- h264_co_mb_info_wr_ptr
-*/
+ *   bit 14 -- h264_co_mb_mem_wr_addr write Enable -- W-Only
+ *   bit 13 -- h264_co_mb_info_wr_ptr write Enable -- W-Only
+ *   bit 9 -- soft_reset -- W-Only
+ *   bit 8 -- upgent
+ *   bit 7:2 -- h264_co_mb_mem_wr_addr
+ *   bit 1:0 -- h264_co_mb_info_wr_ptr
+ */
 #define H264_CO_MB_RW_CTL         VLD_C3D /* 0xc3d */
 
 	unsigned long canvas_adr;
-	unsigned ref_reg_val;
-	unsigned one_ref_cfg = 0;
+	unsigned int ref_reg_val;
+	unsigned int one_ref_cfg = 0;
 	int h264_buffer_info_data_write_count;
 	int i, j;
-	unsigned colocate_wr_adr;
-	unsigned colocate_rd_adr;
+	unsigned int colocate_wr_adr;
+	unsigned int colocate_rd_adr;
 	unsigned char use_direct_8x8;
 	int canvas_pos;
 	canvas_pos = hw->buffer_spec[pic->buf_spec_num].canvas_pos;
@@ -2159,7 +2157,7 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 	for (i = 0; i < (unsigned int)(pSlice->listXsize[0]); i++) {
 		/*ref list 0 */
 		struct StorablePicture *ref = pSlice->listX[0][i];
-		unsigned cfg;
+		unsigned int cfg;
 		/* bit[6:5] - frame/field info,
 		 * 01 - top, 10 - bottom, 11 - frame
 		 */
@@ -2222,7 +2220,7 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 	for (i = 0; i < (unsigned int)(pSlice->listXsize[1]); i++) {
 		/* ref list 0 */
 		struct StorablePicture *ref = pSlice->listX[1][i];
-		unsigned cfg;
+		unsigned int cfg;
 		/* bit[6:5] - frame/field info,
 		 * 01 - top, 10 - bottom, 11 - frame
 		 */
@@ -2385,7 +2383,8 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 		}
 #if 0
 		/*case0016, p16,
-		cur_colocate_ref_type should be configured base on current pic*/
+		 *cur_colocate_ref_type should be configured base on current pic
+		 */
 		if (pic->structure == FRAME &&
 			pic->mb_aff_frame_flag)
 			cur_colocate_ref_type = 0;
@@ -2746,8 +2745,6 @@ static void set_frame_info(struct vdec_h264_hw_s *hw, struct vframe_s *vf,
 #ifndef NV21
 	vf->canvas1_config[2] = hw->buffer_spec[index].canvas_config[2];
 #endif
-
-	return;
 }
 
 static int get_max_dec_frame_buf_size(int level_idc,
@@ -3121,13 +3118,14 @@ static void vui_config(struct vdec_h264_hw_s *hw)
 				}
 
 				/*hack to avoid use ES frame duration when
-				it's half of the rate from system info
-				 sometimes the encoder is given a wrong
-				 frame rate but the system side infomation
-				 is more reliable
-				if ((frame_dur * 2) != frame_dur_es) {
-				    frame_dur = frame_dur_es;
-				}*/
+				 *it's half of the rate from system info
+				 * sometimes the encoder is given a wrong
+				 * frame rate but the system side information
+				 * is more reliable
+				 *if ((frame_dur * 2) != frame_dur_es) {
+				 *    frame_dur = frame_dur_es;
+				 *}
+				 */
 			}
 		}
 	} else {
@@ -3251,7 +3249,7 @@ static void vui_config(struct vdec_h264_hw_s *hw)
 	}
 
 	if (hw->pts_unstable && (hw->fixed_frame_rate_flag == 0)) {
-		if (((RATE_2397_FPS == hw->frame_dur)
+		if (((hw->frame_dur == RATE_2397_FPS)
 		&& (dec_control
 		& DEC_CONTROL_FLAG_FORCE_RATE_2397_FPS_FIX_FRAME_RATE))
 			|| ((RATE_2997_FPS ==
@@ -3440,6 +3438,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec)
 #ifdef SEND_PARAM_WITH_REG
 		for (i = 0; i < (RPM_END-RPM_BEGIN); i++) {
 			unsigned int data32;
+
 			do {
 				data32 = READ_VREG(RPM_CMD_REG);
 				/* printk("%x\n", data32); */
@@ -3451,6 +3450,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec)
 #else
 		for (i = 0; i < (RPM_END-RPM_BEGIN); i += 4) {
 			int ii;
+
 			for (ii = 0; ii < 4; ii++) {
 				p_H264_Dpb->dpb_param.l.data[i+ii] =
 					p[i+3-ii];
@@ -4338,7 +4338,8 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 				(1 << 9) | (1 << 6));
 	} else {
 		/* WRITE_VREG(POWER_CTL_VLD,
-			READ_VREG(POWER_CTL_VLD) | (0 << 10) | (1 << 9) ); */
+		 *	READ_VREG(POWER_CTL_VLD) | (0 << 10) | (1 << 9) );
+		 */
 		WRITE_VREG(POWER_CTL_VLD,
 			READ_VREG(POWER_CTL_VLD) |
 				(0 << 10) | (1 << 9) | (1 << 6));
@@ -4390,9 +4391,11 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 		WRITE_VREG(AV_SCRATCH_G, hw->mc_dma_handle);
 
 	/* hw->error_recovery_mode = (error_recovery_mode != 0) ?
-		error_recovery_mode : error_recovery_mode_in; */
+	 *	error_recovery_mode : error_recovery_mode_in;
+	 */
 	/* WRITE_VREG(AV_SCRATCH_F,
-		(READ_VREG(AV_SCRATCH_F) & 0xffffffc3) ); */
+	 *	(READ_VREG(AV_SCRATCH_F) & 0xffffffc3) );
+	 */
 	WRITE_VREG(AV_SCRATCH_F, (READ_VREG(AV_SCRATCH_F) & 0xffffffc3) |
 		((error_recovery_mode_in & 0x1) << 4));
 	/*if (hw->ucode_type == UCODE_IP_ONLY_PARAM)
@@ -4462,7 +4465,8 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 			hw->vh264_amstream_dec_info.param & 0x10) >> 4);
 	if (hw->frame_dur < 96000/960) {
 		/*more than 960fps,it should not be a correct value,
-		give default 30fps*/
+		 *give default 30fps
+		 */
 		hw->frame_dur = 96000/30;
 	}
 
@@ -4657,7 +4661,8 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	if (!hw->lmem_addr) {
 		pr_info("%s: failed to alloc lmem_addr\n", __func__);
 		return -ENOMEM;
-	} else {
+	}
+	{
 		hw->lmem_addr_remap = dma_map_single(
 				amports_get_dma_device(),
 				(void *)hw->lmem_addr,
@@ -4977,8 +4982,9 @@ result_done:
 			READ_VREG(VLD_MEM_VIFIFO_RP));
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
 		amvdec_stop();
-		//if (mmu_enable)
-			//amhevc_stop();
+		/*if (mmu_enable)
+		 *amhevc_stop();
+		 */
 	} else if (hw->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
@@ -5846,7 +5852,6 @@ module_param_array(step, uint, &max_decode_instance_num, 0664);
 
 module_param(disp_vframe_valve_level, uint, 0664);
 MODULE_PARM_DESC(disp_vframe_valve_level, "\n disp_vframe_valve_level\n");
-
 module_init(ammvdec_h264_driver_init_module);
 module_exit(ammvdec_h264_driver_remove_module);
 

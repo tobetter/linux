@@ -37,9 +37,9 @@ struct aml_ci {
 	int (*ci_slot_ts_enable)(struct aml_ci *ca, int slot);
 
 	/*
-	* Poll slot status.
-	* Only necessary if DVB_CA_FLAG_EN50221_IRQ_CAMCHANGE is not set
-	*/
+	 * Poll slot status.
+	 * Only necessary if DVB_CA_FLAG_EN50221_IRQ_CAMCHANGE is not set
+	 */
 	int (*ci_poll_slot_status)(struct aml_ci *ca, int slot, int open);
 
 	/* private data, used by caller */

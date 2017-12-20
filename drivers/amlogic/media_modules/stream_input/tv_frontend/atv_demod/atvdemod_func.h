@@ -52,6 +52,7 @@ extern int amlatvdemod_hiu_reg_write(unsigned int reg, unsigned int val);
 static inline uint32_t R_ATVDEMOD_REG(uint32_t reg)
 {
 	unsigned int val;
+
 	amlatvdemod_reg_read(reg, &val);
 	return val;
 }
@@ -86,6 +87,7 @@ static inline uint32_t R_ATVDEMOD_BIT(uint32_t reg,
 static inline uint32_t R_HIU_REG(uint32_t reg)
 {
 	unsigned int val;
+
 	amlatvdemod_hiu_reg_read(reg, &val);
 	return val;
 }
@@ -187,7 +189,8 @@ extern int aml_atvdemod_get_snr(struct dvb_frontend *fe);
 
 /*atv demod block address*/
 /*address interval is 4, because it's 32bit interface,
- but the address is in byte*/
+ * but the address is in byte
+ */
 #define ATV_DMD_TOP_CTRL			0x0
 #define ATV_DMD_TOP_CTRL1			0x4
 #define ATV_DMD_RST_CTRL			0x8
@@ -273,11 +276,12 @@ extern int aml_atvdemod_get_snr(struct dvb_frontend *fe);
 #define AML_ATV_DEMOD_SOUND_MODE_PROP_MONO	0
 #define AML_ATV_DEMOD_SOUND_MODE_PROP_NICAM	1
 /**
-freq_hz:hs_freq
-freq_hz_cvrt=hs_freq/0.23841858
-vs_freq==50,freq_hz=15625;freq_hz_cvrt=0xffff
-vs_freq==60,freq_hz=15734,freq_hz_cvrt=0x101c9
-**/
+ *freq_hz:hs_freq
+ *freq_hz_cvrt=hs_freq/0.23841858
+ *vs_freq==50,freq_hz=15625;freq_hz_cvrt=0xffff
+ *vs_freq==60,freq_hz=15734,freq_hz_cvrt=0x101c9
+ **
+ */
 #define AML_ATV_DEMOD_FREQ_50HZ_VERT	0xffff	/*65535*/
 #define AML_ATV_DEMOD_FREQ_60HZ_VERT	0x101c9	/*65993*/
 

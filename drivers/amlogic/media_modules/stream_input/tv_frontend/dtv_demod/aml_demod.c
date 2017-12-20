@@ -54,7 +54,8 @@ const char aml_demod_dev_id[] = "aml_demod";
  * #else
  * extern struct aml_demod_i2c demod_i2c;
  * extern struct aml_demod_sta demod_sta;
- #endif*/
+ #endif
+*/
 
 static struct aml_demod_i2c demod_i2c;
 static struct aml_demod_sta demod_sta;
@@ -118,7 +119,8 @@ int cap_adc_data(struct aml_cap_data *cap)
 
 	pr_dbg("capture ADC\n ");
 	/*      printf("set mem_start (you can read in kernel start log
-	 * (memstart is ).(hex)  :  ");*/
+	 * (memstart is ).(hex)  :  ");
+	 */
 	/*      scanf("%x",&tmp);*/
 	tmp = 0x94400000;
 	app_apb_write_reg(0x9d, cap->cap_addr);
@@ -126,7 +128,8 @@ int cap_adc_data(struct aml_cap_data *cap)
 	/*0x8000000-128m, 0x400000-4m */
 	read_start = tmp + 0x40000000;
 	/*printf("set afifo rate. (hex)(adc_clk/demod_clk)*256+2 :  ");   //
-	 * (adc_clk/demod_clk)*256+2 */
+	 * (adc_clk/demod_clk)*256+2
+	 */
 	/*  scanf("%x",&tmp); */
 	cap->cap_afifo = 0x60;
 	app_apb_write_reg(0x15, 0x18715f2);
@@ -194,7 +197,7 @@ static ssize_t aml_demod_info(struct class *cla,
 
 static struct class_attribute aml_demod_class_attrs[] = {
 	__ATTR(info,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       aml_demod_info,
 	       NULL),
 	__ATTR_NULL
@@ -213,8 +216,9 @@ static irqreturn_t aml_demod_isr(int irq, void *dev_id)
 		/*dvbc_isr(&demod_sta); */
 		if (dvbc_isr_islock()) {
 			pr_dbg("sync4\n");
-			if (waitqueue_active(&lock_wq))
-				wake_up_interruptible(&lock_wq);
+			/*if (waitqueue_active(&lock_wq))
+			 *wake_up_interruptible(&lock_wq);
+			 */
 		}
 	} else {
 		dvbt_isr(&demod_sta);
@@ -268,6 +272,7 @@ static long aml_demod_ioctl(struct file *file,
 	int strength = 0;
 	struct dvb_frontend *dvbfe;
 	struct aml_tuner_sys *tuner;
+
 	switch (cmd) {
 	case AML_DEMOD_GET_RSSI:
 		pr_dbg("Ioctl Demod GET_RSSI.\n");
@@ -344,7 +349,8 @@ static long aml_demod_ioctl(struct file *file,
 	case AML_DEMOD_DVBT_GET_CH:
 		pr_dbg("Ioctl DVB-T Get Channel\n");
 		/*dvbt_status(&demod_sta, &demod_i2c,
-		 * (struct aml_demod_sts *)arg); */
+		 * (struct aml_demod_sts *)arg);
+		 */
 		break;
 
 	case AML_DEMOD_DVBT_TEST:
@@ -402,7 +408,8 @@ static long aml_demod_ioctl(struct file *file,
 		 * pr_dbg("[%x]0x%x------------------\n",i,mem_buf[step]);
 		 * for(i=step;i<1024-1;i++){
 		 * pr_dbg("0x%x,",mem_buf[i]);
-		 * } */
+		 * }
+		 */
 		mem_read((struct aml_demod_mem *)arg);
 		break;
 
@@ -500,7 +507,7 @@ static ssize_t aml_demod_ui_info(struct class *cla,
 
 static struct class_attribute aml_demod_ui_class_attrs[] = {
 	__ATTR(info,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       aml_demod_ui_info,
 	       NULL),
 	__ATTR_NULL
@@ -525,7 +532,7 @@ int aml_demod_ui_init(void)
 
 	r = alloc_chrdev_region(&aml_demod_devno_ui, 0, 1, DEVICE_UI_NAME);
 	if (r < 0) {
-		pr_dbg(KERN_ERR "aml_demod_ui: faild to alloc major number\n");
+		pr_dbg("aml_demod_ui: failed to alloc major number\n");
 		r = -ENODEV;
 		unregister_chrdev_region(aml_demod_devno_ui, 1);
 		class_unregister(&aml_demod_ui_class);
@@ -534,7 +541,6 @@ int aml_demod_ui_init(void)
 
 	aml_demod_cdevp_ui = kmalloc(sizeof(struct cdev), GFP_KERNEL);
 	if (!aml_demod_cdevp_ui) {
-		pr_dbg(KERN_ERR "aml_demod_ui: failed to allocate memory\n");
 		r = -ENOMEM;
 		unregister_chrdev_region(aml_demod_devno_ui, 1);
 		kfree(aml_demod_cdevp_ui);
@@ -547,7 +553,7 @@ int aml_demod_ui_init(void)
 	/* connect the major/minor number to cdev */
 	r = cdev_add(aml_demod_cdevp_ui, aml_demod_devno_ui, 1);
 	if (r) {
-		pr_dbg(KERN_ERR "aml_demod_ui:failed to add cdev\n");
+		pr_dbg("aml_demod_ui:failed to add cdev\n");
 		unregister_chrdev_region(aml_demod_devno_ui, 1);
 		cdev_del(aml_demod_cdevp_ui);
 		kfree(aml_demod_cdevp_ui);
@@ -603,7 +609,8 @@ static int __init aml_demod_init(void)
 	 *      pr_dbg("aml_demod irq register error.\n");
 	 *      r = -ENOENT;
 	 *      goto err0;
-	 * }*/
+	 * }
+	 */
 
 	/* sysfs node creation */
 	r = class_register(&aml_demod_class);
@@ -614,14 +621,13 @@ static int __init aml_demod_init(void)
 
 	r = alloc_chrdev_region(&aml_demod_devno, 0, 1, DEVICE_NAME);
 	if (r < 0) {
-		pr_dbg(KERN_ERR "aml_demod: faild to alloc major number\n");
+		pr_dbg("aml_demod: failed to alloc major number\n");
 		r = -ENODEV;
 		goto err2;
 	}
 
 	aml_demod_cdevp = kmalloc(sizeof(struct cdev), GFP_KERNEL);
 	if (!aml_demod_cdevp) {
-		pr_dbg(KERN_ERR "aml_demod: failed to allocate memory\n");
 		r = -ENOMEM;
 		goto err3;
 	}
@@ -631,7 +637,7 @@ static int __init aml_demod_init(void)
 	/* connect the major/minor number to cdev */
 	r = cdev_add(aml_demod_cdevp, aml_demod_devno, 1);
 	if (r) {
-		pr_dbg(KERN_ERR "aml_demod:failed to add cdev\n");
+		pr_dbg("aml_demod:failed to add cdev\n");
 		goto err4;
 	}
 

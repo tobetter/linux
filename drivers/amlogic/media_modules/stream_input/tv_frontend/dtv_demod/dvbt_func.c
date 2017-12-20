@@ -1241,16 +1241,19 @@ static void dvbt_reg_initial(struct aml_demod_sta *demod_sta)
 	apb_write_reg(2, 0x23, 0x00004000);     /* DDC TRACK_FCFO_ADJ_CTRL */
 	apb_write_reg(2, 0x27, 0x00a98200);
 	/*[23] agc state mode [22:19] icfo_time_limit ;[18:15] tps_time_limit ;
-	 * [14:4] cs_cfo_thres ;  [3:0] fsm_state_d; */
+	 * [14:4] cs_cfo_thres ;  [3:0] fsm_state_d;
+	 */
 	/*            1              010,1                   001,1
-	 *      000,0010,0000,                xxxx */
+	 *      000,0010,0000,                xxxx
+	 */
 	apb_write_reg(2, 0x28, 0x04028032);
 	/* [31:24] cs_Q_thres; [23:13] sfo_thres;  FSM [12:0] fcfo_thres;; */
 	/*      0000,0100,        0000,0010,100          0,0000,0011,0010 */
 	apb_write_reg(2, 0x29, 0x0051117F);
 	/*apb_write_reg(2, 0x29, 0x00010f7F); */
 	/*  [18:16] fec_rs_sh_ctrl ;[15:9] fsm_total_timer;
-	 * [8:6] modeDet_time_limit; FSM [5:0] sfo_time_limit; ; */
+	 * [8:6] modeDet_time_limit; FSM [5:0] sfo_time_limit; ;
+	 */
 	/*     01,     ()   0000,111 1,01                     11,1111 */
 
 	/* SRC NORM_INRATE */
@@ -1298,14 +1301,18 @@ static void dvbt_reg_initial(struct aml_demod_sta *demod_sta)
 	apb_write_reg(2, 0x68, apb_read_reg(2, 0x68) & ~(1 << 7));
 	/* SNR report filter; */
 	/*apb_write_reg(2, 0x68, apb_read_reg(2, 0x68) &~(1<<13));  //
-	 * Timing Adjust Shutdown; */
+	 * Timing Adjust Shutdown;
+	 */
 	apb_write_reg(2, 0x69, 0x148c3812);     /* CHAN_EST_CTRL1 */
 	/*apb_write_reg(2, 0x69, apb_read_reg(2, 0x69) | (1<<10));  //
-	 * Disable FD data update */
+	 * Disable FD data update
+	 */
 	/*apb_write_reg(2, 0x69, apb_read_reg(2, 0x69) | (1<<9));  //
-	 * set FD coeff */
+	 * set FD coeff
+	 */
 	/*apb_write_reg(2, 0x69, apb_read_reg(2, 0x69) | (1<<8));  //
-	 * set TD coeff */
+	 * set TD coeff
+	 */
 	apb_write_reg(2, 0x6a, 0x9101012d);     /* CHAN_EST_CTRL2 */
 	apb_write_reg(2, 0x6b, 0x00442211);     /* CHAN_EST_CTRL2 */
 	apb_write_reg(2, 0x6c, 0x01fc040a);     /* CHAN_EST_CTRL3 */
@@ -1493,7 +1500,8 @@ static int dvbt_packet_correct_in_sframe(void)
 }
 
 /*static int dvbt_resync_counter(void)
- * {return((apb_read_reg(2, 0xc0)>>20)&0xff);}*/
+ * {return((apb_read_reg(2, 0xc0)>>20)&0xff);}
+ */
 static int dvbt_packets_per_sframe(void)
 {
 	u32 tmp;
@@ -2135,6 +2143,7 @@ int dvbt_get_params(struct aml_demod_sta *demod_sta,
 {
 	int tps_summary, tps_window, tps_guard, tps_constell, tps_Hier_none;
 	int tps_Hier_alpha, tps_LP_cr, tps_HP_cr;
+
 	tps_summary = apb_read_reg(2, 0x04) & 0x7fff;
 	tps_window = (tps_summary & 0x3);
 	tps_guard = ((tps_summary >> 2) & 0x3);

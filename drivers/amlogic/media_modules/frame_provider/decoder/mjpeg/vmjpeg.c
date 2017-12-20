@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -55,12 +55,12 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 #define MODULE_NAME "amvdec_mjpeg"
 
 /* protocol register usage
-    AV_SCRATCH_0 - AV_SCRATCH_1 : initial display buffer fifo
-    AV_SCRATCH_2 - AV_SCRATCH_3 : decoder settings
-    AV_SCRATCH_4 - AV_SCRATCH_7 : display buffer spec
-    AV_SCRATCH_8 - AV_SCRATCH_9 : amrisc/host display buffer management
-    AV_SCRATCH_a                : time stamp
-*/
+ *    AV_SCRATCH_0 - AV_SCRATCH_1 : initial display buffer fifo
+ *    AV_SCRATCH_2 - AV_SCRATCH_3 : decoder settings
+ *    AV_SCRATCH_4 - AV_SCRATCH_7 : display buffer spec
+ *    AV_SCRATCH_8 - AV_SCRATCH_9 : amrisc/host display buffer management
+ *    AV_SCRATCH_a                : time stamp
+ */
 
 #define MREG_DECODE_PARAM   AV_SCRATCH_2	/* bit 0-3: pico_addr_mode */
 /* bit 15-4: reference height */
@@ -344,6 +344,7 @@ static int vmjpeg_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vmjpeg_vf_prov);
@@ -363,6 +364,7 @@ static int vmjpeg_event_cb(int type, void *data, void *private_data)
 static int vmjpeg_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 
 	states->vf_pool_size = VF_POOL_SIZE;
@@ -382,6 +384,7 @@ static void vmjpeg_put_timer_func(unsigned long arg)
 	while (!kfifo_is_empty(&recycle_q) &&
 			(READ_VREG(MREG_TO_AMRISC) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index >= 0)
 				&& (vf->index < DECODE_BUFFER_NUM_MAX)
@@ -396,6 +399,7 @@ static void vmjpeg_put_timer_func(unsigned long arg)
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_MJPEG,
 			frame_width, frame_height, fps);
@@ -532,7 +536,7 @@ static int vmjpeg_canvas_init(void)
 static void init_scaler(void)
 {
 	/* 4 point triangle */
-	const unsigned filt_coef[] = {
+	const unsigned int filt_coef[] = {
 		0x20402000, 0x20402000, 0x1f3f2101, 0x1f3f2101,
 		0x1e3e2202, 0x1e3e2202, 0x1d3d2303, 0x1d3d2303,
 		0x1c3c2404, 0x1c3c2404, 0x1b3b2505, 0x1b3b2505,
@@ -693,6 +697,7 @@ static void vmjpeg_local_init(void)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &vfpool[i];
+
 		vfpool[i].index = DECODE_BUFFER_NUM_MAX;
 		kfifo_put(&newframe_q, vf);
 	}
@@ -712,8 +717,9 @@ static void vmjpeg_local_init(void)
 
 static s32 vmjpeg_init(void)
 {
-	int ret = -1,size = -1;
+	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 

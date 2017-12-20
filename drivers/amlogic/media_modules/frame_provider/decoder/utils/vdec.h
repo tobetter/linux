@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef VDEC_H
 #define VDEC_H
@@ -61,19 +61,19 @@ extern bool vdec_on(enum vdec_type_e core);
 /*irq num as same as .dts*/
 
 /*
-*	interrupts = <0 3 1
-*		0 23 1
-*		0 32 1
-*		0 43 1
-*		0 44 1
-*		0 45 1>;
-*	interrupt-names = "vsync",
-*		"demux",
-*		"parser",
-*		"mailbox_0",
-*		"mailbox_1",
-*		"mailbox_2";
-*/
+ *	interrupts = <0 3 1
+ *		0 23 1
+ *		0 32 1
+ *		0 43 1
+ *		0 44 1
+ *		0 45 1>;
+ *	interrupt-names = "vsync",
+ *		"demux",
+ *		"parser",
+ *		"mailbox_0",
+ *		"mailbox_1",
+ *		"mailbox_2";
+ */
 enum vdec_irq_num {
 	VSYNC_IRQ = 0,
 	DEMUX_IRQ,

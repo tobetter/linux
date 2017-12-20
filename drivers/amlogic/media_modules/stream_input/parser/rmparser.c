@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -60,6 +60,7 @@ static irqreturn_t rm_parser_isr(int irq, void *dev_id)
 s32 rmparser_init(struct vdec_s *vdec)
 {
 	s32 r;
+
 	parse_halt = 0;
 	if (fetchbuf == 0) {
 		pr_info("%s: no fetchbuf\n", __func__);
@@ -153,7 +154,6 @@ void rmparser_release(void)
 	pts_stop(PTS_TYPE_AUDIO);
 #endif
 
-	return;
 }
 EXPORT_SYMBOL(rmparser_release);
 
@@ -227,6 +227,7 @@ static ssize_t _rmparser_write(const char __user *buf, size_t count)
 				get_buf_by_type(BUF_TYPE_AUDIO);
 			int v_st_lv = stbuf_level(v_buf_t);
 			int a_st_lv = stbuf_level(a_buf_t);
+
 			if ((parse_halt + 1) % 10 == 1) {
 				pr_info("V&A WP not changed after write");
 				pr_info(",video %x->%x", vwp,
@@ -235,8 +236,11 @@ static ssize_t _rmparser_write(const char __user *buf, size_t count)
 						awp, buf_wp(BUF_TYPE_AUDIO),
 						parse_halt);
 			}
-			parse_halt++;	/*wp not changed ,
-					  we think have bugs on parser now. */
+			parse_halt++;
+
+/* wp not changed ,
+ *					  we think have bugs on parser now.
+ */
 			if (parse_halt > 10 &&
 					(v_st_lv < 1000 || a_st_lv < 100)) {
 				/*reset while at  least one is underflow. */
@@ -248,7 +252,8 @@ static ssize_t _rmparser_write(const char __user *buf, size_t count)
 			if (parse_halt <= 10 ||
 				halt_droped_len < 100 * 1024) {
 				/*drops first 10 pkt ,
-				  some times maybe no av data */
+				 *  some times maybe no av data
+				 */
 				pr_info("drop this pkt=%d,len=%d\n", parse_halt,
 					   len);
 				p += len;
@@ -275,6 +280,7 @@ ssize_t rmparser_write(struct file *file,
 	struct port_priv_s *priv = (struct port_priv_s *)file->private_data;
 	struct stream_port_s *port = priv->port;
 	size_t towrite = count;
+
 	if ((stbuf_space(vbuf) < count) || (stbuf_space(abuf) < count)) {
 		if (file->f_flags & O_NONBLOCK) {
 			towrite = min(stbuf_space(vbuf), stbuf_space(abuf));
@@ -303,8 +309,6 @@ void rm_set_vasid(u32 vid, u32 aid)
 {
 	pr_info("rm_set_vasid aid %d, vid %d\n", aid, vid);
 	WRITE_PARSER_REG(VAS_STREAM_ID, (aid << 8) | vid);
-
-	return;
 }
 
 void rm_audio_reset(void)
@@ -329,7 +333,5 @@ void rm_audio_reset(void)
 	CLEAR_AIU_REG_MASK(AIU_MEM_AIFIFO_BUF_CNTL, MEM_BUFCTRL_INIT);
 
 	spin_unlock_irqrestore(&lock, flags);
-
-	return;
 }
 EXPORT_SYMBOL(rm_audio_reset);

@@ -68,16 +68,17 @@ module_param(afc_default, int, 0644);
 MODULE_PARM_DESC(afc_default, "\n afc_default\n");
 
 /*GDE_Curve
-			0: CURVE-M
-			1: CURVE-A
-			2: CURVE-B
-			3: CURVE-CHINA
-			4: BYPASS
-BG --> CURVE-B(BYPASS)
-DK --> CURVE-CHINA
-NM --> CURVE-M
-I --> BYPASS
-SECAM --> BYPASS*/
+ *			0: CURVE-M
+ *			1: CURVE-A
+ *			2: CURVE-B
+ *			3: CURVE-CHINA
+ *			4: BYPASS
+ *BG --> CURVE-B(BYPASS)
+ *DK --> CURVE-CHINA
+ *NM --> CURVE-M
+ *I --> BYPASS
+ *SECAM --> BYPASS
+ */
 static int gde_curve;
 module_param(gde_curve, int, 0644);
 MODULE_PARM_DESC(gde_curve, "\n gde_curve\n");
@@ -90,7 +91,7 @@ static unsigned int freq_hz_cvrt = AML_ATV_DEMOD_FREQ_60HZ_VERT;
 module_param(freq_hz_cvrt, int, 0644);
 MODULE_PARM_DESC(freq_hz_cvrt, "\n freq_hz\n");
 
-int atvdemod_debug_en = 0;
+int atvdemod_debug_en;
 module_param(atvdemod_debug_en, int, 0644);
 MODULE_PARM_DESC(atvdemod_debug_en, "\n atvdemod_debug_en\n");
 
@@ -147,7 +148,7 @@ static unsigned int mix1_freq;
 static unsigned int timer_init_flag;
 struct timer_list atvdemod_timer;
 static int snr_val;
-int broad_std_except_pal_m = 0;
+int broad_std_except_pal_m;
 
 int get_atvdemod_snr_val(void)
 {
@@ -165,6 +166,7 @@ void atv_dmd_wr_reg(unsigned char block, unsigned char reg, unsigned long data)
 {
 	/* unsigned long data_tmp; */
 	unsigned long reg_addr = (block<<8) + reg * 4;
+
 	amlatvdemod_reg_write(reg_addr, data);
 }
 
@@ -172,6 +174,7 @@ unsigned long atv_dmd_rd_reg(unsigned char block, unsigned char reg)
 {
 	unsigned long data = 0;
 	unsigned long reg_addr = (block<<8) + reg * 4;
+
 	amlatvdemod_reg_read(reg_addr, (unsigned int *)&data);
 	return data;
 }
@@ -179,10 +182,12 @@ unsigned long atv_dmd_rd_reg(unsigned char block, unsigned char reg)
 unsigned long atv_dmd_rd_byte(unsigned long block_addr, unsigned long reg_addr)
 {
 	unsigned long data;
+
 	data = atv_dmd_rd_long(block_addr, reg_addr);
 	/*R_APB_REG((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2);
-	*((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
-	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));*/
+	 *((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
+	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));
+	 */
 	if ((reg_addr & 0x3) == 0)
 		data = data >> 24;
 	else if ((reg_addr & 0x3) == 1)
@@ -197,10 +202,12 @@ unsigned long atv_dmd_rd_byte(unsigned long block_addr, unsigned long reg_addr)
 unsigned long atv_dmd_rd_word(unsigned long block_addr, unsigned long reg_addr)
 {
 	unsigned long data;
+
 	data = atv_dmd_rd_long(block_addr, reg_addr);
 	/*R_APB_REG((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2);
-	*((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
-	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));*/
+	 *((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
+	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));
+	 */
 	if ((reg_addr & 0x3) == 0)
 		data = data >> 16;
 	else if ((reg_addr & 0x3) == 1)
@@ -216,7 +223,8 @@ unsigned long atv_dmd_rd_long(unsigned long block_addr, unsigned long reg_addr)
 {
 	unsigned long data;
 	/*data = *((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
-	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));*/
+	 *((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2)));
+	 */
 	data =
 	    R_ATVDEMOD_REG((((block_addr & 0xff) << 6) +
 	    ((reg_addr & 0xff) >> 2)) << 2);
@@ -235,8 +243,9 @@ void atv_dmd_wr_long(unsigned long block_addr, unsigned long reg_addr,
 		(unsigned int)block_addr, (unsigned int)reg_addr,
 		(unsigned int)data);
 	/**((volatile unsigned long *)
-		(ATV_DMD_APB_BASE_ADDR+((((block_addr & 0xff) << 6) +
-		((reg_addr & 0xff) >> 2)) << 2))) = data;*/
+	 *	(ATV_DMD_APB_BASE_ADDR+((((block_addr & 0xff) << 6) +
+	 *	((reg_addr & 0xff) >> 2)) << 2))) = data;
+	 */
 
 }
 EXPORT_SYMBOL(atv_dmd_wr_long);
@@ -245,6 +254,7 @@ void atv_dmd_wr_word(unsigned long block_addr, unsigned long reg_addr,
 		     unsigned long data)
 {
 	unsigned long data_tmp;
+
 	data_tmp = atv_dmd_rd_long(block_addr, reg_addr);
 	data = data & 0xffff;
 	if ((reg_addr & 0x3) == 0)
@@ -260,10 +270,12 @@ void atv_dmd_wr_word(unsigned long block_addr, unsigned long reg_addr,
 		     ((data & 0xff00) >> 8));
 
 	/**((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
-	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2))) = data;*/
+	 *((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2))) = data;
+	 */
 	atv_dmd_wr_long(block_addr, reg_addr, data);
 	/*W_ATVDEMOD_REG(((((block_addr & 0xff) <<6) +
-	((reg_addr & 0xff) >>2)) << 2), data);*/
+	 *((reg_addr & 0xff) >>2)) << 2), data);
+	 */
 
 }
 
@@ -271,6 +283,7 @@ void atv_dmd_wr_byte(unsigned long block_addr, unsigned long reg_addr,
 		     unsigned long data)
 {
 	unsigned long data_tmp;
+
 	data_tmp = atv_dmd_rd_long(block_addr, reg_addr);
 
 	/*pr_info("atv demod wr byte, read block addr %lx\n",block_addr);*/
@@ -283,7 +296,8 @@ void atv_dmd_wr_byte(unsigned long block_addr, unsigned long reg_addr,
 	if ((reg_addr & 0x3) == 0) {
 		data = (data << 24 | (data_tmp & 0xffffff));
 		/*pr_info("atv demod wr byte, reg_addr & 0x3 == 0,
-		wr data %lx\n",data);*/
+		 *wr data %lx\n",data);
+		 */
 	} else if ((reg_addr & 0x3) == 1)
 		data =
 		    ((data_tmp & 0xff000000) | (data << 16) |
@@ -297,10 +311,12 @@ void atv_dmd_wr_byte(unsigned long block_addr, unsigned long reg_addr,
 	/*pr_info("atv demod wr byte, wr data %lx\n",data);*/
 
 	/**((volatile unsigned long *) (ATV_DMD_APB_BASE_ADDR+
-	((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2))) = data;*/
+	 *((((block_addr & 0xff) <<6) + ((reg_addr & 0xff) >>2)) << 2))) = data;
+	 */
 	atv_dmd_wr_long(block_addr, reg_addr, data);
 	/*W_ATVDEMOD_REG(((((block_addr & 0xff) <<6) +
-	((reg_addr & 0xff) >>2)) << 2), data);*/
+	 *((reg_addr & 0xff) >>2)) << 2), data);
+	 */
 }
 
 void set_audio_gain_val(int val)
@@ -933,7 +949,8 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 		atv_dmd_wr_byte(APB_BLOCK_ADDR_GP_VD_FLT, 0x4, 0x04);
 		for (i = 0; i < 9; i = i + 1) {
 			/*super_coef = {gp_coeff_1[i*4],gp_coeff_1[i*4+1],
-			gp_coeff_1[i*4+2],gp_coeff_1[i*4+3]};*/
+			 *gp_coeff_1[i*4+2],gp_coeff_1[i*4+3]};
+			 */
 			super_coef0 =
 			    (((gp_coeff_1[i * 4 + 2] & 0xfff) << 20) |
 			     (gp_coeff_1[i * 4 + 3] & 0xfffff));
@@ -944,11 +961,14 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 			super_coef2 = ((gp_coeff_1[i * 4] >> 4) & 0xffff);
 
 			/*atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT,
-			0x8,super_coef[79:48]);*/
+			 *0x8,super_coef[79:48]);
+			 */
 			/*atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT,
-			0xC,super_coef[47:16]);*/
+			 *0xC,super_coef[47:16]);
+			 */
 			/*atv_dmd_wr_word(APB_BLOCK_ADDR_GP_VD_FLT,
-			0x10,super_coef[15:0]);*/
+			 *0x10,super_coef[15:0]);
+			 */
 			atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT, 0x8,
 					(((super_coef2 & 0xffff) << 16) |
 					 ((super_coef1 & 0xffff0000) >> 16)));
@@ -960,7 +980,8 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 			atv_dmd_wr_byte(APB_BLOCK_ADDR_GP_VD_FLT, 0x05, i);
 		}
 		/*atv_dmd_wr_long
-		(APB_BLOCK_ADDR_GP_VD_FLT,0x8,{gp_coeff_1[36],12'd0});*/
+		 *(APB_BLOCK_ADDR_GP_VD_FLT,0x8,{gp_coeff_1[36],12'd0});
+		 */
 		atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT, 0x8,
 				((gp_coeff_1[36] & 0xfffff) << 12));
 		atv_dmd_wr_byte(APB_BLOCK_ADDR_GP_VD_FLT, 0x05, 0x09);
@@ -971,7 +992,8 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 		atv_dmd_wr_byte(APB_BLOCK_ADDR_GP_VD_FLT, 0x4, 0x00);
 		for (i = 0; i < 9; i = i + 1) {
 			/*super_coef = {gp_coeff_1[i*4],gp_coeff_1[i*4+1],
-			gp_coeff_1[i*4+2],gp_coeff_1[i*4+3]};*/
+			 *gp_coeff_1[i*4+2],gp_coeff_1[i*4+3]};
+			 */
 			super_coef0 =
 			    (((gp_coeff_1[i * 4 + 2] & 0xfff) << 20) |
 			     (gp_coeff_1[i * 4 + 3] & 0xfffff));
@@ -982,11 +1004,14 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 			super_coef2 = ((gp_coeff_1[i * 4] >> 4) & 0xffff);
 
 			/*atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT,
-			0x8,super_coef[79:48]);*/
+			 *0x8,super_coef[79:48]);
+			 */
 			/*atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT,
-			0xC,super_coef[47:16]);*/
+			 *0xC,super_coef[47:16]);
+			 */
 			/*atv_dmd_wr_word(APB_BLOCK_ADDR_GP_VD_FLT,
-			0x10,super_coef[15:0]);*/
+			 *0x10,super_coef[15:0]);
+			 */
 			atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT, 0x8,
 					(((super_coef2 & 0xffff) << 16) |
 					 ((super_coef1 & 0xffff0000) >> 16)));
@@ -998,7 +1023,8 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 			atv_dmd_wr_byte(APB_BLOCK_ADDR_GP_VD_FLT, 0x05, i);
 
 			/*atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT,
-			0x8,{gp_coeff_1[36],12'd0});*/
+			 *0x8,{gp_coeff_1[36],12'd0});
+			 */
 		}
 		atv_dmd_wr_long(APB_BLOCK_ADDR_GP_VD_FLT, 0x8,
 				((gp_coeff_1[36] & 0xfffff) << 12));
@@ -1007,7 +1033,8 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 
 		for (i = 0; i < 9; i = i + 1) {
 			/*super_coef = {gp_coeff_2[i*4],gp_coeff_2[i*4+1],
-			gp_coeff_2[i*4+2],gp_coeff_2[i*4+3]};*/
+			 *gp_coeff_2[i*4+2],gp_coeff_2[i*4+3]};
+			 */
 			super_coef0 =
 			    (((gp_coeff_2[i * 4 + 2] & 0xfff) << 20) |
 			     (gp_coeff_2[i * 4 + 3] & 0xfffff));
@@ -1213,6 +1240,7 @@ void retrieve_adc_power(int *adc_level)
 void retrieve_vpll_carrier_lock(int *lock)
 {
 	unsigned int data;
+
 	data = atv_dmd_rd_byte(APB_BLOCK_ADDR_CARR_RCVY, 0x43);
 	*lock = (data & 0x1);
 }
@@ -1220,6 +1248,7 @@ int retrieve_vpll_carrier_afc(void)
 {
 	int data_ret, pll_lock, field_lock, line_lock, line_lock_strong;
 	unsigned int data_h, data_l, data_exg = 0;
+
 	pll_lock = atv_dmd_rd_byte(APB_BLOCK_ADDR_CARR_RCVY, 0x43)&0x1;
 	field_lock = atv_dmd_rd_byte(APB_BLOCK_ADDR_VDAGC, 0x4f)&0x4;
 	line_lock = atv_dmd_rd_byte(APB_BLOCK_ADDR_VDAGC, 0x4f)&0x10;
@@ -1255,10 +1284,12 @@ void set_pll_lpf(unsigned int lock)
 void retrieve_frequency_offset(int *freq_offset)
 {
 	/*unsigned int data;
-	data = atv_dmd_rd_word(APB_BLOCK_ADDR_CARR_RCVY,0x40);
-	*freq_offset = (int)data;*/
+	 *data = atv_dmd_rd_word(APB_BLOCK_ADDR_CARR_RCVY,0x40);
+	 **freq_offset = (int)data;
+	 */
 	unsigned int data_h, data_l, data_exg;
 	int data_ret;
+
 	data_h = atv_dmd_rd_byte(APB_BLOCK_ADDR_CARR_RCVY, 0x40);
 	data_l = atv_dmd_rd_byte(APB_BLOCK_ADDR_CARR_RCVY, 0x41);
 	data_exg = ((data_h&0x7)<<8) | data_l;
@@ -1274,6 +1305,7 @@ EXPORT_SYMBOL(retrieve_frequency_offset);
 void retrieve_video_lock(int *lock)
 {
 	unsigned int data, wlock, slock;
+
 	data = atv_dmd_rd_byte(APB_BLOCK_ADDR_VDAGC, 0x4f);
 	wlock = data & 0x10;
 	slock = data & 0x80;
@@ -1283,6 +1315,7 @@ void retrieve_video_lock(int *lock)
 void retrieve_fh_frequency(int *fh)
 {
 	unsigned long data1, data2;
+
 	data1 = atv_dmd_rd_word(APB_BLOCK_ADDR_VDAGC, 0x58);
 	data2 = atv_dmd_rd_long(APB_BLOCK_ADDR_VDAGC, 0x10);
 	data1 = data1 >> 11;
@@ -1308,7 +1341,8 @@ void atvdemod_afc_tune(void)
 	retrieve_frequency_offset(&freq_offset);
 	freq_offset = freq_offset*488/1000;
 	/* pr_info("visual carrier offset:%d Hz\n",
-	freq_offset*48828125/100000); */
+	 *freq_offset*48828125/100000);
+	 */
 	/* retrieve_video_lock(&lock); */
 	if ((lock&0x1) == 1) {
 		if (delta_mix1_freq == atvdemod_afc_range)
@@ -1331,6 +1365,7 @@ static enum amlatvdemod_snr_level_e aml_atvdemod_get_snr_level(void)
 	unsigned int snr_val, i, snr_d[8];
 	enum amlatvdemod_snr_level_e ret;
 	unsigned long fsnr;
+
 	snr_val = atv_dmd_rd_long(APB_BLOCK_ADDR_VDAGC, 0x50)>>8;
 	fsnr = snr_val;
 	for (i = 1; i < 8; i++) {
@@ -1430,6 +1465,7 @@ static int atvdemod_get_snr(struct dvb_frontend *fe)
 {
 	unsigned int snr_val = 0;
 	int ret = 0;
+
 	snr_val = atv_dmd_rd_long(APB_BLOCK_ADDR_VDAGC, 0x50) >> 8;
 	/* snr_val:900000~0xffffff,ret:5~15 */
 	if (snr_val > 900000)
@@ -1454,7 +1490,7 @@ void atvdemod_det_snr_serice(void)
 	snr_val = atvdemod_get_snr(NULL);
 }
 
-void atvdemod_timer_hander(unsigned long arg)
+void atvdemod_timer_handler(unsigned long arg)
 {
 	if (atvdemod_timer_en == 0)
 		return;
@@ -1496,7 +1532,8 @@ int atvdemod_clk_init(void)
 		W_HIU_REG(HHI_ADC_PLL_CNTL, 0x30f14250);
 		W_HIU_REG(HHI_ADC_PLL_CNTL1, 0x22000442);
 		/*0x5ba00380 from pll;0x5ba00384 clk
-		form crystal*/
+		 *form crystal
+		 */
 		W_HIU_REG(HHI_ADC_PLL_CNTL2, 0x5ba00384);
 		W_HIU_REG(HHI_ADC_PLL_CNTL3, 0x4a6a2110);
 		W_HIU_REG(HHI_ADC_PLL_CNTL4, 0x02913004);
@@ -1559,19 +1596,20 @@ int atvdemod_init(void)
 	atv_dmd_soft_reset();
 
 	/* ?????
-	while (!all_lock) {
-		data32 = atv_dmd_rd_long(APB_BLOCK_ADDR_VDAGC,0x13<<2);
-		if ((data32 & 0x1c) == 0x0) {
-			all_lock = 1;
-		}
-		delay_us(400);
-	}*/
+	 *while (!all_lock) {
+	 *	data32 = atv_dmd_rd_long(APB_BLOCK_ADDR_VDAGC,0x13<<2);
+	 *	if ((data32 & 0x1c) == 0x0) {
+	 *		all_lock = 1;
+	 *	}
+	 *	delay_us(400);
+	 *}
+	 */
 	#if 1/* temp mark */
 	if (atvdemod_timer_en == 1) {
-		/*atvdemod timer hander*/
+		/*atvdemod timer handler*/
 		init_timer(&atvdemod_timer);
 		/* atvdemod_timer.data = (ulong) devp; */
-		atvdemod_timer.function = atvdemod_timer_hander;
+		atvdemod_timer.function = atvdemod_timer_handler;
 		/* after 3s enable demod auto detect */
 		atvdemod_timer.expires = jiffies + ATVDEMOD_INTERVAL*300;
 		add_timer(&atvdemod_timer);
@@ -1682,7 +1720,7 @@ int aml_audiomode_autodet(struct dvb_frontend *fe)
 	unsigned long carrier_power_max = 0;
 	unsigned long carrier_power_average_max = 0;
 	unsigned long carrier_power_average[4] = {0};
-	unsigned long reg_addr = 0x03 , temp_data;
+	unsigned long reg_addr = 0x03, temp_data;
 	int carrier_lock_count = 0;
 	int lock = 0;
 	int broad_std_final = 0;
@@ -1930,7 +1968,8 @@ int aml_audiomode_autodet(struct dvb_frontend *fe)
 
 void aml_audio_valume_gain_set(unsigned int audio_gain)
 {
-	unsigned long audio_gain_data , temp_data;
+	unsigned long audio_gain_data, temp_data;
+
 	if (audio_gain > 0xfff) {
 		pr_err("Error: atv in gain max 7.998, min 0.002! gain = value/512\n");
 		pr_err("value (0~0xfff)\n");
@@ -1945,6 +1984,7 @@ void aml_audio_valume_gain_set(unsigned int audio_gain)
 unsigned int aml_audio_valume_gain_get(void)
 {
 	unsigned long audio_gain_data;
+
 	audio_gain_data = atv_dmd_rd_word(APB_BLOCK_ADDR_MONO_PROC, 0x52);
 	audio_gain_data = audio_gain_data & 0xfff;
 	return audio_gain_data;
@@ -1952,10 +1992,11 @@ unsigned int aml_audio_valume_gain_get(void)
 
 void aml_atvdemod_overmodule_det(void)
 {
-	unsigned long temp_data , temp_data2;/* , temp_data3 , temp_data4; */
+	unsigned long temp_data, temp_data2;/* , temp_data3 , temp_data4; */
 	unsigned long counter_report;
 	int  carrier_lock_count = 0;
 	int vlock = 0;
+
 	switch (audio_det_mode) {
 	case AUDIO_AUTO_DETECT:
 		aml_audiomode_autodet(NULL);
@@ -2026,26 +2067,25 @@ void aml_atvdemod_overmodule_det(void)
 			atv_dmd_rd_word(APB_BLOCK_ADDR_SIF_STG_2, 0x04);
 
 		while (counter_report > over_threshold) {
+			unsigned long shift_gain, shift_gain_report;
 
-				unsigned long shift_gain , shift_gain_report;
-				temp_data2 = atv_dmd_rd_byte(
-					APB_BLOCK_ADDR_SIF_STG_2, 0x00);
-				shift_gain = temp_data2 & 0x07;
-				shift_gain--;
-				temp_data2 = (temp_data2 & 0xf8) | shift_gain;
-				atv_dmd_wr_byte(APB_BLOCK_ADDR_SIF_STG_2, 0x00,
-						temp_data2);
-				shift_gain_report = (
-				(atv_dmd_rd_long(APB_BLOCK_ADDR_SIF_STG_2, 0x04)
-							& 0x00070000) >> 16);
-
-				if (shift_gain_report != shift_gain)
-					pr_info("[atvdemo...]:set shift_gain error\n");
-				/* ------------------timer delay needed- */
-				udelay(1000);/* timer delay needed , */
-				/* ----------------------- */
-				counter_report =
-				atv_dmd_rd_word(APB_BLOCK_ADDR_SIF_STG_2, 0x04);
+			temp_data2 = atv_dmd_rd_byte(
+				APB_BLOCK_ADDR_SIF_STG_2, 0x00);
+			shift_gain = temp_data2 & 0x07;
+			shift_gain--;
+			temp_data2 = (temp_data2 & 0xf8) | shift_gain;
+			atv_dmd_wr_byte(APB_BLOCK_ADDR_SIF_STG_2, 0x00,
+					temp_data2);
+			shift_gain_report = (
+			(atv_dmd_rd_long(APB_BLOCK_ADDR_SIF_STG_2, 0x04)
+					& 0x00070000) >> 16);
+			if (shift_gain_report != shift_gain)
+				pr_info("[atvdemo...]:set shift_gain error\n");
+			/* ------------------timer delay needed- */
+			udelay(1000);/* timer delay needed , */
+			/* ----------------------- */
+			counter_report =
+			atv_dmd_rd_word(APB_BLOCK_ADDR_SIF_STG_2, 0x04);
 		}
 		break;
 	default:
@@ -2058,10 +2098,10 @@ void aml_fix_PWM_adjust(int enable)
 {
 	unsigned long  temp_data;
 	/*
-	temp_data = atv_dmd_rd_byte(APB_BLOCK_ADDR_AGC_PWM, 0x08);
-	temp_data = temp_data | 0x01;
-	atv_dmd_wr_byte(APB_BLOCK_ADDR_AGC_PWM, 0x08, temp_data);
-	*/
+	 *temp_data = atv_dmd_rd_byte(APB_BLOCK_ADDR_AGC_PWM, 0x08);
+	 *temp_data = temp_data | 0x01;
+	 *atv_dmd_wr_byte(APB_BLOCK_ADDR_AGC_PWM, 0x08, temp_data);
+	 */
 	temp_data = atv_dmd_rd_reg(APB_BLOCK_ADDR_SIF_STG_2, 0x02);
 	if (enable)
 		temp_data = temp_data & ~((0x3)<<8);
@@ -2081,6 +2121,7 @@ void aml_audio_overmodulation(int enable)
 	unsigned long tmp_v;
 	unsigned long tmp_v1;
 	u32 Broadcast_Standard = broad_std;
+
 	if (enable && Broadcast_Standard ==
 		AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK) {
 		tmp_v = atv_dmd_rd_long(APB_BLOCK_ADDR_SIF_STG_2, 0x28);

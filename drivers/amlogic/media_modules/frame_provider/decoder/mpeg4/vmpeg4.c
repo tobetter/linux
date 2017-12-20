@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #define DEBUG
 #include <linux/kernel.h>
@@ -130,8 +130,8 @@ static const char vmpeg4_dec_id[] = "vmpeg4-dev";
 #define PROVIDER_NAME   "decoder.mpeg4"
 
 /*
-int query_video_status(int type, int *value);
-*/
+ *int query_video_status(int type, int *value);
+ */
 static const struct vframe_operations_s vmpeg_vf_provider = {
 	.peek = vmpeg_vf_peek,
 	.get = vmpeg_vf_get,
@@ -206,7 +206,7 @@ static inline u32 index2canvas(u32 index)
 	return canvas_tab[index];
 }
 
-static void set_aspect_ratio(struct vframe_s *vf, unsigned pixel_ratio)
+static void set_aspect_ratio(struct vframe_s *vf, unsigned int pixel_ratio)
 {
 	int ar = 0;
 	unsigned int num = 0;
@@ -369,14 +369,14 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 #endif
 		}
 
-		if ((I_PICTURE == picture_type) ||
-				(P_PICTURE == picture_type)) {
+		if ((picture_type == I_PICTURE) ||
+				(picture_type == P_PICTURE)) {
 			offset = READ_VREG(MP4_OFFSET_REG);
 			/*2500-->3000,because some mpeg4
-			video may checkout failed;
-			may have av sync problem.can changed small later.
-			263 may need small?
-			*/
+			 *video may checkout failed;
+			 *may have av sync problem.can changed small later.
+			 *263 may need small?
+			 */
 			if (pts_lookup_offset_us64
 				(PTS_TYPE_VIDEO, offset, &pts, 3000,
 				 &pts_us64) == 0) {
@@ -411,9 +411,9 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 				&& vmpeg4_amstream_dec_info.rate == 0) {
 				/* variable PTS rate */
 				/*bug on variable pts calc,
-				do as dixed vop first if we
-				have rate setting before.
-				*/
+				 *do as dixed vop first if we
+				 *have rate setting before.
+				 */
 				if (vop_time_inc > last_vop_time_inc) {
 					vop_time_inc_since_last_anch +=
 					vop_time_inc - last_vop_time_inc;
@@ -632,6 +632,7 @@ static int vmpeg_event_cb(int type, void *data, void *private_data)
 {
 	if (type & VFRAME_EVENT_RECEIVER_RESET) {
 		unsigned long flags;
+
 		amvdec_stop();
 #ifndef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vf_light_unreg_provider(&vmpeg_vf_prov);
@@ -651,6 +652,7 @@ static int vmpeg_event_cb(int type, void *data, void *private_data)
 static int vmpeg_vf_states(struct vframe_states *states, void *op_arg)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&lock, flags);
 
 	states->vf_pool_size = VF_POOL_SIZE;
@@ -698,19 +700,21 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 	while (!kfifo_is_empty(&recycle_q) && (READ_VREG(MREG_BUFFERIN) == 0)) {
 		struct vframe_s *vf;
+
 		if (kfifo_get(&recycle_q, &vf)) {
 			if ((vf->index >= 0)
 				&& (vf->index < DECODE_BUFFER_NUM_MAX)
 				&& (--vfbuf_use[vf->index] == 0)) {
 				WRITE_VREG(MREG_BUFFERIN, ~(1 << vf->index));
 				vf->index = DECODE_BUFFER_NUM_MAX;
-		     }
+		}
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
 	if (frame_dur > 0 && saved_resolution !=
 		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
+
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_MPEG4,
 			frame_width, frame_height, fps);
@@ -789,6 +793,7 @@ static int vmpeg4_canvas_init(void)
 		int h = vmpeg4_amstream_dec_info.height;
 		int align_w, align_h;
 		int max, min;
+
 		align_w = ALIGN(w, 64);
 		align_h = ALIGN(h, 64);
 		if (align_w > align_h) {
@@ -977,6 +982,7 @@ static void vmpeg4_local_init(void)
 
 	for (i = 0; i < VF_POOL_SIZE; i++) {
 		const struct vframe_s *vf = &vfpool[i];
+
 		vfpool[i].index = DECODE_BUFFER_NUM_MAX;
 		kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 	}
@@ -1000,6 +1006,7 @@ static s32 vmpeg4_init(void)
 	int trickmode_fffb = 0;
 	int size = -1;
 	char *buf = vmalloc(0x1000 * 16);
+
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 

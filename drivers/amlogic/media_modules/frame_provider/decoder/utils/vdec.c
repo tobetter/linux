@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
@@ -291,13 +291,13 @@ int vdec_is_support_4k(void)
 EXPORT_SYMBOL(vdec_is_support_4k);
 
 /*
-* clk_config:
+ * clk_config:
  *0:default
  *1:no gp0_pll;
  *2:always used gp0_pll;
  *>=10:fixed n M clk;
  *== 100 , 100M clks;
-*/
+ */
 unsigned int get_vdec_clk_config_settings(void)
 {
 	return clk_config;
@@ -578,10 +578,10 @@ static void vdec_sync_input_write(struct vdec_s *vdec)
 }
 
 /*
-*get next frame from input chain
-*/
+ *get next frame from input chain
+ */
 /*
-*THE VLD_FIFO is 512 bytes and Video buffer level
+ *THE VLD_FIFO is 512 bytes and Video buffer level
  * empty interrupt is set to 0x80 bytes threshold
  */
 #define VLD_PADDING_SIZE 1024
@@ -632,7 +632,7 @@ int vdec_prepare_input(struct vdec_s *vdec, struct vframe_chunk_s **p)
 	}
 
 	/*
-	*setup HW decoder input buffer (VLD context)
+	 *setup HW decoder input buffer (VLD context)
 	 * based on input->type and input->target
 	 */
 	if (input_frame_based(input)) {
@@ -1242,7 +1242,7 @@ int vdec_disconnect(struct vdec_s *vdec)
 	}
 
 	/*
-	*when a vdec is under the management of scheduler
+	 *when a vdec is under the management of scheduler
 	 * the status change will only be from vdec_core_thread
 	 */
 	vdec_set_next_status(vdec, VDEC_STATUS_DISCONNECTED);
@@ -1301,7 +1301,7 @@ static const char *get_dev_name(bool use_legacy_vdec, int format)
 }
 
 /*
-*register vdec_device
+ *register vdec_device
  * create output, vfm or create ionvideo output
  */
 s32 vdec_init(struct vdec_s *vdec, int is_4k)
@@ -1320,7 +1320,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		dev_name, vdec_type_str(vdec));
 
 	/*
-	*todo: VFM patch control should be configurable,
+	 *todo: VFM patch control should be configurable,
 	 * for now all stream based input uses default VFM path.
 	 */
 	if (vdec_stream_based(vdec) && !vdec_dual(vdec)) {
@@ -1467,7 +1467,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		pr_debug("vfm map %s created\n", vdec->vfm_map_id);
 
 		/*
-		*assume IONVIDEO driver already have a few vframe_receiver
+		 *assume IONVIDEO driver already have a few vframe_receiver
 		 * registered.
 		 * 1. Call iondriver function to allocate a IONVIDEO path and
 		 *    provide receiver's name and receiver op.
@@ -1571,12 +1571,8 @@ void vdec_release(struct vdec_s *vdec)
 }
 EXPORT_SYMBOL(vdec_release);
 
-/* For dual running decoders, vdec_reset is only called with master vdec.
- */
 int vdec_reset(struct vdec_s *vdec)
 {
-	//trace_vdec_reset(vdec); /*DEBUG_TMP*/
-
 	vdec_disconnect(vdec);
 
 	if (vdec->vframe_provider.name)
@@ -1636,7 +1632,7 @@ static struct vdec_s *active_vdec(struct vdec_core_s *core)
 }
 
 /*
-*Decoder callback
+ *Decoder callback
  * Each decoder instance uses this callback to notify status change, e.g. when
  * decoder finished using HW resource.
  * a sample callback from decoder's driver is following:
@@ -1842,7 +1838,7 @@ static int vdec_core_thread(void *data)
 		}
 
 		/*
-		*todo:
+		 *todo:
 		 * this is the case when the decoder is in active mode and
 		 * the system side wants to stop it. Currently we rely on
 		 * the decoder instance to go back to VDEC_STATUS_CONNECTED
@@ -1874,7 +1870,7 @@ static int vdec_core_thread(void *data)
 
 		if (!vdec) {
 			/*
-			*round-robin decoder scheduling
+			 *round-robin decoder scheduling
 			 * start from the decoder after previous active
 			 * decoder instance, if not, then start from beginning
 			 */
@@ -2061,10 +2057,10 @@ void vdec_poweron(enum vdec_type_e core)
 		WRITE_VREG(DOS_SW_RESET0, 0);
 		/* enable vdec1 clock */
 		/*
-		*add power on vdec clock level setting,only for m8 chip,
-		  * m8baby and m8m2 can dynamic adjust vdec clock,
-		  * power on with default clock level
-		  */
+		 *add power on vdec clock level setting,only for m8 chip,
+		 * m8baby and m8m2 can dynamic adjust vdec clock,
+		 * power on with default clock level
+		 */
 		vdec_clock_hi_enable();
 		/* power up vdec memories */
 		WRITE_VREG(DOS_MEM_PD_VDEC, 0);
@@ -2076,8 +2072,8 @@ void vdec_poweron(enum vdec_type_e core)
 		if (get_cpu_type() >=
 			MESON_CPU_MAJOR_ID_GXBB) {
 			/*
-			*enable VDEC_1 DMC request
-			*/
+			 *enable VDEC_1 DMC request
+			 */
 			unsigned long flags;
 
 			spin_lock_irqsave(&vdec_spin_lock, flags);
@@ -2565,7 +2561,7 @@ static ssize_t amrisc_regs_show(struct class *class,
 	struct am_reg *regs = am_risc;
 	int rsize = sizeof(am_risc) / sizeof(struct am_reg);
 	int i;
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
@@ -2703,7 +2699,7 @@ static ssize_t store_poweron_clock_level(struct class *class,
 		struct class_attribute *attr,
 		const char *buf, size_t size)
 {
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 
 	/*ret = sscanf(buf, "%d", &val);*/
@@ -2722,15 +2718,15 @@ static ssize_t show_poweron_clock_level(struct class *class,
 }
 
 /*
-*if keep_vdec_mem == 1
-*always don't release
-*vdec 64 memory for fast play.
-*/
+ *if keep_vdec_mem == 1
+ *always don't release
+ *vdec 64 memory for fast play.
+ */
 static ssize_t store_keep_vdec_mem(struct class *class,
 		struct class_attribute *attr,
 		const char *buf, size_t size)
 {
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 
 	/*ret = sscanf(buf, "%d", &val);*/
@@ -2750,19 +2746,19 @@ static ssize_t show_keep_vdec_mem(struct class *class,
 
 /*irq num as same as .dts*/
 /*
-*	interrupts = <0 3 1
-*		0 23 1
-*		0 32 1
-*		0 43 1
-*		0 44 1
-*		0 45 1>;
-*	interrupt-names = "vsync",
-*		"demux",
-*		"parser",
-*		"mailbox_0",
-*		"mailbox_1",
-*		"mailbox_2";
-*/
+ *	interrupts = <0 3 1
+ *		0 23 1
+ *		0 32 1
+ *		0 43 1
+ *		0 44 1
+ *		0 45 1>;
+ *	interrupt-names = "vsync",
+ *		"demux",
+ *		"parser",
+ *		"mailbox_0",
+ *		"mailbox_1",
+ *		"mailbox_2";
+ */
 s32 vdec_request_threaded_irq(enum vdec_irq_num num,
 			irq_handler_t handler,
 			irq_handler_t thread_fn,
@@ -2840,7 +2836,7 @@ void vdec_free_irq(enum vdec_irq_num num, void *dev)
 	synchronize_irq(vdec_core->isr_context[num].irq);
 
 	/*
-	*assume amrisc is stopped already and there is no mailbox interrupt
+	 *assume amrisc is stopped already and there is no mailbox interrupt
 	 * when we reset pointers here.
 	 */
 	vdec_core->isr_context[num].dev_isr = NULL;
@@ -2854,7 +2850,7 @@ static ssize_t dump_risc_mem_store(struct class *class,
 		struct class_attribute *attr,
 		const char *buf, size_t size)/*set*/
 {
-	unsigned val;
+	unsigned int val;
 	ssize_t ret;
 	char dump_mode_str[4] = "PRL";
 

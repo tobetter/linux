@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
@@ -58,9 +58,9 @@ static s32 _stbuf_alloc(struct stream_buf_s *buf, bool is_secure)
 			flags = CODEC_MM_FLAGS_DMA_CPU;
 
 		/*
-		*if 4k,
-		*used cma first,for less mem fragments.
-		*/
+		 *if 4k,
+		 *used cma first,for less mem fragments.
+		 */
 		if (((buf->type == BUF_TYPE_HEVC) ||
 			(buf->type == BUF_TYPE_VIDEO)) &&
 			buf->for_4k)
@@ -242,7 +242,8 @@ u32 stbuf_rp(struct stream_buf_s *buf)
 u32 stbuf_space(struct stream_buf_s *buf)
 {
 	/* reserved space for safe write,
-	   the parser fifo size is 1024byts, so reserve it */
+	 *   the parser fifo size is 1024byts, so reserve it
+	 */
 	int size;
 
 	size = buf->canusebuf_size - stbuf_level(buf);

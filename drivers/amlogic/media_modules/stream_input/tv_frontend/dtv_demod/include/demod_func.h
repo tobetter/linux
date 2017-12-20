@@ -6,7 +6,8 @@
 /* #include <mach/am_regs.h> */
 /*#include <mach/register.h>
  * #include <mach/avosstyle_io.h>
- #include <mach/io.h>*/
+ #include <mach/io.h>
+*/
 #include <linux/dvb/aml_demod.h>
 #include "aml_fe.h"
 #include "amlfrontend.h"
@@ -245,7 +246,7 @@ int set_tuner_fj2207(struct aml_demod_sta *demod_sta,
 
 int get_fj2207_ch_power(void);
 int tuner_get_ch_power(struct aml_fe_dev *adap);
-int tda18273_tuner_set_frequncy(unsigned int dwFrequency,
+int tda18273_tuner_set_frequnecy(unsigned int dwFrequency,
 				unsigned int dwStandard);
 int dtmb_get_power_strength(int agc_gain);
 
@@ -288,7 +289,7 @@ u32 dvbc_get_status(void);
 u32 dvbc_set_auto_symtrack(void);
 int dvbc_timer_init(void);
 void dvbc_timer_exit(void);
-int dvbc_cci_task(void *);
+int dvbc_cci_task(void *data);
 int dvbc_get_cci_task(void);
 void dvbc_create_cci_task(void);
 void dvbc_kill_cci_task(void);
@@ -335,10 +336,10 @@ unsigned long apb_read_reg(unsigned long reg);
 int app_apb_write_reg(int addr, int data);
 int app_apb_read_reg(int addr);
 
-void demod_set_cbus_reg(unsigned data, unsigned addr);
-unsigned demod_read_cbus_reg(unsigned addr);
-void demod_set_demod_reg(unsigned data, unsigned addr);
-unsigned demod_read_demod_reg(unsigned addr);
+void demod_set_cbus_reg(unsigned int data, unsigned int addr);
+unsigned int demod_read_cbus_reg(unsigned int addr);
+void demod_set_demod_reg(unsigned int data, unsigned int addr);
+unsigned int demod_read_demod_reg(unsigned int addr);
 
 /* extern int clk_measure(char index); */
 
@@ -376,7 +377,8 @@ int demod_set_sys(struct aml_demod_sta *demod_sta,
 /*typedef unsigned char      uint8_t;
  * typedef unsigned short int uint16_t;
  * typedef unsigned int       uint32_t;
- * typedef unsigned long      uint64_t;*/
+ * typedef unsigned long      uint64_t;
+ */
 
 /*typedef unsigned   char    u8_t;
  * typedef signed     char    s8_t;
@@ -385,7 +387,8 @@ int demod_set_sys(struct aml_demod_sta *demod_sta,
  * typedef unsigned   int     u32_t;
  * typedef signed     int     s32_t;
  * typedef unsigned   long    u64_t;
- * typedef signed     long    s64_t;*/
+ * typedef signed     long    s64_t;
+ */
 
 /* #define extadc */
 
@@ -595,7 +598,7 @@ void dtvpll_lock_init(void);
 void dtvpll_init_flag(int on);
 void demod_set_irq_mask(void);
 void demod_clr_irq_stat(void);
-void demod_set_adc_core_clk(int, int, int);
+void demod_set_adc_core_clk(int adc_clk, int sys_clk, int dvb_mode);
 void demod_set_adc_core_clk_fix(int clk_adc, int clk_dem);
 void calculate_cordic_para(void);
 void ofdm_read_all_regs(void);

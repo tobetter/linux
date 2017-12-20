@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -1037,9 +1037,9 @@ int amvdec_init(void)
 {
 #ifdef CONFIG_WAKELOCK
 	/*
-	*wake_lock_init(&amvdec_lock, WAKE_LOCK_IDLE, "amvdec_lock");
-	*tmp mark for compile, no "WAKE_LOCK_IDLE" definition in kernel 3.8
-	*/
+	 *wake_lock_init(&amvdec_lock, WAKE_LOCK_IDLE, "amvdec_lock");
+	 *tmp mark for compile, no "WAKE_LOCK_IDLE" definition in kernel 3.8
+	 */
 	wake_lock_init(&amvdec_lock, /*WAKE_LOCK_IDLE */ WAKE_LOCK_SUSPEND,
 				   "amvdec_lock");
 
@@ -1065,9 +1065,9 @@ int __init amvdec_init(void)
 {
 #ifdef CONFIG_WAKELOCK
 	/*
-	*wake_lock_init(&amvdec_lock, WAKE_LOCK_IDLE, "amvdec_lock");
-	*tmp mark for compile, no "WAKE_LOCK_IDLE" definition in kernel 3.8
-	*/
+	 *wake_lock_init(&amvdec_lock, WAKE_LOCK_IDLE, "amvdec_lock");
+	 *tmp mark for compile, no "WAKE_LOCK_IDLE" definition in kernel 3.8
+	 */
 	wake_lock_init(&amvdec_lock, /*WAKE_LOCK_IDLE */ WAKE_LOCK_SUSPEND,
 				   "amvdec_lock");
 

@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 #ifndef CONFIG_PARSER_HHH_
 #define CONFIG_PARSER_HHH_
 int get_config_int(const char *configs, const char *need, int *val);

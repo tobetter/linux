@@ -15,7 +15,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef __VPU_DRV_H__
 #define __VPU_DRV_H__
@@ -79,9 +79,9 @@
 	} while (0)
 
 #define HevcEnc_clock_disable() \
-		WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL, \
-			READ_HHI_REG(HHI_WAVE420L_CLK_CNTL) \
-			& (~(1 << 8)) & (~(1 << 24)));
+	WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL, \
+	READ_HHI_REG(HHI_WAVE420L_CLK_CNTL) \
+		& (~(1 << 8)) & (~(1 << 24)))
 
 struct compat_vpudrv_buffer_t {
 	u32 size;

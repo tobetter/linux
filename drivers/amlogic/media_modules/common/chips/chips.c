@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -34,20 +34,20 @@
 #define VIDEO_FIRMWARE_FATHER_NAME "video"
 
 /*
-*#define MESON_CPU_MAJOR_ID_M6		0x16
-*#define MESON_CPU_MAJOR_ID_M6TV		0x17
-*#define MESON_CPU_MAJOR_ID_M6TVL	0x18
-*#define MESON_CPU_MAJOR_ID_M8		0x19
-*#define MESON_CPU_MAJOR_ID_MTVD		0x1A
-*#define MESON_CPU_MAJOR_ID_M8B		0x1B
-*#define MESON_CPU_MAJOR_ID_MG9TV	0x1C
-*#define MESON_CPU_MAJOR_ID_M8M2		0x1D
-*#define MESON_CPU_MAJOR_ID_GXBB		0x1F
-*#define MESON_CPU_MAJOR_ID_GXTVBB		0x20
-*#define MESON_CPU_MAJOR_ID_GXL		0x21
-*#define MESON_CPU_MAJOR_ID_GXM		0x22
-*#define MESON_CPU_MAJOR_ID_TXL		0x23
-*/
+ *#define MESON_CPU_MAJOR_ID_M6		0x16
+ *#define MESON_CPU_MAJOR_ID_M6TV		0x17
+ *#define MESON_CPU_MAJOR_ID_M6TVL	0x18
+ *#define MESON_CPU_MAJOR_ID_M8		0x19
+ *#define MESON_CPU_MAJOR_ID_MTVD		0x1A
+ *#define MESON_CPU_MAJOR_ID_M8B		0x1B
+ *#define MESON_CPU_MAJOR_ID_MG9TV	0x1C
+ *#define MESON_CPU_MAJOR_ID_M8M2		0x1D
+ *#define MESON_CPU_MAJOR_ID_GXBB		0x1F
+ *#define MESON_CPU_MAJOR_ID_GXTVBB		0x20
+ *#define MESON_CPU_MAJOR_ID_GXL		0x21
+ *#define MESON_CPU_MAJOR_ID_GXM		0x22
+ *#define MESON_CPU_MAJOR_ID_TXL		0x23
+ */
 struct type_name {
 
 	int type;
@@ -101,25 +101,25 @@ const char *get_cpu_type_name(void)
 EXPORT_SYMBOL(get_cpu_type_name);
 
 /*
-*enum vformat_e {
-*	VFORMAT_MPEG12 = 0,
-*	VFORMAT_MPEG4,
-*	VFORMAT_H264,
-*	VFORMAT_MJPEG,
-*	VFORMAT_REAL,
-*	VFORMAT_JPEG,
-*	VFORMAT_VC1,
-*	VFORMAT_AVS,
-*	VFORMAT_YUV,
-*	VFORMAT_H264MVC,
-*	VFORMAT_H264_4K2K,
-*	VFORMAT_HEVC,
-*	VFORMAT_H264_ENC,
-*	VFORMAT_JPEG_ENC,
-*	VFORMAT_VP9,
-*	VFORMAT_MAX
-*};
-*/
+ *enum vformat_e {
+ *	VFORMAT_MPEG12 = 0,
+ *	VFORMAT_MPEG4,
+ *	VFORMAT_H264,
+ *	VFORMAT_MJPEG,
+ *	VFORMAT_REAL,
+ *	VFORMAT_JPEG,
+ *	VFORMAT_VC1,
+ *	VFORMAT_AVS,
+ *	VFORMAT_YUV,
+ *	VFORMAT_H264MVC,
+ *	VFORMAT_H264_4K2K,
+ *	VFORMAT_HEVC,
+ *	VFORMAT_H264_ENC,
+ *	VFORMAT_JPEG_ENC,
+ *	VFORMAT_VP9,
+ *	VFORMAT_MAX
+ *};
+ */
 static const struct type_name vformat_type_name[] = {
 	{VFORMAT_MPEG12, "mpeg12"},
 	{VFORMAT_MPEG4, "mpeg4"},

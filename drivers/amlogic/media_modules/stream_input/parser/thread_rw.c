@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -267,6 +267,7 @@ static void do_write_work(struct work_struct *work)
 					struct threadrw_write_task,
 					write_work.work);
 	int need_retry = 1;
+
 	task->writework_on = 1;
 	while (need_retry) {
 		mutex_lock(&task->mutex);
@@ -321,6 +322,7 @@ static int alloc_task_buffers_inlock(struct threadrw_write_task *task,
 	}
 	for (i = 0; i < new_num; i++) {
 		int bufidx = start_idx + i;
+
 		rwbuf = &task->buf[bufidx];
 		rwbuf->buffer_size = block_size;
 		if (used_codec_mm) {
@@ -368,6 +370,7 @@ static int alloc_task_buffers_inlock(struct threadrw_write_task *task,
 static int free_task_buffers(struct threadrw_write_task *task)
 {
 	int i;
+
 	for (i = 0; i < MAX_MM_BUFFER_NUM; i++) {
 		if (task->codec_mm_buffer[i])
 			codec_mm_free_for_dma(BUF_NAME,
@@ -439,8 +442,8 @@ err1:
 }
 
 /*
-*fifo data size;
-*/
+ *fifo data size;
+ */
 
 int threadrw_buffer_level(struct stream_buf_s *stbuf)
 {
@@ -480,6 +483,7 @@ int threadrw_freefifo_len(struct stream_buf_s *stbuf)
 int threadrw_support_more_buffers(struct stream_buf_s *stbuf)
 {
 	struct threadrw_write_task *task = stbuf->write_thread;
+
 	if (!task)
 		return 0;
 	if (task->failed_onmore)
@@ -488,8 +492,8 @@ int threadrw_support_more_buffers(struct stream_buf_s *stbuf)
 }
 
 /*
-*data len out fifo;
-*/
+ *data len out fifo;
+ */
 int threadrw_passed_len(struct stream_buf_s *stbuf)
 {
 	struct threadrw_write_task *task = stbuf->write_thread;
@@ -500,8 +504,8 @@ int threadrw_passed_len(struct stream_buf_s *stbuf)
 
 }
 /*
-*all data writed.;
-*/
+ *all data writed.;
+ */
 int threadrw_dataoffset(struct stream_buf_s *stbuf)
 {
 	struct threadrw_write_task *task = stbuf->write_thread;
@@ -518,6 +522,7 @@ ssize_t threadrw_write(struct file *file, struct stream_buf_s *stbuf,
 {
 	struct threadrw_write_task *task = stbuf->write_thread;
 	ssize_t size;
+
 	if (!task->file) {
 		task->file = file;
 		task->sbuf = stbuf;

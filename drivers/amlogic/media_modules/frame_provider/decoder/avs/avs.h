@@ -8,9 +8,9 @@
 #define MAX_CODED_FRAME_SIZE 1500000         /*!< bytes for one frame*/
 #define LOCAL_HEAP_SIZE    (1024*1024*10)
 /*
-#define MAX_CODED_FRAME_SIZE  240000
-#define MAX_CODED_FRAME_SIZE  700000
-*/
+ *#define MAX_CODED_FRAME_SIZE  240000
+ *#define MAX_CODED_FRAME_SIZE  700000
+ */
 #define SVA_STREAM_BUF_SIZE 1024
 
 extern void *es_write_addr_virt;
@@ -25,26 +25,26 @@ int avs_get_debug_flag(void);
 int process_long_cabac(void);
 
 /* bit [6] - skip_mode_flag
- bit [5:4] - picture_type
- bit [3] - picture_structure (0-Field, 1-Frame)
- bit [2] - fixed_picture_qp
- bit [1] - progressive_sequence
- bit [0] - active
-*/
+ * bit [5:4] - picture_type
+ * bit [3] - picture_structure (0-Field, 1-Frame)
+ * bit [2] - fixed_picture_qp
+ * bit [1] - progressive_sequence
+ * bit [0] - active
+ */
 #define LONG_CABAC_REQ        AV_SCRATCH_K
 #define LONG_CABAC_SRC_ADDR   AV_SCRATCH_H
 #define LONG_CABAC_DES_ADDR   AV_SCRATCH_I
 /* bit[31:16] - vertical_size
- bit[15:0] - horizontal_size
-*/
+ * bit[15:0] - horizontal_size
+ */
 #define LONG_CABAC_PIC_SIZE   AV_SCRATCH_J
 
 #endif
 
 /*
-#define PERFORMANCE_DEBUG
-#define DUMP_DEBUG
-*/
+ *#define PERFORMANCE_DEBUG
+ *#define DUMP_DEBUG
+ */
 #define AVS_DEBUG_PRINT         0x01
 #define AVS_DEBUG_UCODE         0x02
 #define AVS_DEBUG_OLD_ERROR_HANDLE	0x10

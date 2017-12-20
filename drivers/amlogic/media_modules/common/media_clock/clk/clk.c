@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -47,23 +47,23 @@ static int clock_source_wxhxfps_saved[VDEC_MAX + 1];
 			p->fn();\
 	} while (0)
 /*
-*#define IF_HAVE_RUN_P1_RET(p, fn, p1)\
-*			do {\
-*				pr_debug("%s-----%d\n", __func__, clk);\
-*				if (p && p->fn)\
-*					return p->fn(p1);\
-*				else\
-*					return -1;\
-*			} while (0)
-*
-*#define IF_HAVE_RUN_RET(p, fn)\
-*	do {\
-*		if (p && p->fn)\
-*			return p->fn();\
-*		else\
-*			return 0;\
-*	} while (0)
-*/
+ *#define IF_HAVE_RUN_P1_RET(p, fn, p1)\
+ *			do {\
+ *				pr_debug("%s-----%d\n", __func__, clk);\
+ *				if (p && p->fn)\
+ *					return p->fn(p1);\
+ *				else\
+ *					return -1;\
+ *			} while (0)
+ *
+ *#define IF_HAVE_RUN_RET(p, fn)\
+ *	do {\
+ *		if (p && p->fn)\
+ *			return p->fn();\
+ *		else\
+ *			return 0;\
+ *	} while (0)
+ */
 
 int vdec_clock_init(void)
 {
@@ -75,12 +75,12 @@ int vdec_clock_init(void)
 EXPORT_SYMBOL(vdec_clock_init);
 
 /*
-*clk ==0 :
-*	to be release.
-*	released shared clk,
-*clk ==1 :default low clk
-*clk ==2 :default high clk
-*/
+ *clk ==0 :
+ *	to be release.
+ *	released shared clk,
+ *clk ==1 :default low clk
+ *clk ==2 :default high clk
+ */
 int vdec_clock_set(int clk)
 {
 	pr_debug("%s-----%d\n", __func__, clk);
@@ -281,10 +281,10 @@ int vdec_source_changed_for_clk_set(int format, int width, int height, int fps)
 	if (width * height * fps == 0)
 		clk = 0;
 	/*
-	   *clk == 0
-	   *is used for set default clk;
-	   *if used supper clk.
-	   *changed to default  min clk.
+	 *clk == 0
+	 *is used for set default clk;
+	 *if used supper clk.
+	 *changed to default  min clk.
 	 */
 
 	if (format == VFORMAT_HEVC || format == VFORMAT_VP9) {
@@ -315,8 +315,8 @@ static int register_vdec_clk_mgr_per_cpu(int cputype,
 
 	if (cputype != get_cpu_type() || vdec_type >= VDEC_MAX) {
 		/*
-		   *pr_info("ignore vdec clk mgr for vdec[%d] cpu=%d\n",
-		   *vdec_type, cputype);
+		 *pr_info("ignore vdec clk mgr for vdec[%d] cpu=%d\n",
+		 *vdec_type, cputype);
 		 */
 		return 0;	/* ignore don't needed firmare. */
 	}
@@ -325,7 +325,7 @@ static int register_vdec_clk_mgr_per_cpu(int cputype,
 		return -ENOMEM;
 	*mgr = *t_mgr;
 	/*
-	   *pr_info("register vdec clk mgr for vdec[%d]\n", vdec_type);
+	 *pr_info("register vdec clk mgr for vdec[%d]\n", vdec_type);
 	 */
 	if (mgr->clock_init) {
 		if (mgr->clock_init()) {
@@ -366,8 +366,8 @@ static int register_vdec_clk_setting_per_cpu(int cputype,
 
 	if (cputype != get_cpu_type()) {
 		/*
-		   *pr_info("ignore clk_set_setting for cpu=%d\n",
-		   *cputype);
+		 *pr_info("ignore clk_set_setting for cpu=%d\n",
+		 *cputype);
 		 */
 		return 0;	/* ignore don't needed this setting . */
 	}

@@ -13,7 +13,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
-*/
+ */
 
 #ifndef VDEC_CHIP_CLK_HEADER
 #define VDEC_CHIP_CLK_HEADER
@@ -109,6 +109,7 @@ static struct chip_vdec_clk_s vdec_hcodec_clk_mgr __initdata = {
 static int __init vdec_init_clk(void)
 {
 	int cpus[] = CLK_FOR_CPU;
+
 	register_vdec_clk_mgr(cpus, VDEC_1, &vdec_clk_mgr);
 #ifdef VDEC_HAS_VDEC2
 	register_vdec_clk_mgr(cpus, VDEC_2, &vdec2_clk_mgr);

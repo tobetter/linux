@@ -33,9 +33,7 @@
 #endif
 
 #define pr_dbg(fmt, args ...) \
-	do { \
-		pr_info("FE: " fmt, ## args); \
-	} while (0)
+	pr_info("FE: " fmt, ## args)
 #define pr_error(fmt, args ...) pr_err("FE: " fmt, ## args)
 #define pr_inf(fmt, args ...) pr_info("FE: " fmt, ## args)
 
@@ -158,18 +156,18 @@ static int aml_fe_support_sys(struct aml_fe *fe,
 	return 1;
 }
 /*
-#define DTV_START_BLIND_SCAN            71
-#define DTV_CANCEL_BLIND_SCAN           72
-#define DTV_BLIND_SCAN_MIN_FRE          73
-#define DTV_BLIND_SCAN_MAX_FRE          74
-#define DTV_BLIND_SCAN_MIN_SRATE        75
-#define DTV_BLIND_SCAN_MAX_SRATE        76
-#define DTV_BLIND_SCAN_FRE_RANGE        77
-#define DTV_BLIND_SCAN_FRE_STEP         78
-#define DTV_BLIND_SCAN_TIMEOUT          79
+ *#define DTV_START_BLIND_SCAN            71
+ *#define DTV_CANCEL_BLIND_SCAN           72
+ *#define DTV_BLIND_SCAN_MIN_FRE          73
+ *#define DTV_BLIND_SCAN_MAX_FRE          74
+ *#define DTV_BLIND_SCAN_MIN_SRATE        75
+ *#define DTV_BLIND_SCAN_MAX_SRATE        76
+ *#define DTV_BLIND_SCAN_FRE_RANGE        77
+ *#define DTV_BLIND_SCAN_FRE_STEP         78
+ *#define DTV_BLIND_SCAN_TIMEOUT          79
  */
 static int aml_fe_blind_cmd(struct dvb_frontend *dev,
-			struct dtv_property* tvp)
+			struct dtv_property *tvp)
 {
 	struct aml_fe *fe;
 	int ret = 0;
@@ -181,7 +179,8 @@ static int aml_fe_blind_cmd(struct dvb_frontend *dev,
 		if (fe->dtv_demod
 			&& fe->dtv_demod->drv
 			&& fe->dtv_demod->drv->start_blind_scan) {
-			ret = fe->dtv_demod->drv->start_blind_scan(fe->dtv_demod);
+			ret = fe->dtv_demod->drv->start_blind_scan(
+					fe->dtv_demod);
 		} else {
 			pr_error("fe dtv_demod not surport blind start\n");
 		}
@@ -190,7 +189,8 @@ static int aml_fe_blind_cmd(struct dvb_frontend *dev,
 		if (fe->dtv_demod
 			&& fe->dtv_demod->drv
 			&& fe->dtv_demod->drv->stop_blind_scan) {
-			ret = fe->dtv_demod->drv->stop_blind_scan(fe->dtv_demod);
+			ret = fe->dtv_demod->drv->stop_blind_scan(
+				fe->dtv_demod);
 		} else {
 			pr_error("fe dtv_demod not surport blind stop\n");
 		}
@@ -224,7 +224,7 @@ static int aml_fe_blind_cmd(struct dvb_frontend *dev,
 }
 
 static int aml_fe_set_property(struct dvb_frontend *dev,
-			struct dtv_property* tvp)
+			struct dtv_property *tvp)
 {
 	struct aml_fe *fe;
 	int r = 0;
@@ -233,7 +233,8 @@ static int aml_fe_set_property(struct dvb_frontend *dev,
 
 	if (tvp->cmd == DTV_DELIVERY_SYSTEM) {
 		enum fe_delivery_system sys = tvp->u.data;
-		pr_error("fe aml_fe_set_property %d \n", sys);
+
+		pr_error("fe aml_fe_set_property %d\n", sys);
 		r = aml_fe_set_sys(dev, sys);
 		if (r < 0)
 			return r;
@@ -241,26 +242,27 @@ static int aml_fe_set_property(struct dvb_frontend *dev,
 
 	if (tvp->cmd == DTV_DELIVERY_SUB_SYSTEM) {
 		int sub_sys = tvp->u.data;
-		pr_error("fe aml_fe_set_property sub_sys: %d \n", sub_sys);
+
+		pr_error("fe aml_fe_set_property sub_sys: %d\n", sub_sys);
 		fe->sub_sys = sub_sys;
 		r = 0;
 	}
 	pr_error("fe aml_fe_set_property -tvp->cmd[%d]\n", tvp->cmd);
 	switch (tvp->cmd) {
-		case DTV_START_BLIND_SCAN:
-		case DTV_CANCEL_BLIND_SCAN:
-		case DTV_BLIND_SCAN_MIN_FRE:
-		case DTV_BLIND_SCAN_MAX_FRE:
-		case DTV_BLIND_SCAN_MIN_SRATE:
-		case DTV_BLIND_SCAN_MAX_SRATE:
-		case DTV_BLIND_SCAN_FRE_RANGE:
-		case DTV_BLIND_SCAN_FRE_STEP:
-		case DTV_BLIND_SCAN_TIMEOUT:
-			r = aml_fe_blind_cmd(dev, tvp);
-			if (r < 0)
-				return r;
-		default:
-			break;
+	case DTV_START_BLIND_SCAN:
+	case DTV_CANCEL_BLIND_SCAN:
+	case DTV_BLIND_SCAN_MIN_FRE:
+	case DTV_BLIND_SCAN_MAX_FRE:
+	case DTV_BLIND_SCAN_MIN_SRATE:
+	case DTV_BLIND_SCAN_MAX_SRATE:
+	case DTV_BLIND_SCAN_FRE_RANGE:
+	case DTV_BLIND_SCAN_FRE_STEP:
+	case DTV_BLIND_SCAN_TIMEOUT:
+		r = aml_fe_blind_cmd(dev, tvp);
+		if (r < 0)
+			return r;
+	default:
+		break;
 	}
 
 	if (fe->set_property) {
@@ -272,18 +274,18 @@ static int aml_fe_set_property(struct dvb_frontend *dev,
 }
 
 static int aml_fe_get_property(struct dvb_frontend *dev,
-			struct dtv_property* tvp)
+			struct dtv_property *tvp)
 {
 	struct aml_fe *fe;
 	int r = 0;
+
 	fe = dev->demodulator_priv;
 
-	if (tvp->cmd == DTV_TS_INPUT) {
+	if (tvp->cmd == DTV_TS_INPUT)
 		tvp->u.data = fe->ts;
-	}
 	if (tvp->cmd == DTV_DELIVERY_SUB_SYSTEM) {
 		tvp->u.data = fe->sub_sys;
-		pr_error("fe aml_fe_get_property sub_sys: %d \n", fe->sub_sys);
+		pr_error("fe aml_fe_get_property sub_sys: %d\n", fe->sub_sys);
 		r = 0;
 	}
 	if (fe->get_property)
@@ -303,7 +305,10 @@ static int aml_fe_set_sys(struct dvb_frontend *dev,
 		pr_dbg("[%s]:the mode is not change!!!!\n", __func__);
 		return 0;
 	}
-	/*set dvb-t or dvb-t2,if dvb-t or t2 is set, we only set sys value, not init sys*/
+	/*set dvb-t or dvb-t2
+	 * if dvb-t or t2 is set
+	 * we only set sys value, not init sys
+	 */
 	if (fe->sys != SYS_UNDEFINED) {
 		pr_dbg("release system %d\n", fe->sys);
 
@@ -416,7 +421,7 @@ static int aml_fe_set_sys(struct dvb_frontend *dev,
 		ret = fe->tuner->drv->init_sys(fe->tuner, sys);
 
 	if (ret != 0) {
-		pr_error("init syste, %d fail, ret %d\n", sys, ret);
+		pr_error("init system, %d fail, ret %d\n", sys, ret);
 		goto end;
 	}
 
@@ -434,7 +439,7 @@ end:
 	return 0;
 }
 
-static const char* aml_fe_dev_type_str(struct aml_fe_dev *dev)
+static const char *aml_fe_dev_type_str(struct aml_fe_dev *dev)
 {
 	switch (dev->type) {
 	case AM_DEV_TUNER:
@@ -448,7 +453,7 @@ static const char* aml_fe_dev_type_str(struct aml_fe_dev *dev)
 	return "";
 }
 
-static void aml_fe_property_name (struct aml_fe_dev *dev, const char *name,
+static void aml_fe_property_name(struct aml_fe_dev *dev, const char *name,
 			char *buf)
 {
 	const char *tstr;
@@ -518,7 +523,7 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	memset(buf, 0, 128);
 	name = NULL;
 	aml_fe_property_name(dev, name, buf);
-	pr_dbg("get string: %s \n", buf);
+	pr_dbg("get string: %s\n", buf);
 	ret = aml_fe_of_property_string(dev, buf, &str);
 	if (ret) {
 		pr_dbg("get string: %s error\n", buf);
@@ -558,7 +563,7 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	memset(buf, 0, 128);
 	name = "i2c_adap_id";
 	aml_fe_property_name(dev, name, buf);
-	pr_dbg("get u32: %s \n", buf);
+	pr_dbg("get u32: %s\n", buf);
 	ret = aml_fe_of_property_u32(dev, buf, &value);
 	if (!ret) {
 		dev->i2c_adap_id = value;
@@ -571,7 +576,7 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	memset(buf, 0, 128);
 	name = "i2c_addr";
 	aml_fe_property_name(dev, name, buf);
-	pr_dbg("get u32: %s \n", buf);
+	pr_dbg("get u32: %s\n", buf);
 	ret = aml_fe_of_property_u32(dev, buf, &value);
 	if (!ret) {
 		dev->i2c_addr = value;
@@ -584,10 +589,10 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	memset(buf, 0, 128);
 	name = "reset_gpio";
 	aml_fe_property_name(dev, name, buf);
-	pr_dbg("get string: %s \n", buf);
+	pr_dbg("get string: %s\n", buf);
 	ret = aml_fe_of_property_string(dev, buf, &str);
 	if (!ret) {
-		 dev->reset_gpio =
+		dev->reset_gpio =
 		     of_get_named_gpio_flags(dev->man->pdev->dev.of_node,
 		     buf, 0, NULL);
 		pr_inf("%s: %s\n", buf, str);
@@ -598,7 +603,7 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	memset(buf, 0, 128);
 	name = "reset_value";
 	aml_fe_property_name(dev, name, buf);
-	pr_dbg("get u32: %s \n", buf);
+	pr_dbg("get u32: %s\n", buf);
 	ret = aml_fe_of_property_u32(dev, buf, &value);
 	if (!ret) {
 		dev->reset_value = value;
@@ -640,17 +645,14 @@ static void aml_fe_man_run(struct aml_fe *fe)
 	if (fe->init)
 		return;
 
-	if (fe->tuner && fe->tuner->drv) {
+	if (fe->tuner && fe->tuner->drv)
 		fe->init = 1;
-	}
 
-	if (fe->atv_demod && fe->atv_demod->drv) {
+	if (fe->atv_demod && fe->atv_demod->drv)
 		fe->init = 1;
-	}
 
-	if (fe->dtv_demod && fe->dtv_demod->drv) {
+	if (fe->dtv_demod && fe->dtv_demod->drv)
 		fe->init = 1;
-	}
 
 	if (fe->init) {
 		struct aml_dvb *dvb = fe->man->dvb;
@@ -697,7 +699,7 @@ static void aml_fe_man_run(struct aml_fe *fe)
 	}
 }
 
-static void fe_property_name (struct aml_fe *fe, const char *name,
+static void fe_property_name(struct aml_fe *fe, const char *name,
 			char *buf)
 {
 	if (name)
@@ -746,6 +748,7 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 	ret = fe_of_property_u32(fe, "tuner", &value);
 	if (!ret) {
 		int id = value;
+
 		if ((id < 0) || (id >= FE_DEV_COUNT) || !fe_man.tuner[id].drv) {
 			pr_error("invalid tuner device id %d\n", id);
 			return -1;
@@ -758,7 +761,10 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 	ret = fe_of_property_u32(fe, "atv_demod", &value);
 	if (!ret) {
 		int id = value;
-		if ((id < 0) || (id >= FE_DEV_COUNT) || !fe_man.atv_demod[id].drv) {
+
+		if ((id < 0) ||
+			(id >= FE_DEV_COUNT) ||
+			!fe_man.atv_demod[id].drv) {
 			pr_error("invalid ATV demod device id %d\n", id);
 			return -1;
 		}
@@ -770,7 +776,10 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 	ret = fe_of_property_u32(fe, "dtv_demod", &value);
 	if (!ret) {
 		int id = value;
-		if ((id < 0) || (id >= FE_DEV_COUNT) || !fe_man.dtv_demod[id].drv) {
+
+		if ((id < 0) ||
+			(id >= FE_DEV_COUNT) ||
+			!fe_man.dtv_demod[id].drv) {
 			pr_error("invalid DTV demod device id %d\n", id);
 			return -1;
 		}
@@ -842,7 +851,7 @@ void aml_fe_set_pdata(struct aml_fe_dev *dev, void *pdata)
 }
 EXPORT_SYMBOL(aml_fe_set_pdata);
 
-void* aml_fe_get_pdata(struct aml_fe_dev *dev)
+void *aml_fe_get_pdata(struct aml_fe_dev *dev)
 {
 	return dev->priv_data;
 }
@@ -862,9 +871,8 @@ static void aml_fe_do_work(struct work_struct *work)
 
 void aml_fe_schedule_work(struct aml_fe *fe, void(*func)(struct aml_fe *fe))
 {
-	if (fe->work_running) {
+	if (fe->work_running)
 		cancel_work_sync(&fe->work);
-	}
 
 	fe->work_running = 1;
 	fe->do_work      = func;
@@ -963,6 +971,7 @@ static ssize_t setting_show(struct class *cls, struct class_attribute *attr,
 	total += r;
 	for (i = 0; i < FE_DEV_COUNT; i++) {
 		struct aml_fe_dev *dev = &fm->tuner[i];
+
 		if (dev->drv) {
 			r = sprintf(buf, "\t%d: %s\n", i, dev->drv->name);
 			buf += r;
@@ -975,6 +984,7 @@ static ssize_t setting_show(struct class *cls, struct class_attribute *attr,
 	total += r;
 	for (i = 0; i < FE_DEV_COUNT; i++) {
 		struct aml_fe_dev *dev = &fm->atv_demod[i];
+
 		if (dev->drv) {
 			r = sprintf(buf, "\t%d: %s\n", i, dev->drv->name);
 			buf += r;
@@ -987,6 +997,7 @@ static ssize_t setting_show(struct class *cls, struct class_attribute *attr,
 	total += r;
 	for (i = 0; i < FE_DEV_COUNT; i++) {
 		struct aml_fe_dev *dev = &fm->dtv_demod[i];
+
 		if (dev->drv) {
 			r = sprintf(buf, "\t%d: %s\n", i, dev->drv->name);
 			buf += r;
@@ -1162,19 +1173,19 @@ static ssize_t aml_fe_store_suspended_flag(struct class *class,
 
 static struct class_attribute aml_fe_cls_attrs[] = {
 	__ATTR(tuner_name,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       tuner_name_show, NULL),
 	__ATTR(atv_demod_name,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       atv_demod_name_show, NULL),
 	__ATTR(dtv_demod_name,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       dtv_demod_name_show, NULL),
 	__ATTR(setting,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       setting_show, setting_store),
 	__ATTR(aml_fe_suspended_flag,
-	       S_IRUGO | S_IWUSR,
+	       0644,
 	       aml_fe_show_suspended_flag,
 	       aml_fe_store_suspended_flag),
 	__ATTR_NULL
@@ -1196,13 +1207,19 @@ static int aml_fe_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, &fe_man);
 
 	for (i = 0; i < FE_DEV_COUNT; i++) {
-		if (aml_fe_dev_init(&fe_man, AM_DEV_TUNER, &fe_man.tuner[i], i) < 0)
+		if (aml_fe_dev_init(&fe_man,
+					AM_DEV_TUNER,
+					&fe_man.tuner[i], i) < 0)
 			goto probe_end;
 
-		if (aml_fe_dev_init(&fe_man, AM_DEV_ATV_DEMOD, &fe_man.atv_demod[i], i) < 0)
+		if (aml_fe_dev_init(&fe_man,
+					AM_DEV_ATV_DEMOD,
+					&fe_man.atv_demod[i], i) < 0)
 			goto probe_end;
 
-		if (aml_fe_dev_init(&fe_man, AM_DEV_DTV_DEMOD, &fe_man.dtv_demod[i], i) < 0)
+		if (aml_fe_dev_init(&fe_man,
+			AM_DEV_DTV_DEMOD,
+			&fe_man.dtv_demod[i], i) < 0)
 			goto probe_end;
 	}
 
