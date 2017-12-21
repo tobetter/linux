@@ -686,6 +686,7 @@ struct vdec_h264_hw_s {
 	u32 cfg_param4;
 	int valve_count;
 	struct firmware_s *fw;
+	struct firmware_s *fw_mmu;
 };
 
 
@@ -4610,6 +4611,31 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN + 0x3000,
 			fw->data + 0x5000, 0x1000);
 
+		if (mmu_enable) {
+			int fw_mmu_size = 0x1000 * 16;
+			struct firmware_s *fw_mmu = NULL;
+
+			pr_debug("start load mmu fw ...\n");
+
+			fw_mmu = vmalloc(sizeof(struct firmware_s) + fw_mmu_size);
+			if (IS_ERR_OR_NULL(fw_mmu))
+				return -ENOMEM;
+
+			size = get_firmware_data(VIDEO_DEC_H264_MULTI_MMU,
+				fw_mmu->data);
+			if (size < 0) {
+				pr_err("get mmu fw fail.\n");
+				vfree(fw_mmu);
+				return -1;
+			}
+
+			ret = amhevc_loadmc_ex(VFORMAT_HEVC,
+				NULL, fw_mmu->data);
+
+			fw_mmu->len = size;
+			hw->fw_mmu = fw_mmu;
+		}
+
 		if (ret < 0) {
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 			"264 load orignal firmware error.\n");
@@ -4757,6 +4783,11 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 
 	vfree(hw->fw);
 	hw->fw = NULL;
+
+	if (mmu_enable) {
+		vfree(hw->fw_mmu);
+		hw->fw_mmu = NULL;
+	}
 
 	dpb_print(DECODE_ID(hw), 0,
 		"%s\n",
@@ -4946,8 +4977,8 @@ result_done:
 			READ_VREG(VLD_MEM_VIFIFO_RP));
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
 		amvdec_stop();
-		if (mmu_enable)
-			amhevc_stop();
+		//if (mmu_enable)
+			//amhevc_stop();
 	} else if (hw->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
