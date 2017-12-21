@@ -603,10 +603,8 @@ static int video_port_init(struct port_priv_s *priv,
 			priv->vdec->sys_info->width) > 1920*1088) {
 		pbuf->for_4k = 1;
 		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX
-				&& port->vformat == VFORMAT_H264) {
-			amports_switch_gate("clk_hevc_mux", 1);
+				&& port->vformat == VFORMAT_H264)
 			vdec_poweron(VDEC_HEVC);
-		}
 	} else {
 		pbuf->for_4k = 0;
 	}
