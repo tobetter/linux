@@ -17,6 +17,7 @@ static const struct type_name_s type_name[] = {
 	{VIDEO_DEC_H264_4k2K_SINGLE, "h264_4k2k_single"},
 	{VIDEO_DEC_H264_MVC, "h264_mvc"},
 	{VIDEO_DEC_H264_MULTI, "h264_multi"},
+	{VIDEO_DEC_H264_MULTI_MMU, "h264_multi_mmu"},
 	{VIDEO_DEC_HEVC, "hevc"},
 	{VIDEO_DEC_HEVC_MMU, "hevc_mmu"},
 	{VIDEO_DEC_VP9, "vp9"},
