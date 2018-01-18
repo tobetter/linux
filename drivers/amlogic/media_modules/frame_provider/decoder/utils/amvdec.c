@@ -378,68 +378,68 @@ s32 optee_load_fw(enum vformat_e type, const char *name)
 	s32 ret = 0;
 	switch ((u32)type) {
 	case VFORMAT_VC1:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_VC1);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_VC1, 0);
 		break;
 
 	case VFORMAT_AVS:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS, 0);
 		break;
 
 	case VFORMAT_MPEG12:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG12);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG12, 0);
 		break;
 
 	case VFORMAT_MJPEG:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG, 0);
 		break;
 
 	case VFORMAT_VP9:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
 		break;
 
 	case VFORMAT_HEVC:
 		if (!strcmp(name, "vh265_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
 		else if (!strcmp(name, "vh265_mc_mmu"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
 		break;
 
 	case VFORMAT_REAL:
 		if (!strcmp(name, "vreal_mc_8"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8, 0);
 		else if (!strcmp(name, "vreal_mc_9"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9, 0);
 		break;
 
 	case VFORMAT_MPEG4:
 		if (!strcmp(name, "vmpeg4_mc_311"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3, 0);
 		else if (!strcmp(name, "vmpeg4_mc_4"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4, 0);
 		else if (!strcmp(name, "vmpeg4_mc_5"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5, 0);
 		else if (!strcmp(name, "h263_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263, 0);
 		break;
 	default:
 		if (!strcmp(name, "vh265_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
 		else if (!strcmp(name, "vh265_mc_mmu"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
 		else if (!strcmp(name, "vmpeg4_mc_311"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3, 0);
 		else if (!strcmp(name, "vmpeg4_mc_4"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4, 0);
 		else if (!strcmp(name, "vmpeg4_mc_5"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5, 0);
 		else if (!strcmp(name, "h263_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263, 0);
 		else if (!strcmp(name, "vreal_mc_8"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8, 0);
 		else if (!strcmp(name, "vreal_mc_9"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9, 0);
 		else if (!strcmp(name, "vmmjpeg_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG_MULTI);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG_MULTI, 0);
 		else
 			pr_info("unknow dec format\n");
 		break;

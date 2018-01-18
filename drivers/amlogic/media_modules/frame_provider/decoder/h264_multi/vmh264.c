@@ -4549,7 +4549,16 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		}
 	}
 	if (tee_enabled() && !firmwareloaded) {
-		pr_info("VMH264 start load sec firmware ...\n");
+		pr_info("VMH264 start tee load sec firmware ...\n");
+		if (mmu_enable &&
+			tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI_MMU, 2)
+			!= 0) {
+			amvdec_enable_flag = false;
+			amvdec_disable();
+			pr_info("%s: Error amvdec_mmu_loadmc fail\n",
+				__func__);
+			return -1;
+		}
 	} else {
 	/* -- ucode loading (amrisc and swap code) */
 	hw->mc_cpu_addr =
@@ -5194,7 +5203,7 @@ static void run(struct vdec_s *vdec,
 	start_process_time(hw);
 
 	if (tee_enabled()) {
-		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI)
+		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI, 0)
 			!= 0) {
 			amvdec_enable_flag = false;
 			amvdec_disable();
