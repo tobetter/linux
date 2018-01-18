@@ -2567,7 +2567,7 @@ static s32 vh264_init(void)
 
 	amvdec_enable();
 	if (!firmwareloaded && tee_enabled()) {
-		if (tee_load_video_fw((u32)VIDEO_DEC_H264) != 0) {
+		if (tee_load_video_fw((u32)VIDEO_DEC_H264, 0) != 0) {
 			amvdec_disable();
 			return -1;
 		}

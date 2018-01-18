@@ -77,7 +77,7 @@ int get_firmware_data(enum firmware_type_e type, char *buf)
 
 	if (tee_enabled()) {
 		pr_info ("tee load firmware type= %d\n",(u32)type);
-		ret = tee_load_video_fw((u32)type);
+		ret = tee_load_video_fw((u32)type, 0);
 		if (ret == 0)
 			ret = 1;
 		else
