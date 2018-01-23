@@ -5076,6 +5076,17 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 			hevc->fatal_error |= DECODER_FATAL_ERROR_SIZE_OVERFLOW;
 			return 3;
 		}
+		if (hevc->bit_depth_chroma > 10 ||
+			hevc->bit_depth_luma > 10) {
+			pr_info("unsupport bitdepth : %u,%u\n",
+				hevc->bit_depth_chroma,
+				hevc->bit_depth_luma);
+			if (!hevc->m_ins_flag)
+				debug |= (H265_DEBUG_DIS_LOC_ERROR_PROC |
+				H265_DEBUG_DIS_SYS_ERROR_PROC);
+			hevc->fatal_error |= DECODER_FATAL_ERROR_SIZE_OVERFLOW;
+			return 4;
+		}
 
 		/* it will cause divide 0 error */
 		if (hevc->pic_w == 0 || hevc->pic_h == 0) {
@@ -5591,6 +5602,13 @@ static int H265_alloc_mmu(struct hevc_state_s *hevc, struct PIC_s *new_pic,
 	if (new_pic->scatter_alloc) {
 		decoder_mmu_box_free_idx(hevc->mmu_box, new_pic->index);
 		new_pic->scatter_alloc = 0;
+	}
+	if (cur_mmu_4k_number > MAX_FRAME_4K_NUM) {
+		pr_err("over max !! 0x%x width %d height %d\n",
+			cur_mmu_4k_number,
+			new_pic->width,
+			new_pic->height);
+		return -1;
 	}
 	ret = decoder_mmu_box_alloc_idx(
 	  hevc->mmu_box,
@@ -8468,7 +8486,12 @@ int vh265_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 int vh265_dec_status(struct vdec_info *vstatus)
 #endif
 {
+#ifdef MULTI_INSTANCE_SUPPORT
+	struct hevc_state_s *hevc =
+		(struct hevc_state_s *)vdec->private;
+#else
 	struct hevc_state_s *hevc = &gHevc;
+#endif
 	vstatus->frame_width = hevc->frame_width;
 	vstatus->frame_height = hevc->frame_height;
 	if (hevc->frame_dur != 0)
@@ -8491,9 +8514,10 @@ int vh265_dec_status(struct vdec_info *vstatus)
 		vstatus->samp_cnt = gvs->samp_cnt;
 		vstatus->offset = gvs->offset;
 	}
+#endif
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
-#endif
+
 	return 0;
 }
 
@@ -9499,6 +9523,14 @@ static bool run_ready(struct vdec_s *vdec)
 
 	if (hevc->eos)
 		return 0;
+	if ((hevc->fatal_error &
+		DECODER_FATAL_ERROR_SIZE_OVERFLOW) ||
+		(hevc->fatal_error & DECODER_FATAL_ERROR_UNKNOWN)) {
+		/*decoder fatal error,
+		 *disable run.
+		 */
+		return 0;
+	}
 
 	if (disp_vframe_valve_level &&
 		kfifo_len(&hevc->display_q) >=

@@ -1451,10 +1451,14 @@ static int get_double_write_mode(struct VP9Decoder_s *pbi)
 	u32 dw;
 	if (valid_dw_mode == 0x100) {
 		struct VP9_Common_s *cm = &pbi->common;
-		struct PIC_BUFFER_CONFIG_s *cur_pic_config
-			= &cm->cur_frame->buf;
-		int w = cur_pic_config->y_crop_width;
-		int h = cur_pic_config->y_crop_width;
+		struct PIC_BUFFER_CONFIG_s *cur_pic_config;
+		int w, h;
+
+		if (!cm->cur_frame)
+			return 1;/*no valid frame,*/
+		cur_pic_config = &cm->cur_frame->buf;
+		w = cur_pic_config->y_crop_width;
+		h = cur_pic_config->y_crop_width;
 		if (w > 1920 && h > 1088)
 			dw = 0x4; /*1:2*/
 		else
@@ -1512,6 +1516,11 @@ int vp9_alloc_mmu(
 	int cur_mmu_4k_number;
 	if (!pbi->mmu_box) {
 		pr_err("error no mmu box!\n");
+		return -1;
+	}
+	if (bit_depth >= VPX_BITS_12) {
+		pbi->fatal_error = DECODER_FATAL_ERROR_SIZE_OVERFLOW;
+		pr_err("fatal_error, un support bit depth 12!\n\n");
 		return -1;
 	}
 	picture_size = compute_losless_comp_body_size(pic_width, pic_height,
@@ -7435,7 +7444,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 #endif
 	pbi->double_write_mode = double_write_mode;
-	pbi->mmu_enable = !(get_double_write_mode(pbi) == 0x10);
+	pbi->mmu_enable = !(pbi->double_write_mode == 0x10);
 	if (amvdec_vp9_mmu_init(pbi) < 0) {
 		mutex_unlock(&vvp9_mutex);
 		pr_err("vp9 alloc bmmu box failed!!\n");
@@ -8172,7 +8181,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		pbi->vvp9_amstream_dec_info.rate = 30;*/
 		pbi->double_write_mode = double_write_mode;
 	}
-	pbi->mmu_enable = !(get_double_write_mode(pbi) == 0x10);
+	pbi->mmu_enable = !(pbi->double_write_mode == 0x10);
 	video_signal_type = pbi->video_signal_type;
 #if 0
 	pbi->buf_start = pdata->mem_start;
