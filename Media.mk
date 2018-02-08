@@ -24,10 +24,10 @@ $(foreach m, $(shell find $(strip $(1)) -name "*.ko"),\
 	$(shell cp $(m) $(strip $(2)) -rfa))
 endef
 
-ifneq (,$(ANDROID_BUILD_TOP))
-KDIR := $(OUT)/obj/KERNEL_OBJ/
+ifneq (,$(TOP))
+KDIR := $(shell pwd)/$(PRODUCT_OUT)/obj/KERNEL_OBJ/
 
-MEDIA_DRIVERS := $(ANDROID_BUILD_TOP)/hardware/amlogic/media_modules/drivers
+MEDIA_DRIVERS := $(TOP)/hardware/amlogic/media_modules/drivers
 ifeq (,$(wildcard $(MEDIA_DRIVERS)))
 $(error No find the dir of drivers.)
 endif
@@ -37,17 +37,17 @@ ifeq (,$(wildcard $(INCLUDE)))
 $(error No find the dir of include.)
 endif
 
-MEDIA_MODULES := $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/obj/media_modules
+MEDIA_MODULES := $(shell pwd)/$(PRODUCT_OUT)/obj/media_modules
 ifeq (,$(wildcard $(MEDIA_MODULES)))
 $(shell mkdir $(MEDIA_MODULES) -p)
 endif
 
-MODS_OUT := $(ANDROID_BUILD_TOP)/$(PRODUCT_OUT)/obj/lib_vendor
+MODS_OUT := $(shell pwd)/$(PRODUCT_OUT)/obj/lib_vendor
 ifeq (,$(wildcard $(MODS_OUT)))
 $(shell mkdir $(MODS_OUT) -p)
 endif
 
-UCODE_OUT := $(ANDROID_PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/lib/firmware/video
+UCODE_OUT := $(shell pwd)/$(PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/lib/firmware/video
 ifeq (,$(wildcard $(UCODE_OUT)))
 $(shell mkdir $(UCODE_OUT) -p)
 endif
