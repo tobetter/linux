@@ -409,7 +409,7 @@ static struct stream_port_s ports[] = {
 		.fops = &vbuf_fops,
 		.vformat = VFORMAT_HEVC,
 	},
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	{
 		.name = "amstream_dves_avc",
 		.type = PORT_TYPE_ES | PORT_TYPE_VIDEO |

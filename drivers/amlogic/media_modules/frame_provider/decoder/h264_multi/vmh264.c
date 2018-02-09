@@ -124,7 +124,7 @@ static unsigned int fixed_frame_rate_mode;
 static unsigned int error_recovery_mode_in;
 static int start_decode_buf_level = 0x8000;
 
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 /*to make reorder size difference of bl and el not too big*/
 static unsigned int reorder_dpb_size_margin_dv = 16;
 #endif
@@ -186,7 +186,7 @@ static unsigned int step[H264_DEV_NUM];
 static u32 prefix_aux_buf_size = (16 * 1024);
 static u32 suffix_aux_buf_size;
 
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 static u32 dv_toggle_prov_name;
 
 static u32 dolby_meta_with_el;
@@ -374,7 +374,7 @@ struct buffer_spec_s {
 #endif
 	char *aux_data_buf;
 	int aux_data_size;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	unsigned char dv_enhance_exist;
 #endif
 	int canvas_pos;
@@ -662,7 +662,7 @@ struct vdec_h264_hw_s {
 	unsigned int total_read_size_pre;
 	unsigned int total_read_size;
 	unsigned int frame_count_pre;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	u8 switch_dvlayer_flag;
 	u8 got_valid_nal;
 #endif
@@ -2001,13 +2001,13 @@ static void dump_aux_buf(struct vdec_h264_hw_s *hw)
 
 static void config_decode_mode(struct vdec_h264_hw_s *hw)
 {
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	struct vdec_s *vdec = hw_to_vdec(hw);
 #endif
 	if (input_frame_based(hw_to_vdec(hw)))
 		WRITE_VREG(H264_DECODE_MODE,
 			DECODE_MODE_MULTI_FRAMEBASE);
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	else if (vdec->slave)
 		WRITE_VREG(H264_DECODE_MODE,
 			(hw->got_valid_nal << 8) |
@@ -2688,7 +2688,7 @@ static int vh264_event_cb(int type, void *data, void *op_arg)
 				hw->buffer_spec[buf_spec_num].aux_data_buf;
 			req->aux_size =
 				hw->buffer_spec[buf_spec_num].aux_data_size;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			req->dv_enhance_exist =
 				hw->buffer_spec[buf_spec_num].dv_enhance_exist;
 #else
@@ -2836,7 +2836,7 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 	unsigned int crop_infor, crop_bottom, crop_right;
 	unsigned int used_reorder_dpb_size_margin
 		= reorder_dpb_size_margin;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (vdec->master || vdec->slave)
 		used_reorder_dpb_size_margin =
 			reorder_dpb_size_margin_dv;
@@ -3623,7 +3623,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec)
 pic_done_proc:
 		reset_process_time(hw);
 		if (p_H264_Dpb->mVideo.dec_picture) {
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			DEL_EXIST(hw,
 				p_H264_Dpb->mVideo.dec_picture) = 0;
 			if (vdec->master) {
@@ -3641,7 +3641,7 @@ pic_done_proc:
 					hw->chunk->pts;
 				p_H264_Dpb->mVideo.dec_picture->pts64 =
 					hw->chunk->pts64;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			} else if (vdec->master) {
 				/*dv enhance layer,
 				do not checkout pts*/
@@ -3739,7 +3739,7 @@ pic_done_proc:
 			hw->decode_pic_count);
 		/* WRITE_VREG(DPB_STATUS_REG, H264_ACTION_SEARCH_HEAD); */
 		hw->dec_result = DEC_RESULT_DONE;
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 		if (vdec->slave &&
 			dec_dpb_status == H264_FIND_NEXT_DVEL_NAL) {
 			struct vdec_h264_hw_s *hw_el =
@@ -3758,7 +3758,7 @@ pic_done_proc:
 		}
 #endif
 		vdec_schedule_work(&hw->work);
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	} else if (
 			(dec_dpb_status == H264_FIND_NEXT_PIC_NAL) ||
 			(dec_dpb_status == H264_FIND_NEXT_DVEL_NAL)) {
@@ -3775,7 +3775,7 @@ pic_done_proc:
 			if (dpb_is_debug(DECODE_ID(hw),
 				PRINT_FLAG_DPB_DETAIL))
 				dump_aux_buf(hw);
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			if (vdec->dolby_meta_with_el || vdec->slave) {
 				if (hw->last_dec_picture)
 					set_aux_data(hw, hw->last_dec_picture,
@@ -3801,7 +3801,7 @@ pic_done_proc:
 					hw->last_dec_picture, 0, 0, NULL);
 #endif
 		}
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 		hw->switch_dvlayer_flag = 0;
 		hw->got_valid_nal = 1;
 #endif
@@ -4113,7 +4113,7 @@ static void vmh264_dump_state(struct vdec_s *vdec)
 			hw->buffer_spec[i].canvas_pos,
 			hw->buffer_spec[i].vf_ref
 			);
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 		dpb_print_cont(DECODE_ID(hw), 0,
 			"dv_el_exist %d",
 			hw->buffer_spec[i].dv_enhance_exist
@@ -5036,7 +5036,7 @@ result_done:
 	/* mark itself has all HW resource released and input released */
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_CONNECTED);
 
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (hw->switch_dvlayer_flag) {
 		if (vdec->slave)
 			vdec_set_next_sched(vdec, vdec->slave);
@@ -5056,7 +5056,7 @@ static bool run_ready(struct vdec_s *vdec)
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
 
-#ifndef CONFIG_AM_VDEC_DV
+#ifndef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (vdec->master)
 		return false;
 #endif
@@ -5126,7 +5126,7 @@ static void run(struct vdec_s *vdec,
 		}
 	}
 	/* hw->chunk = vdec_prepare_input(vdec); */
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (vdec->slave || vdec->master)
 		vdec_set_flag(vdec, VDEC_FLAG_SELF_INPUT_CONTEXT);
 #endif
@@ -5508,7 +5508,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	if (pdata->use_vfm_path)
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
 			VFM_DEC_PROVIDER_NAME);
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	else if (vdec_dual(pdata)) {
 		if (dv_toggle_prov_name) /*debug purpose*/
 			snprintf(pdata->vf_provider_name,
@@ -5676,7 +5676,7 @@ static struct mconfig hm264_configs[] = {
 	MC_PI32("force_disp_bufspec_num", &force_disp_bufspec_num),
 	MC_PU32("prefix_aux_buf_size", &prefix_aux_buf_size),
 	MC_PU32("suffix_aux_buf_size", &suffix_aux_buf_size),
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	MC_PU32("reorder_dpb_size_margin_dv", &reorder_dpb_size_margin_dv),
 	MC_PU32("dv_toggle_prov_name", &dv_toggle_prov_name),
 	MC_PU32("dolby_meta_with_el", &dolby_meta_with_el),
@@ -5734,7 +5734,7 @@ MODULE_PARM_DESC(frame_max_data_packet, "\n amvdec_h264 frame_max_data_packet\n"
 module_param(reorder_dpb_size_margin, uint, 0664);
 MODULE_PARM_DESC(reorder_dpb_size_margin, "\n ammvdec_h264 reorder_dpb_size_margin\n");
 
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 module_param(reorder_dpb_size_margin_dv, uint, 0664);
 MODULE_PARM_DESC(reorder_dpb_size_margin_dv,
 	"\n ammvdec_h264 reorder_dpb_size_margin_dv\n");
@@ -5776,7 +5776,7 @@ MODULE_PARM_DESC(prefix_aux_buf_size, "\n prefix_aux_buf_size\n");
 module_param(suffix_aux_buf_size, uint, 0664);
 MODULE_PARM_DESC(suffix_aux_buf_size, "\n suffix_aux_buf_size\n");
 
-#ifdef CONFIG_AM_VDEC_DV
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 module_param(dv_toggle_prov_name, uint, 0664);
 MODULE_PARM_DESC(dv_toggle_prov_name, "\n dv_toggle_prov_name\n");
 
