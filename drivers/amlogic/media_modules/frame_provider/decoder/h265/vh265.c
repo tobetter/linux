@@ -8501,7 +8501,8 @@ static int h265_task_handle(void *data)
 			hevc_print(hevc, 0, "uninit list\n");
 			hevc->uninit_list = 0;
 #ifdef USE_UNINIT_SEMA
-			up(&hevc->h265_uninit_done_sema);
+			if (use_cma)
+				up(&hevc->h265_uninit_done_sema);
 #endif
 		}
 
@@ -8906,12 +8907,11 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 	hevc->stat |= STAT_TIMER_ARM;
 
 	if (use_cma) {
+#ifdef USE_UNINIT_SEMA
+		sema_init(&hevc->h265_uninit_done_sema, 0);
+#endif
 		if (h265_task == NULL) {
 			sema_init(&h265_sema, 1);
-#ifdef USE_UNINIT_SEMA
-			sema_init(
-			&hevc->h265_uninit_done_sema, 0);
-#endif
 			h265_task =
 				kthread_run(h265_task_handle, hevc,
 						"kthread_h265");
@@ -9229,7 +9229,8 @@ static void vh265_work(struct work_struct *work)
 		hevc_print(hevc, 0, "uninit list\n");
 		hevc->uninit_list = 0;
 #ifdef USE_UNINIT_SEMA
-		up(&hevc->h265_uninit_done_sema);
+		if (use_cma)
+			up(&hevc->h265_uninit_done_sema);
 #endif
 		return;
 	}
