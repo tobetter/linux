@@ -336,6 +336,9 @@ thermal_zone_of_add_sensor(struct device_node *zone,
 
 	tz = tzd->devdata;
 
+	if ((!get_temp) && (!get_trend))
+		return ERR_PTR(-EINVAL);
+
 	mutex_lock(&tzd->lock);
 	tz->get_temp = get_temp;
 	tz->get_trend = get_trend;
@@ -387,6 +390,7 @@ thermal_zone_of_sensor_register(struct device *dev, int sensor_id,
 				int (*get_trend)(void *, long *))
 {
 	struct device_node *np, *child, *sensor_np;
+	struct thermal_zone_device *tzd = ERR_PTR(-ENODEV);
 
 	np = of_find_node_by_name(NULL, "thermal-zones");
 	if (!np)
@@ -419,10 +423,13 @@ thermal_zone_of_sensor_register(struct device *dev, int sensor_id,
 
 		if (sensor_specs.np == sensor_np && id == sensor_id) {
 			of_node_put(np);
-			return thermal_zone_of_add_sensor(child, sensor_np,
+			tzd = thermal_zone_of_add_sensor(child, sensor_np,
 							  data,
 							  get_temp,
 							  get_trend);
+			if (!IS_ERR(tzd))
+				tzd->ops->set_mode(tzd, THERMAL_DEVICE_ENABLED);
+			return tzd;
 		}
 	}
 	of_node_put(np);
@@ -790,7 +797,7 @@ int __init of_parse_thermal_zones(void)
 		}
 
 		/* No hwmon because there might be hwmon drivers registering */
-		tzp->no_hwmon = true;
+		tzp->no_hwmon = false;
 
 		zone = thermal_zone_device_register(child->name, tz->ntrips,
 						    0, tz,
