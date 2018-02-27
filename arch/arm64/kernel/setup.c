@@ -62,6 +62,10 @@
 #include <asm/psci.h>
 #include <asm/efi.h>
 
+#ifdef CONFIG_ARCH_MESON64_ODROIDC2
+#include <linux/amlogic/cpu_version.h>
+#endif
+
 unsigned int processor_id;
 EXPORT_SYMBOL(processor_id);
 
@@ -81,6 +85,7 @@ unsigned int compat_elf_hwcap2 __read_mostly;
 #endif
 
 static const char *cpu_name;
+static const char *machine_name;
 phys_addr_t __fdt_pointer __initdata;
 
 /*
@@ -325,6 +330,8 @@ static void __init setup_machine_fdt(phys_addr_t dt_phys)
 		while (true)
 			cpu_relax();
 	}
+
+	machine_name = of_flat_dt_get_machine_name();
 }
 
 /*
@@ -429,6 +436,7 @@ void __init setup_arch(char **cmdline_p)
 
 static int __init arm64_device_init(void)
 {
+	of_clk_init(NULL);
 	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 	return 0;
 }
@@ -492,6 +500,7 @@ static int c_show(struct seq_file *m, void *v)
 {
 	int i, j;
 	bool compat = personality(current->personality) == PER_LINUX32;
+	int rev;
 
 	for_each_online_cpu(i) {
 		struct cpuinfo_arm64 *cpuinfo = &per_cpu(cpu_data, i);
@@ -539,6 +548,13 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU part\t: 0x%03x\n", ((midr >> 4) & 0xfff));
 		seq_printf(m, "CPU revision\t: %d\n\n", (midr & 0xf));
 	}
+
+	seq_printf(m, "Hardware\t: %s\n", machine_name);
+
+#ifdef CONFIG_ARCH_MESON64_ODROIDC2
+	rev = 0x0200 | get_meson_cpu_version(MESON_CPU_VERSION_LVL_MINOR);
+	seq_printf(m, "Revision\t: %04x\n", rev);
+#endif
 
 	return 0;
 }
