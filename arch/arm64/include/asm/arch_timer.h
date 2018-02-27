@@ -26,6 +26,13 @@
 
 #include <clocksource/arm_arch_timer.h>
 
+struct delay_timer {
+	unsigned long (*read_current_timer)(void);
+	unsigned long freq;
+};
+
+extern struct delay_timer *delay_timer;
+
 /*
  * These register accessors are marked inline so the compiler can
  * nicely work out which register we want, and chuck away the rest of
@@ -148,8 +155,13 @@ static inline u64 arch_counter_get_cntvct(void)
 {
 	u64 cval;
 
-	isb();
-	asm volatile("mrs %0, cntvct_el0" : "=r" (cval));
+	if (!delay_timer) {
+
+		isb();
+		asm volatile("mrs %0, cntvct_el0" : "=r" (cval));
+
+	} else
+		cval = delay_timer->read_current_timer();
 
 	return cval;
 }
