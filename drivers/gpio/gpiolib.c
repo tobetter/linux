@@ -421,13 +421,21 @@ static irqreturn_t gpio_sysfs_irq(int irq, void *priv)
 	return IRQ_HANDLED;
 }
 
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+	#include <linux/amlogic/pinctrl_amlogic.h>
+	/* AMLogic GPIO irq bank start offset */
+	#define	AMLGPIO_IRQ_BASE	96
+#endif
+
 static int gpio_setup_irq(struct gpio_desc *desc, struct device *dev,
 		unsigned long gpio_flags)
 {
 	struct kernfs_node	*value_sd;
 	unsigned long		irq_flags;
 	int			ret, irq, id;
-
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+	int			irq_banks[2] = {0, };
+#endif
 	if ((desc->flags & GPIO_TRIGGER_MASK) == gpio_flags)
 		return 0;
 
@@ -437,8 +445,21 @@ static int gpio_setup_irq(struct gpio_desc *desc, struct device *dev,
 
 	id = desc->flags >> ID_SHIFT;
 	value_sd = idr_find(&dirent_idr, id);
-	if (value_sd)
+	if (value_sd)	{
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+		meson_free_irq(irq, &irq_banks[0]);
+
+		/* rising irq bank */
+		if (irq_banks[0] != -1)
+			free_irq(irq_banks[0] + AMLGPIO_IRQ_BASE, value_sd);
+
+		/* falling irq bank */
+		if (irq_banks[1] != -1)
+			free_irq(irq_banks[1] + AMLGPIO_IRQ_BASE, value_sd);
+#else
 		free_irq(irq, value_sd);
+#endif
+	}
 
 	desc->flags &= ~GPIO_TRIGGER_MASK;
 
@@ -477,8 +498,37 @@ static int gpio_setup_irq(struct gpio_desc *desc, struct device *dev,
 		}
 	}
 
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+	ret = meson_setup_irq(desc->chip, irq, irq_flags, &irq_banks[0]);
+
+	if (ret < 0)
+		goto free_id;
+
+	/* rising irq bank */
+	if (irq_banks[0] != -1)	{
+		ret = request_any_context_irq(irq_banks[0] + AMLGPIO_IRQ_BASE,
+					gpio_sysfs_irq, IRQF_DISABLED,
+					"gpiolib", value_sd);
+		if (ret < 0)
+			goto free_id;
+	}
+	/* falling irq bank */
+	if (irq_banks[1] != -1)	{
+		ret = request_any_context_irq(irq_banks[1] + AMLGPIO_IRQ_BASE,
+					gpio_sysfs_irq, IRQF_DISABLED,
+					"gpiolib", value_sd);
+
+		if (ret < 0)	{
+			if (irq_banks[0] != -1)
+				free_irq(irq_banks[0] + AMLGPIO_IRQ_BASE,
+					 value_sd);
+			goto free_id;
+		}
+	}
+#else
 	ret = request_any_context_irq(irq, gpio_sysfs_irq, irq_flags,
 				"gpiolib", value_sd);
+#endif
 	if (ret < 0)
 		goto free_id;
 
@@ -2481,6 +2531,45 @@ int gpiod_to_irq(const struct gpio_desc *desc)
 	return chip->to_irq ? chip->to_irq(chip, offset) : -ENXIO;
 }
 EXPORT_SYMBOL_GPL(gpiod_to_irq);
+
+int gpiod_for_irq(const struct gpio_desc *desc, unsigned int flag)
+{
+	struct gpio_chip	*chip;
+	int			offset;
+
+	if (!desc)
+		return -EINVAL;
+	chip = desc->chip;
+	offset = gpio_chip_hwgpio(desc);
+	return chip->set_gpio_to_irq ?
+		chip->set_gpio_to_irq(chip, offset, flag) : -ENXIO;
+}
+EXPORT_SYMBOL_GPL(gpiod_for_irq);
+
+int gpio_for_irq(unsigned gpio, unsigned int flag)
+{
+	return gpiod_for_irq(gpio_to_desc(gpio), flag);
+}
+EXPORT_SYMBOL_GPL(gpio_for_irq);
+
+int gpiod_set_pullup(const struct gpio_desc *desc, int val)
+{
+	struct gpio_chip	*chip;
+	int			offset;
+
+	if (!desc)
+		return -EINVAL;
+	chip = desc->chip;
+	offset = gpio_chip_hwgpio(desc);
+	return chip->set_pullup_down ?
+		chip->set_pullup_down(chip, offset, val) : -ENXIO;
+}
+EXPORT_SYMBOL_GPL(gpiod_set_pullup);
+int gpio_set_pullup(unsigned gpio, int val)
+{
+	return gpiod_set_pullup(gpio_to_desc(gpio), val);
+}
+EXPORT_SYMBOL_GPL(gpio_set_pullup);
 
 /**
  * gpiod_lock_as_irq() - lock a GPIO to be used as IRQ
