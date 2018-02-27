@@ -148,8 +148,12 @@ fi
 # Not all arches include the boot path in KBUILD_IMAGE
 if [ -e $KBUILD_IMAGE ]; then
 	cp $KBUILD_IMAGE "$tmpdir/$installed_image_path"
+	cp `dirname $KBUILD_IMAGE`/dts/*.dtb `dirname "$tmpdir/$installed_image_path"`/
 else
 	cp arch/$ARCH/boot/$KBUILD_IMAGE "$tmpdir/$installed_image_path"
+	for f in arch/$ARCH/boot/dts/*.dtb; do
+          cp -p $f `dirname "$tmpdir/$installed_image_path"`/`basename $f`-${KERNELRELEASE}
+        done
 fi
 
 if grep -q '^CONFIG_MODULES=y' $KCONFIG_CONFIG ; then
@@ -324,8 +328,10 @@ EOF
 # Do we have firmware? Move it out of the way and build it into a package.
 if [ -e "$tmpdir/lib/firmware" ]; then
 	mv "$tmpdir/lib/firmware"/* "$fwdir/lib/firmware/$version/"
-	rmdir "$tmpdir/lib/firmware"
+	mv "$fwdir/lib/firmware/$version" "$tmpdir/lib/firmware"/
+fi
 
+if false; then
 	cat <<EOF >> debian/control
 
 Package: $fwpackagename
