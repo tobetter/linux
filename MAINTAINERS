@@ -1705,7 +1705,7 @@ L:	aufs-users@lists.sourceforge.net (members only)
 W:	http://aufs.sourceforge.net
 T:	git://git.code.sf.net/p/aufs/aufs3-linux
 T:	git://github.com/sfjro/aufs3-linux.git
-S:	Supported
+S:	Supported, not upstream
 F:	Documentation/filesystems/aufs/
 F:	Documentation/ABI/testing/debugfs-aufs
 F:	Documentation/ABI/testing/sysfs-aufs
