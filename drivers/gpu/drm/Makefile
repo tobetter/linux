@@ -66,3 +66,4 @@ obj-$(CONFIG_DRM_TEGRA) += tegra/
 obj-y			+= i2c/
 obj-y			+= panel/
 obj-y			+= bridge/
+obj-$(CONFIG_MALI400)	+= mali/
