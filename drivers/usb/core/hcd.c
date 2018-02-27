@@ -1245,8 +1245,11 @@ int usb_hcd_check_unlink_urb(struct usb_hcd *hcd, struct urb *urb,
 		if (tmp == &urb->urb_list)
 			break;
 	}
+
+#ifndef CONFIG_AMLOGIC_USB
 	if (tmp != &urb->urb_list)
 		return -EIDRM;
+#endif
 
 	/* Any status except -EINPROGRESS means something already started to
 	 * unlink this URB from the hardware.  So there's no more work to do.
@@ -1662,7 +1665,7 @@ static void __usb_hcd_giveback_urb(struct urb *urb)
 	struct usb_hcd *hcd = bus_to_hcd(urb->dev->bus);
 	struct usb_anchor *anchor = urb->anchor;
 	int status = urb->unlinked;
-	unsigned long flags;
+	/*unsigned long flags;*/
 
 	urb->hcpriv = NULL;
 	if (unlikely((urb->transfer_flags & URB_SHORT_NOT_OK) &&
@@ -1688,9 +1691,9 @@ static void __usb_hcd_giveback_urb(struct urb *urb)
 	 * and no one may trigger the above deadlock situation when
 	 * running complete() in tasklet.
 	 */
-	local_irq_save(flags);
+	/*local_irq_save(flags);*/
 	urb->complete(urb);
-	local_irq_restore(flags);
+	/*local_irq_restore(flags);*/
 
 	usb_anchor_resume_wakeups(anchor);
 	atomic_dec(&urb->use_count);
@@ -1749,6 +1752,7 @@ void usb_hcd_giveback_urb(struct usb_hcd *hcd, struct urb *urb, int status)
 {
 	struct giveback_urb_bh *bh;
 	bool running, high_prio_bh;
+	unsigned long		flags;
 
 	/* pass status to tasklet via unlinked */
 	if (likely(!urb->unlinked))
@@ -1767,11 +1771,10 @@ void usb_hcd_giveback_urb(struct usb_hcd *hcd, struct urb *urb, int status)
 		high_prio_bh = false;
 	}
 
-	spin_lock(&bh->lock);
+	spin_lock_irqsave(&bh->lock, flags);
 	list_add_tail(&urb->urb_list, &bh->head);
 	running = bh->running;
-	spin_unlock(&bh->lock);
-
+	spin_unlock_irqrestore(&bh->lock, flags);
 	if (running)
 		;
 	else if (high_prio_bh)
