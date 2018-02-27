@@ -9,6 +9,8 @@
 #include <asm/memory.h>
 #include <asm/page.h>
 
+#include "image.h"
+
 #define ARM_EXIT_KEEP(x)
 #define ARM_EXIT_DISCARD(x)	x
 
@@ -104,9 +106,18 @@ SECTIONS
 	_edata = .;
 
 	BSS_SECTION(0, 0, 0)
+
+	. = ALIGN(PAGE_SIZE);
+	idmap_pg_dir = .;
+	. += IDMAP_DIR_SIZE;
+	swapper_pg_dir = .;
+	. += SWAPPER_DIR_SIZE;
+
 	_end = .;
 
 	STABS_DEBUG
+
+	HEAD_SYMBOLS
 }
 
 /*

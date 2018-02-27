@@ -46,18 +46,11 @@
 #error KERNEL_RAM_VADDR must start at 0xXXX80000
 #endif
 
-#define SWAPPER_DIR_SIZE	(3 * PAGE_SIZE)
-#define IDMAP_DIR_SIZE		(2 * PAGE_SIZE)
-
-	.globl	swapper_pg_dir
-	.equ	swapper_pg_dir, KERNEL_RAM_VADDR - SWAPPER_DIR_SIZE
-
-	.globl	idmap_pg_dir
-	.equ	idmap_pg_dir, swapper_pg_dir - IDMAP_DIR_SIZE
-
-	.macro	pgtbl, ttb0, ttb1, phys
-	add	\ttb1, \phys, #TEXT_OFFSET - SWAPPER_DIR_SIZE
-	sub	\ttb0, \ttb1, #IDMAP_DIR_SIZE
+	.macro	pgtbl, ttb0, ttb1, virt_to_phys
+	ldr	\ttb1, =swapper_pg_dir
+	ldr	\ttb0, =idmap_pg_dir
+	add	\ttb1, \ttb1, \virt_to_phys
+	add	\ttb0, \ttb0, \virt_to_phys
 	.endm
 
 #ifdef CONFIG_ARM64_64K_PAGES
@@ -120,9 +113,9 @@ efi_head:
 	b	stext				// branch to kernel start, magic
 	.long	0				// reserved
 #endif
-	.quad	TEXT_OFFSET			// Image load offset from start of RAM
-	.quad	0				// reserved
-	.quad	0				// reserved
+	.quad	_kernel_offset_le		// Image load offset from start of RAM, little-endian
+	.quad	_kernel_size_le			// Effective size of kernel image, little-endian
+	.quad	_kernel_flags_le		// Informative flags, little-endian
 	.quad	0				// reserved
 	.quad	0				// reserved
 	.quad	0				// reserved
@@ -424,7 +417,7 @@ ENTRY(secondary_startup)
 	mov	x23, x0				// x23=current cpu_table
 	cbz	x23, __error_p			// invalid processor (x23=0)?
 
-	pgtbl	x25, x26, x24			// x25=TTBR0, x26=TTBR1
+	pgtbl	x25, x26, x28			// x25=TTBR0, x26=TTBR1
 	ldr	x12, [x23, #CPU_INFO_SETUP]
 	add	x12, x12, x28			// __virt_to_phys
 	blr	x12				// initialise processor
@@ -466,8 +459,13 @@ ENDPROC(__enable_mmu)
  *  x27 = *virtual* address to jump to upon completion
  *
  * other registers depend on the function called upon completion
+ *
+ * We align the entire function to the smallest power of two larger than it to
+ * ensure it fits within a single block map entry. Otherwise were PHYS_OFFSET
+ * close to the end of a 512MB or 1GB block we might require an additional
+ * table to map the entire function.
  */
-	.align	6
+	.align	4
 __turn_mmu_on:
 	msr	sctlr_el1, x0
 	isb
@@ -533,7 +531,7 @@ ENDPROC(__calc_phys_offset)
  *   - pgd entry for fixed mappings (TTBR1)
  */
 __create_page_tables:
-	pgtbl	x25, x26, x24			// idmap_pg_dir and swapper_pg_dir addresses
+	pgtbl	x25, x26, x28			// idmap_pg_dir and swapper_pg_dir addresses
 	mov	x27, lr
 
 	/*
@@ -623,7 +621,7 @@ ENDPROC(__create_page_tables)
 __switch_data:
 	.quad	__mmap_switched
 	.quad	__bss_start			// x6
-	.quad	_end				// x7
+	.quad	__bss_stop			// x7
 	.quad	processor_id			// x4
 	.quad	__fdt_pointer			// x5
 	.quad	memstart_addr			// x6
