@@ -216,11 +216,16 @@ static void os_free(void *ctx, ump_dd_mem *descriptor)
 	up(&info->mutex);
 
 	for (i = 0; i < descriptor->nr_blocks; i++) {
+		struct page *page;
+
 		DBG_MSG(6, ("Freeing physical page. Address: 0x%08lx\n", descriptor->block_array[i].addr));
 		if (! descriptor->is_cached) {
 			dma_unmap_page(ump_global_mdev, descriptor->block_array[i].addr, PAGE_SIZE, DMA_BIDIRECTIONAL);
 		}
-		__free_page(pfn_to_page(descriptor->block_array[i].addr >> PAGE_SHIFT));
+
+		page = pfn_to_page(descriptor->block_array[i].addr >> PAGE_SHIFT);
+		if (page_count(page) > 0)
+			__free_page(page);
 	}
 
 	vfree(descriptor->block_array);
