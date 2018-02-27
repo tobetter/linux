@@ -361,17 +361,27 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 				int trip, enum thermal_trip_type trip_type)
 {
 	long trip_temp;
+	unsigned long hyst = 0;
 
 	tz->ops->get_trip_temp(tz, trip, &trip_temp);
+	tz->ops->get_trip_hyst(tz, trip, &hyst);
 
-	/* If we have not crossed the trip_temp, we do not care. */
-	if (tz->temperature < trip_temp)
-		return;
+	/* notify enter hot and exit hot */
+	if ((tz->temperature >= trip_temp) ||
+	    (tz->temperature + hyst <= trip_temp && tz->enter_hot)) {
+		if ((tz->temperature + hyst) <= trip_temp && tz->enter_hot)
+			tz->enter_hot = 0;
+		else
+			tz->enter_hot = 1;
+		dev_info(&tz->device,
+			 "temp:%d, hyst:%ld, trip_temp:%ld, hot:%d\n",
+			 tz->temperature, hyst, trip_temp, tz->enter_hot);
+		if (tz->ops->notify)
+			tz->ops->notify(tz, trip, trip_type);
+	}
 
-	if (tz->ops->notify)
-		tz->ops->notify(tz, trip, trip_type);
-
-	if (trip_type == THERMAL_TRIP_CRITICAL) {
+	if ((trip_type == THERMAL_TRIP_CRITICAL) &&
+	    (tz->temperature >= trip_temp)) {
 		dev_emerg(&tz->device,
 			  "critical temperature reached(%d C),shutting down\n",
 			  tz->temperature / 1000);
@@ -608,8 +618,12 @@ trip_point_temp_store(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 
 	ret = tz->ops->set_trip_temp(tz, trip, temperature);
+	if (ret)
+		return ret;
 
-	return ret ? ret : count;
+	thermal_zone_device_update(tz);
+
+	return count;
 }
 
 static ssize_t
@@ -1486,6 +1500,7 @@ struct thermal_zone_device *thermal_zone_device_register(const char *type,
 	tz->trips = trips;
 	tz->passive_delay = passive_delay;
 	tz->polling_delay = polling_delay;
+	tz->enter_hot = 0;
 
 	dev_set_name(&tz->device, "thermal_zone%d", tz->id);
 	result = device_register(&tz->device);
