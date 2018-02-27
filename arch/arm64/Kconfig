@@ -67,6 +67,9 @@ config ARM64
 	help
 	  ARM 64-bit (AArch64) Linux support.
 
+config ARM64_HAS_SG_CHAIN
+	bool
+
 config 64BIT
 	def_bool y
 
@@ -105,7 +108,7 @@ config GENERIC_CALIBRATE_DELAY
 	def_bool y
 
 config ZONE_DMA
-	def_bool y
+	bool
 
 config ARCH_DMA_ADDR_T_64BIT
 	def_bool y
@@ -148,6 +151,12 @@ config ARCH_XGENE
 	bool "AppliedMicro X-Gene SOC Family"
 	help
 	  This enables support for AppliedMicro X-Gene SOC Family
+
+config ARCH_MESON64_ODROIDC2
+        bool "Hardkernel's ODROID-C2 board"
+        help
+          This enables support for the board ODROID-C2 of Hardkernel
+          which is based on ARMv8 SoC of AMLogic, Inc.
 
 endmenu
 
@@ -307,6 +316,23 @@ config CMDLINE
 	  entering them here. As a minimum, you should specify the the
 	  root device (e.g. root=/dev/nfs).
 
+choice
+	prompt "Kernel command line type" if CMDLINE != ""
+	default CMDLINE_FROM_BOOTLOADER
+
+config CMDLINE_FROM_BOOTLOADER
+	bool "Use bootloader kernel arguments if available"
+	help
+	  Uses the command-line options passed by the boot loader. If
+	  the boot loader doesn't provide any, the default kernel command
+	  string provided in CMDLINE will be used.
+
+config CMDLINE_EXTEND
+	bool "Extend bootloader kernel arguments"
+	help
+	  The command-line arguments provided by the boot loader will be
+	  appended to the default kernel command string.
+
 config CMDLINE_FORCE
 	bool "Always use the default kernel command string"
 	help
@@ -314,6 +340,7 @@ config CMDLINE_FORCE
 	  loader passes other arguments to the kernel.
 	  This is useful if you cannot or don't want to change the
 	  command-line options your boot loader passes to the kernel.
+endchoice
 
 config EFI
 	bool "UEFI runtime support"
@@ -361,6 +388,9 @@ menu "Power management options"
 source "kernel/power/Kconfig"
 
 config ARCH_SUSPEND_POSSIBLE
+	def_bool y
+
+config ARCH_HIBERNATION_POSSIBLE
 	def_bool y
 
 config ARM64_CPU_SUSPEND
