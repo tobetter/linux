@@ -18,15 +18,15 @@ $(warning Current directory is $(src))
 $(error No configuration found for config $(CONFIG). Check that arch-$(CONFIG)/config.h exists)
 else
 # Link arch to the selected arch-config directory
-$(shell [ -L $(src)/arch ] && rm $(src)/arch)
-$(shell ln -sf arch-$(CONFIG) $(src)/arch)
-$(shell touch $(src)/arch/config.h)
+$(shell [ -L $(PWD)/$(src)/arch ] && rm $(PWD)/$(src)/arch)
+$(shell ln -sf arch-$(CONFIG) $(PWD)/$(src)/arch)
+$(shell touch $(PWD)/$(src)/arch/config.h)
 endif
 
 UDD_FILE_PREFIX = ../mali/
 
 # Get subversion revision number, fall back to 0000 if no svn info is available
-SVN_INFO = (cd $(src); svn info 2>/dev/null)
+SVN_INFO = (cd $(PWD)/$(src); svn info 2>/dev/null)
 
 ifneq ($(shell $(SVN_INFO) 2>/dev/null),)
 # SVN detected
@@ -37,13 +37,13 @@ CHANGED_REVISION := $(shell $(SVN_INFO) | grep '^Last Changed Rev: ' | cut -d: -
 REPO_URL := $(shell $(SVN_INFO) | grep '^URL: ' | cut -d: -f2- | cut -b2-)
 
 else # SVN
-GIT_REV := $(shell cd $(src); git describe --always 2>/dev/null)
+GIT_REV := $(shell cd $(PWD)/$(src); git describe --always 2>/dev/null)
 ifneq ($(GIT_REV),)
 # Git detected
 DRIVER_REV := $(MALI_RELEASE_NAME)-$(GIT_REV)
-CHANGE_DATE := $(shell cd $(src); git log -1 --format="%ci")
+CHANGE_DATE := $(shell cd $(PWD)/$(src); git log -1 --format="%ci")
 CHANGED_REVISION := $(GIT_REV)
-REPO_URL := $(shell cd $(src); git describe --all --always 2>/dev/null)
+REPO_URL := $(shell cd $(PWD)/$(src); git describe --all --always 2>/dev/null)
 
 else # Git
 # No Git or SVN detected
@@ -56,8 +56,8 @@ endif
 ccflags-y += -DSVN_REV=$(SVN_REV)
 ccflags-y += -DSVN_REV_STRING=\"$(DRIVER_REV)\"
 ccflags-y += -Wno-error=date-time 
-ccflags-y += -I$(src) -I$(src)/common -I$(src)/linux -I$(src)/../mali/common -I$(src)/../mali/linux -I$(src)/include -I$(src)/../../ump/include/ump
-ccflags-y += -I$(src)/include/ump
+ccflags-y += -I$(PWD)/$(src) -I$(PWD)/$(src)/common -I$(PWD)/$(src)/linux -I$(PWD)/$(src)/../mali/common -I$(PWD)/$(src)/../mali/linux -I$(PWD)/$(src)/include -I$(PWD)/$(src)/../../ump/include/ump
+ccflags-y += -I$(PWD)/$(src)/include/ump
 ccflags-y += -DMALI_STATE_TRACKING=0
 ccflags-y += -DMALI_ENABLE_CPU_CYCLES=0
 ccflags-$(CONFIG_UMP_DEBUG) += -DDEBUG
@@ -66,10 +66,10 @@ ccflags-$(CONFIG_UMP_DEBUG) += -DDEBUG
 # The ARM proprietary product will only include the license/proprietary directory
 # The GPL product will only include the license/gpl directory
 
-ifeq ($(wildcard $(src)/linux/license/gpl/*),)
-ccflags-y += -I$(src)/linux/license/proprietary -I$(src)/../mali/linux/license/proprietary
+ifeq ($(wildcard $(PWD)/$(src)/linux/license/gpl/*),)
+ccflags-y += -I$(PWD)/$(src)/linux/license/proprietary -I$(PWD)/$(src)/../mali/linux/license/proprietary
 else
-ccflags-y += -I$(src)/linux/license/gpl -I$(src)/../mali/linux/license/gpl
+ccflags-y += -I$(PWD)/$(src)/linux/license/gpl -I$(PWD)/$(src)/../mali/linux/license/gpl
 endif
 
 ump-y = common/ump_kernel_common.o \

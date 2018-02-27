@@ -38,7 +38,7 @@ ifeq ($(wildcard $(srctree)/$(src)/linux/license/gpl/*),)
     endif
     $(error Linux Device integration is incompatible with non-GPL license)
 else
-    ccflags-y += -I$(src)/linux/license/gpl
+    ccflags-y += -I$(PWD)/$(src)/linux/license/gpl
 endif
 
 ifeq ($(USING_GPU_UTILIZATION), 1)
@@ -151,7 +151,7 @@ mali-y += \
 	platform/meson_bu/platform_gx.o \
 	platform/meson_bu/scaling.o	
 
-ifneq ($(wildcard $(src)/linux/mali_slp_global_lock.c),)
+ifneq ($(wildcard $(PWD)/$(src)/linux/mali_slp_global_lock.c),)
 	mali-y += linux/mali_slp_global_lock.o
 endif
 
@@ -167,7 +167,7 @@ mali-$(CONFIG_MALI400_PROFILING) += linux/mali_ukk_profiling.o
 mali-$(CONFIG_MALI400_PROFILING) += linux/mali_osk_profiling.o
 
 mali-$(CONFIG_MALI400_INTERNAL_PROFILING) += linux/mali_profiling_internal.o timestamp-$(TIMESTAMP)/mali_timestamp.o
-ccflags-$(CONFIG_MALI400_INTERNAL_PROFILING) += -I$(src)/timestamp-$(TIMESTAMP)
+ccflags-$(CONFIG_MALI400_INTERNAL_PROFILING) += -I$(PWD)/$(src)/timestamp-$(TIMESTAMP)
 
 mali-$(CONFIG_DMA_SHARED_BUFFER) += linux/mali_memory_dma_buf.o
 mali-$(CONFIG_DMA_SHARED_BUFFER) += linux/mali_memory_secure.o
@@ -198,19 +198,19 @@ endif
 
 #build-in include path is different
 ifeq ($(MALI_PLATFORM_FILES),)
-ccflags-$(CONFIG_MALI400_UMP) += -I$(src)/../ump/include/
+ccflags-$(CONFIG_MALI400_UMP) += -I$(PWD)/$(src)/../ump/include/
 else
-ccflags-$(CONFIG_MALI400_UMP) += -I$(src)/../../ump/include/ump
+ccflags-$(CONFIG_MALI400_UMP) += -I$(PWD)/$(src)/../../ump/include/ump
 endif
 ccflags-$(CONFIG_MALI400_DEBUG) += -DDEBUG
 
 # Use our defines when compiling
-ccflags-y += -I$(src) -I$(src)/include -I$(src)/common -I$(src)/linux -I$(src)/platform -Wno-date-time
+ccflags-y += -I$(PWD)/$(src) -I$(PWD)/$(src)/include -I$(PWD)/$(src)/common -I$(PWD)/$(src)/linux -I$(PWD)/$(src)/platform -Wno-date-time
 
 # Get subversion revision number, fall back to only ${MALI_RELEASE_NAME} if no svn info is available
-MALI_RELEASE_NAME=$(shell cat $(src)/.version 2> /dev/null)
+MALI_RELEASE_NAME=$(shell cat $(PWD)/$(src)/.version 2> /dev/null)
 
-SVN_INFO = (cd $(src); svn info 2>/dev/null)
+SVN_INFO = (cd $(PWD)/$(src); svn info 2>/dev/null)
 
 ifneq ($(shell $(SVN_INFO) 2>/dev/null),)
 # SVN detected
@@ -221,13 +221,13 @@ CHANGED_REVISION := $(shell $(SVN_INFO) | grep '^Last Changed Rev: ' | cut -d: -
 REPO_URL := $(shell $(SVN_INFO) | grep '^URL: ' | cut -d: -f2- | cut -b2-)
 
 else # SVN
-GIT_REV := $(shell cd $(src); git describe --always 2>/dev/null)
+GIT_REV := $(shell cd $(PWD)/$(src); git describe --always 2>/dev/null)
 ifneq ($(GIT_REV),)
 # Git detected
 DRIVER_REV := $(MALI_RELEASE_NAME)-$(GIT_REV)
-CHANGE_DATE := $(shell cd $(src); git log -1 --format="%ci")
+CHANGE_DATE := $(shell cd $(PWD)/$(src); git log -1 --format="%ci")
 CHANGED_REVISION := $(GIT_REV)
-REPO_URL := $(shell cd $(src); git describe --all --always 2>/dev/null)
+REPO_URL := $(shell cd $(PWD)/$(src); git describe --all --always 2>/dev/null)
 
 else # Git
 # No Git or SVN detected
@@ -240,7 +240,7 @@ endif
 ccflags-y += -DSVN_REV_STRING=\"$(DRIVER_REV)\"
 
 VERSION_STRINGS :=
-VERSION_STRINGS += API_VERSION=$(shell cd $(src); grep "\#define _MALI_API_VERSION" $(FILES_PREFIX)include/linux/mali/mali_utgard_uk_types.h | cut -d' ' -f 3 )
+VERSION_STRINGS += API_VERSION=$(shell cd $(PWD)/$(src); grep "\#define _MALI_API_VERSION" $(FILES_PREFIX)include/linux/mali/mali_utgard_uk_types.h | cut -d' ' -f 3 )
 VERSION_STRINGS += REPO_URL=$(REPO_URL)
 VERSION_STRINGS += REVISION=$(DRIVER_REV)
 VERSION_STRINGS += CHANGED_REVISION=$(CHANGED_REVISION)
@@ -263,5 +263,5 @@ VERSION_STRINGS += USING_DVFS=$(CONFIG_MALI_DVFS)
 VERSION_STRINGS += MALI_UPPER_HALF_SCHEDULING=$(MALI_UPPER_HALF_SCHEDULING)
 
 # Create file with Mali driver configuration
-$(src)/__malidrv_build_info.c:
-	@echo 'const char *__malidrv_build_info(void) { return "malidrv: $(VERSION_STRINGS)";}' > $(src)/__malidrv_build_info.c
+$(PWD)/$(src)/__malidrv_build_info.c:
+	@echo 'const char *__malidrv_build_info(void) { return "malidrv: $(VERSION_STRINGS)";}' > $(PWD)/$(src)/__malidrv_build_info.c
