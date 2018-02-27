@@ -96,6 +96,12 @@ struct gpio_chip {
 
 	void			(*dbg_show)(struct seq_file *s,
 						struct gpio_chip *chip);
+	int (*set_pullup_down)(struct gpio_chip *chip,
+				unsigned int offset, int val);
+
+	int (*set_gpio_to_irq)(struct gpio_chip *chip, unsigned int gpio,
+							unsigned gpio_flag);
+
 	int			base;
 	u16			ngpio;
 	struct gpio_desc	*desc;
