@@ -177,6 +177,17 @@ struct execute_work {
 #define DECLARE_DEFERRABLE_WORK(n, f)					\
 	struct delayed_work n = __DELAYED_WORK_INITIALIZER(n, f, TIMER_DEFERRABLE)
 
+/*
+ * initialize a work item's function pointer
+ */
+#define PREPARE_WORK(_work, _func)					\
+	do {								\
+		(_work)->func = (_func);				\
+	} while (0)
+
+#define PREPARE_DELAYED_WORK(_work, _func)				\
+	PREPARE_WORK(&(_work)->work, (_func))
+
 #ifdef CONFIG_DEBUG_OBJECTS_WORK
 extern void __init_work(struct work_struct *work, int onstack);
 extern void destroy_work_on_stack(struct work_struct *work);
