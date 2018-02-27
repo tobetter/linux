@@ -1900,6 +1900,11 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 	hd_set_reg_bits(P_VPU_HDMI_SETTING, 1, 1, 1);
 }
 
+int hdmi_tvenc_validate(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para)
+{
+	return 1;
+}
+
 static void digital_clk_off(unsigned char flag)
 {
 	/* TODO */

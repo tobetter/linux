@@ -305,7 +305,18 @@ static int osd_set_res_bootargs(int index, enum vmode_e mode)
 {
 	struct hdmi_cea_timing *custom_timing = get_custom_timing();
 
+	struct vinfo_s *vinfo = get_tv_info(mode);
+
 	osd_log_info("%s : mode %d\n", __func__, mode);
+
+	if (vinfo)
+	{
+		fb_def_var[index].xres = vinfo->width;
+		fb_def_var[index].yres = vinfo->height;
+		fb_def_var[index].xres_virtual = fb_def_var[index].xres;
+		fb_def_var[index].yres_virtual = fb_def_var[index].yres*2;
+		fb_def_var[index].bits_per_pixel = 32;
+	}
 
 	/* FIXME : need to adjust this routine */
 	switch (mode) {
@@ -490,8 +501,11 @@ static int osd_set_res_bootargs(int index, enum vmode_e mode)
 		fb_def_var[index].bits_per_pixel = 32;
 		break;
 	default:
-		osd_log_info("%s, no available resolution info.", __func__);
-		return 1;
+		if (!vinfo)
+		{
+			osd_log_info("%s, no available resolution info.", __func__);
+			return 1;
+		}
 	}
 
 	return 0;
@@ -713,8 +727,10 @@ static int osd_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 		var->xres_virtual = var->xres;
 	if (var->yres_virtual < var->yres)
 		var->yres_virtual = var->yres;
+#if 0
 	var->left_margin = var->right_margin = 0;
 	var->upper_margin = var->lower_margin = 0;
+#endif
 	if (var->xres + var->xoffset > var->xres_virtual)
 		var->xoffset = var->xres_virtual - var->xres;
 	if (var->yres + var->yoffset > var->yres_virtual)
@@ -1190,6 +1206,125 @@ static void set_default_display_axis(struct fb_var_screeninfo *var,
 	return;
 }
 
+static void __osd_update_timings(struct fb_var_screeninfo *var,
+                const struct vinfo_s *vinfo, int mode_change, int validate_mode)
+{
+	enum hdmi_vic vic;
+	int hdmi_xres, hdmi_yres, hdmi_vfrq, vmode_mapped = 0;
+	__u64 drate = 0;
+	char tmp_vmode_name[16];
+	struct hdmi_format_para *para;
+
+	var->pixclock = 0;                 /* pixel clock in ps (pico seconds) */
+	var->left_margin  = 0;             /* time from sync to picture    */
+	var->right_margin = 0;             /* time from picture to sync    */
+	var->upper_margin = 0;             /* time from sync to picture    */
+	var->lower_margin = 0;
+	var->hsync_len = 0;                /* length of horizontal sync    */
+	var->vsync_len = 0;                /* length of vertical sync      */
+	//var->sync = 0;                     /* see FB_SYNC_*                */
+	var->vmode = 0;                    /* see FB_VMODE_*               */
+
+	vic = hdmitx_edid_vic_tab_map_vic(vinfo->name);
+	if (vic == HDMI_Unkown)
+	{
+		switch (vinfo->mode) 
+		{
+		    case VMODE_WSXGA:
+		        break;
+		    case VMODE_4K1K_100HZ:
+			vmode_mapped = 1;
+			sprintf(tmp_vmode_name, "%dx%dp%dhz", vinfo->width, vinfo->height, vinfo->sync_duration_num);
+			vic = HDMI_3840x1080p100hz;
+			break;
+		    case VMODE_4K1K_120HZ:
+			vmode_mapped = 1;
+			sprintf(tmp_vmode_name, "%dx%dp%dhz", vinfo->width, vinfo->height, vinfo->sync_duration_num);
+			vic = HDMI_3840x1080p120hz;
+			break;
+		    case VMODE_VGA:
+		    case VMODE_SVGA:
+		    case VMODE_XGA:
+		    case VMODE_SXGA:
+			vmode_mapped = 1;
+			sprintf(tmp_vmode_name, "%dx%dp%dhz", vinfo->width, vinfo->height, vinfo->sync_duration_num);
+			vic = hdmitx_edid_vic_tab_map_vic(tmp_vmode_name);
+			break;
+		    case VMODE_FHDVGA:
+			vmode_mapped = 1;
+			sprintf(tmp_vmode_name, "%dp%dhz", vinfo->height, vinfo->sync_duration_num);
+			vic = hdmitx_edid_vic_tab_map_vic(tmp_vmode_name);
+			break;
+		    default:
+			;;
+		}
+	}
+
+	if (vic == HDMI_Unkown)
+	{
+		osd_log_info("warning: vinfo %d %s, %dx%d-%d %d:%d %d, no hdmi vic\n",
+			vinfo->mode, vinfo->name,
+			vinfo->width, vinfo->height, vinfo->sync_duration_num,
+			vinfo->aspect_ratio_num, vinfo->aspect_ratio_den, vinfo->video_clk/1000);
+		return;
+	}
+
+	if (!validate_mode)
+		osd_log_info("hdmi vic for %d %s is: %d\n", vinfo->mode, vinfo->name, vic);
+
+#ifdef CONFIG_AML_HDMI_TX_20
+	para = hdmi_get_fmt_paras(vic);
+	if (!para)
+	{
+		osd_log_info("warning: vinfo %d %s, %dx%d-%d %d:%d %d, hdmi %d no para\n",
+			vinfo->mode, vinfo->name,
+			vinfo->width, vinfo->height, vinfo->sync_duration_num,
+			vinfo->aspect_ratio_num, vinfo->aspect_ratio_den, vinfo->video_clk/1000, vic);
+		return;
+	}
+
+	hdmi_xres = para->timing.h_active / (para->pixel_repetition_factor+1);
+	hdmi_yres = para->timing.v_active * (2-para->progress_mode);
+	hdmi_vfrq = (para->timing.v_freq+66)/1000*1000;
+	drate = para->timing.pixel_freq;
+	drate = 1000000000/drate;
+
+	if (!validate_mode)
+	   osd_log_info("hdmi format para for %d is: %d %s\n", vic, para->vic, para->name);
+
+	if (!validate_mode)
+	{
+		osd_log_info("mode \"%dx%d-%d\"\n", \
+			hdmi_xres, hdmi_yres, para->timing.v_freq/1000);
+		osd_log_info("    # D: %d, H: %d, V: %d\n", \
+			para->timing.pixel_freq, para->timing.h_freq, para->timing.v_freq);
+		osd_log_info("    geometry %d %d %d %d %d\n", \
+			var->xres, var->yres, var->xres_virtual, var->yres_virtual, var->bits_per_pixel);
+		osd_log_info("    timings %d %d %d %d %d %d %d\n", \
+			(__u32)drate, para->timing.h_back, para->timing.h_front, para->timing.v_back,
+			para->timing.v_front, para->timing.h_sync, para->timing.v_sync);
+		osd_log_info("endmode");
+	}
+
+	var->pixclock = drate;                               /* pixel clock in ps (pico seconds) */
+	var->left_margin  = para->timing.h_back;             /* time from sync to picture    */
+	var->right_margin = para->timing.h_front;            /* time from picture to sync    */
+	var->upper_margin = para->timing.v_back;             /* time from sync to picture    */
+	var->lower_margin = para->timing.v_front;
+	var->hsync_len = para->timing.h_sync;                /* length of horizontal sync    */
+	var->vsync_len = para->timing.v_sync;                /* length of vertical sync      */
+	//var->sync = ;                     /* see FB_SYNC_*                */
+	if (!para->progress_mode)
+		var->vmode |= FB_VMODE_INTERLACED;  /* see FB_VMODE_*               */
+#endif
+}
+
+static void osd_update_timings(struct fb_var_screeninfo *var,
+                const struct vinfo_s *vinfo, int mode_change)
+{
+	__osd_update_timings(var, vinfo, mode_change, 0);
+}
+
 int osd_notify_callback(struct notifier_block *block, unsigned long cmd,
 			void *para)
 {
@@ -1218,6 +1353,15 @@ int osd_notify_callback(struct notifier_block *block, unsigned long cmd,
 			osd_set_antiflicker_hw(DEV_OSD1, vinfo->mode,
 			       gp_fbdev_list[DEV_OSD1]->fb_info->var.yres);
 #endif
+			if (i == DEV_OSD0)
+			{
+				if (lock_fb_info(fb_dev->fb_info))
+				{
+					osd_update_timings(&fb_def_var[i], vinfo, 1);
+					fb_set_var(fb_dev->fb_info, &fb_def_var[i]);
+					unlock_fb_info(fb_dev->fb_info);
+				}
+			}
 			console_unlock();
 		}
 		break;
@@ -2333,7 +2477,7 @@ static int osd_probe(struct platform_device *pdev)
 	int  index, bpp;
 	struct osd_fb_dev_s *fbdev = NULL;
 	enum vmode_e current_mode = VMODE_MASK;
-	enum vmode_e initial_mode = VMODE_MASK;
+	enum vmode_e initial_mode = VMODE_MAX;
 	enum vmode_e logo_mode = VMODE_MASK;
 	int logo_index = -1;
 	const void *prop;
@@ -2415,7 +2559,11 @@ static int osd_probe(struct platform_device *pdev)
 	logo_index = osd_get_logo_index();
 	if (logo_mode >= VMODE_MAX) {
 		initial_mode = get_initial_vmode();
-		if (initial_mode < VMODE_MAX) {
+
+		if (current_mode < VMODE_MASK)
+			set_current_vmode(current_mode);
+
+		if ((initial_mode < VMODE_MAX) && (initial_mode != current_mode)) {
 			current_mode = initial_mode;
 			set_current_vmode(current_mode);
 		}
@@ -2486,6 +2634,9 @@ static int osd_probe(struct platform_device *pdev)
 
 #else /* CONFIG_ARCH_MESON64_ODROIDC2 */
 
+				if ((current_mode != logo_mode) && (logo_mode  < VMODE_MAX))
+					current_mode = logo_mode;
+
 				if (osd_set_res_bootargs(index, current_mode)) {
 					fb_def_var[index].xres =
 						var_screeninfo[0];
@@ -2498,6 +2649,9 @@ static int osd_probe(struct platform_device *pdev)
 					fb_def_var[index].bits_per_pixel =
 						var_screeninfo[4];
 				}
+
+				osd_update_timings(&fb_def_var[index], vinfo, 0);
+
 				osd_log_info("fb def : %d %d %d %d %d\n",
 					fb_def_var[index].xres,
 					fb_def_var[index].yres,
@@ -2512,7 +2666,23 @@ static int osd_probe(struct platform_device *pdev)
 					fb_def_var[index].bits_per_pixel = 32;
 #endif /* CONFIG_ARCH_MESON64_ODROIDC2 */
 			}
+
+			/* set only if mode from kernel parameter used */
+			if (initial_mode  < VMODE_MAX)
+			{
+				osd_set_free_scale_mode_hw(index, 1);
+				osd_set_free_scale_enable_hw(index, 0);
+			}
 		}
+		else if (index == DEV_OSD1) {
+			/* set only if mode from kernel parameter used */
+			if (initial_mode  < VMODE_MAX)
+			{
+				osd_set_free_scale_mode_hw(index, 1);
+				osd_set_free_scale_enable_hw(index, 0);
+			}
+		}
+
 		/* clear osd buffer if not logo layer */
 		if ((logo_index < 0) || (logo_index != index)) {
 			osd_log_info("---------------clear fb%d memory\n",

@@ -953,7 +953,7 @@ static struct vinfo_s tv_info[] = {
 		.aspect_ratio_den  = 9,
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
-		.video_clk         = 32256000,
+		.video_clk         = 29760000,
 	},
 	{
 		.name              = "480x800p60hz",
@@ -989,7 +989,7 @@ static struct vinfo_s tv_info[] = {
 		.aspect_ratio_den  = 10,
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
-		.video_clk         = 50400000,
+		.video_clk         = 51450000,
 	},
 	{
 		.name              = "1024x768p60hz",
@@ -1001,7 +1001,7 @@ static struct vinfo_s tv_info[] = {
 		.aspect_ratio_den  = 3,
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
-		.video_clk         = 79500000,
+		.video_clk         = 65000000,
 	},
 	{
 		.name              = "1280x800p60hz",
@@ -1013,10 +1013,10 @@ static struct vinfo_s tv_info[] = {
 		.aspect_ratio_den  = 5,
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
-		.video_clk         = 83500000,
+		.video_clk         = 71100000,
 	},
 	{
-		.name              = "1280x1024",
+		.name              = "1280x1024p60hz",
 		.mode              = TVMODE_1280x1024p60hz,
 		.width             = 1280,
 		.height            = 1024,

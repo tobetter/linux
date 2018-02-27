@@ -1154,7 +1154,7 @@ static inline void setreg(const struct reg_s *r)
 	/* printk("[0x%x] = 0x%x\n", r->reg, r->val); */
 }
 
-static const struct reg_s *tvregs_setting_mode(enum hdmi_vic vic)
+const struct reg_s *tvregs_setting_mode(enum hdmi_vic vic)
 {
 	int i = 0;
 	for (i = 0; i < ARRAY_SIZE(tvregsTab); i++) {

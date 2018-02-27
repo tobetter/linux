@@ -92,7 +92,6 @@ static int tv_vdac_power_level;
 
 static DEFINE_MUTEX(setmode_mutex);
 
-static enum tvmode_e vmode_to_tvmode(enum vmode_e mode);
 static void cvbs_config_vdac(unsigned int flag, unsigned int cfg);
 
 #ifdef CONFIG_CVBS_PERFORMANCE_COMPATIBLITY_SUPPORT
@@ -541,7 +540,7 @@ static const struct file_operations am_tv_fops = {
 	.poll		= NULL,
 };
 
-static const struct vinfo_s *get_valid_vinfo(char  *mode)
+const struct vinfo_s *get_valid_vinfo(char  *mode)
 {
 	const struct vinfo_s *vinfo = NULL;
 	int  i, count = ARRAY_SIZE(tv_info);
@@ -564,12 +563,12 @@ static const struct vinfo_s *tv_get_current_info(void)
 	return info->vinfo;
 }
 
-static enum tvmode_e vmode_to_tvmode(enum vmode_e mode)
+enum tvmode_e vmode_to_tvmode(enum vmode_e mode)
 {
 	return vmode_tvmode_map(mode);
 }
 
-static struct vinfo_s *get_tv_info(enum vmode_e mode)
+struct vinfo_s *get_tv_info(enum vmode_e mode)
 {
 	struct hdmi_cea_timing *t = get_custom_timing();
 	int i = 0;
