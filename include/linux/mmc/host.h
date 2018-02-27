@@ -195,6 +195,14 @@ struct mmc_supply {
 	struct regulator *vqmmc;	/* Optional Vccq supply */
 };
 
+struct mmc_claim {
+	unsigned int		claimed:1;	/* host exclusively claimed */
+	struct task_struct	*claimer;	/* task that has host claimed */
+	int		claim_cnt;	/* "claim" nesting count */
+	spinlock_t		lock;		/* lock for claim and bus ops */
+	wait_queue_head_t	wq;
+};
+
 struct mmc_host {
 	struct device		*parent;
 	struct device		class_dev;
@@ -203,6 +211,7 @@ struct mmc_host {
 	unsigned int		f_min;
 	unsigned int		f_max;
 	unsigned int		f_init;
+	u8			first_init_flag;
 	u32			ocr_avail;
 	u32			ocr_avail_sdio;	/* SDIO-specific OCR */
 	u32			ocr_avail_sd;	/* SD-specific OCR */
@@ -266,10 +275,12 @@ struct mmc_host {
 #define MMC_CAP2_BOOTPART_NOACC	(1 << 0)	/* Boot partition no access */
 #define MMC_CAP2_FULL_PWR_CYCLE	(1 << 2)	/* Can do full power cycle */
 #define MMC_CAP2_NO_MULTI_READ	(1 << 3)	/* Multiblock reads don't work */
+#define MMC_CAP2_NO_SLEEP_CMD   (1 << 4)	/* Don't allow sleep command */
 #define MMC_CAP2_HS200_1_8V_SDR	(1 << 5)        /* can support */
 #define MMC_CAP2_HS200_1_2V_SDR	(1 << 6)        /* can support */
 #define MMC_CAP2_HS200		(MMC_CAP2_HS200_1_8V_SDR | \
 				 MMC_CAP2_HS200_1_2V_SDR)
+#define MMC_CAP2_BROKEN_VOLTAGE (1 << 7)	/* Use the broken voltage */
 #define MMC_CAP2_HC_ERASE_SZ	(1 << 9)	/* High-capacity erase size */
 #define MMC_CAP2_CD_ACTIVE_HIGH	(1 << 10)	/* Card-detect signal active high */
 #define MMC_CAP2_RO_ACTIVE_HIGH	(1 << 11)	/* Write-protect signal active high */
@@ -311,6 +322,7 @@ struct mmc_host {
 	spinlock_t		lock;		/* lock for claim and bus ops */
 
 	struct mmc_ios		ios;		/* current io bus settings */
+	u32			ocr;
 
 	/* group bitfields together to minimize padding */
 	unsigned int		use_spi_crc:1;
@@ -320,8 +332,13 @@ struct mmc_host {
 	unsigned int		removed:1;	/* host is being removed */
 #endif
 
+	struct mmc_claim	*alldev_claim;
+	int			is_emmc_port;
+
 	int			rescan_disable;	/* disable card detection */
 	int			rescan_entered;	/* used with nonremovable devices */
+	/* disable card detection */
+	bool                    host_rescan_disable;
 
 	bool			trigger_card_event; /* card_event necessary */
 

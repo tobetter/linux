@@ -43,8 +43,17 @@
 #include <linux/mmc/sd.h>
 
 #include <asm/uaccess.h>
+#include <mtd/mtd-abi.h>
+#include <linux/amlogic/sd.h>
 
 #include "queue.h"
+#if !defined(CONFIG_ARCH_MESON64_ODROIDC2)
+#include <linux/mmc/emmc_partitions.h>
+#endif
+
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+#include <linux/hardkernel/odroidc2.h>
+#endif
 
 MODULE_ALIAS("mmc:block");
 #ifdef MODULE_PARAM_PREFIX
@@ -2107,12 +2116,22 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	 * partitions, devidx will not coincide with a per-physical card
 	 * index anymore so we keep track of a name index.
 	 */
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+	if (strncmp(dev_name(&card->host->class_dev), "sd", 2) == 0) {
+		md->name_idx = board_boot_from_emmc() ? 1 : 0;
+		__set_bit(md->name_idx, name_use);
+	} else if (strncmp(dev_name(&card->host->class_dev), "emmc", 4) == 0) {
+		md->name_idx = board_boot_from_emmc() ? 0 : 1;
+		__set_bit(md->name_idx, name_use);
+	}
+#else
 	if (!subname) {
 		md->name_idx = find_first_zero_bit(name_use, max_devices);
 		__set_bit(md->name_idx, name_use);
 	} else
 		md->name_idx = ((struct mmc_blk_data *)
 				dev_to_disk(parent)->private_data)->name_idx;
+#endif
 
 	md->area_type = area_type;
 
@@ -2437,10 +2456,20 @@ static const struct mmc_fixup blk_fixups[] =
 	END_FIXUP
 };
 
+static atomic_t emmc_probe = ATOMIC_INIT(0);
+static DECLARE_WAIT_QUEUE_HEAD(emmc_probe_waitqueue);
+
+void wait_for_emmc_probe(void)
+{
+	wait_event(emmc_probe_waitqueue, atomic_read(&emmc_probe) == 0);
+}
+
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
 	char cap_str[10];
+
+	atomic_set(&emmc_probe, 1);
 
 	/*
 	 * Check that the card supports the command class(es) we need.
@@ -2466,6 +2495,12 @@ static int mmc_blk_probe(struct mmc_card *card)
 
 	if (mmc_add_disk(md))
 		goto out;
+
+#if !defined(CONFIG_ARCH_MESON64_ODROIDC2)
+	aml_emmc_partition_ops(card, md->disk); /* add by gch */
+#endif
+	atomic_set(&emmc_probe, 0);
+	wake_up(&emmc_probe_waitqueue);
 
 	list_for_each_entry(part_md, &md->part, part) {
 		if (mmc_add_disk(part_md))

@@ -18,7 +18,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
-
+#include <linux/delay.h>
 #include "core.h"
 #include "bus.h"
 #include "mmc_ops.h"
@@ -327,13 +327,12 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		}
 	}
 
+	/*
+	 * The EXT_CSD format is meant to be forward compatible. As long
+	 * as CSD_STRUCTURE does not change, all values for EXT_CSD_REV
+	 * are authorized, see JEDEC JESD84-B50 section B.8.
+	 */
 	card->ext_csd.rev = ext_csd[EXT_CSD_REV];
-	if (card->ext_csd.rev > 7) {
-		pr_err("%s: unrecognised EXT_CSD revision %d\n",
-			mmc_hostname(card->host), card->ext_csd.rev);
-		err = -EINVAL;
-		goto out;
-	}
 
 	card->ext_csd.raw_sectors[0] = ext_csd[EXT_CSD_SEC_CNT + 0];
 	card->ext_csd.raw_sectors[1] = ext_csd[EXT_CSD_SEC_CNT + 1];
@@ -1063,6 +1062,12 @@ static int mmc_select_hs400(struct mmc_card *card)
 
 	mmc_set_timing(host, MMC_TIMING_MMC_HS400);
 	mmc_set_bus_speed(card);
+	mmc_host_clk_hold(host);
+	err = host->ops->execute_tuning(host, MMC_SEND_TUNING_BLOCK_HS200);
+	mmc_host_clk_release(host);
+
+	if (err)
+		return err;
 
 	return 0;
 }
@@ -1262,7 +1267,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 
 		mmc_set_bus_mode(host, MMC_BUSMODE_PUSHPULL);
 	}
-
+	host->first_init_flag = 0;
 	if (!oldcard) {
 		/*
 		 * Fetch CSD from card.
@@ -1278,7 +1283,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		if (err)
 			goto free_card;
 	}
-
+	host->card = card;
 	/*
 	 * Select card, as all following commands rely on that.
 	 */
@@ -1380,21 +1385,22 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 	 * Select timing interface
 	 */
 	err = mmc_select_timing(card);
-	if (err)
+	if (err) {
+		pr_err("mmc_select_timing failed, err= %d\n", err);
 		goto free_card;
+	}
 
 	if (mmc_card_hs200(card)) {
 		err = mmc_hs200_tuning(card);
 		if (err)
 			goto err;
-
 		err = mmc_select_hs400(card);
 		if (err)
 			goto err;
-	} else {
+	} else if (mmc_card_hs(card)) {
 		/* Select the desired bus width optionally */
 		err = mmc_select_bus_width(card);
-		if (!IS_ERR_VALUE(err) && mmc_card_hs(card)) {
+		if (!IS_ERR_VALUE(err)) {
 			err = mmc_select_hs_ddr(card);
 			if (err)
 				goto err;
