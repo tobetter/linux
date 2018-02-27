@@ -665,7 +665,7 @@ static struct hdmitx_vidpara hdmi_tx_video_params[] = {
 	},
 };
 
-static struct hdmitx_vidpara *hdmi_get_video_param(
+struct hdmitx_vidpara *hdmi_get_video_param(
 	enum hdmi_vic VideoCode)
 {
 	struct hdmitx_vidpara *video_param = NULL;

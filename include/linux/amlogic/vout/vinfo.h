@@ -158,6 +158,11 @@ enum tvmode_e {
 	TVMODE_SXGA,
 	TVMODE_WSXGA,
 	TVMODE_FHDVGA,
+	TVMODE_LCD,
+	TVMODE_LVDS_1080P,
+	TVMODE_LVDS_1080P_50HZ,
+	TVMODE_LVDS_768P,
+	TVMODE_VX1_4K2K_60HZ,
 	TVMODE_CUSTOMBUILT,
 	TVMODE_MAX
 };
@@ -209,4 +214,9 @@ enum fine_tune_mode_e {
 	DOWN_HPLL,
 };
 #endif
+
+extern struct vinfo_s *get_tv_info(enum vmode_e mode);
+extern const struct vinfo_s *get_valid_vinfo(char  *mode);
+extern enum tvmode_e vmode_to_tvmode(enum vmode_e mode);
+
 #endif /* _VINFO_H_ */

@@ -337,6 +337,9 @@ extern void hdmitx_init_parameters(struct hdmitx_info *info);
 
 extern int hdmitx_edid_parse(struct hdmitx_dev *hdmitx_device);
 
+extern const char* hdmitx_edid_get_dispmode(int index);
+extern enum hdmi_vic hdmitx_edid_vic_tab_map_vic(const char *disp_mode);
+
 enum hdmi_vic hdmitx_edid_get_VIC(struct hdmitx_dev *hdmitx_device,
 	const char *disp_mode, char force_flag);
 
@@ -467,6 +470,13 @@ struct Hdcp_Sub {
 #define DET         (5, "%s[%d]", __func__, __LINE__)
 
 extern void hdmi_print(int level, const char *fmt, ...);
+
+extern int hdmi_tvenc_validate(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para);
+
+extern const struct reg_s *tvregs_setting_mode(enum hdmi_vic vic);
+
+extern struct hdmitx_vidpara *hdmi_get_video_param(
+	enum hdmi_vic VideoCode);
 
 #define dd()
 #ifndef dd

@@ -56,6 +56,7 @@ static struct para_pair_s logo_args[] = {
 	{"loaded", LOGO_LOADED},
 };
 
+#if 0
 /* FIXME : need to cover all of resolutions using general table */
 static struct para_pair_s mode_infos[] = {
 	{"640x480p60hz", TVMODE_640x480p60hz},
@@ -98,6 +99,7 @@ static struct para_pair_s mode_infos[] = {
 	{"2160p60hz420", VMODE_4K2K_60HZ_Y420},
 	{"custombuilt", VMODE_CUSTOMBUILT},
 };
+#endif
 
 struct logo_info_s {
 	u32 index;
@@ -127,6 +129,7 @@ static int get_value_by_name(char *name, struct para_pair_s *pair, u32 cnt)
 	return found;
 }
 
+#if 0
 static char *get_name_by_value(u32 value, struct para_pair_s *pair, u32 cnt)
 {
 	u32 i = 0;
@@ -141,12 +144,36 @@ static char *get_name_by_value(u32 value, struct para_pair_s *pair, u32 cnt)
 
 	return found;
 }
+#endif
+
+static char *get_name_by_vmode(enum vmode_e value)
+{
+	char *found = NULL;
+
+	struct vinfo_s *mode_vinfo = get_tv_info(value);
+
+	if (mode_vinfo)
+		found = mode_vinfo->name;
+
+	return found;
+}
+
+static enum vmode_e get_vmode_by_name(char *name)
+{
+	enum vmode_e found = (enum vmode_e)-1;
+
+	const struct vinfo_s *mode_vinfo = get_valid_vinfo(name);
+
+	if (mode_vinfo)
+		found = mode_vinfo->mode;
+
+	return found;
+}
 
 int set_osd_freescaler(int index, enum vmode_e new_mode)
 {
-	int cnt = sizeof(mode_infos) / sizeof(mode_infos[0]);
 	pr_info("outputmode changed to %s, reset osd%d scaler.\n",
-		get_name_by_value(new_mode, mode_infos, cnt), index);
+		get_name_by_vmode(new_mode), index);
 	osd_set_free_scale_mode_hw(index, 1);
 	osd_set_free_scale_enable_hw(index, 0);
 
@@ -213,6 +240,9 @@ enum vmode_e get_initial_vmode(void)
 	else
 		cur_mode = cvbsmode;
 
+	pr_info("get initial logo vmode: %s\n",
+		get_name_by_vmode(cur_mode));
+
 	return cur_mode;
 }
 EXPORT_SYMBOL(get_initial_vmode);
@@ -220,7 +250,6 @@ EXPORT_SYMBOL(get_initial_vmode);
 static int refresh_mode_and_logo(bool first)
 {
 	enum vmode_e cur_mode = VMODE_MAX;
-	int cnt = sizeof(mode_infos) / sizeof(mode_infos[0]);
 #if defined(CONFIG_ARCH_MESON64_ODROIDC2)
 	int hdp_state = 1;
 #else
@@ -238,7 +267,7 @@ static int refresh_mode_and_logo(bool first)
 		last_mode = logo_info.vmode;
 		set_logo_vmode(cur_mode);
 		pr_info("set vmode: %s\n",
-			get_name_by_value(cur_mode, mode_infos, cnt));
+			get_name_by_vmode(cur_mode));
 
 		if ((logo_info.index >= 0)) {
 			osd_set_logo_index(logo_info.index);
@@ -252,7 +281,7 @@ static int refresh_mode_and_logo(bool first)
 		if (!first) {
 			set_logo_vmode(cur_mode);
 			pr_info("set vmode: %s\n",
-				get_name_by_value(cur_mode, mode_infos, cnt));
+				get_name_by_vmode(cur_mode));
 		}
 		last_mode = cur_mode;
 		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE, &cur_mode);
@@ -302,8 +331,7 @@ static int logo_info_init(char *para)
 		return 0;
 	}
 
-	count = sizeof(mode_infos) / sizeof(mode_infos[0]);
-	value = get_value_by_name(para, mode_infos, count);
+	value = get_vmode_by_name(para);
 	if (value >= 0)
 		logo_info.vmode = value;
 
@@ -358,16 +386,10 @@ __setup("logo=", logo_setup);
 
 static int __init get_hdmi_mode(char *str)
 {
-	u32 i;
-	u32 cnt;
+	enum vmode_e value = get_vmode_by_name(str);
 
-	cnt = sizeof(mode_infos) / sizeof(mode_infos[0]);
-	for (i = 0; i < cnt; i++) {
-		if (strcmp(mode_infos[i].name, str) == 0) {
-			hdmimode = mode_infos[i].value;
-			break;
-		}
-	}
+	if (value >= 0)
+		hdmimode = value;
 
 	pr_info("get hdmimode: %s\n", str);
 	return 1;
