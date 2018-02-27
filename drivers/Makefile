@@ -160,3 +160,6 @@ obj-$(CONFIG_FMC)		+= fmc/
 obj-$(CONFIG_POWERCAP)		+= powercap/
 obj-$(CONFIG_MCB)		+= mcb/
 obj-$(CONFIG_THUNDERBOLT)	+= thunderbolt/
+
+obj-y 				+= amlogic/
+obj-y                           += hardkernel/
