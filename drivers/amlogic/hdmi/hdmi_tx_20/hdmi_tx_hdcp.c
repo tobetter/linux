@@ -38,7 +38,9 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/spinlock_types.h>
+#ifdef CONFIG_SWITCH
 #include <linux/switch.h>
+#endif
 /* #include <mach/am_regs.h> */
 #include <linux/amlogic/hdmi_tx/hdmi_info_global.h>
 #include <linux/amlogic/hdmi_tx/hdmi_tx_module.h>
@@ -49,10 +51,12 @@
 	version 1.1
 */
 
+#ifdef CONFIG_SWITCH
 /* android ics switch device */
 static struct switch_dev hdcp_dev = {
 	.name = "hdcp",
 };
+#endif
 
 /* For most cases, we don't use HDCP
  * If using HDCP, need add follow command in boot/init.rc and
@@ -132,7 +136,9 @@ static int hdmitx_hdcp_task(void *data)
 			(hdmitx_device->cur_VIC != HDMI_Unkown)) {
 			hdmi_authenticated = hdmitx_device->HWOp.CntlDDC(
 				hdmitx_device, DDC_HDCP_GET_AUTH, 0);
+#ifdef CONFIG_SWITCH
 			switch_set_state(&hdcp_dev, hdmi_authenticated);
+#endif
 			hdmitx_device->HWOp.CntlConfig(hdmitx_device,
 				CONF_VIDEO_BLANK_OP,
 				hdmi_authenticated ? VIDEO_UNBLANK :
@@ -170,7 +176,9 @@ static int __init hdmitx_hdcp_init(void)
 {
 	struct hdmitx_dev *hdmitx_device = get_hdmitx_device();
 
+#ifdef CONFIG_SWITCH
 	switch_dev_register(&hdcp_dev);
+#endif
 
 	if(hdmitx_device->HWOp.CntlDDC == NULL)
 		return 0;
@@ -183,7 +191,9 @@ static int __init hdmitx_hdcp_init(void)
 
 static void __exit hdmitx_hdcp_exit(void)
 {
+#ifdef CONFIG_SWITCH
 	switch_dev_unregister(&hdcp_dev);
+#endif
 }
 
 

@@ -19,7 +19,9 @@
 #define AUDIO_DSP_MODULES_H
 #include <linux/device.h>
 #include <linux/timer.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/wakelock.h>
+#endif
 /*
 #include <asm/dsp/audiodsp_control.h>
 #include <asm/dsp/dsp_register.h>
@@ -74,8 +76,10 @@ struct audiodsp_priv {
 	struct completion decode_completion;
 	void __iomem *p;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	/* for power management */
 	struct wake_lock wakelock;
+#endif
 	unsigned dsp_abnormal_count;
 	unsigned last_ablevel;
 	unsigned last_pcmlevel;

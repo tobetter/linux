@@ -7,13 +7,24 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/cpufreq.h>
+#ifdef CONFIG_CPU_THERMAL
 #include <linux/cpu_cooling.h>
+#endif
+#ifdef CONFIG_CPUCORE_THERMAL
 #include <linux/cpucore_cooling.h>
+#endif
+#ifdef CONFIG_GPUCORE_THERMAL
 #include <linux/gpucore_cooling.h>
+#endif
+#ifdef CONFIG_GPU_THERMAL
 #include <linux/gpu_cooling.h>
+#endif
 #include <linux/thermal_core.h>
-#include <linux/opp.h>
 #include <linux/cpu.h>
+
+#if defined(CONFIG_THERMAL_GOV_BANG_BANG) || defined(CONFIG_THERMAL_GOV_POWER_ALLOCATOR) || defined(CONFIG_THERMAL_WRITABLE_TRIPS)
+#define HAVE_THERMAL_LINARO
+#endif
 
 #define NOT_WRITE_EFUSE		0x0
 #define EFUEE_PRIVATE		0x4
@@ -22,10 +33,18 @@
 struct aml_thermal_sensor {
 	int chip_trimmed;
 	struct cpumask mask;
+#ifdef CONFIG_CPU_THERMAL
 	struct thermal_cooling_device *cpufreq_cdev;
+#endif
+#ifdef CONFIG_CPUCORE_THERMAL
 	struct thermal_cooling_device *cpucore_cdev;
+#endif
+#ifdef CONFIG_GPU_THERMAL
 	struct thermal_cooling_device *gpufreq_cdev;
+#endif
+#ifdef CONFIG_GPUCORE_THERMAL
 	struct thermal_cooling_device *gpucore_cdev;
+#endif
 	struct thermal_zone_device    *tzd;
 };
 
@@ -71,14 +90,20 @@ static int get_cur_temp(void *data, long *temp)
 
 int aml_thermal_min_update(struct thermal_cooling_device *cdev)
 {
+#ifdef CONFIG_GPU_THERMAL
 	struct gpufreq_cooling_device *gf_cdev;
+#endif
+#ifdef CONFIG_GPUCORE_THERMAL
 	struct gpucore_cooling_device *gc_cdev;
+#endif
 	struct thermal_instance *ins;
 	long min_state;
 	int i;
 
 	if (!min_exist)
 		return 0;
+
+#ifdef CONFIG_GPU_THERMAL
 	if (strstr(cdev->type, "gpufreq")) {
 		gf_cdev = (struct gpufreq_cooling_device *)cdev->devdata;
 		min_state = gf_cdev->get_gpu_freq_level(min_buf[1]);
@@ -93,7 +118,9 @@ int aml_thermal_min_update(struct thermal_cooling_device *cdev)
 			}
 		}
 	}
+#endif
 
+#ifdef CONFIG_GPUCORE_THERMAL
 	if (strstr(cdev->type, "gpucore")) {
 		gc_cdev = (struct gpucore_cooling_device *)cdev->devdata;
 		soc_sensor.gpucore_cdev = cdev;
@@ -109,14 +136,17 @@ int aml_thermal_min_update(struct thermal_cooling_device *cdev)
 			}
 		}
 	}
+#endif
 
 	return 0;
 }
 EXPORT_SYMBOL(aml_thermal_min_update);
 
+#ifdef HAVE_THERMAL_LINARO
 static struct thermal_zone_of_device_ops aml_thermal_ops = {
 	.get_temp = get_cur_temp,
 };
+#endif
 
 static int aml_thermal_probe(struct platform_device *pdev)
 {
@@ -154,6 +184,7 @@ static int aml_thermal_probe(struct platform_device *pdev)
 		min_exist = 1;
 	}
 
+#ifdef CONFIG_CPUCORE_THERMAL
 	/*
 	 * Many different cooling devices, we need to get their configs
 	 * 1. cpu core cooling
@@ -170,7 +201,9 @@ static int aml_thermal_probe(struct platform_device *pdev)
 				soc_sensor.cpucore_cdev);
 		}
 	}
+#endif
 
+#ifdef CONFIG_CPU_THERMAL
 	/* 2. cpu freq cooling */
 	np = pdev->dev.of_node;
 	if (of_property_read_u32(np, "cpu_dyn_coeff", &dyn_coeff))
@@ -181,17 +214,24 @@ static int aml_thermal_probe(struct platform_device *pdev)
 	if (!np) {
 		dev_err(&pdev->dev, "not found cpu node\n");
 	} else {
+#ifdef HAVE_THERMAL_LINARO
 		soc_sensor.cpufreq_cdev = of_cpufreq_power_cooling_register(np,
 							&soc_sensor.mask,
 							dyn_coeff,
 							NULL);
+#else
+		soc_sensor.cpufreq_cdev = of_cpufreq_cooling_register(np,
+							&soc_sensor.mask);
+#endif
 		if (IS_ERR(soc_sensor.cpufreq_cdev)) {
 			dev_err(&pdev->dev,
 				"Error cpu freq cooling device, cdev:%p\n",
 				soc_sensor.cpufreq_cdev);
 		}
 	}
+#endif
 
+#ifdef CONFIG_GPUCORE_THERMAL
 	/* 3. gpu core cooling */
 	np = pdev->dev.of_node;
 	snprintf(node_name, sizeof(node_name), "%s", "thermal_gpu_cores");
@@ -204,7 +244,9 @@ static int aml_thermal_probe(struct platform_device *pdev)
 		 */
 		save_gpucore_thermal_para(np);
 	}
+#endif
 
+#ifdef CONFIG_GPU_THERMAL
 	/* 4. gpu frequent cooling */
 	np = pdev->dev.of_node;
 	if (of_property_read_u32(np, "gpu_dyn_coeff", &dyn_coeff)) {
@@ -220,12 +262,17 @@ static int aml_thermal_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "gpu coef:%d, pp:%d\n", dyn_coeff, pp);
 		save_gpu_cool_para(dyn_coeff, np, pp);
 	}
+#endif
 
 next:
 	soc_sensor.tzd = thermal_zone_of_sensor_register(&pdev->dev,
 							  3,
 							  &soc_sensor,
+#ifdef HAVE_THERMAL_LINARO
 							  &aml_thermal_ops);
+#else
+							  get_cur_temp, NULL);
+#endif
 
 	if (IS_ERR(soc_sensor.tzd)) {
 		dev_warn(&pdev->dev, "Error registering sensor: %p\n",
@@ -237,6 +284,7 @@ next:
 	if (!min_exist)
 		return 0;
 
+#ifdef CONFIG_CPU_THERMAL
 	/*
 	 * adjust upper and lower for each instance
 	 */
@@ -250,6 +298,9 @@ next:
 				 ins->name, ins->upper);
 		}
 	}
+#endif
+
+#ifdef CONFIG_CPUCORE_THERMAL
 	soc_sensor.cpucore_cdev->ops->get_max_state(soc_sensor.cpucore_cdev,
 		&min_state);
 	min_state = min_state - min_buf[2];
@@ -262,6 +313,7 @@ next:
 				 ins->name, ins->upper);
 		}
 	}
+#endif
 
 
 	thermal_zone_device_update(soc_sensor.tzd);

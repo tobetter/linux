@@ -217,6 +217,7 @@ static int codec_mm_alloc_in(
 			}
 			try_alloced_from_reserved = 1;
 		}
+#ifdef CONFIG_CMA
 		/*cma first..*/
 		if (can_from_cma) {
 			mem->mem_handle = dma_alloc_from_contiguous(mgt->dev,
@@ -237,6 +238,7 @@ static int codec_mm_alloc_in(
 				break;
 			}
 		}
+#endif
 		/*reserved later.*/
 		if (!try_alloced_from_reserved &&
 			can_from_res &&
@@ -301,9 +303,11 @@ static void codec_mm_free_in(struct codec_mm_mgt_s *mgt,
 {
 	mgt->total_alloced_size -= mem->buffer_size;
 	if (mem->from_flags == AMPORTS_MEM_FLAGS_FROM_GET_FROM_CMA) {
+#ifdef CONFIG_CMA
 		dma_release_from_contiguous(mgt->dev,
 			mem->mem_handle, mem->page_count);
 		mgt->alloced_cma_size -= mem->buffer_size;
+#endif
 	} else if (mem->from_flags ==
 		AMPORTS_MEM_FLAGS_FROM_GET_FROM_REVERSED) {
 		gen_pool_free(mgt->res_pool,
@@ -362,9 +366,11 @@ static struct codec_mm_s *codec_mm_alloc(const char *owner, int size,
 	case AMPORTS_MEM_FLAGS_FROM_GET_FROM_PAGES:
 		mgt->alloced_sys_size += mem->buffer_size;
 		break;
+#ifdef CONFIG_CMA
 	case AMPORTS_MEM_FLAGS_FROM_GET_FROM_CMA:
 		mgt->alloced_cma_size += mem->buffer_size;
 		break;
+#endif
 	case AMPORTS_MEM_FLAGS_FROM_GET_FROM_TVP:
 		mgt->alloced_tvp_size += mem->buffer_size;
 		break;
@@ -543,10 +549,16 @@ int dump_mem_infos(void *buf, int size)
 
 	s = sprintf(pbuf, "\t[%d]CMA size:%d MB:alloced: %d MB,free:%d MB\n",
 			AMPORTS_MEM_FLAGS_FROM_GET_FROM_CMA,
+#ifndef CONFIG_CMA
+			0,
+			0,
+			0);
+#else
 			(int)(dma_get_cma_size_int_byte(mgt->dev) / SZ_1M),
 			(int)(mgt->alloced_cma_size / SZ_1M),
 			(int)((dma_get_cma_size_int_byte(mgt->dev) -
 			mgt->alloced_cma_size) / SZ_1M));
+#endif
 	tsize += s;
 	pbuf += s;
 
@@ -642,7 +654,12 @@ int codec_mm_mgt_init(struct device *dev)
 		mgt->res_mem_flags |= RES_MEM_FLAGS_HAVE_MAPED;
 #endif
 	}
+#ifndef CONFIG_CMA
+	mgt->alloced_cma_size = 0;
+	mgt->total_cma_size = 0;
+#else
 	mgt->total_cma_size = dma_get_cma_size_int_byte(mgt->dev);
+#endif
 	mgt->total_codec_mem_size += mgt->total_cma_size;
 	spin_lock_init(&mgt->lock);
 	return 0;

@@ -26,7 +26,9 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/wakelock.h>
+#endif
 #include <linux/debugfs.h>
 #include <linux/io.h>
 #include <linux/uaccess.h>

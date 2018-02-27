@@ -6,6 +6,7 @@ menu "Amlogic temperature sensor"
 
 config AML_TEMP_SENSOR
 	bool "Amlgoic temperature sensor Support"
+	depends on CPU_THERMAL
 	default n
 	---help---
 		"thermal sensor low level support for thermal"
