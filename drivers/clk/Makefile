@@ -9,6 +9,7 @@ obj-$(CONFIG_COMMON_CLK)	+= clk-gate.o
 obj-$(CONFIG_COMMON_CLK)	+= clk-mux.o
 obj-$(CONFIG_COMMON_CLK)	+= clk-composite.o
 obj-$(CONFIG_COMMON_CLK)	+= clk-fractional-divider.o
+obj-$(CONFIG_COMMON_CLK_SCPI)	+= clk-scpi.o
 
 # hardware specific clock types
 # please keep this section sorted lexicographically by file/directory path name
