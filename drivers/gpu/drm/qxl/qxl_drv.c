@@ -47,7 +47,7 @@ static DEFINE_PCI_DEVICE_TABLE(pciidlist) = {
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
 
-static int qxl_modeset = -1;
+static int qxl_modeset = 0;
 int qxl_num_crtc = 4;
 
 MODULE_PARM_DESC(modeset, "Disable/Enable modesetting");
