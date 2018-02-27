@@ -234,6 +234,7 @@ config DVB_USB_AF9005
 	depends on DVB_USB
 	select MEDIA_TUNER_MT2060 if MEDIA_SUBDRV_AUTOSELECT
 	select MEDIA_TUNER_QT1010 if MEDIA_SUBDRV_AUTOSELECT
+	select FW_LOADER
 	help
 	  Say Y here to support the Afatech AF9005 based DVB-T USB1.1 receiver
 	  and the TerraTec Cinergy T USB XE (Rev.1)
