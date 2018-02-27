@@ -502,6 +502,7 @@ config VIDEO_OV9650
 	  OV9650 and OV9652 camera sensors.
 
 config VIDEO_VS6624
+	depends on BROKEN
 	tristate "ST VS6624 sensor support"
 	depends on VIDEO_V4L2 && I2C
 	depends on MEDIA_CAMERA_SUPPORT
