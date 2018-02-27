@@ -18,6 +18,8 @@
 
 #include <asm/arch_timer.h>
 
+extern void register_current_timer_delay(struct delay_timer *timer);
+
 /*
  * Use the current timer as a cycle counter since this is what we use for
  * the delay loop.
