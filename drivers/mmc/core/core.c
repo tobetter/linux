@@ -1581,7 +1581,11 @@ void mmc_power_off(struct mmc_host *host)
 
 	mmc_host_clk_hold(host);
 
+#ifndef CONFIG_ARCH_MESON64_ODROIDC2
 	host->ios.clock = 0;
+#else
+	host->ios.clock = 400000;
+#endif
 	host->ios.vdd = 0;
 
 	if (!mmc_host_is_spi(host)) {
@@ -2005,7 +2009,7 @@ out:
  *
  * Caller must claim host before calling this function.
  */
-int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
+int _mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 	      unsigned int arg)
 {
 	unsigned int rem, to = from + nr;
@@ -2061,6 +2065,41 @@ int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 
 	return mmc_do_erase(card, from, to, arg);
 }
+
+#define		ERASE_512M		0x100000
+int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
+	      unsigned int arg)
+{
+	unsigned int group , start;
+	int ret = 0, count = 1;
+	if (nr > ERASE_512M) {
+		do {
+			start = from;
+			group = ERASE_512M;
+			ret = _mmc_erase(card, start, group, arg);
+			if (ret) {
+				pr_err("%s [%d] count = %x\n",
+					__func__, __LINE__, count);
+				return ret;
+			}
+			from += ERASE_512M;
+			nr -= ERASE_512M;
+			count++;
+		} while (nr > ERASE_512M);
+		ret = _mmc_erase(card, from, nr, arg);
+		if (ret) {
+			pr_err("%s [%d] count = %x\n",
+					__func__, __LINE__, count);
+			return ret;
+		}
+	} else {
+		ret = _mmc_erase(card, from, nr, arg);
+		if (ret)
+			return ret;
+	}
+	return 0;
+}
+
 EXPORT_SYMBOL(mmc_erase);
 
 int mmc_can_erase(struct mmc_card *card)
@@ -2104,7 +2143,8 @@ EXPORT_SYMBOL(mmc_can_sanitize);
 
 int mmc_can_secure_erase_trim(struct mmc_card *card)
 {
-	if (card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN)
+	if ((card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN) &&
+	    !(card->quirks & MMC_QUIRK_SEC_ERASE_TRIM_BROKEN))
 		return 1;
 	return 0;
 }
@@ -2312,7 +2352,7 @@ EXPORT_SYMBOL(mmc_hw_reset_check);
 static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 {
 	host->f_init = freq;
-
+	host->first_init_flag = 1;
 #ifdef CONFIG_MMC_DEBUG
 	pr_info("%s: %s: trying to init card at %u Hz\n",
 		mmc_hostname(host), __func__, host->f_init);
