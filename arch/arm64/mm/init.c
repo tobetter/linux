@@ -80,10 +80,12 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 	memset(zone_size, 0, sizeof(zone_size));
 
 	/* 4GB maximum for 32-bit only capable devices */
+#ifdef CONFIG_ZONE_DMA
 	if (IS_ENABLED(CONFIG_ZONE_DMA)) {
 		max_dma = PFN_DOWN(max_zone_dma_phys());
 		zone_size[ZONE_DMA] = max_dma - min;
 	}
+#endif
 	zone_size[ZONE_NORMAL] = max - max_dma;
 
 	memcpy(zhole_size, zone_size, sizeof(zhole_size));
@@ -95,10 +97,12 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 		if (start >= max)
 			continue;
 
+#ifdef CONFIG_ZONE_DMA
 		if (IS_ENABLED(CONFIG_ZONE_DMA) && start < max_dma) {
 			unsigned long dma_end = min(end, max_dma);
 			zhole_size[ZONE_DMA] -= dma_end - start;
 		}
+#endif
 
 		if (end > max_dma) {
 			unsigned long normal_end = min(end, max);
