@@ -32,6 +32,7 @@
 #include <linux/swap.h>
 #include <linux/mm_types.h>
 #include <linux/dma-contiguous.h>
+#include <linux/cma.h>
 
 struct cma {
 	unsigned long	base_pfn;
@@ -156,6 +157,16 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 
 static DEFINE_MUTEX(cma_mutex);
 
+phys_addr_t cma_get_base(struct cma *cma)
+{
+	return PFN_PHYS(cma->base_pfn);
+}
+
+unsigned long cma_get_size(struct cma *cma)
+{
+	return cma->count << PAGE_SHIFT;
+}
+
 static int __init cma_activate_area(struct cma *cma)
 {
 	int bitmap_size = BITS_TO_LONGS(cma->count) * sizeof(long);
@@ -212,6 +223,47 @@ static int __init cma_init_reserved_areas(void)
 	return 0;
 }
 core_initcall(cma_init_reserved_areas);
+
+int __init cma_init_reserved_mem(phys_addr_t base, phys_addr_t size,
+				 int order_per_bit, struct cma **res_cma)
+{
+	struct cma *cma;
+	phys_addr_t alignment;
+
+	/* Sanity checks */
+	if (cma_area_count == ARRAY_SIZE(cma_areas)) {
+		pr_err("Not enough slots for CMA reserved regions!\n");
+		return -ENOSPC;
+	}
+
+	if (!size || !memblock_is_region_reserved(base, size))
+		return -EINVAL;
+
+	/* ensure minimal alignment requied by mm core */
+	alignment = PAGE_SIZE << max(MAX_ORDER - 1, pageblock_order);
+
+	/* alignment should be aligned with order_per_bit */
+	if (!IS_ALIGNED(alignment >> PAGE_SHIFT, 1 << order_per_bit))
+		return -EINVAL;
+
+	if (ALIGN(base, alignment) != base || ALIGN(size, alignment) != size)
+		return -EINVAL;
+
+	/*
+	 * Each reserved area must be initialised later, when more kernel
+	 * subsystems (like slab allocator) are available.
+	 */
+	cma = &cma_areas[cma_area_count];
+	cma->base_pfn = PFN_DOWN(base);
+	cma->count = size >> PAGE_SHIFT;
+#if 0
+	cma->order_per_bit = order_per_bit;
+#endif
+	*res_cma = cma;
+	cma_area_count++;
+
+	return 0;
+}
 
 /**
  * dma_contiguous_reserve_area() - reserve custom contiguous area
@@ -293,6 +345,29 @@ int __init dma_contiguous_reserve_area(phys_addr_t size, phys_addr_t base,
 err:
 	pr_err("CMA: failed to reserve %ld MiB\n", (unsigned long)size / SZ_1M);
 	return ret;
+}
+
+/**
+ * get cma size of one dev
+ */
+unsigned long dma_get_cma_size_int_byte(struct device *dev)
+{
+	unsigned long size = 0;
+	struct cma *cma = NULL;
+
+	if (!dev) {
+		pr_err("CMA: NULL DEV\n");
+		return 0;
+	}
+
+	cma = dev_get_cma_area(dev);
+	if (!cma) {
+		pr_err("CMA:  NO CMA region\n");
+		return 0;
+	}
+	size = cma_get_size(cma);
+
+	return size;
 }
 
 static void clear_cma_bitmap(struct cma *cma, unsigned long pfn, int count)
@@ -407,3 +482,70 @@ bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 
 	return true;
 }
+
+/*
+ * Support for reserved memory regions defined in device tree
+ */
+#ifdef CONFIG_OF_RESERVED_MEM
+#include <linux/of.h>
+#include <linux/of_fdt.h>
+#include <linux/of_reserved_mem.h>
+
+#undef pr_fmt
+#define pr_fmt(fmt) fmt
+
+static int rmem_cma_device_init(struct reserved_mem *rmem, struct device *dev)
+{
+	dev_set_cma_area(dev, rmem->priv);
+	return 0;
+}
+
+static void rmem_cma_device_release(struct reserved_mem *rmem,
+				    struct device *dev)
+{
+	dev_set_cma_area(dev, NULL);
+}
+
+static const struct reserved_mem_ops rmem_cma_ops = {
+	.device_init	= rmem_cma_device_init,
+	.device_release = rmem_cma_device_release,
+};
+
+static int __init rmem_cma_setup(struct reserved_mem *rmem)
+{
+	phys_addr_t align = PAGE_SIZE << max(MAX_ORDER - 1, pageblock_order);
+	phys_addr_t mask = align - 1;
+	unsigned long node = rmem->fdt_node;
+	struct cma *cma;
+	int err;
+
+	if (!of_get_flat_dt_prop(node, "reusable", NULL) ||
+	    of_get_flat_dt_prop(node, "no-map", NULL))
+		return -EINVAL;
+
+	if ((rmem->base & mask) || (rmem->size & mask)) {
+		pr_err("Reserved memory: incorrect alignment of CMA region\n");
+		return -EINVAL;
+	}
+
+	err = cma_init_reserved_mem(rmem->base, rmem->size, 0, &cma);
+	if (err) {
+		pr_err("Reserved memory: unable to setup CMA region\n");
+		return err;
+	}
+	/* Architecture specific contiguous memory fixup. */
+	dma_contiguous_early_fixup(rmem->base, rmem->size);
+
+	if (of_get_flat_dt_prop(node, "linux,cma-default", NULL))
+		dma_contiguous_set_default(cma);
+
+	rmem->ops = &rmem_cma_ops;
+	rmem->priv = cma;
+
+	pr_info("Reserved memory: created CMA memory pool at %pa, size %ld MiB\n",
+		&rmem->base, (unsigned long)rmem->size / SZ_1M);
+
+	return 0;
+}
+RESERVEDMEM_OF_DECLARE(cma, "shared-dma-pool", rmem_cma_setup);
+#endif
