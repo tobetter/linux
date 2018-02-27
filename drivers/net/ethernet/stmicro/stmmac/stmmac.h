@@ -34,6 +34,9 @@
 #include <linux/ptp_clock_kernel.h>
 #include <linux/reset.h>
 
+extern void __iomem *PREG_ETH_REG1;
+extern void __iomem *PREG_ETH_REG0;
+
 struct stmmac_priv {
 	/* Frequently used values are kept adjacent for cache effect */
 	struct dma_extended_desc *dma_etx ____cacheline_aligned_in_smp;
@@ -130,6 +133,9 @@ void stmmac_disable_eee_mode(struct stmmac_priv *priv);
 bool stmmac_eee_init(struct stmmac_priv *priv);
 
 #ifdef CONFIG_STMMAC_PLATFORM
+#ifdef CONFIG_DWMAC_MESON
+extern const struct stmmac_of_data meson_dwmac_data;
+#endif
 #ifdef CONFIG_DWMAC_SUNXI
 extern const struct stmmac_of_data sun7i_gmac_data;
 #endif

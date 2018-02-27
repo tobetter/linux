@@ -32,6 +32,10 @@
 #include <asm/io.h>
 #include "dwmac1000.h"
 
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+#include <linux/hardkernel/odroidc2.h>
+#endif
+
 static void dwmac1000_core_init(void __iomem *ioaddr, int mtu)
 {
 	u32 value = readl(ioaddr + GMAC_CONTROL);
@@ -86,8 +90,12 @@ static void dwmac1000_set_umac_addr(void __iomem *ioaddr, unsigned char *addr,
 static void dwmac1000_get_umac_addr(void __iomem *ioaddr, unsigned char *addr,
 				    unsigned int reg_n)
 {
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2) && defined(CONFIG_EFUSE)
+	efuse_get_mac(addr);
+#else
 	stmmac_get_mac_addr(ioaddr, addr, GMAC_ADDR_HIGH(reg_n),
 			    GMAC_ADDR_LOW(reg_n));
+#endif
 }
 
 static void dwmac1000_set_filter(struct net_device *dev, int id)

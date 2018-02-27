@@ -28,8 +28,30 @@
 #include <linux/of_net.h>
 #include <linux/of_device.h>
 #include "stmmac.h"
+#ifdef CONFIG_DWMAC_MESON
+#include <linux/amlogic/iomap.h>
+#include "am_eth_reg.h"
+#include <linux/reset.h>
+#include <linux/gpio/consumer.h>
+#endif
 
 static const struct of_device_id stmmac_dt_ids[] = {
+#ifdef CONFIG_DWMAC_MESON
+	{.compatible = "amlogic, meson6-dwmac",},
+	{.compatible = "amlogic, meson8-rmii-dwmac",},
+	{.compatible = "amlogic, meson8m2-rgmii-dwmac",},
+	{.compatible = "amlogic, meson8m2-rmii-dwmac",
+	 .data = &meson_dwmac_data},
+	{.compatible = "amlogic, gxbb-rgmii-dwmac",
+	 .data = &meson_dwmac_data},
+	{.compatible = "amlogic, gxbb-rmii-dwmac",
+	 .data = &meson_dwmac_data},
+	{.compatible = "amlogic, meson8b-rgmii-dwmac",},
+	{.compatible = "amlogic, meson8b-rmii-dwmac",
+	 .data = &meson_dwmac_data},
+	{.compatible = "amlogic, meson6-rmii-dwmac",
+	 .data = &meson_dwmac_data},
+#endif
 #ifdef CONFIG_DWMAC_SUNXI
 	{ .compatible = "allwinner,sun7i-a20-gmac", .data = &sun7i_gmac_data},
 #endif
@@ -50,6 +72,41 @@ static const struct of_device_id stmmac_dt_ids[] = {
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, stmmac_dt_ids);
+
+#ifdef CONFIG_DWMAC_MESON
+static u8 DEFMAC[] = {0, 0, 0, 0, 0, 0};
+static unsigned int g_mac_addr_setup;
+static unsigned char chartonum(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'A' && c <= 'F')
+		return (c - 'A') + 10;
+	if (c >= 'a' && c <= 'f')
+		return (c - 'a') + 10;
+	return 0;
+
+}
+
+static int __init mac_addr_set(char *line)
+{
+	unsigned char mac[6];
+	int i = 0;
+	for (i = 0; i < 6 && line[0] != '\0' && line[1] != '\0'; i++) {
+		mac[i] = chartonum(line[0]) << 4 | chartonum(line[1]);
+		line += 3;
+	}
+	memcpy(DEFMAC, mac, 6);
+	pr_debug("uboot setup mac-addr: %x:%x:%x:%x:%x:%x\n",
+		DEFMAC[0], DEFMAC[1], DEFMAC[2], DEFMAC[3], DEFMAC[4],
+		DEFMAC[5]);
+	g_mac_addr_setup++;
+
+	return 1;
+}
+
+__setup("mac=", mac_addr_set);
+#endif
 
 #ifdef CONFIG_OF
 static int stmmac_probe_config_dt(struct platform_device *pdev,
@@ -84,7 +141,15 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 		plat->exit = data->exit;
 	}
 
+#ifdef CONFIG_DWMAC_MESON
+	if (g_mac_addr_setup)	/*so uboot mac= is first priority.*/
+		*mac = DEFMAC;
+	else
+		*mac = of_get_mac_address(np);
+#else
 	*mac = of_get_mac_address(np);
+#endif
+
 	plat->interface = of_get_phy_mode(np);
 
 	/* Get max speed of operation from device tree */
@@ -104,11 +169,22 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 	if (of_property_read_u32(np, "snps,phy-addr", &plat->phy_addr) == 0)
 		dev_warn(&pdev->dev, "snps,phy-addr property is deprecated\n");
 
-	plat->mdio_bus_data = devm_kzalloc(&pdev->dev,
-					   sizeof(struct stmmac_mdio_bus_data),
-					   GFP_KERNEL);
+	if (of_property_read_u32(np, "amlogic,phy-addr", &plat->phy_addr) == 0)
+		dev_warn(&pdev->dev,
+			 "amlogic,phy-addr property is deprecated\n");
+
+	if (plat->phy_bus_name)
+		plat->mdio_bus_data = NULL;
+	else
+		plat->mdio_bus_data =
+		    devm_kzalloc(&pdev->dev,
+				 sizeof(struct stmmac_mdio_bus_data),
+				 GFP_KERNEL);
 
 	plat->force_sf_dma_mode = of_property_read_bool(np, "snps,force_sf_dma_mode");
+
+	plat->force_sf_dma_mode = plat->force_sf_dma_mode ||
+	    of_property_read_bool(np, "amlogic,force_sf_dma_mode");
 
 	/* Set the maxmtu to a default of JUMBO_LEN in case the
 	 * parameter is not present in the device tree.
@@ -121,6 +197,9 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 	 * once needed on other platforms.
 	 */
 	if (of_device_is_compatible(np, "st,spear600-gmac") ||
+		of_device_is_compatible(np, "amlogic, meson8b-rgmii-dwmac") ||
+		of_device_is_compatible(np, "amlogic, meson8m2-rgmii-dwmac") ||
+		of_device_is_compatible(np, "amlogic, gxbb-rgmii-dwmac") ||
 		of_device_is_compatible(np, "snps,dwmac-3.70a") ||
 		of_device_is_compatible(np, "snps,dwmac")) {
 		/* Note that the max-frame-size parameter as defined in the
@@ -133,6 +212,9 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 		of_property_read_u32(np, "max-frame-size", &plat->maxmtu);
 		plat->has_gmac = 1;
 		plat->pmt = 1;
+	}
+	if (of_device_is_compatible(np, "amlogic, gxbb-rmii-dwmac")) {
+		plat->has_gmac = 0;
 	}
 
 	if (of_device_is_compatible(np, "snps,dwmac-3.610") ||
@@ -319,6 +401,22 @@ static int stmmac_pltfr_resume(struct device *dev)
 	return stmmac_resume(ndev);
 }
 
+static void stmmac_pltfr_shutdown(struct device *dev)
+{
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct stmmac_priv *priv = netdev_priv(ndev);
+	struct platform_device *pdev = to_platform_device(dev);
+
+	stmmac_suspend(ndev);
+
+	/* Stop phy immediately instead call phy_stop() */
+	if (priv->phydev)
+		genphy_suspend(ndev->phydev);
+
+	if (priv->plat->exit)
+		priv->plat->exit(pdev, priv->plat->bsp_priv);
+}
+
 #endif /* CONFIG_PM */
 
 static SIMPLE_DEV_PM_OPS(stmmac_pltfr_pm_ops,
@@ -330,6 +428,9 @@ struct platform_driver stmmac_pltfr_driver = {
 	.driver = {
 		   .name = STMMAC_RESOURCE_NAME,
 		   .owner = THIS_MODULE,
+#ifdef CONFIG_PM
+		   .shutdown = stmmac_pltfr_shutdown,
+#endif
 		   .pm = &stmmac_pltfr_pm_ops,
 		   .of_match_table = of_match_ptr(stmmac_dt_ids),
 		   },
