@@ -31,7 +31,9 @@
 #include <linux/platform_device.h>
 #include <linux/mutex.h>
 #include <linux/cdev.h>
+#ifdef CONFIG_SWITCH
 #include <linux/switch.h>
+#endif
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
 /* #include <mach/am_regs.h> */
@@ -52,7 +54,9 @@
 
 #include <linux/amlogic/vout/vinfo.h>
 #include <linux/amlogic/vout/vout_notify.h>
+#ifdef CONFIG_SND_AML_M8_SOC
 #include <linux/amlogic/sound/aout_notify.h>
+#endif
 #include <linux/amlogic/hdmi_tx/hdmi_info_global.h>
 #include <linux/amlogic/hdmi_tx/hdmi_tx_ddc.h>
 #include <linux/amlogic/hdmi_tx/hdmi_tx_module.h>
@@ -102,9 +106,11 @@ static int suspend_flag;
 #endif
 
 static struct hdmitx_dev hdmitx_device;
+#ifdef CONFIG_SWITCH
 static struct switch_dev sdev = { /* android ics switch device */
 	.name = "hdmi",
 };
+#endif
 
 static struct hdmi_cea_timing custom_timing;
 struct hdmi_cea_timing *get_custom_timing(void)
@@ -162,7 +168,9 @@ static void hdmitx_late_resume(struct early_suspend *h)
 	/* update status for hpd and switch/state */
 	hdmitx_device.hpd_state = !!(hdmitx_device.HWOp.CntlMisc(&hdmitx_device,
 		MISC_HPD_GPI_ST, 0));
+#ifdef CONFIG_SWITCH
 	switch_set_state(&sdev, hdmitx_device.hpd_state);
+#endif
 
 	hdmitx_device.HWOp.CntlConfig(&hdmitx_device,
 		CONF_AUDIO_MUTE_OP, AUDIO_MUTE);
@@ -178,6 +186,7 @@ static void hdmitx_late_resume(struct early_suspend *h)
 		HDMITX_EARLY_SUSPEND_RESUME_CNTL, HDMITX_LATE_RESUME);
 	hdmi_print(INF, SYS "late resume\n");
 }
+#endif
 
 /* Set avmute_set signal to HDMIRX */
 static int hdmitx_reboot_notifier(struct notifier_block *nb,
@@ -191,6 +200,7 @@ static int hdmitx_reboot_notifier(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend hdmitx_early_suspend_handler = {
 	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN - 10,
 	.suspend = hdmitx_early_suspend,
@@ -1613,7 +1623,9 @@ void hdmitx_hpd_plugin_handler(struct work_struct *work)
 	hdmitx_get_edid(hdev);
 	set_disp_mode_auto();
 	hdmitx_set_audio(hdev, &(hdev->cur_audio_param), hdmi_ch);
+#ifdef CONFIG_SWITCH
 	switch_set_state(&sdev, 1);
+#endif
 	cec_node_init(hdev);
 	hdev->hdmitx_event &= ~HDMI_TX_HPD_PLUGIN;
 	mutex_unlock(&setclk_mutex);
@@ -1642,7 +1654,9 @@ void hdmitx_hpd_plugout_handler(struct work_struct *work)
 	}
 	hdmitx_edid_clear(hdev);
 	hdmitx_edid_ram_buffer_clear(hdev);
+#ifdef CONFIG_SWITCH
 	switch_set_state(&sdev, 0);
+#endif
 	hdev->hdmitx_event &= ~HDMI_TX_HPD_PLUGOUT;
 	mutex_unlock(&setclk_mutex);
 }
@@ -1683,9 +1697,14 @@ static int hdmi_task_handle(void *data)
 {
 	struct hdmitx_dev *hdmitx_device = (struct hdmitx_dev *)data;
 
+#ifdef CONFIG_SWITCH
 	sdev.state = !!(hdmitx_device->HWOp.CntlMisc(hdmitx_device,
 		MISC_HPD_GPI_ST, 0));
 	hdmitx_device->hpd_state = sdev.state;
+#else
+	hdmitx_device->hpd_state = !!(hdmitx_device->HWOp.CntlMisc(hdmitx_device,
+		MISC_HPD_GPI_ST, 0));
+#endif
 
 /* When init hdmi, clear the hdmitx module edid ram and edid buffer. */
 	hdmitx_edid_ram_buffer_clear(hdmitx_device);
@@ -2102,7 +2121,7 @@ static int amhdmitx_probe(struct platform_device *pdev)
 #ifdef CONFIG_AM_TV_OUTPUT2
 	vout2_register_client(&hdmitx_notifier_nb_v2);
 #endif
-#ifdef CONFIG_SND_SOC
+#ifdef CONFIG_SND_AML_M8_SOC
 	aout_register_client(&hdmitx_notifier_nb_a);
 #else
 	r = r ? (long int)&hdmitx_notifier_nb_a :
@@ -2238,7 +2257,9 @@ static int amhdmitx_probe(struct platform_device *pdev)
 	if (hdmitx_device.clk_pixel)
 		clk_prepare_enable(hdmitx_device.clk_pixel);
 
+#ifdef CONFIG_SWITCH
 	switch_dev_register(&sdev);
+#endif
 
 	hdmitx_init_parameters(&hdmitx_device.hdmi_info);
 	HDMITX_Meson_Init(&hdmitx_device);
@@ -2259,7 +2280,9 @@ static int amhdmitx_probe(struct platform_device *pdev)
 static int amhdmitx_remove(struct platform_device *pdev)
 {
 	struct device *dev = hdmitx_device.hdtx_dev;
+#ifdef CONFIG_SWITCH
 	switch_dev_unregister(&sdev);
+#endif
 
 	if (hdmitx_device.HWOp.UnInit)
 		hdmitx_device.HWOp.UnInit(&hdmitx_device);
@@ -2271,7 +2294,7 @@ static int amhdmitx_remove(struct platform_device *pdev)
 #ifdef CONFIG_AM_TV_OUTPUT2
 	vout2_unregister_client(&hdmitx_notifier_nb_v2);
 #endif
-#ifdef CONFIG_SND_SOC
+#ifdef CONFIG_SND_AML_M8_SOC
 	aout_unregister_client(&hdmitx_notifier_nb_a);
 #endif
 
@@ -2362,8 +2385,12 @@ static int amhdmitx_restore(struct device *dev)
 	hdmitx_device.RXCap.threeD_present = is_support_3d;
 	if (strstr(vout_mode, "cvbs") && current_hdmi_state == 1) {
 		mutex_lock(&setclk_mutex);
+#ifdef CONFIG_SWITCH
 		sdev.state = 0;
 		hdmitx_device.hpd_state = sdev.state;
+#else
+		hdmitx_device.hpd_state = 0;
+#endif
 		mutex_unlock(&setclk_mutex);
 		pr_info("resend hdmi plug in event\n");
 		hdmitx_device.hdmitx_event |= HDMI_TX_HPD_PLUGIN;
@@ -2374,8 +2401,12 @@ static int amhdmitx_restore(struct device *dev)
 			&hdmitx_device.work_hpd_plugin, 2 * HZ);
 	} else {
 		mutex_lock(&setclk_mutex);
+#ifdef CONFIG_SWITCH
 		sdev.state = current_hdmi_state;
 		hdmitx_device.hpd_state = sdev.state;
+#else
+		hdmitx_device.hpd_state = current_hdmi_state;
+#endif
 		mutex_unlock(&setclk_mutex);
 	}
 	return 0;

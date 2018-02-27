@@ -1246,7 +1246,9 @@ int audiodsp_probe(void)
 	audiodsp_init_mailbox(priv);
 	init_audiodsp_monitor(priv);
 #endif
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	wake_lock_init(&priv->wakelock, WAKE_LOCK_SUSPEND, "audiodsp");
+#endif
 #ifdef CONFIG_AM_STREAMING
 	/* set_adec_func(audiodsp_get_status); */
 #endif

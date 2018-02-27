@@ -332,12 +332,14 @@ static int stop_rdma(char channel)
 
 void osd_rdma_interrupt_done_clear(void)
 {
+#ifdef CONFIG_AML_RDMA
 	if (rdma_reset_tigger_flag) {
 		pr_info("osd rdma restart!\n");
 		rdma_reset_tigger_flag = 0;
 		osd_rdma_enable(0);
 		osd_rdma_enable(1);
 	}
+#endif
 }
 int read_rdma_table(void)
 {

@@ -61,7 +61,11 @@
 
 #include "osd_hw.h"
 #include "osd_hw_def.h"
+#ifdef CONFIG_AM_VIDEO
+#ifdef CONFIG_POST_PROCESS_MANAGER
 #include "../ppmgr/ppmgr_pri.h"
+#endif
+#endif
 
 #ifdef CONFIG_AML_VSYNC_FIQ_ENABLE
 #define  FIQ_VSYNC

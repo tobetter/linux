@@ -33,7 +33,9 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#if 0
 #include <linux/wakelock.h>
+#endif
 #include <linux/debugfs.h>
 #include <linux/io.h>
 #include <linux/uaccess.h>

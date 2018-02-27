@@ -22,7 +22,9 @@
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/core.h>
+#ifdef CONFIG_AMLOGIC_SECURITY_KEY
 #include <linux/amlogic/securitykey.h>
+#endif
 
 /* #define EMMC_KEY_KERNEL */
 /* #define EMMC_KEY_UBOOT */

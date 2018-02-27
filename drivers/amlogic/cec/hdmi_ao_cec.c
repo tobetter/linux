@@ -39,14 +39,20 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/spinlock_types.h>
+#ifdef CONFIG_SWITCH
 #include <linux/switch.h>
+#endif
 #include <linux/workqueue.h>
 #include <linux/timer.h>
 
 #include <linux/uaccess.h>
 #include <linux/delay.h>
+#ifdef CONFIG_TVIN
 #include <linux/amlogic/tvin/tvin.h>
+#endif
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/wakelock_android.h>
+#endif
 
 #include <linux/amlogic/hdmi_tx/hdmi_tx_cec_20.h>
 #include <linux/amlogic/hdmi_tx/hdmi_tx_module.h>
@@ -56,7 +62,9 @@
 #include "hdmi_ao_cec.h"
 #include <linux/notifier.h>
 #include <linux/reboot.h>
+#ifdef CONFIG_MESON_SUSPEND
 #include <linux/amlogic/pm.h>
+#endif
 #include <linux/of_address.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
@@ -1977,6 +1985,7 @@ static int aml_cec_remove(struct platform_device *pdev)
     return 0;
 }
 
+#ifdef CONFIG_MESON_SUSPEND
 #ifdef CONFIG_PM
 static int aml_cec_pm_prepare(struct device *dev)
 {
@@ -2011,6 +2020,7 @@ static const struct dev_pm_ops aml_cec_pm = {
     .resume_noirq = aml_cec_resume_noirq,
 };
 #endif
+#endif
 
 #ifdef CONFIG_OF
 static const struct of_device_id aml_cec_dt_match[] = {
@@ -2025,8 +2035,10 @@ static struct platform_driver aml_cec_driver = {
     .driver = {
         .name  = "cectx",
         .owner = THIS_MODULE,
+    #ifdef CONFIG_MESON_SUSPEND
     #ifdef CONFIG_PM
         .pm     = &aml_cec_pm,
+    #endif
     #endif
     #ifdef CONFIG_OF
         .of_match_table = aml_cec_dt_match,

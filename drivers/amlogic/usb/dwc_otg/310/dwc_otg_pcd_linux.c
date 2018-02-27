@@ -1292,6 +1292,7 @@ int pcd_init(struct platform_device *pdev)
 	}
 
 	dwc_otg_pcd_start(gadget_wrapper->pcd, &fops);
+#ifdef CONFIG_USB_GADGET
 	retval = usb_add_gadget_udc(&pdev->dev, &gadget_wrapper->gadget);
 	if (retval) {
 		DWC_ERROR("usb_add_gadget_udc failed\n");
@@ -1303,6 +1304,7 @@ int pcd_init(struct platform_device *pdev)
 		return -EBUSY;
 
 	}
+#endif
 	return retval;
 }
 

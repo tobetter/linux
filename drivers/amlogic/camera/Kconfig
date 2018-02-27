@@ -272,6 +272,7 @@ config VIDEO_AMLOGIC_CAPTURE_OV2655
 
 config VIDEO_AMLOGIC_CAPTURE_SP0838
 	tristate "Amlogic Platform Capture Driver for SP0838"
+	depends on VIDEOBUF2_CORE
 	depends on VIDEO_AMLOGIC_CAPTURE
 	select VIDEOBUF_VMALLOC
 	select VIDEOBUF_RESOURCE
@@ -288,6 +289,7 @@ config VIDEO_AMLOGIC_CAPTURE_SP0838
 
 config VIDEO_AMLOGIC_CAPTURE_SP2518
 	tristate "Amlogic Platform Capture Driver for SP2518"
+	depends on VIDEOBUF2_CORE
 	depends on VIDEO_AMLOGIC_CAPTURE
 	select VIDEOBUF_VMALLOC
 	select VIDEOBUF_RESOURCE

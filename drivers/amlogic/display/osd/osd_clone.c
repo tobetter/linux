@@ -31,7 +31,9 @@
 #include <linux/amlogic/cpu_version.h>
 #include <linux/amlogic/canvas/canvas.h>
 #include <linux/amlogic/canvas/canvas_mgr.h>
+#ifdef CONFIG_AM_GE2D
 #include <linux/amlogic/ge2d/ge2d.h>
+#endif
 
 /* Local Headers */
 #include "osd_clone.h"
