@@ -322,7 +322,9 @@ static int stmmac_ethtool_getsettings(struct net_device *dev,
 		return -EBUSY;
 	}
 	cmd->transceiver = XCVR_INTERNAL;
+	spin_lock_irq(&priv->lock);
 	rc = phy_ethtool_gset(phy, cmd);
+	spin_unlock_irq(&priv->lock);
 	return rc;
 }
 
@@ -429,6 +431,8 @@ stmmac_get_pauseparam(struct net_device *netdev,
 	if (priv->pcs)	/* FIXME */
 		return;
 
+	spin_lock(&priv->lock);
+
 	pause->rx_pause = 0;
 	pause->tx_pause = 0;
 	pause->autoneg = priv->phydev->autoneg;
@@ -438,6 +442,7 @@ stmmac_get_pauseparam(struct net_device *netdev,
 	if (priv->flow_ctrl & FLOW_TX)
 		pause->tx_pause = 1;
 
+	spin_unlock(&priv->lock);
 }
 
 static int
@@ -451,6 +456,8 @@ stmmac_set_pauseparam(struct net_device *netdev,
 
 	if (priv->pcs)	/* FIXME */
 		return -EOPNOTSUPP;
+
+	spin_lock(&priv->lock);
 
 	if (pause->rx_pause)
 		new_pause |= FLOW_RX;
@@ -466,6 +473,7 @@ stmmac_set_pauseparam(struct net_device *netdev,
 	} else
 		priv->hw->mac->flow_ctrl(priv->ioaddr, phy->duplex,
 					 priv->flow_ctrl, priv->pause);
+	spin_unlock(&priv->lock);
 	return ret;
 }
 
@@ -563,7 +571,24 @@ static void stmmac_get_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
 	}
 	spin_unlock_irq(&priv->lock);
 }
+#ifdef CONFIG_DWMAC_MESON
+static int stmmac_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
+{
+	struct stmmac_priv *priv = netdev_priv(dev);
+	int err;
 
+	if (priv->phydev == NULL)
+		return -EOPNOTSUPP;
+
+	err = phy_ethtool_set_wol(priv->phydev, wol);
+	/* Given that amlogic mac works without the micrel PHY driver,
+	 * this debugging hint is useful to have.
+	 */
+	if (err == -EOPNOTSUPP)
+		pr_info("Not support set_wol, was MICREL_PHY enabled?\n");
+	return err;
+}
+#else
 static int stmmac_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
@@ -596,7 +621,7 @@ static int stmmac_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
 
 	return 0;
 }
-
+#endif
 static int stmmac_ethtool_op_get_eee(struct net_device *dev,
 				     struct ethtool_eee *edata)
 {

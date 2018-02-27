@@ -55,6 +55,9 @@
 
 #define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
 
+void __iomem *PREG_ETH_REG0;
+void __iomem *PREG_ETH_REG1;
+
 /* Module parameters */
 #define TX_TIMEO	5000
 static int watchdog = TX_TIMEO;
@@ -806,7 +809,8 @@ static int stmmac_init_phy(struct net_device *dev)
 
 	snprintf(phy_id_fmt, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
 		 priv->plat->phy_addr);
-	pr_debug("stmmac_init_phy:  trying to attach to %s\n", phy_id_fmt);
+	pr_debug("stmmac_init_phy:  trying to attach to %s,interface %d\n",
+						phy_id_fmt, interface);
 
 	phydev = phy_connect(dev, phy_id_fmt, &stmmac_adjust_link, interface);
 
@@ -1168,6 +1172,8 @@ static int alloc_dma_desc_resources(struct stmmac_priv *priv)
 						   GFP_KERNEL);
 		if (!priv->dma_rx)
 			goto err_dma;
+		memset((char *)priv->dma_rx, 0, rxsize *
+						sizeof(struct dma_desc));
 
 		priv->dma_tx = dma_zalloc_coherent(priv->device, txsize *
 						   sizeof(struct dma_desc),
@@ -1179,8 +1185,9 @@ static int alloc_dma_desc_resources(struct stmmac_priv *priv)
 					  priv->dma_rx, priv->dma_rx_phy);
 			goto err_dma;
 		}
+		memset((char *)priv->dma_tx, 0, txsize *
+						sizeof(struct dma_desc));
 	}
-
 	return 0;
 
 err_dma:
@@ -2029,7 +2036,12 @@ static inline void stmmac_rx_refill(struct stmmac_priv *priv)
 			priv->rx_skbuff_dma[entry] =
 			    dma_map_single(priv->device, skb->data, bfsize,
 					   DMA_FROM_DEVICE);
-
+			if (dma_mapping_error(priv->device,
+					      priv->rx_skbuff_dma[entry])) {
+				dev_err(priv->device, "Rx dma map failed\n");
+				dev_kfree_skb(skb);
+				break;
+			}
 			p->des2 = priv->rx_skbuff_dma[entry];
 
 			priv->hw->mode->refill_desc3(priv, p);
@@ -2112,6 +2124,8 @@ static int stmmac_rx(struct stmmac_priv *priv, int limit)
 			int frame_len;
 
 			frame_len = priv->hw->desc->get_rx_frame_len(p, coe);
+			if(frame_len > priv->plat->maxmtu) 
+				break;
 
 			/* ACS is set; GMAC core strips PAD/FCS for IEEE 802.3
 			 * Type frames (LLC/LLC-SNAP)
@@ -2210,6 +2224,27 @@ static void stmmac_tx_timeout(struct net_device *dev)
 
 	/* Clear Tx resources and restart transmitting again */
 	stmmac_tx_err(priv);
+}
+
+/* Configuration changes (passed on by ifconfig) */
+static int stmmac_config(struct net_device *dev, struct ifmap *map)
+{
+	if (dev->flags & IFF_UP)	/* can't act on a running interface */
+		return -EBUSY;
+
+	/* Don't allow changing the I/O address */
+	if (map->base_addr != dev->base_addr) {
+		pr_warn("%s: can't change I/O address\n", dev->name);
+		return -EOPNOTSUPP;
+	}
+
+	/* Don't allow changing the IRQ */
+	if (map->irq != dev->irq) {
+		pr_warn("%s: not change IRQ number %d\n", dev->name, dev->irq);
+		return -EOPNOTSUPP;
+	}
+
+	return 0;
 }
 
 /**
@@ -2577,6 +2612,7 @@ static const struct net_device_ops stmmac_netdev_ops = {
 	.ndo_set_rx_mode = stmmac_set_rx_mode,
 	.ndo_tx_timeout = stmmac_tx_timeout,
 	.ndo_do_ioctl = stmmac_ioctl,
+	.ndo_set_config = stmmac_config,
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	.ndo_poll_controller = stmmac_poll_controller,
 #endif
@@ -2684,6 +2720,9 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	int ret = 0;
 	struct net_device *ndev = NULL;
 	struct stmmac_priv *priv;
+#ifdef CONFIG_DWMAC_MESON
+	struct phy_device *phy_dev;
+#endif
 
 	ndev = alloc_etherdev(sizeof(struct stmmac_priv));
 	if (!ndev)
@@ -2712,7 +2751,11 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	if ((phyaddr >= 0) && (phyaddr <= 31))
 		priv->plat->phy_addr = phyaddr;
 
+#ifdef CONFIG_DWMAC_MESON
+	priv->stmmac_clk = devm_clk_get(priv->device, "ethclk81");
+#else
 	priv->stmmac_clk = devm_clk_get(priv->device, STMMAC_RESOURCE_NAME);
+#endif
 	if (IS_ERR(priv->stmmac_clk)) {
 		dev_warn(priv->device, "%s: warning: cannot get CSR clock\n",
 			 __func__);
@@ -2721,8 +2764,13 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	}
 	clk_prepare_enable(priv->stmmac_clk);
 
+#ifdef CONFIG_DWMAC_MESON
+	priv->stmmac_rst = devm_reset_control_get(priv->device,
+						  "ethpower");
+#else
 	priv->stmmac_rst = devm_reset_control_get(priv->device,
 						  STMMAC_RESOURCE_NAME);
+#endif
 	if (IS_ERR(priv->stmmac_rst)) {
 		if (PTR_ERR(priv->stmmac_rst) == -EPROBE_DEFER) {
 			ret = -EPROBE_DEFER;
@@ -2769,6 +2817,13 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	spin_lock_init(&priv->lock);
 	spin_lock_init(&priv->tx_lock);
 
+	ret = register_netdev(ndev);
+	if (ret) {
+		netdev_err(priv->dev, "%s: ERROR %i registering the device\n",
+			   __func__, ret);
+		goto error_netdev_register;
+	}
+
 	/* If a specific clk_csr value is passed from the platform
 	 * this means that the CSR Clock Range selection cannot be
 	 * changed at run-time and it is fixed. Viceversa the driver'll try to
@@ -2793,21 +2848,16 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		}
 	}
 
-	ret = register_netdev(ndev);
-	if (ret) {
-		netdev_err(priv->dev, "%s: ERROR %i registering the device\n",
-			   __func__, ret);
-		goto error_netdev_register;
-	}
+#ifdef CONFIG_DWMAC_MESON
+	phy_dev = priv->mii->phy_map[priv->plat->phy_addr];
+	dev_set_drvdata(&phy_dev->dev, phy_dev);
+#endif
 
 	return priv;
 
-error_netdev_register:
-	if (priv->pcs != STMMAC_PCS_RGMII &&
-	    priv->pcs != STMMAC_PCS_TBI &&
-	    priv->pcs != STMMAC_PCS_RTBI)
-		stmmac_mdio_unregister(ndev);
 error_mdio_register:
+	unregister_netdev(ndev);
+error_netdev_register:
 	netif_napi_del(&priv->napi);
 error_hw_init:
 	clk_disable_unprepare(priv->stmmac_clk);
@@ -2863,7 +2913,9 @@ int stmmac_suspend(struct net_device *ndev)
 	netif_device_detach(ndev);
 	netif_stop_queue(ndev);
 
+	spin_unlock_irqrestore(&priv->lock, flags);
 	napi_disable(&priv->napi);
+	spin_lock_irqsave(&priv->lock, flags);
 
 	/* Stop TX/RX DMA */
 	priv->hw->dma->stop_tx(priv->ioaddr);
