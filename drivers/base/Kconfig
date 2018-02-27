@@ -225,7 +225,7 @@ comment "Default contiguous memory area size:"
 config CMA_SIZE_MBYTES
 	int "Size in Mega Bytes"
 	depends on !CMA_SIZE_SEL_PERCENTAGE
-	default 16
+	default 8
 	help
 	  Defines the size (in MiB) of the default memory area for Contiguous
 	  Memory Allocator.
@@ -273,16 +273,6 @@ config CMA_ALIGNMENT
 	  of 8 means that the buffers will be aligned up to 1MiB only.
 
 	  If unsure, leave the default value "8".
-
-config CMA_AREAS
-	int "Maximum count of the CMA device-private areas"
-	default 7
-	help
-	  CMA allows to create CMA areas for particular devices. This parameter
-	  sets the maximum number of such device private CMA areas in the
-	  system.
-
-	  If unsure, leave the default value "7".
 
 endif
 
