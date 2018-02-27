@@ -24,6 +24,8 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/tlv.h>
+#include <sound/pcm.h>
+#include <sound/pcm_params.h>
 
 #include "pcm512x.h"
 
@@ -340,17 +342,112 @@ static int pcm512x_set_bias_level(struct snd_soc_codec *codec,
 	return 0;
 }
 
+static int pcm512x_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params,
+				struct snd_soc_dai *dai)
+{
+	struct snd_soc_codec *codec = dai->codec;
+	struct pcm512x_priv *pcm512x = dev_get_drvdata(codec->dev);
+	struct regmap *regmap = pcm512x->regmap;
+	u8 bck_div, length, fs_speed;
+	int ret;
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		length = 0;
+		break;
+	case SNDRV_PCM_FORMAT_S20_3LE:
+		length = 1;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		length = 2;
+		break;
+	case SNDRV_PCM_FORMAT_S32_LE:
+		length = 3;
+		break;
+	default:
+		length = 0;
+		break;
+	}
+
+	switch (params_rate(params)) {
+	case 8000:
+	case 11025:
+	case 12000:
+	case 16000:
+	case 22050:
+	case 32000:
+	case 44100:
+	case 48000:
+		bck_div = 255;
+		fs_speed = 0;
+		break;
+	case 88200:
+	case 96000:
+		bck_div = 255;
+		fs_speed = 1;
+		break;
+	case 192000:
+		bck_div = 255;
+		fs_speed = 2;
+		break;
+	case 352800:
+	case 384000:
+		bck_div = 127;
+		fs_speed = 3;
+		break;
+	default:
+		bck_div = 255;
+		fs_speed = 0;
+		break;
+	}
+
+	ret = regmap_write(regmap, PCM512x_I2S_1, length);
+	if (ret != 0) {
+		dev_err(codec->dev, "Failed to I2S Data Format: %d\n", ret);
+		goto err;
+	}
+
+	ret = regmap_write(regmap, PCM512x_FS_SPEED_MODE, fs_speed);
+	if (ret != 0) {
+		dev_err(codec->dev, "Failed to BCK rate: %d\n", ret);
+		goto err;
+	}
+
+err:
+	return ret;
+}
+
+
+static int pcm512x_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+{
+	return 0;
+}
+
+static int pcm512x_set_sysclk(struct snd_soc_dai *dai,
+				   int clk_id, unsigned int freq, int dir)
+{
+	return 0;
+}
+
+static const struct snd_soc_dai_ops pcm512x_dai_ops = {
+	.set_sysclk = pcm512x_set_sysclk,
+	.hw_params = pcm512x_hw_params,
+	.set_fmt = pcm512x_set_fmt,
+};
+
 static struct snd_soc_dai_driver pcm512x_dai = {
 	.name = "pcm512x-hifi",
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
 		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_8000_192000,
+		.rates = SNDRV_PCM_RATE_8000_384000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE |
 			   SNDRV_PCM_FMTBIT_S24_LE |
 			   SNDRV_PCM_FMTBIT_S32_LE
 	},
+	.ops = &pcm512x_dai_ops,
 };
 
 static struct snd_soc_codec_driver pcm512x_codec_driver = {
@@ -459,9 +556,10 @@ int pcm512x_probe(struct device *dev, struct regmap *regmap)
 		regmap_update_bits(regmap, PCM512x_ERROR_DETECT,
 				   PCM512x_IDCH, PCM512x_IDCH);
 
-		/* Switch PLL input to BCLK */
-		regmap_update_bits(regmap, PCM512x_PLL_REF,
-				   PCM512x_SREF, PCM512x_SREF);
+		/* Internal PLL off, master clock switched to SCK */
+		regmap_update_bits(regmap, PCM512x_PLL_EN,
+				   PCM512x_PLCE, 0);
+
 	} else {
 		ret = clk_prepare_enable(pcm512x->sclk);
 		if (ret != 0) {
