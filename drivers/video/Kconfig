@@ -53,3 +53,5 @@ endif
 
 
 endmenu
+
+source "drivers/gpu/arm/Kconfig"
