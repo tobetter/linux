@@ -64,7 +64,9 @@ static int __cpufreq_governor(struct cpufreq_policy *policy,
 		unsigned int event);
 static unsigned int __cpufreq_get(unsigned int cpu);
 static void handle_update(struct work_struct *work);
-
+#ifdef CONFIG_SMP
+static void handle_up_cpu(struct work_struct *work);
+#endif
 /**
  * Two notifier lists: the "policy" list is involved in the
  * validation process for a new CPU frequency policy; the
@@ -513,6 +515,7 @@ show_one(cpuinfo_transition_latency, cpuinfo.transition_latency);
 show_one(scaling_min_freq, min);
 show_one(scaling_max_freq, max);
 
+show_one(scaling_dflt_freq, dflt);
 static ssize_t show_scaling_cur_freq(
 	struct cpufreq_policy *policy, char *buf)
 {
@@ -535,17 +538,23 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 static ssize_t store_##file_name					\
 (struct cpufreq_policy *policy, const char *buf, size_t count)		\
 {									\
-	int ret;							\
+	unsigned int ret;						\
+	unsigned long freq;						\
 	struct cpufreq_policy new_policy;				\
 									\
 	ret = cpufreq_get_policy(&new_policy, policy->cpu);		\
 	if (ret)							\
 		return -EINVAL;						\
 									\
-	ret = sscanf(buf, "%u", &new_policy.object);			\
+	ret = sscanf(buf, "%lu", &freq);			\
 	if (ret != 1)							\
 		return -EINVAL;						\
-									\
+		\
+	if (freq > policy->cpuinfo.max_freq)	\
+		freq = policy->cpuinfo.max_freq;   \
+	if (freq < policy->cpuinfo.min_freq)	\
+		freq = policy->cpuinfo.min_freq;   \
+	new_policy.object = freq;	\
 	ret = cpufreq_set_policy(policy, &new_policy);		\
 	policy->user_policy.object = policy->object;			\
 									\
@@ -554,6 +563,7 @@ static ssize_t store_##file_name					\
 
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
+store_one(scaling_dflt_freq, dflt);
 
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
@@ -735,6 +745,7 @@ cpufreq_freq_attr_ro(related_cpus);
 cpufreq_freq_attr_ro(affected_cpus);
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
+cpufreq_freq_attr_rw(scaling_dflt_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 
@@ -744,6 +755,7 @@ static struct attribute *default_attrs[] = {
 	&cpuinfo_transition_latency.attr,
 	&scaling_min_freq.attr,
 	&scaling_max_freq.attr,
+	&scaling_dflt_freq.attr,
 	&affected_cpus.attr,
 	&related_cpus.attr,
 	&scaling_governor.attr,
@@ -1176,7 +1188,9 @@ static int __cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 
 	init_completion(&policy->kobj_unregister);
 	INIT_WORK(&policy->update, handle_update);
-
+#ifdef CONFIG_SMP
+	INIT_WORK(&policy->up_cpu, handle_up_cpu);
+#endif
 	/* call driver. From then on the cpufreq must be able
 	 * to accept all calls to ->verify and ->setpolicy for this CPU
 	 */
@@ -1507,7 +1521,18 @@ static void handle_update(struct work_struct *work)
 	pr_debug("handle_update for cpu %u called\n", cpu);
 	cpufreq_update_policy(cpu);
 }
+#ifdef CONFIG_SMP
+static void __ref handle_up_cpu(struct work_struct *work)
+{
+	int i;
 
+	for (i = 0; i < num_possible_cpus(); i++) {
+		if (cpu_online(i))
+			continue;
+		cpu_up(i);
+	}
+}
+#endif
 /**
  *	cpufreq_out_of_sync - If actual and saved CPU frequency differs, we're
  *	in deep trouble.
@@ -1679,7 +1704,7 @@ void cpufreq_suspend(void)
 		return;
 
 	if (!has_target())
-		goto suspend;
+		return;
 
 	pr_debug("%s: Suspending Governors\n", __func__);
 
@@ -1693,7 +1718,6 @@ void cpufreq_suspend(void)
 				policy);
 	}
 
-suspend:
 	cpufreq_suspended = true;
 }
 
@@ -1710,12 +1734,12 @@ void cpufreq_resume(void)
 	if (!cpufreq_driver)
 		return;
 
-	cpufreq_suspended = false;
-
 	if (!has_target())
 		return;
 
 	pr_debug("%s: Resuming Governors\n", __func__);
+
+	cpufreq_suspended = false;
 
 	list_for_each_entry(policy, &cpufreq_policy_list, policy_list) {
 		if (cpufreq_driver->resume && cpufreq_driver->resume(policy))
@@ -1872,6 +1896,9 @@ static int __target_index(struct cpufreq_policy *policy,
 
 	notify = !(cpufreq_driver->flags & CPUFREQ_ASYNC_NOTIFICATION);
 	if (notify) {
+		freqs.old = policy->cur;
+		freqs.flags = 0;
+
 		/* Handle switching to intermediate frequency */
 		if (cpufreq_driver->get_intermediate) {
 			retval = __target_intermediate(policy, &freqs, index);
@@ -2204,6 +2231,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 
 	policy->min = new_policy->min;
 	policy->max = new_policy->max;
+	policy->dflt = new_policy->dflt;
 
 	pr_debug("new min and max freqs are %u - %u kHz\n",
 		 policy->min, policy->max);
