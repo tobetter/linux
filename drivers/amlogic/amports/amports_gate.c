@@ -15,6 +15,7 @@
  *
 */
 
+#include <linux/types.h>
 #include <linux/reset.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
