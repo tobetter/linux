@@ -123,7 +123,7 @@ static int meson_cpufreq_target_locked(
 	if (freqs.old == freqs.new)
 		return ret;
 
-	cpufreq_notify_transition(policy, &freqs, CPUFREQ_PRECHANGE);
+	cpufreq_freq_transition_begin(policy, &freqs);
 
 #ifndef CONFIG_CPU_FREQ_DEBUG
 	pr_debug("cpufreq-meson: CPU%d transition: %u --> %u\n",
@@ -145,7 +145,7 @@ static int meson_cpufreq_target_locked(
 
 out:
 	freqs.new = clk_get_rate(cpufreq.armclk) / 1000;
-	cpufreq_notify_transition(policy, &freqs, CPUFREQ_POSTCHANGE);
+	cpufreq_freq_transition_end(policy, &freqs, 0);
 
 	return ret;
 }
@@ -219,9 +219,8 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 
 	meson_freq_table[idx].driver_data = idx;
 	meson_freq_table[idx].frequency = CPUFREQ_TABLE_END;
-	cpufreq_frequency_table_get_attr(meson_freq_table,
-							 policy->cpu);
-	freq_table = cpufreq_frequency_get_table(policy->cpu);
+	policy->freq_table = meson_freq_table;
+	freq_table = policy->freq_table;
 	while (freq_table[index].frequency != CPUFREQ_TABLE_END)
 		index++;
 	index -= 1;
