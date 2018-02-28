@@ -55,7 +55,7 @@ endif
 
 ccflags-y += -DSVN_REV=$(SVN_REV)
 ccflags-y += -DSVN_REV_STRING=\"$(DRIVER_REV)\"
-ccflags-y += -Wno-error=date-time 
+#ccflags-y += -Wno-error=date-time
 ccflags-y += -I$(PWD)/$(src) -I$(PWD)/$(src)/common -I$(PWD)/$(src)/linux -I$(PWD)/$(src)/../mali/common -I$(PWD)/$(src)/../mali/linux -I$(PWD)/$(src)/include -I$(PWD)/$(src)/../../ump/include/ump
 ccflags-y += -I$(PWD)/$(src)/include/ump
 ccflags-y += -DMALI_STATE_TRACKING=0
