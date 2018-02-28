@@ -205,7 +205,7 @@ endif
 ccflags-$(CONFIG_MALI400_DEBUG) += -DDEBUG
 
 # Use our defines when compiling
-ccflags-y += -I$(PWD)/$(src) -I$(PWD)/$(src)/include -I$(PWD)/$(src)/common -I$(PWD)/$(src)/linux -I$(PWD)/$(src)/platform -Wno-date-time
+ccflags-y += -I$(PWD)/$(src) -I$(PWD)/$(src)/include -I$(PWD)/$(src)/common -I$(PWD)/$(src)/linux -I$(PWD)/$(src)/platform
 
 # Get subversion revision number, fall back to only ${MALI_RELEASE_NAME} if no svn info is available
 MALI_RELEASE_NAME=$(shell cat $(PWD)/$(src)/.version 2> /dev/null)
