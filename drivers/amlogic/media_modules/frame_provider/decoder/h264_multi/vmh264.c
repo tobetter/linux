@@ -4357,6 +4357,9 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 	SET_VREG_MASK(MDEC_PIC_DC_CTRL, 1<<17);
 #endif
 
+	SET_VREG_MASK(MDEC_PIC_DC_CTRL, 0xbf << 24);
+	CLEAR_VREG_MASK(MDEC_PIC_DC_CTRL, 0xbf << 24);
+
 #if 1 /* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8 */
 	/* pr_info("vh264 meson8 prot init\n"); */
 	WRITE_VREG(MDEC_PIC_DC_THRESH, 0x404038aa);
