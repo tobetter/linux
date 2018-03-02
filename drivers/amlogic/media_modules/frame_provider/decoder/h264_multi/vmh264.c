@@ -4232,7 +4232,7 @@ static void check_timer_func(unsigned long arg)
 	}
 
 	if ((input_frame_based(vdec) ||
-		(READ_VREG(VLD_MEM_VIFIFO_LEVEL) > 0x200)) &&
+		(READ_VREG(VLD_MEM_VIFIFO_LEVEL) > 0x100)) &&
 		((h264_debug_flag & DISABLE_ERROR_HANDLE) == 0) &&
 		(timeout_val > 0) &&
 		(hw->start_process_time > 0) &&
@@ -5113,6 +5113,13 @@ static void run(struct vdec_s *vdec,
 
 	hw->vdec_cb_arg = arg;
 	hw->vdec_cb = callback;
+
+	if (kfifo_len(&hw->display_q) > VF_POOL_SIZE) {
+		hw->reset_bufmgr_flag = 1;
+		dpb_print(DECODE_ID(hw), 0,
+			"kfifo len:%d invaild, need bufmgr reset\n",
+			kfifo_len(&hw->display_q));
+	}
 
 	if (hw->reset_bufmgr_flag ||
 		((error_proc_policy & 0x40) &&
