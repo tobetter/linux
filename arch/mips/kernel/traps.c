@@ -12,6 +12,7 @@
  * Copyright (C) 2000, 2001, 2012 MIPS Technologies, Inc.  All rights reserved.
  * Copyright (C) 2014, Imagination Technologies Ltd.
  */
+#include <linux/bitops.h>
 #include <linux/bug.h>
 #include <linux/compiler.h>
 #include <linux/context_tracking.h>
@@ -706,29 +707,66 @@ asmlinkage void do_ov(struct pt_regs *regs)
 	exception_exit(prev_state);
 }
 
-int process_fpemu_return(int sig, void __user *fault_addr)
+/*
+ * Send SIGFPE according to FCSR Cause bits, which must have already
+ * been masked against Enable bits.  This is impotant as Inexact can
+ * happen together with Overflow or Underflow, and `ptrace' can set
+ * any bits.
+ */
+void force_fcr31_sig(unsigned long fcr31, void __user *fault_addr,
+		     struct task_struct *tsk)
 {
-	if (sig == SIGSEGV || sig == SIGBUS) {
-		struct siginfo si = {0};
+	struct siginfo si = { .si_addr = fault_addr, .si_signo = SIGFPE };
+
+	if (fcr31 & FPU_CSR_INV_X)
+		si.si_code = FPE_FLTINV;
+	else if (fcr31 & FPU_CSR_DIV_X)
+		si.si_code = FPE_FLTDIV;
+	else if (fcr31 & FPU_CSR_OVF_X)
+		si.si_code = FPE_FLTOVF;
+	else if (fcr31 & FPU_CSR_UDF_X)
+		si.si_code = FPE_FLTUND;
+	else if (fcr31 & FPU_CSR_INE_X)
+		si.si_code = FPE_FLTRES;
+	else
+		si.si_code = __SI_FAULT;
+	force_sig_info(SIGFPE, &si, tsk);
+}
+
+int process_fpemu_return(int sig, void __user *fault_addr, unsigned long fcr31)
+{
+	struct siginfo si = { 0 };
+
+	switch (sig) {
+	case 0:
+		return 0;
+
+	case SIGFPE:
+		force_fcr31_sig(fcr31, fault_addr, current);
+		return 1;
+
+	case SIGBUS:
 		si.si_addr = fault_addr;
 		si.si_signo = sig;
-		if (sig == SIGSEGV) {
-			down_read(&current->mm->mmap_sem);
-			if (find_vma(current->mm, (unsigned long)fault_addr))
-				si.si_code = SEGV_ACCERR;
-			else
-				si.si_code = SEGV_MAPERR;
-			up_read(&current->mm->mmap_sem);
-		} else {
-			si.si_code = BUS_ADRERR;
-		}
+		si.si_code = BUS_ADRERR;
 		force_sig_info(sig, &si, current);
 		return 1;
-	} else if (sig) {
+
+	case SIGSEGV:
+		si.si_addr = fault_addr;
+		si.si_signo = sig;
+		down_read(&current->mm->mmap_sem);
+		if (find_vma(current->mm, (unsigned long)fault_addr))
+			si.si_code = SEGV_ACCERR;
+		else
+			si.si_code = SEGV_MAPERR;
+		up_read(&current->mm->mmap_sem);
+		force_sig_info(sig, &si, current);
+		return 1;
+
+	default:
 		force_sig(sig, current);
 		return 1;
-	} else {
-		return 0;
 	}
 }
 
@@ -738,18 +776,21 @@ int process_fpemu_return(int sig, void __user *fault_addr)
 asmlinkage void do_fpe(struct pt_regs *regs, unsigned long fcr31)
 {
 	enum ctx_state prev_state;
-	siginfo_t info = {0};
+	void __user *fault_addr;
+	int sig;
 
 	prev_state = exception_enter();
 	if (notify_die(DIE_FP, "FP exception", regs, 0, regs_to_trapnr(regs),
 		       SIGFPE) == NOTIFY_STOP)
 		goto out;
+
+	/* Clear FCSR.Cause before enabling interrupts */
+	write_32bit_cp1_register(CP1_STATUS, fcr31 & ~mask_fcr31_x(fcr31));
+	local_irq_enable();
+
 	die_if_kernel("FP exception in kernel code", regs);
 
 	if (fcr31 & FPU_CSR_UNI_X) {
-		int sig;
-		void __user *fault_addr = NULL;
-
 		/*
 		 * Unimplemented operation exception.  If we've got the full
 		 * software emulator on-board, let's use it...
@@ -768,34 +809,21 @@ asmlinkage void do_fpe(struct pt_regs *regs, unsigned long fcr31)
 					       &fault_addr);
 
 		/*
-		 * We can't allow the emulated instruction to leave any of
-		 * the cause bit set in $fcr31.
+		 * We can't allow the emulated instruction to leave any
+		 * enabled Cause bits set in $fcr31.
 		 */
-		current->thread.fpu.fcr31 &= ~FPU_CSR_ALL_X;
+		fcr31 = mask_fcr31_x(current->thread.fpu.fcr31);
+		current->thread.fpu.fcr31 &= ~fcr31;
 
 		/* Restore the hardware register state */
 		own_fpu(1);	/* Using the FPU again.	 */
+	} else {
+		sig = SIGFPE;
+		fault_addr = (void __user *) regs->cp0_epc;
+	}
 
-		/* If something went wrong, signal */
-		process_fpemu_return(sig, fault_addr);
-
-		goto out;
-	} else if (fcr31 & FPU_CSR_INV_X)
-		info.si_code = FPE_FLTINV;
-	else if (fcr31 & FPU_CSR_DIV_X)
-		info.si_code = FPE_FLTDIV;
-	else if (fcr31 & FPU_CSR_OVF_X)
-		info.si_code = FPE_FLTOVF;
-	else if (fcr31 & FPU_CSR_UDF_X)
-		info.si_code = FPE_FLTUND;
-	else if (fcr31 & FPU_CSR_INE_X)
-		info.si_code = FPE_FLTRES;
-	else
-		info.si_code = __SI_FAULT;
-	info.si_signo = SIGFPE;
-	info.si_errno = 0;
-	info.si_addr = (void __user *) regs->cp0_epc;
-	force_sig_info(SIGFPE, &info, current);
+	/* Send a signal if required.  */
+	process_fpemu_return(sig, fault_addr, fcr31);
 
 out:
 	exception_exit(prev_state);
@@ -1196,10 +1224,13 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 	enum ctx_state prev_state;
 	unsigned int __user *epc;
 	unsigned long old_epc, old31;
+	void __user *fault_addr;
 	unsigned int opcode;
+	unsigned long fcr31;
 	unsigned int cpid;
 	int status, err;
 	unsigned long __maybe_unused flags;
+	int sig;
 
 	prev_state = exception_enter();
 	cpid = (regs->cp0_cause >> CAUSEB_CE) & 3;
@@ -1273,15 +1304,22 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 	case 1:
 		err = enable_restore_fp_context(0);
 
-		if (!raw_cpu_has_fpu || err) {
-			int sig;
-			void __user *fault_addr = NULL;
-			sig = fpu_emulator_cop1Handler(regs,
-						       &current->thread.fpu,
-						       0, &fault_addr);
-			if (!process_fpemu_return(sig, fault_addr) && !err)
-				mt_ase_fp_affinity();
-		}
+		if (raw_cpu_has_fpu && !err)
+			break;
+
+		sig = fpu_emulator_cop1Handler(regs, &current->thread.fpu, 0,
+					       &fault_addr);
+
+		/*
+		 * We can't allow the emulated instruction to leave
+		 * any enabled Cause bits set in $fcr31.
+		 */
+		fcr31 = mask_fcr31_x(current->thread.fpu.fcr31);
+		current->thread.fpu.fcr31 &= ~fcr31;
+
+		/* Send a signal if required.  */
+		if (!process_fpemu_return(sig, fault_addr, fcr31) && !err)
+			mt_ase_fp_affinity();
 
 		break;
 
@@ -1293,13 +1331,22 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 	exception_exit(prev_state);
 }
 
-asmlinkage void do_msa_fpe(struct pt_regs *regs)
+asmlinkage void do_msa_fpe(struct pt_regs *regs, unsigned int msacsr)
 {
 	enum ctx_state prev_state;
 
 	prev_state = exception_enter();
+	if (notify_die(DIE_MSAFP, "MSA FP exception", regs, 0,
+		       regs_to_trapnr(regs), SIGFPE) == NOTIFY_STOP)
+		goto out;
+
+	/* Clear MSACSR.Cause before enabling interrupts */
+	write_msa_csr(msacsr & ~MSA_CSR_CAUSEF);
+	local_irq_enable();
+
 	die_if_kernel("do_msa_fpe invoked from kernel context!", regs);
 	force_sig(SIGFPE, current);
+out:
 	exception_exit(prev_state);
 }
 
