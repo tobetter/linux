@@ -13,9 +13,22 @@ thermal_sys-$(CONFIG_THERMAL_OF)		+= of-thermal.o
 thermal_sys-$(CONFIG_THERMAL_GOV_FAIR_SHARE)	+= fair_share.o
 thermal_sys-$(CONFIG_THERMAL_GOV_STEP_WISE)	+= step_wise.o
 thermal_sys-$(CONFIG_THERMAL_GOV_USER_SPACE)	+= user_space.o
+thermal_sys-$(CONFIG_THERMAL_GOV_POWER_ALLOCATOR)	+= power_allocator.o
 
 # cpufreq cooling
 thermal_sys-$(CONFIG_CPU_THERMAL)	+= cpu_cooling.o
+
+# devfreq cooling
+thermal_sys-$(CONFIG_DEVFREQ_THERMAL) += devfreq_cooling.o
+
+# cpu core num cooling
+thermal_sys-$(CONFIG_CPUCORE_THERMAL)	+= cpucore_cooling.o
+
+# gpufreq cooling
+thermal_sys-$(CONFIG_GPU_THERMAL)	+= gpu_cooling.o
+
+# gpu core num cooling
+thermal_sys-$(CONFIG_GPUCORE_THERMAL)	+= gpucore_cooling.o
 
 # platform thermal drivers
 obj-$(CONFIG_SPEAR_THERMAL)	+= spear_thermal.o
