@@ -1001,56 +1001,6 @@ static ssize_t store_debug(struct device *dev,
 	return 16;
 }
 
-/* support format lists */
-const char *disp_mode_t[] = {
-	"480i60hz",
-	"480i_rpt",
-	"480p60hz",
-	"480p_rpt",
-	"576i50hz",
-	"576i_rpt",
-	"576p50hz",
-	"576p_rpt",
-	"720p60hz",
-	"1080i60hz",
-	"1080p60hz",
-	"720p50hz",
-	"1080i50hz",
-	"1080p50hz",
-	"1080p24hz",
-	"2160p30hz",
-	"2160p25hz",
-	"2160p24hz",
-	"smpte24hz",
-	"2160p50hz",
-	"2160p60hz",
-	"2160p50hz420",
-	"2160p60hz420",
-	/* VESA modes */
-	"640x480p60hz",
-	"800x480p60hz",
-	"480x800p60hz",
-	"800x600p60hz",
-	"1024x600p60hz",
-	"1024x768p60hz",
-	"1280x800p60hz",
-	"1280x1024p60hz",
-	"1360x768p60hz",
-	"1366x768p60hz",
-	"1440x900p60hz",
-	"1600x900p60hz",
-	"1600x1200p60hz",
-	"1680x1050p60hz",
-	"1920x1200p60hz",
-	"2560x1440p60hz",
-	"2560x1600p60hz",
-	"2560x1080p60hz",
-	"3440x1440p60hz",
-	"480x320p60hz",
-	"custombuilt",
-	NULL
-};
-
 /**/
 static ssize_t show_disp_cap(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -1062,15 +1012,15 @@ static ssize_t show_disp_cap(struct device *dev,
 	if (hdmitx_device.tv_no_edid) {
 		pos += snprintf(buf+pos, PAGE_SIZE, "null edid\n");
 	} else {
-		for (i = 0; disp_mode_t[i]; i++) {
+		for (i = 0; hdmitx_edid_get_dispmode(i); i++) {
 			vic = hdmitx_edid_get_VIC(&hdmitx_device,
-				disp_mode_t[i], 0);
+				hdmitx_edid_get_dispmode(i), 0);
 		if (vic != HDMI_Unkown) {
 			pos += snprintf(buf+pos, PAGE_SIZE, "%s",
-				disp_mode_t[i]);
+				hdmitx_edid_get_dispmode(i));
 			if (native_disp_mode && (strcmp(
 				native_disp_mode,
-				disp_mode_t[i]) == 0)) {
+				hdmitx_edid_get_dispmode(i)) == 0)) {
 				pos += snprintf(buf+pos, PAGE_SIZE,
 					"*\n");
 			} else
@@ -1090,16 +1040,16 @@ static ssize_t show_disp_cap_3d(struct device *dev,
 	int j = 0;
 	enum hdmi_vic vic;
 
-	for (i = 0; disp_mode_t[i]; i++) {
+	for (i = 0; hdmitx_edid_get_dispmode(i); i++) {
 		vic = hdmitx_edid_get_VIC(&hdmitx_device,
-			disp_mode_t[i], 0);
+			hdmitx_edid_get_dispmode(i), 0);
 	if (vic == hdmitx_device.cur_VIC) {
 		for (j = 0; j < hdmitx_device.RXCap.VIC_count; j++) {
 			if (vic == hdmitx_device.RXCap.VIC[j])
 				break;
 		}
 		pos += snprintf(buf+pos, PAGE_SIZE, "%s ",
-			disp_mode_t[i]);
+			hdmitx_edid_get_dispmode(i));
 		if (hdmitx_device.RXCap.support_3d_format[
 			hdmitx_device.RXCap.VIC[j]].frame_packing == 1){
 			pos += snprintf(buf+pos, PAGE_SIZE,

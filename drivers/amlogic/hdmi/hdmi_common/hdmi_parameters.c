@@ -49,6 +49,36 @@ static struct hdmi_format_para fmt_para_1920x1080p60_16x9 = {
 	},
 };
 
+static struct hdmi_format_para fmt_para_1920x1080p30_16x9 = {
+	.vic = HDMI_1920x1080p30_16x9,
+	.name = "1920x1080p30hz",
+	.pixel_repetition_factor = 0,
+	.progress_mode = 1,
+	.scrambler_en = 0,
+	.tmds_clk_div40 = 0,
+	.tmds_clk = 74250,
+	.timing = {
+                .pixel_freq = 74250,
+                .h_freq = 33750,
+                .v_freq = 30000,
+                .vsync_polarity = 1,
+                .hsync_polarity = 1,
+                .h_active = 1920,
+                .h_total = 2200,
+                .h_blank = 280,
+                .h_front = 88,
+                .h_sync = 44,
+                .h_back = 148,
+                .v_active = 1080,
+                .v_total = 1125,
+                .v_blank = 45,
+                .v_front = 4,
+                .v_sync = 5,
+                .v_back = 36,
+                .v_sync_ln = 1,
+	},
+};
+
 static struct hdmi_format_para fmt_para_1920x1080p50_16x9 = {
 	.vic = HDMI_1920x1080p50_16x9,
 	.name = "1920x1080p50hz",
@@ -77,6 +107,36 @@ static struct hdmi_format_para fmt_para_1920x1080p50_16x9 = {
 		.v_back = 36,
 		.v_sync_ln = 1,
 	},
+};
+
+static struct hdmi_format_para fmt_para_1920x1080p25_16x9 = {
+        .vic = HDMI_1920x1080p25_16x9,
+        .name = "1920x1080p25hz",
+        .pixel_repetition_factor = 0,
+        .progress_mode = 1,
+        .scrambler_en = 0,
+        .tmds_clk_div40 = 0,
+        .tmds_clk = 74250,
+        .timing = {
+                .pixel_freq = 74250,
+                .h_freq = 28125,
+                .v_freq = 25000,
+                .vsync_polarity = 1,
+                .hsync_polarity = 1,
+                .h_active = 1920,
+                .h_total = 2640,
+                .h_blank = 720,
+                .h_front = 528,
+                .h_sync = 44,
+                .h_back = 148,
+                .v_active = 1080,
+                .v_total = 1125,
+                .v_blank = 45,
+                .v_front = 4,
+                .v_sync = 5,
+                .v_back = 36,
+                .v_sync_ln = 1,
+        },
 };
 
 static struct hdmi_format_para fmt_para_1920x1080p24_16x9 = {
@@ -1492,6 +1552,8 @@ static struct hdmi_format_para *all_fmt_paras[] = {
 	&fmt_para_4096x2160p24_256x135,
 	&fmt_para_1920x1080p50_16x9,
 	&fmt_para_1920x1080p60_16x9,
+	&fmt_para_1920x1080p30_16x9,
+	&fmt_para_1920x1080p25_16x9,
 	&fmt_para_1920x1080p24_16x9,
 	&fmt_para_1920x1080i60_16x9,
 	&fmt_para_1920x1080i50_16x9,
@@ -1539,6 +1601,25 @@ struct hdmi_format_para *hdmi_get_fmt_paras(enum hdmi_vic vic)
 			return all_fmt_paras[i];
 	}
 	return NULL;
+}
+
+enum hdmi_vic hdmi_get_vic_by_name(const char *hdmi_mode)
+{
+	int i;
+
+        for (i = 0; all_fmt_paras[i] != NULL; i++) {
+		if (strcmp(hdmi_mode, all_fmt_paras[i]->name) == 0)
+                        return all_fmt_paras[i]->vic;
+        }
+
+	for (i = 0; all_fmt_paras[i] != NULL; i++) {
+		char * pch = strchr(all_fmt_paras[i]->name,'x');
+		if (pch)
+			if (strcmp(hdmi_mode, pch+1) == 0)
+				return all_fmt_paras[i]->vic;
+	}
+
+	return HDMI_Unkown;
 }
 
 /* For check all format parameters only */

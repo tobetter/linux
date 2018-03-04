@@ -92,6 +92,7 @@ static int tv_vdac_power_level;
 
 static DEFINE_MUTEX(setmode_mutex);
 
+static enum vmode_e tvmode_to_vmode(enum tvmode_e tvmode);
 static void cvbs_config_vdac(unsigned int flag, unsigned int cfg);
 
 #ifdef CONFIG_CVBS_PERFORMANCE_COMPATIBLITY_SUPPORT
@@ -258,16 +259,6 @@ static const struct reg_s *tvregs_get_enc_setting_by_mode(enum tvmode_e mode)
 	return NULL;
 }
 
-static const struct tvinfo_s *tvinfo_mode(enum tvmode_e mode)
-{
-	int i = 0;
-	for (i = 0; i < ARRAY_SIZE(tvinfoTab); i++) {
-		if (mode == tvinfoTab[i].tvmode)
-			return &tvinfoTab[i];
-	}
-	return NULL;
-}
-
 static void tv_out_init_off(enum tvmode_e mode)
 {
 	/* turn off cvbs clock */
@@ -280,6 +271,7 @@ static void tv_out_init_off(enum tvmode_e mode)
 		    (mode == TVMODE_720P) || (mode == TVMODE_720P_50HZ) ||
 		    (mode == TVMODE_1080I) || (mode == TVMODE_1080I_50HZ) ||
 		    (mode == TVMODE_1080P) || (mode == TVMODE_1080P_50HZ) ||
+		    (mode == TVMODE_1080P_30HZ) || (mode == TVMODE_1080P_25HZ) ||
 		    (mode == TVMODE_1080P_24HZ) || (mode == TVMODE_4K2K_24HZ) ||
 		    (mode == TVMODE_4K2K_25HZ) || (mode == TVMODE_4K2K_30HZ) ||
 		    (mode == TVMODE_4K2K_FAKE_5G) ||
@@ -473,7 +465,8 @@ static char *tv_out_bist_str[] = {
 
 int tv_out_setmode(enum tvmode_e mode)
 {
-	const struct tvinfo_s *tvinfo;
+	enum vmode_e vmode;
+	struct vinfo_s *vinfo;
 	static int uboot_display_flag = 1;
 	int ret;
 
@@ -482,13 +475,15 @@ int tv_out_setmode(enum tvmode_e mode)
 		return -ENODEV;
 	}
 	mutex_lock(&setmode_mutex);
-	tvinfo = tvinfo_mode(mode);
-	if (!tvinfo) {
-		vout_log_info(KERN_ERR "tvinfo %d not find\n", mode);
+
+	vmode = tvmode_to_vmode(mode);
+	vinfo = get_tv_info(vmode);
+	if (!vinfo) {
+		vout_log_info(KERN_ERR "vinfo %d not found\n", vmode);
 		mutex_unlock(&setmode_mutex);
 		return 0;
 	}
-	vout_log_info("TV mode %s selected.\n", tvinfo->id);
+	vout_log_info("TV mode %s selected.\n", vinfo->name);
 
 	if (uboot_display_flag) {
 		uboot_display_flag = 0;
@@ -531,6 +526,16 @@ static const enum tvmode_e vmode_tvmode_map(enum vmode_e mode)
 	return TVMODE_MAX;
 }
 
+static const enum vmode_e tvmode_vmode_map(enum tvmode_e tvmode)
+{
+	int i = 0;
+	for (i = 0; i < ARRAY_SIZE(mode_tab); i++) {
+		if (tvmode == mode_tab[i].tvmode)
+			return mode_tab[i].mode;
+	}
+	return VMODE_MAX;
+}
+
 static const struct file_operations am_tv_fops = {
 	.open	= NULL,
 	.read	= NULL,/* am_tv_read, */
@@ -566,6 +571,11 @@ static const struct vinfo_s *tv_get_current_info(void)
 enum tvmode_e vmode_to_tvmode(enum vmode_e mode)
 {
 	return vmode_tvmode_map(mode);
+}
+
+static enum vmode_e tvmode_to_vmode(enum tvmode_e tvmode)
+{
+        return tvmode_vmode_map(tvmode);
 }
 
 struct vinfo_s *get_tv_info(enum vmode_e mode)
@@ -619,6 +629,8 @@ static int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_1080I_50HZ)
 	    || (mode == VMODE_1080P)
 	    || (mode == VMODE_1080P_50HZ)
+	    || (mode == VMODE_1080P_30HZ)
+	    || (mode == VMODE_1080P_25HZ)
 	    || (mode == VMODE_1080P_24HZ)
 	    || (mode == VMODE_4K2K_24HZ)
 	    || (mode == VMODE_4K2K_25HZ)

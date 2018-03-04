@@ -318,169 +318,7 @@ static int osd_set_res_bootargs(int index, enum vmode_e mode)
 		fb_def_var[index].bits_per_pixel = 32;
 	}
 
-	/* FIXME : need to adjust this routine */
 	switch (mode) {
-	case TVMODE_640x480p60hz:
-		fb_def_var[index].xres = 640;
-		fb_def_var[index].yres = 480;
-		fb_def_var[index].xres_virtual = 640;
-		fb_def_var[index].yres_virtual = 960;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_800x480p60hz:
-		fb_def_var[index].xres = 800;
-		fb_def_var[index].yres = 480;
-		fb_def_var[index].xres_virtual = 800;
-		fb_def_var[index].yres_virtual = 960;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_800x600p60hz:
-		fb_def_var[index].xres = 800;
-		fb_def_var[index].yres = 600;
-		fb_def_var[index].xres_virtual = 800;
-		fb_def_var[index].yres_virtual = 1200;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1024x600p60hz:
-		fb_def_var[index].xres = 1024;
-		fb_def_var[index].yres = 600;
-		fb_def_var[index].xres_virtual = 1024;
-		fb_def_var[index].yres_virtual = 1200;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1024x768p60hz:
-		fb_def_var[index].xres = 1024;
-		fb_def_var[index].yres = 768;
-		fb_def_var[index].xres_virtual = 1024;
-		fb_def_var[index].yres_virtual = 1536;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1280x800p60hz:
-		fb_def_var[index].xres = 1280;
-		fb_def_var[index].yres = 800;
-		fb_def_var[index].xres_virtual = 1280;
-		fb_def_var[index].yres_virtual = 1600;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1280x1024p60hz:
-		fb_def_var[index].xres = 1280;
-		fb_def_var[index].yres = 1024;
-		fb_def_var[index].xres_virtual = 1280;
-		fb_def_var[index].yres_virtual = 2048;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1360x768p60hz:
-		fb_def_var[index].xres = 1360;
-		fb_def_var[index].yres = 768;
-		fb_def_var[index].xres_virtual = 1360;
-		fb_def_var[index].yres_virtual = 1536;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1366x768p60hz:
-		fb_def_var[index].xres = 1366;
-		fb_def_var[index].yres = 768;
-		fb_def_var[index].xres_virtual = 1366;
-		fb_def_var[index].yres_virtual = 1536;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1440x900p60hz:
-		fb_def_var[index].xres = 1440;
-		fb_def_var[index].yres = 900;
-		fb_def_var[index].xres_virtual = 1440;
-		fb_def_var[index].yres_virtual = 1800;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1600x900p60hz:
-		fb_def_var[index].xres = 1600;
-		fb_def_var[index].yres = 900;
-		fb_def_var[index].xres_virtual = 1600;
-		fb_def_var[index].yres_virtual = 1800;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1680x1050p60hz:
-		fb_def_var[index].xres = 1680;
-		fb_def_var[index].yres = 1050;
-		fb_def_var[index].xres_virtual = 1680;
-		fb_def_var[index].yres_virtual = 2100;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_1920x1200p60hz:
-		fb_def_var[index].xres = 1920;
-		fb_def_var[index].yres = 1200;
-		fb_def_var[index].xres_virtual = 1920;
-		fb_def_var[index].yres_virtual = 2400;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_2560x1440p60hz:
-		fb_def_var[index].xres = 2560;
-		fb_def_var[index].yres = 1440;
-		fb_def_var[index].xres_virtual = 2560;
-		fb_def_var[index].yres_virtual = 2880;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_2560x1600p60hz:
-		fb_def_var[index].xres = 2560;
-		fb_def_var[index].yres = 1600;
-		fb_def_var[index].xres_virtual = 2560;
-		fb_def_var[index].yres_virtual = 3200;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_2560x1080p60hz:
-		fb_def_var[index].xres = 2560;
-		fb_def_var[index].yres = 1080;
-		fb_def_var[index].xres_virtual = 2560;
-		fb_def_var[index].yres_virtual = 2160;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_3440x1440p60hz:
-		fb_def_var[index].xres = 3440;
-		fb_def_var[index].yres = 1440;
-		fb_def_var[index].xres_virtual = 3440;
-		fb_def_var[index].yres_virtual = 2880;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case TVMODE_480x320p60hz:
-		fb_def_var[index].xres = 480;
-		fb_def_var[index].yres = 320;
-		fb_def_var[index].xres_virtual = 480;
-		fb_def_var[index].yres_virtual = 320;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case VMODE_480P:
-	case VMODE_480I:
-		fb_def_var[index].xres = 720;
-		fb_def_var[index].yres = 480;
-		fb_def_var[index].xres_virtual = 720;
-		fb_def_var[index].yres_virtual = 960;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case VMODE_576P:
-	case VMODE_576I:
-		fb_def_var[index].xres = 720;
-		fb_def_var[index].yres = 576;
-		fb_def_var[index].xres_virtual = 720;
-		fb_def_var[index].yres_virtual = 1152;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case VMODE_720P:
-	case VMODE_720P_50HZ:
-		fb_def_var[index].xres = 1280;
-		fb_def_var[index].yres = 720;
-		fb_def_var[index].xres_virtual = 1280;
-		fb_def_var[index].yres_virtual = 1440;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
-	case VMODE_1080P:
-	case VMODE_1080P_50HZ:
-	case VMODE_1080P_24HZ:
-	case VMODE_1080I:
-	case VMODE_1080I_50HZ:
-		fb_def_var[index].xres = 1920;
-		fb_def_var[index].yres = 1080;
-		fb_def_var[index].xres_virtual = 1920;
-		fb_def_var[index].yres_virtual = 2160;
-		fb_def_var[index].bits_per_pixel = 32;
-		break;
 	case VMODE_4K2K_30HZ:
 	case VMODE_4K2K_25HZ:
 	case VMODE_4K2K_60HZ:
@@ -1206,11 +1044,133 @@ static void set_default_display_axis(struct fb_var_screeninfo *var,
 	return;
 }
 
+static int __osd_validate_vic_ignore(enum hdmi_vic vic)
+{
+	return (((vic >= HDMI_720x240p60_4x3)       && (vic <= HDMI_1440x480p60_16x9)) || \
+                ((vic >= HDMI_720x288p_4x3)         && (vic <= HDMI_1440x576p_16x9)) || \
+                ((vic >= HDMI_2880x480p60_4x3)      && (vic <= HDMI_720x480i240_16x9)) || \
+		((vic >= HDMI_1280x720p24_16x9)     && (vic <= HDMI_1280x720p30_16x9)) || \
+                ((vic >= HDMI_1920x1080p120_16x9)   && (vic <= HDMI_2560x1080p120_64x27)) || \
+                ((vic >= HDMI_4096x2160p25_256x135) && (vic <= HDMI_4096x2160p60_256x135)) || \
+                ((vic >= HDMI_3840x2160p24_64x27)   && (vic <= HDMI_3840x2160p60_64x27)) || \
+                ((vic >= HDMI_VIC_Y420)             && (vic <= HDMI_VIC_Y420+HDMI_2560x1080p120_64x27)) || \
+		((vic >= HDMI_VIC_Y420+HDMI_3840x2160p24_16x9) && (vic <= HDMI_VIC_Y420+HDMI_3840x2160p30_16x9)) || \
+                ((vic >= HDMI_4096x2160p25_256x135_Y420) && (vic <= HDMI_4096x2160p60_256x135_Y420)) || \
+                ((vic >= HDMI_3840x2160p24_64x27_Y420)   && (vic <= HDMI_3840x2160p60_64x27_Y420)) || \
+                (vic == HDMI_RESERVED) || (vic == HDMIV_CUSTOMBUILT));
+}
+
+static int __osd_validate_vic(enum hdmi_vic vic, int vic_offset, struct hdmi_format_para *fmt_para, int validate_mode)
+{
+	struct hdmi_format_para *para;
+	struct hdmitx_vidpara *vidpara;
+	struct hdmitx_vidpara txpara;
+	int hdmi_xres, hdmi_yres, hdmi_vbln, tvenc_valid;
+	__u64 drate;
+	int valid = 1;
+
+        vidpara = hdmi_get_video_param(vic);
+
+	if (vidpara)
+	{
+		;;
+	}
+	else
+	{
+		if (!__osd_validate_vic_ignore(vic))
+		{
+			valid = 0;
+			osd_log_info("warning: hdmi %d (0x%03x + %d) no video para\n", vic, vic_offset, vic-vic_offset);
+		}
+	}
+
+	para = fmt_para;
+#ifdef CONFIG_AML_HDMI_TX_20
+	if (para)
+	{
+		if (!validate_mode) 
+			osd_log_info("hdmi format para for %d is: %d %s\n", vic, para->vic, para->name);
+	} else {
+		para = hdmi_get_fmt_paras(vic);
+	}
+
+	if (!para)
+	{
+		if (!__osd_validate_vic_ignore(vic))
+		{
+			valid = 0;
+			osd_log_info("warning: hdmi %d (0x%03x + %d) no format para\n", vic, vic_offset, vic-vic_offset);
+		}
+
+		return valid;
+	}
+
+	hdmi_xres = para->timing.h_active / (para->pixel_repetition_factor+1);
+	hdmi_yres = para->timing.v_active * (2-para->progress_mode);
+	//int hdmi_vfrq = (para->timing.v_freq+66)/1000*1000;
+	hdmi_vbln = (para->timing.v_blank * (2-para->progress_mode)) + (para->timing.v_total % (2-para->progress_mode));
+	drate = para->timing.pixel_freq;
+	drate = 1000000000/drate;
+
+	if (para->timing.pixel_freq != para->tmds_clk)
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi timing.pixel_freq %d != %d tmds_clk hdmi\n",
+			para->timing.pixel_freq, para->tmds_clk);
+	}
+
+	if (para->timing.h_blank != para->timing.h_front+para->timing.h_sync+para->timing.h_back)
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi timing.h_blank %d != %d+%d+%d hdmi \n",
+			para->timing.h_blank, para->timing.h_front, para->timing.h_sync, para->timing.h_back);
+	}
+
+	if (para->timing.v_blank != para->timing.v_front+para->timing.v_sync+para->timing.v_back)
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi timing.v_blank %d != %d+%d+%d hdmi \n",
+			para->timing.v_blank, para->timing.v_front, para->timing.v_sync, para->timing.v_back);
+	}
+
+	if (para->timing.h_total != para->timing.h_active+para->timing.h_blank)
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi timing.h_total %d != %d+%d hdmi \n",
+			para->timing.h_total, para->timing.h_active, para->timing.h_blank);
+	}
+
+	if (para->timing.v_total != hdmi_yres+hdmi_vbln)
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi timing.v_total %d != %d+%d (%d+%d) hdmi \n",
+			para->timing.v_total, para->timing.v_active, para->timing.v_blank, hdmi_yres, hdmi_vbln);
+	}
+
+	if (validate_mode)
+	{
+		txpara.VIC = vic;
+
+		tvenc_valid = hdmi_tvenc_validate(&txpara, para);
+		valid = valid && tvenc_valid;
+	}
+
+	if ((!fmt_para) && (!valid))
+		osd_log_info("info: hdmi %d %s, %dx%d-%d %d\n",
+			para->vic, para->name,
+			para->timing.h_active, para->timing.v_active, para->timing.v_freq/1000, para->timing.pixel_freq);
+#endif
+
+	return valid;
+}
+
 static void __osd_update_timings(struct fb_var_screeninfo *var,
                 const struct vinfo_s *vinfo, int mode_change, int validate_mode)
 {
+	enum tvmode_e tvmode;
 	enum hdmi_vic vic;
 	int hdmi_xres, hdmi_yres, hdmi_vfrq, vmode_mapped = 0;
+	int valid = 0;
 	__u64 drate = 0;
 	char tmp_vmode_name[16];
 	struct hdmi_format_para *para;
@@ -1225,6 +1185,21 @@ static void __osd_update_timings(struct fb_var_screeninfo *var,
 	//var->sync = 0;                     /* see FB_SYNC_*                */
 	var->vmode = 0;                    /* see FB_VMODE_*               */
 
+	tvmode = vmode_to_tvmode(vinfo->mode);
+	if (tvmode < TVMODE_MAX)
+	{
+		if ((int)(vinfo->mode) != (int)tvmode)
+			osd_log_info("warning: vinfo %d != %d tvmode, %dx%d-%d\n",
+				vinfo->mode, tvmode,
+				vinfo->width, vinfo->height, vinfo->sync_duration_num);
+	} else {
+		osd_log_info("warning: vinfo %d %s, %dx%d-%d %d:%d %d, no tvmode\n",
+			vinfo->mode, vinfo->name,
+			vinfo->width, vinfo->height, vinfo->sync_duration_num,
+			vinfo->aspect_ratio_num, vinfo->aspect_ratio_den, vinfo->video_clk/1000);
+	}
+
+	//vic = hdmitx_edid_get_VIC(NULL, vinfo->name, 1);
 	vic = hdmitx_edid_vic_tab_map_vic(vinfo->name);
 	if (vic == HDMI_Unkown)
 	{
@@ -1286,13 +1261,44 @@ static void __osd_update_timings(struct fb_var_screeninfo *var,
 	hdmi_xres = para->timing.h_active / (para->pixel_repetition_factor+1);
 	hdmi_yres = para->timing.v_active * (2-para->progress_mode);
 	hdmi_vfrq = (para->timing.v_freq+66)/1000*1000;
+	//int hdmi_vbln = (para->timing.v_blank * (2-para->progress_mode)) + (para->timing.v_total % (2-para->progress_mode));
 	drate = para->timing.pixel_freq;
 	drate = 1000000000/drate;
 
 	if (!validate_mode)
 	   osd_log_info("hdmi format para for %d is: %d %s\n", vic, para->vic, para->name);
 
-	if (!validate_mode)
+	valid = __osd_validate_vic(vic, 0, para, validate_mode);
+
+	if ((hdmi_xres != vinfo->width) || (hdmi_yres != vinfo->height) || \
+	    (hdmi_vfrq/1000 != vinfo->sync_duration_num) || (para->timing.pixel_freq != vinfo->video_clk/1000))
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi %dx%d-%d %d != %dx%d-%d %d vinfo\n",
+			hdmi_xres, hdmi_yres, hdmi_vfrq/1000, para->timing.pixel_freq,
+			vinfo->width, vinfo->height, vinfo->sync_duration_num, vinfo->video_clk/1000);
+	}
+
+	if ((var->xres != hdmi_xres) || (var->yres != hdmi_yres))
+	{
+		valid = 0;
+		osd_log_info("warning: hdmi %dx%d != %dx%d fb\n",
+			hdmi_xres, hdmi_yres,
+			var->xres, var->yres);
+	}
+
+	if (validate_mode)
+	{
+		if ((!valid) && (vmode_mapped))
+			osd_log_info("info: used %s for %d %s\n", tmp_vmode_name, vinfo->mode, vinfo->name);
+
+		if (!valid)
+			osd_log_info("vinfo %d %s, hdmi %d %s, %dx%d-%d %d:%d %d\n", 
+				vinfo->mode, vinfo->name, para->vic, para->name,
+				vinfo->width, vinfo->height, vinfo->sync_duration_num,
+				vinfo->aspect_ratio_num, vinfo->aspect_ratio_den, vinfo->video_clk/1000);
+	}
+	else
 	{
 		osd_log_info("mode \"%dx%d-%d\"\n", \
 			hdmi_xres, hdmi_yres, para->timing.v_freq/1000);
@@ -1300,6 +1306,7 @@ static void __osd_update_timings(struct fb_var_screeninfo *var,
 			para->timing.pixel_freq, para->timing.h_freq, para->timing.v_freq);
 		osd_log_info("    geometry %d %d %d %d %d\n", \
 			var->xres, var->yres, var->xres_virtual, var->yres_virtual, var->bits_per_pixel);
+			//hdmi_xres, hdmi_yres, hdmi_xres, hdmi_yres, 32);
 		osd_log_info("    timings %d %d %d %d %d %d %d\n", \
 			(__u32)drate, para->timing.h_back, para->timing.h_front, para->timing.v_back,
 			para->timing.v_front, para->timing.h_sync, para->timing.v_sync);
@@ -1323,6 +1330,49 @@ static void osd_update_timings(struct fb_var_screeninfo *var,
                 const struct vinfo_s *vinfo, int mode_change)
 {
 	__osd_update_timings(var, vinfo, mode_change, 0);
+}
+
+static void osd_validate_tables(int validate_mode)
+{
+	int i;
+	struct fb_var_screeninfo var_info;
+	struct vinfo_s *vinfo;
+	int valid_count = 0;
+
+	osd_log_info("validating vinfo tables\n");
+
+	for (i = 0; i < VMODE_MAX; i++) {
+		vinfo = get_tv_info(i);
+
+		if (vinfo)
+		{
+			var_info.xres = vinfo->width;
+			var_info.yres = vinfo->height;
+			var_info.xres_virtual = vinfo->width;
+			var_info.yres_virtual = vinfo->height*2;
+			var_info.bits_per_pixel = 32;
+		
+			__osd_update_timings(&var_info, vinfo, 0, validate_mode);
+			valid_count += 1;
+		}
+	}
+	osd_log_info("found %d vinfos\n", valid_count);
+
+	osd_log_info("validating hdmi format tables\n");
+
+	valid_count = 0;
+	for (i = HDMI_Unkown+1; i < HDMI_VIC_CEA_MAX; i++) {
+		valid_count += __osd_validate_vic(i, 0, NULL, 1);
+	}
+	for (i = HDMI_VIC_Y420; i < HDMI_VIC_Y420_MAX; i++) {
+		valid_count += __osd_validate_vic(i, HDMI_VIC_Y420, NULL, 1);
+	}
+	for (i = HDMI_VIC_VESA+1; i < HDMI_VIC_VESA_MAX; i++) {
+		valid_count += __osd_validate_vic(i, HDMI_VIC_VESA, NULL, 1);
+	}
+	osd_log_info("found %d valid hdmi format parameters\n", valid_count);
+
+	osd_log_info("validation done.\n");
 }
 
 int osd_notify_callback(struct notifier_block *block, unsigned long cmd,
@@ -2572,6 +2622,8 @@ static int osd_probe(struct platform_device *pdev)
 			vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE,
 				&current_mode);
 	}
+
+	osd_validate_tables(1);
 
 	vinfo = get_current_vinfo();
 	osd_log_info("%s vinfo:%p\n", __func__, vinfo);

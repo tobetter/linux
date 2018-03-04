@@ -319,6 +319,8 @@ static struct hdmitx_clk hdmitx_clk[] = {
 	/* vic clk_sys clk_phy clk_vid clk_encp clk_enci clk_pixel */
 	{HDMI_1920x1080p60_16x9, 24000, 1485000, 148500, 148500, -1, 148500},
 	{HDMI_1920x1080p50_16x9, 24000, 1485000, 148500, 148500, -1, 148500},
+	{HDMI_1920x1080p30_16x9, 24000, 742500, 74250, 74250, -1, 74250},
+	{HDMI_1920x1080p25_16x9, 24000, 742500, 74250, 74250, -1, 74250},
 	{HDMI_1920x1080p24_16x9, 24000, 742500, 74250, 74250, -1, 74250},
 	{HDMI_1920x1080i60_16x9, 24000, 742500, 148500, 148500, -1, 74250},
 	{HDMI_1920x1080i50_16x9, 24000, 742500, 148500, 148500, -1, 74250},
@@ -633,7 +635,144 @@ static void enc_vpu_bridge_reset(int mode)
 	}
 }
 
-static void hdmi_tvenc1080i_set(struct hdmitx_vidpara *param)
+static int __hdmi_tvenc_do_validate(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para,
+	unsigned long TOTAL_PIXELS, unsigned long PIXEL_REPEAT_HDMI,
+                unsigned long PIXEL_REPEAT_VENC, unsigned long ACTIVE_PIXELS,
+        unsigned FRONT_PORCH, unsigned HSYNC_PIXELS, unsigned ACTIVE_LINES,
+                unsigned INTERLACE_MODE, unsigned TOTAL_LINES, unsigned SOF_LINES,
+                unsigned VSYNC_LINES,
+        unsigned LINES_F0, unsigned LINES_F1, unsigned BACK_PORCH,
+                unsigned EOF_LINES, unsigned TOTAL_FRAMES)
+{
+	int valid = 0;
+
+	if (format_para)
+	{
+		//int tvenc_xres = ACTIVE_PIXELS / (PIXEL_REPEAT_HDMI+1);
+		int tvenc_yres = ACTIVE_LINES * (1+INTERLACE_MODE);
+		int tvenc_hblk = FRONT_PORCH+HSYNC_PIXELS+BACK_PORCH;
+		int tvenc_veof = EOF_LINES;
+		int tvenc_vsof = SOF_LINES;
+		int tvenc_vblk = tvenc_veof+VSYNC_LINES+tvenc_vsof;
+		int tvenc_vbln = (tvenc_vblk * (1+INTERLACE_MODE)) + (TOTAL_LINES % (1+INTERLACE_MODE));
+		int i;
+		struct hdmitx_clk *tvenc_clk = NULL;
+
+		for (i = 0; i < ARRAY_SIZE(hdmitx_clk); i++) {
+			if (param->VIC == hdmitx_clk[i].vic)
+				tvenc_clk = &hdmitx_clk[i];
+		}
+
+		valid = 1;
+
+		/* if ((ACTIVE_PIXELS == 0) && (ACTIVE_LINES == 0) && (LINES_F0 == 0) && (LINES_F1 == 0) && \
+		    (BACK_PORCH == 0) && (FRONT_PORCH == 0) && \
+		    (SOF_LINES == 0) && (EOF_LINES == 0) && \
+		    (HSYNC_PIXELS == 0) && (VSYNC_LINES == 0)) */
+
+		if ((SOF_LINES == 0) && (VSYNC_LINES == 0))
+		{       
+			valid = -1;
+			
+			return valid;
+		}
+
+		/* 2 unkown extra lines on 4k modes */
+		if ((TOTAL_LINES == tvenc_yres+tvenc_vbln-2) && \
+		    (SOF_LINES-1 == format_para->timing.v_back) && \
+		    (EOF_LINES-1 == format_para->timing.v_front))
+		{
+		        tvenc_veof = EOF_LINES-1;
+		        tvenc_vsof = SOF_LINES-1;
+			tvenc_vblk = tvenc_veof+VSYNC_LINES+tvenc_vsof;
+			tvenc_vbln = (tvenc_vblk * (1+INTERLACE_MODE)) + (TOTAL_LINES % (1+INTERLACE_MODE));
+		}
+
+		if ((ACTIVE_PIXELS != format_para->timing.h_active) || (ACTIVE_LINES != format_para->timing.v_active) || \
+		    (TOTAL_PIXELS != format_para->timing.h_total) || (TOTAL_LINES != format_para->timing.v_total) || \
+		    (PIXEL_REPEAT_HDMI != format_para->pixel_repetition_factor) || (INTERLACE_MODE == format_para->progress_mode))
+		{       
+			valid = 0;
+			hdmi_print(IMP, HD "warning: %dx%d%c %d %d %d tvenc !=\n",
+			    ACTIVE_PIXELS, ACTIVE_LINES, (!INTERLACE_MODE) ? 'p' : 'i', TOTAL_PIXELS, TOTAL_LINES, PIXEL_REPEAT_HDMI);
+			hdmi_print(IMP, HD "         %dx%d%c %d %d %d hdmi\n",
+			    format_para->timing.h_active, format_para->timing.v_active, (format_para->progress_mode) ? 'p' : 'i', format_para->timing.h_total, format_para->timing.v_total, format_para->pixel_repetition_factor);
+		}
+
+		if ((BACK_PORCH != format_para->timing.h_back) || (FRONT_PORCH != format_para->timing.h_front) || \
+		    (tvenc_vsof != format_para->timing.v_back) || (tvenc_veof != format_para->timing.v_front) || \
+		    (HSYNC_PIXELS != format_para->timing.h_sync) || (VSYNC_LINES != format_para->timing.v_sync))
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: %d %d %d %d %d %d tvenc !=\n",
+			    BACK_PORCH, FRONT_PORCH, SOF_LINES, EOF_LINES, HSYNC_PIXELS, VSYNC_LINES);
+			hdmi_print(IMP, HD "         %d %d %d %d %d %d hdmi\n",
+			    format_para->timing.h_back, format_para->timing.h_front, format_para->timing.v_back,
+			    format_para->timing.v_front, format_para->timing.h_sync, format_para->timing.v_sync);
+		}
+
+		if (TOTAL_PIXELS != ACTIVE_PIXELS+tvenc_hblk)
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: tvenc TOTAL_PIXELS %d != %d+%d hdmi\n",
+				TOTAL_PIXELS, ACTIVE_PIXELS, tvenc_hblk);
+		}
+
+		if (TOTAL_LINES != tvenc_yres+tvenc_vbln)
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: tvenc TOTAL_LINES %d != %d+%d (%d+%d) hdmi\n",
+				TOTAL_LINES, ACTIVE_LINES, tvenc_vblk, tvenc_yres, tvenc_vbln);
+		}
+
+		if (LINES_F0 != TOTAL_LINES / (1+INTERLACE_MODE))
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: tvenc LINES_F0 %d != %d / (1+%d) tvenc\n",
+				LINES_F0, TOTAL_LINES, INTERLACE_MODE);
+		}
+
+		if (LINES_F1 != TOTAL_LINES-(LINES_F0*INTERLACE_MODE))
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: tvenc LINES_F1 %d != %d - (%d*%d) tvenc\n",
+				LINES_F1, TOTAL_LINES, LINES_F0, INTERLACE_MODE);
+		}
+		
+		if (tvenc_clk)
+		{
+			uint64_t tvenc_clk_enc = (INTERLACE_MODE) ? tvenc_clk->clk_enci : tvenc_clk->clk_encp;
+
+			/* special handling for 1080i modes */
+			if ((tvenc_clk->clk_vid != tvenc_clk_enc) && (format_para->timing.v_active == 1080/2) && (!format_para->progress_mode))
+				 tvenc_clk_enc = tvenc_clk->clk_encp;
+
+			if (abs(tvenc_clk->clk_pixel - format_para->timing.pixel_freq) >= 375)
+			{
+				valid = 0;
+				hdmi_print(IMP, HD "warning: tvenc %d != %d hdmi\n",
+					tvenc_clk->clk_vid, format_para->timing.pixel_freq);
+			}
+
+			if ((tvenc_clk->clk_phy/10 != tvenc_clk->clk_pixel) ||
+			    (tvenc_clk->clk_vid != tvenc_clk_enc))
+			{
+				valid = 0;
+				hdmi_print(IMP, HD "warning: tvenc phy %d vid %d enc %d pix %d clocks not equal\n",
+					tvenc_clk->clk_phy/10, tvenc_clk->clk_vid, tvenc_clk_enc, tvenc_clk->clk_pixel);
+			}
+		}
+		else
+		{
+			valid = 0;
+			hdmi_print(IMP, HD "warning: tvenc no clk for %d hdmi\n", param->VIC);
+		}
+	}
+
+	return valid;
+};
+
+static int __hdmi_tvenc1080i_set(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para, int validate_mode)
 {
 	unsigned long VFIFO2VD_TO_HDMI_LATENCY = 2;
 	unsigned long TOTAL_PIXELS = 0, PIXEL_REPEAT_HDMI = 0,
@@ -658,39 +797,41 @@ static void hdmi_tvenc1080i_set(struct hdmitx_vidpara *param)
 		vs_bline_odd = 0, vs_eline_odd = 0;
 	unsigned long vso_begin_evn = 0, vso_begin_odd = 0;
 
+	if (format_para)
+	{
+		INTERLACE_MODE    = 1-format_para->progress_mode;
+		PIXEL_REPEAT_HDMI = format_para->pixel_repetition_factor;
+		ACTIVE_PIXELS = format_para->timing.h_active;
+		ACTIVE_LINES  = format_para->timing.v_active;
+		LINES_F0 = format_para->timing.v_total/(1+INTERLACE_MODE);
+		LINES_F1 = format_para->timing.v_total-(LINES_F0*INTERLACE_MODE);
+		FRONT_PORCH  = format_para->timing.h_front;
+		HSYNC_PIXELS = format_para->timing.h_sync;
+		BACK_PORCH   = format_para->timing.h_back;
+		EOF_LINES    = format_para->timing.v_front;
+		VSYNC_LINES  = format_para->timing.v_sync;
+		SOF_LINES    = format_para->timing.v_back;
+	}
+
 	if (param->VIC == HDMI_1080i60) {
-		INTERLACE_MODE = 1;
 		PIXEL_REPEAT_VENC = 1;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (1920*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (1080/(1+INTERLACE_MODE));
-		LINES_F0 = 562;
-		LINES_F1 = 563;
-		FRONT_PORCH = 88;
-		HSYNC_PIXELS = 44;
-		BACK_PORCH = 148;
-		EOF_LINES = 2;
-		VSYNC_LINES = 5;
-		SOF_LINES = 15;
 		TOTAL_FRAMES = 4;
 	} else if (param->VIC == HDMI_1080i50) {
-		INTERLACE_MODE = 1;
 		PIXEL_REPEAT_VENC = 1;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (1920*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (1080/(1+INTERLACE_MODE));
-		LINES_F0 = 562;
-		LINES_F1 = 563;
-		FRONT_PORCH = 528;
-		HSYNC_PIXELS = 44;
-		BACK_PORCH = 148;
-		EOF_LINES = 2;
-		VSYNC_LINES = 5;
-		SOF_LINES = 15;
 		TOTAL_FRAMES = 4;
 	}
 	TOTAL_PIXELS = (FRONT_PORCH+HSYNC_PIXELS+BACK_PORCH+ACTIVE_PIXELS);
 	TOTAL_LINES = (LINES_F0+(LINES_F1*INTERLACE_MODE));
+
+	if (validate_mode)
+		return __hdmi_tvenc_do_validate(param, format_para,
+			TOTAL_PIXELS, PIXEL_REPEAT_HDMI,
+			PIXEL_REPEAT_VENC, ACTIVE_PIXELS,
+			FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES,
+			INTERLACE_MODE, TOTAL_LINES, SOF_LINES,
+			VSYNC_LINES,
+			LINES_F0, LINES_F1, BACK_PORCH,
+			EOF_LINES, TOTAL_FRAMES);
 
 	total_pixels_venc = (TOTAL_PIXELS / (1+PIXEL_REPEAT_HDMI)) *
 		(1+PIXEL_REPEAT_VENC);
@@ -773,9 +914,15 @@ static void hdmi_tvenc1080i_set(struct hdmitx_vidpara *param)
 	);
 	hd_set_reg_bits(P_VPU_HDMI_SETTING, 1, 1, 1);
 
+	return 0;
 }
 
-static void hdmi_tvenc4k2k_set(struct hdmitx_vidpara *param)
+static void hdmi_tvenc1080i_set(struct hdmitx_vidpara *param)
+{
+	__hdmi_tvenc1080i_set(param, hdmi_get_fmt_paras(param->VIC), 0);
+}
+
+static int __hdmi_tvenc4k2k_set(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para, int validate_mode)
 {
 	unsigned long VFIFO2VD_TO_HDMI_LATENCY = 2;
 	unsigned long TOTAL_PIXELS = 4400, PIXEL_REPEAT_HDMI = 0,
@@ -800,74 +947,55 @@ static void hdmi_tvenc4k2k_set(struct hdmitx_vidpara *param)
 		vs_eline_odd = 0;
 	unsigned long vso_begin_evn = 0, vso_begin_odd = 0;
 
+	if (format_para)
+	{
+		INTERLACE_MODE    = 1-format_para->progress_mode;
+		PIXEL_REPEAT_HDMI = format_para->pixel_repetition_factor;
+		ACTIVE_PIXELS = format_para->timing.h_active;
+		ACTIVE_LINES  = format_para->timing.v_active;
+		LINES_F0 = format_para->timing.v_total/(1+INTERLACE_MODE);
+		LINES_F1 = format_para->timing.v_total-(LINES_F0*INTERLACE_MODE);
+		FRONT_PORCH  = format_para->timing.h_front;
+		HSYNC_PIXELS = format_para->timing.h_sync;
+		BACK_PORCH   = format_para->timing.h_back;
+		EOF_LINES    = format_para->timing.v_front;
+		VSYNC_LINES  = format_para->timing.v_sync;
+		SOF_LINES    = format_para->timing.v_back;
+
+		EOF_LINES += 1;
+		SOF_LINES += 1;
+	}
+
 	if ((param->VIC == HDMI_4k2k_30) ||
 		(param->VIC == HDMI_3840x2160p60_16x9) ||
 		(param->VIC == HDMI_3840x2160p60_16x9_Y420)) {
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (3840*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (2160/(1+INTERLACE_MODE));
-		LINES_F0 = 2250;
-		LINES_F1 = 2250;
-		FRONT_PORCH = 176;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 8 + 1;
-		VSYNC_LINES = 10;
-		SOF_LINES = 72 + 1;
 		TOTAL_FRAMES = 3;
 	} else if ((param->VIC == HDMI_4k2k_25) ||
 		(param->VIC == HDMI_3840x2160p50_16x9) ||
 		(param->VIC == HDMI_3840x2160p50_16x9_Y420)) {
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (3840*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (2160/(1+INTERLACE_MODE));
-		LINES_F0 = 2250;
-		LINES_F1 = 2250;
-		FRONT_PORCH = 1056;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 8 + 1;
-		VSYNC_LINES = 10;
-		SOF_LINES = 72 + 1;
 		TOTAL_FRAMES = 3;
 	} else if (param->VIC == HDMI_4k2k_24) {
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (3840*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (2160/(1+INTERLACE_MODE));
-		LINES_F0 = 2250;
-		LINES_F1 = 2250;
-		FRONT_PORCH = 1276;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 8 + 1;
-		VSYNC_LINES = 10;
-		SOF_LINES = 72 + 1;
 		TOTAL_FRAMES = 3;
 	} else if (param->VIC == HDMI_4k2k_smpte_24) {
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS = (4096*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (2160/(1+INTERLACE_MODE));
-		LINES_F0 = 2250;
-		LINES_F1 = 2250;
-		FRONT_PORCH = 1020;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 8 + 1;
-		VSYNC_LINES = 10;
-		SOF_LINES = 72 + 1;
 		TOTAL_FRAMES = 3;
 	}
 
 	TOTAL_PIXELS = (FRONT_PORCH+HSYNC_PIXELS+BACK_PORCH+ACTIVE_PIXELS);
 	TOTAL_LINES = (LINES_F0+(LINES_F1*INTERLACE_MODE));
+
+	if (validate_mode)
+		return __hdmi_tvenc_do_validate(param, format_para,
+			TOTAL_PIXELS, PIXEL_REPEAT_HDMI,
+			PIXEL_REPEAT_VENC, ACTIVE_PIXELS,
+			FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES,
+			INTERLACE_MODE, TOTAL_LINES, SOF_LINES,
+			VSYNC_LINES,
+			LINES_F0, LINES_F1, BACK_PORCH,
+			EOF_LINES, TOTAL_FRAMES);
 
 	total_pixels_venc = (TOTAL_PIXELS  / (1+PIXEL_REPEAT_HDMI)) *
 		(1+PIXEL_REPEAT_VENC);
@@ -946,9 +1074,16 @@ static void hdmi_tvenc4k2k_set(struct hdmitx_vidpara *param)
 	);
 	hd_set_reg_bits(P_VPU_HDMI_SETTING, 1, 1, 1);
 	hd_write_reg(P_ENCP_VIDEO_EN, 1);
+
+	return 0;
 }
 
-static void hdmi_tvenc480i_set(struct hdmitx_vidpara *param)
+static void hdmi_tvenc4k2k_set(struct hdmitx_vidpara *param)
+{
+	__hdmi_tvenc4k2k_set(param, hdmi_get_fmt_paras(param->VIC), 0);
+}
+
+static int __hdmi_tvenc480i_set(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para, int validate_mode)
 {
 	unsigned long VFIFO2VD_TO_HDMI_LATENCY = 1;
 	unsigned long TOTAL_PIXELS = 0, PIXEL_REPEAT_HDMI = 0,
@@ -973,7 +1108,25 @@ static void hdmi_tvenc480i_set(struct hdmitx_vidpara *param)
 		vs_bline_odd = 0, vs_eline_odd = 0;
 	unsigned long vso_begin_evn = 0, vso_begin_odd = 0;
 
-	hd_set_reg_bits(P_HHI_GCLK_OTHER, 1, 8, 1);
+	if (format_para)
+	{
+		INTERLACE_MODE    = 1-format_para->progress_mode;
+		PIXEL_REPEAT_HDMI = format_para->pixel_repetition_factor;
+		ACTIVE_PIXELS = format_para->timing.h_active;
+		ACTIVE_LINES  = format_para->timing.v_active;
+		LINES_F0 = format_para->timing.v_total/(1+INTERLACE_MODE);
+		LINES_F1 = format_para->timing.v_total-(LINES_F0*INTERLACE_MODE);
+		FRONT_PORCH  = format_para->timing.h_front;
+		HSYNC_PIXELS = format_para->timing.h_sync;
+		BACK_PORCH   = format_para->timing.h_back;
+		EOF_LINES    = format_para->timing.v_front;
+		VSYNC_LINES  = format_para->timing.v_sync;
+		SOF_LINES    = format_para->timing.v_back;
+	}
+
+	if (!validate_mode)
+		hd_set_reg_bits(P_HHI_GCLK_OTHER, 1, 8, 1);
+
 	switch (param->VIC) {
 	case HDMI_480i60:
 	case HDMI_480i60_16x9:
@@ -1017,6 +1170,16 @@ static void hdmi_tvenc480i_set(struct hdmitx_vidpara *param)
 
 	TOTAL_PIXELS = (FRONT_PORCH+HSYNC_PIXELS+BACK_PORCH+ACTIVE_PIXELS);
 	TOTAL_LINES = (LINES_F0+(LINES_F1*INTERLACE_MODE));
+
+	if (validate_mode)
+		return __hdmi_tvenc_do_validate(param, format_para,
+			TOTAL_PIXELS, PIXEL_REPEAT_HDMI,
+			PIXEL_REPEAT_VENC, ACTIVE_PIXELS,
+			FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES,
+			INTERLACE_MODE, TOTAL_LINES, SOF_LINES,
+			VSYNC_LINES,
+			LINES_F0, LINES_F1, BACK_PORCH,
+			EOF_LINES, TOTAL_FRAMES);
 
 	total_pixels_venc = (TOTAL_PIXELS  / (1+PIXEL_REPEAT_HDMI)) *
 		(1+PIXEL_REPEAT_VENC); /* 1716 / 2 * 2 = 1716 */
@@ -1127,9 +1290,16 @@ static void hdmi_tvenc480i_set(struct hdmitx_vidpara *param)
 		(param->VIC == HDMI_576i50_16x9_rpt))
 		hd_set_reg_bits(P_VPU_HDMI_SETTING, 3, 12, 4);
 	hd_set_reg_bits(P_VPU_HDMI_SETTING, 1, 0, 1);
+
+	return 0;
 }
 
-static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
+static void hdmi_tvenc480i_set(struct hdmitx_vidpara *param)
+{
+	__hdmi_tvenc480i_set(param, hdmi_get_fmt_paras(param->VIC), 0);
+}
+
+static int __hdmi_tvenc_set(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para, int validate_mode)
 {
 	unsigned long VFIFO2VD_TO_HDMI_LATENCY = 2;
 	unsigned long TOTAL_PIXELS = 0, PIXEL_REPEAT_HDMI = 0,
@@ -1156,6 +1326,22 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 
 	struct hdmi_cea_timing *custom_timing;
 
+	if (format_para)
+	{
+		INTERLACE_MODE    = 1-format_para->progress_mode;
+		PIXEL_REPEAT_HDMI = format_para->pixel_repetition_factor;
+		ACTIVE_PIXELS = format_para->timing.h_active;
+		ACTIVE_LINES  = format_para->timing.v_active;
+		LINES_F0 = format_para->timing.v_total/(1+INTERLACE_MODE);
+		LINES_F1 = format_para->timing.v_total-(LINES_F0*INTERLACE_MODE);
+		FRONT_PORCH  = format_para->timing.h_front;
+		HSYNC_PIXELS = format_para->timing.h_sync;
+		BACK_PORCH   = format_para->timing.h_back;
+		EOF_LINES    = format_para->timing.v_front;
+		VSYNC_LINES  = format_para->timing.v_sync;
+		SOF_LINES    = format_para->timing.v_back;
+	}
+
 	switch (param->VIC) {
 	case HDMIV_CUSTOMBUILT:
 		custom_timing = get_custom_timing();
@@ -1175,35 +1361,11 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 		TOTAL_FRAMES        = 4;
 		break;
 	case HDMI_3840x1080p120hz:
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS	= 3840;
-		ACTIVE_LINES = 1080;
-		LINES_F0 = 1125;
-		LINES_F1 = 1125;
-		FRONT_PORCH = 176;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 4;
-		VSYNC_LINES = 5;
-		SOF_LINES = 36;
 		TOTAL_FRAMES = 0;
 		break;
 	case HDMI_3840x1080p100hz:
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 0;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS	= 3840;
-		ACTIVE_LINES = 1080;
-		LINES_F0 = 1125;
-		LINES_F1 = 1125;
-		FRONT_PORCH = 1056;
-		HSYNC_PIXELS = 88;
-		BACK_PORCH = 296;
-		EOF_LINES = 4;
-		VSYNC_LINES = 5;
-		SOF_LINES = 36;
 		TOTAL_FRAMES = 0;
 		break;
 	case HDMI_3840x540p240hz:
@@ -1275,385 +1437,48 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 		TOTAL_FRAMES = 4;
 		break;
 	case HDMI_720p60:
-		INTERLACE_MODE = 0;
-		PIXEL_REPEAT_VENC = 1;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS	= (1280*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (720/(1+INTERLACE_MODE));
-		LINES_F0 = 750;
-		LINES_F1 = 750;
-		FRONT_PORCH = 110;
-		HSYNC_PIXELS = 40;
-		BACK_PORCH = 220;
-		EOF_LINES = 5;
-		VSYNC_LINES = 5;
-		SOF_LINES = 20;
-		TOTAL_FRAMES = 4;
-		break;
 	case HDMI_720p50:
-		INTERLACE_MODE = 0;
 		PIXEL_REPEAT_VENC = 1;
-		PIXEL_REPEAT_HDMI = 0;
-		ACTIVE_PIXELS	= (1280*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (720/(1+INTERLACE_MODE));
-		LINES_F0 = 750;
-		LINES_F1 = 750;
-		FRONT_PORCH = 440;
-		HSYNC_PIXELS = 40;
-		BACK_PORCH = 220;
-		EOF_LINES = 5;
-		VSYNC_LINES = 5;
-		SOF_LINES = 20;
 		TOTAL_FRAMES = 4;
 		break;
 	case HDMI_1080p50:
-		INTERLACE_MODE	= 0;
-		PIXEL_REPEAT_VENC  = 0;
-		PIXEL_REPEAT_HDMI  = 0;
-		ACTIVE_PIXELS = (1920*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (1080/(1+INTERLACE_MODE));
-		LINES_F0 = 1125;
-		LINES_F1 = 1125;
-		FRONT_PORCH = 528;
-		HSYNC_PIXELS = 44;
-		BACK_PORCH = 148;
-		EOF_LINES = 4;
-		VSYNC_LINES = 5;
-		SOF_LINES = 36;
-		TOTAL_FRAMES = 4;
-		break;
+	case HDMI_1080p25:
 	case HDMI_1080p24:
-		INTERLACE_MODE	= 0;
-		PIXEL_REPEAT_VENC  = 0;
-		PIXEL_REPEAT_HDMI  = 0;
-		ACTIVE_PIXELS = (1920*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (1080/(1+INTERLACE_MODE));
-		LINES_F0 = 1125;
-		LINES_F1 = 1125;
-		FRONT_PORCH = 638;
-		HSYNC_PIXELS = 44;
-		BACK_PORCH = 148;
-		EOF_LINES = 4;
-		VSYNC_LINES = 5;
-		SOF_LINES = 36;
-		TOTAL_FRAMES = 4;
-		break;
 	case HDMI_1080p60:
 	case HDMI_1080p30:
-		INTERLACE_MODE	= 0;
 		PIXEL_REPEAT_VENC  = 0;
-		PIXEL_REPEAT_HDMI  = 0;
-		ACTIVE_PIXELS = (1920*(1+PIXEL_REPEAT_HDMI));
-		ACTIVE_LINES = (1080/(1+INTERLACE_MODE));
-		LINES_F0 = 1125;
-		LINES_F1 = 1125;
-		FRONT_PORCH = 88;
-		HSYNC_PIXELS = 44;
-		BACK_PORCH = 148;
-		EOF_LINES = 4;
-		VSYNC_LINES = 5;
-		SOF_LINES = 36;
 		TOTAL_FRAMES = 4;
 		break;
 	case HDMIV_640x480p60hz:
-		INTERLACE_MODE     = 0;
-		PIXEL_REPEAT_VENC  = 0;
-		PIXEL_REPEAT_HDMI  = 0;
-		ACTIVE_PIXELS      = 640;
-		ACTIVE_LINES       = 480;
-		LINES_F0           = 525;
-		LINES_F1           = 525;
-		FRONT_PORCH        = 16;
-		HSYNC_PIXELS       = 96;
-		BACK_PORCH         = 48;
-		EOF_LINES          = 10;
-		VSYNC_LINES        = 2;
-		SOF_LINES          = 33;
-		TOTAL_FRAMES       = 4;
-		break;
 	case HDMIV_800x600p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 800;
-		ACTIVE_LINES        = 600;
-		LINES_F0            = 628;
-		LINES_F1            = 628;
-		FRONT_PORCH         = 40;
-		HSYNC_PIXELS        = 128;
-		BACK_PORCH          = 88;
-		EOF_LINES           = 1;
-		VSYNC_LINES         = 4;
-		SOF_LINES           = 23;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_800x480p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 800;
-		ACTIVE_LINES        = 480;
-		LINES_F0            = 500;
-		LINES_F1            = 500;
-		FRONT_PORCH         = 24;
-		HSYNC_PIXELS        = 72;
-		BACK_PORCH          = 96;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 7;
-		SOF_LINES           = 10;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_480x800p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 480;
-		ACTIVE_LINES        = 800;
-		LINES_F0            = 845;
-		LINES_F1            = 845;
-		FRONT_PORCH         = 40;
-		HSYNC_PIXELS        = 48;
-		BACK_PORCH          = 40;
-		EOF_LINES           = 13;
-		VSYNC_LINES         = 3;
-		SOF_LINES           = 29;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1024x600p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1024;
-		ACTIVE_LINES        = 600;
-		LINES_F0            = 638;
-		LINES_F1            = 638;
-		FRONT_PORCH         = 24;
-		HSYNC_PIXELS        = 136;
-		BACK_PORCH          = 160;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 29;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1024x768p60hz:
-		INTERLACE_MODE      = 0;
 		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1024;
-		ACTIVE_LINES        = 768;
-		LINES_F0            = 806;
-		LINES_F1            = 806;
-		FRONT_PORCH         = 24;
-		HSYNC_PIXELS        = 136;
-		BACK_PORCH          = 160;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 29;
 		TOTAL_FRAMES        = 4;
 		break;
 	case HDMIV_1280x800p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1280;
-		ACTIVE_LINES        = 800;
-		LINES_F0            = 823;
-		LINES_F1            = 823;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 32;
-		BACK_PORCH          = 80;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 14;
-		break;
 	case HDMIV_1280x1024p60hz:
-		INTERLACE_MODE      = 0;
 		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1280;
-		ACTIVE_LINES        = 1024;
-		LINES_F0            = 1066;
-		LINES_F1            = 1066;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 112;
-		BACK_PORCH          = 248;
-		EOF_LINES           = 1;
-		VSYNC_LINES         = 3;
-		SOF_LINES           = 38;
 		break;
 	case HDMIV_1360x768p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1360;
-		ACTIVE_LINES        = 768;
-		LINES_F0            = 795;
-		LINES_F1            = 795;
-		FRONT_PORCH         = 64;
-		HSYNC_PIXELS        = 112;
-		BACK_PORCH          = 256;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 18;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1366x768p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1366;
-		ACTIVE_LINES        = 768;
-		LINES_F0            = 798;
-		LINES_F1            = 798;
-		FRONT_PORCH         = 70;
-		HSYNC_PIXELS        = 143;
-		BACK_PORCH          = 213;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 3;
-		SOF_LINES           = 24;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1440x900p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1440;
-		ACTIVE_LINES        = 900;
-		LINES_F0            = 934;
-		LINES_F1            = 934;
-		FRONT_PORCH         = 80;
-		HSYNC_PIXELS        = 152;
-		BACK_PORCH          = 232;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 25;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1600x900p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1600;
-		ACTIVE_LINES        = 900;
-		LINES_F0            = 1800;
-		LINES_F1            = 1800;
-		FRONT_PORCH         = 24;
-		HSYNC_PIXELS        = 80;
-		BACK_PORCH          = 96;
-		EOF_LINES           = 1;
-		VSYNC_LINES         = 3;
-		SOF_LINES           = 96;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1600x1200p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1600;
-		ACTIVE_LINES        = 1200;
-		LINES_F0            = 1270;
-		LINES_F1            = 1270;
-		FRONT_PORCH         = 32;
-		HSYNC_PIXELS        = 160;
-		BACK_PORCH          = 256;
-		EOF_LINES           = 10;
-		VSYNC_LINES         = 8;
-		SOF_LINES           = 52;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_1680x1050p60hz:
-		INTERLACE_MODE      = 0;
 		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1680;
-		ACTIVE_LINES        = 1050;
-		LINES_F0            = 1089;
-		LINES_F1            = 1089;
-		FRONT_PORCH         = 104;
-		HSYNC_PIXELS        = 176;
-		BACK_PORCH          = 280;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 30;
 		TOTAL_FRAMES        = 4;
 		break;
 	case HDMIV_1920x1200p60hz:
-		INTERLACE_MODE      = 0;
 		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 1920;
-		ACTIVE_LINES        = 1200;
-		LINES_F0            = 1235;
-		LINES_F1            = 1235;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 32;
-		BACK_PORCH          = 80;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 26;
 		break;
 	case HDMIV_2560x1440p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 2560;
-		ACTIVE_LINES        = 1440;
-		LINES_F0            = 1481;
-		LINES_F1            = 1481;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 32;
-		BACK_PORCH          = 80;
-		EOF_LINES           = 2;
-		VSYNC_LINES         = 5;
-		SOF_LINES           = 34;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_2560x1600p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 2560;
-		ACTIVE_LINES        = 1600;
-		LINES_F0            = 1646;
-		LINES_F1            = 1646;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 32;
-		BACK_PORCH          = 80;
-		EOF_LINES           = 2;
-		VSYNC_LINES         = 6;
-		SOF_LINES           = 38;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_2560x1080p60hz:
-		INTERLACE_MODE      = 0;
-		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 2560;
-		ACTIVE_LINES        = 1080;
-		LINES_F0            = 1111;
-		LINES_F1            = 1111;
-		FRONT_PORCH         = 64;
-		HSYNC_PIXELS        = 64;
-		BACK_PORCH          = 96;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 10;
-		SOF_LINES           = 18;
-		TOTAL_FRAMES        = 4;
-		break;
 	case HDMIV_3440x1440p60hz:
-		INTERLACE_MODE      = 0;
 		PIXEL_REPEAT_VENC   = 0;
-		PIXEL_REPEAT_HDMI   = 0;
-		ACTIVE_PIXELS       = 3440;
-		ACTIVE_LINES        = 1440;
-		LINES_F0            = 1481;
-		LINES_F1            = 1481;
-		FRONT_PORCH         = 48;
-		HSYNC_PIXELS        = 32;
-		BACK_PORCH          = 80;
-		EOF_LINES           = 3;
-		VSYNC_LINES         = 10;
-		SOF_LINES           = 28;
 		TOTAL_FRAMES        = 4;
 		break;
 	case HDMIV_480x320p60hz:
@@ -1678,6 +1503,18 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 
 	TOTAL_PIXELS = (FRONT_PORCH+HSYNC_PIXELS+BACK_PORCH+ACTIVE_PIXELS);
 	TOTAL_LINES = (LINES_F0+(LINES_F1*INTERLACE_MODE));
+
+	if (validate_mode)
+	{
+		return __hdmi_tvenc_do_validate(param, format_para,
+			TOTAL_PIXELS, PIXEL_REPEAT_HDMI,
+			PIXEL_REPEAT_VENC, ACTIVE_PIXELS,
+			FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES,
+			INTERLACE_MODE, TOTAL_LINES, SOF_LINES,
+			VSYNC_LINES,
+			LINES_F0, LINES_F1, BACK_PORCH,
+			EOF_LINES, TOTAL_FRAMES);
+	}
 
 	total_pixels_venc = (TOTAL_PIXELS  / (1+PIXEL_REPEAT_HDMI)) *
 		(1+PIXEL_REPEAT_VENC);
@@ -1898,11 +1735,53 @@ static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
 		(param->VIC == HDMI_576p50_16x9_rpt))
 		hd_set_reg_bits(P_VPU_HDMI_SETTING, 3, 12, 4);
 	hd_set_reg_bits(P_VPU_HDMI_SETTING, 1, 1, 1);
+
+	return 0;
+}
+
+static void hdmi_tvenc_set(struct hdmitx_vidpara *param)
+{
+	__hdmi_tvenc_set(param, hdmi_get_fmt_paras(param->VIC), 0);
 }
 
 int hdmi_tvenc_validate(struct hdmitx_vidpara *param, struct hdmi_format_para *format_para)
 {
-	return 1;
+	int valid = 0;
+
+	switch (param->VIC) {
+	case HDMI_480i60:
+	case HDMI_480i60_16x9:
+	case HDMI_576i50:
+	case HDMI_576i50_16x9:
+	case HDMI_480i60_16x9_rpt:
+	case HDMI_576i50_16x9_rpt:
+		valid = __hdmi_tvenc480i_set(param, format_para, 1);
+		break;
+	case HDMI_1080i60:
+	case HDMI_1080i50:
+		valid = __hdmi_tvenc1080i_set(param, format_para, 1);
+		break;
+	case HDMI_4k2k_30:
+	case HDMI_4k2k_25:
+	case HDMI_4k2k_24:
+	case HDMI_4k2k_smpte_24:
+	case HDMI_3840x2160p50_16x9:
+	case HDMI_3840x2160p60_16x9:
+	case HDMI_3840x2160p50_16x9_Y420:
+	case HDMI_3840x2160p60_16x9_Y420:
+		valid = __hdmi_tvenc4k2k_set(param, format_para, 1);
+		break;
+	default:
+		valid = __hdmi_tvenc_set(param, format_para, 1);
+	}
+
+	if (valid < 0)
+	{       
+		valid = 0;
+		hdmi_print(IMP, HD "warning: no tvenc for hdmi vic %d\n", param->VIC);
+	}
+
+	return valid;
 }
 
 static void digital_clk_off(unsigned char flag)

@@ -1556,9 +1556,6 @@ static struct dispmode_vic dispmode_vic_tab[] = {
 	{"480p_4_3",  HDMI_480p60},
 	{"480p_rpt",  HDMI_480p60_16x9_rpt},
 	{"480p60hz",	  HDMI_480p60_16x9},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"480p59hz",  HDMI_480p60_16x9},
-#endif
 	{"576i_4_3",  HDMI_576i50},
 	{"576i_rpt",  HDMI_576i50_16x9_rpt},
 	{"576i50hz",	  HDMI_576i50_16x9},
@@ -1567,33 +1564,16 @@ static struct dispmode_vic dispmode_vic_tab[] = {
 	{"576p50hz",	  HDMI_576p50_16x9},
 	{"720p50hz",  HDMI_720p50},
 	{"720p60hz",	  HDMI_720p60},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"720p59hz",  HDMI_720p60},
-#endif
 	{"1080i50hz", HDMI_1080i50},
 	{"1080i60hz",	 HDMI_1080i60},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"1080i59hz", HDMI_1080i60},
-#endif
 	{"1080p50hz", HDMI_1080p50},
 	{"1080p30hz", HDMI_1080p30},
+	{"1080p25hz", HDMI_1080p25},
 	{"1080p24hz", HDMI_1080p24},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"1080p23hz", HDMI_1080p24},
-#endif
 	{"1080p60hz",	 HDMI_1080p60},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"1080p59hz", HDMI_1080p60},
-#endif
 	{"2160p30hz",  HDMI_4k2k_30},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"4k2k29hz",  HDMI_4k2k_30},
-#endif
 	{"2160p25hz",  HDMI_4k2k_25},
 	{"2160p24hz",  HDMI_4k2k_24},
-#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
-	{"4k2k23hz",  HDMI_4k2k_24},
-#endif
 	{"smpte24hz", HDMI_4k2k_smpte_24},
 	{"2160p60hz", HDMI_4k2k_60},
 	{"2160p50hz", HDMI_4k2k_50},
@@ -1607,21 +1587,6 @@ static struct dispmode_vic dispmode_vic_tab[] = {
 	{"1024x768p60hz", HDMIV_1024x768p60hz},
 	{"1280x800p60hz", HDMIV_1280x800p60hz},
 	{"1280x1024p60hz", HDMIV_1280x1024p60hz},
-/*
-/sys/class/display # echo 1280x1024p60hz > mode
-vout_serve: vmode set to 1280x1024p60hz
-
-vout_serve: disable HDMI PHY as soon as possible
-tv_vout: tv_set_current_vmode[671]fps_target_mode=43
-tv_vout: mode is 43,sync_duration_den=1,sync_duration_num=60
-tv_vout: TV mode 1280x1024p60hz selected.
-tv_vout: new mode =1280x1024 set ok
-vout_serve: vinfo mode is: 1280x1024
-vout_serve: new mode 1280x1024p60hz
- set ok
-hdmitx: video: get current mode: 1280x1024
- */
-	{"1280x1024", HDMIV_1280x1024p60hz}, /* alias of "1280x1024p60hz" */
 	{"1360x768p60hz", HDMIV_1360x768p60hz},
 	{"1366x768p60hz", HDMIV_1366x768p60hz},
 	{"1440x900p60hz", HDMIV_1440x900p60hz},
@@ -1637,6 +1602,50 @@ hdmitx: video: get current mode: 1280x1024
 	{"custombuilt", HDMIV_CUSTOMBUILT},
 };
 
+static struct dispmode_vic dispmode_alias_vic_tab[] = {
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"720p59hz",  HDMI_720p60},
+#endif
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"1080i59hz", HDMI_1080i60},
+#endif
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"1080p23hz", HDMI_1080p24},
+#endif
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"1080p59hz", HDMI_1080p60},
+#endif
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"4k2k29hz",  HDMI_4k2k_30},
+#endif
+#ifdef CONFIG_AML_VOUT_FRAMERATE_AUTOMATION
+	{"4k2k23hz",  HDMI_4k2k_24},
+#endif
+/*
+/sys/class/display # echo 1280x1024p60hz > mode
+vout_serve: vmode set to 1280x1024p60hz
+
+vout_serve: disable HDMI PHY as soon as possible
+tv_vout: tv_set_current_vmode[671]fps_target_mode=43
+tv_vout: mode is 43,sync_duration_den=1,sync_duration_num=60
+tv_vout: TV mode 1280x1024p60hz selected.
+tv_vout: new mode =1280x1024 set ok
+vout_serve: vinfo mode is: 1280x1024
+vout_serve: new mode 1280x1024p60hz
+ set ok
+hdmitx: video: get current mode: 1280x1024
+ */
+	{"1280x1024", HDMIV_1280x1024p60hz}, /* alias of "1280x1024p60hz" */
+};
+
+const char* hdmitx_edid_get_dispmode(int index)
+{
+	if (index < ARRAY_SIZE(dispmode_vic_tab))
+		return dispmode_vic_tab[index].disp_mode;
+	else
+		return NULL;
+}
+
 int hdmitx_edid_VIC_support(enum hdmi_vic vic)
 {
 	int i;
@@ -1645,6 +1654,9 @@ int hdmitx_edid_VIC_support(enum hdmi_vic vic)
 		if (vic == dispmode_vic_tab[i].VIC)
 			return 1;
 	}
+
+	if (hdmi_get_fmt_paras(vic))
+		return 1;
 
 	return 0;
 }
@@ -1657,9 +1669,19 @@ enum hdmi_vic hdmitx_edid_vic_tab_map_vic(const char *disp_mode)
 	for (i = 0; i < ARRAY_SIZE(dispmode_vic_tab); i++) {
 		if (strcmp(disp_mode, dispmode_vic_tab[i].disp_mode) == 0) {
 			vic = dispmode_vic_tab[i].VIC;
-			break;
+			return vic;
 		}
 	}
+
+	for (i = 0; i < ARRAY_SIZE(dispmode_alias_vic_tab); i++) {
+		if (strcmp(disp_mode, dispmode_alias_vic_tab[i].disp_mode) == 0) {
+			vic = dispmode_alias_vic_tab[i].VIC;
+			return vic;
+		}
+	}
+
+	if (vic == HDMI_Unkown)
+		vic = hdmi_get_vic_by_name(disp_mode);
 
 	if (vic == HDMI_Unkown)
 		hdmi_print(INF, EDID "not find mapped vic\n");
@@ -1677,6 +1699,13 @@ const char *hdmitx_edid_vic_tab_map_string(enum hdmi_vic vic)
 			disp_str = dispmode_vic_tab[i].disp_mode;
 			break;
 		}
+	}
+
+	if (!disp_str)
+	{
+		struct hdmi_format_para *para = hdmi_get_fmt_paras(vic);
+		if (para)
+			disp_str = para->name;
 	}
 
 	return disp_str;

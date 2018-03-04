@@ -365,7 +365,8 @@ enum hdmi_aspect_ratio {
 	TV_ASPECT_RATIO_MAX
 };
 
-struct hdmi_format_para *hdmi_get_fmt_paras(enum hdmi_vic vic);
+extern struct hdmi_format_para *hdmi_get_fmt_paras(enum hdmi_vic vic);
+extern enum hdmi_vic hdmi_get_vic_by_name(const char *hdmi_mode);
 void check_detail_fmt(void);
 unsigned int hdmi_get_csc_coef(
 	unsigned int input_format, unsigned int output_format,

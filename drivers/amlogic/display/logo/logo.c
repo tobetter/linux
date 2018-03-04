@@ -56,51 +56,6 @@ static struct para_pair_s logo_args[] = {
 	{"loaded", LOGO_LOADED},
 };
 
-#if 0
-/* FIXME : need to cover all of resolutions using general table */
-static struct para_pair_s mode_infos[] = {
-	{"640x480p60hz", TVMODE_640x480p60hz},
-	{"800x480p60hz", TVMODE_800x480p60hz},
-	{"480x800p60hz", TVMODE_480x800p60hz},
-	{"800x600p60hz", TVMODE_800x600p60hz},
-	{"1024x600p60hz", TVMODE_1024x600p60hz},
-	{"1024x768p60hz", TVMODE_1024x768p60hz},
-	{"1280x800p60hz", TVMODE_1280x800p60hz},
-	{"1280x1024p60hz", TVMODE_1280x1024p60hz},
-	{"1360x768p60hz", TVMODE_1360x768p60hz},
-	{"1366x768p60hz", TVMODE_1366x768p60hz},
-	{"1440x900p60hz", TVMODE_1440x900p60hz},
-	{"1600x900p60hz", TVMODE_1600x900p60hz},
-	{"1680x1050p60hz", TVMODE_1680x1050p60hz},
-	{"1920x1200p60hz", TVMODE_1920x1200p60hz},
-	{"2560x1440p60hz", TVMODE_2560x1440p60hz},
-	{"2560x1600p60hz", TVMODE_2560x1600p60hz},
-	{"2560x1080p60hz", TVMODE_2560x1080p60hz},
-	{"3440x1440p60hz", TVMODE_3440x1440p60hz},
-	{"480x320p60hz", TVMODE_480x320p60hz},
-	{"480cvbs", VMODE_480CVBS},
-	{"576cvbs", VMODE_576CVBS},
-	{"480i60hz", VMODE_480I},
-	{"480p60hz", VMODE_480P},
-	{"576i50hz", VMODE_576I},
-	{"576p50hz", VMODE_576P},
-	{"720p60hz", VMODE_720P},
-	{"1080i60hz", VMODE_1080I},
-	{"1080p60hz", VMODE_1080P},
-	{"720p50hz", VMODE_720P_50HZ},
-	{"1080i50hz", VMODE_1080I_50HZ},
-	{"1080p50hz", VMODE_1080P_50HZ},
-	{"1080p24hz", VMODE_1080P_24HZ},
-	{"2160p24hz", VMODE_4K2K_24HZ},
-	{"2160p25hz", VMODE_4K2K_25HZ},
-	{"2160p30hz", VMODE_4K2K_30HZ},
-	{"smpte24hz", VMODE_4K2K_SMPTE},
-	{"2160p50hz420", VMODE_4K2K_50HZ_Y420},
-	{"2160p60hz420", VMODE_4K2K_60HZ_Y420},
-	{"custombuilt", VMODE_CUSTOMBUILT},
-};
-#endif
-
 struct logo_info_s {
 	u32 index;
 	u32 vmode;
@@ -198,6 +153,8 @@ int set_osd_freescaler(int index, enum vmode_e new_mode)
 	case VMODE_1080I_50HZ:
 	case VMODE_1080P:
 	case VMODE_1080P_50HZ:
+	case VMODE_1080P_30HZ:
+	case VMODE_1080P_25HZ:
 	case VMODE_1080P_24HZ:
 		osd_set_window_axis_hw(index, 0, 0, 1919, 1079);
 		break;
