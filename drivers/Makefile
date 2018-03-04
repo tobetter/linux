@@ -50,6 +50,14 @@ obj-$(CONFIG_RESET_CONTROLLER)	+= reset/
 obj-y				+= tty/
 obj-y				+= char/
 
+# thermal early, since gpu drivers might rely on them to initialize
+obj-$(CONFIG_HWMON)		+= hwmon/
+obj-$(CONFIG_THERMAL)		+= thermal/
+obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
+
+obj-$(CONFIG_CPU_FREQ)		+= amlogic/cpufreq/
+obj-$(CONFIG_AML_TEMP_SENSOR)	+= amlogic/thermal/
+
 # gpu/ comes after char for AGP vs DRM startup
 obj-y				+= gpu/
 
@@ -102,8 +110,6 @@ obj-$(CONFIG_PPS)		+= pps/
 obj-$(CONFIG_PTP_1588_CLOCK)	+= ptp/
 obj-$(CONFIG_W1)		+= w1/
 obj-$(CONFIG_POWER_SUPPLY)	+= power/
-obj-$(CONFIG_HWMON)		+= hwmon/
-obj-$(CONFIG_THERMAL)		+= thermal/
 obj-$(CONFIG_WATCHDOG)		+= watchdog/
 obj-$(CONFIG_MD)		+= md/
 obj-$(CONFIG_BT)		+= bluetooth/
@@ -112,7 +118,6 @@ obj-$(CONFIG_ISDN)		+= isdn/
 obj-$(CONFIG_EDAC)		+= edac/
 obj-$(CONFIG_EISA)		+= eisa/
 obj-y				+= lguest/
-obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
 obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
 obj-y				+= mmc/
 obj-$(CONFIG_MEMSTICK)		+= memstick/

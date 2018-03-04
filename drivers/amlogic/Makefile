@@ -12,8 +12,6 @@ obj-$(CONFIG_MESON_TIMER)	+= clocksource/
 
 obj-$(CONFIG_AM_UART)		+= uart/
 
-obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
-
 obj-$(CONFIG_AML_CPU_VERSION)	+= cpu_version/
 
 obj-$(CONFIG_PINCTRL_AMLOGIC)	+= pinctrl/
@@ -23,6 +21,8 @@ obj-$(CONFIG_AMLOGIC_USB)	+= usb/
 obj-$(CONFIG_AMLOGIC_CLK)	+= clk/
 
 obj-$(CONFIG_AML_HDMI_TX)	+= hdmi/
+
+obj-$(CONFIG_AML_DISPLAY)	+= display/
 
 obj-$(CONFIG_AML_RTC)		+= rtc/
 
@@ -51,8 +51,6 @@ obj-$(CONFIG_MMC_AML)		+= mmc/
 obj-$(CONFIG_AML_VPU)		+= vpu/
 
 obj-$(CONFIG_AMLOGIC_ION)	+= ion_dev/
-
-obj-$(CONFIG_AML_DISPLAY)	+= display/
 
 obj-$(CONFIG_AMLOGIC_LED)	+= led/
 
@@ -103,8 +101,6 @@ obj-$(CONFIG_AM_DVB)		+= dvb_tv/
 obj-$(CONFIG_MESON_MHU_MBOX)	+= mailbox/
 
 obj-$(CONFIG_AML_RDMA)		+= rdma/
-
-obj-$(CONFIG_AML_TEMP_SENSOR) += thermal/
 
 obj-$(CONFIG_AUDIO_DATA) += audinfo_kernel/
 
