@@ -109,6 +109,23 @@ typedef enum {
 	_MALI_UK_DMA_BUF_GET_SIZE,               /**< _mali_ukk_dma_buf_get_size() */
 	_MALI_UK_MEM_WRITE_SAFE,                 /**< _mali_uku_mem_write_safe() */
 
+	/** Memory functions v600 API */
+
+	_MALI_UK_INIT_MEM                = 0,    /**< _mali_ukk_init_mem() */
+	_MALI_UK_TERM_MEM,                       /**< _mali_ukk_term_mem() */
+	_MALI_UK_MAP_MEM,                        /**< _mali_ukk_mem_mmap() */
+	_MALI_UK_UNMAP_MEM,                      /**< _mali_ukk_mem_munmap() */
+	_MALI_UK_QUERY_MMU_PAGE_TABLE_DUMP_SIZE_V600, /**< _mali_ukk_mem_get_mmu_page_table_dump_size() */
+	_MALI_UK_DUMP_MMU_PAGE_TABLE_V600,            /**< _mali_ukk_mem_dump_mmu_page_table() */
+	_MALI_UK_ATTACH_DMA_BUF,                 /**< _mali_ukk_attach_dma_buf() */
+	_MALI_UK_RELEASE_DMA_BUF,                /**< _mali_ukk_release_dma_buf() */
+	_MALI_UK_DMA_BUF_GET_SIZE_V600,               /**< _mali_ukk_dma_buf_get_size() */
+	_MALI_UK_ATTACH_UMP_MEM,                 /**< _mali_ukk_attach_ump_mem() */
+	_MALI_UK_RELEASE_UMP_MEM,                /**< _mali_ukk_release_ump_mem() */
+	_MALI_UK_MAP_EXT_MEM,                    /**< _mali_uku_map_external_mem() */
+	_MALI_UK_UNMAP_EXT_MEM,                  /**< _mali_uku_unmap_external_mem() */
+	_MALI_UK_MEM_WRITE_SAFE_V600,                 /**< _mali_uku_mem_write_safe() */
+
 	/** Common functions for each core */
 
 	_MALI_UK_START_JOB           = 0,     /**< Start a Fragment/Vertex Processor Job on a core */
@@ -303,6 +320,20 @@ typedef struct {
 	u64 user_job_ptr;                    /**< [out] identifier for the job in user space */
 	u32 cookie;                          /**< [out] identifier for the core in kernel space on which the job stalled */
 } _mali_uk_gp_job_suspended_s;
+
+typedef struct {
+	u64 ctx;                          /**< [in,out] user-kernel context (trashed on output) */
+	u64 user_job_ptr;                   /**< [in] identifier for the job in user space, a @c mali_gp_job_info* */
+	u32 priority;                       /**< [in] job priority. A lower number means higher priority */
+	u32 frame_registers[MALIGP2_NUM_REGS_FRAME]; /**< [in] core specific registers associated with this job */
+	u32 perf_counter_flag;              /**< [in] bitmask indicating which performance counters to enable, see \ref _MALI_PERFORMANCE_COUNTER_FLAG_SRC0_ENABLE and related macro definitions */
+	u32 perf_counter_src0;              /**< [in] source id for performance counter 0 (see ARM DDI0415A, Table 3-60) */
+	u32 perf_counter_src1;              /**< [in] source id for performance counter 1 (see ARM DDI0415A, Table 3-60) */
+	u32 frame_builder_id;               /**< [in] id of the originating frame builder */
+	u32 flush_id;                       /**< [in] flush id within the originating frame builder */
+	_mali_uk_fence_t fence;             /**< [in] fence this job must wait on */
+	u64 timeline_point_ptr;            /**< [in,out] pointer to u32: location where point on gp timeline for this job will be written */
+} _mali_uk_gp_start_job_v600_s;
 
 /** @} */ /* end group _mali_uk_gp */
 
@@ -661,6 +692,9 @@ typedef struct {
 #define _MALI_API_VERSION 900
 #define _MALI_UK_API_VERSION _MAKE_VERSION_ID(_MALI_API_VERSION)
 
+#define _MALI_API_VERSION_COMPAT 600
+#define _MALI_UK_API_VERSION_COMPAT _MAKE_VERSION_ID(_MALI_API_VERSION_COMPAT)
+
 /**
  * The API version is a 16-bit integer stored in both the lower and upper 16-bits
  * of a 32-bit value. The 16-bit API version value is incremented on each API
@@ -868,6 +902,53 @@ typedef struct {
 	u32 psize;                              /* wanted physical size of this memory */
 } _mali_uk_mem_resize_s;
 
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u32 phys_addr;                  /**< [in] physical address */
+	u32 size;                       /**< [in] size */
+	u32 mali_address;               /**< [in] mali address to map the physical memory to */
+	u32 rights;                     /**< [in] rights necessary for accessing memory */
+	u32 flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+	u32 cookie;                     /**< [out] identifier for mapped memory object in kernel space  */
+} _mali_uk_map_external_mem_s;
+
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u32 cookie;                     /**< [out] identifier for mapped memory object in kernel space  */
+} _mali_uk_unmap_external_mem_s;
+
+/** @note This is identical to _mali_uk_map_external_mem_s above, however phys_addr is replaced by memory descriptor */
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u32 mem_fd;                     /**< [in] Memory descriptor */
+	u32 size;                       /**< [in] size */
+	u32 mali_address;               /**< [in] mali address to map the physical memory to */
+	u32 rights;                     /**< [in] rights necessary for accessing memory */
+	u32 flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+	u32 cookie;                     /**< [out] identifier for mapped memory object in kernel space  */
+} _mali_uk_attach_dma_buf_s;
+
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u64 cookie;                     /**< [in] identifier for mapped memory object in kernel space  */
+} _mali_uk_release_dma_buf_s;
+
+/** @note This is identical to _mali_uk_map_external_mem_s above, however phys_addr is replaced by secure_id */
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;                  /**< [in] secure id */
+	u32 size;                       /**< [in] size */
+	u32 mali_address;               /**< [in] mali address to map the physical memory to */
+	u32 rights;                     /**< [in] rights necessary for accessing memory */
+	u32 flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+	u32 cookie;                     /**< [out] identifier for mapped memory object in kernel space  */
+} _mali_uk_attach_ump_mem_s;
+
+typedef struct {
+	u64 ctx;                      /**< [in,out] user-kernel context (trashed on output) */
+	u32 cookie;                     /**< [in] identifier for mapped memory object in kernel space  */
+} _mali_uk_release_ump_mem_s;
+
 /**
  * @brief Arguments for _mali_uk[uk]_mem_write_safe()
  */
@@ -965,6 +1046,15 @@ typedef struct {
 	u32 vaddr;                                      /**< [in] mali address for the cow allocaiton */
 	s32 change_pages_nr;            /**< [out] record the page number change for cow operation */
 } _mali_uk_profiling_memory_usage_get_s;
+
+typedef struct {
+	u64 ctx;                     /**< [in,out] user-kernel context (trashed on output) */
+	u32 memory_usage;              /**< [out] total memory usage */
+#if 0
+	u32 vaddr;                                      /**< [in] mali address for the cow allocaiton */
+	s32 change_pages_nr;            /**< [out] record the page number change for cow operation */
+#endif
+} _mali_uk_profiling_memory_usage_get_v600_s;
 
 
 /** @addtogroup _mali_uk_memory U/K Memory

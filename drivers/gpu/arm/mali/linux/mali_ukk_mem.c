@@ -331,3 +331,179 @@ int mem_usage_get_wrapper(struct mali_session_data *session_data, _mali_uk_profi
 	return 0;
 }
 
+int mem_map_ext_wrapper(struct mali_session_data *session_data, _mali_uk_map_external_mem_s __user *argument)
+{
+	_mali_uk_bind_mem_s kargs;
+	_mali_uk_map_external_mem_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_map_external_mem_s))) {
+		return -EFAULT;
+	}
+
+        kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+        kargs.vaddr = uk_args.mali_address;                                      /**< [in] mali address to map the physical memory to */
+        kargs.size = uk_args.size;                                       /**< [in] size */
+        kargs.flags = _MALI_MEMORY_BIND_BACKEND_EXTERNAL_MEMORY;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+        kargs.padding = 0;                                    /** padding for 32/64 struct alignment */
+        kargs.mem_union.bind_ext_memory.phys_addr = uk_args.phys_addr;                  /**< [in] phys_addr */
+        kargs.mem_union.bind_ext_memory.rights = uk_args.rights;                     /**< [in] rights necessary for accessing memory */
+        kargs.mem_union.bind_ext_memory.flags = uk_args.flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+
+	kargs.ctx = (uintptr_t)session_data;
+	err_code = _mali_ukk_mem_bind(&kargs);
+
+
+	if (0 != put_user(kargs.vaddr, &argument->cookie)) {
+		if (_MALI_OSK_ERR_OK == err_code) {
+			/* Rollback */
+                        _mali_uk_unbind_mem_s kargs_unmap;
+
+                        kargs_unmap.ctx = (uintptr_t)session_data;                                        /**< [in,out] user-kernel context (trashed on output) */
+                        kargs_unmap.vaddr = kargs.vaddr;                                      /**< [in] mali address to map the physical memory to */
+                        kargs_unmap.flags = _MALI_MEMORY_BIND_BACKEND_EXTERNAL_MEMORY;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+                        err_code = _mali_ukk_mem_unbind(&kargs_unmap);
+			if (_MALI_OSK_ERR_OK != err_code) {
+				MALI_DEBUG_PRINT(4, ("reverting _mali_ukk_unmap_external_mem, as a result of failing put_user(), failed\n"));
+			}
+		}
+		return -EFAULT;
+	}
+
+	/* Return the error that _mali_ukk_free_big_block produced */
+	return map_errcode(err_code);
+}
+
+int mem_unmap_ext_wrapper(struct mali_session_data *session_data, _mali_uk_unmap_external_mem_s __user *argument)
+{
+	_mali_uk_unbind_mem_s kargs;
+	_mali_uk_unmap_external_mem_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_unmap_external_mem_s))) {
+		return -EFAULT;
+	}
+
+        kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+        kargs.vaddr = uk_args.cookie;                                      /**< [in] mali address to map the physical memory to */
+        kargs.flags = _MALI_MEMORY_BIND_BACKEND_EXTERNAL_MEMORY;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+
+        kargs.ctx = (uintptr_t)session_data;
+        err_code = _mali_ukk_mem_unbind(&kargs);
+
+	/* Return the error that _mali_ukk_free_big_block produced */
+	return map_errcode(err_code);
+}
+
+#if defined(CONFIG_MALI400_UMP)
+int mem_release_ump_wrapper(struct mali_session_data *session_data, _mali_uk_release_ump_mem_s __user *argument)
+{
+	_mali_uk_unbind_mem_s kargs;
+	_mali_uk_release_ump_mem_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_release_ump_mem_s))) {
+		return -EFAULT;
+	}
+
+        kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+        kargs.vaddr = uk_args.cookie;                                      /**< [in] mali address to map the physical memory to */
+	kargs.flags = _MALI_MEMORY_BIND_BACKEND_UMP;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+
+        kargs.ctx = (uintptr_t)session_data;
+        err_code = _mali_ukk_mem_unbind(&kargs);
+
+	/* Return the error that _mali_ukk_free_big_block produced */
+	return map_errcode(err_code);
+}
+
+int mem_attach_ump_wrapper(struct mali_session_data *session_data, _mali_uk_attach_ump_mem_s __user *argument)
+{
+	_mali_uk_bind_mem_s kargs;
+	_mali_uk_attach_ump_mem_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_attach_ump_mem_s))) {
+		return -EFAULT;
+	}
+
+        kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+        kargs.vaddr = uk_args.mali_address;                                      /**< [in] mali address to map the physical memory to */
+        kargs.size = uk_args.size;                                       /**< [in] size */
+        kargs.flags = _MALI_MEMORY_BIND_BACKEND_UMP;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+        kargs.padding = 0;                                    /** padding for 32/64 struct alignment */
+        kargs.mem_union.bind_ump.secure_id = (int)uk_args.secure_id;                  /**< [in] secure id */
+        kargs.mem_union.bind_ump.rights = uk_args.rights;                     /**< [in] rights necessary for accessing memory */
+        kargs.mem_union.bind_ump.flags = uk_args.flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+
+        kargs.ctx = (uintptr_t)session_data;
+
+        err_code = _mali_ukk_mem_bind(&kargs);
+
+	if (0 != put_user(kargs.vaddr, &argument->cookie)) {
+		if (_MALI_OSK_ERR_OK == err_code) {
+			/* Rollback */
+			_mali_uk_unbind_mem_s kargs_unmap;
+
+			kargs_unmap.ctx = (uintptr_t)session_data;                                        /**< [in,out] user-kernel context (trashed on output) */
+			kargs_unmap.vaddr = kargs.vaddr;                                      /**< [in] mali address to map the physical memory to */
+			kargs_unmap.flags = _MALI_MEMORY_BIND_BACKEND_UMP;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+			err_code = _mali_ukk_mem_unbind(&kargs_unmap);
+			if (_MALI_OSK_ERR_OK != err_code) {
+				MALI_DEBUG_PRINT(4, ("reverting _mali_ukk_attach_mem, as a result of failing put_user(), failed\n"));
+			}
+		}
+		return -EFAULT;
+	}
+
+	/* Return the error that _mali_ukk_map_external_ump_mem produced */
+	return map_errcode(err_code);
+}
+#endif /* CONFIG_MALI400_UMP */
+
+int profiling_memory_usage_get_wrapper_v600(struct mali_session_data *session_data, _mali_uk_profiling_memory_usage_get_v600_s __user *uargs)
+{
+	_mali_osk_errcode_t err;
+	_mali_uk_profiling_memory_usage_get_v600_s kargs;
+
+	MALI_CHECK_NON_NULL(uargs, -EINVAL);
+	MALI_CHECK_NON_NULL(session_data, -EINVAL);
+
+	if (0 != copy_from_user(&kargs, uargs, sizeof(_mali_uk_profiling_memory_usage_get_v600_s))) {
+		return -EFAULT;
+	}
+
+	kargs.ctx = (uintptr_t)session_data;
+	err = _mali_ukk_profiling_memory_usage_get_v600(&kargs);
+	if (_MALI_OSK_ERR_OK != err) {
+		return map_errcode(err);
+	}
+
+	kargs.ctx = (uintptr_t)NULL; /* prevent kernel address to be returned to user space */
+	if (0 != copy_to_user(uargs, &kargs, sizeof(_mali_uk_profiling_memory_usage_get_v600_s))) {
+		return -EFAULT;
+	}
+
+	return 0;
+}
+

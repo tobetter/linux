@@ -86,6 +86,7 @@ struct mali_gp_allocation_node {
 };
 
 struct mali_gp_job *mali_gp_job_create(struct mali_session_data *session, _mali_uk_gp_start_job_s *uargs, u32 id, struct mali_timeline_tracker *pp_tracker);
+struct mali_gp_job *mali_gp_job_create_v600(struct mali_session_data *session, _mali_uk_gp_start_job_v600_s *uargs, u32 id, struct mali_timeline_tracker *pp_tracker);
 void mali_gp_job_delete(struct mali_gp_job *job);
 
 u32 mali_gp_job_get_gp_counter_src0(void);

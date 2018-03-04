@@ -74,6 +74,17 @@ extern "C" {
 #define MALI_IOC_MEM_DUMP_MMU_PAGE_TABLE    _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_DUMP_MMU_PAGE_TABLE, _mali_uk_dump_mmu_page_table_s)
 #define MALI_IOC_MEM_WRITE_SAFE             _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_MEM_WRITE_SAFE, _mali_uk_mem_write_safe_s)
 
+#define MALI_IOC_MEM_MAP_EXT                _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_MAP_EXT_MEM, _mali_uk_map_external_mem_s)
+#define MALI_IOC_MEM_UNMAP_EXT              _IOW (MALI_IOC_MEMORY_BASE, _MALI_UK_UNMAP_EXT_MEM, _mali_uk_unmap_external_mem_s)
+#define MALI_IOC_MEM_ATTACH_DMA_BUF         _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_ATTACH_DMA_BUF, _mali_uk_attach_dma_buf_s)
+#define MALI_IOC_MEM_RELEASE_DMA_BUF        _IOW(MALI_IOC_MEMORY_BASE, _MALI_UK_RELEASE_DMA_BUF, _mali_uk_release_dma_buf_s)
+#define MALI_IOC_MEM_DMA_BUF_GET_SIZE_V600       _IOR(MALI_IOC_MEMORY_BASE, _MALI_UK_DMA_BUF_GET_SIZE_V600, _mali_uk_dma_buf_get_size_s)
+#define MALI_IOC_MEM_ATTACH_UMP             _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_ATTACH_UMP_MEM, _mali_uk_attach_ump_mem_s)
+#define MALI_IOC_MEM_RELEASE_UMP            _IOW(MALI_IOC_MEMORY_BASE, _MALI_UK_RELEASE_UMP_MEM, _mali_uk_release_ump_mem_s)
+#define MALI_IOC_MEM_QUERY_MMU_PAGE_TABLE_DUMP_SIZE_V600 _IOR (MALI_IOC_MEMORY_BASE, _MALI_UK_QUERY_MMU_PAGE_TABLE_DUMP_SIZE_V600, _mali_uk_query_mmu_page_table_dump_size_s)
+#define MALI_IOC_MEM_DUMP_MMU_PAGE_TABLE_V600    _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_DUMP_MMU_PAGE_TABLE_V600, _mali_uk_dump_mmu_page_table_s)
+#define MALI_IOC_MEM_WRITE_SAFE_V600             _IOWR(MALI_IOC_MEMORY_BASE, _MALI_UK_MEM_WRITE_SAFE_V600, _mali_uk_mem_write_safe_s)
+
 #define MALI_IOC_PP_START_JOB               _IOWR(MALI_IOC_PP_BASE, _MALI_UK_PP_START_JOB, _mali_uk_pp_start_job_s)
 #define MALI_IOC_PP_AND_GP_START_JOB        _IOWR(MALI_IOC_PP_BASE, _MALI_UK_PP_AND_GP_START_JOB, _mali_uk_pp_and_gp_start_job_s)
 #define MALI_IOC_PP_NUMBER_OF_CORES_GET     _IOR (MALI_IOC_PP_BASE, _MALI_UK_GET_PP_NUMBER_OF_CORES, _mali_uk_get_pp_number_of_cores_s)
@@ -81,6 +92,7 @@ extern "C" {
 #define MALI_IOC_PP_DISABLE_WB              _IOW (MALI_IOC_PP_BASE, _MALI_UK_PP_DISABLE_WB, _mali_uk_pp_disable_wb_s)
 
 #define MALI_IOC_GP2_START_JOB              _IOWR(MALI_IOC_GP_BASE, _MALI_UK_GP_START_JOB, _mali_uk_gp_start_job_s)
+#define MALI_IOC_GP2_START_JOB_V600              _IOWR(MALI_IOC_GP_BASE, _MALI_UK_GP_START_JOB, _mali_uk_gp_start_job_v600_s)
 #define MALI_IOC_GP2_NUMBER_OF_CORES_GET    _IOR (MALI_IOC_GP_BASE, _MALI_UK_GET_GP_NUMBER_OF_CORES, _mali_uk_get_gp_number_of_cores_s)
 #define MALI_IOC_GP2_CORE_VERSION_GET       _IOR (MALI_IOC_GP_BASE, _MALI_UK_GET_GP_CORE_VERSION, _mali_uk_get_gp_core_version_s)
 #define MALI_IOC_GP2_SUSPEND_RESPONSE       _IOW (MALI_IOC_GP_BASE, _MALI_UK_GP_SUSPEND_RESPONSE,_mali_uk_gp_suspend_response_s)
@@ -88,6 +100,7 @@ extern "C" {
 #define MALI_IOC_PROFILING_ADD_EVENT        _IOWR(MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_ADD_EVENT, _mali_uk_profiling_add_event_s)
 #define MALI_IOC_PROFILING_REPORT_SW_COUNTERS  _IOW (MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_REPORT_SW_COUNTERS, _mali_uk_sw_counters_report_s)
 #define MALI_IOC_PROFILING_MEMORY_USAGE_GET _IOR(MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_MEMORY_USAGE_GET, _mali_uk_profiling_memory_usage_get_s)
+#define MALI_IOC_PROFILING_MEMORY_USAGE_GET_V600 _IOR(MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_MEMORY_USAGE_GET, _mali_uk_profiling_memory_usage_get_v600_s)
 #define MALI_IOC_PROFILING_STREAM_FD_GET        _IOR(MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_STREAM_FD_GET, _mali_uk_profiling_stream_fd_get_s)
 #define MALI_IOC_PROILING_CONTROL_SET   _IOR(MALI_IOC_PROFILING_BASE, _MALI_UK_PROFILING_CONTROL_SET, _mali_uk_profiling_control_set_s)
 

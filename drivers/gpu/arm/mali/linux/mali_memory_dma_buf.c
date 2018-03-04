@@ -23,6 +23,7 @@
 #include "mali_kernel_common.h"
 #include "mali_session.h"
 #include "mali_kernel_linux.h"
+#include "mali_ukk_wrappers.h"
 
 #include "mali_memory.h"
 #include "mali_memory_dma_buf.h"
@@ -367,3 +368,77 @@ void mali_mem_unbind_dma_buf(mali_mem_backend *mem_backend)
 
 	_mali_osk_free(mem);
 }
+
+int mali_attach_dma_buf(struct mali_session_data *session_data, _mali_uk_attach_dma_buf_s __user *argument)
+{
+	_mali_uk_bind_mem_s kargs;
+	_mali_uk_attach_dma_buf_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_attach_dma_buf_s))) {
+		return -EFAULT;
+	}
+
+	kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+	kargs.vaddr = uk_args.mali_address;                                      /**< [in] mali address to map the physical memory to */
+	kargs.size = uk_args.size;                                       /**< [in] size */
+	kargs.flags = _MALI_MEMORY_BIND_BACKEND_DMA_BUF;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+	kargs.padding = 0;                                    /** padding for 32/64 struct alignment */
+	kargs.mem_union.bind_dma_buf.mem_fd = uk_args.mem_fd;                  /**< [in] phys_addr */
+	kargs.mem_union.bind_dma_buf.rights = uk_args.rights;                     /**< [in] rights necessary for accessing memory */
+	kargs.mem_union.bind_dma_buf.flags = uk_args.flags;                      /**< [in] flags, see \ref _MALI_MAP_EXTERNAL_MAP_GUARD_PAGE */
+
+	kargs.ctx = (uintptr_t)session_data;
+	err_code = _mali_ukk_mem_bind(&kargs);
+
+	if (0 != put_user(kargs.vaddr, &argument->cookie)) {
+		if (_MALI_OSK_ERR_OK == err_code) {
+			/* Rollback */
+			_mali_uk_unbind_mem_s kargs_unmap;
+
+			kargs_unmap.ctx = (uintptr_t)session_data;                                        /**< [in,out] user-kernel context (trashed on output) */
+			kargs_unmap.vaddr = kargs.vaddr;                                      /**< [in] mali address to map the physical memory to */
+			kargs_unmap.flags = _MALI_MEMORY_BIND_BACKEND_DMA_BUF;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+			err_code = _mali_ukk_mem_unbind(&kargs_unmap);
+			if (_MALI_OSK_ERR_OK != err_code) {
+				MALI_DEBUG_PRINT(4, ("reverting _mali_ukk_unmap_dma_buf_mem, as a result of failing put_user(), failed\n"));
+			}
+		}
+		return -EFAULT;
+	}
+
+	/* Return the error that _mali_ukk_free_big_block produced */
+	return map_errcode(err_code);
+}
+
+int mali_release_dma_buf(struct mali_session_data *session_data, _mali_uk_release_dma_buf_s __user *argument)
+{
+	_mali_uk_unbind_mem_s kargs;
+	_mali_uk_release_dma_buf_s uk_args;
+	_mali_osk_errcode_t err_code;
+
+	/* validate input */
+	/* the session_data pointer was validated by caller */
+	MALI_CHECK_NON_NULL(argument, -EINVAL);
+
+	/* get call arguments from user space. copy_from_user returns how many bytes which where NOT copied */
+	if (0 != copy_from_user(&uk_args, (void __user *)argument, sizeof(_mali_uk_release_dma_buf_s))) {
+		return -EFAULT;
+	}
+
+	kargs.ctx = uk_args.ctx;                                        /**< [in,out] user-kernel context (trashed on output) */
+	kargs.vaddr = uk_args.cookie;                                      /**< [in] mali address to map the physical memory to */
+	kargs.flags = _MALI_MEMORY_BIND_BACKEND_DMA_BUF;                                      /**< [in] see_MALI_MEMORY_BIND_BACKEND_* */
+
+	kargs.ctx = (uintptr_t)session_data;
+	err_code = _mali_ukk_mem_unbind(&kargs);
+
+	/* Return the error that _mali_ukk_free_big_block produced */
+	return map_errcode(err_code);
+}
+

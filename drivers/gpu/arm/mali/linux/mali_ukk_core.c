@@ -33,6 +33,8 @@ int get_api_version_wrapper(struct mali_session_data *session_data, _mali_uk_get
 	if (0 != put_user(kargs.version, &uargs->version)) return -EFAULT;
 	if (0 != put_user(kargs.compatible, &uargs->compatible)) return -EFAULT;
 
+	session_data->version = kargs.version;
+
 	return 0;
 }
 
@@ -51,6 +53,8 @@ int get_api_version_v2_wrapper(struct mali_session_data *session_data, _mali_uk_
 
 	if (0 != put_user(kargs.version, &uargs->version)) return -EFAULT;
 	if (0 != put_user(kargs.compatible, &uargs->compatible)) return -EFAULT;
+
+	session_data->version = kargs.version;
 
 	return 0;
 }

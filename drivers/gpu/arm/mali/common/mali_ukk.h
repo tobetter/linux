@@ -450,6 +450,8 @@ void _mali_ukk_pp_job_disable_wb(_mali_uk_pp_disable_wb_s *args);
  */
 _mali_osk_errcode_t _mali_ukk_gp_start_job(void *ctx, _mali_uk_gp_start_job_s *uargs);
 
+_mali_osk_errcode_t _mali_ukk_gp_start_job_v600(void *ctx, _mali_uk_gp_start_job_v600_s *uargs);
+
 /** @brief Returns the number of Vertex Processors in the system.
  *
  * @param args see _mali_uk_get_gp_number_of_cores_s in "mali_utgard_uk_types.h"

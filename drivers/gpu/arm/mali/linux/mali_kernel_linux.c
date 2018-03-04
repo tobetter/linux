@@ -236,6 +236,7 @@ static struct of_device_id base_dt_ids[] = {
 	{.compatible = "arm,mali-400"},
 	{.compatible = "arm,mali-450"},
 	{.compatible = "arm,mali-470"},
+	{.compatible = "arm,mali-utgard"},
 	{},
 };
 
@@ -400,6 +401,7 @@ int mali_module_init(void)
 	int err = 0;
 
 	MALI_DEBUG_PRINT(2, ("Inserting Mali v%d device driver. \n", _MALI_API_VERSION));
+	MALI_DEBUG_PRINT(2, ("Enabled Mali v%d compatibility. \n", _MALI_API_VERSION_COMPAT));
 	MALI_DEBUG_PRINT(2, ("Compiled: %s, time: %s.\n", __DATE__, __TIME__));
 	MALI_DEBUG_PRINT(2, ("Driver revision: %s\n", SVN_REV_STRING));
 
@@ -979,10 +981,17 @@ static int mali_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, 
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_profiling_control_set_s), sizeof(u64)));
 		err = profiling_control_set_wrapper(session_data, (_mali_uk_profiling_control_set_s __user *)arg);
 		break;
+
+	case MALI_IOC_PROFILING_MEMORY_USAGE_GET_V600:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_profiling_memory_usage_get_v600_s), sizeof(u64)));
+		err = profiling_memory_usage_get_wrapper_v600(session_data, (_mali_uk_profiling_memory_usage_get_v600_s __user *)arg);
+		break;
+
 #else
 
 	case MALI_IOC_PROFILING_ADD_EVENT:          /* FALL-THROUGH */
 	case MALI_IOC_PROFILING_REPORT_SW_COUNTERS: /* FALL-THROUGH */
+	case MALI_IOC_PROFILING_MEMORY_USAGE_GET_V600:   /* FALL-THROUGH */
 		MALI_DEBUG_PRINT(2, ("Profiling not supported\n"));
 		err = -ENOTTY;
 		break;
@@ -1029,21 +1038,76 @@ static int mali_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, 
 		break;
 
 	case MALI_IOC_MEM_WRITE_SAFE:
+	case MALI_IOC_MEM_WRITE_SAFE_V600:
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_mem_write_safe_s), sizeof(u64)));
 		err = mem_write_safe_wrapper(session_data, (_mali_uk_mem_write_safe_s __user *)arg);
 		break;
 
+	case MALI_IOC_MEM_MAP_EXT:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_map_external_mem_s), sizeof(u64)));
+		err = mem_map_ext_wrapper(session_data, (_mali_uk_map_external_mem_s __user *)arg);
+		break;
+
+	case MALI_IOC_MEM_UNMAP_EXT:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_unmap_external_mem_s), sizeof(u64)));
+		err = mem_unmap_ext_wrapper(session_data, (_mali_uk_unmap_external_mem_s __user *)arg);
+		break;
+
 	case MALI_IOC_MEM_QUERY_MMU_PAGE_TABLE_DUMP_SIZE:
+	case MALI_IOC_MEM_QUERY_MMU_PAGE_TABLE_DUMP_SIZE_V600:
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_query_mmu_page_table_dump_size_s), sizeof(u64)));
 		err = mem_query_mmu_page_table_dump_size_wrapper(session_data, (_mali_uk_query_mmu_page_table_dump_size_s __user *)arg);
 		break;
 
 	case MALI_IOC_MEM_DUMP_MMU_PAGE_TABLE:
+	case MALI_IOC_MEM_DUMP_MMU_PAGE_TABLE_V600:
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_dump_mmu_page_table_s), sizeof(u64)));
 		err = mem_dump_mmu_page_table_wrapper(session_data, (_mali_uk_dump_mmu_page_table_s __user *)arg);
 		break;
 
+#if defined(CONFIG_MALI400_UMP)
+
+	case MALI_IOC_MEM_ATTACH_UMP:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_attach_ump_mem_s), sizeof(u64)));
+		err = mem_attach_ump_wrapper(session_data, (_mali_uk_attach_ump_mem_s __user *)arg);
+		break;
+
+	case MALI_IOC_MEM_RELEASE_UMP:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_release_ump_mem_s), sizeof(u64)));
+		err = mem_release_ump_wrapper(session_data, (_mali_uk_release_ump_mem_s __user *)arg);
+		break;
+
+#else
+
+	case MALI_IOC_MEM_ATTACH_UMP:
+	case MALI_IOC_MEM_RELEASE_UMP: /* FALL-THROUGH */
+		MALI_DEBUG_PRINT(2, ("UMP not supported\n"));
+		err = -ENOTTY;
+		break;
+#endif
+
+#ifdef CONFIG_DMA_SHARED_BUFFER
+	case MALI_IOC_MEM_ATTACH_DMA_BUF:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_attach_dma_buf_s), sizeof(u64)));
+		err = mali_attach_dma_buf(session_data, (_mali_uk_attach_dma_buf_s __user *)arg);
+		break;
+
+	case MALI_IOC_MEM_RELEASE_DMA_BUF:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_release_dma_buf_s), sizeof(u64)));
+		err = mali_release_dma_buf(session_data, (_mali_uk_release_dma_buf_s __user *)arg);
+		break;
+
+#else
+
+	case MALI_IOC_MEM_ATTACH_DMA_BUF:   /* FALL-THROUGH */
+	case MALI_IOC_MEM_RELEASE_DMA_BUF:  /* FALL-THROUGH */
+		MALI_DEBUG_PRINT(2, ("DMA-BUF not supported\n"));
+		err = -ENOTTY;
+		break;
+#endif
+
 	case MALI_IOC_MEM_DMA_BUF_GET_SIZE:
+	case MALI_IOC_MEM_DMA_BUF_GET_SIZE_V600:
 #ifdef CONFIG_DMA_SHARED_BUFFER
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_dma_buf_get_size_s), sizeof(u64)));
 		err = mali_dma_buf_get_size(session_data, (_mali_uk_dma_buf_get_size_s __user *)arg);
@@ -1081,6 +1145,11 @@ static int mali_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, 
 	case MALI_IOC_GP2_START_JOB:
 		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_gp_start_job_s), sizeof(u64)));
 		err = gp_start_job_wrapper(session_data, (_mali_uk_gp_start_job_s __user *)arg);
+		break;
+
+	case MALI_IOC_GP2_START_JOB_V600:
+		BUILD_BUG_ON(!IS_ALIGNED(sizeof(_mali_uk_gp_start_job_v600_s), sizeof(u64)));
+		err = gp_start_job_wrapper_v600(session_data, (_mali_uk_gp_start_job_v600_s __user *)arg);
 		break;
 
 	case MALI_IOC_GP2_NUMBER_OF_CORES_GET:

@@ -45,7 +45,12 @@ _mali_osk_errcode_t _mali_ukk_mem_unbind(_mali_uk_unbind_mem_s *args);
 _mali_osk_errcode_t _mali_ukk_mem_cow(_mali_uk_cow_mem_s *args);
 _mali_osk_errcode_t _mali_ukk_mem_cow_modify_range(_mali_uk_cow_modify_range_s *args);
 _mali_osk_errcode_t _mali_ukk_mem_usage_get(_mali_uk_profiling_memory_usage_get_s *args);
+_mali_osk_errcode_t _mali_ukk_profiling_memory_usage_get_v600(_mali_uk_profiling_memory_usage_get_v600_s *args);
 _mali_osk_errcode_t _mali_ukk_mem_resize(_mali_uk_mem_resize_s *args);
+
+_mali_osk_errcode_t mali_mem_alloc_and_mali_map(struct mali_session_data *session, u32 vaddr, u32 size, struct vm_area_struct *vma);
+_mali_osk_errcode_t mali_mem_free_and_mali_unmap(struct mali_session_data *session, u32 vaddr);
+_mali_osk_errcode_t mali_backend_struct_get(mali_mem_allocation *mali_alloc, mali_mem_backend **target);
 
 #endif
 

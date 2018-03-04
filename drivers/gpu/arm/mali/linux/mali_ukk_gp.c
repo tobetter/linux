@@ -32,6 +32,22 @@ int gp_start_job_wrapper(struct mali_session_data *session_data, _mali_uk_gp_sta
 	return 0;
 }
 
+int gp_start_job_wrapper_v600(struct mali_session_data *session_data, _mali_uk_gp_start_job_v600_s __user *uargs)
+{
+	_mali_osk_errcode_t err;
+
+	/* If the job was started successfully, 0 is returned.  If there was an error, but the job
+	 * was started, we return -ENOENT.  For anything else returned, the job was not started. */
+
+	MALI_CHECK_NON_NULL(uargs, -EINVAL);
+	MALI_CHECK_NON_NULL(session_data, -EINVAL);
+
+	err = _mali_ukk_gp_start_job_v600(session_data, uargs);
+	if (_MALI_OSK_ERR_OK != err) return map_errcode(err);
+
+	return 0;
+}
+
 int gp_get_core_version_wrapper(struct mali_session_data *session_data, _mali_uk_get_gp_core_version_s __user *uargs)
 {
 	_mali_uk_get_gp_core_version_s kargs;

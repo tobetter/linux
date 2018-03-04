@@ -991,3 +991,59 @@ _mali_osk_errcode_t _mali_ukk_mem_usage_get(_mali_uk_profiling_memory_usage_get_
 	}
 	return _MALI_OSK_ERR_OK;
 }
+
+_mali_osk_errcode_t _mali_ukk_profiling_memory_usage_get_v600(_mali_uk_profiling_memory_usage_get_v600_s *args)
+{
+	args->memory_usage = _mali_ukk_report_memory_usage();
+	return _MALI_OSK_ERR_OK;
+}
+
+_mali_osk_errcode_t mali_mem_alloc_and_mali_map(struct mali_session_data *session, u32 vaddr, u32 size, struct vm_area_struct *vma)
+{
+	_mali_uk_alloc_mem_s alloc_args;
+
+	alloc_args.ctx = (uintptr_t)session;                            /**< [in,out] user-kernel context (trashed on output) */
+	alloc_args.gpu_vaddr = vaddr;                                   /**< [in] GPU virtual address */
+	alloc_args.vsize = size;                                        /**< [in] vitrual size of the allocation */
+	alloc_args.psize = size;                                        /**< [in] physical size of the allocation */
+	alloc_args.flags = _MALI_MEMORY_ALLOCATE_RESIZEABLE;
+
+	if (VM_SHARED != (VM_SHARED & vma->vm_flags)) {
+		alloc_args.flags |= _MALI_MEMORY_GPU_READ_ALLOCATE;
+		vma->vm_flags |= VM_SHARED;
+	}
+
+	return _mali_ukk_mem_allocate(&alloc_args);
+}
+
+_mali_osk_errcode_t mali_mem_free_and_mali_unmap(struct mali_session_data *session, u32 vaddr)
+{
+	_mali_uk_free_mem_s free_args;
+
+	free_args.ctx = (uintptr_t)session;                            /**< [in,out] user-kernel context (trashed on output) */
+	free_args.gpu_vaddr = vaddr;                                   /**< [in] GPU virtual address */
+	free_args.free_pages_nr = 0;
+
+	return _mali_ukk_mem_free(&free_args);
+}
+
+_mali_osk_errcode_t mali_backend_struct_get(mali_mem_allocation *mali_alloc, mali_mem_backend **target)
+{
+	_mali_osk_errcode_t result = _MALI_OSK_ERR_FAULT;
+	mali_mem_backend *mem_bkend = NULL;
+
+	/* Get backend memory & Map on CPU */
+	mutex_lock(&mali_idr_mutex);
+	mem_bkend = idr_find(&mali_backend_idr, mali_alloc->backend_handle);
+	mutex_unlock(&mali_idr_mutex);
+	MALI_DEBUG_ASSERT(NULL != mem_bkend);
+
+	if (mem_bkend)
+	{
+		*target = mem_bkend;
+		result = _MALI_OSK_ERR_OK;
+	}
+
+	MALI_ERROR(result);
+}
+

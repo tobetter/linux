@@ -152,6 +152,7 @@ int mali_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	struct mali_session_data *session;
 	mali_mem_allocation *mali_alloc = NULL;
+	u32 size = vma->vm_end - vma->vm_start;
 	u32 mali_addr = vma->vm_pgoff << PAGE_SHIFT;
 	struct mali_vma_node *mali_vma_node = NULL;
 	mali_mem_backend *mem_bkend = NULL;
@@ -172,6 +173,25 @@ int mali_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	/* find mali allocation structure by vaddress*/
 	mali_vma_node = mali_vma_offset_search(&session->allocation_mgr, mali_addr, 0);
+
+	/* v600 API does not allocate/free itself */
+	if (likely(mali_vma_node)) {
+		mali_alloc = container_of(mali_vma_node, struct mali_mem_allocation, mali_vma_node);
+		if (NULL != mali_alloc->cpu_mapping.vma)
+		{
+			ret = mali_mem_free_and_mali_unmap(session, mali_addr);
+
+			if (_MALI_OSK_ERR_OK == (_mali_osk_errcode_t)ret)
+				ret = mali_mem_alloc_and_mali_map(session, mali_addr, size, vma);
+
+			if (_MALI_OSK_ERR_OK == (_mali_osk_errcode_t)ret)
+				mali_vma_node = mali_vma_offset_search(&session->allocation_mgr, mali_addr, 0);
+		}
+	} else {
+		mali_mem_alloc_and_mali_map(session, mali_addr, size, vma);
+		mali_vma_node = mali_vma_offset_search(&session->allocation_mgr, mali_addr, 0);
+	}
+
 	if (likely(mali_vma_node)) {
 		mali_alloc = container_of(mali_vma_node, struct mali_mem_allocation, mali_vma_node);
 		MALI_DEBUG_ASSERT(mali_addr == mali_vma_node->vm_node.start);

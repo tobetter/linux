@@ -753,6 +753,41 @@ _mali_osk_errcode_t _mali_ukk_gp_start_job(void *ctx,
 	return _MALI_OSK_ERR_OK;
 }
 
+_mali_osk_errcode_t _mali_ukk_gp_start_job_v600(void *ctx,
+		_mali_uk_gp_start_job_v600_s *uargs)
+{
+	struct mali_session_data *session;
+	struct mali_gp_job *job;
+	mali_timeline_point point;
+	u32 __user *point_ptr = NULL;
+
+	MALI_DEBUG_ASSERT_POINTER(uargs);
+	MALI_DEBUG_ASSERT_POINTER(ctx);
+
+	session = (struct mali_session_data *)(uintptr_t)ctx;
+
+	job = mali_gp_job_create_v600(session, uargs, mali_scheduler_get_new_id(),
+				 NULL);
+	if (NULL == job) {
+		MALI_PRINT_ERROR(("Failed to create GP job.\n"));
+		return _MALI_OSK_ERR_NOMEM;
+	}
+
+	point_ptr = (u32 __user *)(uintptr_t)mali_gp_job_get_timeline_point_ptr(job);
+
+	point = mali_scheduler_submit_gp_job(session, job);
+
+	if (0 != _mali_osk_put_user(((u32) point), point_ptr)) {
+		/*
+		 * Let user space know that something failed
+		 * after the job was started.
+		 */
+		return _MALI_OSK_ERR_ITEM_NOT_FOUND;
+	}
+
+	return _MALI_OSK_ERR_OK;
+}
+
 _mali_osk_errcode_t _mali_ukk_pp_start_job(void *ctx,
 		_mali_uk_pp_start_job_s *uargs)
 {
@@ -799,6 +834,7 @@ _mali_osk_errcode_t _mali_ukk_pp_and_gp_start_job(void *ctx,
 	mali_timeline_point point;
 	_mali_uk_pp_start_job_s __user *pp_args;
 	_mali_uk_gp_start_job_s __user *gp_args;
+	_mali_uk_gp_start_job_v600_s __user *gp_args_v600;
 
 	MALI_DEBUG_ASSERT_POINTER(ctx);
 	MALI_DEBUG_ASSERT_POINTER(uargs);
@@ -812,6 +848,7 @@ _mali_osk_errcode_t _mali_ukk_pp_and_gp_start_job(void *ctx,
 
 	pp_args = (_mali_uk_pp_start_job_s __user *)(uintptr_t)kargs.pp_args;
 	gp_args = (_mali_uk_gp_start_job_s __user *)(uintptr_t)kargs.gp_args;
+	gp_args_v600 = (_mali_uk_gp_start_job_v600_s __user *)(uintptr_t)kargs.gp_args;
 
 	pp_job = mali_pp_job_create(session, pp_args,
 				    mali_scheduler_get_new_id());
@@ -820,7 +857,12 @@ _mali_osk_errcode_t _mali_ukk_pp_and_gp_start_job(void *ctx,
 		return _MALI_OSK_ERR_NOMEM;
 	}
 
-	gp_job = mali_gp_job_create(session, gp_args,
+	if (session->version == _MALI_UK_API_VERSION_COMPAT)
+		gp_job = mali_gp_job_create_v600(session, gp_args_v600,
+				    mali_scheduler_get_new_id(),
+				    mali_pp_job_get_tracker(pp_job));
+	else
+		gp_job = mali_gp_job_create(session, gp_args,
 				    mali_scheduler_get_new_id(),
 				    mali_pp_job_get_tracker(pp_job));
 	if (NULL == gp_job) {
