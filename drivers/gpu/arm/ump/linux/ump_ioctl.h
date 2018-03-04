@@ -57,6 +57,21 @@ extern "C" {
 
 #define UMP_IOC_DMABUF_IMPORT  _IOW(UMP_IOCTL_NR,  _UMP_IOC_DMABUF_IMPORT, _ump_uk_dmabuf_s)
 
+#ifdef CONFIG_COMPAT
+#define UMP_IOC32_QUERY_API_VERSION _IOR(UMP_IOCTL_NR, _UMP_IOC_QUERY_API_VERSION, _ump_uk_api_version_32_s)
+#define UMP_IOC32_ALLOCATE  _IOWR(UMP_IOCTL_NR,  _UMP_IOC_ALLOCATE,  _ump_uk_allocate_32_s)
+#define UMP_IOC32_RELEASE  _IOR(UMP_IOCTL_NR,  _UMP_IOC_RELEASE,  _ump_uk_release_32_s)
+#define UMP_IOC32_SIZE_GET  _IOWR(UMP_IOCTL_NR,  _UMP_IOC_SIZE_GET, _ump_uk_size_get_32_s)
+#define UMP_IOC32_MSYNC     _IOW(UMP_IOCTL_NR,  _UMP_IOC_MSYNC, _ump_uk_msync_32_s)
+
+#define UMP_IOC32_CACHE_OPERATIONS_CONTROL _IOW(UMP_IOCTL_NR,  _UMP_IOC_CACHE_OPERATIONS_CONTROL, _ump_uk_cache_operations_control_32_s)
+#define UMP_IOC32_SWITCH_HW_USAGE   _IOW(UMP_IOCTL_NR,  _UMP_IOC_SWITCH_HW_USAGE, _ump_uk_switch_hw_usage_32_s)
+#define UMP_IOC32_LOCK          _IOW(UMP_IOCTL_NR,  _UMP_IOC_LOCK, _ump_uk_lock_32_s)
+#define UMP_IOC32_UNLOCK        _IOW(UMP_IOCTL_NR,  _UMP_IOC_UNLOCK, _ump_uk_unlock_32_s)
+
+#define UMP_IOC32_DMABUF_IMPORT  _IOW(UMP_IOCTL_NR,  _UMP_IOC_DMABUF_IMPORT, _ump_uk_dmabuf_32_s)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -57,6 +57,9 @@ static struct file_operations mali_fops = {
 	 .unlocked_ioctl = drm_ioctl,
 	 .mmap = drm_mmap,
 	 .poll = drm_poll,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = drm_compat_ioctl,
+#endif
 };
 
 static struct drm_driver driver = 

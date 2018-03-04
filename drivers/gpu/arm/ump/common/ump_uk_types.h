@@ -195,6 +195,100 @@ typedef struct _ump_uk_dmabuf_s
 	u32 secure_id;        /**< [out] secure_id that identifies the ump buffer */
 } _ump_uk_dmabuf_s;
 
+#ifdef CONFIG_COMPAT
+
+#define _ump_uk_void_p_32 u32
+
+/**
+ * Get API version ([in,out] u32 api_version, [out] u32 compatible)
+ */
+typedef struct _ump_uk_api_version_32_s
+{
+	_ump_uk_void_p_32 ctx;      /**< [in,out] user-kernel context (trashed on output) */
+	u32 version;    /**< Set to the user space version on entry, stores the device driver version on exit */
+	u32 compatible; /**< Non-null if the device is compatible with the client */
+} _ump_uk_api_version_32_s;
+
+/**
+ * ALLOCATE ([out] u32 secure_id, [in,out] u32 size,  [in] contraints)
+ */
+typedef struct _ump_uk_allocate_32_s
+{
+	_ump_uk_void_p_32 ctx;                              /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;                          /**< Return value from DD to Userdriver */
+	u32 size;                               /**< Input and output. Requested size; input. Returned size; output */
+	ump_uk_alloc_constraints constraints;   /**< Only input to Devicedriver */
+} _ump_uk_allocate_32_s;
+
+/**
+ * SIZE_GET ([in] u32 secure_id, [out]size )
+ */
+typedef struct _ump_uk_size_get_32_s
+{
+	_ump_uk_void_p_32 ctx;                              /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;                          /**< Input to DD */
+	u32 size;                               /**< Returned size; output */
+} _ump_uk_size_get_32_s;
+
+/**
+ * Release ([in] u32 secure_id)
+ */
+typedef struct _ump_uk_release_32_s
+{
+	_ump_uk_void_p_32 ctx;                              /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;                          /**< Input to DD */
+} _ump_uk_release_32_s;
+
+typedef struct _ump_uk_msync_32_s
+{
+	_ump_uk_void_p_32 ctx;            /**< [in,out] user-kernel context (trashed on output) */
+	_ump_uk_void_p_32 mapping;        /**< [in] mapping addr */
+	_ump_uk_void_p_32 address;        /**< [in] flush start addr */
+	u32 size;             /**< [in] size to flush */
+	ump_uk_msync_op op;   /**< [in] flush operation */
+	u32 cookie;           /**< [in] cookie stored with reference to the kernel mapping internals */
+	u32 secure_id;        /**< [in] secure_id that identifies the ump buffer */
+	u32 is_cached;        /**< [out] caching of CPU mappings */
+} _ump_uk_msync_32_s;
+
+typedef struct _ump_uk_cache_operations_control_32_s
+{
+	_ump_uk_void_p_32 ctx;                   /**< [in,out] user-kernel context (trashed on output) */
+	ump_uk_cache_op_control op;  /**< [in] cache operations start/stop */
+} _ump_uk_cache_operations_control_32_s;
+
+
+typedef struct _ump_uk_switch_hw_usage_32_s
+{
+	_ump_uk_void_p_32 ctx;            /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;        /**< [in] secure_id that identifies the ump buffer */
+	ump_uk_user new_user;         /**< [in] cookie stored with reference to the kernel mapping internals */
+
+} _ump_uk_switch_hw_usage_32_s;
+
+typedef struct _ump_uk_lock_32_s
+{
+	_ump_uk_void_p_32 ctx;            /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;        /**< [in] secure_id that identifies the ump buffer */
+	ump_uk_lock_usage lock_usage;
+} _ump_uk_lock_32_s;
+
+typedef struct _ump_uk_unlock_32_s
+{
+	_ump_uk_void_p_32 ctx;            /**< [in,out] user-kernel context (trashed on output) */
+	u32 secure_id;        /**< [in] secure_id that identifies the ump buffer */
+} _ump_uk_unlock_32_s;
+
+typedef struct _ump_uk_dmabuf_32_s
+{
+	_ump_uk_void_p_32 ctx;            /**< [in,out] user-kernel context (trashed on output) */
+	int fd;               /**< [in] dmabuf_fd that identifies the dmabuf buffer */
+	size_t size;          /**< [in] size of the buffer */
+	u32 secure_id;        /**< [out] secure_id that identifies the ump buffer */
+} _ump_uk_dmabuf_32_s;
+
+#endif /* CONFIG_COMPAT */
+
 #ifdef __cplusplus
 }
 #endif

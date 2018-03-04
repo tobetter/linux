@@ -26,10 +26,13 @@
 
 extern struct device *ump_global_mdev;
 
+extern int ump_copy_from_user( void * destination, const void * source, size_t num, int pointer_size );
+extern int ump_copy_to_user( void * destination, const void * source, size_t num, int pointer_size );
+
 /*
  * IOCTL operation; Allocate UMP memory
  */
-int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *session_data)
+int __ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *session_data, int pointer_size)
 {
 	_ump_uk_allocate_s user_interaction;
 	_mali_osk_errcode_t err;
@@ -41,7 +44,7 @@ int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *sessio
 	}
 
 	/* Copy the user space memory to kernel space (so we safely can read it) */
-	if (0 != copy_from_user(&user_interaction, argument, sizeof(user_interaction))) {
+	if (0 != ump_copy_from_user(&user_interaction, argument, sizeof(user_interaction), pointer_size)) {
 		MSG_ERR(("copy_from_user() in ump_ioctl_allocate()\n"));
 		return -EFAULT;
 	}
@@ -55,7 +58,7 @@ int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *sessio
 	}
 	user_interaction.ctx = NULL;
 
-	if (0 != copy_to_user(argument, &user_interaction, sizeof(user_interaction))) {
+	if (0 != ump_copy_to_user(argument, &user_interaction, sizeof(user_interaction), pointer_size)) {
 		/* If the copy fails then we should release the memory. We can use the IOCTL release to accomplish this */
 		_ump_uk_release_s release_args;
 
@@ -73,6 +76,11 @@ int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *sessio
 	}
 
 	return 0; /* success */
+}
+
+int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *session_data)
+{
+	return __ump_allocate_wrapper(argument, session_data, sizeof(void *));
 }
 
 #ifdef CONFIG_DMA_SHARED_BUFFER
@@ -106,8 +114,8 @@ static ump_dd_handle get_ump_handle_from_dmabuf(struct ump_session_data *session
 	return NULL;
 }
 
-int ump_dmabuf_import_wrapper(u32 __user *argument,
-				struct ump_session_data  *session_data)
+int __ump_dmabuf_import_wrapper(u32 __user *argument,
+				struct ump_session_data  *session_data, int pointer_size)
 {
 	ump_session_memory_list_element *session = NULL;
 	_ump_uk_dmabuf_s ump_dmabuf;
@@ -126,8 +134,8 @@ int ump_dmabuf_import_wrapper(u32 __user *argument,
 		return -EINVAL;
 	}
 
-	if (copy_from_user(&ump_dmabuf, argument,
-				sizeof(_ump_uk_dmabuf_s))) {
+	if (ump_copy_from_user(&ump_dmabuf, argument,
+				sizeof(_ump_uk_dmabuf_s), pointer_size)) {
 		MSG_ERR(("copy_from_user() failed.\n"));
 		return -EFAULT;
 	}
@@ -204,8 +212,8 @@ found:
 	ump_dmabuf.secure_id = ump_dd_secure_id_get(ump_handle);
 	ump_dmabuf.size = ump_dd_size_get(ump_handle);
 
-	if (copy_to_user(argument, &ump_dmabuf,
-				sizeof(_ump_uk_dmabuf_s))) {
+	if (ump_copy_to_user(argument, &ump_dmabuf,
+				sizeof(_ump_uk_dmabuf_s), pointer_size)) {
 		MSG_ERR(("copy_to_user() failed.\n"));
 		ret =  -EFAULT;
 		goto err_release_ump_handle;
@@ -227,4 +235,26 @@ err_dma_buf_put:
 	dma_buf_put(dma_buf);
 	return ret;
 }
+
+int ump_dmabuf_import_wrapper(u32 __user *argument,
+                                struct ump_session_data  *session_data)
+{
+	return __ump_dmabuf_import_wrapper(argument, session_data, sizeof(void *));
+}
 #endif
+
+#ifdef CONFIG_COMPAT
+int ump_allocate_wrapper_32(u32 __user *argument, struct ump_session_data   *session_data)
+{
+	return __ump_allocate_wrapper(argument, session_data, sizeof(_ump_uk_void_p_32));
+}
+
+#ifdef CONFIG_DMA_SHARED_BUFFER
+int ump_dmabuf_import_wrapper_32(u32 __user *argument,
+                                struct ump_session_data  *session_data)
+{
+	return __ump_dmabuf_import_wrapper(argument, session_data, sizeof(_ump_uk_void_p_32));
+}
+#endif
+#endif /* CONFIG_COMPAT */
+

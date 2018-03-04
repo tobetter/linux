@@ -29,6 +29,13 @@ int ump_allocate_wrapper(u32 __user *argument, struct ump_session_data   *sessio
 int ump_dmabuf_import_wrapper(u32 __user *argument, struct ump_session_data  *session_data);
 #endif
 
+#ifdef CONFIG_COMPAT
+int ump_allocate_wrapper_32(u32 __user *argument, struct ump_session_data   *session_data);
+#ifdef CONFIG_DMA_SHARED_BUFFER
+int ump_dmabuf_import_wrapper_32(u32 __user *argument, struct ump_session_data  *session_data);
+#endif
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -83,6 +83,9 @@ static long ump_file_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
 #else
 static int ump_file_ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg);
 #endif
+#ifdef CONFIG_COMPAT
+static long ump_file_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+#endif
 static int ump_file_mmap(struct file *filp, struct vm_area_struct *vma);
 
 
@@ -95,6 +98,9 @@ static struct file_operations ump_fops = {
 	.unlocked_ioctl   = ump_file_ioctl,
 #else
 	.ioctl   = ump_file_ioctl,
+#endif
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = ump_file_compat_ioctl,
 #endif
 	.mmap    = ump_file_mmap
 };
@@ -363,6 +369,92 @@ static int ump_file_ioctl(struct inode *inode, struct file *filp, unsigned int c
 
 	return err;
 }
+
+#ifdef CONFIG_COMPAT
+static long ump_file_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+        int err = -ENOTTY;
+        void __user *argument;
+        struct ump_session_data *session_data;
+
+#ifndef HAVE_UNLOCKED_IOCTL
+        (void)inode; /* inode not used */
+#endif
+
+        session_data = (struct ump_session_data *)filp->private_data;
+        if (NULL == session_data) {
+                MSG_ERR(("No session data attached to file object\n"));
+                return -ENOTTY;
+        }
+
+        /* interpret the argument as a user pointer to something */
+        argument = (void __user *)arg;
+
+        switch (cmd) {
+        case UMP_IOC32_QUERY_API_VERSION:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_QUERY_API_VERSION"));
+                err = ump_get_api_version_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_ALLOCATE :
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_ALLOCATE"));
+                err = ump_allocate_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_RELEASE:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_RELEASE"));
+                err = ump_release_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_SIZE_GET:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_SIZE_GET"));
+                err = ump_size_get_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_MSYNC:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_MSYNC"));
+                err = ump_msync_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_CACHE_OPERATIONS_CONTROL:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_CACHE_OPERATIONS_CONTROL"));
+                err = ump_cache_operations_control_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_SWITCH_HW_USAGE:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_SWITCH_HW_USAGE"));
+                err = ump_switch_hw_usage_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_LOCK:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_LOCK"));
+                err = ump_lock_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_UNLOCK:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_UNLOCK"));
+                err = ump_unlock_wrapper_32((u32 __user *)argument, session_data);
+                break;
+
+        case UMP_IOC32_DMABUF_IMPORT:
+                DBG_MSG(2, ("IOCTL. cmd: 0x%08x, arg: 0x%08lx, %s\n", cmd, arg, "UMP_IOC32_DMABUF_IMPORT"));
+                #ifdef CONFIG_DMA_SHARED_BUFFER
+                err = ump_dmabuf_import_wrapper_32((u32 __user *)argument, session_data);
+                #else
+                err = -EFAULT;
+                DBG_MSG(1, ("User space use dmabuf API, but kernel don't support DMA BUF\n"));
+                #endif
+                break;
+
+        default:
+                DBG_MSG(1, ("No handler for IOCTL. cmd: 0x%08x, arg: 0x%08lx\n", cmd, arg));
+                err = -EFAULT;
+                break;
+        }
+
+        return err;
+}
+#endif
 
 int ump_map_errcode(_mali_osk_errcode_t err)
 {
