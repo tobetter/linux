@@ -325,9 +325,10 @@ void cec_logicaddr_setByMask(unsigned int mask)
                     mask &= ~(mask & device_types[j]);
                     cec_dev->cec_info.log_addr[reg] = i;
                     cec_logicaddr_set(i, (CEC_LOGICAL_ADDR0 + reg));
-                    if (primary == -1);
+                    if (primary == -1) {
                         primary = i;
                         cec_logicaddr_config(primary, 1);
+                    }
                     reg++;
                     break;
                 }
