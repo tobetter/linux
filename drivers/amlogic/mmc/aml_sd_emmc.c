@@ -2280,7 +2280,7 @@ static void aml_sd_emmc_set_timing(
 		clk_div = clkc->div;
 		if (clk_div & 0x01)
 			clk_div++;
-			clkc->div = clk_div / 2;
+		clkc->div = clk_div / 2;
 		sd_emmc_regs->gclock = vclkc;
 		pdata->clkc = sd_emmc_regs->gclock;
 		pdata->mmc->actual_clock = clk_rate / clk_div;

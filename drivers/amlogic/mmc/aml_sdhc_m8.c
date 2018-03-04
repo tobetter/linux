@@ -253,13 +253,13 @@ static int aml_sdhc_execute_tuning_(struct mmc_host *mmc, u32 opcode,
 				if (!memcmp(blk_pattern, blk_test, blksz))
 					nmatch++;
 				else {
-		sdhc_dbg(AMLSD_DBG_TUNING,
-		"Tuning pattern mismatch: rx_phase=%d nmatch=%d\n",
-		rx_phase, nmatch);
+					sdhc_dbg(AMLSD_DBG_TUNING,
+						"Tuning pattern mismatch: rx_phase=%d nmatch=%d\n",
+						rx_phase, nmatch);
 				}
 			} else {
-		sdhc_dbg(AMLSD_DBG_TUNING, "Tuning transfer error: rx_phase=%d nmatch=%d cmd.error=%d data.error=%d\n",
-			rx_phase, nmatch, cmd.error, data.error);
+				sdhc_dbg(AMLSD_DBG_TUNING, "Tuning transfer error: rx_phase=%d nmatch=%d cmd.error=%d data.error=%d\n",
+					rx_phase, nmatch, cmd.error, data.error);
 			}
 		}
 
@@ -298,7 +298,7 @@ static int aml_sdhc_execute_tuning_(struct mmc_host *mmc, u32 opcode,
 	}
 
 	sdhc_dbg(AMLSD_DBG_TUNING, "RX Tuning Result\n");
-for (n = 0; n <= clkc->clk_div; n++) {
+	for (n = 0; n <= clkc->clk_div; n++) {
 	if (n < sizeof(rx_tuning_result) / sizeof(rx_tuning_result[0]))
 		sdhc_dbg(AMLSD_DBG_TUNING,
 		"RX[%d]=%d\n", n, rx_tuning_result[n]);
@@ -334,30 +334,29 @@ for (n = 0; n <= clkc->clk_div; n++) {
 	if (best_win_start < 0) {
 		sdhc_err("Tuning failed to find a valid window, using default rx phase\n");
 		ret = -EIO;
-	writel(vclk2_bak, host->base + SDHC_CLK2);
-	pdata->clk2 = vclk2_bak;
+		writel(vclk2_bak, host->base + SDHC_CLK2);
+		pdata->clk2 = vclk2_bak;
 		/* rx_phase = rx_clk_phase_set; */
-	}
-	 else {
-	pdata->is_tuned = true;
+	} else {
+		pdata->is_tuned = true;
 
-	rx_phase = best_win_start + (best_win_size / 2);
+		rx_phase = best_win_start + (best_win_size / 2);
 
-	if (rx_phase > clkc->clk_div)
-		rx_phase -= (clkc->clk_div + 1);
+		if (rx_phase > clkc->clk_div)
+			rx_phase -= (clkc->clk_div + 1);
 
-	 vclk2 = readl(host->base + SDHC_CLK2);
-	/* clk2->sd_clk_phase = sd_clk_phase_set; */
-	clk2->rx_clk_phase = rx_phase;
-	writel(vclk2, host->base + SDHC_CLK2);
-	pdata->clk2 = vclk2;
-	pdata->tune_phase = vclk2;
+		vclk2 = readl(host->base + SDHC_CLK2);
+		/* clk2->sd_clk_phase = sd_clk_phase_set; */
+		clk2->rx_clk_phase = rx_phase;
+		writel(vclk2, host->base + SDHC_CLK2);
+		pdata->clk2 = vclk2;
+		pdata->tune_phase = vclk2;
 
-	sdhc_dbg(AMLSD_DBG_TUNING, "Tuning result: rx_phase=%d\n", rx_phase);
-	/*  pr_info("Tuning result: rx_phase=%d\n", rx_phase); */
-	/* sdhc_err("Tuning result:
-	rx_phase=%d, tune_phase=%#x\n",
-	rx_phase, pdata->tune_phase); */
+		sdhc_dbg(AMLSD_DBG_TUNING, "Tuning result: rx_phase=%d\n", rx_phase);
+		/*  pr_info("Tuning result: rx_phase=%d\n", rx_phase); */
+		/* sdhc_err("Tuning result:
+		rx_phase=%d, tune_phase=%#x\n",
+		rx_phase, pdata->tune_phase); */
 	}
 
 	sdhc_dbg(AMLSD_DBG_TUNING, "Final Result\n");
@@ -375,12 +374,12 @@ for (n = 0; n <= clkc->clk_div; n++) {
 	/* sdhc_err("vclk2_bak=%#x\n", vclk2_bak); */
 
 	/* do not dynamical tuning for eMMC */
-if ((pdata->is_in) && !aml_card_type_mmc(pdata))
-	schedule_delayed_work(&pdata->retuning, 15*HZ);
+	if ((pdata->is_in) && !aml_card_type_mmc(pdata))
+		schedule_delayed_work(&pdata->retuning, 15*HZ);
 
 
 	return ret;
-	}
+}
 
 static int aml_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 {
@@ -958,7 +957,7 @@ void aml_sdhc_request_done(struct mmc_host *mmc, struct mmc_request *mrq)
 	aml_dbg_verify_pinmux(pdata);
 	aml_dbg_verify_pull_up(pdata);
 
-if (0) {
+	if (0) {
 	sdhc_err("%s: cmd%d, start sdhc reg:\n",
 	mmc_hostname(host->mmc), mrq->cmd->opcode);
 	aml_sdhc_print_reg_(host->reg_buf);
@@ -970,10 +969,10 @@ if (0) {
 	if (pdata->xfer_post)
 		pdata->xfer_post(pdata);
 
-		aml_sdhc_disable_imask(host, SDHC_ICTL_ALL);
-		/*Set irq status: write 1 clear*/
-		writel(SDHC_ISTA_W1C_ALL, host->base+SDHC_ISTA);
-		/* aml_sdhc_wait_ready(host, STAT_POLL_TIMEOUT); */
+	aml_sdhc_disable_imask(host, SDHC_ICTL_ALL);
+	/*Set irq status: write 1 clear*/
+	writel(SDHC_ISTA_W1C_ALL, host->base+SDHC_ISTA);
+	/* aml_sdhc_wait_ready(host, STAT_POLL_TIMEOUT); */
 	if (aml_sdhc_wait_ready(host, STAT_POLL_TIMEOUT)) {
 		/*Wait command busy*/
 		sdhc_err("aml_sdhc_wait_ready request done\n");
@@ -1143,8 +1142,8 @@ static void aml_sdhc_timeout(struct work_struct *work)
 		host->time_req_sta = aml_read_cbus(ISA_TIMERE);
 
 		timeout_cnt++;
-	if (timeout_cnt > 30)
-		goto timeout_handle;
+		if (timeout_cnt > 30)
+			goto timeout_handle;
 
 		spin_unlock_irqrestore(&host->mrq_lock, flags);
 
@@ -1170,9 +1169,9 @@ timeout_handle:
 		sdhc_error_flag = 0;
 		mrq->cmd->retries = 0;
 	} else if (((sdhc_error_flag & (1<<3)) == 0)  && (mrq->data != NULL)
-		&& pdata->is_in){  /* set cmd retry cnt when first error. */
-	 sdhc_error_flag |= (1<<3);
-	 mrq->cmd->retries = AML_TIMEOUT_RETRY_COUNTER;
+		&& pdata->is_in) {  /* set cmd retry cnt when first error. */
+		sdhc_error_flag |= (1<<3);
+		mrq->cmd->retries = AML_TIMEOUT_RETRY_COUNTER;
 	}
 
 	if (sdhc_error_flag && (mrq->cmd->retries == 0)) {
@@ -1415,9 +1414,9 @@ void aml_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	/* about 30S for erase cmd. */
 	if (mrq->cmd->opcode == MMC_ERASE)
 		timeout = 3000;
-		schedule_delayed_work(&host->timeout, timeout);
+	schedule_delayed_work(&host->timeout, timeout);
 
-		spin_lock_irqsave(&host->mrq_lock, flags);
+	spin_lock_irqsave(&host->mrq_lock, flags);
 	if (host->xfer_step != XFER_FINISHED && host->xfer_step != XFER_INIT)
 		sdhc_err("host->xfer_step %d\n", host->xfer_step);
 
@@ -1605,10 +1604,10 @@ static void aml_sdhc_com_err_handler (struct amlsd_host *host)
 {
 	if (delayed_work_pending(&host->timeout))
 		cancel_delayed_work(&host->timeout);
-		aml_sdhc_read_response(host->mmc, host->mrq->cmd);
-		aml_sdhc_print_err(host);
-		aml_sdhc_host_reset(host);
-		aml_sdhc_request_done(host->mmc, host->mrq);
+	aml_sdhc_read_response(host->mmc, host->mrq->cmd);
+	aml_sdhc_print_err(host);
+	aml_sdhc_host_reset(host);
+	aml_sdhc_request_done(host->mmc, host->mrq);
 }
 
 static void aml_sdhc_not_timeout_err_handler (struct amlsd_host *host)
@@ -1721,8 +1720,8 @@ irqreturn_t aml_sdhc_data_thread(int irq, void *data)
 	if (delayed_work_pending(&host->timeout))
 		cancel_delayed_work(&host->timeout);
 
-		xfer_bytes = mrq->data->blksz*mrq->data->blocks;
-		/* copy buffer from dma to data->sg in read cmd*/
+	xfer_bytes = mrq->data->blksz*mrq->data->blocks;
+	/* copy buffer from dma to data->sg in read cmd*/
 if (host->mrq->data->flags & MMC_DATA_READ) {
 	/* #ifndef CONFIG_ARCH_MESONG9TV */
 	if (get_cpu_type() != MESON_CPU_MAJOR_ID_MG9TV) {
@@ -1841,8 +1840,8 @@ if (host->mrq->data->flags & MMC_DATA_READ) {
 	case HOST_RX_FIFO_FULL:
 	case HOST_RSP_TIMEOUT_ERR:
 	case HOST_DAT_TIMEOUT_ERR:
-	if (delayed_work_pending(&host->timeout))
-		cancel_delayed_work(&host->timeout);
+		if (delayed_work_pending(&host->timeout))
+			cancel_delayed_work(&host->timeout);
 		/* aml_sdhc_wait_ready(host, STAT_POLL_TIMEOUT); */
 		if (aml_sdhc_wait_ready(host,
 		(STAT_POLL_TIMEOUT<<2))) { /*Wait command busy*/
@@ -2075,7 +2074,7 @@ static void aml_sdhc_set_clk_rate(struct mmc_host *mmc, unsigned int clk_ios)
 	/*0: dont set it, 1:div2, 2:div3, 3:div4...*/
 	 clk_div = clk_rate / clk_ios - !(clk_rate%clk_ios);
 	if (!(clk_div & 0x01)) /* if even number, turn it to an odd one */
-	 clk_div++;
+		clk_div++;
 
 	 aml_sdhc_clk_switch(pdata, clk_div, clk_src_sel);
 	 pdata->clkc = readl(host->base+SDHC_CLKC);
@@ -2172,8 +2171,8 @@ static void aml_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct amlsd_platform *pdata = mmc_priv(mmc);
 
-if (!pdata->is_in)
-	return;
+	if (!pdata->is_in)
+		return;
 
 	/*Set Power*/
 	aml_sdhc_set_power(pdata, ios->power_mode);
@@ -2199,8 +2198,8 @@ static int aml_sdhc_get_ro(struct mmc_host *mmc)
 	struct amlsd_platform *pdata = mmc_priv(mmc);
 	u32 ro = 0;
 
-if (pdata->ro)
-	ro = pdata->ro(pdata);
+	if (pdata->ro)
+		ro = pdata->ro(pdata);
 	return ro;
 }
 
