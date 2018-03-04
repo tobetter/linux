@@ -693,6 +693,9 @@
 	cpucore:thermal_cpu_cores {
 		#cooling-cells = <2>; /* min followed by max */
 	};
+	gpucore:thermal_gpu_cores {
+		#cooling-cells = <2>; /* min followed by max */
+	};
 	thermal-zones {
 		soc_thermal {
 			polling-delay = <1000>;
@@ -740,6 +743,7 @@
 					cooling-device = <&cpucore 0 2>;
 					contribution = <1024>;
 				};
+
 				gpufreq_cooling_map0 {
 					trip = <&control>;
 					cooling-device = <&gpu 0 2>;
@@ -750,6 +754,12 @@
 					cooling-device = <&gpu 3 4>;
 					contribution = <100>;
 				};
+
+				gpucore_cooling_map {
+					trip = <&control>;
+					cooling-device = <&gpucore 0 2>;
+					contribution = <1024>;
+ 				};
 			};
 		};
 	};
