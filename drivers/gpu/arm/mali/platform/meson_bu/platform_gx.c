@@ -24,6 +24,7 @@
 #ifdef CONFIG_GPU_THERMAL
 #include <linux/gpu_cooling.h>
 #include <linux/gpucore_cooling.h>
+#include <linux/amlogic/aml_thermal_hw.h>
 #endif
 #include <common/mali_kernel_common.h>
 #include <common/mali_osk_profiling.h>
@@ -315,6 +316,7 @@ void mali_post_init(void)
         gcdev->set_gpu_freq_idx = set_limit_mali_freq;
         gcdev->get_gpu_current_max_level = get_limit_mali_freq;
         err = gpufreq_cooling_register(gcdev);
+        aml_thermal_min_update(gcdev->cool_dev);
         if (err < 0)
             printk("register GPU  cooling error\n");
         printk("gpu cooling register okay with err=%d\n",err);
@@ -329,6 +331,7 @@ void mali_post_init(void)
         gccdev->max_gpu_core_num=mali_plat_data.cfg_pp;
         gccdev->set_max_pp_num=set_limit_pp_num;
         err = (int)gpucore_cooling_register(gccdev);
+        aml_thermal_min_update(gccdev->cool_dev);
         if (err < 0)
             printk("register GPU  cooling error\n");
         printk("gpu core cooling register okay with err=%d\n",err);
