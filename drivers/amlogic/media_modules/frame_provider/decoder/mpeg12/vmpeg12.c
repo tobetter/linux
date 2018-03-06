@@ -32,13 +32,14 @@
 #include <linux/amlogic/cpu_version.h>
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/dma-mapping.h>
-
+#include <linux/slab.h>
 #include <linux/amlogic/media/utils/vdec_reg.h>
 #include "vmpeg12.h"
 #include <linux/amlogic/media/registers/register.h>
 #include "../../../stream_input/amports/amports_priv.h"
 #include "../utils/decoder_mmu_box.h"
 #include "../utils/decoder_bmmu_box.h"
+#include <linux/uaccess.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 
 #ifdef CONFIG_AM_VDEC_MPEG12_LOG
@@ -73,6 +74,7 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 #define MREG_FRAME_OFFSET   AV_SCRATCH_D
 #define MREG_WAIT_BUFFER    AV_SCRATCH_E
 #define MREG_FATAL_ERROR    AV_SCRATCH_F
+#define MREG_FORCE_I_RDY    AV_SCRATCH_G
 
 #define PICINFO_ERROR       0x80000000
 #define PICINFO_TYPE_MASK   0x00030000
@@ -168,6 +170,7 @@ static void *ccbuf_phyAddress_virt;
 static int ccbuf_phyAddress_is_remaped_nocache;
 static u32 lastpts;
 static u32 fr_hint_status;
+static u32 last_offset;
 
 
 static DEFINE_SPINLOCK(lock);
@@ -176,18 +179,40 @@ static u32 frame_rpt_state;
 
 static struct dec_sysinfo vmpeg12_amstream_dec_info;
 static struct vdec_info *gvs;
+static struct vdec_s *vdec;
 
 /* for error handling */
 static s32 frame_force_skip_flag;
 static s32 error_frame_skip_level;
 static s32 wait_buffer_counter;
 static u32 first_i_frame_ready;
+static u32 force_first_i_ready;
 
 static struct work_struct userdata_push_work;
 static struct work_struct notify_work;
 static struct work_struct reset_work;
-static struct work_struct set_clk_work;
 static bool is_reset;
+
+struct mpeg12_userdata_recored_t {
+	struct userdata_meta_info_t meta_info;
+	u32 rec_start;
+	u32 rec_len;
+};
+
+#define USERDATA_FIFO_NUM    256
+
+struct mpeg12_userdata_info_t {
+	struct mpeg12_userdata_recored_t records[USERDATA_FIFO_NUM];
+	u8 *data_buf;
+	u8 *data_buf_end;
+	u32 buf_len;
+	u32 read_index;
+	u32 write_index;
+	u32 last_wp;
+};
+
+static struct mpeg12_userdata_info_t *p_userdata_mgr;
+
 
 static inline int pool_index(struct vframe_s *vf)
 {
@@ -287,15 +312,297 @@ static bool error_skip(u32 info, struct vframe_s *vf)
 	return false;
 }
 
+
+static void aml_swap_data(uint8_t *user_data, int ud_size)
+{
+	int swap_blocks, i, j, k, m;
+	unsigned char c_temp;
+
+	/* swap byte order */
+	swap_blocks = ud_size / 8;
+	for (i = 0; i < swap_blocks; i++) {
+		j = i * 8;
+		k = j + 7;
+		for (m = 0; m < 4; m++) {
+			c_temp = user_data[j];
+			user_data[j++] = user_data[k];
+			user_data[k--] = c_temp;
+		}
+	}
+}
+
+/*
+#define DUMP_USER_DATA
+*/
+#ifdef DUMP_USER_DATA
+static int last_wp;
+#define DUMP_USER_DATA_HEX
+
+
+#ifdef DUMP_USER_DATA_HEX
+static void print_data(unsigned char *pdata,
+						int len,
+						unsigned int flag,
+						unsigned int duration,
+						unsigned int vpts,
+						unsigned int vpts_valid,
+						int rec_id)
+{
+	int nLeft;
+
+	nLeft = len;
+
+	pr_info("%d len = %d, flag = %d, duration = %d, vpts = 0x%x, vpts_valid = %d\n",
+				rec_id,	len, flag,
+				duration, vpts, vpts_valid);
+
+	while (nLeft >= 16) {
+		pr_info("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			pdata[0], pdata[1], pdata[2], pdata[3],
+			pdata[4], pdata[5], pdata[6], pdata[7],
+			pdata[8], pdata[9], pdata[10], pdata[11],
+			pdata[12], pdata[13], pdata[14], pdata[15]);
+		nLeft -= 16;
+		pdata += 16;
+	}
+
+
+	while (nLeft > 0) {
+		pr_info("%02x %02x %02x %02x %02x %02x %02x %02x\n",
+			pdata[0], pdata[1], pdata[2], pdata[3],
+			pdata[4], pdata[5], pdata[6], pdata[7]);
+		nLeft -= 8;
+		pdata += 8;
+	}
+}
+#endif
+
+
+static void dump_data(u8 *pdata,
+						unsigned int user_data_length,
+						unsigned int flag,
+						unsigned int duration,
+						unsigned int vpts,
+						unsigned int vpts_valid,
+						int rec_id)
+{
+	unsigned char szBuf[256];
+
+
+	memset(szBuf, 0, 256);
+	memcpy(szBuf, pdata, user_data_length);
+
+	aml_swap_data(szBuf, user_data_length);
+#ifdef DUMP_USER_DATA_HEX
+	print_data(szBuf,
+				user_data_length,
+				flag,
+				duration,
+				vpts,
+				vpts_valid,
+				rec_id);
+#endif
+
+#ifdef DEBUG_CC_DUMP_ASCII
+	dump_cc_ascii(szBuf+4);
+#endif
+}
+
+
+static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta);
+
+static void dump_userdata_info(void *puser_data,
+					int len,
+					struct userdata_meta_info_t *pmeta)
+{
+	u8 *pstart;
+
+	pstart = (u8 *)puser_data;
+
+	push_to_buf(pstart+8, len - 8, pmeta);
+	/*	push_to_buf(pstart, len, pmeta); */
+}
+
+#define MAX_USER_DATA_SIZE		1572864
+static void *user_data_buf;
+static unsigned char *pbuf_start;
+static int total_len;
+static int bskip;
+static int n_userdata_id;
+
+static void reset_user_data_buf(void)
+{
+	total_len = 0;
+	pbuf_start = user_data_buf;
+	bskip = 0;
+	n_userdata_id = 0;
+}
+
+static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta)
+{
+	u32 *pLen;
+	int info_cnt;
+	u8 *pbuf_end;
+
+	if (!user_data_buf)
+		return;
+
+	if (bskip) {
+		pr_info("over size, skip\n");
+		return;
+	}
+	info_cnt = 0;
+	pLen = (u32 *)pbuf_start;
+
+	*pLen = len;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->duration;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->flags;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->vpts;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->vpts_valid;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+
+	*pLen = n_userdata_id;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+
+
+	pbuf_end = (u8 *)ccbuf_phyAddress_virt + CCBUF_SIZE;
+	if (pdata + len > pbuf_end) {
+		int first_section_len;
+
+		first_section_len = pbuf_end - pdata;
+		memcpy(pbuf_start, pdata, first_section_len);
+		pdata = (u8 *)ccbuf_phyAddress_virt;
+		pbuf_start += first_section_len;
+		memcpy(pbuf_start, pdata, len - first_section_len);
+		pbuf_start += len - first_section_len;
+	} else {
+		memcpy(pbuf_start, pdata, len);
+		pbuf_start += len;
+	}
+
+	total_len += len + info_cnt * sizeof(u32);
+	if (total_len >= MAX_USER_DATA_SIZE-4096)
+		bskip = 1;
+}
+
+static void show_user_data_buf(void)
+{
+	u8 *pbuf;
+	int len;
+	unsigned int flag;
+	unsigned int duration;
+	unsigned int vpts;
+	unsigned int vpts_valid;
+	int rec_id;
+
+	pr_info("show user data buf\n");
+	pbuf = user_data_buf;
+
+	while (pbuf < pbuf_start) {
+		u32 *pLen;
+
+		pLen = (u32 *)pbuf;
+
+		len = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		duration = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		flag = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		vpts = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		vpts_valid = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		rec_id = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		dump_data(pbuf, len, flag, duration, vpts, vpts_valid, rec_id);
+		pbuf += len;
+	}
+}
+#endif
+
+static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info, int wp);
+/*
+#define PRINT_HEAD_INFO
+*/
 static void userdata_push_do_work(struct work_struct *work)
 {
 	u32 reg;
+	u32 offset, pts;
+	u64 pts_us64 = 0;
+	u8 *pdata;
+	u8 head_info[8];
+	struct userdata_meta_info_t meta_info;
+	u32 wp;
+	u32 index;
+	u32 picture_struct;
+	u32 reference;
+	u32 picture_type;
+	u32 temp;
+#ifdef PRINT_HEAD_INFO
+	u8 *ptype_str;
+#endif
+	memset(&meta_info, 0, sizeof(meta_info));
 
-	struct userdata_poc_info_t user_data_poc;
+	meta_info.duration = frame_dur;
 
-	user_data_poc.poc_info = 0;
-	user_data_poc.poc_number = 0;
-	reg = READ_VREG(MREG_BUFFEROUT);
+	reg = READ_VREG(AV_SCRATCH_M);
+	meta_info.flags = ((reg >> 30) << 1);
+	meta_info.flags |= (VFORMAT_MPEG12 << 3);
+	/* check  top_field_first flag */
+	if ((reg >> 28) & 0x1) {
+		meta_info.flags |= (1 << 10);
+		meta_info.flags |= (((reg >> 29) & 0x1) << 11);
+	}
+
+	offset = READ_VREG(AV_SCRATCH_N);
+	if (offset != last_offset) {
+		meta_info.flags |= 1;
+		last_offset = offset;
+	}
+
+	if (pts_pickout_offset_us64
+			 (PTS_TYPE_VIDEO, offset, &pts, 0, &pts_us64) != 0) {
+		pr_info("pick out pts failed by offset = 0x%x\n", offset);
+		pts = -1;
+		meta_info.vpts_valid = 0;
+	} else
+		meta_info.vpts_valid = 1;
+	meta_info.vpts = pts;
 
 	if (!ccbuf_phyAddress_is_remaped_nocache &&
 		ccbuf_phyAddress &&
@@ -305,11 +612,79 @@ static void userdata_push_do_work(struct work_struct *work)
 			CCBUF_SIZE,
 			DMA_FROM_DEVICE);
 	}
-	wakeup_userdata_poll(user_data_poc,
-		reg & 0xffff,
-		(unsigned long)ccbuf_phyAddress_virt,
-		CCBUF_SIZE, 0);
-	WRITE_VREG(MREG_BUFFEROUT, 0);
+
+
+	if (p_userdata_mgr) {
+		pdata = (u8 *)ccbuf_phyAddress_virt + p_userdata_mgr->last_wp;
+		memcpy(head_info, pdata, 8);
+	} else
+		memset(head_info, 0, 8);
+	aml_swap_data(head_info, 8);
+
+	wp = (head_info[0] << 8 | head_info[1]);
+	index = (head_info[2] << 8 | head_info[3]);
+
+	picture_struct = (head_info[6] << 8 | head_info[7]);
+	temp = (head_info[4] << 8 | head_info[5]);
+	reference = temp & 0x3FF;
+	picture_type = (temp >> 10) & 0x7;
+
+#if 0
+	pr_info("index = %d, wp = %d, ref = %d, type = %d, struct = 0x%x\n",
+		index, wp, reference,
+		picture_type, picture_struct);
+#endif
+	switch (picture_type) {
+	case 1:
+			/* pr_info("I type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (1<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " I";
+#endif
+			break;
+	case 2:
+			/* pr_info("P type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (2<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " P";
+#endif
+			break;
+	case 3:
+			/* pr_info("B type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (3<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " B";
+#endif
+			break;
+	case 4:
+			/* pr_info("D type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (4<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " D";
+#endif
+			break;
+	default:
+			/* pr_info("Unknown type:0x%x, pos:%d\n",
+					pheader->picture_coding_type,
+					(meta_info.flags>>1)&0x3); */
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " U";
+#endif
+			break;
+	}
+#ifdef PRINT_HEAD_INFO
+	pr_info("ref:%d, type:%s, ext:%d, offset:0x%x, first:%d\n",
+		reference, ptype_str,
+		(reg >> 30), offset,
+		(reg >> 28)&0x3);
+#endif
+	vmpeg12_add_userdata(meta_info, reg & 0xffff);
+
+	WRITE_VREG(AV_SCRATCH_M, 0);
 }
 
 static void vmpeg12_notify_work(struct work_struct *work)
@@ -333,9 +708,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 
 	reg = READ_VREG(MREG_BUFFEROUT);
 
-	if ((reg >> 16) == 0xfe) {
-		schedule_work(&userdata_push_work);
-	} else if (reg) {
+	if (reg) {
 		info = READ_VREG(MREG_PIC_INFO);
 		offset = READ_VREG(MREG_FRAME_OFFSET);
 		seqinfo = READ_VREG(MREG_SEQ_INFO);
@@ -648,6 +1021,10 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 		WRITE_VREG(MREG_BUFFEROUT, 0);
 	}
 
+	reg = READ_VREG(AV_SCRATCH_M);
+	if (reg & (1<<16))
+		schedule_work(&userdata_push_work);
+
 	return IRQ_HANDLED;
 }
 
@@ -725,6 +1102,8 @@ static void vmpeg12_ppmgr_reset(void)
 }
 #endif
 
+static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
+
 static void reset_do_work(struct work_struct *work)
 {
 	amvdec_stop();
@@ -737,19 +1116,12 @@ static void reset_do_work(struct work_struct *work)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	vmpeg12_prot_init();
+	vmpeg12_reset_userdata_fifo(vdec, 1);
+#ifdef DUMP_USER_DATA
+	last_wp = 0;
+#endif
+
 	amvdec_start();
-}
-
-static void vmpeg12_set_clk(struct work_struct *work)
-{
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
-
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_MPEG12,
-			frame_width, frame_height, fps);
-	}
 }
 
 static void vmpeg_put_timer_func(unsigned long arg)
@@ -806,7 +1178,13 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		}
 	}
 
-	schedule_work(&set_clk_work);
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_MPEG12,
+			frame_width, frame_height, fps);
+	}
 
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -843,6 +1221,284 @@ int vmpeg12_set_isreset(struct vdec_s *vdec, int isreset)
 {
 	is_reset = isreset;
 	return 0;
+}
+
+static DEFINE_MUTEX(userdata_mutex);
+
+
+void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
+{
+	p_userdata_mgr = (struct mpeg12_userdata_info_t *)
+			vmalloc(sizeof(struct mpeg12_userdata_info_t));
+	if (p_userdata_mgr) {
+		memset(p_userdata_mgr, 0,
+			sizeof(struct mpeg12_userdata_info_t));
+		p_userdata_mgr->data_buf = userdata_buf;
+		p_userdata_mgr->buf_len = buf_len;
+		p_userdata_mgr->data_buf_end = userdata_buf + buf_len;
+	}
+}
+
+void vmpeg12_destroy_userdata_manager(void)
+{
+	if (p_userdata_mgr) {
+		vfree(p_userdata_mgr);
+		p_userdata_mgr = NULL;
+	}
+}
+
+static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info, int wp)
+{
+	struct mpeg12_userdata_recored_t *p_userdata_rec;
+	int data_length;
+
+	mutex_lock(&userdata_mutex);
+
+	if (p_userdata_mgr) {
+		if (wp > p_userdata_mgr->last_wp)
+			data_length = wp - p_userdata_mgr->last_wp;
+		else {
+			p_userdata_mgr->last_wp = 0;
+			data_length = wp - p_userdata_mgr->last_wp;
+		}
+
+		if (data_length & 0x7)
+			data_length = (((data_length + 8) >> 3) << 3);
+/*
+pr_info("wakeup_push: ri:%d, wi:%d, data_len:%d, last_wp:%d, wp:%d, id = %d\n",
+			p_userdata_mgr->read_index,
+			p_userdata_mgr->write_index,
+			data_length,
+			p_userdata_mgr->last_wp,
+			wp,
+			n_userdata_id);
+*/
+		p_userdata_rec = p_userdata_mgr->records
+			+ p_userdata_mgr->write_index;
+		p_userdata_rec->meta_info = meta_info;
+		p_userdata_rec->rec_start = p_userdata_mgr->last_wp;
+		p_userdata_rec->rec_len = data_length;
+		p_userdata_mgr->last_wp = wp;
+
+#ifdef DUMP_USER_DATA
+		dump_userdata_info(p_userdata_mgr->data_buf
+			+ p_userdata_rec->rec_start,
+			data_length,
+			&meta_info);
+		n_userdata_id++;
+#endif
+
+		p_userdata_mgr->write_index++;
+		if (p_userdata_mgr->write_index >= USERDATA_FIFO_NUM)
+			p_userdata_mgr->write_index = 0;
+	}
+	mutex_unlock(&userdata_mutex);
+
+	vdec_wakeup_userdata_poll(vdec);
+}
+
+
+static int vmpeg12_user_data_read(struct vdec_s *vdec,
+	struct userdata_param_t *puserdata_para)
+{
+	int rec_ri, rec_wi;
+	int rec_len;
+	u8 *rec_data_start;
+	u8 *pdest_buf;
+	struct mpeg12_userdata_recored_t *p_userdata_rec;
+
+
+	u32 data_size;
+	u32 res;
+	int copy_ok = 1;
+
+	pdest_buf = (void *)(puserdata_para->pbuf_addr);
+	mutex_lock(&userdata_mutex);
+
+	if (!p_userdata_mgr) {
+		mutex_unlock(&userdata_mutex);
+		return 0;
+	}
+/*
+	pr_info("ri = %d, wi = %d\n",
+		p_userdata_mgr->read_index,
+		p_userdata_mgr->write_index);
+*/
+	rec_ri = p_userdata_mgr->read_index;
+	rec_wi = p_userdata_mgr->write_index;
+
+	if (rec_ri == rec_wi) {
+		mutex_unlock(&userdata_mutex);
+		return 0;
+	}
+
+	p_userdata_rec = p_userdata_mgr->records + rec_ri;
+
+	rec_len = p_userdata_rec->rec_len;
+	rec_data_start = p_userdata_rec->rec_start + p_userdata_mgr->data_buf;
+/*
+	pr_info("rec_len:%d, rec_start:%d, buf_len:%d\n",
+		p_userdata_rec->rec_len,
+		p_userdata_rec->rec_start,
+		puserdata_para->buf_len);
+*/
+	if (rec_len <= puserdata_para->buf_len) {
+		/* dvb user data buffer is enought to copy the whole recored. */
+		data_size = rec_len;
+		if (rec_data_start + data_size
+			> p_userdata_mgr->data_buf_end) {
+			int first_section_len;
+
+			first_section_len = p_userdata_mgr->buf_len
+				- p_userdata_rec->rec_start;
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							first_section_len);
+			if (res) {
+				pr_info("p1 read not end res=%d, request=%d\n",
+					res, first_section_len);
+				copy_ok = 0;
+
+				p_userdata_rec->rec_len -=
+					first_section_len - res;
+				p_userdata_rec->rec_start +=
+					first_section_len - res;
+				puserdata_para->data_size =
+					first_section_len - res;
+			} else {
+				res = (u32)copy_to_user(
+					(void *)(pdest_buf+first_section_len),
+					(void *)p_userdata_mgr->data_buf,
+					data_size - first_section_len);
+				if (res) {
+					pr_info("p2 read not end res=%d, request=%d\n",
+						res, data_size);
+					copy_ok = 0;
+				}
+				p_userdata_rec->rec_len -= data_size - res;
+				p_userdata_rec->rec_start =
+					data_size - first_section_len - res;
+				puserdata_para->data_size = data_size - res;
+			}
+		} else {
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							data_size);
+			if (res) {
+				pr_info("p3 read not end res=%d, request=%d\n",
+					res, data_size);
+				copy_ok = 0;
+			}
+			p_userdata_rec->rec_len -= data_size - res;
+			p_userdata_rec->rec_start += data_size - res;
+			puserdata_para->data_size = data_size - res;
+		}
+
+		if (copy_ok) {
+			p_userdata_mgr->read_index++;
+			if (p_userdata_mgr->read_index >= USERDATA_FIFO_NUM)
+				p_userdata_mgr->read_index = 0;
+		}
+	} else {
+		/* dvb user data buffer is not enought
+		to copy the whole recored. */
+		data_size = puserdata_para->buf_len;
+		if (rec_data_start + data_size
+			> p_userdata_mgr->data_buf_end) {
+			int first_section_len;
+
+			first_section_len = p_userdata_mgr->buf_len
+						- p_userdata_rec->rec_start;
+			res = (u32)copy_to_user((void *)pdest_buf,
+						(void *)rec_data_start,
+						first_section_len);
+			if (res) {
+				pr_info("p4 read not end res=%d, request=%d\n",
+					res, first_section_len);
+				copy_ok = 0;
+				p_userdata_rec->rec_len -=
+					first_section_len - res;
+				p_userdata_rec->rec_start +=
+					first_section_len - res;
+				puserdata_para->data_size =
+					first_section_len - res;
+			} else {
+				/* first secton copy is ok*/
+				res = (u32)copy_to_user(
+					(void *)(pdest_buf+first_section_len),
+					(void *)p_userdata_mgr->data_buf,
+					data_size - first_section_len);
+				if (res) {
+					pr_info("p5 read not end res=%d, request=%d\n",
+						res,
+						data_size - first_section_len);
+					copy_ok = 0;
+				}
+
+				p_userdata_rec->rec_len -= data_size - res;
+				p_userdata_rec->rec_start =
+					data_size - first_section_len - res;
+				puserdata_para->data_size = data_size - res;
+			}
+		} else {
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							data_size);
+			if (res) {
+				pr_info("p6 read not end res=%d, request=%d\n",
+					res, data_size);
+				copy_ok = 0;
+			}
+
+			p_userdata_rec->rec_len -= data_size - res;
+			p_userdata_rec->rec_start += data_size - res;
+			puserdata_para->data_size = data_size - res;
+		}
+
+		if (copy_ok) {
+			p_userdata_mgr->read_index++;
+			if (p_userdata_mgr->read_index
+				>= USERDATA_FIFO_NUM)
+				p_userdata_mgr->read_index = 0;
+		}
+
+	}
+	res = (u32)copy_to_user((void *)&puserdata_para->meta_info,
+				(void *)&p_userdata_rec->meta_info,
+				sizeof(p_userdata_rec->meta_info));
+
+	if (p_userdata_mgr->read_index <= p_userdata_mgr->write_index)
+		puserdata_para->meta_info.records_in_que =
+			p_userdata_mgr->write_index -
+			p_userdata_mgr->read_index;
+	else
+		puserdata_para->meta_info.records_in_que =
+			p_userdata_mgr->write_index +
+			USERDATA_FIFO_NUM -
+			p_userdata_mgr->read_index;
+	puserdata_para->version = (0<<24|0<<16|0<<8|1);
+
+	mutex_unlock(&userdata_mutex);
+
+	return 1;
+}
+
+static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
+{
+	mutex_lock(&userdata_mutex);
+
+	if (p_userdata_mgr) {
+		pr_info("vmpeg12_reset_userdata_fifo: bInit: %d, ri: %d, wi: %d\n",
+			bInit, p_userdata_mgr->read_index,
+			p_userdata_mgr->write_index);
+		p_userdata_mgr->read_index = 0;
+		p_userdata_mgr->write_index = 0;
+
+		if (bInit)
+			p_userdata_mgr->last_wp = 0;
+	}
+
+	mutex_unlock(&userdata_mutex);
 }
 
 static int vmpeg12_vdec_info_init(void)
@@ -1015,6 +1671,7 @@ static int vmpeg12_prot_init(void)
 		WRITE_VREG(MREG_CMD, (frame_width << 16) | frame_height);
 	else
 		WRITE_VREG(MREG_CMD, 0);
+	WRITE_VREG(MREG_FORCE_I_RDY, (force_first_i_ready & 0x01));
 	/* clear error count */
 	WRITE_VREG(MREG_ERROR_COUNT, 0);
 	WRITE_VREG(MREG_FATAL_ERROR, 0);
@@ -1069,7 +1726,7 @@ static void vmpeg12_local_init(void)
 	frame_width = frame_height = frame_dur = frame_prog = 0;
 	frame_force_skip_flag = 0;
 	wait_buffer_counter = 0;
-	first_i_frame_ready = 0;
+	first_i_frame_ready = force_first_i_ready;
 	saved_resolution = 0;
 	dec_control &= DEC_CONTROL_INTERNAL_MASK;
 }
@@ -1160,6 +1817,17 @@ static s32 vmpeg12_init(void)
 	return 0;
 }
 
+#ifdef DUMP_USER_DATA
+static int amvdec_mpeg12_init_userdata_dump(void)
+{
+	user_data_buf = kmalloc(MAX_USER_DATA_SIZE, GFP_KERNEL);
+	if (user_data_buf)
+		return 1;
+	else
+		return 0;
+}
+#endif
+
 static int amvdec_mpeg12_probe(struct platform_device *pdev)
 {
 	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
@@ -1177,6 +1845,10 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 
 	pdata->dec_status = vmpeg12_dec_status;
 	pdata->set_isreset = vmpeg12_set_isreset;
+
+	pdata->user_data_read = vmpeg12_user_data_read;
+	pdata->reset_userdata_fifo = vmpeg12_reset_userdata_fifo;
+
 	is_reset = 0;
 
 	vmpeg12_vdec_info_init();
@@ -1188,10 +1860,21 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 
 		return -ENODEV;
 	}
+	vdec = pdata;
+#ifdef DUMP_USER_DATA
+	amvdec_mpeg12_init_userdata_dump();
+#endif
+	vmpeg12_crate_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
+
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 	INIT_WORK(&notify_work, vmpeg12_notify_work);
 	INIT_WORK(&reset_work, reset_do_work);
-	INIT_WORK(&set_clk_work, vmpeg12_set_clk);
+
+	last_offset = 0xFFFFFFFF;
+#ifdef DUMP_USER_DATA
+	last_wp = 0;
+	reset_user_data_buf();
+#endif
 
 	amlog_level(LOG_LEVEL_INFO, "amvdec_mpeg12 probe end.\n");
 
@@ -1203,7 +1886,6 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 	cancel_work_sync(&userdata_push_work);
 	cancel_work_sync(&notify_work);
 	cancel_work_sync(&reset_work);
-	cancel_work_sync(&set_clk_work);
 
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
@@ -1237,6 +1919,7 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 	ccbuf_phyAddress_virt = NULL;
 	ccbuf_phyAddress = 0;
 	ccbuf_phyAddress_is_remaped_nocache = 0;
+	vmpeg12_destroy_userdata_manager();
 
 	if (mm_blk_handle) {
 		decoder_bmmu_box_free(mm_blk_handle);
@@ -1246,6 +1929,15 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 
 	kfree(gvs);
 	gvs = NULL;
+	vdec = NULL;
+
+#ifdef DUMP_USER_DATA
+	if (user_data_buf) {
+		show_user_data_buf();
+		kfree(user_data_buf);
+		user_data_buf = NULL;
+	}
+#endif
 
 	return 0;
 }
@@ -1306,6 +1998,8 @@ MODULE_PARM_DESC(dec_control, "\n amvmpeg12 decoder control\n");
 module_param(error_frame_skip_level, uint, 0664);
 MODULE_PARM_DESC(error_frame_skip_level,
 				 "\n amvdec_mpeg12 error_frame_skip_level\n");
+module_param(force_first_i_ready, uint, 0664);
+MODULE_PARM_DESC(dec_control, "\n amvmpeg12 force_first_i_ready\n");
 
 module_init(amvdec_mpeg12_driver_init_module);
 module_exit(amvdec_mpeg12_driver_remove_module);

@@ -34,6 +34,8 @@
 #include <linux/amlogic/media/vfm/vframe_receiver.h>
 #include <linux/amlogic/media/video_sink/ionvideo_ext.h>
 #include <linux/amlogic/media/vfm/vfm_ext.h>
+/*for VDEC_DEBUG_SUPPORT*/
+#include <linux/time.h>
 
 #include <linux/amlogic/media/utils/vdec_reg.h>
 #include "vdec.h"
@@ -78,12 +80,6 @@ static unsigned int debug_trace_num = 16 * 20;
 static int step_mode;
 static unsigned int clk_config;
 
-/*
-&1: sched_priority to MAX_RT_PRIO -1.
-&2: always reload firmware.
-*/
-static unsigned int debug;
-
 static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
@@ -104,6 +100,7 @@ struct vdec_isr_context_s {
 	irq_handler_t dev_isr;
 	irq_handler_t dev_threaded_isr;
 	void *dev_id;
+	struct vdec_s *vdec;
 };
 
 struct vdec_core_s {
@@ -120,9 +117,9 @@ struct vdec_core_s {
 	struct task_struct *thread;
 	struct workqueue_struct *vdec_core_wq;
 
+	unsigned long sched_mask;
 	struct vdec_isr_context_s isr_context[VDEC_IRQ_MAX];
 	int power_ref_count[VDEC_MAX];
-	void *last_vdec;
 };
 
 static struct vdec_core_s *vdec_core;
@@ -153,6 +150,22 @@ unsigned char is_mult_inc(unsigned int type)
 	return ret;
 }
 EXPORT_SYMBOL(is_mult_inc);
+
+static const bool cores_with_input[VDEC_MAX] = {
+	true,   /* VDEC_1 */
+	false,  /* VDEC_HCODEC */
+	false,  /* VDEC_2 */
+	true,   /* VDEC_HEVC / VDEC_HEVC_FRONT */
+	false,  /* VDEC_HEVC_BACK */
+};
+
+static const int cores_int[VDEC_MAX] = {
+	VDEC_IRQ_1,
+	VDEC_IRQ_2,
+	VDEC_IRQ_0,
+	VDEC_IRQ_0,
+	VDEC_IRQ_HEVC_BACK
+};
 
 unsigned long vdec_core_lock(struct vdec_core_s *core)
 {
@@ -336,7 +349,8 @@ static const char * const vdec_device_name[] = {
 	"amvdec_h265",       "ammvdec_h265",
 	"amvenc_avc",        "amvenc_avc",
 	"jpegenc",           "jpegenc",
-	"amvdec_vp9",        "ammvdec_vp9"
+	"amvdec_vp9",        "ammvdec_vp9",
+	"amvdec_avs2",       "ammvdec_avs2"
 };
 
 
@@ -357,8 +371,72 @@ static const char * const vdec_device_name[] = {
 	"amvdec_h265",
 	"amvenc_avc",
 	"jpegenc",
-	"amvdec_vp9"
+	"amvdec_vp9",
+	"amvdec_avs2"
 };
+
+#endif
+
+#ifdef VDEC_DEBUG_SUPPORT
+static u64 get_current_clk(void)
+{
+	/*struct timespec xtime = current_kernel_time();
+	u64 usec = xtime.tv_sec * 1000000;
+	usec += xtime.tv_nsec / 1000;
+	*/
+	u64 usec = sched_clock();
+	return usec;
+}
+
+static void inc_profi_count(unsigned long mask, u32 *count)
+{
+	enum vdec_type_e type;
+
+	for (type = VDEC_1; type < VDEC_MAX; type++) {
+		if (mask & (1 << type))
+			count[type]++;
+	}
+}
+
+static void update_profi_clk_run(struct vdec_s *vdec,
+	unsigned long mask, u64 clk)
+{
+	enum vdec_type_e type;
+
+	for (type = VDEC_1; type < VDEC_MAX; type++) {
+		if (mask & (1 << type)) {
+			vdec->start_run_clk[type] = clk;
+			if (vdec->profile_start_clk[type] == 0)
+				vdec->profile_start_clk[type] = clk;
+			vdec->total_clk[type] = clk
+				- vdec->profile_start_clk[type];
+			/*pr_info("set start_run_clk %ld\n",
+			vdec->start_run_clk);*/
+
+		}
+	}
+}
+
+static void update_profi_clk_stop(struct vdec_s *vdec,
+	unsigned long mask, u64 clk)
+{
+	enum vdec_type_e type;
+
+	for (type = VDEC_1; type < VDEC_MAX; type++) {
+		if (mask & (1 << type)) {
+			if (vdec->start_run_clk[type] == 0)
+				pr_info("error, start_run_clk[%d] not set\n", type);
+
+			/*pr_info("update run_clk type %d, %ld, %ld, %ld\n",
+				type,
+				clk,
+				vdec->start_run_clk[type],
+				vdec->run_clk[type]);*/
+			vdec->run_clk[type] +=
+				(clk - vdec->start_run_clk[type]);
+		}
+	}
+}
 
 #endif
 
@@ -926,6 +1004,14 @@ void vdec_set_eos(struct vdec_s *vdec, bool eos)
 }
 EXPORT_SYMBOL(vdec_set_eos);
 
+#ifdef VDEC_DEBUG_SUPPORT
+void vdec_set_step_mode(void)
+{
+	step_mode = 0x1ff;
+}
+EXPORT_SYMBOL(vdec_set_step_mode);
+#endif
+
 void vdec_set_next_sched(struct vdec_s *vdec, struct vdec_s *next_vdec)
 {
 	if (vdec && next_vdec) {
@@ -1339,6 +1425,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 
 	vdec_input_set_type(&vdec->input, vdec->type,
 			(vdec->format == VFORMAT_HEVC ||
+			vdec->format == VFORMAT_AVS2 ||
 			vdec->format == VFORMAT_VP9) ?
 				VDEC_INPUT_TARGET_HEVC :
 				VDEC_INPUT_TARGET_VLD);
@@ -1529,7 +1616,14 @@ EXPORT_SYMBOL(vdec_init);
 void vdec_release(struct vdec_s *vdec)
 {
 	//trace_vdec_release(vdec);/*DEBUG_TMP*/
-
+#ifdef VDEC_DEBUG_SUPPORT
+	if (step_mode) {
+		pr_info("VDEC_DEBUG: in step_mode, wait release\n");
+		while (step_mode)
+			udelay(10);
+		pr_info("VDEC_DEBUG: step_mode is clear\n");
+	}
+#endif
 	vdec_disconnect(vdec);
 
 	if (vdec->vframe_provider.name) {
@@ -1571,8 +1665,12 @@ void vdec_release(struct vdec_s *vdec)
 }
 EXPORT_SYMBOL(vdec_release);
 
+/* For dual running decoders, vdec_reset is only called with master vdec.
+ */
 int vdec_reset(struct vdec_s *vdec)
 {
+	//trace_vdec_reset(vdec); /*DEBUG_TMP*/
+
 	vdec_disconnect(vdec);
 
 	if (vdec->vframe_provider.name)
@@ -1586,7 +1684,7 @@ int vdec_reset(struct vdec_s *vdec)
 		if (vdec->slave)
 			vdec->slave->reset(vdec->slave);
 	}
-	vdec->mc_loaded = 0;/*clear for reload firmware.*/
+
 	vdec_input_release(&vdec->input);
 
 	vf_reg_provider(&vdec->vframe_provider);
@@ -1597,7 +1695,6 @@ int vdec_reset(struct vdec_s *vdec)
 		vf_reg_provider(&vdec->slave->vframe_provider);
 		vf_notify_receiver(vdec->slave->vf_provider_name,
 			VFRAME_EVENT_PROVIDER_START, vdec->slave);
-		vdec->slave->mc_loaded = 0;/*clear for reload firmware.*/
 	}
 
 	vdec_connect(vdec);
@@ -1617,18 +1714,72 @@ void vdec_free_cmabuf(void)
 	mutex_unlock(&vdec_mutex);
 }
 
-static struct vdec_s *active_vdec(struct vdec_core_s *core)
+int vdec_core_request(struct vdec_s *vdec, unsigned long mask)
 {
-	struct vdec_s *vdec;
-	struct list_head *p;
+	vdec->core_mask |= mask;
 
-	list_for_each(p, &core->connected_vdec_list) {
-		vdec = list_entry(p, struct vdec_s, list);
-		if (vdec->status == VDEC_STATUS_ACTIVE)
-			return vdec;
+	if (vdec->slave)
+		vdec->slave->core_mask |= mask;
+
+	return 0;
+}
+EXPORT_SYMBOL(vdec_core_request);
+
+int vdec_core_release(struct vdec_s *vdec, unsigned long mask)
+{
+	vdec->core_mask &= ~mask;
+
+	if (vdec->slave)
+		vdec->slave->core_mask &= ~mask;
+
+	return 0;
+}
+EXPORT_SYMBOL(vdec_core_release);
+
+const bool vdec_core_with_input(unsigned long mask)
+{
+	enum vdec_type_e type;
+
+	for (type = VDEC_1; type < VDEC_MAX; type++) {
+		if ((mask & (1 << type)) && cores_with_input[type])
+			return true;
 	}
 
-	return NULL;
+	return false;
+}
+
+void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask)
+{
+	unsigned long i;
+	unsigned long t = mask;
+
+	while (t) {
+		i = __ffs(t);
+		clear_bit(i, &vdec->active_mask);
+		t &= ~(1 << i);
+	}
+
+	if (vdec->active_mask == 0)
+		vdec_set_status(vdec, VDEC_STATUS_CONNECTED);
+}
+EXPORT_SYMBOL(vdec_core_finish_run);
+/*
+ * find what core resources are available for vdec
+ */
+static unsigned long vdec_schedule_mask(struct vdec_s *vdec,
+	unsigned long active_mask)
+{
+	unsigned long mask = vdec->core_mask &
+		~CORE_MASK_COMBINE;
+
+	if (vdec->core_mask & CORE_MASK_COMBINE) {
+		/* combined cores must be granted together */
+		if ((mask & ~active_mask) == mask)
+			return mask;
+		else
+			return 0;
+	} else
+		return mask & ~vdec->sched_mask & ~active_mask;
 }
 
 /*
@@ -1657,12 +1808,14 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = vdec_core->active_vdec;
+	struct vdec_s *vdec = c->vdec;
 
 	if (c->dev_isr)
 		return c->dev_isr(irq, c->dev_id);
 
-	if (c != &vdec_core->isr_context[VDEC_IRQ_1]) {
+	if ((c != &vdec_core->isr_context[VDEC_IRQ_0]) &&
+	    (c != &vdec_core->isr_context[VDEC_IRQ_1]) &&
+	    (c != &vdec_core->isr_context[VDEC_IRQ_HEVC_BACK])) {
 #if 0
 		pr_warn("vdec interrupt w/o a valid receiver\n");
 #endif
@@ -1684,14 +1837,14 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	return vdec->irq_handler(vdec);
+	return vdec->irq_handler(vdec, c->index);
 }
 
 static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = vdec_core->active_vdec;
+	struct vdec_s *vdec = c->vdec;
 
 	if (c->dev_threaded_isr)
 		return c->dev_threaded_isr(irq, c->dev_id);
@@ -1702,15 +1855,15 @@ static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
 	if (!vdec->threaded_irq_handler)
 		return IRQ_HANDLED;
 
-	return vdec->threaded_irq_handler(vdec);
+	return vdec->threaded_irq_handler(vdec, c->index);
 }
 
-static inline bool vdec_ready_to_run(struct vdec_s *vdec)
+unsigned long vdec_ready_to_run(struct vdec_s *vdec, unsigned long mask)
 {
-	bool r;
+	unsigned long ready_mask;
 	struct vdec_input_s *input = &vdec->input;
-
-	if (vdec->status != VDEC_STATUS_CONNECTED)
+	if ((vdec->status != VDEC_STATUS_CONNECTED) &&
+	    (vdec->status != VDEC_STATUS_ACTIVE))
 		return false;
 
 	if (!vdec->run_ready)
@@ -1719,51 +1872,89 @@ static inline bool vdec_ready_to_run(struct vdec_s *vdec)
 	if ((vdec->slave || vdec->master) &&
 		(vdec->sched == 0))
 		return false;
-
-	/* check frame based input underrun */
-	if (input && !input->eos && input_frame_based(input)
-		&& (!vdec_input_next_chunk(input)))
-		return false;
-
-	/* check streaming prepare level threshold if not EOS */
-	if (input && input_stream_based(input) && !input->eos) {
-		u32 rp, wp, level;
-
-		rp = READ_PARSER_REG(PARSER_VIDEO_RP);
-		wp = READ_PARSER_REG(PARSER_VIDEO_WP);
-		if (wp < rp)
-			level = input->size + wp - rp;
-		else
-			level = wp - rp;
-
-		if ((level < input->prepare_level) &&
-			(pts_get_rec_num(PTS_TYPE_VIDEO,
-				vdec->input.total_rd_count) < 2)) {
-			vdec->need_more_data |= VDEC_NEED_MORE_DATA;
+#ifdef VDEC_DEBUG_SUPPORT
+	inc_profi_count(mask, vdec->check_count);
+#endif
+	if (vdec_core_with_input(mask)) {
+		/* check frame based input underrun */
+		if (input && !input->eos && input_frame_based(input)
+			&& (!vdec_input_next_chunk(input))) {
+#ifdef VDEC_DEBUG_SUPPORT
+			inc_profi_count(mask, vdec->input_underrun_count);
+#endif
 			return false;
-		} else if (level > input->prepare_level)
-			vdec->need_more_data &= ~VDEC_NEED_MORE_DATA;
+		}
+		/* check streaming prepare level threshold if not EOS */
+		if (input && input_stream_based(input) && !input->eos) {
+			u32 rp, wp, level;
+
+			rp = READ_PARSER_REG(PARSER_VIDEO_RP);
+			wp = READ_PARSER_REG(PARSER_VIDEO_WP);
+			if (wp < rp)
+				level = input->size + wp - rp;
+			else
+				level = wp - rp;
+
+			if ((level < input->prepare_level) &&
+				(pts_get_rec_num(PTS_TYPE_VIDEO,
+					vdec->input.total_rd_count) < 2)) {
+				vdec->need_more_data |= VDEC_NEED_MORE_DATA;
+#ifdef VDEC_DEBUG_SUPPORT
+				inc_profi_count(mask, vdec->input_underrun_count);
+				if (step_mode & 0x200) {
+					if ((step_mode & 0xff) == vdec->id) {
+						step_mode |= 0xff;
+						return mask;
+					}
+				}
+#endif
+				return false;
+			} else if (level > input->prepare_level)
+				vdec->need_more_data &= ~VDEC_NEED_MORE_DATA;
+		}
 	}
 
 	if (step_mode) {
 		if ((step_mode & 0xff) != vdec->id)
-			return false;
+			return 0;
+		step_mode |= 0xff; /*VDEC_DEBUG_SUPPORT*/
 	}
 
-	step_mode &= ~0xff;
+	/*step_mode &= ~0xff; not work for id of 0, removed*/
 
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 	vdec_profile(vdec, VDEC_PROFILE_EVENT_CHK_RUN_READY);
 #endif
 
-	r = vdec->run_ready(vdec);
-
+	ready_mask = vdec->run_ready(vdec, mask) & mask;
+#ifdef VDEC_DEBUG_SUPPORT
+	if (ready_mask != mask)
+		inc_profi_count(ready_mask ^ mask, vdec->not_run_ready_count);
+#endif
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
-	if (r)
+	if (ready_mask)
 		vdec_profile(vdec, VDEC_PROFILE_EVENT_RUN_READY);
 #endif
 
-	return r;
+	return ready_mask;
+}
+
+/* bridge on/off vdec's interrupt processing to vdec core */
+static void vdec_route_interrupt(struct vdec_s *vdec, unsigned long mask,
+	bool enable)
+{
+	enum vdec_type_e type;
+
+	for (type = VDEC_1; type < VDEC_MAX; type++) {
+		if (mask & (1 << type)) {
+			struct vdec_isr_context_s *c =
+				&vdec_core->isr_context[cores_int[type]];
+			if (enable)
+				c->vdec = vdec;
+			else if (c->vdec == vdec)
+				c->vdec = NULL;
+		}
+	}
 }
 
 /*
@@ -1775,16 +1966,21 @@ static inline bool vdec_ready_to_run(struct vdec_s *vdec)
  * Perform need_more_data checking and set flag is decoder
  * is not consuming data.
  */
-static inline void vdec_prepare_run(struct vdec_s *vdec)
+void vdec_prepare_run(struct vdec_s *vdec, unsigned long mask)
 {
 	struct vdec_input_s *input = &vdec->input;
-	int type = (vdec_secure(vdec)) ? DMC_DEV_TYPE_SECURE :
+	int secure = (vdec_secure(vdec)) ? DMC_DEV_TYPE_SECURE :
 			DMC_DEV_TYPE_NON_SECURE;
 
+	vdec_route_interrupt(vdec, mask, true);
+
+	if (!vdec_core_with_input(mask))
+		return;
+
 	if (input->target == VDEC_INPUT_TARGET_VLD)
-		tee_config_device_secure(DMC_DEV_ID_VDEC, type);
+		tee_config_device_secure(DMC_DEV_ID_VDEC, secure);
 	else if (input->target == VDEC_INPUT_TARGET_HEVC)
-		tee_config_device_secure(DMC_DEV_ID_HEVC, type);
+		tee_config_device_secure(DMC_DEV_ID_HEVC, secure);
 
 	if (vdec_stream_based(vdec) &&
 		((vdec->need_more_data & VDEC_NEED_MORE_DATA_RUN) &&
@@ -1806,35 +2002,55 @@ static inline void vdec_prepare_run(struct vdec_s *vdec)
 static int vdec_core_thread(void *data)
 {
 	struct vdec_core_s *core = (struct vdec_core_s *)data;
-	struct vdec_s *lastvdec;
-	struct sched_param param = {.sched_priority = MAX_RT_PRIO/2};
+
+	struct sched_param param = {.sched_priority = MAX_RT_PRIO - 1};
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
 
 	allow_signal(SIGTERM);
-	lastvdec = NULL;
+
 	while (down_interruptible(&core->sem) == 0) {
-		struct vdec_s *vdec, *tmp;
+		struct vdec_s *vdec, *tmp, *worker;
+		unsigned long sched_mask = 0;
 		LIST_HEAD(disconnecting_list);
 
 		if (kthread_should_stop())
 			break;
 
 		/* clean up previous active vdec's input */
-		if ((core->active_vdec) &&
-		    (core->active_vdec->status == VDEC_STATUS_CONNECTED)) {
-			struct vdec_input_s *input = &core->active_vdec->input;
+		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
+			unsigned long mask = vdec->sched_mask &
+				(vdec->active_mask ^ vdec->sched_mask);
 
-			while (!list_empty(&input->vframe_chunk_list)) {
-				struct vframe_chunk_s *chunk =
-					vdec_input_next_chunk(input);
-				if (chunk->flag & VFRAME_CHUNK_FLAG_CONSUMED)
-					vdec_input_release_chunk(input, chunk);
-				else
-					break;
+			vdec_route_interrupt(vdec, mask, false);
+
+#ifdef VDEC_DEBUG_SUPPORT
+			update_profi_clk_stop(vdec, mask, get_current_clk());
+#endif
+			/*
+			 * If decoder released some core resources (mask), then
+			 * check if these core resources are associated
+			 * with any input side and do input clean up accordingly
+			 */
+			if (vdec_core_with_input(mask)) {
+				struct vdec_input_s *input = &vdec->input;
+				while (!list_empty(
+					&input->vframe_chunk_list)) {
+					struct vframe_chunk_s *chunk =
+						vdec_input_next_chunk(input);
+					if (chunk->flag &
+						VFRAME_CHUNK_FLAG_CONSUMED)
+						vdec_input_release_chunk(input,
+							chunk);
+					else
+						break;
+				}
+
+				vdec_save_input_context(vdec);
 			}
 
-			vdec_save_input_context(core->active_vdec);
+			vdec->sched_mask &= ~mask;
+			core->sched_mask &= ~mask;
 		}
 
 		/*
@@ -1852,8 +2068,6 @@ static int vdec_core_thread(void *data)
 		 * }
 		 */
 
-		mutex_lock(&vdec_mutex);
-
 		/* check disconnected decoders */
 		list_for_each_entry_safe(vdec, tmp,
 			&core->connected_vdec_list, list) {
@@ -1865,70 +2079,98 @@ static int vdec_core_thread(void *data)
 			}
 		}
 
-		/* activate next decoder instance if there is none */
-		vdec = active_vdec(core);
-
-		if (!vdec) {
-			/*
-			 *round-robin decoder scheduling
-			 * start from the decoder after previous active
-			 * decoder instance, if not, then start from beginning
-			 */
-			if (core->active_vdec)
-				vdec = list_entry(
-						core->active_vdec->list.next,
-						struct vdec_s, list);
-			else
-				vdec = list_entry(
-						core->connected_vdec_list.next,
-						struct vdec_s, list);
-
+		/* elect next vdec to be scheduled */
+		vdec = core->active_vdec;
+		if (vdec) {
+			vdec = list_entry(vdec->list.next, struct vdec_s, list);
 			list_for_each_entry_from(vdec,
 				&core->connected_vdec_list, list) {
-				if (vdec_ready_to_run(vdec))
+				sched_mask = vdec_schedule_mask(vdec,
+					core->sched_mask);
+				if (!sched_mask)
+					continue;
+				sched_mask = vdec_ready_to_run(vdec,
+					sched_mask);
+				if (sched_mask)
 					break;
-			}
-
-			if ((&vdec->list == &core->connected_vdec_list) &&
-				(core->active_vdec)) {
-				/* search from beginning */
-				list_for_each_entry(vdec,
-					&core->connected_vdec_list, list) {
-					if (vdec_ready_to_run(vdec))
-						break;
-
-					if (vdec == core->active_vdec) {
-						vdec = NULL;
-						break;
-					}
-				}
 			}
 
 			if (&vdec->list == &core->connected_vdec_list)
 				vdec = NULL;
-
-			core->active_vdec = NULL;
 		}
 
-		mutex_unlock(&vdec_mutex);
+		if (!vdec) {
+			/* search from beginning */
+			list_for_each_entry(vdec,
+				&core->connected_vdec_list, list) {
+				sched_mask = vdec_schedule_mask(vdec,
+					core->sched_mask);
+				if (vdec == core->active_vdec) {
+					if (!sched_mask) {
+						vdec = NULL;
+						break;
+					}
 
-		/* start the vdec instance */
-		if ((vdec) && (vdec->status != VDEC_STATUS_ACTIVE)) {
-			if (lastvdec != vdec)
-				vdec->mc_loaded = 0;/*clear for reload firmware.*/
-			if (debug & 2)
-				vdec->mc_loaded = 0;/*alway reload firmware.*/
+					sched_mask = vdec_ready_to_run(vdec,
+						sched_mask);
+
+					if (!sched_mask) {
+						vdec = NULL;
+						break;
+					}
+					break;
+				}
+
+				if (!sched_mask)
+					continue;
+
+				sched_mask = vdec_ready_to_run(vdec,
+					sched_mask);
+				if (sched_mask)
+					break;
+			}
+
+			if (&vdec->list == &core->connected_vdec_list)
+				vdec = NULL;
+		}
+
+		worker = vdec;
+
+		if (vdec) {
+			unsigned long mask = sched_mask;
+			unsigned long i;
+
+			/* setting active_mask should be atomic.
+			 * it can be modified by decoder driver callbacks.
+			 */
+			while (sched_mask) {
+				i = __ffs(sched_mask);
+				set_bit(i, &vdec->active_mask);
+				sched_mask &= ~(1 << i);
+			}
+
+			/* vdec's sched_mask is only set from core thread */
+			vdec->sched_mask |= mask;
+
 			vdec_set_status(vdec, VDEC_STATUS_ACTIVE);
 
-			/* activatate the decoder instance to run */
+			core->sched_mask |= mask;
 			core->active_vdec = vdec;
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 			vdec_profile(vdec, VDEC_PROFILE_EVENT_RUN);
 #endif
-			vdec_prepare_run(vdec);
+			vdec_prepare_run(vdec, mask);
+#ifdef VDEC_DEBUG_SUPPORT
+			inc_profi_count(mask, vdec->run_count);
+			update_profi_clk_run(vdec, mask, get_current_clk());
+#endif
+			vdec->run(vdec, mask, vdec_callback, core);
 
-			vdec->run(vdec, vdec_callback, core);
-			lastvdec = vdec;
+
+			/* we have some cores scheduled, keep working until
+			 * all vdecs are checked with no cores to schedule
+			 */
+			up(&core->sem);
 		}
 
 		/* remove disconnected decoder from active list */
@@ -1938,8 +2180,11 @@ static int vdec_core_thread(void *data)
 			complete(&vdec->inactive_done);
 		}
 
-		if (!core->active_vdec) {
-			usleep_range(1000,2000);
+		/* if there is no new work scheduled and nothing
+		 * is running, sleep 20ms
+		 */
+		if ((!worker) && (!core->sched_mask)) {
+			msleep(20);
 			up(&core->sem);
 		}
 
@@ -2268,8 +2513,12 @@ void vdec_poweroff(enum vdec_type_e core)
 					0xc00);
 			/* power off hevc memories */
 			WRITE_VREG(DOS_MEM_PD_HEVC, 0xffffffffUL);
+
 			/* disable hevc clock */
 			hevc_clock_off();
+			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+				hevc_back_clock_off();
+
 			/* hevc power off */
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
 					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
@@ -2743,6 +2992,123 @@ static ssize_t show_keep_vdec_mem(struct class *class,
 	return sprintf(buf, "%d\n", keep_vdec_mem);
 }
 
+#ifdef VDEC_DEBUG_SUPPORT
+static ssize_t store_debug(struct class *class,
+		struct class_attribute *attr,
+		const char *buf, size_t size)
+{
+	struct vdec_s *vdec;
+	struct vdec_core_s *core = vdec_core;
+	unsigned long flags;
+
+	unsigned id;
+	unsigned val;
+	ssize_t ret;
+	char cbuf[32];
+
+	cbuf[0] = 0;
+	ret = sscanf(buf, "%s %x %x", cbuf, &id, &val);
+	/*pr_info(
+	"%s(%s)=>ret %ld: %s, %x, %x\n",
+	__func__, buf, ret, cbuf, id, val);*/
+	if (strcmp(cbuf, "schedule") == 0) {
+		pr_info("VDEC_DEBUG: force schedule\n");
+		up(&core->sem);
+	} else if (strcmp(cbuf, "power_off") == 0) {
+		pr_info("VDEC_DEBUG: power off core %d\n", id);
+		vdec_poweroff(id);
+	} else if (strcmp(cbuf, "power_on") == 0) {
+		pr_info("VDEC_DEBUG: power_on core %d\n", id);
+		vdec_poweron(id);
+	} else if (strcmp(cbuf, "wr") == 0) {
+		pr_info("VDEC_DEBUG: WRITE_VREG(0x%x, 0x%x)\n",
+			id, val);
+		WRITE_VREG(id, val);
+	} else if (strcmp(cbuf, "rd") == 0) {
+		pr_info("VDEC_DEBUG: READ_VREG(0x%x) = 0x%x\n",
+			id, READ_VREG(id));
+	} else if (strcmp(cbuf, "read_hevc_clk_reg") == 0) {
+		pr_info(
+			"VDEC_DEBUG: HHI_VDEC4_CLK_CNTL = 0x%x, HHI_VDEC2_CLK_CNTL = 0x%x\n",
+			READ_HHI_REG(HHI_VDEC4_CLK_CNTL),
+			READ_HHI_REG(HHI_VDEC2_CLK_CNTL));
+	}
+
+	flags = vdec_core_lock(vdec_core);
+
+	list_for_each_entry(vdec,
+		&core->connected_vdec_list, list) {
+		pr_info("vdec: status %d, id %d\n", vdec->status, vdec->id);
+		if (((vdec->status == VDEC_STATUS_CONNECTED
+			|| vdec->status == VDEC_STATUS_ACTIVE)) &&
+			(vdec->id == id)) {
+				/*to add*/
+				break;
+		}
+	}
+	vdec_core_unlock(vdec_core, flags);
+	return size;
+}
+
+static ssize_t show_debug(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	char *pbuf = buf;
+	struct vdec_s *vdec;
+	struct vdec_core_s *core = vdec_core;
+	unsigned long flags = vdec_core_lock(vdec_core);
+
+	pbuf += sprintf(pbuf,
+		"============== help:\n");
+	pbuf += sprintf(pbuf,
+		"'echo xxx > debug' usuage:\n");
+	pbuf += sprintf(pbuf,
+		"schedule - trigger schedule thread to run\n");
+	pbuf += sprintf(pbuf,
+		"power_off core_num - call vdec_poweroff(core_num)\n");
+	pbuf += sprintf(pbuf,
+		"power_on core_num - call vdec_poweron(core_num)\n");
+	pbuf += sprintf(pbuf,
+		"wr adr val - call WRITE_VREG(adr, val)\n");
+	pbuf += sprintf(pbuf,
+		"rd adr - call READ_VREG(adr)\n");
+	pbuf += sprintf(pbuf,
+		"read_hevc_clk_reg - read HHI register for hevc clk\n");
+	pbuf += sprintf(pbuf,
+		"===================\n");
+
+	pbuf += sprintf(pbuf,
+		"name(core)\tschedule_count\trun_count\tinput_underrun\tdecbuf_not_ready\trun_time\n");
+	list_for_each_entry(vdec,
+		&core->connected_vdec_list, list) {
+		enum vdec_type_e type;
+
+		for (type = VDEC_1; type < VDEC_MAX; type++) {
+			if (vdec->core_mask & (1 << type)) {
+				pbuf += sprintf(pbuf, "%s(%d):",
+					vdec->vf_provider_name, type);
+				pbuf += sprintf(pbuf, "\t%d",
+					vdec->check_count[type]);
+				pbuf += sprintf(pbuf, "\t%d",
+					vdec->run_count[type]);
+				pbuf += sprintf(pbuf, "\t%d",
+					vdec->input_underrun_count[type]);
+				pbuf += sprintf(pbuf, "\t%d",
+					vdec->not_run_ready_count[type]);
+				pbuf += sprintf(pbuf,
+					"\t%d%%\n",
+					vdec->total_clk[type] == 0 ? 0 :
+					(u32)((vdec->run_clk[type] * 100)
+					/ vdec->total_clk[type]));
+			}
+		}
+	}
+
+	vdec_core_unlock(vdec_core, flags);
+	return pbuf - buf;
+
+}
+#endif
 
 /*irq num as same as .dts*/
 /*
@@ -2844,6 +3210,70 @@ void vdec_free_irq(enum vdec_irq_num num, void *dev)
 	vdec_core->isr_context[num].dev_id = NULL;
 }
 EXPORT_SYMBOL(vdec_free_irq);
+
+struct vdec_s *vdec_get_default_vdec_for_userdata(void)
+{
+	struct vdec_s *vdec;
+	struct vdec_s *ret_vdec;
+	struct vdec_core_s *core = vdec_core;
+	unsigned long flags;
+	int id;
+
+	flags = vdec_core_lock(vdec_core);
+
+	id = 0x10000000;
+	ret_vdec = NULL;
+	if (!list_empty(&core->connected_vdec_list)) {
+		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
+			if (vdec->id < id) {
+				id = vdec->id;
+				ret_vdec = vdec;
+			}
+		}
+	}
+
+	vdec_core_unlock(vdec_core, flags);
+
+	return ret_vdec;
+}
+EXPORT_SYMBOL(vdec_get_default_vdec_for_userdata);
+
+int vdec_read_user_data(struct vdec_s *vdec,
+			struct userdata_param_t *p_userdata_param)
+{
+	int ret = 0;
+
+	if (!vdec)
+		vdec = vdec_get_default_vdec_for_userdata();
+
+	if (vdec) {
+		if (vdec->user_data_read)
+			ret = vdec->user_data_read(vdec, p_userdata_param);
+	}
+	return ret;
+}
+EXPORT_SYMBOL(vdec_read_user_data);
+
+int vdec_wakeup_userdata_poll(struct vdec_s *vdec)
+{
+	/*if (vdec && vdec == vdec_get_default_vdec_for_userdata())
+		amstream_wakeup_userdata_poll();*/ //DEBUG_TMP
+
+	return 0;
+}
+EXPORT_SYMBOL(vdec_wakeup_userdata_poll);
+
+void vdec_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
+{
+	if (!vdec)
+		vdec = vdec_get_default_vdec_for_userdata();
+
+	if (vdec) {
+		if (vdec->reset_userdata_fifo)
+			vdec->reset_userdata_fifo(vdec, bInit);
+	}
+}
+EXPORT_SYMBOL(vdec_reset_userdata_fifo);
 
 static int dump_mode;
 static ssize_t dump_risc_mem_store(struct class *class,
@@ -2953,14 +3383,20 @@ static ssize_t core_show(struct class *class, struct class_attribute *attr,
 	else {
 		struct vdec_s *vdec;
 
+		pbuf += sprintf(pbuf,
+			" Core: last_sched %p, sched_mask %lx\n",
+			core->active_vdec,
+			core->sched_mask);
+
 		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
 			pbuf += sprintf(pbuf,
-				"\tvdec.%d (%p (%s)), status = %s,\ttype = %s\n",
+				"\tvdec.%d (%p (%s)), status = %s,\ttype = %s, \tactive_mask = %lx\n",
 				vdec->id,
 				vdec,
 				vdec_device_name[vdec->format * 2],
 				vdec_status_str(vdec),
-				vdec_type_str(vdec));
+				vdec_type_str(vdec),
+				vdec->active_mask);
 		}
 	}
 
@@ -3118,6 +3554,10 @@ static struct class_attribute vdec_class_attrs[] = {
 	__ATTR_RO(dump_vdec_blocks),
 	__ATTR_RO(dump_vdec_chunks),
 	__ATTR_RO(dump_decoder_state),
+#ifdef VDEC_DEBUG_SUPPORT
+	__ATTR(debug, S_IRUGO | S_IWUSR | S_IWGRP,
+	show_debug, store_debug),
+#endif
 	__ATTR_NULL
 };
 
@@ -3161,13 +3601,29 @@ static int vdec_probe(struct platform_device *pdev)
 		vdec_core->isr_context[i].irq = -1;
 	}
 
+	r = vdec_request_threaded_irq(VDEC_IRQ_0, NULL, NULL,
+		IRQF_ONESHOT, "vdec-0", NULL);
+	if (r < 0) {
+		pr_err("vdec interrupt request failed\n");
+		return r;
+	}
+
 	r = vdec_request_threaded_irq(VDEC_IRQ_1, NULL, NULL,
 		IRQF_ONESHOT, "vdec-1", NULL);
 	if (r < 0) {
 		pr_err("vdec interrupt request failed\n");
 		return r;
 	}
-
+#if 0
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		r = vdec_request_threaded_irq(VDEC_IRQ_HEVC_BACK, NULL, NULL,
+			IRQF_ONESHOT, "vdec-hevc_back", NULL);
+		if (r < 0) {
+			pr_err("vdec interrupt request failed\n");
+			return r;
+		}
+	}
+#endif
 	r = of_reserved_mem_device_init(&pdev->dev);
 	if (r == 0)
 		pr_info("vdec_probe done\n");
@@ -3189,13 +3645,8 @@ static int vdec_probe(struct platform_device *pdev)
 	vdec_core->thread = kthread_run(vdec_core_thread, vdec_core,
 					"vdec-core");
 
-	vdec_core->vdec_core_wq = alloc_ordered_workqueue("%s",
-				__WQ_LEGACY |
-				WQ_MEM_RECLAIM |
-				WQ_HIGHPRI/*high priority*/
-				,
-				"vdec-work");
-	/*work queue priority lower than vdec-core.*/
+	vdec_core->vdec_core_wq = create_singlethread_workqueue("threadvdec");
+
 	return 0;
 }
 
@@ -3303,11 +3754,17 @@ static int __init vdec_mem_setup(struct reserved_mem *rmem)
 }
 
 RESERVEDMEM_OF_DECLARE(vdec, "amlogic, vdec-memory", vdec_mem_setup);
-module_param(debug, uint, 0664);
+/*
+uint force_hevc_clock_cntl;
+EXPORT_SYMBOL(force_hevc_clock_cntl);
+
+module_param(force_hevc_clock_cntl, uint, 0664);
+*/
 module_param(debug_trace_num, uint, 0664);
 module_param(hevc_max_reset_count, int, 0664);
 module_param(clk_config, uint, 0664);
 module_param(step_mode, int, 0664);
+module_param(debugflags, int, 0664);
 
 /*
 *module_init(vdec_module_init);

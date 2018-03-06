@@ -2868,8 +2868,7 @@ int header(void)
 
 				temp_slice_buf = &tmp_buf[0];
 				return SOP;
-			}
-			{
+			} else {
 				io_printf("Can't find start code");
 				return -EOS;
 			}

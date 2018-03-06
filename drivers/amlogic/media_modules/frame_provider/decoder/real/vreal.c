@@ -317,8 +317,7 @@ static irqreturn_t vreal_isr(int irq, void *dev_id)
 				WRITE_VREG(TO_AMRISC, ~(1 << buffer_index));
 				WRITE_VREG(FROM_AMRISC, 0);
 				return IRQ_HANDLED;
-			}
-			{
+			} else {
 				current_vdts +=
 					vf->duration - (vf->duration >> 4);
 				vf->pts = current_vdts;

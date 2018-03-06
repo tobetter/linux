@@ -178,7 +178,7 @@ static void set_frame_info(struct vdec_mjpeg_hw_s *hw, struct vframe_s *vf)
 	vf->canvas1_config[2] = hw->buffer_spec[vf->index].canvas_config[2];
 }
 
-static irqreturn_t vmjpeg_isr(struct vdec_s *vdec)
+static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 {
 	struct vdec_mjpeg_hw_s *hw = (struct vdec_mjpeg_hw_s *)(vdec->private);
 	u32 reg;
@@ -662,7 +662,7 @@ static s32 vmjpeg_init(struct vdec_s *vdec)
 	return 0;
 }
 
-static bool run_ready(struct vdec_s *vdec)
+static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 {
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)vdec->private;
@@ -682,10 +682,10 @@ static bool run_ready(struct vdec_s *vdec)
 		if (level < pre_decode_buf_level)
 			return 0;
 	}
-	return true;
+	return CORE_MASK_VDEC_1 | CORE_MASK_HEVC;
 }
 
-static void run(struct vdec_s *vdec,
+static void run(struct vdec_s *vdec, unsigned long mask,
 	void (*callback)(struct vdec_s *, void *), void *arg)
 {
 	struct vdec_mjpeg_hw_s *hw =
@@ -796,6 +796,8 @@ static void vmjpeg_work(struct work_struct *work)
 	amvdec_stop();
 	/* mark itself has all HW resource released and input released */
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_CONNECTED);
+	vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1
+			| CORE_MASK_HEVC);
 	del_timer_sync(&hw->check_timer);
 	hw->stat &= ~STAT_TIMER_ARM;
 
@@ -850,6 +852,9 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+				| CORE_MASK_COMBINE);
+
 	return 0;
 }
 
@@ -873,6 +878,7 @@ static int amvdec_mjpeg_remove(struct platform_device *pdev)
 	vfree(hw->fw);
 	hw->fw = NULL;
 
+	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 
 	return 0;
