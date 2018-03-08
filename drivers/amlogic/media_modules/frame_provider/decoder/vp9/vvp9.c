@@ -7033,9 +7033,6 @@ static void dec_again_process(struct VP9Decoder_s *pbi)
 		PROC_STATE_DECODESLICE) {
 		pbi->process_state =
 		PROC_STATE_SENDAGAIN;
-#ifdef VP9_10B_MMU
-		vp9_recycle_mmu_buf(pbi);
-#endif
 	}
 	reset_process_time(pbi);
 	vdec_schedule_work(&pbi->work);
@@ -7679,9 +7676,6 @@ static void vvp9_put_timer_func(unsigned long arg)
 		pbi->dec_result = DEC_RESULT_AGAIN;
 		if (pbi->process_state ==
 			PROC_STATE_DECODESLICE) {
-#ifdef VP9_10B_MMU
-			vp9_recycle_mmu_buf(pbi);
-#endif
 			pbi->process_state =
 			PROC_STATE_SENDAGAIN;
 		}
@@ -8290,8 +8284,6 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 #endif
 	pr_debug("%s\n", __func__);
 
-	WRITE_VREG(DOS_SCRATCH31,4);
-
 	mutex_lock(&vvp9_mutex);
 
 	memcpy(&BUF[0], &pbi->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
@@ -8603,6 +8595,10 @@ static void vp9_work(struct work_struct *work)
 			stream base: stream buf empty or timeout
 			frame base: vdec_prepare_input fail
 		*/
+#ifdef VP9_10B_MMU
+		if (pbi->process_state == PROC_STATE_SENDAGAIN)
+			vp9_recycle_mmu_buf(pbi);
+#endif
 		if (!vdec_has_more_input(vdec)) {
 			pbi->dec_result = DEC_RESULT_EOS;
 			vdec_schedule_work(&pbi->work);
@@ -9186,8 +9182,6 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 	struct BUF_s BUF[MAX_BUF_NUM];
 	struct VP9Decoder_s *pbi = NULL;
 	pr_debug("%s\n", __func__);
-
-	//WRITE_VREG(DOS_SCRATCH31,4);
 
 	if (pdata == NULL) {
 		pr_info("\nammvdec_vp9 memory resource undefined.\n");
