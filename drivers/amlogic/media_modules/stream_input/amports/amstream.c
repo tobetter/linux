@@ -875,7 +875,7 @@ static int amstream_port_init(struct port_priv_s *priv)
 
 	mutex_lock(&amstream_mutex);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
 		r = check_efuse_chip(port->vformat);
 		if (r) {
 			pr_info("No support video format %d.\n", port->vformat);
