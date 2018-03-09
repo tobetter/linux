@@ -386,7 +386,12 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_AVS:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS, 0);
+		if (!strcmp(name, "avs_gxm"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS_GXM, 0);
+		else if (!strcmp(name, "avs_no_cabac"))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS_NOCABAC, 0);
+		else
+			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS, 0);
 		break;
 
 	case VFORMAT_MPEG12:

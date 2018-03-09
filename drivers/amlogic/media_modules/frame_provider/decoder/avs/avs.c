@@ -100,6 +100,8 @@ firmware_sel
     1: not use avsp_trans long cabac ucode
 ********************************/
 static int firmware_sel;
+static int disable_longcabac_trans = 1;
+
 
 int avs_get_debug_flag(void)
 {
@@ -177,6 +179,8 @@ static struct vdec_info *gvs;
 static u32 fr_hint_status;
 static struct work_struct notify_work;
 static bool is_reset;
+
+static struct vdec_s *vdec;
 
 #ifdef AVSP_LONG_CABAC
 static struct work_struct long_cabac_wd_work;
@@ -380,9 +384,11 @@ static void userdata_push_do_work(struct work_struct *work)
 	user_data_poc.poc_number = READ_VREG(AV_SCRATCH_M);
 
 	WRITE_VREG(AV_SCRATCH_N, 0);
+/*
 	wakeup_userdata_poll(user_data_poc, user_data_wp,
 				(unsigned long)user_data_buffer,
 				USER_DATA_SIZE, user_data_length);
+*/
 }
 
 static void UserDataHandler(void)
@@ -408,10 +414,9 @@ static void vavs_isr(void)
 	u32 repeat_count;
 	u32 picture_type;
 	u32 buffer_index;
-	u32 picture_struct;
-	u64 pts_us64;
-	unsigned int pts, pts_valid = 0, offset;
 
+	unsigned int pts, pts_valid = 0, offset;
+	u64 pts_us64;
 	if (debug_flag & AVS_DEBUG_UCODE) {
 		if (READ_VREG(AV_SCRATCH_E) != 0) {
 			pr_info("dbg%x: %x\n", READ_VREG(AV_SCRATCH_E),
@@ -424,6 +429,8 @@ static void vavs_isr(void)
 #ifdef PERFORMANCE_DEBUG
 		pr_info("%s:schedule long_cabac_wd_work\r\n", __func__);
 #endif
+		pr_info("schedule long_cabac_wd_work and requested from %d\n",
+			(READ_VREG(LONG_CABAC_REQ) >> 8)&0xFF);
 		schedule_work(&long_cabac_wd_work);
 	}
 #endif
@@ -434,10 +441,8 @@ static void vavs_isr(void)
 	reg = READ_VREG(AVS_BUFFEROUT);
 
 	if (reg) {
-		picture_struct = READ_VREG(AV_SCRATCH_5);
 		if (debug_flag & AVS_DEBUG_PRINT)
-			pr_info("AVS_BUFFEROUT=%x, picture_struct is 0x%x\n",
-				reg, picture_struct);
+			pr_info("AVS_BUFFEROUT=%x\n", reg);
 		if (pts_by_offset) {
 			offset = READ_VREG(AVS_OFFSET_REG);
 			if (debug_flag & AVS_DEBUG_PRINT)
@@ -547,7 +552,7 @@ static void vavs_isr(void)
 			vf->canvas0Addr = vf->canvas1Addr =
 				index2canvas(buffer_index);
 			vf->type_original = vf->type;
-			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
+
 			if (debug_flag & AVS_DEBUG_PRINT) {
 				pr_info("buffer_index %d, canvas addr %x\n",
 					   buffer_index, vf->canvas0Addr);
@@ -675,6 +680,8 @@ static void vavs_isr(void)
 			vf->canvas0Addr = vf->canvas1Addr =
 				index2canvas(buffer_index);
 			vf->type_original = vf->type;
+
+			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
 			if (debug_flag & AVS_DEBUG_PRINT) {
 				pr_info("buffer_index %d, canvas addr %x\n",
 					   buffer_index, vf->canvas0Addr);
@@ -929,8 +936,7 @@ void vavs_recover(void)
 		WRITE_VREG_BITS(VLD_MEM_VIFIFO_CONTROL, 8,
 			MEM_LEVEL_CNT_BIT, 6);
 	}
-	if (firmware_sel == 0)
-		WRITE_VREG(AV_SCRATCH_5, 0);
+
 
 	if (firmware_sel == 0) {
 		/* fixed canvas index */
@@ -988,6 +994,7 @@ void vavs_recover(void)
 		WRITE_VREG(LONG_CABAC_SRC_ADDR, 0);
 	}
 #endif
+	WRITE_VREG(AV_SCRATCH_5, 0);
 
 }
 
@@ -1023,8 +1030,6 @@ static int vavs_prot_init(void)
 	/*************************************************************/
 
 	r = vavs_canvas_init();
-	if (firmware_sel == 0)
-		WRITE_VREG(AV_SCRATCH_5, 0);
 #ifdef NV21
 		if (firmware_sel == 0) {
 			/* fixed canvas index */
@@ -1103,12 +1108,9 @@ static int vavs_prot_init(void)
 	return r;
 }
 
-#if 0 //DEBUG_TMP
 #ifdef AVSP_LONG_CABAC
 static unsigned char es_write_addr[MAX_CODED_FRAME_SIZE]  __aligned(64);
 #endif
-#endif
-
 static void vavs_local_init(void)
 {
 	int i;
@@ -1143,6 +1145,10 @@ static void vavs_local_init(void)
 		vfbuf_use[i] = 0;
 
 	cur_vfpool = vfpool;
+
+	if (recover_flag == 1)
+		return;
+
 	if (mm_blk_handle) {
 		decoder_bmmu_box_free(mm_blk_handle);
 		mm_blk_handle = NULL;
@@ -1191,6 +1197,11 @@ static void vavs_local_reset(void)
 	vf_notify_receiver(PROVIDER_NAME, VFRAME_EVENT_PROVIDER_RESET, NULL);
 	vavs_local_init();
 	vavs_recover();
+
+#ifdef ENABLE_USER_DATA
+	reset_userdata_fifo(1);
+#endif
+
 	amvdec_start();
 	recover_flag = 0;
 #if 0
@@ -1203,9 +1214,7 @@ static void vavs_local_reset(void)
 		READ_VREG(VLD_MEM_VIFIFO_LEVEL));
 #endif
 
-#ifdef ENABLE_USER_DATA
-	reset_userdata_fifo(1);
-#endif
+
 
 	mutex_unlock(&vavs_mutex);
 }
@@ -1230,6 +1239,7 @@ static void vavs_fatal_error_handler(struct work_struct *work)
 		amvdec_start();
 		mutex_unlock(&vavs_mutex);
 	} else {
+		pr_info("avs fatal_error_handler\n");
 		vavs_local_reset();
 	}
 	atomic_set(&error_handler_run, 0);
@@ -1277,6 +1287,14 @@ static void vavs_put_timer_func(unsigned long arg)
 #else
 			if (!atomic_read(&error_handler_run)) {
 				atomic_set(&error_handler_run, 1);
+				pr_info("AVS_SOS_COUNT = %d\n",
+					READ_VREG(AVS_SOS_COUNT));
+				pr_info("WP = 0x%x, RP = 0x%x, LEVEL = 0x%x, AVAIL = 0x%x, CUR_PTR = 0x%x\n",
+					READ_VREG(VLD_MEM_VIFIFO_WP),
+					READ_VREG(VLD_MEM_VIFIFO_RP),
+					READ_VREG(VLD_MEM_VIFIFO_LEVEL),
+					READ_VREG(VLD_MEM_VIFIFO_BYTES_AVAIL),
+					READ_VREG(VLD_MEM_VIFIFO_CURR_PTR));
 				schedule_work(&fatal_error_wd_work);
 			}
 #endif
@@ -1387,7 +1405,6 @@ static void long_cabac_do_work(struct work_struct *work)
 }
 #endif
 
-#if 0
 #ifdef AVSP_LONG_CABAC
 static void init_avsp_long_cabac_buf(void)
 {
@@ -1460,7 +1477,7 @@ static void init_avsp_long_cabac_buf(void)
 #endif
 }
 #endif
-#endif //DEBUG_TMP
+
 
 static s32 vavs_init(void)
 {
@@ -1479,7 +1496,19 @@ static s32 vavs_init(void)
 
 	vavs_local_init();
 
-	size = get_firmware_data(VIDEO_DEC_AVS, buf);
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+		size = get_firmware_data(VIDEO_DEC_AVS_GXM, buf);
+	else {
+		if (firmware_sel == 1)
+			size = get_firmware_data(VIDEO_DEC_AVS_NOCABAC, buf);
+#ifdef AVSP_LONG_CABAC
+		else {
+			init_avsp_long_cabac_buf();
+			size = get_firmware_data(VIDEO_DEC_AVS, buf);
+		}
+#endif
+	}
+
 	if (size < 0) {
 		amvdec_disable();
 		pr_err("get firmware fail.");
@@ -1489,7 +1518,15 @@ static s32 vavs_init(void)
 
 	if (size == 1)
 		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf) < 0) {
+
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_gxm", buf);
+	else if (firmware_sel == 1)
+		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_no_cabac", buf);
+	else
+		size = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
+
+	if (size < 0) {
 		amvdec_disable();
 		vfree(buf);
 		return -EBUSY;
@@ -1564,7 +1601,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		pr_info("amvdec_avs memory resource undefined.\n");
 		return -EFAULT;
 	}
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM || disable_longcabac_trans)
 		firmware_sel = 1;
 
 	if (firmware_sel == 1) {
@@ -1572,10 +1609,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		canvas_base = 0;
 		canvas_num = 3;
 	} else {
-		/*if(vf_buf_num <= 4)
-		 *	canvas_base = 0;
-		 *else
-		 */
+
 		canvas_base = 128;
 		canvas_num = 2; /*NV21*/
 	}
@@ -1590,6 +1624,9 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 	pdata->dec_status = vavs_dec_status;
 	pdata->set_isreset = vavs_set_isreset;
 	is_reset = 0;
+
+	pdata->user_data_read = NULL;
+	pdata->reset_userdata_fifo = NULL;
 
 	vavs_vdec_info_init();
 
@@ -1615,6 +1652,8 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 
 		return -ENODEV;
 	}
+	vdec = pdata;
+
 	INIT_WORK(&fatal_error_wd_work, vavs_fatal_error_handler);
 	atomic_set(&error_handler_run, 0);
 #ifdef ENABLE_USER_DATA
@@ -1825,8 +1864,10 @@ MODULE_PARM_DESC(canvas_base, "\ncanvas_base\n");
 
 
 module_param(firmware_sel, uint, 0664);
-MODULE_PARM_DESC(firmware_sel, "\firmware_sel\n");
+MODULE_PARM_DESC(firmware_sel, "\n firmware_sel\n");
 
+module_param(disable_longcabac_trans, uint, 0664);
+MODULE_PARM_DESC(disable_longcabac_trans, "\n disable_longcabac_trans\n");
 
 module_init(amvdec_avs_driver_init_module);
 module_exit(amvdec_avs_driver_remove_module);
