@@ -80,7 +80,7 @@
 #include "../../frame_provider/decoder/utils/firmware.h"
 #include "../../common/chips/chips.h"
 
-#define G12A_BRINGUP_DEBUG
+//#define G12A_BRINGUP_DEBUG
 
 #define CONFIG_AM_VDEC_REAL //DEBUG_TMP
 
@@ -1090,8 +1090,6 @@ static ssize_t amstream_vbuf_write(struct file *file, const char *buf,
 	struct stream_port_s *port = priv->port;
 	struct stream_buf_s *pbuf = NULL;
 	int r;
-
-
 	if (has_hevc_vdec()) {
 		pbuf = (port->type & PORT_TYPE_HEVC) ? &bufs[BUF_TYPE_HEVC] :
 			&bufs[BUF_TYPE_VIDEO];

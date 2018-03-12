@@ -2,7 +2,8 @@
   * AMLOGIC DVB driver.
   */
 
-#define ENABLE_DEMUX_DRIVER
+//move to define in Makefile
+//#define ENABLE_DEMUX_DRIVER
 
 #include <linux/version.h>
 #include <linux/kernel.h>
@@ -35,6 +36,22 @@
 #include "aml_dvb_reg.h"
 
 #include "../../tv_frontend/aml_fe.h"
+#include "aml_demod_gt.h"
+#include "../../../common/media_clock/switch/amports_gate.h"
+
+typedef enum __demod_type
+{
+	DEMOD_INVALID,
+	DEMOD_INTERNAL,
+	DEMOD_MAX_NUM
+}demod_type;
+
+typedef enum __tuner_type
+{
+	TUNER_INVALID,
+	TUNER_SI2151,
+	TUNER_MAX_NUM
+}tuner_type;
 
 #define pr_dbg(args...)\
 	do {\
@@ -58,6 +75,11 @@ module_param(dsc_max, int, 0644);
 
 static struct aml_dvb aml_dvb_device;
 static struct class aml_stb_class;
+
+static struct dvb_frontend *frontend = NULL;
+static demod_type s_demod_type = DEMOD_INVALID;
+static tuner_type s_tuner_type = TUNER_INVALID;
+
 #if 0
 static struct reset_control *aml_dvb_demux_reset_ctl;
 static struct reset_control *aml_dvb_afifo_reset_ctl;
@@ -95,6 +117,32 @@ static struct tsdemux_ops aml_tsdemux_ops = {
 	.set_demux = aml_tsdemux_set_demux
 };
 
+long aml_stb_get_base(int id)
+{
+	int newbase = 0;
+	if (MESON_CPU_MAJOR_ID_TXL < get_cpu_type()
+		&& MESON_CPU_MAJOR_ID_GXLX != get_cpu_type()) {
+		newbase = 1;
+	}
+
+	switch (id) {
+	case ID_STB_CBUS_BASE:
+		return (newbase) ? 0x1800 : 0x1600;
+	case ID_SMARTCARD_REG_BASE:
+		return (newbase) ? 0x9400 : 0x2110;
+	case ID_ASYNC_FIFO_REG_BASE:
+		return (newbase) ? 0x2800 : 0x2310;
+	case ID_ASYNC_FIFO2_REG_BASE:
+		return (newbase) ? 0x2400 : 0x2314;
+	case ID_RESET_BASE:
+		return (newbase) ? 0x0400 : 0x1100;
+	case ID_PARSER_SUB_START_PTR_BASE:
+		return (newbase) ? 0x3800 : 0x2900;
+	default:
+		return 0;
+	}
+	return 0;
+}
 static void aml_dvb_dmx_release(struct aml_dvb *advb, struct aml_dmx *dmx)
 {
 	int i;
@@ -620,7 +668,6 @@ static int aml_dvb_asyncfifo_init(struct aml_dvb *advb,
 
 	return aml_asyncfifo_hw_init(asyncfifo);
 }
-
 static void aml_dvb_asyncfifo_release(struct aml_dvb *advb,
 				      struct aml_asyncfifo *asyncfifo)
 {
@@ -1553,38 +1600,46 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	reset_control_deassert(aml_dvb_uparsertop_reset_ctl);
 #else
 
-	aml_dvb_demux_clk =
-		devm_clk_get(&pdev->dev, "demux");
-	if (IS_ERR_OR_NULL(aml_dvb_demux_clk)) {
-		dev_err(&pdev->dev, "get demux clk fail\n");
-		return -1;
-	}
-	clk_prepare_enable(aml_dvb_demux_clk);
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
+	{
+		aml_dvb_demux_clk =
+			devm_clk_get(&pdev->dev, "demux");
+		if (IS_ERR_OR_NULL(aml_dvb_demux_clk)) {
+			dev_err(&pdev->dev, "get demux clk fail\n");
+			return -1;
+		}
+		clk_prepare_enable(aml_dvb_demux_clk);
 
-	aml_dvb_afifo_clk =
-		devm_clk_get(&pdev->dev, "asyncfifo");
-	if (IS_ERR_OR_NULL(aml_dvb_afifo_clk)) {
-		dev_err(&pdev->dev, "get asyncfifo clk fail\n");
-		return -1;
-	}
-	clk_prepare_enable(aml_dvb_afifo_clk);
+		aml_dvb_afifo_clk =
+			devm_clk_get(&pdev->dev, "asyncfifo");
+		if (IS_ERR_OR_NULL(aml_dvb_afifo_clk)) {
+			dev_err(&pdev->dev, "get asyncfifo clk fail\n");
+			return -1;
+		}
+		clk_prepare_enable(aml_dvb_afifo_clk);
 
-	aml_dvb_ahbarb0_clk =
-		devm_clk_get(&pdev->dev, "ahbarb0");
-	if (IS_ERR_OR_NULL(aml_dvb_ahbarb0_clk)) {
-		dev_err(&pdev->dev, "get ahbarb0 clk fail\n");
-		return -1;
-	}
-	clk_prepare_enable(aml_dvb_ahbarb0_clk);
+		aml_dvb_ahbarb0_clk =
+			devm_clk_get(&pdev->dev, "ahbarb0");
+		if (IS_ERR_OR_NULL(aml_dvb_ahbarb0_clk)) {
+			dev_err(&pdev->dev, "get ahbarb0 clk fail\n");
+			return -1;
+		}
+		clk_prepare_enable(aml_dvb_ahbarb0_clk);
 
-
-	aml_dvb_uparsertop_clk =
-		devm_clk_get(&pdev->dev, "uparsertop");
-	if (IS_ERR_OR_NULL(aml_dvb_uparsertop_clk)) {
-		dev_err(&pdev->dev, "get uparsertop clk fail\n");
-		return -1;
+		aml_dvb_uparsertop_clk =
+			devm_clk_get(&pdev->dev, "uparsertop");
+		if (IS_ERR_OR_NULL(aml_dvb_uparsertop_clk)) {
+			dev_err(&pdev->dev, "get uparsertop clk fail\n");
+			return -1;
+		}
+		clk_prepare_enable(aml_dvb_uparsertop_clk);
 	}
-	clk_prepare_enable(aml_dvb_uparsertop_clk);
+	else
+	{
+		amports_switch_gate("demux", 1);
+		amports_switch_gate("ahbarb0", 1);
+		amports_switch_gate("parser_top", 1);
+	}
 #endif
 	advb = &aml_dvb_device;
 	memset(advb, 0, sizeof(aml_dvb_device));
@@ -1612,6 +1667,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 
 			advb->ts[i].mode = AM_TS_DISABLE;
 			advb->ts[i].s2p_id = -1;
+			advb->ts[i].pinctrl = NULL;
 			memset(buf, 0, 32);
 			snprintf(buf, sizeof(buf), "ts%d", i);
 			ret =
@@ -1698,6 +1754,13 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	for (i = 0; i < DMX_DEV_COUNT; i++)
 		advb->dmx[i].id = -1;
 
+	for (i = 0; i<DSC_DEV_COUNT; i++)
+		advb->dsc[i].id = -1;
+
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A) {
+		for (i = 0; i < ASYNCFIFO_COUNT; i++)
+			advb->asyncfifo[i].id = -1;
+	}
 	advb->dvb_adapter.priv = advb;
 	dev_set_drvdata(advb->dev, advb);
 
@@ -1712,14 +1775,15 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		if (ret < 0)
 			goto error;
 	}
-
-	/*Init the async fifos */
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
-		ret = aml_dvb_asyncfifo_init(advb, &advb->asyncfifo[i], i);
-		if (ret < 0)
-			goto error;
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
+	{
+		/*Init the async fifos */
+		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+			ret = aml_dvb_asyncfifo_init(advb, &advb->asyncfifo[i], i);
+			if (ret < 0)
+				goto error;
+		}
 	}
-
 	aml_regist_dmx_class();
 
 	if (class_register(&aml_stb_class) < 0) {
@@ -1727,15 +1791,113 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		goto error;
 	}
 
+#ifdef ENABLE_DEMUX_DRIVER
 	tsdemux_set_ops(&aml_tsdemux_ops);
+#else
+	tsdemux_set_ops(NULL);
+#endif
 
-	return ret;
-error:
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
-		if (advb->asyncfifo[i].id != -1)
-			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
+	//pengcc add for dvb using linux TV frontend api init
+	{
+		struct amlfe_exp_config config;
+		struct i2c_adapter *i2c_adapter = NULL;
+		char buf[32];
+		const char *str = NULL;
+		u32 adap_id = 0xFFFFFFFF;
+		u32 i2c_addr = 0xFFFFFFFF;
+
+		memset(buf, 0, 32);
+		snprintf(buf, sizeof(buf), "demod");
+		ret = of_property_read_string(pdev->dev.of_node, buf, &str);
+		if (ret) {
+			pr_error("can't find demod name\n");
+			goto error_fe;
+		}
+		if (!strcmp(str,"internal"))
+		{
+			config.set_mode = 0;
+			frontend = dvb_attach(aml_dtvdm_attach,&config);
+			if (frontend == NULL) {
+				pr_error("dvb attach demod error\n");
+				goto error_fe;
+			} else {
+				pr_inf("dtvdemod attatch sucess\n");
+				s_demod_type = DEMOD_INTERNAL;
+			}
+		} else {
+			pr_error("dvb attach demod error\n");
+			goto error_fe;
+		}
+		for (i=0; i<FE_DEV_COUNT; i++) {
+			memset(buf, 0, 32);
+			snprintf(buf, sizeof(buf), "tuner%d",i);
+			ret = of_property_read_string(pdev->dev.of_node, buf, &str);
+			if (ret) {
+//				pr_error("tuner%d type error\n",i);
+				ret = 0;
+				continue;
+			}
+			memset(buf, 0, 32);
+			snprintf(buf, sizeof(buf), "tuner%d_i2c_adap_id",i);
+			ret = of_property_read_u32(pdev->dev.of_node, buf,&adap_id);
+			if (ret) {
+				pr_error("tuner_i2c_adap_id error\n");
+			} else {
+				i2c_adapter = i2c_get_adapter(adap_id);
+				if (i2c_adapter == NULL) {
+					pr_error("i2c_get_adapter error\n");
+					goto error_fe;
+				}
+			}
+
+			memset(buf, 0, 32);
+			snprintf(buf, sizeof(buf), "tuner%d_i2c_addr",i);
+			ret = of_property_read_u32(pdev->dev.of_node, buf,&i2c_addr);
+			if (ret) {
+				pr_error("i2c_addr error\n");
+			}
+			/* define general-purpose callback pointer */
+			frontend->callback = NULL;
+
+			if (!strcmp(str,"si2151_tuner")) {
+				if (!dvb_attach(si2151_attach, frontend,i2c_addr,
+						   i2c_adapter)) {
+					pr_error("dvb attach tuner error\n");
+					goto error_fe;
+				} else {
+					pr_inf("si2151 attach sucess\n");
+					s_tuner_type = TUNER_SI2151;
+				}
+			}else {
+				pr_error("can't support tuner type: %s\n",str);
+			}
+			ret = dvb_register_frontend(&advb->dvb_adapter, frontend);
+			if (ret) {
+				pr_error("register dvb frontend failed\n");
+				goto error_fe;
+			}
+		}
+error_fe:
+		if (s_demod_type == DEMOD_INTERNAL) {
+			dvb_detach(aml_dtvdm_attach);
+			frontend = NULL;
+			s_demod_type = DEMOD_INVALID;
+		}
+		if (s_tuner_type == TUNER_SI2151) {
+			dvb_detach(si2151_attach);
+			s_tuner_type = TUNER_INVALID;
+		}
+		return 0;
 	}
-
+	return 0;
+error:
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
+	{
+		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+			if (advb->asyncfifo[i].id != -1)
+				aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
+		}
+	}
 	for (i = 0; i < DMX_DEV_COUNT; i++) {
 		if (advb->dmx[i].id != -1)
 			aml_dvb_dmx_release(advb, &advb->dmx[i]);
@@ -1750,27 +1912,51 @@ error:
 
 	return ret;
 }
-
 static int aml_dvb_remove(struct platform_device *pdev)
 {
 	struct aml_dvb *advb = (struct aml_dvb *)dev_get_drvdata(&pdev->dev);
 	int i;
 
+	if (s_demod_type == DEMOD_INTERNAL) {
+		dvb_detach(aml_dtvdm_attach);
+	}
+	if (s_tuner_type == TUNER_SI2151) {
+		dvb_detach(si2151_attach);
+	}
+	if (frontend && (s_tuner_type == TUNER_SI2151)) {
+		dvb_unregister_frontend(frontend);
+		dvb_frontend_detach(frontend);
+	}
+	frontend = NULL;
+	s_demod_type = DEMOD_INVALID;
+	s_tuner_type = TUNER_INVALID;
+
 	tsdemux_set_ops(NULL);
 
 	aml_unregist_dmx_class();
 	class_unregister(&aml_stb_class);
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
+	{
+		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+			if (advb->asyncfifo[i].id != -1)
+				aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
+		}
+	}
 
-	for (i = 0; i < DSC_DEV_COUNT; i++)
-		aml_dvb_dsc_release(advb, &advb->dsc[i]);
+	for (i = 0; i < DMX_DEV_COUNT; i++) {
+		pr_error("remove demx %d, id is %d\n",i,advb->dmx[i].id);
+		if (advb->dmx[i].id != -1)
+			aml_dvb_dmx_release(advb, &advb->dmx[i]);
+	}
 
-	for (i = 0; i < DMX_DEV_COUNT; i++)
-		aml_dvb_dmx_release(advb, &advb->dmx[i]);
-
+	for (i = 0; i < DSC_DEV_COUNT; i++) {
+		if (advb->dsc[i].id != -1)
+			aml_dvb_dsc_release(advb, &advb->dsc[i]);
+	}
 	dvb_unregister_adapter(&advb->dvb_adapter);
 
 	for (i = 0; i < TS_IN_COUNT; i++) {
-		if (advb->ts[i].pinctrl)
+		if (advb->ts[i].pinctrl && !IS_ERR_VALUE(advb->ts[i].pinctrl))
 			devm_pinctrl_put(advb->ts[i].pinctrl);
 	}
 
@@ -1781,10 +1967,21 @@ static int aml_dvb_remove(struct platform_device *pdev)
 	reset_control_assert(aml_dvb_afifo_reset_ctl);
 	reset_control_assert(aml_dvb_demux_reset_ctl);
 #else
-	clk_disable_unprepare(aml_dvb_uparsertop_clk);
-	clk_disable_unprepare(aml_dvb_ahbarb0_clk);
-	clk_disable_unprepare(aml_dvb_afifo_clk);
-	clk_disable_unprepare(aml_dvb_demux_clk);
+#if 1
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
+	{
+		clk_disable_unprepare(aml_dvb_uparsertop_clk);
+		clk_disable_unprepare(aml_dvb_ahbarb0_clk);
+		clk_disable_unprepare(aml_dvb_afifo_clk);
+		clk_disable_unprepare(aml_dvb_demux_clk);
+	}
+	else
+	{
+		amports_switch_gate("demux", 0);
+		amports_switch_gate("ahbarb0", 0);
+		amports_switch_gate("parser_top", 0);
+	}
+#endif
 #endif
 	return 0;
 }
@@ -1824,7 +2021,7 @@ static struct platform_driver aml_dvb_driver = {
 		   .name = "amlogic-dvb",
 		   .owner = THIS_MODULE,
 #ifdef CONFIG_OF
-		   .of_match_table = aml_dvb_dt_match,
+	   .of_match_table = aml_dvb_dt_match,
 #endif
 		}
 };
@@ -1950,7 +2147,6 @@ static int aml_tsdemux_set_vid(int vpid)
 	int ret = 0;
 
 	spin_lock_irqsave(&dvb->slock, flags);
-
 	dmx = get_stb_dmx();
 	if (dmx) {
 		if (dmx->vid_chan != -1) {
@@ -1981,7 +2177,6 @@ static int aml_tsdemux_set_aid(int apid)
 	int ret = 0;
 
 	spin_lock_irqsave(&dvb->slock, flags);
-
 	dmx = get_stb_dmx();
 	if (dmx) {
 		if (dmx->aud_chan != -1) {

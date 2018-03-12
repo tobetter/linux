@@ -141,13 +141,13 @@ MODULE_PARM_DESC(use_of_sop, "\n\t\t Enable use of sop input");
 static int use_of_sop;
 module_param(use_of_sop, int, 0644);
 
-#define CIPLUS_KEY0   0x16f8
+/*#define CIPLUS_KEY0   0x16f8
 #define CIPLUS_KEY1   0x16f9
 #define CIPLUS_KEY2   0x16fa
 #define CIPLUS_KEY3   0x16fb
 #define CIPLUS_KEY_WR 0x16fc
 #define CIPLUS_CONFIG 0x16fd
-#define CIPLUS_ENDIAN 0x16fe
+#define CIPLUS_ENDIAN 0x16fe*/
 
 static u32 old_stb_top_config;
 static u32 old_fec_input_control;
@@ -1759,14 +1759,14 @@ static int dsc_set_csa_key(struct aml_dsc_channel *ch, int flags,
 }
 
 /************************* AES DESC************************************/
-#define STB_TOP_CONFIG 0x16f0
+/*#define STB_TOP_CONFIG 0x16f0
 #define CIPLUS_KEY0   0x16f8
 #define CIPLUS_KEY1   0x16f9
 #define CIPLUS_KEY2   0x16fa
 #define CIPLUS_KEY3   0x16fb
 #define CIPLUS_KEY_WR 0x16fc
 #define CIPLUS_CONFIG 0x16fd
-#define CIPLUS_ENDIAN 0x16fe
+#define CIPLUS_ENDIAN 0x16fe*/
 
 #define ENABLE_DEC_PL     7
 #define ENABLE_DES_PL_CLK 15
@@ -2771,7 +2771,7 @@ static int dmx_enable(struct aml_dmx *dmx)
 				(1 << OTHER_PES_PACKET));
 		DMX_WRITE_REG(dmx->id, PES_STRONG_SYNC, 0x1234);
 		DMX_WRITE_REG(dmx->id, DEMUX_ENDIAN,
-			      (1<<SEPARATE_ENDIAN) |
+			      (1<<SEPERATE_ENDIAN) |
 			      (0<<OTHER_PES_ENDIAN) |
 			      (7<<SCR_ENDIAN) |
 			      (7<<SUB_ENDIAN) |
@@ -2793,7 +2793,7 @@ static int dmx_enable(struct aml_dmx *dmx)
 			      (0 << BYPASS_USE_RECODER_PATH) |
 			      (0 << INSERT_AUDIO_PES_STRONG_SYNC) |
 			      (0 << INSERT_VIDEO_PES_STRONG_SYNC) |
-			      (0 << OTHER_INT_AT_PES_BEGINNING) |
+			      (0 << OTHER_INT_AT_PES_BEGINING) |
 			      (0 << DISCARD_AV_PACKAGE) |
 			      ((!!dmx->dump_ts_select) << TS_RECORDER_SELECT) |
 			      (record << TS_RECORDER_ENABLE) |
@@ -4381,11 +4381,8 @@ int aml_asyncfifo_hw_init(struct aml_asyncfifo *afifo)
 
 int aml_asyncfifo_hw_deinit(struct aml_asyncfifo *afifo)
 {
-	struct aml_dvb *dvb = afifo->dvb;
-	unsigned long flags;
 	int ret;
 
-	spin_lock_irqsave(&dvb->slock, flags);
 	ret = async_fifo_deinit(afifo, 1);
 /*
  *#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8
@@ -4393,8 +4390,6 @@ int aml_asyncfifo_hw_deinit(struct aml_asyncfifo *afifo)
  *#endif
  */
 	/*afifo_reset(1);*/
-
-	spin_unlock_irqrestore(&dvb->slock, flags);
 
 	return ret;
 }
