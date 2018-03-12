@@ -20,6 +20,16 @@
 
 #include <linux/amlogic/iomap.h>
 
+#include <linux/amlogic/cpu_version.h>
+
+#define ID_STB_CBUS_BASE		0
+#define ID_SMARTCARD_REG_BASE		1
+#define ID_ASYNC_FIFO_REG_BASE		2
+#define ID_ASYNC_FIFO2_REG_BASE	3
+#define ID_RESET_BASE			4
+#define ID_PARSER_SUB_START_PTR_BASE	5
+
+long aml_stb_get_base(int id);
 #include "c_stb_define.h"
 #include "c_stb_regs_define.h"
 
@@ -36,7 +46,7 @@
 #define AM_IRQ(reg)             (reg + BASE_IRQ)
 #define INT_DEMUX               AM_IRQ(23)
 #define INT_DEMUX_1             AM_IRQ(5)
-#define INT_DEMUX_2             AM_IRQ(53)
+#define INT_DEMUX_2             AM_IRQ(21) //AM_IRQ(53)
 #define INT_ASYNC_FIFO_FILL     AM_IRQ(18)
 #define INT_ASYNC_FIFO_FLUSH    AM_IRQ(19)
 #define INT_ASYNC_FIFO2_FILL    AM_IRQ(24)

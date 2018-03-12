@@ -69,11 +69,7 @@ static DEFINE_SPINLOCK(demux_ops_lock);
 
 static int enable_demux_driver(void)
 {
-#ifdef ENABLE_DEMUX_DRIVER
 	return demux_ops ? 1 : 0;
-#else
-	return 0;
-#endif
 }
 
 void tsdemux_set_ops(struct tsdemux_ops *ops)
