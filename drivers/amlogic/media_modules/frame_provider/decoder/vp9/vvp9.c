@@ -8027,7 +8027,7 @@ static s32 vvp9_init(struct vdec_s *vdec)
 static s32 vvp9_init(struct VP9Decoder_s *pbi)
 {
 #endif
-	int size = -1;
+	int ret, size = -1;
 	int fw_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL;
 
@@ -8082,9 +8082,16 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 
 	amhevc_enable();
 
-	if (size == 1)
+	if (size == 1) {
 		pr_info ("tee load ok\n");
-	else if (amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data) < 0) {
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_G12A, 2);
+		else
+			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
+	} else
+		ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data);
+
+	if (ret < 0) {
 		amhevc_disable();
 		vfree(fw);
 		return -EBUSY;
