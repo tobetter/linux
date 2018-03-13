@@ -8772,7 +8772,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 {
 
 #endif
-	int size = -1;
+	int ret, size = -1;
 	int fw_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL;
 
@@ -8829,9 +8829,19 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 #endif
 	amhevc_enable();
 
-	if (size == 1)
+	if (size == 1) {
 		pr_info ("tee load ok");
-	else if (amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data) < 0) {
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_G12A, 2);
+		else if (hevc->mmu_enable &&
+			(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL))
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
+		else
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
+	} else
+		ret = amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data);
+
+	if (ret < 0) {
 		amhevc_disable();
 		vfree(fw);
 		return -EBUSY;
