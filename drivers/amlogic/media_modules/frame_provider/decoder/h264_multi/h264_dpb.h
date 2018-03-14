@@ -559,6 +559,7 @@ struct StorablePicture {
 
 	int         pic_num;
 	int         buf_spec_num;
+	int         buf_spec_is_alloced;
 	int         colocated_buf_index;
 	int         long_term_pic_num;
 	int         long_term_frame_idx;
@@ -821,7 +822,7 @@ int release_colocate_buf(struct h264_dpb_stru *p_H264_Dpb, int index);
 
 int get_free_buf_idx(struct vdec_s *vdec);
 
-void store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
+int store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 			struct StorablePicture *p, unsigned char data_flag);
 
 int release_picture(struct h264_dpb_stru *p_H264_Dpb,
@@ -830,6 +831,8 @@ int release_picture(struct h264_dpb_stru *p_H264_Dpb,
 void remove_dpb_pictures(struct h264_dpb_stru *p_H264_Dpb);
 
 void bufmgr_post(struct h264_dpb_stru *p_H264_Dpb);
+
+void bufmgr_force_recover(struct h264_dpb_stru *p_H264_Dpb);
 
 int get_long_term_flag_by_buf_spec_num(struct h264_dpb_stru *p_H264_Dpb,
 	int buf_spec_num);
