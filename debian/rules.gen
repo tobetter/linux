@@ -1,0 +1,116 @@
+.NOTPARALLEL:
+binary-arch: binary-arch_arm64 binary-arch_armhf
+binary-arch_amd64: binary-arch_amd64_extra
+binary-arch_amd64_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='amd64' DH_OPTIONS='-plinux-compiler-gcc-6-x86'
+binary-arch_arm64:: binary-arch_arm64_none binary-arch_arm64_real
+binary-arch_arm64::
+	$(MAKE) -f debian/rules.real install-udeb_arm64 ABINAME='4.16.0-6' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16' PACKAGE_NAMES='kernel-image-4.16.0-6-arm64-di nic-modules-4.16.0-6-arm64-di nic-wireless-modules-4.16.0-6-arm64-di nic-shared-modules-4.16.0-6-arm64-di ppp-modules-4.16.0-6-arm64-di cdrom-core-modules-4.16.0-6-arm64-di scsi-core-modules-4.16.0-6-arm64-di scsi-modules-4.16.0-6-arm64-di loop-modules-4.16.0-6-arm64-di btrfs-modules-4.16.0-6-arm64-di ext4-modules-4.16.0-6-arm64-di isofs-modules-4.16.0-6-arm64-di jfs-modules-4.16.0-6-arm64-di xfs-modules-4.16.0-6-arm64-di fat-modules-4.16.0-6-arm64-di md-modules-4.16.0-6-arm64-di multipath-modules-4.16.0-6-arm64-di usb-modules-4.16.0-6-arm64-di usb-storage-modules-4.16.0-6-arm64-di fb-modules-4.16.0-6-arm64-di input-modules-4.16.0-6-arm64-di event-modules-4.16.0-6-arm64-di nic-usb-modules-4.16.0-6-arm64-di sata-modules-4.16.0-6-arm64-di i2c-modules-4.16.0-6-arm64-di crc-modules-4.16.0-6-arm64-di crypto-modules-4.16.0-6-arm64-di crypto-dm-modules-4.16.0-6-arm64-di efi-modules-4.16.0-6-arm64-di ata-modules-4.16.0-6-arm64-di mmc-modules-4.16.0-6-arm64-di nbd-modules-4.16.0-6-arm64-di squashfs-modules-4.16.0-6-arm64-di virtio-modules-4.16.0-6-arm64-di uinput-modules-4.16.0-6-arm64-di leds-modules-4.16.0-6-arm64-di udf-modules-4.16.0-6-arm64-di fuse-modules-4.16.0-6-arm64-di' UDEB_UNSIGNED_TEST_BUILD=False
+binary-arch_arm64_none: binary-arch_arm64_none_odroid-arm64 binary-arch_arm64_none_real
+binary-arch_arm64_none_odroid-arm64: binary-arch_arm64_none_odroid-arm64_real
+binary-arch_arm64_none_odroid-arm64_real::
+	$(MAKE) -f debian/rules.real binary-arch-flavour ABINAME='4.16.0-6' ARCH='arm64' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config debian/config/arm64/config.odroid-arm64' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+binary-arch_arm64_none_real:
+binary-arch_arm64_real::
+	$(MAKE) -f debian/rules.real binary-arch-arch ABINAME='4.16.0-6' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-arch_armel: binary-arch_armel_extra
+binary-arch_armel_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='armel' DH_OPTIONS='-plinux-compiler-gcc-6-arm'
+binary-arch_armhf:: binary-arch_armhf_extra binary-arch_armhf_none binary-arch_armhf_real
+binary-arch_armhf::
+	$(MAKE) -f debian/rules.real install-udeb_armhf ABINAME='4.16.0-6' ARCH='armhf' KERNEL_ARCH='arm' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16' PACKAGE_NAMES='kernel-image-4.16.0-6-armmp-di nic-modules-4.16.0-6-armmp-di nic-wireless-modules-4.16.0-6-armmp-di nic-shared-modules-4.16.0-6-armmp-di ppp-modules-4.16.0-6-armmp-di pata-modules-4.16.0-6-armmp-di scsi-core-modules-4.16.0-6-armmp-di scsi-modules-4.16.0-6-armmp-di loop-modules-4.16.0-6-armmp-di btrfs-modules-4.16.0-6-armmp-di ext4-modules-4.16.0-6-armmp-di isofs-modules-4.16.0-6-armmp-di jfs-modules-4.16.0-6-armmp-di fat-modules-4.16.0-6-armmp-di md-modules-4.16.0-6-armmp-di multipath-modules-4.16.0-6-armmp-di usb-modules-4.16.0-6-armmp-di usb-storage-modules-4.16.0-6-armmp-di fb-modules-4.16.0-6-armmp-di input-modules-4.16.0-6-armmp-di event-modules-4.16.0-6-armmp-di nic-usb-modules-4.16.0-6-armmp-di sata-modules-4.16.0-6-armmp-di i2c-modules-4.16.0-6-armmp-di crc-modules-4.16.0-6-armmp-di crypto-modules-4.16.0-6-armmp-di crypto-dm-modules-4.16.0-6-armmp-di efi-modules-4.16.0-6-armmp-di ata-modules-4.16.0-6-armmp-di mmc-modules-4.16.0-6-armmp-di nbd-modules-4.16.0-6-armmp-di squashfs-modules-4.16.0-6-armmp-di virtio-modules-4.16.0-6-armmp-di uinput-modules-4.16.0-6-armmp-di zlib-modules-4.16.0-6-armmp-di leds-modules-4.16.0-6-armmp-di udf-modules-4.16.0-6-armmp-di fuse-modules-4.16.0-6-armmp-di mtd-modules-4.16.0-6-armmp-di' UDEB_UNSIGNED_TEST_BUILD=False
+binary-arch_armhf_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='armhf' DH_OPTIONS='-plinux-compiler-gcc-6-arm'
+binary-arch_armhf_none: binary-arch_armhf_none_odroid-armmp binary-arch_armhf_none_odroid-armmp-lpae binary-arch_armhf_none_real
+binary-arch_armhf_none_odroid-armmp: binary-arch_armhf_none_odroid-armmp_real
+binary-arch_armhf_none_odroid-armmp-lpae: binary-arch_armhf_none_odroid-armmp-lpae_real
+binary-arch_armhf_none_odroid-armmp-lpae_real::
+	$(MAKE) -f debian/rules.real binary-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp-lpae' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp-lpae' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config debian/config/armhf/config.odroid-armmp-lpae' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp-lpae' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp-lpae' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+binary-arch_armhf_none_odroid-armmp_real::
+	$(MAKE) -f debian/rules.real binary-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+binary-arch_armhf_none_real:
+binary-arch_armhf_real::
+	$(MAKE) -f debian/rules.real binary-arch-arch ABINAME='4.16.0-6' ARCH='armhf' KERNEL_ARCH='arm' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-arch_i386: binary-arch_i386_extra
+binary-arch_i386_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='i386' DH_OPTIONS='-plinux-compiler-gcc-6-x86'
+binary-arch_s390: binary-arch_s390_extra
+binary-arch_s390_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='s390' DH_OPTIONS='-plinux-compiler-gcc-6-s390'
+binary-arch_s390x: binary-arch_s390x_extra
+binary-arch_s390x_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='s390x' DH_OPTIONS='-plinux-compiler-gcc-6-s390'
+binary-arch_x32: binary-arch_x32_extra
+binary-arch_x32_extra::
+	$(MAKE) -f debian/rules.real install-dummy ARCH='x32' DH_OPTIONS='-plinux-compiler-gcc-6-x86'
+binary-indep:: binary-indep_none binary-indep_rt setup
+binary-indep::
+	$(MAKE) -f debian/rules.real binary-indep ABINAME='4.16.0-6' ALL_FEATURESETS='none rt' ALL_TRIPLETS='arm64_none_odroid-arm64 armhf_none_odroid-armmp armhf_none_odroid-armmp-lpae' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-indep_none: binary-indep_none_real
+binary-indep_none_real::
+	$(MAKE) -f debian/rules.real binary-indep-featureset ABINAME='4.16.0-6' ALL_KERNEL_ARCHES='arm arm64' FEATURESET='none' LOCALVERSION='' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-indep_rt: binary-indep_rt_real
+binary-indep_rt_real::
+	$(MAKE) -f debian/rules.real binary-indep-featureset ABINAME='4.16.0-6' ALL_KERNEL_ARCHES='' FEATURESET='rt' LOCALVERSION='-rt' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-libc-dev_arm64:: source_none_real
+binary-libc-dev_arm64::
+	$(MAKE) -f debian/rules.real install-libc-dev_arm64 ABINAME='4.16.0-6' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+binary-libc-dev_armhf:: source_none_real
+binary-libc-dev_armhf::
+	$(MAKE) -f debian/rules.real install-libc-dev_armhf ABINAME='4.16.0-6' ARCH='armhf' KERNEL_ARCH='arm' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+build-arch: build-arch_arm64 build-arch_armhf
+build-arch_arm64: build-arch_arm64_none build-arch_arm64_real
+build-arch_arm64_none: build-arch_arm64_none_odroid-arm64 build-arch_arm64_none_real
+build-arch_arm64_none_odroid-arm64: build-arch_arm64_none_odroid-arm64_real
+build-arch_arm64_none_odroid-arm64_real::
+	$(MAKE) -f debian/rules.real build-arch-flavour ABINAME='4.16.0-6' ARCH='arm64' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config debian/config/arm64/config.odroid-arm64' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+build-arch_arm64_none_real:
+build-arch_arm64_real::
+	$(MAKE) -f debian/rules.real build-arch-arch ABINAME='4.16.0-6' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+build-arch_armhf: build-arch_armhf_none build-arch_armhf_real
+build-arch_armhf_none: build-arch_armhf_none_odroid-armmp build-arch_armhf_none_odroid-armmp-lpae build-arch_armhf_none_real
+build-arch_armhf_none_odroid-armmp: build-arch_armhf_none_odroid-armmp_real
+build-arch_armhf_none_odroid-armmp-lpae: build-arch_armhf_none_odroid-armmp-lpae_real
+build-arch_armhf_none_odroid-armmp-lpae_real::
+	$(MAKE) -f debian/rules.real build-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp-lpae' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp-lpae' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config debian/config/armhf/config.odroid-armmp-lpae' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp-lpae' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp-lpae' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+build-arch_armhf_none_odroid-armmp_real::
+	$(MAKE) -f debian/rules.real build-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+build-arch_armhf_none_real:
+build-arch_armhf_real::
+	$(MAKE) -f debian/rules.real build-arch-arch ABINAME='4.16.0-6' ARCH='armhf' KERNEL_ARCH='arm' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+build-indep:: build-indep_none build-indep_rt
+build-indep::
+	$(MAKE) -f debian/rules.real build-indep ABINAME='4.16.0-6' ALL_FEATURESETS='none rt' ALL_TRIPLETS='arm64_none_odroid-arm64 armhf_none_odroid-armmp armhf_none_odroid-armmp-lpae' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+build-indep_none: build-indep_none_real
+build-indep_none_real:
+build-indep_rt: build-indep_rt_real
+build-indep_rt_real:
+setup: setup_arm64 setup_armhf setup_none setup_rt
+setup_arm64: setup_arm64_none setup_arm64_real
+setup_arm64_none: setup_arm64_none_odroid-arm64 setup_arm64_none_real
+setup_arm64_none_odroid-arm64: setup_arm64_none_odroid-arm64_real
+setup_arm64_none_odroid-arm64_real::
+	$(MAKE) -f debian/rules.real setup-arch-flavour ABINAME='4.16.0-6' ARCH='arm64' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config debian/config/arm64/config.odroid-arm64' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+setup_arm64_none_real:
+setup_arm64_real:
+setup_armhf: setup_armhf_none setup_armhf_real
+setup_armhf_none: setup_armhf_none_odroid-armmp setup_armhf_none_odroid-armmp-lpae setup_armhf_none_real
+setup_armhf_none_odroid-armmp: setup_armhf_none_odroid-armmp_real
+setup_armhf_none_odroid-armmp-lpae: setup_armhf_none_odroid-armmp-lpae_real
+setup_armhf_none_odroid-armmp-lpae_real::
+	$(MAKE) -f debian/rules.real setup-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp-lpae' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp-lpae' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config debian/config/armhf/config.odroid-armmp-lpae' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp-lpae' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp-lpae' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+setup_armhf_none_odroid-armmp_real::
+	$(MAKE) -f debian/rules.real setup-arch-flavour ABINAME='4.16.0-6' ARCH='armhf' COMPILER='gcc-6' DEBUG='True' FEATURESET='none' FLAVOUR='odroid-armmp' IMAGE_FILE='arch/arm/boot/zImage' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-4.16.0-6-odroid-armmp' KCONFIG='debian/config/config debian/config/kernelarch-arm/config debian/config/armhf/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm' LOCALVERSION='-odroid-armmp' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-armmp' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VDSO='True' VERSION='4.16'
+setup_armhf_none_real:
+setup_armhf_real:
+setup_none: setup_none_real
+setup_none_real:
+setup_rt: setup_rt_real
+setup_rt_real:
+source: source_none source_rt
+source_none: source_none_real
+source_none_real::
+	$(MAKE) -f debian/rules.real source-featureset ABINAME='4.16.0-6' FEATURESET='none' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'
+source_rt: source_rt_real
+source_rt_real::
+	$(MAKE) -f debian/rules.real source-featureset ABINAME='4.16.0-6' FEATURESET='rt' SOURCEVERSION='4.16.0-5' UPSTREAMVERSION='4.16' VERSION='4.16'

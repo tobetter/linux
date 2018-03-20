@@ -1,0 +1,1310 @@
+Source: linux
+Section: kernel
+Priority: optional
+Maintainer: Debian Kernel Team <debian-kernel@lists.debian.org>
+Uploaders: Bastian Blank <waldi@debian.org>, maximilian attems <maks@debian.org>, Ben Hutchings <ben@decadent.org.uk>, Salvatore Bonaccorso <carnil@debian.org>
+Standards-Version: 3.9.8
+Build-Depends: debhelper (>= 10.1~), dh-exec, python3:any, quilt, cpio <!stage1>, xz-utils <!stage1>, kernel-wedge (>= 2.93~) <!stage1>, kmod <!stage1>, bc <!stage1>, libssl-dev:native <!stage1>, libssl-dev [linux-any] <!stage1 !pkg.linux.notools cross>, openssl (>= 1.1.0-1~) <!stage1> | openssl:native <!stage1>, asciidoc-base <!stage1 !nodoc !pkg.linux.notools> | asciidoc <!stage1 !nodoc !pkg.linux.notools>, xmlto <!stage1 !nodoc !pkg.linux.notools>, bison <!stage1 !pkg.linux.notools !nopython>, flex (>= 2.6.1-1.1~) <!stage1 !pkg.linux.notools !nopython> | flex:native <!stage1 !pkg.linux.notools !nopython>, gcc-multilib [amd64 ppc64 s390x sparc64] <!stage1 !pkg.linux.notools !nopython>, libaudit-dev <!stage1 !pkg.linux.notools !nopython>, libbabeltrace-dev (>= 1.5.0) <!stage1 !pkg.linux.notools !nopython>, libbabeltrace-ctf-dev (>= 1.5.0) <!stage1 !pkg.linux.notools !nopython>, libdw-dev <!stage1 !pkg.linux.notools !nopython>, libelf-dev <!stage1 !pkg.linux.notools !nopython>, libiberty-dev <!stage1 !pkg.linux.notools !nopython>, libnewt-dev <!stage1 !pkg.linux.notools !nopython>, libnuma-dev [amd64 arm64 hppa i386 mips mips64 mips64el mipsel mipsn32 mipsn32el mipsr6 mipsr6el mipsn32r6 mipsn32r6el mips64r6 mips64r6el powerpc powerpcspe ppc64 ppc64el sparc x32] <!stage1 !pkg.linux.notools !nopython>, libperl-dev <!stage1 !pkg.linux.notools !nopython>, libunwind8-dev [amd64 armel armhf arm64 i386] <!stage1 !pkg.linux.notools !nopython>, python-dev <!stage1 !pkg.linux.notools !nopython>, autoconf <!stage1 !pkg.linux.notools>, automake <!stage1 !pkg.linux.notools>, libtool <!stage1 !pkg.linux.notools>, libglib2.0-dev <!stage1 !pkg.linux.notools>, libudev-dev <!stage1 !pkg.linux.notools>, libwrap0-dev <!stage1 !pkg.linux.notools>, rsync <!stage1 !pkg.linux.notools>, libpci-dev <!stage1 !pkg.linux.notools>, dh-python <!stage1>, gcc-6 [arm64 armhf] <!stage1 !cross>, gcc-6-aarch64-linux-gnu [arm64] <!stage1 cross>, gcc-6-arm-linux-gnueabihf [armhf] <!stage1 cross>
+Build-Depends-Indep: patchutils <!stage1>, python-sphinx <!stage1 !nodoc>, python-sphinx-rtd-theme <!stage1 !nodoc>, xmlto <!stage1 !nodoc>
+Homepage: https://www.kernel.org/
+Vcs-Browser: https://anonscm.debian.org/cgit/kernel/linux.git
+Vcs-Git: https://anonscm.debian.org/git/kernel/linux.git
+
+Package: linux-source-4.16
+Architecture: all
+Section: kernel
+Depends: binutils, xz-utils, ${misc:Depends}
+Recommends: libc6-dev | libc-dev, gcc, make, bc
+Suggests: libncurses-dev | ncurses-dev, libqt4-dev, pkg-config
+Description: Linux kernel source for version 4.16 with Debian patches
+ This package provides source code for the Linux kernel version 4.16. This
+ source closely tracks official Linux kernel releases.  Debian's
+ modifications to that source consist of security fixes, bug fixes, and
+ features that have already been (or are believed to be) accepted by the
+ upstream maintainers.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-support-4.16.0-6
+Architecture: all
+Section: devel
+Depends: ${python3:Depends}, ${misc:Depends}
+Description: Support files for Linux 4.16
+ This package provides support files for the Linux kernel build, e.g.
+ scripts to handle ABI information and for generation of build system meta
+ data.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-doc-4.16
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Description: Linux kernel specific documentation for version 4.16
+ This package provides the various README files and HTML documentation for
+ the Linux kernel version 4.16.  Plenty of information, including the
+ descriptions of various kernel subsystems, filesystems, driver-specific
+ notes and the like.  Consult the file
+ /usr/share/doc/linux-doc-4.16/Documentation/00-INDEX for the detailed
+ description of the contents.
+Build-Profiles: <!stage1 !nodoc>
+Multi-Arch: foreign
+
+Package: linux-manual-4.16
+Architecture: all
+Section: doc
+Provides: linux-manual
+Depends: ${misc:Depends}
+Replaces: linux-manual
+Conflicts: linux-manual
+Description: Linux kernel API manual pages for version 4.16
+ This package provides the Kernel Hacker's Guide in the form of manual
+ pages, describing the kernel API functions.  They are installed into
+ section 9 of the manual.
+ .
+ As the files containing manual pages for different kernel versions are
+ installed in the same location, only one linux-manual package may be
+ installed at a time.  The linux-doc package containing the documentation
+ in other formats is free from such restriction.
+Build-Profiles: <!stage1 !nodoc>
+Multi-Arch: foreign
+
+Package: linux-kbuild-4.16
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Kbuild infrastructure for Linux 4.16
+ This package provides the kbuild infrastructure for the headers packages
+ for Linux kernel version 4.16.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Multi-Arch: foreign
+
+Package: linux-cpupower
+Architecture: linux-any
+Section: admin
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPU power management tools for Linux
+ The cpupower command allows inspection and control of cpufreq and cpuidle
+ tunables for hardware that support these features.  It replaces
+ "cpufreq-info" and "cpufreq-set" in cpufrequtils.
+ .
+ ${cpupower:Arch-Description}
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: libcpupower1
+Architecture: linux-any
+Section: libs
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPU frequency and voltage scaling tools for Linux (libraries)
+ This package contains the shared library.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: libcpupower-dev
+Architecture: linux-any
+Section: libdevel
+Provides: libcpufreq-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcpupower1 (= ${binary:Version})
+Replaces: libcpufreq-dev
+Conflicts: libcpufreq-dev
+Description: CPU frequency and voltage scaling tools for Linux (development files)
+ This package contains the 'power/cpupower' headers and library shared
+ objects.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: linux-perf-4.16
+Architecture: alpha amd64 arm64 armel armhf hppa i386 mips mips64 mips64el mips64r6 mips64r6el mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el powerpc powerpcspe ppc64 ppc64el s390 s390x sh4 sparc sparc64
+Section: devel
+Provides: linux-tools-4.16
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, ${python:Depends}
+Recommends: linux-base
+Suggests: linux-doc-4.16
+Replaces: linux-tools-4.16
+Conflicts: linux-tools-4.16
+Description: Performance analysis tools for Linux 4.16
+ This package contains the 'perf' performance analysis tools for Linux
+ kernel version 4.16.
+ .
+ The linux-base package contains a 'perf' command which will invoke the
+ appropriate version for the running kernel.
+Build-Profiles: <!stage1 !pkg.linux.notools !nopython>
+
+Package: libusbip-dev
+Architecture: linux-any
+Section: libdevel
+Depends: ${misc:Depends}
+Description: USB device sharing system over IP network (development files)
+ USB/IP is a system for sharing USB devices over the network.
+ .
+ This package provides headers for the libusbip library and the library
+ itself for static linking.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: usbip
+Architecture: linux-any
+Section: admin
+Depends: usbutils, ${shlibs:Depends}, ${misc:Depends}
+Description: USB device sharing system over IP network
+ USB/IP is a system for sharing USB devices over the network.
+ .
+ To share USB devices between computers with their full functionality,
+ USB/IP encapsulates "USB requests" into IP packets and transmits them
+ between computers.
+ .
+ Original USB device drivers and applications can be used for remote USB
+ devices without any modification of them.  A computer can use remote USB
+ devices as if they were directly attached.
+ .
+ Currently USB/IP provides no access control or encryption.  It should only
+ be used in trusted environments.
+ .
+ This package provides the server component 'usbipd' and the client tool
+ 'usbip'.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: hyperv-daemons
+Architecture: amd64 i386 x32
+Section: admin
+Depends: lsb-base, ${shlibs:Depends}, ${misc:Depends}
+Description: Support daemons for Linux running on Hyper-V
+ Suite of daemons for Linux guests running on Hyper-V, consisting of
+ hv_fcopy_daemon, hv_kvp_daemon and hv_vss_daemon.
+ .
+ hv_fcopy_daemon provides the file copy service, allowing the host to copy
+ files into the guest.
+ .
+ hv_kvp_daemon provides the key-value pair (KVP) service, allowing the host
+ to get and set the IP networking configuration of the guest.  (This
+ requires helper scripts which are not currently included.)
+ .
+ hv_vss_daemon provides the volume shadow copy service (VSS), allowing the
+ host to freeze the guest filesystems while taking a snapshot.
+Build-Profiles: <!stage1 !pkg.linux.notools>
+
+Package: linux-headers-4.16.0-6-common
+Architecture: all
+Depends: ${misc:Depends}
+Description: Common header files for Linux 4.16.0-6
+ This package provides the common kernel header files for Linux kernel
+ version 4.16.0-6, generally used for building out-of-tree kernel modules.
+ To obtain a complete set of headers you also need to install the
+ linux-headers-4.16.0-6-(flavour) package, matching the flavour of the
+ kernel you intend the build for.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-headers-4.16.0-6-common-rt
+Architecture: all
+Depends: ${misc:Depends}
+Description: Common header files for Linux 4.16.0-6-rt
+ This package provides the common kernel header files for Linux kernel
+ version 4.16.0-6 with the PREEMPT_RT featureset, generally used for
+ building out-of-tree kernel modules.  To obtain a complete set of headers
+ you also need to install the linux-headers-4.16.0-6-(flavour) package,
+ matching the flavour of the kernel you intend the build for.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-libc-dev
+Architecture: arm64 armhf
+Section: devel
+Provides: linux-kernel-headers
+Depends: ${misc:Depends}
+Description: Linux support headers for userspace development
+ This package provides userspaces headers from the Linux kernel.  These
+ headers are used by the installed headers for GNU libc and other system
+ libraries.
+Multi-Arch: same
+
+Package: linux-headers-4.16.0-6-all
+Architecture: arm64 armhf
+Depends: linux-headers-4.16.0-6-all-${kernel:Arch} (= ${binary:Version}), ${misc:Depends}
+Description: All header files for Linux 4.16 (meta-package)
+ This package depends against all architecture-specific kernel header files
+ for Linux kernel version 4.16, generally used for building out-of-tree
+ kernel modules.
+Build-Profiles: <!stage1>
+
+Package: linux-headers-4.16.0-6-all-arm64
+Architecture: arm64
+Depends: ${misc:Depends}, linux-headers-4.16.0-6-odroid-arm64 (= ${binary:Version})
+Description: All header files for Linux 4.16 (meta-package)
+ This package depends against all architecture-specific kernel header files
+ for Linux kernel version 4.16, generally used for building out-of-tree
+ kernel modules.
+Build-Profiles: <!stage1>
+
+Package: kernel-image-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: kernel-image, zlib-modules
+Description: Linux kernel image and core modules for the Debian installer
+ This package contains the kernel image and core modules for the Debian
+ installer boot images.  It does _not_ provide a usable kernel for your
+ full Debian system.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: nic-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: nic-modules, nic-extra-modules
+Depends: kernel-image-4.16.0-6-arm64-di, nic-shared-modules-4.16.0-6-arm64-di, i2c-modules-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: NIC drivers
+ This package contains Ethernet and some paravirtualised network drivers
+ for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: nic-wireless-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: nic-wireless-modules
+Depends: kernel-image-4.16.0-6-arm64-di, nic-shared-modules-4.16.0-6-arm64-di, usb-modules-4.16.0-6-arm64-di, mmc-modules-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: Wireless NIC drivers
+ This package contains wireless NIC drivers for the kernel.  Includes
+ crypto modules only needed for wireless (WEP, WPA).
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: nic-shared-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: nic-shared-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: Shared NIC drivers
+ This package contains NIC drivers needed by combinations of nic-modules,
+ nic-pcmcia-modules, nic-usb-modules and nic-wireless-modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: ppp-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: optional
+Provides: ppp-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: PPP drivers
+ This package contains PPP drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: cdrom-core-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: cdrom-core-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di, isofs-modules-4.16.0-6-arm64-di
+Description: CDROM support
+ This package contains core CDROM support for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: scsi-core-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: scsi-core-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: Core SCSI subsystem
+ This package contains the core SCSI subsystem for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: scsi-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: scsi-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di, cdrom-core-modules-4.16.0-6-arm64-di, ata-modules-4.16.0-6-arm64-di
+Description: SCSI drivers
+ This package contains SCSI drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: loop-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: loop-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: Loopback filesystem support
+ This package contains loopback filesystem support for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: btrfs-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: btrfs-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di, md-modules-4.16.0-6-arm64-di
+Description: BTRFS filesystem support
+ This package contains the BTRFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: ext4-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: ext4-modules, ext2-modules, ext3-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: ext2/ext3/ext4 filesystem support
+ This package contains the ext4 filesystem module for the kernel, which
+ also supports ext2 and ext3.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: isofs-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: isofs-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: ISOFS filesystem support
+ This package contains the ISOFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: jfs-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: jfs-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: JFS filesystem support
+ This package contains the JFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: xfs-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: xfs-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: XFS filesystem support
+ This package contains the XFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: fat-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: fat-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: FAT filesystem support
+ This package contains the FAT and VFAT filesystem modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: md-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: md-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: RAID and LVM support
+ This package contains RAID and LVM modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: multipath-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: multipath-modules
+Depends: kernel-image-4.16.0-6-arm64-di, md-modules-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di
+Description: Multipath support
+ This package contains DM-Multipath modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: usb-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: usb-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: USB support
+ This package contains core USB drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: usb-storage-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: usb-storage-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di, usb-modules-4.16.0-6-arm64-di
+Description: USB storage support
+ This package contains the USB storage driver for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: fb-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: fb-modules
+Depends: kernel-image-4.16.0-6-arm64-di, i2c-modules-4.16.0-6-arm64-di
+Description: Frame buffer support
+ This package contains Frame buffer drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: input-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: input-modules
+Depends: kernel-image-4.16.0-6-arm64-di, usb-modules-4.16.0-6-arm64-di, i2c-modules-4.16.0-6-arm64-di
+Description: Input devices support
+ This package contains input device drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: event-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: event-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: Event support
+ This package contains event drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: nic-usb-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: nic-usb-modules
+Depends: kernel-image-4.16.0-6-arm64-di, nic-shared-modules-4.16.0-6-arm64-di, nic-wireless-modules-4.16.0-6-arm64-di, usb-modules-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: USB NIC drivers
+ This package contains USB network adapter drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: sata-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: standard
+Provides: sata-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di, ata-modules-4.16.0-6-arm64-di
+Description: SATA drivers
+ This package contains SATA drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: i2c-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: i2c-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: i2c support modules
+ This package contains basic i2c support modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: crc-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: crc-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: CRC modules
+ This package contains CRC support modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: crypto-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: crypto-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: crypto modules
+ This package contains crypto modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: crypto-dm-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: crypto-dm-modules
+Depends: kernel-image-4.16.0-6-arm64-di, md-modules-4.16.0-6-arm64-di
+Description: devicemapper crypto module
+ This package contains the devicemapper crypto (dm-crypt) module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: efi-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: efi-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: EFI modules
+ This package contains EFI modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: ata-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: ata-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di
+Description: ATA disk modules
+ This package contains core ATA disk modules used by both PATA and SATA
+ disk drivers.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: mmc-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: mmc-modules
+Depends: kernel-image-4.16.0-6-arm64-di, usb-modules-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: MMC/SD card modules
+ This package contains modules needed to support MMC (multimedia) and SD
+ cards.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: nbd-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: nbd-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: Network Block Device modules
+ This package contains the modules required for support of the Network
+ Block Device
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: squashfs-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: squashfs-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: squashfs modules
+ This package contains squashfs modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: virtio-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: virtio-modules
+Depends: kernel-image-4.16.0-6-arm64-di, scsi-core-modules-4.16.0-6-arm64-di
+Description: virtio modules
+ This package contains virtio modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: uinput-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: uinput-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: uinput support
+ This package contains the uinput module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: leds-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: leds-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: LED modules
+ This package contains LED modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: udf-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: udf-modules
+Depends: kernel-image-4.16.0-6-arm64-di, crc-modules-4.16.0-6-arm64-di
+Description: UDF modules
+ This package contains the UDF filesystem module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: fuse-modules-4.16.0-6-arm64-di
+Architecture: arm64
+Section: debian-installer
+Priority: extra
+Provides: fuse-modules
+Depends: kernel-image-4.16.0-6-arm64-di
+Description: FUSE modules
+ This package contains the Filesystem in Userspace (FUSE) module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-arm64
+Package-Type: udeb
+
+Package: linux-image-4.16.0-6-odroid-arm64
+Architecture: arm64
+Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}, initramfs-tools (>= 0.120+deb8u2) [arm64] | linux-initramfs-tool [arm64]
+Recommends: firmware-linux-free, ${kernel:Recommends}
+Suggests: linux-doc-4.16, debian-kernel-handbook
+Breaks: libmozjs185-1.0 [arm64], libmozjs-24-0 (<< 24.2.0-5.1~) [arm64], initramfs-tools (<< 0.120+deb8u2)
+Description: Linux 4.16 for 64-bit ARMv8 machines
+ The Linux kernel 4.16 and modules for use on 64-bit ARMv8 machines.
+Build-Profiles: <!stage1>
+
+Package: linux-headers-4.16.0-6-odroid-arm64
+Architecture: arm64
+Depends: linux-headers-4.16.0-6-common (= ${binary:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
+Description: Header files for Linux 4.16.0-6-odroid-arm64
+ This package provides the architecture-specific kernel header files for
+ Linux kernel 4.16.0-6-odroid-arm64, generally used for building
+ out-of-tree kernel modules.  These files are going to be installed into
+ /usr/src/linux-headers-4.16.0-6-odroid-arm64, and can be used for building
+ modules that load into the kernel provided by the
+ linux-image-4.16.0-6-odroid-arm64 package.
+Build-Profiles: <!stage1>
+
+Package: linux-image-4.16.0-6-odroid-arm64-dbg
+Architecture: arm64
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}
+Description: Debug symbols for linux-image-4.16.0-6-odroid-arm64
+ This package provides the detached debug symbols for the Linux kernel and
+ modules in linux-image-4.16.0-6-odroid-arm64.
+Build-Profiles: <!stage1>
+
+Package: linux-headers-4.16.0-6-all-armhf
+Architecture: armhf
+Depends: ${misc:Depends}, linux-headers-4.16.0-6-odroid-armmp (= ${binary:Version}), linux-headers-4.16.0-6-odroid-armmp-lpae (= ${binary:Version})
+Description: All header files for Linux 4.16 (meta-package)
+ This package depends against all architecture-specific kernel header files
+ for Linux kernel version 4.16, generally used for building out-of-tree
+ kernel modules.
+Build-Profiles: <!stage1>
+
+Package: kernel-image-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: kernel-image
+Description: Linux kernel image and core modules for the Debian installer
+ This package contains the kernel image and core modules for the Debian
+ installer boot images.  It does _not_ provide a usable kernel for your
+ full Debian system.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: nic-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: nic-modules, nic-extra-modules
+Depends: kernel-image-4.16.0-6-armmp-di, nic-shared-modules-4.16.0-6-armmp-di, i2c-modules-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: NIC drivers
+ This package contains Ethernet and some paravirtualised network drivers
+ for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: nic-wireless-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: nic-wireless-modules
+Depends: kernel-image-4.16.0-6-armmp-di, nic-shared-modules-4.16.0-6-armmp-di, usb-modules-4.16.0-6-armmp-di, mmc-modules-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: Wireless NIC drivers
+ This package contains wireless NIC drivers for the kernel.  Includes
+ crypto modules only needed for wireless (WEP, WPA).
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: nic-shared-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: nic-shared-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: Shared NIC drivers
+ This package contains NIC drivers needed by combinations of nic-modules,
+ nic-pcmcia-modules, nic-usb-modules and nic-wireless-modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: ppp-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: optional
+Provides: ppp-modules
+Depends: kernel-image-4.16.0-6-armmp-di, zlib-modules-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: PPP drivers
+ This package contains PPP drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: pata-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: pata-modules
+Depends: kernel-image-4.16.0-6-armmp-di, ata-modules-4.16.0-6-armmp-di
+Description: PATA drivers
+ This package contains PATA drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: scsi-core-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: scsi-core-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: Core SCSI subsystem
+ This package contains the core SCSI subsystem for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: scsi-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: scsi-modules
+Depends: kernel-image-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di, ata-modules-4.16.0-6-armmp-di
+Description: SCSI drivers
+ This package contains SCSI drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: loop-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: loop-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: Loopback filesystem support
+ This package contains loopback filesystem support for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: btrfs-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: btrfs-modules
+Depends: kernel-image-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di, zlib-modules-4.16.0-6-armmp-di, md-modules-4.16.0-6-armmp-di
+Description: BTRFS filesystem support
+ This package contains the BTRFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: ext4-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: ext4-modules, ext2-modules, ext3-modules
+Depends: kernel-image-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: ext2/ext3/ext4 filesystem support
+ This package contains the ext4 filesystem module for the kernel, which
+ also supports ext2 and ext3.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: isofs-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: isofs-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: ISOFS filesystem support
+ This package contains the ISOFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: jfs-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: jfs-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: JFS filesystem support
+ This package contains the JFS filesystem module for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: fat-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: fat-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: FAT filesystem support
+ This package contains the FAT and VFAT filesystem modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: md-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: md-modules
+Depends: kernel-image-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: RAID and LVM support
+ This package contains RAID and LVM modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: multipath-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: multipath-modules
+Depends: kernel-image-4.16.0-6-armmp-di, md-modules-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di
+Description: Multipath support
+ This package contains DM-Multipath modules for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: usb-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: usb-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: USB support
+ This package contains core USB drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: usb-storage-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: usb-storage-modules
+Depends: kernel-image-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di, usb-modules-4.16.0-6-armmp-di
+Description: USB storage support
+ This package contains the USB storage driver for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: fb-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: fb-modules
+Depends: kernel-image-4.16.0-6-armmp-di, i2c-modules-4.16.0-6-armmp-di
+Description: Frame buffer support
+ This package contains Frame buffer drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: input-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: input-modules
+Depends: kernel-image-4.16.0-6-armmp-di, usb-modules-4.16.0-6-armmp-di, i2c-modules-4.16.0-6-armmp-di
+Description: Input devices support
+ This package contains input device drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: event-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: event-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: Event support
+ This package contains event drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: nic-usb-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: nic-usb-modules
+Depends: kernel-image-4.16.0-6-armmp-di, nic-shared-modules-4.16.0-6-armmp-di, nic-wireless-modules-4.16.0-6-armmp-di, usb-modules-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: USB NIC drivers
+ This package contains USB network adapter drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: sata-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: standard
+Provides: sata-modules
+Depends: kernel-image-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di, ata-modules-4.16.0-6-armmp-di
+Description: SATA drivers
+ This package contains SATA drivers for the kernel.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: i2c-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: i2c-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: i2c support modules
+ This package contains basic i2c support modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: crc-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: crc-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: CRC modules
+ This package contains CRC support modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: crypto-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: crypto-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: crypto modules
+ This package contains crypto modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: crypto-dm-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: crypto-dm-modules
+Depends: kernel-image-4.16.0-6-armmp-di, md-modules-4.16.0-6-armmp-di
+Description: devicemapper crypto module
+ This package contains the devicemapper crypto (dm-crypt) module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: efi-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: efi-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: EFI modules
+ This package contains EFI modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: ata-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: ata-modules
+Depends: kernel-image-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di
+Description: ATA disk modules
+ This package contains core ATA disk modules used by both PATA and SATA
+ disk drivers.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: mmc-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: mmc-modules
+Depends: kernel-image-4.16.0-6-armmp-di, usb-modules-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: MMC/SD card modules
+ This package contains modules needed to support MMC (multimedia) and SD
+ cards.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: nbd-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: nbd-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: Network Block Device modules
+ This package contains the modules required for support of the Network
+ Block Device
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: squashfs-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: squashfs-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: squashfs modules
+ This package contains squashfs modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: virtio-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: virtio-modules
+Depends: kernel-image-4.16.0-6-armmp-di, scsi-core-modules-4.16.0-6-armmp-di
+Description: virtio modules
+ This package contains virtio modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: uinput-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: uinput-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: uinput support
+ This package contains the uinput module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: zlib-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: zlib-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: zlib modules
+ This package contains zlib modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: leds-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: leds-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: LED modules
+ This package contains LED modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: udf-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: udf-modules
+Depends: kernel-image-4.16.0-6-armmp-di, crc-modules-4.16.0-6-armmp-di
+Description: UDF modules
+ This package contains the UDF filesystem module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: fuse-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: fuse-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: FUSE modules
+ This package contains the Filesystem in Userspace (FUSE) module.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: mtd-modules-4.16.0-6-armmp-di
+Architecture: armhf
+Section: debian-installer
+Priority: extra
+Provides: mtd-modules
+Depends: kernel-image-4.16.0-6-armmp-di
+Description: MTD modules
+ This package contains MTD modules.
+Build-Profiles: <!stage1>
+Kernel-Version: 4.16.0-6-armmp
+Package-Type: udeb
+
+Package: linux-image-4.16.0-6-odroid-armmp
+Architecture: armhf
+Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}, initramfs-tools (>= 0.120+deb8u2) [armhf] | linux-initramfs-tool [armhf]
+Recommends: firmware-linux-free, ${kernel:Recommends}
+Suggests: linux-doc-4.16, debian-kernel-handbook
+Breaks: initramfs-tools (<< 0.120+deb8u2)
+Description: Linux 4.16 for ARMv7 multiplatform compatible SoCs
+ The Linux kernel 4.16 and modules for use on ARMv7 multiplatform kernel.
+ See https://wiki.debian.org/DebianKernel/ARMMP for details of supported
+ platforms.
+Build-Profiles: <!stage1>
+
+Package: linux-headers-4.16.0-6-odroid-armmp
+Architecture: armhf
+Depends: linux-headers-4.16.0-6-common (= ${binary:Version}), linux-kbuild-4.16, ${misc:Depends}, linux-compiler-gcc-6-arm
+Description: Header files for Linux 4.16.0-6-odroid-armmp
+ This package provides the architecture-specific kernel header files for
+ Linux kernel 4.16.0-6-odroid-armmp, generally used for building
+ out-of-tree kernel modules.  These files are going to be installed into
+ /usr/src/linux-headers-4.16.0-6-odroid-armmp, and can be used for building
+ modules that load into the kernel provided by the
+ linux-image-4.16.0-6-odroid-armmp package.
+Build-Profiles: <!stage1>
+
+Package: linux-image-4.16.0-6-odroid-armmp-dbg
+Architecture: armhf
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}
+Description: Debug symbols for linux-image-4.16.0-6-odroid-armmp
+ This package provides the detached debug symbols for the Linux kernel and
+ modules in linux-image-4.16.0-6-odroid-armmp.
+Build-Profiles: <!stage1>
+
+Package: linux-image-4.16.0-6-odroid-armmp-lpae
+Architecture: armhf
+Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}, initramfs-tools (>= 0.120+deb8u2) [armhf] | linux-initramfs-tool [armhf]
+Recommends: firmware-linux-free, ${kernel:Recommends}
+Suggests: linux-doc-4.16, debian-kernel-handbook
+Breaks: initramfs-tools (<< 0.120+deb8u2)
+Description: Linux 4.16 for ARMv7 multiplatform compatible SoCs supporting LPAE
+ The Linux kernel 4.16 and modules for use on ARMv7 multiplatform kernel
+ supporting LPAE. See https://wiki.debian.org/DebianKernel/ARMMP for
+ details of supported platforms..
+Build-Profiles: <!stage1>
+
+Package: linux-headers-4.16.0-6-odroid-armmp-lpae
+Architecture: armhf
+Depends: linux-headers-4.16.0-6-common (= ${binary:Version}), linux-kbuild-4.16, ${misc:Depends}, linux-compiler-gcc-6-arm
+Description: Header files for Linux 4.16.0-6-odroid-armmp-lpae
+ This package provides the architecture-specific kernel header files for
+ Linux kernel 4.16.0-6-odroid-armmp-lpae, generally used for building
+ out-of-tree kernel modules.  These files are going to be installed into
+ /usr/src/linux-headers-4.16.0-6-odroid-armmp-lpae, and can be used for
+ building modules that load into the kernel provided by the
+ linux-image-4.16.0-6-odroid-armmp-lpae package.
+Build-Profiles: <!stage1>
+
+Package: linux-image-4.16.0-6-odroid-armmp-lpae-dbg
+Architecture: armhf
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}
+Description: Debug symbols for linux-image-4.16.0-6-odroid-armmp-lpae
+ This package provides the detached debug symbols for the Linux kernel and
+ modules in linux-image-4.16.0-6-odroid-armmp-lpae.
+Build-Profiles: <!stage1>
+
+Package: linux-compiler-gcc-6-arm
+Architecture: armel armhf
+Depends: gcc-6, ${misc:Depends}
+Description: Compiler for Linux on ARM (meta-package)
+ This package depends on gcc 6 of the appropriate architecture for Linux on
+ armel and armhf.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-compiler-gcc-6-s390
+Architecture: s390 s390x
+Depends: gcc-6, ${misc:Depends}
+Description: Compiler for Linux on IBM zSeries (meta-package)
+ This package depends on gcc 6 of the appropriate architecture for Linux on
+ s390 and s390x.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+
+Package: linux-compiler-gcc-6-x86
+Architecture: amd64 i386 x32
+Depends: gcc-6 (>= 6.3.0-18+deb9u1~), ${misc:Depends}
+Description: Compiler for Linux on x86 (meta-package)
+ This package depends on gcc 6 of the appropriate architecture for Linux on
+ amd64, i386 and x32.
+Build-Profiles: <!stage1>
+Multi-Arch: foreign
+

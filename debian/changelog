@@ -1,0 +1,6 @@
+linux (4.16.0-5) unstable; urgency=medium
+
+  *  Initial kernel release for Hardkernel's ODROID SBC
+
+ -- Dongjin Kim <tobetter@gmail.com>  Mon, 19 Mar 2018 23:43:35 -0400
+

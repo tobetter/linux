@@ -1,0 +1,5 @@
+Tests: selftests
+Restrictions: breaks-testbed, needs-root, isolation-machine
+Depends: kexec-tools, python3, gcc, make, libpopt-dev, gcc-multilib [amd64], bc, fuse, libfuse-dev, pkg-config, linux-image-4.16.0-6-odroid-arm64 [arm64], linux-image-4.16.0-6-odroid-armmp [armhf], linux-image-4.16.0-6-odroid-armmp-lpae [armhf]
+Classes: smp
+

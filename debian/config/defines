@@ -1,0 +1,96 @@
+[abi]
+abiname: 6
+ignore-changes:
+ __cpuhp_*
+ bpf_analyzer
+ boot_cpu_data
+ cxl_*
+ cpu_info
+ inet_frag_*
+ inet_frags_*
+ x86_hyper
+ x86_hyper_*
+ xen_xlate_map_ballooned_pages
+ mm_iommu_*
+ mv_mbus_*
+ paca
+ register_cxl_calls
+ register_key_type
+ unregister_cxl_calls
+ module:arch/x86/kvm/*
+ module:drivers/crypto/ccp/*
+ module:drivers/hv/*
+ module:drivers/iio/common/hid-sensors/*
+ module:drivers/iio/common/st_sensors/**
+ module:drivers/net/wireless/**
+ module:drivers/nvdimm/*
+ module:drivers/power/supply/bq27xxx_battery
+ module:drivers/s390/net/qeth
+ module:drivers/s390/net/qeth*
+ module:drivers/scsi/cxgbi/*
+ module:drivers/scsi/libiscs*
+ module:drivers/scsi/qla2xxx/qla2xxx
+ module:drivers/scsi/ufs/*
+ module:drivers/target/**
+ module:drivers/usb/chipidea/**
+ module:drivers/usb/gadget/**
+ module:drivers/usb/host/**
+ module:drivers/usb/musb/**
+ module:fs/nfs/nfs
+ module:net/ceph/libceph
+ module:net/l2tp/**
+ module:sound/firewire/snd-firewire-lib
+# btree library is only selected by few drivers so not useful OOT
+ btree_*
+ visitor*
+# Exported for related protocols only
+ can_rx_register
+ ip6_xmit
+ module:net/dccp/dccp
+ module:net/rds/rds
+# devfreq is unlikely to be useful for OOT modules
+ devfreq_*
+ devm_devfreq_*
+ update_devfreq
+# Assume IB drivers are added/updated through OFED, which also updates IB core
+ module:drivers/infiniband/**
+# Declared in private header, not usable OOT
+ acpi_ec_add_query_handler
+ acpi_ec_remove_query_handler
+ first_ec
+# Exported for tracefs only
+ debugfs_create_automount
+
+[base]
+arches:
+ arm64
+ armhf
+compiler: gcc-6
+featuresets:
+ none
+ rt
+
+[build]
+debug-info: true
+# Disable module signing for now
+signed-modules: false
+
+[featureset-rt_base]
+enabled: true
+
+[description]
+part-long-up: This kernel is not suitable for SMP (multi-processor,
+ multi-core or hyper-threaded) systems.
+part-long-xen: This kernel also runs on a Xen hypervisor.
+ It supports both privileged (dom0) and unprivileged (domU) operation.
+
+[image]
+initramfs-generators: initramfs-tools initramfs-fallback
+
+[relations]
+# compilers
+gcc-6: gcc-6 <!stage1 !cross>, gcc-6-@gnu-type-package@ <!stage1 cross>
+
+# initramfs-generators
+initramfs-fallback: linux-initramfs-tool
+initramfs-tools: initramfs-tools (>= 0.120+deb8u2)
