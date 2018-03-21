@@ -346,16 +346,17 @@ static void print_data(unsigned char *pdata,
 						unsigned int duration,
 						unsigned int vpts,
 						unsigned int vpts_valid,
-						int rec_id)
+						int rec_id,
+						u32 reference)
 {
 	int nLeft;
 
 	nLeft = len;
 
-	pr_info("%d len = %d, flag = %d, duration = %d, vpts = 0x%x, vpts_valid = %d\n",
+	pr_info("%d len:%d, flag:0x%x, dur:%d, vpts:0x%x, valid:%d, refer:%d\n",
 				rec_id,	len, flag,
-				duration, vpts, vpts_valid);
-
+				duration, vpts, vpts_valid,
+				reference);
 	while (nLeft >= 16) {
 		pr_info("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
 			pdata[0], pdata[1], pdata[2], pdata[3],
@@ -378,13 +379,127 @@ static void print_data(unsigned char *pdata,
 #endif
 
 
+#define DEBUG_CC_DUMP_ASCII
+
+#ifdef DEBUG_CC_DUMP_ASCII
+static int vbi_to_ascii(int c)
+{
+	if (c < 0)
+		return '?';
+
+	c &= 0x7F;
+
+	if (c < 0x20 || c >= 0x7F)
+		return '.';
+
+	return c;
+}
+
+static void dump_cc_ascii(const uint8_t *buf, int poc)
+{
+	int cc_flag;
+	int cc_count;
+	int i;
+	int szAscii[32];
+	int index = 0;
+
+	cc_flag = buf[1] & 0x40;
+	if (!cc_flag) {
+		pr_info("### cc_flag is invalid\n");
+		return;
+	}
+	cc_count = buf[1] & 0x1f;
+
+	for (i = 0; i < cc_count; ++i) {
+		unsigned int b0;
+		unsigned int cc_valid;
+		unsigned int cc_type;
+		unsigned char cc_data1;
+		unsigned char cc_data2;
+
+		b0 = buf[3 + i * 3];
+		cc_valid = b0 & 4;
+		cc_type = b0 & 3;
+		cc_data1 = buf[4 + i * 3];
+		cc_data2 = buf[5 + i * 3];
+
+
+		if (cc_type == 0) {
+			/* NTSC pair, Line 21 */
+			szAscii[index++] = vbi_to_ascii(cc_data1);
+			szAscii[index++] = vbi_to_ascii(cc_data2);
+			if ((!cc_valid) || (i >= 3))
+				break;
+		}
+	}
+	switch (index) {
+	case 8:
+		pr_info("push poc:%d : %c %c %c %c %c %c %c %c\n",
+			poc,
+			szAscii[0], szAscii[1], szAscii[2], szAscii[3],
+			szAscii[4], szAscii[5], szAscii[6], szAscii[7]);
+		break;
+	case 7:
+		pr_info("push poc:%d : %c %c %c %c %c %c %c\n",
+			poc,
+			szAscii[0], szAscii[1], szAscii[2], szAscii[3],
+			szAscii[4], szAscii[5], szAscii[6]);
+		break;
+	case 6:
+		pr_info("push poc:%d : %c %c %c %c %c %c\n", poc,
+			szAscii[0], szAscii[1], szAscii[2], szAscii[3],
+			szAscii[4], szAscii[5]);
+		break;
+	case 5:
+		pr_info("push poc:%d : %c %c %c %c %c\n", poc,
+			szAscii[0], szAscii[1], szAscii[2], szAscii[3],
+			szAscii[4]);
+		break;
+	case 4:
+		pr_info("push poc:%d : %c %c %c %c\n", poc,
+			szAscii[0], szAscii[1], szAscii[2], szAscii[3]);
+		break;
+	case 3:
+		pr_info("push poc:%d : %c %c %c\n", poc,
+			szAscii[0], szAscii[1], szAscii[2]);
+		break;
+	case 2:
+		pr_info("push poc:%d : %c %c\n", poc,
+			szAscii[0], szAscii[1]);
+		break;
+	case 1:
+		pr_info("push poc:%d : %c\n", poc, szAscii[0]);
+		break;
+	default:
+		pr_info("push poc:%d and no CC data: index = %d\n",
+			poc, index);
+		break;
+	}
+}
+#endif
+
+
+static int is_atsc(u8 *pdata)
+{
+	if ((pdata[0] == 0x47) &&
+		(pdata[1] == 0x41) &&
+		(pdata[2] == 0x39) &&
+		(pdata[3] == 0x34))
+		return 1;
+	else
+		return 0;
+}
+/*
+#define DUMP_HEAD_INFO_DATA
+*/
 static void dump_data(u8 *pdata,
 						unsigned int user_data_length,
 						unsigned int flag,
 						unsigned int duration,
 						unsigned int vpts,
 						unsigned int vpts_valid,
-						int rec_id)
+						int rec_id,
+						u32 reference)
 {
 	unsigned char szBuf[256];
 
@@ -400,28 +515,23 @@ static void dump_data(u8 *pdata,
 				duration,
 				vpts,
 				vpts_valid,
-				rec_id);
+				rec_id,
+				reference);
 #endif
 
 #ifdef DEBUG_CC_DUMP_ASCII
-	dump_cc_ascii(szBuf+4);
+#ifdef DUMP_HEAD_INFO_DATA
+	if (is_atsc(szBuf+8))
+		dump_cc_ascii(szBuf+8+4, reference);
+#else
+	if (is_atsc(szBuf))
+		dump_cc_ascii(szBuf+4, reference);
+#endif
 #endif
 }
 
 
-static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta);
 
-static void dump_userdata_info(void *puser_data,
-					int len,
-					struct userdata_meta_info_t *pmeta)
-{
-	u8 *pstart;
-
-	pstart = (u8 *)puser_data;
-
-	push_to_buf(pstart+8, len - 8, pmeta);
-	/*	push_to_buf(pstart, len, pmeta); */
-}
 
 #define MAX_USER_DATA_SIZE		1572864
 static void *user_data_buf;
@@ -438,7 +548,8 @@ static void reset_user_data_buf(void)
 	n_userdata_id = 0;
 }
 
-static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta)
+static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta,
+	u32 reference)
 {
 	u32 *pLen;
 	int info_cnt;
@@ -485,6 +596,11 @@ static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta)
 	info_cnt++;
 	pLen++;
 
+	*pLen = reference;
+	pbuf_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
 
 
 	pbuf_end = (u8 *)ccbuf_phyAddress_virt + CCBUF_SIZE;
@@ -507,6 +623,22 @@ static void push_to_buf(u8 *pdata, int len, struct userdata_meta_info_t *pmeta)
 		bskip = 1;
 }
 
+static void dump_userdata_info(void *puser_data,
+					int len,
+					struct userdata_meta_info_t *pmeta,
+					u32 reference)
+{
+	u8 *pstart;
+
+	pstart = (u8 *)puser_data;
+
+#ifdef	DUMP_HEAD_INFO_DATA
+	push_to_buf(pstart, len, pmeta, reference);
+#else
+	push_to_buf(pstart+8, len - 8, pmeta, reference);
+#endif
+}
+
 static void show_user_data_buf(void)
 {
 	u8 *pbuf;
@@ -516,6 +648,7 @@ static void show_user_data_buf(void)
 	unsigned int vpts;
 	unsigned int vpts_valid;
 	int rec_id;
+	u32 reference;
 
 	pr_info("show user data buf\n");
 	pbuf = user_data_buf;
@@ -549,13 +682,22 @@ static void show_user_data_buf(void)
 		pLen++;
 		pbuf += sizeof(u32);
 
-		dump_data(pbuf, len, flag, duration, vpts, vpts_valid, rec_id);
+		reference = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+
+		dump_data(pbuf, len, flag, duration,
+			vpts, vpts_valid, rec_id, reference);
 		pbuf += len;
+		msleep(30);
 	}
 }
 #endif
 
-static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info, int wp);
+static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info,
+								int wp,
+								u32 reference);
 /*
 #define PRINT_HEAD_INFO
 */
@@ -615,7 +757,14 @@ static void userdata_push_do_work(struct work_struct *work)
 
 
 	if (p_userdata_mgr) {
-		pdata = (u8 *)ccbuf_phyAddress_virt + p_userdata_mgr->last_wp;
+		int new_wp;
+
+		new_wp = reg & 0xffff;
+		if (new_wp < p_userdata_mgr->last_wp)
+			pdata = (u8 *)ccbuf_phyAddress_virt;
+		else
+			pdata = (u8 *)ccbuf_phyAddress_virt +
+						p_userdata_mgr->last_wp;
 		memcpy(head_info, pdata, 8);
 	} else
 		memset(head_info, 0, 8);
@@ -630,9 +779,9 @@ static void userdata_push_do_work(struct work_struct *work)
 	picture_type = (temp >> 10) & 0x7;
 
 #if 0
-	pr_info("index = %d, wp = %d, ref = %d, type = %d, struct = 0x%x\n",
+	pr_info("index = %d, wp = %d, ref = %d, type = %d, struct = 0x%x, vpts:0x%x\n",
 		index, wp, reference,
-		picture_type, picture_struct);
+		picture_type, picture_struct, meta_info.vpts);
 #endif
 	switch (picture_type) {
 	case 1:
@@ -677,12 +826,13 @@ static void userdata_push_do_work(struct work_struct *work)
 			break;
 	}
 #ifdef PRINT_HEAD_INFO
-	pr_info("ref:%d, type:%s, ext:%d, offset:0x%x, first:%d\n",
+	pr_info("ref:%d, type:%s, ext:%d, offset:0x%x, first:%d, id:%d\n",
 		reference, ptype_str,
 		(reg >> 30), offset,
-		(reg >> 28)&0x3);
+		(reg >> 28)&0x3,
+		n_userdata_id);
 #endif
-	vmpeg12_add_userdata(meta_info, reg & 0xffff);
+	vmpeg12_add_userdata(meta_info, reg & 0xffff, reference);
 
 	WRITE_VREG(AV_SCRATCH_M, 0);
 }
@@ -1228,6 +1378,8 @@ static DEFINE_MUTEX(userdata_mutex);
 
 void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
 {
+	mutex_lock(&userdata_mutex);
+
 	p_userdata_mgr = (struct mpeg12_userdata_info_t *)
 			vmalloc(sizeof(struct mpeg12_userdata_info_t));
 	if (p_userdata_mgr) {
@@ -1237,17 +1389,23 @@ void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
 		p_userdata_mgr->buf_len = buf_len;
 		p_userdata_mgr->data_buf_end = userdata_buf + buf_len;
 	}
+	mutex_unlock(&userdata_mutex);
 }
 
 void vmpeg12_destroy_userdata_manager(void)
 {
+	mutex_lock(&userdata_mutex);
+
 	if (p_userdata_mgr) {
 		vfree(p_userdata_mgr);
 		p_userdata_mgr = NULL;
 	}
+	mutex_unlock(&userdata_mutex);
 }
 
-static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info, int wp)
+static void vmpeg12_add_userdata(struct userdata_meta_info_t meta_info,
+						int wp,
+						u32 reference)
 {
 	struct mpeg12_userdata_recored_t *p_userdata_rec;
 	int data_length;
@@ -1284,7 +1442,8 @@ pr_info("wakeup_push: ri:%d, wi:%d, data_len:%d, last_wp:%d, wp:%d, id = %d\n",
 		dump_userdata_info(p_userdata_mgr->data_buf
 			+ p_userdata_rec->rec_start,
 			data_length,
-			&meta_info);
+			&meta_info,
+			reference);
 		n_userdata_id++;
 #endif
 
