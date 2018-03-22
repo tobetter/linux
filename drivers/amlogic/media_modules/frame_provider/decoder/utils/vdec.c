@@ -2384,6 +2384,7 @@ void vdec_poweron(enum vdec_type_e core)
 				WRITE_VREG(DOS_SW_RESET3, 0);
 				/* enable hevc clock */
 				hevc_clock_hi_enable();
+				hevc_back_clock_hi_enable();
 				/* power up hevc memories */
 				WRITE_VREG(DOS_MEM_PD_HEVC, 0);
 				/* remove hevc isolation */

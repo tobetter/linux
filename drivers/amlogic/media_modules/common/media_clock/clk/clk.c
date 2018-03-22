@@ -212,6 +212,12 @@ void hevc_back_clock_enable(void)
 }
 EXPORT_SYMBOL(hevc_back_clock_enable);
 
+void hevc_back_clock_hi_enable(void)
+{
+	hevc_back_clock_set(2);
+}
+EXPORT_SYMBOL(hevc_back_clock_hi_enable);
+
 int hevc_clock_init(void)
 {
 	if (p_vdec_hevc() && p_vdec_hevc()->clock_init)
