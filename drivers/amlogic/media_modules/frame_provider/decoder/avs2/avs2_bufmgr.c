@@ -851,6 +851,63 @@ int32_t img_height = (hd->vertical_size + img->auto_crop_bottom);
 	return memory_size;
 }
 
+#ifdef AML
+static void free_unused_buffers(struct avs2_decoder *avs2_dec)
+{
+	struct inp_par    *input = &avs2_dec->input;
+	struct ImageParameters_s    *img = &avs2_dec->img;
+	struct Video_Com_data_s *hc = &avs2_dec->hc;
+
+	int32_t refnum;
+
+	img->buf_cycle = input->buf_cycle + 1;
+
+	img->buf_cycle *= 2;
+
+	hc->background_ref = hc->backgroundReferenceFrame;
+
+	for (refnum = 0; refnum < REF_MAXBUFFER; refnum++) {
+#ifndef NO_DISPLAY
+		if (avs2_dec->fref[refnum]->vf_ref > 0 ||
+			avs2_dec->fref[refnum]->to_prepare_disp)
+			continue;
+#endif
+		if (is_avs2_print_bufmgr_detail())
+			pr_info("%s[t] avs2_dec->fref[%d]@0x%p\n",
+			__func__, refnum, avs2_dec->fref[refnum]);
+		avs2_dec->fref[refnum]->imgcoi_ref = -257;
+		avs2_dec->fref[refnum]->is_output = -1;
+		avs2_dec->fref[refnum]->refered_by_others = -1;
+		avs2_dec->fref[refnum]->
+			imgtr_fwRefDistance = -256;
+		memset(avs2_dec->fref[refnum]->ref_poc, 0,
+			sizeof(avs2_dec->fref[refnum]->ref_poc));
+	}
+	avs2_dec->f_bg = NULL;
+
+	if (is_avs2_print_bufmgr_detail())
+		pr_info("%s[t] avs2_dec->m_bg@0x%p\n",
+		__func__, avs2_dec->m_bg);
+	avs2_dec->m_bg->imgcoi_ref = -257;
+	avs2_dec->m_bg->is_output = -1;
+	avs2_dec->m_bg->refered_by_others = -1;
+	avs2_dec->m_bg->imgtr_fwRefDistance = -256;
+	memset(avs2_dec->m_bg->ref_poc, 0,
+		sizeof(avs2_dec->m_bg->ref_poc));
+
+#if BCBR
+	/*init BCBR related*/
+	img->iNumCUsInFrame =
+		((img->width + MAX_CU_SIZE - 1) / MAX_CU_SIZE)
+		* ((img->height + MAX_CU_SIZE - 1)
+		/ MAX_CU_SIZE);
+	/*img->BLCUidx =  (int32_t*) calloc(
+	  img->iNumCUsInFrame, sizeof(int32_t));*/
+	/*memset( img->BLCUidx, 0, img->iNumCUsInFrame);*/
+#endif
+}
+#endif
+
 void init_frame_t(struct avs2_frame_s *currfref)
 {
 	memset(currfref, 0, sizeof(struct avs2_frame_s));
@@ -1054,6 +1111,7 @@ void prepare_RefInfo(struct avs2_decoder *avs2_dec)
 				&& avs2_dec->fref[i]->bg_flag == 0
 #ifndef NO_DISPLAY
 				&& avs2_dec->fref[i]->vf_ref == 0
+				&& avs2_dec->fref[i]->to_prepare_disp ==0
 #endif
 				) {
 			break;
@@ -1197,6 +1255,78 @@ void delete_trbuffer(struct outdata_s *data, int32_t pos)
 	}
 	data->buffer_num--;
 }
+
+#if RD170_FIX_BG
+void flushDPB(struct avs2_decoder *avs2_dec)
+{
+	struct Video_Dec_data_s *hd = &avs2_dec->hd;
+	int j, tmp_min, i, pos = -1;
+	int search_times = avs2_dec->outprint.buffer_num;
+
+	tmp_min = 1 << 20;
+	i = 0, j = 0;
+	pos = -1;
+
+	for (j = 0; j < search_times; j++) {
+		pos = -1;
+		tmp_min = (1 << 20);
+		//search for min poi picture to display
+		for (i = 0; i < avs2_dec->outprint.buffer_num; i++) {
+			if (avs2_dec->outprint.stdoutdata[i].tr < tmp_min) {
+				pos = i;
+				tmp_min = avs2_dec->outprint.stdoutdata[i].tr;
+			}
+		}
+
+		if (pos != -1) {
+			hd->last_output = avs2_dec->outprint.stdoutdata[pos].tr;
+			report_frame(avs2_dec, &avs2_dec->outprint, pos);
+			if (avs2_dec->outprint.stdoutdata[pos].typeb == BACKGROUND_IMG && avs2_dec->outprint.stdoutdata[pos].background_picture_output_flag == 0) {
+				/*write_GB_frame(hd->p_out_background);*/
+			}
+			else {
+				write_frame(avs2_dec, avs2_dec->outprint.stdoutdata[pos].tr);
+			}
+
+			delete_trbuffer(&avs2_dec->outprint, pos);
+		}
+	}
+
+	// clear dpb info
+	for (j = 0; j < REF_MAXBUFFER; j++)
+	{
+		avs2_dec->fref[j]->imgtr_fwRefDistance = -256;
+		avs2_dec->fref[j]->imgcoi_ref = -257;
+		avs2_dec->fref[j]->temporal_id = -1;
+		avs2_dec->fref[j]->refered_by_others = 0;
+	}
+}
+#endif
+
+
+
+#if M3480_TEMPORAL_SCALABLE
+void cleanRefMVBufRef(int pos)
+{
+#if 0
+	int k, x, y;
+	//re-init mvbuf
+	for (k = 0; k < 2; k++) {
+		for (y = 0; y < img->height / MIN_BLOCK_SIZE; y++) {
+			for (x = 0; x < img->width / MIN_BLOCK_SIZE; x++) {
+				fref[pos]->mvbuf[y][x][k] = 0;
+			}
+		}
+	}
+	//re-init refbuf
+	for (y = 0; y < img->height / MIN_BLOCK_SIZE; y++) {
+		for (x = 0; x < img->width / MIN_BLOCK_SIZE ; x++) {
+			fref[pos]->refbuf[y][x] = -1;
+		}
+	}
+#endif
+}
+#endif
 
 static int frame_postprocessing(struct avs2_decoder *avs2_dec)
 {
@@ -1374,10 +1504,15 @@ static int frame_postprocessing(struct avs2_decoder *avs2_dec)
 void write_frame(struct avs2_decoder *avs2_dec, int32_t pos)
 {
 	int32_t j;
+
+	if (is_avs2_print_bufmgr_detail())
+		pr_info("%s(pos = %d)\n", __func__, pos);
+
 	for (j = 0; j < avs2_dec->ref_maxbuffer; j++) {
 		if (avs2_dec->fref[j]->imgtr_fwRefDistance == pos) {
 			avs2_dec->fref[j]->is_output = -1;
-			avs2_dec->fref[j]->to_prepare_disp = 1;
+			avs2_dec->fref[j]->to_prepare_disp =
+				avs2_dec->to_prepare_disp_count++;
 			if (avs2_dec->fref[j]->refered_by_others == 0
 				|| avs2_dec->fref[j]->imgcoi_ref
 				== -257) {
@@ -1387,6 +1522,8 @@ void write_frame(struct avs2_decoder *avs2_dec, int32_t pos)
 #if M3480_TEMPORAL_SCALABLE
 				avs2_dec->fref[j]->temporal_id = -1;
 #endif
+				if (is_avs2_print_bufmgr_detail())
+					pr_info("%s, fref index %d\n", __func__, j);
 			}
 			break;
 		}
@@ -1491,6 +1628,7 @@ void report_frame(struct avs2_decoder *avs2_dec,
 void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 {
 	struct ImageParameters_s    *img = &avs2_dec->img;
+	struct Video_Dec_data_s *hd = &avs2_dec->hd;
 
 	switch (start_code) {
 	case SEQUENCE_HEADER_CODE:
@@ -1531,15 +1669,24 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 			alfParAllcoated = 0;
 		}
 #endif
+/*TO_CHECK*/
+#endif
 #if FIX_FLUSH_DPB_BY_LF
 		if (hd->vec_flag) {
 			int32_t k;
-			flushDPB();
+			if (is_avs2_print_bufmgr_detail())
+				pr_info("vec_flag is 1, flushDPB and reinit bugmgr\n");
+
+			flushDPB(avs2_dec);
 			for (k = 0; k < avs2_dec->ref_maxbuffer; k++)
 				cleanRefMVBufRef(k);
 
 			hd->vec_flag = 0;
-			free_global_buffers();
+#ifdef AML
+			free_unused_buffers(avs2_dec);
+#else
+			free_global_buffers(avs2_dec);
+#endif
 			img->number = 0;
 			img->PrevPicDistanceLsb = 0;
 		}
@@ -1549,15 +1696,21 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 		if (img->new_sequence_flag
 			&& img->sequence_end_flag) {
 			int32_t k;
-			flushDPB();
+			if (is_avs2_print_bufmgr_detail())
+				pr_info(
+				"new_sequence_flag after sequence_end_flag, flushDPB and reinit bugmgr\n");
+			flushDPB(avs2_dec);
 			for (k = 0; k < avs2_dec->ref_maxbuffer; k++)
 				cleanRefMVBufRef(k);
 
-			free_global_buffers();
+#ifdef AML
+			free_unused_buffers(avs2_dec);
+#else
+			free_global_buffers(avs2_dec);
+#endif
 			img->number = 0;
 			img->PrevPicDistanceLsb = 0;
 		}
-#endif
 #endif
 		img->seq_header_indicate = 1;
 		break;
@@ -1631,9 +1784,12 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 img->new_sequence_flag = 1;
 img->sequence_end_flag = 1;
 break;
-#ifdef TO_CHECK
 	case VIDEO_EDIT_CODE:
-		video_edit_code_data(Buf, startcodepos, length);
+		if (is_avs2_print_bufmgr_detail())
+			pr_info("VIDEO_EDIT_CODE\n");
+		/*video_edit_code_data(Buf, startcodepos, length);*/
+		hd->vec_flag = 1;
+#ifdef TO_CHECK
 #if SEQ_CHANGE_CHECKER
 		if (seq_checker_buf != NULL) {
 			free(seq_checker_buf);
@@ -1641,9 +1797,9 @@ break;
 			seq_checker_length = 0;
 		}
 #endif
+#endif
 
 break;
-#endif
 	}
 }
 
@@ -1903,7 +2059,9 @@ void init_avs2_decoder(struct avs2_decoder *avs2_dec)
 	if (is_avs2_print_bufmgr_detail())
 		pr_info("[t] struct avs2_dec @0x%p\n", avs2_dec);
 	memset(avs2_dec, 0, sizeof(struct avs2_decoder));
-
+#ifdef AML
+	avs2_dec->to_prepare_disp_count = 1;
+#endif
 	/*
 	 * ALFParam init
 	 */
