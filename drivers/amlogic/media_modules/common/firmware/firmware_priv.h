@@ -32,6 +32,7 @@ struct firmware_info_s {
 	struct list_head node;
 	char name[32];
 	char path[64];
+	char src_from[32];
 	enum firmware_type_e type;
 	struct firmware_s *data;
 };

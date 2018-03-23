@@ -405,18 +405,16 @@ static struct BuffInfo_s amvenc_buffspec[] = {
 };
 
 enum ucode_type_e {
-	UCODE_GX,
-	UCODE_GXTV,
 	UCODE_GXL,
 	UCODE_TXL,
+	UCODE_G12A,
 	UCODE_MAX
 };
 
 const char *ucode_name[] = {
-	"h264_enc_mc_gx",
-	"h264_enc_mc_gxtv",
-	"gx_h264_enc",
-	"h264_enc_mc_txl",
+	"gxl_h264_enc",
+	"txl_h264_enc_cavlc",
+	"ga_h264_enc_cabac",
 };
 
 static void dma_flush(u32 buf_start, u32 buf_size);
@@ -424,18 +422,16 @@ static void cache_flush(u32 buf_start, u32 buf_size);
 
 static const char *select_ucode(u32 ucode_index)
 {
-	enum ucode_type_e ucode = UCODE_GX;
+	enum ucode_type_e ucode = UCODE_GXL;
 
 	switch (ucode_index) {
 	case UCODE_MODE_FULL:
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXL)
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			ucode = UCODE_G12A;
+		else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXL)
 			ucode = UCODE_TXL;
-		else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
+		else /* (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) */
 			ucode = UCODE_GXL;
-		else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB)
-			ucode = UCODE_GXTV;
-		else /* if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB) */
-			ucode = UCODE_GX;
 		break;
 		break;
 	default:
@@ -3300,7 +3296,7 @@ Again:
 					ENCODER_BUFFER_DUMP);
 				size = wq->mem.dump_info_ddr_size;
 				cache_flush(buf_start, size);
-			enc_pr(LOG_DEBUG, "CBR flush dump_info done");
+			//enc_pr(LOG_DEBUG, "CBR flush dump_info done");
 			}
 			if (request->flush_flag &
 				AMVENC_FLUSH_FLAG_REFERENCE) {
