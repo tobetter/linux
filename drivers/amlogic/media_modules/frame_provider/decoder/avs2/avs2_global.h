@@ -111,8 +111,13 @@
 #define FIX_CHROMA_FIELD_MV_BK_DIST        1
 #define FIX_LUMA_FIELD_MV_BK_DIST          1
 #define FIX_CHROMA_FIELD_MV_CLIP           1
+#if 1
+#define FIX_FLUSH_DPB_BY_LF                1    /* fred.chiu@mediatek.com */
+#define FIX_SEQ_END_FLUSH_DPB_BY_LF        1   /* fred.chiu@mediatek.com */
+#else
 #define FIX_FLUSH_DPB_BY_LF                0    /* fred.chiu@mediatek.com */
 #define FIX_SEQ_END_FLUSH_DPB_BY_LF        0   /* fred.chiu@mediatek.com */
+#endif
 #define RD191_FIX_BUG                      1  /* yuquanhe@hsilicon.com */
 #define SYM_MV_SCALE_FIX                   1/* peisong.chen@broadcom.com */
 #define BUG_10BIT_REFINEQP                 0 /* wangzhenyu */
@@ -1624,6 +1629,7 @@ struct avs2_decoder {
 	int32_t lcu_y_num;
 	int32_t lcu_total;
 	int32_t ref_maxbuffer;
+  int32_t to_prepare_disp_count;
 #endif
 };
 

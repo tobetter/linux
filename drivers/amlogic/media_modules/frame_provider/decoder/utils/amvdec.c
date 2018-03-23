@@ -410,7 +410,7 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_AVS2:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS2_MMU, 0);
+		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS2_MMU, 2);
 		break;
 
 	case VFORMAT_HEVC:

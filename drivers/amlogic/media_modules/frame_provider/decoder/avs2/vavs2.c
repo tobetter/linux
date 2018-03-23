@@ -72,26 +72,48 @@
 #define HEVC_SAO_MMU_VH0_ADDR                      0x363a
 #define HEVC_SAO_MMU_STATUS                        0x3639
 
+/*
+ * AVS2_DEC_STATUS define
+*/
+/*internal*/
+#define AVS2_DEC_IDLE                           0
+#define AVS2_SEQUENCE                           1
+#define AVS2_I_PICTURE                          2
+#define AVS2_PB_PICTURE                         3
+#define AVS2_DISCARD_STARTCODE                  4
+#define AVS2_DISCARD_NAL                        4
 
-#define AVS2_10B_DISCARD_NAL                  6
-#define AVS2_DUMP_LMEM				7
-#define HEVC_DECPIC_DATA_DONE            0xa
-#define HEVC_DECPIC_DATA_ERROR            0xb
-#define HEVC_NAL_DECODE_DONE            0xe
+#define AVS2_SLICE_DECODING                     6
 
-#define AVS2_HEAD_SEQ_READY                        0x21
-#define AVS2_HEAD_PIC_I_READY                      0x22
-#define AVS2_HEAD_PIC_PB_READY                     0x23
-#define AVS2_HEAD_SEQ_END_READY            0x24
+#define SWAP_IN_CMD                          0x10
+#define SWAP_OUT_CMD                         0x11
+#define SWAP_OUTIN_CMD                       0x12
+#define SWAP_DONE                            0x13
+#define SWAP_POST_INIT                       0x14
 
-#define AVS2_DECODE_BUFEMPTY        0x30
-#define AVS2_DECODE_TIMEOUT         0x31
-#define AVS2_DECODE_OVER_SIZE       0x33
+/*head*/
+#define AVS2_HEAD_SEQ_READY                  0x21
+#define AVS2_HEAD_PIC_I_READY                0x22
+#define AVS2_HEAD_PIC_PB_READY               0x23
+#define AVS2_HEAD_SEQ_END_READY              0x24
+#define AVS2_STARTCODE_SEARCH_DONE           0x25
 
-#define AVS2_EOS                        0xf2
-#define AVS2_DISCARD_NAL         0xf0
-#define AVS2_ACTION_ERROR        0xfe
-#define AVS2_ACTION_DONE         0xff
+/*pic done*/
+#define HEVC_DECPIC_DATA_DONE       0x30
+#define HEVC_DECPIC_DATA_ERROR      0x31
+#define HEVC_NAL_DECODE_DONE        0x32
+#define AVS2_DECODE_BUFEMPTY        0x33
+#define AVS2_DECODE_TIMEOUT         0x34
+#define AVS2_DECODE_OVER_SIZE       0x35
+#define AVS2_EOS                    0x36
+
+/*cmd*/
+#define AVS2_10B_DISCARD_NAL                 0xf0
+#define AVS2_ACTION_ERROR                    0xfe
+#define HEVC_ACTION_ERROR                    0xfe
+#define AVS2_ACTION_DONE                     0xff
+/*AVS2_DEC_STATUS end*/
+
 
 #define VF_POOL_SIZE        32
 
@@ -406,7 +428,7 @@ typedef unsigned short u16;
 
 #define PRINT_LINE() \
 	if (debug & AVS2_DBG_PRINT_SOURCE_LINE)\
-		pr_info("%s line %d\\n", __func__, __LINE__)
+		pr_info("%s line %d\n", __func__, __LINE__)
 
 static u32 debug;
 
@@ -1234,8 +1256,12 @@ bit [17]: for NAL_SEI when bit0 is 0:
 bit [31:20]: used by ucode for debug purpose
 */
 #define NAL_SEARCH_CTL            HEVC_ASSIST_SCRATCH_I
+	/*set before start decoder*/
 #define DECODE_MODE              HEVC_ASSIST_SCRATCH_J
 #define DECODE_STOP_POS         HEVC_ASSIST_SCRATCH_K
+
+	/*read only*/
+#define CUR_NAL_UNIT_TYPE       HEVC_ASSIST_SCRATCH_J
 
 #define RPM_BUF_SIZE (0x400 * 2)
 #define LMEM_BUF_SIZE (0x400 * 2)
@@ -3538,6 +3564,22 @@ static struct vframe_s *vavs2_vf_peek(void *op_arg)
 	return NULL;
 }
 
+static struct avs2_frame_s *get_pic_by_index(
+	struct AVS2Decoder_s *dec, int index)
+{
+	int i;
+	struct avs2_frame_s *pic = NULL;
+	if (index == (dec->used_buf_num - 1))
+		pic = dec->avs2_dec.m_bg;
+	else if (index >= 0	&& index < dec->used_buf_num) {
+		for (i = 0; i < dec->used_buf_num; i++) {
+			if (dec->avs2_dec.fref[i]->index == index)
+				pic = dec->avs2_dec.fref[i];
+		}
+	}
+	return pic;
+}
+
 static struct vframe_s *vavs2_vf_get(void *op_arg)
 {
 	struct vframe_s *vf;
@@ -3552,7 +3594,7 @@ static struct vframe_s *vavs2_vf_get(void *op_arg)
 		struct avs2_frame_s *pic = NULL;
 		if (idx >= 0
 			&& idx < dec->avs2_dec.ref_maxbuffer)
-			pic = dec->avs2_dec.fref[idx];
+			pic = get_pic_by_index(dec, idx);
 		if (pic == NULL)
 			return NULL;
 		if (force_disp_pic_index & 0x200)
@@ -3568,11 +3610,14 @@ static struct vframe_s *vavs2_vf_get(void *op_arg)
 
 	if (kfifo_get(&dec->display_q, &vf)) {
 		uint8_t index = vf->index & 0xff;
+
 		if (index >= 0	&& index < dec->used_buf_num) {
+			struct avs2_frame_s *pic = get_pic_by_index(dec, index);
 			dec->vf_get_count++;
 			avs2_print(dec, AVS2_DBG_BUFMGR,
-				"%s index 0x%x getcount %d type 0x%x w/h %d/%d, pts %d, %lld\n",
+				"%s index 0x%x pos %d getcount %d type 0x%x w/h %d/%d, pts %d, %lld\n",
 				__func__, index,
+				pic->imgtr_fwRefDistance,
 				dec->vf_get_count,
 				vf->type,
 				vf->width, vf->height,
@@ -3605,12 +3650,19 @@ static void vavs2_vf_put(struct vframe_s *vf, void *op_arg)
 		struct avs2_frame_s *pic;
 
 		lock_buffer(dec, flags);
-		if (index == (dec->used_buf_num - 1))
-			pic = dec->avs2_dec.m_bg;
-		else
-			pic = dec->avs2_dec.fref[index];
+		pic = get_pic_by_index(dec, index);
 		if (pic && pic->vf_ref > 0)
 			pic->vf_ref--;
+		else {
+			if (pic)
+				avs2_print(dec, 0,
+					"%s, error pic (index %d) vf_ref is %d\n",
+					__func__, index, pic->vf_ref);
+			else
+				avs2_print(dec, 0,
+					"%s, error pic (index %d) is NULL\n",
+					__func__, index);
+		}
 		if (dec->wait_buf)
 			WRITE_VREG(HEVC_ASSIST_MBOX0_IRQ_REG,
 						0x1);
@@ -3626,19 +3678,24 @@ static int vavs2_event_cb(int type, void *data, void *private_data)
 	return 0;
 }
 
-static struct avs2_frame_s *get_disp_pic(struct AVS2Decoder_s *dec,
-	int pos)
+static struct avs2_frame_s *get_disp_pic(struct AVS2Decoder_s *dec)
 {
 	struct avs2_decoder *avs2_dec = &dec->avs2_dec;
 	struct avs2_frame_s *pic = NULL;
-        int32_t j;
-        for (j = 0; j < avs2_dec->ref_maxbuffer; j++) {
-                if (avs2_dec->fref[j]->to_prepare_disp) {
-                        avs2_dec->fref[j]->to_prepare_disp = 0;
+	int32_t j;
+	int32_t pre_disp_count_min = 0x7fffffff;
+	for (j = 0; j < avs2_dec->ref_maxbuffer; j++) {
+		if (avs2_dec->fref[j]->to_prepare_disp &&
+			avs2_dec->fref[j]->to_prepare_disp <
+			pre_disp_count_min) {
+			pre_disp_count_min =
+				avs2_dec->fref[j]->to_prepare_disp;
 			pic = avs2_dec->fref[j];
-                        break;
-                }
-        }
+		}
+	}
+	if (pic)
+		pic->to_prepare_disp = 0;
+
 	return pic;
 
 }
@@ -3650,7 +3707,9 @@ static void set_vframe(struct AVS2Decoder_s *dec,
 	int stream_offset;
 	stream_offset = pic->stream_offset;
 	avs2_print(dec, AVS2_DBG_BUFMGR,
-		"%s index = %d\r\n", __func__, pic->index);
+		"%s index = %d pos = %d\r\n",
+		__func__, pic->index,
+		pic->imgtr_fwRefDistance);
 
 	if (pic->double_write_mode)
 		set_canvas(dec, pic);
@@ -3864,44 +3923,40 @@ static void set_vframe(struct AVS2Decoder_s *dec,
 	dec->vf_pre_count++;
 }
 
-static int avs2_prepare_display_buf(struct AVS2Decoder_s *dec,
-				int pos)
+static int avs2_prepare_display_buf(struct AVS2Decoder_s *dec)
 {
 #ifndef NO_DISPLAY
 	struct vframe_s *vf = NULL;
 	/*unsigned short slice_type;*/
 	struct avs2_frame_s *pic;
+	while (1) {
+		pic = get_disp_pic(dec);
+		if (pic == NULL)
+			break;
 
-	pic = get_disp_pic(dec, pos);
-	if (pic == NULL) {
-		avs2_print(dec, AVS2_DBG_BUFMGR,
-			"%s pic not available for pos of %d\r\n",
-			__func__, pos);
-		return -1;
-	}
+		if (force_disp_pic_index & 0x100) {
+			/*recycle directly*/
+			continue;
+		}
 
-	if (force_disp_pic_index & 0x100) {
-		/*recycle directly*/
-		return -1;
-	}
+		if (kfifo_get(&dec->newframe_q, &vf) == 0) {
+			pr_info("fatal error, no available buffer slot.");
+			return -1;
+		}
 
-	if (kfifo_get(&dec->newframe_q, &vf) == 0) {
-		pr_info("fatal error, no available buffer slot.");
-		return -1;
-	}
+		if (vf) {
+			set_vframe(dec, vf, pic, 0);
 
-	if (vf) {
-		set_vframe(dec, vf, pic, 0);
+			kfifo_put(&dec->display_q, (const struct vframe_s *)vf);
 
-		kfifo_put(&dec->display_q, (const struct vframe_s *)vf);
-
-#ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
-		/*count info*/
-		gvs->frame_dur = dec->frame_dur;
-		vdec_count_info(gvs, 0, stream_offset);
-#endif
-		vf_notify_receiver(dec->provider_name,
-		VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
+	#ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
+			/*count info*/
+			gvs->frame_dur = dec->frame_dur;
+			vdec_count_info(gvs, 0, stream_offset);
+	#endif
+			vf_notify_receiver(dec->provider_name,
+			VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
+		}
 	}
 /*!NO_DISPLAY*/
 #endif
@@ -3998,7 +4053,6 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 	unsigned int dec_status = dec->dec_status;
 	int i, ret;
 	int32_t start_code = 0;
-	int disp_pos;
 
 	/*if (dec->wait_buf)
 		pr_info("set wait_buf to 0\r\n");
@@ -4050,8 +4104,8 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 		avs2_print(dec, AVS2_DBG_BUFMGR,
 			"AVS2_EOS, flush buffer\r\n");
 
-		disp_pos = avs2_post_process(&dec->avs2_dec);
-		avs2_prepare_display_buf(dec, disp_pos);
+		avs2_post_process(&dec->avs2_dec);
+		avs2_prepare_display_buf(dec);
 
 		avs2_print(dec, AVS2_DBG_BUFMGR,
 			"send AVS2_10B_DISCARD_NAL\r\n");
@@ -4089,8 +4143,8 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 #ifdef AVS2_10B_MMU
 			avs2_recycle_mmu_buf_tail(dec);
 #endif
-			disp_pos = avs2_post_process(&dec->avs2_dec);
-			avs2_prepare_display_buf(dec, disp_pos);
+			avs2_post_process(&dec->avs2_dec);
+			avs2_prepare_display_buf(dec);
 			dec->avs2_dec.hc.cur_pic = NULL;
 #ifdef AVS2_10B_MMU
 			for (ii = 0; ii < dec->avs2_dec.ref_maxbuffer;
@@ -4148,11 +4202,14 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 		start_code = PB_PICTURE_START_CODE;
 	else if (dec_status == AVS2_HEAD_SEQ_END_READY)
 		start_code = SEQUENCE_END_CODE;
+	else if (dec_status == AVS2_STARTCODE_SEARCH_DONE)
+		start_code = READ_VREG(CUR_NAL_UNIT_TYPE);
 
 	PRINT_LINE();
 	avs2_prepare_header(&dec->avs2_dec, start_code);
 
-	if (start_code == SEQUENCE_HEADER_CODE)
+	if (start_code == SEQUENCE_HEADER_CODE ||
+		start_code == VIDEO_EDIT_CODE)
 		WRITE_VREG(HEVC_DEC_STATUS_REG, AVS2_ACTION_DONE);
 	else if (start_code == I_PICTURE_START_CODE ||
 		start_code == PB_PICTURE_START_CODE) {
@@ -4371,6 +4428,8 @@ static irqreturn_t vavs2_isr(int irq, void *data)
 			*/
 			dec->wait_buf = 1;
 			dec->process_busy = 0;
+			if (debug & AVS2_DBG_IRQ_EVENT)
+				avs2_print(dec, 0, "wait_buf\n");
 			return IRQ_HANDLED;
 		} else if (force_disp_pic_index) {
 			dec->process_busy = 0;
@@ -4793,7 +4852,8 @@ static s32 vavs2_init(struct vdec_s *vdec)
 	amhevc_enable();
 	if (size == 1)
 		pr_info ("tee load ok\n");
-	else if (amhevc_loadmc_ex(VFORMAT_AVS2, NULL, fw->data) < 0) {
+
+	if (amhevc_loadmc_ex(VFORMAT_AVS2, NULL, fw->data) < 0) {
 		amhevc_disable();
 		vfree(fw);
 		return -EBUSY;
@@ -5247,13 +5307,12 @@ static void avs2_work(struct work_struct *work)
 			return;
 		}
 	} else if (dec->dec_result == DEC_RESULT_EOS) {
-		int disp_pos;
 		avs2_print(dec, PRINT_FLAG_VDEC_STATUS,
 			"%s: end of stream\n",
 			__func__);
 		dec->eos = 1;
-		disp_pos = avs2_post_process(&dec->avs2_dec);
-		avs2_prepare_display_buf(dec, disp_pos);
+		avs2_post_process(&dec->avs2_dec);
+		avs2_prepare_display_buf(dec);
 		vdec_vframe_dirty(hw_to_vdec(dec), dec->chunk);
 	} else if (dec->dec_result == DEC_RESULT_FORCE_EXIT) {
 		avs2_print(dec, PRINT_FLAG_VDEC_STATUS,
