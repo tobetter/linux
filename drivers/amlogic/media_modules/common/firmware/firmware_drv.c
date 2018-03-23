@@ -320,6 +320,7 @@ static ssize_t info_show(struct class *class,
 		if (IS_ERR_OR_NULL(info->data))
 			continue;
 
+		pr_info("%10s : %s\n", "from", info->src_from);
 		pr_info("%10s : %s\n", "name", info->name);
 		pr_info("%10s : %d\n", "size",
 			info->data->header.data_size);
@@ -373,6 +374,7 @@ static int set_firmware_info(void)
 
 		strcpy(info->path, path);
 		strcpy(info->name, name);
+		strcpy(info->src_from, name);
 		info->type = ucode_info[i].type;
 		info->data = NULL;
 
@@ -406,6 +408,9 @@ static int check_repeat(struct firmware_s *data, enum firmware_type_e type)
 		return -1;
 	}
 
+	if (type == FIRMWARE_MAX)
+		return 0;
+
 	list_for_each_entry(info, &mgr->head, node) {
 		if (info->type != type)
 			continue;
@@ -419,7 +424,8 @@ static int check_repeat(struct firmware_s *data, enum firmware_type_e type)
 	return 0;
 }
 
-static int firmware_parse_package(char *buf, int size)
+static int firmware_parse_package(struct firmware_info_s *fw_info,
+	char *buf, int size)
 {
 	int ret = 0;
 	struct package_info_s *pack_info;
@@ -461,6 +467,7 @@ static int firmware_parse_package(char *buf, int size)
 
 		strcpy(info->path, path);
 		strcpy(info->name, pack_info->header.name);
+		strcpy(info->src_from, fw_info->src_from);
 		info->type = get_firmware_type(pack_info->header.format);
 
 		len = pack_info->header.length;
@@ -556,7 +563,7 @@ static int set_firmware_data(void)
 
 		switch (magic) {
 		case PACK:
-			ret = firmware_parse_package(buf, size);
+			ret = firmware_parse_package(info, buf, size);
 
 			del_info(info);
 			kfree(info);
