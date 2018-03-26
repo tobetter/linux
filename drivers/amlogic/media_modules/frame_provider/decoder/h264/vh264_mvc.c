@@ -1419,7 +1419,14 @@ static s32 vh264mvc_init(void)
 	amvdec_enable();
 
 	if (tee_enabled()) {
-		if (tee_load_video_fw((u32)VIDEO_DEC_H264_MVC, 0) != 0) {
+		pr_info("the video fw from the teeload.\n");
+
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+			ret = tee_load_video_fw((u32)VIDEO_DEC_H264_MVC_GXM, 0);
+		else
+			ret = tee_load_video_fw((u32)VIDEO_DEC_H264_MVC, 0);
+
+		if (ret != 0) {
 			amvdec_disable();
 			return -1;
 		}
@@ -1436,7 +1443,11 @@ static s32 vh264mvc_init(void)
 
 		WRITE_VREG(UCODE_START_ADDR, mc_dma_handle);
 
-		size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+			size = get_firmware_data(VIDEO_DEC_H264_MVC_GXM, buf);
+		else
+			size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
+
 		if (size < 0) {
 			pr_err("get firmware fail.");
 			vfree(buf);
