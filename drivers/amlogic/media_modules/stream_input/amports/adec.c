@@ -342,6 +342,10 @@ s32 astream_dev_register(void)
 		/*need to offset -0x100 in txlx.*/
 		astream_dev->offset = -0x100;
 
+		/*need to offset -0x180 in g12a.*/
+		if (MESON_CPU_MAJOR_ID_G12A <= get_cpu_type())
+			astream_dev->offset = -0x180;
+
 		astream_uio_info.mem[0].addr =
 			(cbus_base + CBUS_REG_OFFSET(AIU_AIFIFO_CTRL +
 			astream_dev->offset)) & (PAGE_MASK);
