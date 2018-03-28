@@ -130,10 +130,15 @@ s32 vpu_hw_reset(void)
 
 s32 vpu_clk_config(u32 enable)
 {
-	if (enable)
+	if (enable) {
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			HevcEnc_MoreClock_enable();
 		HevcEnc_clock_enable(clock_level);
-	else
+	} else {
 		HevcEnc_clock_disable();
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			HevcEnc_MoreClock_disable();
+	}
 	return 0;
 }
 
@@ -388,11 +393,19 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & ~(0x3<<24));
 		udelay(10);
 
-		data32 = 0x700;
-		data32 |= READ_VREG(DOS_SW_RESET4);
-		WRITE_VREG(DOS_SW_RESET4, data32);
-		data32 &= ~0x700;
-		WRITE_VREG(DOS_SW_RESET4, data32);
+		if (get_cpu_type() <= MESON_CPU_MAJOR_ID_TXLX) {
+			data32 = 0x700;
+			data32 |= READ_VREG(DOS_SW_RESET4);
+			WRITE_VREG(DOS_SW_RESET4, data32);
+			data32 &= ~0x700;
+			WRITE_VREG(DOS_SW_RESET4, data32);
+		} else {
+			data32 = 0xf00;
+			data32 |= READ_VREG(DOS_SW_RESET4);
+			WRITE_VREG(DOS_SW_RESET4, data32);
+			data32 &= ~0xf00;
+			WRITE_VREG(DOS_SW_RESET4, data32);
+		}
 
 		WRITE_MPEG_REG(RESET0_REGISTER, data32 & ~(1<<21));
 		WRITE_MPEG_REG(RESET0_REGISTER, data32 | (1<<21));
@@ -1971,11 +1984,22 @@ static s32 __init vpu_init(void)
 	s32 res;
 
 	enc_pr(LOG_DEBUG, "vpu_init\n");
-	if (get_cpu_type() != MESON_CPU_MAJOR_ID_GXM) {
+
+	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM)
+		&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A)
+			&& (get_cpu_type() != MESON_CPU_MAJOR_ID_GXL)) {
 		enc_pr(LOG_DEBUG,
 			"The chip is not support hevc encoder\n");
 		return -1;
 	}
+	if (get_cpu_type() == MESON_CPU_MAJOR_ID_G12A) {
+		if ((READ_EFUSE_REG(EFUSE_LIC2)  >> 12) & 1) {
+			enc_pr(LOG_DEBUG,
+				"Chip efuse disabled H265\n");
+			return -1;
+		}
+	}
+
 	res = platform_driver_register(&vpu_driver);
 	enc_pr(LOG_INFO,
 		"end vpu_init result=0x%x\n", res);
