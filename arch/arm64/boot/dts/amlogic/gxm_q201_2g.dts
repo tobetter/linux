@@ -1115,7 +1115,11 @@
 		compatible = "amlogic, unifykey";
 		status = "ok";
 
+<<<<<<< HEAD
 		unifykey-num = <17>;
+=======
+		unifykey-num = <15>;
+>>>>>>> 9b43aa8... dts: add the attestationkeybox of unifykey[1/3]
 		unifykey-index-0 = <&keysn_0>;
 		unifykey-index-1 = <&keysn_1>;
 		unifykey-index-2 = <&keysn_2>;
@@ -1131,8 +1135,11 @@
 		unifykey-index-12= <&keysn_12>;
 		unifykey-index-13= <&keysn_13>;
 		unifykey-index-14= <&keysn_14>;
+<<<<<<< HEAD
 		unifykey-index-15= <&keysn_15>;
 		unifykey-index-16= <&keysn_16>;
+=======
+>>>>>>> 9b43aa8... dts: add the attestationkeybox of unifykey[1/3]
 
 		keysn_0: key_0{
 			key-name = "usid";
@@ -1212,6 +1219,7 @@
 			key-device = "secure";
 			key-permit = "read","write","del";
 		};
+<<<<<<< HEAD
 		keysn_15:key_15{
 			key-name = "region_code";
 			key-device = "normal";
@@ -1222,6 +1230,8 @@
 			key-device = "secure";
 			key-permit = "read","write","del";
 		};
+=======
+>>>>>>> 9b43aa8... dts: add the attestationkeybox of unifykey[1/3]
 	};//End unifykey
 };
 &efuse {

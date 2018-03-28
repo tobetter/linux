@@ -1319,11 +1319,14 @@
 			key-device = "secure";
 			key-permit = "read","write","del";
 		};
+<<<<<<< HEAD
 		keysn_15:key_15{
 			key-name = "netflix_mgkid";
 			key-device = "secure";
 			key-permit = "read","write","del";
 		};
+=======
+>>>>>>> 9b43aa8... dts: add the attestationkeybox of unifykey[1/3]
 	};//End unifykey
 
 };
