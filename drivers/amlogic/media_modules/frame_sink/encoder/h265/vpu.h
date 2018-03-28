@@ -83,6 +83,24 @@
 	READ_HHI_REG(HHI_WAVE420L_CLK_CNTL) \
 		& (~(1 << 8)) & (~(1 << 24)))
 
+/* ACLK 667MHZ */
+#define HevcEnc_MoreClock_enable() \
+	do { \
+		WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL2, \
+			READ_HHI_REG(HHI_WAVE420L_CLK_CNTL2) \
+			& (~(1 << 8))); \
+		WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL2, \
+			(2 << 9) | (0 << 0)); \
+		WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL2, \
+			READ_HHI_REG(HHI_WAVE420L_CLK_CNTL2) \
+			| (1 << 8)); \
+	} while (0)
+
+#define HevcEnc_MoreClock_disable() \
+	WRITE_HHI_REG(HHI_WAVE420L_CLK_CNTL2, \
+	READ_HHI_REG(HHI_WAVE420L_CLK_CNTL2) \
+		& (~(1 << 8)))
+
 struct compat_vpudrv_buffer_t {
 	u32 size;
 	u32 cached;
