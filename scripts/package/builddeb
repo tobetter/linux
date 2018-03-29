@@ -232,7 +232,7 @@ maintainer="$name <$email>"
 
 # Generate a simple changelog template
 cat <<EOF > debian/changelog
-linux-upstream ($packageversion) unstable; urgency=low
+linux-$packageversion-odroid ($packageversion) unstable; urgency=low
 
   * Custom built Linux kernel.
 
@@ -261,10 +261,11 @@ EOF
 
 # Generate a control file
 cat <<EOF > debian/control
-Source: linux-upstream
+Source: linux-$packageversion-odroid
 Section: kernel
 Priority: optional
 Maintainer: $maintainer
+Build-Depends: asciidoc-base | asciidoc, autoconf, automake, bc, bison, cpio, debhelper, dh-exec, dh-python, flex | flex:native, kernel-wedge, kmod, libaudit-dev, libbabeltrace-ctf-dev, libbabeltrace-dev, libdw-dev, libelf-dev, libglib2.0-dev, libiberty-dev, libnewt-dev, libnuma-dev [arm64], libpci-dev, libperl-dev, libssl-dev, libssl-dev:native, libtool, libudev-dev, libunwind8-dev [armhfarm64], libwrap0-dev, openssl, python-dev, python3:any, quilt, rsync, xmlto, xz-utils, gcc-6 [arm64 armhf], gcc-6-aarch64-linux-gnu [arm64], gcc-6-arm-linux-gnueabihf [armhf]
 Standards-Version: 3.8.4
 Homepage: http://www.kernel.org/
 EOF
