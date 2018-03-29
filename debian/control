@@ -1,0 +1,30 @@
+Source: linux-upstream
+Section: kernel
+Priority: optional
+Maintainer: Dongjin Kim <tobetter@gmail.com>
+Standards-Version: 3.8.4
+Homepage: http://www.kernel.org/
+
+Package: linux-image-3.16.56-odroid
+Provides: linux-image, linux-image-2.6, linux-modules-3.16.56-odroid
+Suggests: linux-firmware-image-3.16.56-odroid
+Architecture: any
+Description: Linux kernel, version 3.16.56-odroid
+ This package contains the Linux kernel, modules and corresponding other
+ files, version: 3.16.56-odroid.
+
+Package: linux-headers-3.16.56-odroid
+Provides: linux-headers, linux-headers-2.6
+Architecture: any
+Description: Linux kernel headers for 3.16.56-odroid on ${kernel:debarch}
+ This package provides kernel header files for 3.16.56-odroid on ${kernel:debarch}
+ .
+ This is useful for people who need to build external modules
+
+Package: linux-libc-dev
+Section: devel
+Provides: linux-kernel-headers
+Architecture: any
+Description: Linux support headers for userspace development
+ This package provides userspaces headers from the Linux kernel.  These headers
+ are used by the installed headers for GNU glibc and other system libraries.
