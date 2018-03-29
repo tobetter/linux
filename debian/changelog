@@ -1,0 +1,5 @@
+linux-3.16.56-odroid (3.16.56-0) experimental; urgency=low
+
+  * Custom built Linux kernel.
+
+ -- Dongjin Kim <tobetter@gmail.com>  Fri, 30 Mar 2018 05:53:10 -0400
