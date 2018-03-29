@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
+
+ifeq ($(DH_VERBOSE),1)
+	Q =
+else
+	Q = @
+endif
+
+export KERNELVERSION=$(shell make kernelversion)
+
+%:
+	dh $@
+
+build:
+	$(Q)$(MAKE) odroidc2_defconfig
+	$(Q)$(MAKE)
+
+binary-arch:
+	$(Q)$(MAKE) deb-pkg \
+		DEBFULLNAME="Dongjin Kim" \
+		DEBEMAIL="tobetter@gmail.com" \
+		KDEB_SOURCENAME=linux-odroid \
+		LOCALVERSION=-odroid \
+		KDEB_PKGVERSION=$(KERNELVERSION)
+
+binary: binary-arch
+
+clean:
+	rm -rf debian/*tmp debian/files
+	$(MAKE) clean
+
+.PHONY: clean build binary-arch binary
