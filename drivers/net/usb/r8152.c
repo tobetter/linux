@@ -774,6 +774,11 @@ static unsigned int agg_buf_sz = 16384;
 #define RTL_LIMITED_TSO_SIZE	(agg_buf_sz - sizeof(struct tx_desc) - \
 				 VLAN_ETH_HLEN - ETH_FCS_LEN)
 
+#define MAC_ADDR_LEN                    (6)
+static char *macaddr = ":";
+module_param(macaddr, charp, 0);
+MODULE_PARM_DESC(macaddr, "MAC address");
+
 static
 int get_registers(struct r8152 *tp, u16 value, u16 index, u16 size, void *data)
 {
@@ -1207,6 +1212,51 @@ amacout:
 	return ret;
 }
 
+/* Check the macaddr module parameter for a MAC address */
+static int r8152_is_macaddr_param(u8 *dev_mac)
+{
+       int i, j, got_num, num;
+       u8 mtbl[MAC_ADDR_LEN];
+
+       if (macaddr[0] == ':')
+               return 0;
+
+       i = 0;
+       j = 0;
+       num = 0;
+       got_num = 0;
+       while (j < MAC_ADDR_LEN) {
+               if (macaddr[i] && macaddr[i] != ':') {
+                       got_num++;
+                       if ('0' <= macaddr[i] && macaddr[i] <= '9')
+                               num = num * 16 + macaddr[i] - '0';
+                       else if ('A' <= macaddr[i] && macaddr[i] <= 'F')
+                               num = num * 16 + 10 + macaddr[i] - 'A';
+                       else if ('a' <= macaddr[i] && macaddr[i] <= 'f')
+                               num = num * 16 + 10 + macaddr[i] - 'a';
+                       else
+                               break;
+                       i++;
+               } else if (got_num == 2) {
+                       mtbl[j++] = (u8) num;
+                       num = 0;
+                       got_num = 0;
+                       i++;
+               } else {
+                       break;
+               }
+       }
+
+       if (j == MAC_ADDR_LEN) {
+               printk("Overriding MAC address with:%02x:%02x:%02x:%02x:%02x:%02x\n", mtbl[0], mtbl[1], mtbl[2], mtbl[3], mtbl[4], mtbl[5]);
+               for (i = 0; i < MAC_ADDR_LEN; i++)
+                       dev_mac[i] = mtbl[i];
+               return 1;
+       } else {
+               return 0;
+       }
+}
+
 static int set_ethernet_addr(struct r8152 *tp)
 {
 	struct net_device *dev = tp->netdev;
@@ -1225,6 +1275,11 @@ static int set_ethernet_addr(struct r8152 *tp)
 			ret = pla_ocp_read(tp, PLA_BACKUP, 8, sa.sa_data);
 	}
 
+    r8152_is_macaddr_param(dev->dev_addr);
+    if(is_valid_ether_addr(dev->dev_addr)) {
+        memcpy(sa.sa_data, dev->dev_addr, dev->addr_len);
+    }
+
 	if (ret < 0) {
 		netif_err(tp, probe, dev, "Get ether addr fail\n");
 	} else if (!is_valid_ether_addr(sa.sa_data)) {
@@ -1238,7 +1293,7 @@ static int set_ethernet_addr(struct r8152 *tp)
 	} else {
 		if (tp->version == RTL_VER_01)
 			ether_addr_copy(dev->dev_addr, sa.sa_data);
-		else
+        else
 			ret = rtl8152_set_mac_address(dev, &sa);
 	}
 

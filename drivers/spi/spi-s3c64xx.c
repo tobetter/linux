@@ -340,6 +340,13 @@ static void s3c64xx_spi_set_cs(struct spi_device *spi, bool enable)
 			writel(S3C64XX_SPI_SLAVE_SIG_INACT,
 			       sdd->regs + S3C64XX_SPI_SLAVE_SEL);
 	}
+
+	/* chip select control */
+	if (gpio_is_valid(spi->cs_gpio)) {
+		if (spi->mode & SPI_CS_HIGH)
+			enable = !enable;
+		gpio_set_value(spi->cs_gpio, !enable);
+	}
 }
 
 static int s3c64xx_spi_prepare_transfer(struct spi_master *spi)
@@ -641,6 +648,12 @@ static int s3c64xx_spi_prepare_message(struct spi_master *master,
 	/* Configure feedback delay */
 	writel(cs->fb_delay & 0x3, sdd->regs + S3C64XX_SPI_FB_CLK);
 
+	/* changed spi mode before cs level is low. */
+	if (sdd->cur_mode != spi->mode) {
+		sdd->cur_mode = spi->mode;
+		s3c64xx_spi_config(sdd);
+	}
+
 	return 0;
 }
 
@@ -654,7 +667,6 @@ static int s3c64xx_spi_transfer_one(struct spi_master *master,
 	u8 bpw;
 	unsigned long flags;
 	int use_dma;
-	static u8 old_bpw = 0;
 
 	reinit_completion(&sdd->xfer_completion);
 
@@ -670,7 +682,6 @@ static int s3c64xx_spi_transfer_one(struct spi_master *master,
 	if (bpw != sdd->cur_bpw || speed != sdd->cur_speed) {
 		sdd->cur_bpw = bpw;
 		sdd->cur_speed = speed;
-		sdd->cur_mode = spi->mode;
 		s3c64xx_spi_config(sdd);
 	}
 
@@ -699,6 +710,9 @@ static int s3c64xx_spi_transfer_one(struct spi_master *master,
 	else
 		status = wait_for_pio(sdd, xfer);
 
+	if (xfer->cs_change)
+		s3c64xx_spi_set_cs(spi, false);
+
 	if (status) {
 		dev_err(&spi->dev, "I/O Error: rx-%d tx-%d res:rx-%c tx-%c len-%d\n",
 			xfer->rx_buf ? 1 : 0, xfer->tx_buf ? 1 : 0,
@@ -714,9 +728,9 @@ static int s3c64xx_spi_transfer_one(struct spi_master *master,
 			    && (sdd->state & RXBUSY))
 				dmaengine_terminate_all(sdd->rx_dma.ch);
 		}
-	} else {
-		flush_fifo(sdd);
 	}
+	else
+		flush_fifo(sdd);
 
 	return status;
 }
@@ -1199,7 +1213,8 @@ static int s3c64xx_spi_probe(struct platform_device *pdev)
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
 
-pr_err("charles %s : force32b = %d\n", __func__, force32b);
+	if (force32b)
+		dev_warn(&pdev->dev, "*** force32b flage is true ***\n");
 
 	return 0;
 

@@ -236,6 +236,9 @@ config GENERIC_CPU_DEVICES
 config GENERIC_CPU_AUTOPROBE
 	bool
 
+config GENERIC_CPU_VULNERABILITIES
+	bool
+
 config SOC_BUS
 	bool
 	select GLOB
@@ -246,6 +249,7 @@ config DMA_SHARED_BUFFER
 	bool
 	default n
 	select ANON_INODES
+	select IRQ_WORK
 	help
 	  This option enables the framework for buffer-sharing between
 	  multiple drivers. A buffer is associated with a file using driver

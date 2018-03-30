@@ -975,8 +975,7 @@ int __kvm_set_memory_region(struct kvm *kvm,
 		/* Check for overlaps */
 		r = -EEXIST;
 		kvm_for_each_memslot(slot, __kvm_memslots(kvm, as_id)) {
-			if ((slot->id >= KVM_USER_MEM_SLOTS) ||
-			    (slot->id == id))
+			if (slot->id == id)
 				continue;
 			if (!((base_gfn + npages <= slot->base_gfn) ||
 			      (base_gfn >= slot->base_gfn + slot->npages)))
@@ -2072,6 +2071,29 @@ void kvm_vcpu_mark_page_dirty(struct kvm_vcpu *vcpu, gfn_t gfn)
 	mark_page_dirty_in_slot(memslot, gfn);
 }
 EXPORT_SYMBOL_GPL(kvm_vcpu_mark_page_dirty);
+
+void kvm_sigset_activate(struct kvm_vcpu *vcpu)
+{
+	if (!vcpu->sigset_active)
+		return;
+
+	/*
+	 * This does a lockless modification of ->real_blocked, which is fine
+	 * because, only current can change ->real_blocked and all readers of
+	 * ->real_blocked don't care as long ->real_blocked is always a subset
+	 * of ->blocked.
+	 */
+	sigprocmask(SIG_SETMASK, &vcpu->sigset, &current->real_blocked);
+}
+
+void kvm_sigset_deactivate(struct kvm_vcpu *vcpu)
+{
+	if (!vcpu->sigset_active)
+		return;
+
+	sigprocmask(SIG_SETMASK, &current->real_blocked, NULL);
+	sigemptyset(&current->real_blocked);
+}
 
 static void grow_halt_poll_ns(struct kvm_vcpu *vcpu)
 {
@@ -4018,7 +4040,7 @@ int kvm_init(void *opaque, unsigned vcpu_size, unsigned vcpu_align,
 	if (!vcpu_align)
 		vcpu_align = __alignof__(struct kvm_vcpu);
 	kvm_vcpu_cache = kmem_cache_create("kvm_vcpu", vcpu_size, vcpu_align,
-					   0, NULL);
+					   SLAB_ACCOUNT, NULL);
 	if (!kvm_vcpu_cache) {
 		r = -ENOMEM;
 		goto out_free_3;

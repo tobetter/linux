@@ -33,6 +33,11 @@ static u32 mask;
 
 static void syscon_poweroff(void)
 {
+	local_irq_disable();
+	pr_err("%s : offset = 0x%x, value = 0x%x, mask = 0x%x\n",
+		__func__, offset, value, mask);
+	mdelay(1000);
+
 	/* Issue the poweroff */
 	regmap_update_bits(map, offset, mask, value);
 

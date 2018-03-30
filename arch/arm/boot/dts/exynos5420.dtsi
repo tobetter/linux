@@ -194,7 +194,7 @@
 		mfc: codec@11000000 {
 			compatible = "samsung,mfc-v7";
 			reg = <0x11000000 0x10000>;
-			interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 96 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_MFC>;
 			clock-names = "mfc";
 			power-domains = <&mfc_pd>;
@@ -213,7 +213,7 @@
 
 		mmc_0: mmc@12200000 {
 			compatible = "samsung,exynos5420-dw-mshc-smu";
-			interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 75 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x12200000 0x2000>;
@@ -225,7 +225,7 @@
 
 		mmc_1: mmc@12210000 {
 			compatible = "samsung,exynos5420-dw-mshc-smu";
-			interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 76 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x12210000 0x2000>;
@@ -237,7 +237,7 @@
 
 		mmc_2: mmc@12220000 {
 			compatible = "samsung,exynos5420-dw-mshc";
-			interrupts = <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 77 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x12220000 0x1000>;
@@ -335,37 +335,37 @@
 		pinctrl_0: pinctrl@13400000 {
 			compatible = "samsung,exynos5420-pinctrl";
 			reg = <0x13400000 0x1000>;
-			interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 45 IRQ_TYPE_NONE>;
 
 			wakeup-interrupt-controller {
 				compatible = "samsung,exynos4210-wakeup-eint";
 				interrupt-parent = <&gic>;
-				interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 32 IRQ_TYPE_NONE>;
 			};
 		};
 
 		pinctrl_1: pinctrl@13410000 {
 			compatible = "samsung,exynos5420-pinctrl";
 			reg = <0x13410000 0x1000>;
-			interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 78 IRQ_TYPE_NONE>;
 		};
 
 		pinctrl_2: pinctrl@14000000 {
 			compatible = "samsung,exynos5420-pinctrl";
 			reg = <0x14000000 0x1000>;
-			interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 46 IRQ_TYPE_NONE>;
 		};
 
 		pinctrl_3: pinctrl@14010000 {
 			compatible = "samsung,exynos5420-pinctrl";
 			reg = <0x14010000 0x1000>;
-			interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_NONE>;
 		};
 
 		pinctrl_4: pinctrl@03860000 {
 			compatible = "samsung,exynos5420-pinctrl";
 			reg = <0x03860000 0x1000>;
-			interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 47 IRQ_TYPE_NONE>;
 		};
 
 		amba {
@@ -378,7 +378,7 @@
 			adma: adma@03880000 {
 				compatible = "arm,pl330", "arm,primecell";
 				reg = <0x03880000 0x1000>;
-				interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 110 IRQ_TYPE_NONE>;
 				clocks = <&clock_audss EXYNOS_ADMA>;
 				clock-names = "apb_pclk";
 				#dma-cells = <1>;
@@ -389,7 +389,7 @@
 			pdma0: pdma@121A0000 {
 				compatible = "arm,pl330", "arm,primecell";
 				reg = <0x121A0000 0x1000>;
-				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 34 IRQ_TYPE_NONE>;
 				clocks = <&clock CLK_PDMA0>;
 				clock-names = "apb_pclk";
 				#dma-cells = <1>;
@@ -400,7 +400,7 @@
 			pdma1: pdma@121B0000 {
 				compatible = "arm,pl330", "arm,primecell";
 				reg = <0x121B0000 0x1000>;
-				interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 35 IRQ_TYPE_NONE>;
 				clocks = <&clock CLK_PDMA1>;
 				clock-names = "apb_pclk";
 				#dma-cells = <1>;
@@ -411,7 +411,7 @@
 			mdma0: mdma@10800000 {
 				compatible = "arm,pl330", "arm,primecell";
 				reg = <0x10800000 0x1000>;
-				interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 33 IRQ_TYPE_NONE>;
 				clocks = <&clock CLK_MDMA0>;
 				clock-names = "apb_pclk";
 				#dma-cells = <1>;
@@ -422,7 +422,7 @@
 			mdma1: mdma@11C10000 {
 				compatible = "arm,pl330", "arm,primecell";
 				reg = <0x11C10000 0x1000>;
-				interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 124 IRQ_TYPE_NONE>;
 				clocks = <&clock CLK_MDMA1>;
 				clock-names = "apb_pclk";
 				#dma-cells = <1>;
@@ -494,7 +494,7 @@
 		spi_0: spi@12d20000 {
 			compatible = "samsung,exynos4210-spi";
 			reg = <0x12d20000 0x100>;
-			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 68 IRQ_TYPE_NONE>;
 			dmas = <&pdma0 5
 				&pdma0 4>;
 			dma-names = "tx", "rx";
@@ -510,7 +510,7 @@
 		spi_1: spi@12d30000 {
 			compatible = "samsung,exynos4210-spi";
 			reg = <0x12d30000 0x100>;
-			interrupts = <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 69 IRQ_TYPE_NONE>;
 			dmas = <&pdma1 5
 				&pdma1 4>;
 			dma-names = "tx", "rx";
@@ -526,7 +526,7 @@
 		spi_2: spi@12d40000 {
 			compatible = "samsung,exynos4210-spi";
 			reg = <0x12d40000 0x100>;
-			interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 70 IRQ_TYPE_NONE>;
 			dmas = <&pdma0 7
 				&pdma0 6>;
 			dma-names = "tx", "rx";
@@ -554,7 +554,7 @@
 		dsi@14500000 {
 			compatible = "samsung,exynos5410-mipi-dsi";
 			reg = <0x14500000 0x10000>;
-			interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 82 IRQ_TYPE_NONE>;
 			phys = <&mipi_phy 1>;
 			phy-names = "dsim";
 			clocks = <&clock CLK_DSIM1>, <&clock CLK_SCLK_MIPI1>;
@@ -567,7 +567,7 @@
 		adc: adc@12D10000 {
 			compatible = "samsung,exynos-adc-v2";
 			reg = <0x12D10000 0x100>;
-			interrupts = <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 106 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TSADC>;
 			clock-names = "adc";
 			#io-channel-cells = <1>;
@@ -579,7 +579,7 @@
 		hsi2c_8: i2c@12E00000 {
 			compatible = "samsung,exynos5250-hsi2c";
 			reg = <0x12E00000 0x1000>;
-			interrupts = <GIC_SPI 87 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 87 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			pinctrl-names = "default";
@@ -592,7 +592,7 @@
 		hsi2c_9: i2c@12E10000 {
 			compatible = "samsung,exynos5250-hsi2c";
 			reg = <0x12E10000 0x1000>;
-			interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 88 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			pinctrl-names = "default";
@@ -605,7 +605,7 @@
 		hsi2c_10: i2c@12E20000 {
 			compatible = "samsung,exynos5250-hsi2c";
 			reg = <0x12E20000 0x1000>;
-			interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 203 IRQ_TYPE_NONE>;
 			#address-cells = <1>;
 			#size-cells = <0>;
 			pinctrl-names = "default";
@@ -618,7 +618,7 @@
 		hdmi: hdmi@14530000 {
 			compatible = "samsung,exynos5420-hdmi";
 			reg = <0x14530000 0x70000>;
-			interrupts = <GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 95 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_HDMI>, <&clock CLK_SCLK_HDMI>,
 				 <&clock CLK_DOUT_PIXEL>, <&clock CLK_SCLK_HDMIPHY>,
 				 <&clock CLK_MOUT_HDMI>;
@@ -638,7 +638,7 @@
 		hdmicec: cec@101B0000 {
 			compatible = "samsung,s5p-cec";
 			reg = <0x101B0000 0x200>;
-			interrupts = <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 114 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_HDMI_CEC>;
 			clock-names = "hdmicec";
 			samsung,syscon-phandle = <&pmu_system_controller>;
@@ -651,7 +651,7 @@
 		mixer: mixer@14450000 {
 			compatible = "samsung,exynos5420-mixer";
 			reg = <0x14450000 0x10000>;
-			interrupts = <GIC_SPI 94 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 94 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_MIXER>, <&clock CLK_HDMI>,
 				 <&clock CLK_SCLK_HDMI>;
 			clock-names = "mixer", "hdmi", "sclk_hdmi";
@@ -663,7 +663,7 @@
 		rotator: rotator@11C00000 {
 			compatible = "samsung,exynos5250-rotator";
 			reg = <0x11C00000 0x64>;
-			interrupts = <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 84 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_ROTATOR>;
 			clock-names = "rotator";
 			iommus = <&sysmmu_rotator>;
@@ -672,7 +672,7 @@
 		gsc_0: video-scaler@13e00000 {
 			compatible = "samsung,exynos5-gsc";
 			reg = <0x13e00000 0x1000>;
-			interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 85 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_GSCL0>;
 			clock-names = "gscl";
 			power-domains = <&gsc_pd>;
@@ -682,7 +682,7 @@
 		gsc_1: video-scaler@13e10000 {
 			compatible = "samsung,exynos5-gsc";
 			reg = <0x13e10000 0x1000>;
-			interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 86 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_GSCL1>;
 			clock-names = "gscl";
 			power-domains = <&gsc_pd>;
@@ -692,7 +692,7 @@
 		jpeg_0: jpeg@11F50000 {
 			compatible = "samsung,exynos5420-jpeg";
 			reg = <0x11F50000 0x1000>;
-			interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 89 IRQ_TYPE_NONE>;
 			clock-names = "jpeg";
 			clocks = <&clock CLK_JPEG>;
 			iommus = <&sysmmu_jpeg0>;
@@ -701,7 +701,7 @@
 		jpeg_1: jpeg@11F60000 {
 			compatible = "samsung,exynos5420-jpeg";
 			reg = <0x11F60000 0x1000>;
-			interrupts = <GIC_SPI 168 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 168 IRQ_TYPE_NONE>;
 			clock-names = "jpeg";
 			clocks = <&clock CLK_JPEG2>;
 			iommus = <&sysmmu_jpeg1>;
@@ -721,7 +721,7 @@
 		tmu_cpu0: tmu@10060000 {
 			compatible = "samsung,exynos5420-tmu";
 			reg = <0x10060000 0x100>;
-			interrupts = <GIC_SPI 65 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 65 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TMU>;
 			clock-names = "tmu_apbif";
 			#include "exynos5420-tmu-sensor-conf.dtsi"
@@ -730,7 +730,7 @@
 		tmu_cpu1: tmu@10064000 {
 			compatible = "samsung,exynos5420-tmu";
 			reg = <0x10064000 0x100>;
-			interrupts = <GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 183 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TMU>;
 			clock-names = "tmu_apbif";
 			#include "exynos5420-tmu-sensor-conf.dtsi"
@@ -739,7 +739,7 @@
 		tmu_cpu2: tmu@10068000 {
 			compatible = "samsung,exynos5420-tmu-ext-triminfo";
 			reg = <0x10068000 0x100>, <0x1006c000 0x4>;
-			interrupts = <GIC_SPI 184 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 184 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TMU>, <&clock CLK_TMU>;
 			clock-names = "tmu_apbif", "tmu_triminfo_apbif";
 			#include "exynos5420-tmu-sensor-conf.dtsi"
@@ -748,7 +748,7 @@
 		tmu_cpu3: tmu@1006c000 {
 			compatible = "samsung,exynos5420-tmu-ext-triminfo";
 			reg = <0x1006c000 0x100>, <0x100a0000 0x4>;
-			interrupts = <GIC_SPI 185 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 185 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TMU>, <&clock CLK_TMU_GPU>;
 			clock-names = "tmu_apbif", "tmu_triminfo_apbif";
 			#include "exynos5420-tmu-sensor-conf.dtsi"
@@ -757,7 +757,7 @@
 		tmu_gpu: tmu@100a0000 {
 			compatible = "samsung,exynos5420-tmu-ext-triminfo";
 			reg = <0x100a0000 0x100>, <0x10068000 0x4>;
-			interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 215 IRQ_TYPE_NONE>;
 			clocks = <&clock CLK_TMU_GPU>, <&clock CLK_TMU>;
 			clock-names = "tmu_apbif", "tmu_triminfo_apbif";
 			#include "exynos5420-tmu-sensor-conf.dtsi"
@@ -829,7 +829,7 @@
 		sysmmu_scaler1r: sysmmu@0x12890000 {
 			compatible = "samsung,exynos-sysmmu";
 			reg = <0x12890000 0x1000>;
-			interrupts = <GIC_SPI 186 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 186 IRQ_TYPE_NONE>;
 			clock-names = "sysmmu", "master";
 			clocks = <&clock CLK_SMMU_MSCL1>, <&clock CLK_MSCL1>;
 			#iommu-cells = <0>;
@@ -838,7 +838,7 @@
 		sysmmu_scaler2r: sysmmu@0x128A0000 {
 			compatible = "samsung,exynos-sysmmu";
 			reg = <0x128A0000 0x1000>;
-			interrupts = <GIC_SPI 188 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 188 IRQ_TYPE_NONE>;
 			clock-names = "sysmmu", "master";
 			clocks = <&clock CLK_SMMU_MSCL2>, <&clock CLK_MSCL2>;
 			#iommu-cells = <0>;
@@ -897,7 +897,7 @@
 		sysmmu_jpeg1: sysmmu@0x11F20000 {
 			compatible = "samsung,exynos-sysmmu";
 			reg = <0x11F20000 0x1000>;
-			interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 169 IRQ_TYPE_NONE>;
 			clock-names = "sysmmu", "master";
 			clocks = <&clock CLK_SMMU_JPEG2>, <&clock CLK_JPEG2>;
 			#iommu-cells = <0>;
@@ -1540,7 +1540,7 @@
 };
 
 &usbdrd_dwc3_1 {
-	interrupts = <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
+	interrupts = <GIC_SPI 73 IRQ_TYPE_NONE>;
 };
 
 &usbdrd_phy1 {

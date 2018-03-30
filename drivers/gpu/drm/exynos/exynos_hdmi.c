@@ -1756,6 +1756,9 @@ static int hdmi_audio_hw_params(struct device *dev, void *data,
 {
 	struct hdmi_context *hdata = dev_get_drvdata(dev);
 
+	if (hdata->dvi_mode)
+		return 0;
+
 	if (daifmt->fmt != HDMI_I2S || daifmt->bit_clk_inv ||
 	    daifmt->frame_clk_inv || daifmt->bit_clk_master ||
 	    daifmt->frame_clk_master) {

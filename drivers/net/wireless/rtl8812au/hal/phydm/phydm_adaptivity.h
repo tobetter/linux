@@ -22,7 +22,7 @@
 #ifndef	__PHYDMADAPTIVITY_H__
 #define    __PHYDMADAPTIVITY_H__
 
-#define ADAPTIVITY_VERSION	"9.3.3"	/*20151230 changed by Kevin, modify 0x524[11] when adaptivity is enabled*/
+#define ADAPTIVITY_VERSION	"9.0"
 
 #define PwdBUpperBound	7
 #define DFIRloss	5
@@ -37,18 +37,6 @@ typedef enum _tag_PhyDM_REGULATION_Type {
 	MAX_REGULATION_NUM = 4
 } PhyDM_REGULATION_TYPE;
 #endif
-
-typedef enum _PHYDM_ADAPTIVITY_Info_Definition {
-	PHYDM_ADAPINFO_CARRIER_SENSE_ENABLE = 0,
-	PHYDM_ADAPINFO_DCBACKOFF,
-	PHYDM_ADAPINFO_DYNAMICLINKADAPTIVITY,
-	PHYDM_ADAPINFO_TH_L2H_INI,
-	PHYDM_ADAPINFO_TH_EDCCA_HL_DIFF,
-	PHYDM_ADAPINFO_AP_NUM_TH
-
-} PHYDM_ADAPINFO_E;
-
-
 
 typedef enum tag_PhyDM_set_LNA {
 	PhyDM_disable_LNA		= 0,
@@ -83,21 +71,7 @@ typedef struct _ADAPTIVITY_STATISTICS {
 	BOOLEAN			DynamicLinkAdaptivity;
 	u1Byte			APNumTH;
 	u1Byte			AdajustIGILevel;
-	BOOLEAN			AcsForAdaptivity;
-	s1Byte			backupL2H;
-	s1Byte			backupH2L;
-	BOOLEAN			bStopEDCCA;
-#if (DM_ODM_SUPPORT_TYPE & ODM_WIN)	
-	RT_WORK_ITEM	phydm_pauseEDCCAWorkItem;
-	RT_WORK_ITEM	phydm_resumeEDCCAWorkItem;
-#endif
 } ADAPTIVITY_STATISTICS, *PADAPTIVITY_STATISTICS;
-
-VOID
-phydm_pauseEDCCA(
-	IN	PVOID	pDM_VOID,
-	IN	BOOLEAN	bPasueEDCCA
-);
 
 VOID
 Phydm_CheckAdaptivity(
@@ -159,13 +133,6 @@ Phydm_SearchPwdBLowerBound(
 	IN		PVOID					pDM_VOID
 );
 
-VOID
-phydm_adaptivityInfoInit(
-	IN	PVOID			pDM_VOID,
-	IN	PHYDM_ADAPINFO_E	CmnInfo,
-	IN	u4Byte				Value	
-	);
-
 VOID 
 Phydm_AdaptivityInit(
 	IN		PVOID					pDM_VOID
@@ -176,12 +143,6 @@ Phydm_Adaptivity(
 	IN		PVOID					pDM_VOID,
 	IN		u1Byte					IGI
 	);
-
-VOID
-phydm_setEDCCAThresholdAPI(
-	IN	PVOID	pDM_VOID,
-	IN	u1Byte	IGI
-);
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 VOID
@@ -201,22 +162,5 @@ Phydm_AdaptivityBSOD(
 
 #endif
 
-VOID 
-phydm_pauseEDCCA_WorkItemCallback(
-#if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
-	IN	PADAPTER		Adapter
-#else
-	IN PVOID			pDM_VOID
-#endif
-	);
-
-VOID 
-phydm_resumeEDCCA_WorkItemCallback(
-#if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
-	IN	PADAPTER		Adapter
-#else
-	IN PVOID			pDM_VOID
-#endif
-	);
 
 #endif

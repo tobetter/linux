@@ -93,6 +93,23 @@
 		pinctrl-0 = <&pinctrl_1wire>;
 		status = "okay";
 	};
+
+	extcon_usb3_0: extcon_usb3_0 {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&gpx3 5 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb3_0_vbus_gpio>;
+	};
+
+	extcon_usb3_1: extcon_usb3_1 {
+		compatible = "linux,extcon-usb-gpio";
+		id-gpio = <&gpx1 1 GPIO_ACTIVE_HIGH>;
+		vbus-gpio = <&gpx3 4 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb3_1_id_gpio &usb3_1_vbus_gpio>;
+	};
 };
 
 &adc {
@@ -166,6 +183,28 @@
 		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
 		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV2>;
 	};
+
+	usb3_0_vbus_gpio: usb3-0_vbus-gpio {
+		samsung,pins = "gpx3-5";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV1>;
+	};
+
+	usb3_1_vbus_gpio: usb3-1_vbus-gpio {
+		samsung,pins = "gpx3-4";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV2>;
+	};
+
+	usb3_1_id_gpio: usb3-1_id-gpio {
+		samsung,pins = "gpx1-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV1>;
+	};
+
 };
 
 &pinctrl_1 {
@@ -175,4 +214,12 @@
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-drv = <EXYNOS5420_PIN_DRV_LV1>;
 	};
+};
+
+&usbdrd_dwc3_0 {
+	extcon = <&extcon_usb3_0>;
+};
+
+&usbdrd_dwc3_1 {
+	extcon = <&extcon_usb3_1>;
 };

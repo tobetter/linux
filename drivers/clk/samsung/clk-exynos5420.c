@@ -1394,6 +1394,7 @@ static const struct exynos_cpuclk_cfg_data exynos5800_eglclk_d[] __initconst = {
 		((((kpll) << 24) | ((pclk) << 20) | ((aclk) << 4)))
 
 static const struct exynos_cpuclk_cfg_data exynos5420_kfcclk_d[] __initconst = {
+	{ 1500000, E5420_KFC_DIV(3, 5, 3), },
 	{ 1400000, E5420_KFC_DIV(3, 5, 3), }, /* for Exynos5800 */
 	{ 1300000, E5420_KFC_DIV(3, 5, 2), },
 	{ 1200000, E5420_KFC_DIV(3, 5, 2), },

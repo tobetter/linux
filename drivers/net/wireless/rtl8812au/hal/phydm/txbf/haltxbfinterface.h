@@ -52,6 +52,7 @@ SendSWHTNDPAPacket(
 	IN	CHANNEL_WIDTH	BW
 	);
 
+#ifdef SUPPORT_MU_BF
 #if (SUPPORT_MU_BF == 1)
 RT_STATUS
 Beamforming_GetVHTGIDMgntFrame(
@@ -84,6 +85,7 @@ SendSWVHTMUNDPAPacket(
 #define SendSWVHTGIDMgntFrame(pDM_VOID, RA)
 #define SendSWVHTBFReportPoll(pDM_VOID, RA, bFinalPoll)
 #define SendSWVHTMUNDPAPacket(pDM_VOID, BW)
+#endif
 #endif
 
 
@@ -135,12 +137,6 @@ Beamforming_GetNDPAFrame(
 	union recv_frame *precv_frame
 #endif
 );
-
-BOOLEAN
-DBG_SendSWVHTMUNDPAPacket(
-	IN	PVOID			pDM_VOID,
-	IN	CHANNEL_WIDTH	BW
-	);
 
 #else
 #define Beamforming_GetNDPAFrame(pDM_Odm, _PduOS)

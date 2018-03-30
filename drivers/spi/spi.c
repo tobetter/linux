@@ -2102,7 +2102,7 @@ int spi_register_controller(struct spi_controller *ctlr)
 	if (ctlr->num_chipselect == 0)
 		return -EINVAL;
 	/* allocate dynamic bus number using Linux idr */
-	if ((ctlr->bus_num < 0) && ctlr->dev.of_node) {
+	if ((ctlr->bus_num >= 0) && ctlr->dev.of_node) {
 		id = of_alias_get_id(ctlr->dev.of_node, "spi");
 		if (id >= 0) {
 			ctlr->bus_num = id;

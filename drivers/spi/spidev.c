@@ -786,8 +786,8 @@ static int spidev_remove(struct spi_device *spi)
 	spin_lock_irq(&spidev->spi_lock);
 	spidev->spi = NULL;
 
-	if(spi->master->cleanup)
-		spi->master->cleanup(spi);
+	if(spi->controller->cleanup)
+		spi->controller->cleanup(spi);
 
 	spin_unlock_irq(&spidev->spi_lock);
 

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-#ifndef __LINUX_COMPILER_H
+#ifndef __LINUX_COMPILER_TYPES_H
 #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
 #endif
 
@@ -19,3 +19,8 @@
 
 #define randomized_struct_fields_start	struct {
 #define randomized_struct_fields_end	};
+
+/* Clang doesn't have a way to turn it off per-function, yet. */
+#ifdef __noretpoline
+#undef __noretpoline
+#endif

@@ -22,12 +22,13 @@
 };
 
 &cluster_a15_opp_table {
-	/delete-node/opp@2000000000;
-	/delete-node/opp@1900000000;
+	/delete-node/opp-2000000000;
+	/delete-node/opp-1900000000;
 };
 
 &cluster_a7_opp_table {
-	/delete-node/opp@1400000000;
+	/delete-node/opp-1500000000;
+	/delete-node/opp-1400000000;
 };
 
 &pwm {
@@ -43,5 +44,5 @@
 };
 
 &usbdrd_dwc3_1 {
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 };

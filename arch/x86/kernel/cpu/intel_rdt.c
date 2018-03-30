@@ -525,10 +525,6 @@ static void domain_remove_cpu(int cpu, struct rdt_resource *r)
 		 */
 		if (static_branch_unlikely(&rdt_mon_enable_key))
 			rmdir_mondata_subdir_allrdtgrp(r, d->id);
-		kfree(d->ctrl_val);
-		kfree(d->rmid_busy_llc);
-		kfree(d->mbm_total);
-		kfree(d->mbm_local);
 		list_del(&d->list);
 		if (is_mbm_enabled())
 			cancel_delayed_work(&d->mbm_over);
@@ -545,6 +541,10 @@ static void domain_remove_cpu(int cpu, struct rdt_resource *r)
 			cancel_delayed_work(&d->cqm_limbo);
 		}
 
+		kfree(d->ctrl_val);
+		kfree(d->rmid_busy_llc);
+		kfree(d->mbm_total);
+		kfree(d->mbm_local);
 		kfree(d);
 		return;
 	}
@@ -771,7 +771,7 @@ static __init void rdt_quirks(void)
 			cache_alloc_hsw_probe();
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
-		if (boot_cpu_data.x86_mask <= 4)
+		if (boot_cpu_data.x86_stepping <= 4)
 			set_rdt_options("!cmt,!mbmtotal,!mbmlocal,!l3cat");
 	}
 }
