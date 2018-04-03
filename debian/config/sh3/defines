@@ -1,4 +1,0 @@
-[base]
-kernel-arch: sh
-featuresets:
-# empty; just building headers yet
