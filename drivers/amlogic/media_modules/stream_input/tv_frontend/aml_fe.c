@@ -512,6 +512,7 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	char *name = NULL;
 	u32 value;
 	int ret;
+	struct device_node *node;
 
 	dev->man    = man;
 	dev->dev_id = id;
@@ -561,14 +562,15 @@ static int aml_fe_dev_init(struct aml_fe_man *man,
 	}
 	/*get i2c adap and i2c addr*/
 	memset(buf, 0, 128);
-	name = "i2c_adap_id";
+	name = "i2c_adap";
 	aml_fe_property_name(dev, name, buf);
 	pr_dbg("get u32: %s\n", buf);
-	ret = aml_fe_of_property_u32(dev, buf, &value);
-	if (!ret) {
-		dev->i2c_adap_id = value;
-		dev->i2c_adap = i2c_get_adapter(value);
-		pr_inf("%s: %d[%p]\n", buf, dev->i2c_adap_id, dev->i2c_adap);
+	//ret = aml_fe_of_property_u32(dev, buf, &value);
+	node = of_parse_phandle(dev->man->pdev->dev.of_node, buf, 0);
+	if (node) {
+		dev->i2c_adap = of_find_i2c_adapter_by_node(node);
+		pr_inf("%s:[%p]\n", buf, dev->i2c_adap);
+		of_node_put(node);
 	} else {
 		dev->i2c_adap_id = -1;
 		pr_error("cannot find resource \"%s\"\n", buf);
