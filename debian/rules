@@ -111,6 +111,5 @@ debian/control-real: debian/bin/gencontrol.py $(CONTROL_FILES)
 	@echo ignore the following error, the debian/control file has
 	@echo been generated SUCCESSFULLY.
 	@echo
-	exit 1
 
 .PHONY: clean build setup binary-indep binary-arch binary
