@@ -20,6 +20,9 @@ ifneq (,$(filter pkg.linux.notools,$(DEB_BUILD_PROFILES)))
   MAKEFLAGS += DO_TOOLS=False
 endif
 
+MAKEFLAGS += DO_DOCS=False
+MAKEFLAGS += DO_LIBC=False
+
 .NOTPARALLEL:
 
 source: debian/control
