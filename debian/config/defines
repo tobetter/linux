@@ -70,7 +70,7 @@ ignore-changes:
 arches:
  arm64
  armhf
-compiler: gcc-7
+compiler: gcc-6
 featuresets:
  none
  rt
@@ -93,7 +93,7 @@ recommends: apparmor
 
 [relations]
 # compilers
-gcc-7: gcc-7 <!stage1 !cross>, gcc-7-@gnu-type-package@ <!stage1 cross>
+gcc-6: gcc-6 <!stage1 !cross>, gcc-6-@gnu-type-package@ <!stage1 cross>
 
 # initramfs-generators
 initramfs-fallback: linux-initramfs-tool
