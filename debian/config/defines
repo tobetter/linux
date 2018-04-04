@@ -76,7 +76,7 @@ featuresets:
  rt
 
 [build]
-debug-info: true
+debug-info: false
 # Disable module signing for now
 signed-modules: false
 
