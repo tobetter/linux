@@ -1,7 +1,6 @@
 [base]
 flavours:
- armmp
- armmp-lpae
+ odroid-armmp
 kernel-arch: arm
 
 [build]
@@ -25,3 +24,9 @@ hardware: ARMv7 multiplatform compatible SoCs supporting LPAE
 hardware-long: ARMv7 multiplatform kernel supporting LPAE. See
   https://wiki.debian.org/DebianKernel/ARMMP for details of supported
   platforms.
+
+[odroid-armmp_description]
+hardware: ARMv7 multiplatform compatible SoCs
+hardware-long: ARMv7 multiplatform kernel. See
+  https://wiki.debian.org/DebianKernel/ARMMP for details of supported
+  platforms
