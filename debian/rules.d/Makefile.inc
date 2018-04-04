@@ -9,9 +9,7 @@ CC = $(CROSS_COMPILE)gcc
 CXX = $(CROSS_COMPILE)g++
 CFLAGS := $(shell dpkg-buildflags --get CFLAGS) -Wall
 CPPFLAGS := $(shell dpkg-buildflags --get CPPFLAGS) \
-	-I$(top_srcdir)/$(OUTDIR) \
-	-I$(top_srcdir)/debian/build/build-tools/$(OUTDIR) \
-	-isystem $(top_srcdir)/debian/build/build-tools/include
+	-I$(top_srcdir)/$(OUTDIR)
 CXXFLAGS := $(shell dpkg-buildflags --get CXXFLAGS) -Wall
 LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
 

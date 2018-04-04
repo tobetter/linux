@@ -3,8 +3,7 @@ DATA = \
 	Makefile \
 
 SUBDIRS = \
-	scripts \
-	tools
+	scripts
 
 include $(top_rulesdir)/Makefile.inc
 

@@ -82,9 +82,6 @@ ifneq ($(DO_TOOLS),False)
       binary-arch-arch: install-perf
     endif
   endif
-  ifneq ($(filter i386 amd64 x32,$(DEB_HOST_ARCH)),)
-    binary-arch-arch: install-hyperv-daemons
-  endif
   binary-indep: install-lockdep
 endif
 
@@ -106,7 +103,7 @@ cp -al $(filter-out debian .pc .svk .svn .git, $(wildcard * .[^.]*)) '$(1)'
 endef
 
 $(BUILD_DIR)/$(SOURCE_PACKAGE_NAME)-source-$(UPSTREAMVERSION).tar.xz: DIR = $(BUILD_DIR)/$(SOURCE_PACKAGE_NAME)-source-$(UPSTREAMVERSION)
-$(BUILD_DIR)/$(SOURCE_PACKAGE_NAME)-source-$(UPSTREAMVERSION).tar.xz: $(STAMPS_DIR)/source
+$(BUILD_DIR)/$(SOURCE_PACKAGE_NAME)-source-$(UPSTREAMVERSION).tar.xz:
 	rm -rf '$@' '$(DIR)'
 	$(call copy_source,$(DIR))
 	chmod -R u+rw,go=rX '$(DIR)'
@@ -130,27 +127,17 @@ $(BUILD_DIR)/linux-patch-$(UPSTREAMVERSION)-%.patch.xz: $(STAMPS_DIR)/source_non
 	xz -c >$@ ||							\
 	(rm -f $@; exit 1)
 
-define patch_cmd
-cd '$(DIR)' && QUILT_PATCHES='$(CURDIR)/debian/patches' QUILT_SERIES=series-$(1) QUILT_PC=.pc quilt push --quiltrc - -a -q --fuzz=0
-endef
-
-$(STAMPS_DIR)/source:
-	test -d .pc
-	set +e; QUILT_PC=.pc quilt unapplied --quiltrc - >/dev/null && echo 'Patch series not fully applied'; test $$? -eq 1
-	@$(stamp)
-
 $(STAMPS_DIR)/source_%: SOURCE_DIR=$(BUILD_DIR)/source
 $(STAMPS_DIR)/source_%: DIR=$(BUILD_DIR)/source_$*
 $(STAMPS_DIR)/source_%: $(STAMPS_DIR)/source
 	mkdir -p '$(BUILD_DIR)'
 	rm -rf '$(DIR)'
 	$(call copy_source,$(DIR))
-	$(call patch_cmd,$*)
 	@$(stamp)
 .PRECIOUS: $(STAMPS_DIR)/source_%
 
 $(STAMPS_DIR)/source_none: DIR=$(BUILD_DIR)/source_none
-$(STAMPS_DIR)/source_none: $(STAMPS_DIR)/source
+$(STAMPS_DIR)/source_none:
 	mkdir -p '$(BUILD_DIR)'
 	rm -f '$(DIR)'
 	ln -s '$(CURDIR)' '$(DIR)'
@@ -188,11 +175,10 @@ $(STAMPS_DIR)/build_$(ARCH)_$(FEATURESET)_$(FLAVOUR): $(STAMPS_DIR)/setup_$(ARCH
 
 $(STAMPS_DIR)/build_$(ARCH)_$(FEATURESET)_$(FLAVOUR):
 	+$(MAKE_CLEAN) -C '$(DIR)'
-	debian/bin/buildcheck.py $(DIR) $(ARCH) $(FEATURESET) $(FLAVOUR)
 	@$(stamp)
 
 $(STAMPS_DIR)/build-doc: DIR=$(BUILD_DIR)/build-doc
-$(STAMPS_DIR)/build-doc: $(STAMPS_DIR)/source
+$(STAMPS_DIR)/build-doc:
 ifeq (,$(filter nodoc,$(DEB_BUILD_PROFILES)))
 	mkdir -p '$(BUILD_DIR)'
 	rm -rf '$(DIR)'
@@ -390,7 +376,6 @@ install-support:
 	dh_prep
 	dh_installdirs $(PACKAGE_ROOT)/lib/python/debian_linux $(PACKAGE_ROOT)/modules
 	cp debian/config.defines.dump $(PACKAGE_DIR)$(PACKAGE_ROOT)
-	cp -R debian/installer $(PACKAGE_DIR)$(PACKAGE_ROOT)/installer
 	cp debian/lib/python/debian_linux/*.py $(PACKAGE_DIR)$(PACKAGE_ROOT)/lib/python/debian_linux
 	dh_python3
 	dh_link $(PACKAGE_ROOT) /usr/src/$(PACKAGE_NAME)
@@ -492,28 +477,6 @@ endif
 	mkdir -p $(DEBUG_DIR)/lib/modules/$(REAL_VERSION)
 	ln -s ../../../boot/vmlinux-$(REAL_VERSION) $(DEBUG_DIR)/lib/modules/$(REAL_VERSION)/vmlinux
 	+$(MAKE_SELF) install-base
-
-install-udeb_$(ARCH): export KW_DEFCONFIG_DIR=debian/installer
-install-udeb_$(ARCH): export KW_CONFIG_DIR=debian/installer/$(ARCH)
-install-udeb_$(ARCH): DH_OPTIONS=$(PACKAGE_NAMES:%=-p%)
-install-udeb_$(ARCH):
-	dh_testdir
-	dh_prep
-ifeq ($(UDEB_UNSIGNED_TEST_BUILD),True)
-# kernel-wedge doesn't expect a -unsigned suffix; work around that for now
-	while read flavour; do \
-		rm -f debian/linux-image-$(ABINAME)-$$flavour; \
-		ln -s linux-image-$(ABINAME)-$$flavour-unsigned \
-			debian/linux-image-$(ABINAME)-$$flavour; \
-	done < <(awk '!/^#/ { print $$3 }' $(KW_CONFIG_DIR)/kernel-versions)
-endif
-	kernel-wedge install-files $(ABINAME)
-	kernel-wedge check $(PACKAGE_NAMES)
-	dh_fixperms
-ifeq ($(UDEB_UNSIGNED_TEST_BUILD),False)
-	dh_gencontrol
-	dh_builddeb
-endif
 
 install-source: PACKAGE_NAME = $(SOURCE_PACKAGE_NAME)-source-$(VERSION)
 install-source: DH_OPTIONS = -p$(PACKAGE_NAME)
@@ -641,39 +604,6 @@ endif
 	VERSION=$$(sed -ne 's,^#define PACKAGE_VERSION "\(.*\)"$$,\1,p' $(BUILD_DIR)/build-tools/tools/usb/usbip/config.h) && \
 	test -n "$$VERSION" -a -n "$(DEB_VERSION)" && \
 	dh_gencontrol -- -v$$VERSION+$(DEB_VERSION)
-	dh_md5sums
-	dh_builddeb
-
-install-hyperv-daemons: PACKAGE_NAME = hyperv-daemons
-install-hyperv-daemons: DH_OPTIONS = -p$(PACKAGE_NAME)
-install-hyperv-daemons: DIR = $(CURDIR)/debian/$(PACKAGE_NAME)
-install-hyperv-daemons: $(STAMPS_DIR)/build-tools
-	dh_testdir
-	dh_testroot
-	dh_prep
-	$(call make-tools,tools/hv) install DESTDIR=$(DIR)
-	dh_install
-	for service in fcopy kvp vss; do \
-		install -D -m755 debian/hyperv-daemons.hv-$$service-daemon.init \
-			$(DIR)/etc/init.d/hyperv-daemons.hv-$$service-daemon \
-			|| break; \
-	done
-	dh_installchangelogs
-	dh_installdocs
-	dh_systemd_enable
-	for service in fcopy kvp vss; do \
-		dh_installinit --name hyperv-daemons.hv-$$service-daemon \
-			--onlyscripts \
-			|| break; \
-	done
-	dh_systemd_start
-	dh_lintian
-	dh_strip
-	dh_compress
-	dh_fixperms
-	dh_installdeb
-	dh_shlibdeps
-	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
 

@@ -76,9 +76,6 @@ class Gencontrol(Base):
             'SOURCEVERSION': self.version.complete,
         })
 
-        # Prepare to generate debian/tests/control
-        self.tests_control = None
-
     def do_main_makefile(self, makefile, makeflags, extra):
         fs_enabled = [featureset
                       for featureset in self.config['base', ]['featuresets']
@@ -115,14 +112,6 @@ class Gencontrol(Base):
 
     def do_main_packages(self, packages, vars, makeflags, extra):
         packages.extend(self.process_packages(self.templates["control.main"], self.vars))
-        if self.config.merge('packages').get('docs', True):
-            packages.extend(self.process_packages(self.templates["control.docs"], self.vars))
-        if self.config.merge('packages').get('tools', True):
-            packages.extend(self.process_packages(self.templates["control.tools"], self.vars))
-
-        self._substitute_file('perf.lintian-overrides', self.vars,
-                              'debian/linux-perf-%s.lintian-overrides' %
-                              self.vars['version'])
 
     def do_indep_featureset_setup(self, vars, makeflags, featureset, extra):
         makeflags['LOCALVERSION'] = vars['localversion']
@@ -253,18 +242,6 @@ class Gencontrol(Base):
 
                 if not test_build:
                     merge_packages(packages, udeb_packages, arch)
-
-                # These packages must be built after the per-flavour/
-                # per-featureset packages.  Also, this won't work
-                # correctly with an empty package list.
-                if udeb_packages:
-                    makefile.add(
-                        'binary-arch_%s' % arch,
-                        cmds=["$(MAKE) -f debian/rules.real install-udeb_%s %s "
-                              "PACKAGE_NAMES='%s' UDEB_UNSIGNED_TEST_BUILD=%s" %
-                              (arch, makeflags,
-                               ' '.join(p['Package'] for p in udeb_packages),
-                               test_build)])
 
     def do_featureset_setup(self, vars, makeflags, arch, featureset, extra):
         config_base = self.config.merge('base', arch, featureset)
@@ -417,21 +394,7 @@ class Gencontrol(Base):
             else:
                 raise RuntimeError('Unable to disable debug infos in release build (DEBIAN_KERNEL_DISABLE_DEBUG set)')
 
-        if build_debug:
-            makeflags['DEBUG'] = True
-            packages_own.extend(self.process_packages(self.templates['control.image-dbg'], vars))
-
         merge_packages(packages, packages_own + packages_dummy, arch)
-
-        tests_control = self.process_package(
-            self.templates['tests-control.main'][0], vars)
-        tests_control['Depends'].append(
-            PackageRelationGroup(image_main['Package'],
-                                 override_arches=(arch,)))
-        if self.tests_control:
-            self.tests_control['Depends'].extend(tests_control['Depends'])
-        else:
-            self.tests_control = tests_control
 
         def get_config(*entry_name):
             entry_real = ('image',) + entry_name
@@ -500,12 +463,6 @@ class Gencontrol(Base):
         for name in ['postinst', 'postrm', 'preinst', 'prerm']:
             self._substitute_file('image.%s' % name, vars,
                                   'debian/%s.%s' % (image_main['Package'], name))
-        if build_debug:
-            debug_lintian_over = ('debian/linux-image-%s%s-dbg.lintian-overrides' %
-                                  (vars['abiname'], vars['localversion']))
-            self._substitute_file('image-dbg.lintian-overrides', vars,
-                                  debug_lintian_over)
-            os.chmod(debug_lintian_over, 0o755)
 
     def process_changelog(self):
         act_upstream = self.changelog[0].version.upstream
@@ -567,16 +524,11 @@ class Gencontrol(Base):
     def write(self, packages, makefile):
         self.write_config()
         super(Gencontrol, self).write(packages, makefile)
-        self.write_tests_control()
 
     def write_config(self):
         f = open("debian/config.defines.dump", 'wb')
         self.config.dump(f)
         f.close()
-
-    def write_tests_control(self):
-        self.write_rfc822(open("debian/tests/control", 'w'),
-                          [self.tests_control])
 
 if __name__ == '__main__':
     Gencontrol()()
