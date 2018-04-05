@@ -1,0 +1,32 @@
+##
+## file: certs/Kconfig
+##
+#. Certificate paths are resolved relative to debian/build/source_rt
+CONFIG_SYSTEM_TRUSTED_KEYS="../../certs/benh@debian.org.cert.pem"
+
+##
+## file: kernel/Kconfig.preempt
+##
+## choice: Preemption Model
+# CONFIG_PREEMPT_VOLUNTARY is not set
+CONFIG_PREEMPT_RT_FULL=y
+## end choice
+
+##
+## file: kernel/rcu/Kconfig
+##
+CONFIG_RCU_EXPERT=y
+
+##
+## file: kernel/trace/Kconfig
+##
+CONFIG_SCHED_TRACER=y
+CONFIG_HWLAT_TRACER=y
+
+##
+## file: unknown
+##
+#. Dropped between 4.9 and 4.11, but might come back
+CONFIG_MISSED_TIMER_OFFSETS_HIST=y
+CONFIG_WAKEUP_LATENCY_HIST=y
+

@@ -1,0 +1,4 @@
+[base]
+flavours:
+ arm64
+ odroid-arm64
