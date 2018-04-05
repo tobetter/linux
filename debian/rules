@@ -20,6 +20,7 @@ ifneq (,$(filter pkg.linux.notools,$(DEB_BUILD_PROFILES)))
   MAKEFLAGS += DO_TOOLS=False
 endif
 
+MAKEFLAGS += DO_TOOLS=False
 MAKEFLAGS += DO_DOCS=False
 MAKEFLAGS += DO_LIBC=False
 
