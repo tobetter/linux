@@ -4,7 +4,7 @@ Maintainer: Debian Kernel Team <debian-kernel@lists.debian.org>
 Uploaders: Bastian Blank <waldi@debian.org>, maximilian attems <maks@debian.org>, Ben Hutchings <ben@decadent.org.uk>, Salvatore Bonaccorso <carnil@debian.org>
 Standards-Version: 4.1.1
 Build-Depends:
- debhelper (>= 10.1~), dh-exec,
+ debhelper (>= 9.0~), dh-exec,
 # used to run debian/bin/*.py
  python3:any,
 # used by debian/rules.real to prepare the source
@@ -24,7 +24,7 @@ Build-Depends-Arch:
  bc <!stage1>,
 # used by upstream to build signing tools and to process certificates
  libssl-dev:native <!stage1>, libssl-dev <!stage1 !pkg.linux.notools cross>,
- openssl (>= 1.1.0-1~) <!stage1>,
+ openssl (>= 1.0.2g) <!stage1>,
 # used by upstream to build perf documentation
  asciidoc-base <!stage1 !nodoc !pkg.linux.notools>,
  xmlto <!stage1 !nodoc !pkg.linux.notools>,
