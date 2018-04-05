@@ -1,0 +1,6 @@
+linux (3.16.56-0) unstable; urgency=medium
+
+  * Initiate the build for Hardkernel's SBC ODROID
+
+ -- Dongjin Kim <tobetter@gmail.com>  Wed, 04 Apr 2018 20:26:39 -0400
+
