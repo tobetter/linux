@@ -431,10 +431,10 @@ class Gencontrol(Base):
             return check_config_files(configs)
 
         kconfig = check_config('config', True)
-        kconfig.extend(check_config("kernelarch-%s/config" % config_entry_base['kernel-arch'], False))
+        #kconfig.extend(check_config("kernelarch-%s/config" % config_entry_base['kernel-arch'], False))
         kconfig.extend(check_config("%s/config" % arch, True, arch))
         kconfig.extend(check_config("%s/config.%s" % (arch, flavour), False, arch, None, flavour))
-        kconfig.extend(check_config("featureset-%s/config" % featureset, False, None, featureset))
+        #kconfig.extend(check_config("featureset-%s/config" % featureset, False, None, featureset))
         kconfig.extend(check_config("%s/%s/config" % (arch, featureset), False, arch, featureset))
         kconfig.extend(check_config("%s/%s/config.%s" % (arch, featureset, flavour), False, arch, featureset, flavour))
         makeflags['KCONFIG'] = ' '.join(kconfig)
