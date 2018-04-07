@@ -69,7 +69,6 @@ ignore-changes:
 [base]
 arches:
  arm64
- armhf
 compiler: gcc-6
 featuresets:
  none

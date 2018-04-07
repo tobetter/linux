@@ -254,14 +254,14 @@ install-manual: $(STAMPS_DIR)/build-doc
 		xargs dh_installman
 	+$(MAKE_SELF) install-base
 
-install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(ABINAME)-all linux-headers-$(ABINAME)-all-$(ARCH)
+install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(ABINAME)-all-odroid linux-headers-$(ABINAME)-all-odroid-$(ARCH)
 install-headers_$(ARCH): DH_OPTIONS = $(foreach p, $(PACKAGE_NAMES), -p$(p))
 install-headers_$(ARCH):
 	dh_testdir
 	dh_testroot
 	+$(MAKE_SELF) install-base GENCONTROL_ARGS='-Vkernel:Arch=$(ARCH)'
 
-install-common-headers_$(FEATURESET): PACKAGE_NAME = linux-headers-$(ABINAME)-common$(LOCALVERSION)
+install-common-headers_$(FEATURESET): PACKAGE_NAME = linux-headers-$(ABINAME)-common-odroid$(LOCALVERSION)
 install-common-headers_$(FEATURESET): PACKAGE_NAME_KBUILD = linux-kbuild-$(VERSION)
 install-common-headers_$(FEATURESET): DH_OPTIONS = -p$(PACKAGE_NAME)
 install-common-headers_$(FEATURESET): BASE_DIR = /usr/src/$(PACKAGE_NAME)
@@ -293,7 +293,7 @@ install-common-headers_$(FEATURESET): $(STAMPS_DIR)/source_$(FEATURESET)
 
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(ABINAME)$(LOCALVERSION)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME = linux-headers-$(REAL_VERSION)
-install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_COMMON = linux-headers-$(ABINAME)-common$(LOCALVERSION_HEADERS)
+install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_COMMON = linux-headers-$(ABINAME)-common-odroid$(LOCALVERSION_HEADERS)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_KBUILD = linux-kbuild-$(VERSION)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): DH_OPTIONS = -p$(PACKAGE_NAME)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): BASE_DIR = /usr/src/$(PACKAGE_NAME)
@@ -366,7 +366,7 @@ install-libc-dev_$(ARCH):
 
 	+$(MAKE_SELF) install-base
 
-install-support: PACKAGE_NAME = $(SOURCE_PACKAGE_NAME)-support-$(ABINAME)
+install-support: PACKAGE_NAME = $(SOURCE_PACKAGE_NAME)-support-$(ABINAME)-odroid
 install-support: DH_OPTIONS = -p$(PACKAGE_NAME)
 install-support: PACKAGE_DIR = debian/$(PACKAGE_NAME)
 install-support: PACKAGE_ROOT = /usr/share/$(PACKAGE_NAME)
