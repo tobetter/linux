@@ -1,3 +1,9 @@
+linux (4.16.0-0) unstable; urgency=medium
+
+  * Upstream Linux kernel release 4.16
+
+ -- Dongjin Kim <tobetter@gmail.com>  Sat, 07 Apr 2018 01:47:40 +0000
+
 linux (4.16~rc5-0) unstable; urgency=medium
 
   * Initiate the build for Hardkernel's SBC ODROID
