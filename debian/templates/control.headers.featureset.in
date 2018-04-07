@@ -1,4 +1,4 @@
-Package: linux-headers-@abiname@-common@localversion@
+Package: linux-headers-@abiname@-common-odroid@localversion@
 Build-Profiles: <!stage1>
 Architecture: all
 Depends: ${misc:Depends}

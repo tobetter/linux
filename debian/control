@@ -27,7 +27,7 @@ Description: Linux kernel source for version 4.16 with Debian patches
 Build-Profiles: <!stage1>
 Multi-Arch: foreign
 
-Package: linux-support-4.16.0-1
+Package: linux-support-4.16.0-1-odroid
 Architecture: all
 Section: devel
 Depends: ${python3:Depends}, ${misc:Depends}
@@ -38,7 +38,7 @@ Description: Support files for Linux 4.16
 Build-Profiles: <!stage1>
 Multi-Arch: foreign
 
-Package: linux-headers-4.16.0-1-common
+Package: linux-headers-4.16.0-1-common-odroid
 Architecture: all
 Depends: ${misc:Depends}
 Description: Common header files for Linux 4.16.0-1
@@ -61,16 +61,16 @@ Description: Linux support headers for userspace development
  libraries.
 Multi-Arch: same
 
-Package: linux-headers-4.16.0-1-all
+Package: linux-headers-4.16.0-1-all-odroid
 Architecture: arm64 armhf
-Depends: linux-headers-4.16.0-1-all-${kernel:Arch} (= ${binary:Version}), ${misc:Depends}
+Depends: linux-headers-4.16.0-1-all-odroid-${kernel:Arch} (= ${binary:Version}), ${misc:Depends}
 Description: All header files for Linux 4.16 (meta-package)
  This package depends against all architecture-specific kernel header files
  for Linux kernel version 4.16, generally used for building out-of-tree
  kernel modules.
 Build-Profiles: <!stage1>
 
-Package: linux-headers-4.16.0-1-all-arm64
+Package: linux-headers-4.16.0-1-all-odroid-arm64
 Architecture: arm64
 Depends: ${misc:Depends}, linux-headers-4.16.0-1-arm64 (= ${binary:Version}), linux-headers-4.16.0-1-odroid-arm64 (= ${binary:Version})
 Description: All header files for Linux 4.16 (meta-package)
@@ -91,14 +91,14 @@ Build-Profiles: <!stage1>
 
 Package: linux-headers-4.16.0-1-arm64
 Architecture: arm64
-Depends: linux-headers-4.16.0-1-common (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
+Depends: linux-headers-4.16.0-1-common-odroid (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
 Description: Header files for Linux 4.16.0-1-arm64
  This package provides the architecture-specific kernel header files for
  Linux kernel 4.16.0-1-arm64, generally used for building out-of-tree
  kernel modules.  These files are going to be installed into
  /usr/src/linux-headers-4.16.0-1-arm64, and can be used for building
- modules that load into the kernel provided by the
- linux-image-4.16.0-1-arm64 package.
+ modules that load into the kernel provided by the linux-image-4.16.0-1--
+ arm64 package.
 Build-Profiles: <!stage1>
 
 Package: linux-image-4.16.0-1-odroid-arm64
@@ -115,17 +115,17 @@ Build-Profiles: <!stage1>
 
 Package: linux-headers-4.16.0-1-odroid-arm64
 Architecture: arm64
-Depends: linux-headers-4.16.0-1-common (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
+Depends: linux-headers-4.16.0-1-common-odroid (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
 Description: Header files for Linux 4.16.0-1-odroid-arm64
  This package provides the architecture-specific kernel header files for
  Linux kernel 4.16.0-1-odroid-arm64, generally used for building
  out-of-tree kernel modules.  These files are going to be installed into
  /usr/src/linux-headers-4.16.0-1-odroid-arm64, and can be used for building
- modules that load into the kernel provided by the
- linux-image-4.16.0-1-odroid-arm64 package.
+ modules that load into the kernel provided by the linux-image-4.16.0-1--
+ odroid-arm64 package.
 Build-Profiles: <!stage1>
 
-Package: linux-headers-4.16.0-1-all-armhf
+Package: linux-headers-4.16.0-1-all-odroid-armhf
 Architecture: armhf
 Depends: ${misc:Depends}, linux-headers-4.16.0-1-odroid-armmp (= ${binary:Version})
 Description: All header files for Linux 4.16 (meta-package)
@@ -148,13 +148,13 @@ Build-Profiles: <!stage1>
 
 Package: linux-headers-4.16.0-1-odroid-armmp
 Architecture: armhf
-Depends: linux-headers-4.16.0-1-common (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, linux-compiler-gcc-6-arm
+Depends: linux-headers-4.16.0-1-common-odroid (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, linux-compiler-gcc-6-arm
 Description: Header files for Linux 4.16.0-1-odroid-armmp
  This package provides the architecture-specific kernel header files for
  Linux kernel 4.16.0-1-odroid-armmp, generally used for building
  out-of-tree kernel modules.  These files are going to be installed into
  /usr/src/linux-headers-4.16.0-1-odroid-armmp, and can be used for building
- modules that load into the kernel provided by the
- linux-image-4.16.0-1-odroid-armmp package.
+ modules that load into the kernel provided by the linux-image-4.16.0-1--
+ odroid-armmp package.
 Build-Profiles: <!stage1>
 
