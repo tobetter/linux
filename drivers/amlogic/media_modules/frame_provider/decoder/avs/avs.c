@@ -14,6 +14,7 @@
  * more details.
  *
  */
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -1102,7 +1103,7 @@ static int vavs_prot_init(void)
 
 #ifdef ENABLE_USER_DATA
 	WRITE_VREG(AV_SCRATCH_N, (u32)(user_data_buffer_phys - buf_offset));
-	pr_info("AV_SCRATCH_N = 0x%x\n", READ_VREG(AV_SCRATCH_N));
+	pr_debug("AV_SCRATCH_N = 0x%x\n", READ_VREG(AV_SCRATCH_N));
 #endif
 
 	return r;
@@ -1517,7 +1518,7 @@ static s32 vavs_init(void)
 	}
 
 	if (size == 1)
-		pr_info ("tee load ok");
+		pr_info("tee load ok\n");
 
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
 		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_gxm", buf);
@@ -1641,7 +1642,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 				   __func__);
 			return -ENOMEM;
 		}
-		pr_info("user_data_buffer = 0x%p, user_data_buffer_phys = 0x%x\n",
+		pr_debug("user_data_buffer = 0x%p, user_data_buffer_phys = 0x%x\n",
 			user_data_buffer, (u32)user_data_buffer_phys);
 	}
 #endif
@@ -1749,9 +1750,9 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 		mm_blk_handle = NULL;
 	}
 #ifdef DEBUG_PTS
-	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", pts_hit,
+	pr_debug("pts hit %d, pts missed %d, i hit %d, missed %d\n", pts_hit,
 		   pts_missed, pts_i_hit, pts_i_missed);
-	pr_info("total frame %d, avi_flag %d, rate %d\n", total_frame, avi_flag,
+	pr_debug("total frame %d, avi_flag %d, rate %d\n", total_frame, avi_flag,
 		   vavs_amstream_dec_info.rate);
 #endif
 	kfree(gvs);
