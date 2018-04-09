@@ -14,7 +14,7 @@
  * more details.
  *
  */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -1057,7 +1057,7 @@ static s32 vvc1_init(void)
 	}
 
 	if (size == 1)
-		pr_info ("tee load ok");
+		pr_info("tee load ok\n");
 	else if (amvdec_loadmc_ex(VFORMAT_VC1, NULL, buf) < 0) {
 		amvdec_disable();
 		vfree(buf);
@@ -1180,9 +1180,9 @@ static int amvdec_vc1_remove(struct platform_device *pdev)
 	}
 
 #ifdef DEBUG_PTS
-	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", pts_hit,
+	pr_debug("pts hit %d, pts missed %d, i hit %d, missed %d\n", pts_hit,
 		pts_missed, pts_i_hit, pts_i_missed);
-	pr_info("total frame %d, avi_flag %d, rate %d\n",
+	pr_debug("total frame %d, avi_flag %d, rate %d\n",
 		total_frame, avi_flag,
 		vvc1_amstream_dec_info.rate);
 #endif

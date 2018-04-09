@@ -49,6 +49,7 @@
 /*#define TEST_NO_BUF*/
 /*#define HEVC_PIC_STRUCT_SUPPORT*/
 #define MULTI_INSTANCE_SUPPORT
+#define USE_UNINIT_SEMA
 
 			/* .buf_size = 0x100000*16,
 			//4k2k , 0x100000 per buffer */
@@ -8501,7 +8502,7 @@ static int h265_task_handle(void *data)
 			hevc_print(hevc, 0, "uninit list\n");
 			hevc->uninit_list = 0;
 #ifdef USE_UNINIT_SEMA
-			if (use_cma)
+			if (use_cma && hevc->init_flag)
 				up(&hevc->h265_uninit_done_sema);
 #endif
 		}
@@ -9024,8 +9025,10 @@ static int vh265_stop(struct hevc_state_s *hevc)
 		hevc->uninit_list = 1;
 		up(&h265_sema);
 #ifdef USE_UNINIT_SEMA
-		ret = down_interruptible(
-			&hevc->h265_uninit_done_sema);
+		if (hevc->init_flag) {
+			ret = down_interruptible(
+				&hevc->h265_uninit_done_sema);
+		}
 #else
 		while (hevc->uninit_list)	/* wait uninit complete */
 			msleep(20);
@@ -9139,8 +9142,10 @@ static int vmh265_stop(struct hevc_state_s *hevc)
 		reset_process_time(hevc);
 		vdec_schedule_work(&hevc->work);
 #ifdef USE_UNINIT_SEMA
-		ret = down_interruptible(
-			&hevc->h265_uninit_done_sema);
+		if (hevc->init_flag) {
+			ret = down_interruptible(
+				&hevc->h265_uninit_done_sema);
+		}
 #else
 		while (hevc->uninit_list)	/* wait uninit complete */
 			msleep(20);
@@ -9229,8 +9234,9 @@ static void vh265_work(struct work_struct *work)
 		hevc_print(hevc, 0, "uninit list\n");
 		hevc->uninit_list = 0;
 #ifdef USE_UNINIT_SEMA
-		if (use_cma)
+		if (use_cma && hevc->init_flag) {
 			up(&hevc->h265_uninit_done_sema);
+		}
 #endif
 		return;
 	}
