@@ -2675,6 +2675,7 @@ struct dentry *d_ancestor(struct dentry *p1, struct dentry *p2)
 	}
 	return NULL;
 }
+EXPORT_SYMBOL(d_ancestor);
 
 /*
  * This helper attempts to cope with remotely renamed directories
