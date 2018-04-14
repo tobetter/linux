@@ -254,7 +254,7 @@ install-manual: $(STAMPS_DIR)/build-doc
 		xargs dh_installman
 	+$(MAKE_SELF) install-base
 
-install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(ABINAME)-all-odroid linux-headers-$(ABINAME)-all-odroid-$(ARCH)
+install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(ABINAME)-all-odroid-$(ARCH)
 install-headers_$(ARCH): DH_OPTIONS = $(foreach p, $(PACKAGE_NAMES), -p$(p))
 install-headers_$(ARCH):
 	dh_testdir
