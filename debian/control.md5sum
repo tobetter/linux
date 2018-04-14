@@ -11,10 +11,10 @@
 98e8d13aac4c51cac444f38d263a7c47  debian/templates/control.headers.featureset.in
 a647b2e7ea5190752d692e6e1822b502  debian/templates/image.postinst.in
 de01de31a6895bc43a26f3de8c9056e2  debian/templates/control.headers.in
-91407c36910777920b0c49ad6e9790c9  debian/templates/control.headers.arch.in
+9965e92a6bb568b26e46a94a60f2e288  debian/templates/control.headers.arch.in
 22eab38b9f022b34704824bc29d610cb  debian/config/defines
 e878fd7de76fc8682386a2d58d2593dc  debian/config/armhf/defines
 c647648e5020ec7757bd8c1d5c0a0b91  debian/config/arm64/defines
 366b94d652a66b437eabcd165bcc9610  debian/config/featureset-rt/defines
 3e673c1434c6132c73c0cfb4bfe38763  debian/config/arm64ilp32/defines
-0092caa3795c07a33c92b3dff7a99835  debian/config/arm64/none/defines
+8a53594fca765602bb4c8d33acda34d5  debian/config/arm64/none/defines

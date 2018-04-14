@@ -61,44 +61,13 @@ Description: Linux support headers for userspace development
  libraries.
 Multi-Arch: same
 
-Package: linux-headers-4.16.1-all-odroid
-Architecture: arm64 armhf
-Depends: linux-headers-4.16.1-all-odroid-${kernel:Arch} (= ${binary:Version}), ${misc:Depends}
-Description: All header files for Linux 4.16 (meta-package)
- This package depends against all architecture-specific kernel header files
- for Linux kernel version 4.16.1, generally used for building out-of-tree
- kernel modules.
-Build-Profiles: <!stage1>
-
 Package: linux-headers-4.16.1-all-odroid-arm64
 Architecture: arm64
-Depends: ${misc:Depends}, linux-headers-4.16.1-arm64 (= ${binary:Version}), linux-headers-4.16.1-odroid-arm64 (= ${binary:Version})
+Depends: ${misc:Depends}, linux-headers-4.16.1-odroid-arm64 (= ${binary:Version})
 Description: All header files for Linux 4.16 (meta-package)
  This package depends against all architecture-specific kernel header files
  for Linux kernel version 4.16.1, generally used for building out-of-tree
  kernel modules.
-Build-Profiles: <!stage1>
-
-Package: linux-image-4.16.1-arm64
-Architecture: arm64
-Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}, initramfs-tools (>= 0.120+deb8u2) [arm64] | linux-initramfs-tool [arm64]
-Recommends: firmware-linux-free, ${kernel:Recommends}, apparmor [arm64]
-Suggests: linux-doc-4.16, debian-kernel-handbook
-Breaks: libmozjs185-1.0 [arm64], libmozjs-24-0 (<< 24.2.0-5.1~) [arm64], initramfs-tools (<< 0.120+deb8u2)
-Description: Linux 4.16.1 for 64-bit ARMv8 machines
- The Linux kernel 4.16.1 and modules for use on 64-bit ARMv8 machines.
-Build-Profiles: <!stage1>
-
-Package: linux-headers-4.16.1-arm64
-Architecture: arm64
-Depends: linux-headers-4.16.1-common-odroid (= ${source:Version}), linux-kbuild-4.16, ${misc:Depends}, gcc-6
-Description: Header files for Linux 4.16.1-arm64
- This package provides the architecture-specific kernel header files for
- Linux kernel 4.16.1-arm64, generally used for building out-of-tree kernel
- modules.  These files are going to be installed into
- /usr/src/linux-headers-4.16.1-arm64, and can be used for building modules
- that load into the kernel provided by the linux-image-4.16.1--arm64
- package.
 Build-Profiles: <!stage1>
 
 Package: linux-image-4.16.1-odroid-arm64
