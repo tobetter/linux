@@ -1,8 +1,10 @@
 linux (4.16.1-2) UNRELEASED; urgency=medium
 
   * [arm64] Update kernel configuration
+  * Fix the maintainer to 'Dongjin Kim <tobetter@gmail.com>'
+  * Fix kernel configuration to no use of auto localversion
 
- -- tobetter <tobetter@linuxfactory.or.kr>  Sun, 15 Apr 2018 04:47:50 -0400
+ -- Dongjin Kim <tobetter@gmail.com>  Sun, 15 Apr 2018 04:47:50 -0400
 
 linux (4.16.1-1) unstable; urgency=medium
 
