@@ -1,22 +1,8 @@
-linux (4.16.1-2) UNRELEASED; urgency=medium
-
-  * [arm64] Update kernel configuration
-  * Fix the maintainer to 'Dongjin Kim <tobetter@gmail.com>'
-  * Fix kernel configuration to no use of auto localversion
-
- -- Dongjin Kim <tobetter@gmail.com>  Sun, 15 Apr 2018 04:47:50 -0400
-
-linux (4.16.1-1) unstable; urgency=medium
-
-  * Upstream Linux kernel release 4.16.1
-
- -- Dongjin Kim <tobetter@gmail.com>  Fri, 13 Apr 2018 23:02:17 -0400
-
-linux (4.16.0-0) unstable; urgency=medium
+linux (4.17.0~rc1-1) unstable; urgency=medium
 
   * Upstream Linux kernel release 4.16
 
- -- Dongjin Kim <tobetter@gmail.com>  Sat, 07 Apr 2018 01:47:40 +0000
+ -- Dongjin Kim <tobetter@gmail.com>  Mon, 16 Apr 2018 14:23:24 -0400
 
 linux (4.16~rc5-0) unstable; urgency=medium
 
