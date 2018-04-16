@@ -8971,9 +8971,6 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 
 static int vh265_stop(struct hevc_state_s *hevc)
 {
-
-	hevc->init_flag = 0;
-
 	if (get_dbg_flag(hevc) &
 		H265_DEBUG_WAIT_DECODE_DONE_WHEN_STOP) {
 		int wait_timeout_count = 0;
@@ -9019,15 +9016,11 @@ static int vh265_stop(struct hevc_state_s *hevc)
 	hevc_local_uninit(hevc);
 
 	if (use_cma) {
-#ifdef USE_UNINIT_SEMA
-		int ret;
-#endif
 		hevc->uninit_list = 1;
 		up(&h265_sema);
 #ifdef USE_UNINIT_SEMA
 		if (hevc->init_flag) {
-			ret = down_interruptible(
-				&hevc->h265_uninit_done_sema);
+			down(&hevc->h265_uninit_done_sema);
 		}
 #else
 		while (hevc->uninit_list)	/* wait uninit complete */
@@ -9035,6 +9028,7 @@ static int vh265_stop(struct hevc_state_s *hevc)
 #endif
 
 	}
+	hevc->init_flag = 0;
 	uninit_mmu_buffers(hevc);
 	amhevc_disable();
 
@@ -9115,8 +9109,6 @@ static unsigned char is_new_pic_available(struct hevc_state_s *hevc)
 
 static int vmh265_stop(struct hevc_state_s *hevc)
 {
-	hevc->init_flag = 0;
-
 	if (hevc->stat & STAT_TIMER_ARM) {
 		del_timer_sync(&hevc->timer);
 		hevc->stat &= ~STAT_TIMER_ARM;
@@ -9135,22 +9127,19 @@ static int vmh265_stop(struct hevc_state_s *hevc)
 	hevc_local_uninit(hevc);
 
 	if (use_cma) {
-#ifdef USE_UNINIT_SEMA
-		int ret;
-#endif
 		hevc->uninit_list = 1;
 		reset_process_time(hevc);
 		vdec_schedule_work(&hevc->work);
 #ifdef USE_UNINIT_SEMA
 		if (hevc->init_flag) {
-			ret = down_interruptible(
-				&hevc->h265_uninit_done_sema);
+			down(&hevc->h265_uninit_done_sema);
 		}
 #else
 		while (hevc->uninit_list)	/* wait uninit complete */
 			msleep(20);
 #endif
 	}
+	hevc->init_flag = 0;
 	cancel_work_sync(&hevc->work);
 	cancel_work_sync(&hevc->notify_work);
 	uninit_mmu_buffers(hevc);
