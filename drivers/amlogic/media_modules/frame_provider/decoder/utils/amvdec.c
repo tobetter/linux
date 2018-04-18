@@ -375,95 +375,84 @@ static s32 amvdec_loadmc(const u32 *p)
 
 s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 {
-	s32 ret = 0;
+	s32 ret = -1;
+	unsigned int format = FIRMWARE_MAX;
+	unsigned int vdec = OPTEE_VDEC_LEGENCY;
 	char *name = __getname();
 
 	sprintf(name, "%s", fw_name ? fw_name : "null");
 
 	switch ((u32)type) {
 	case VFORMAT_VC1:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_VC1, 0);
+		format = VIDEO_DEC_VC1;
 		break;
 
 	case VFORMAT_AVS:
-		if (!strcmp(name, "avs_gxm"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS_GXM, 0);
-		else if (!strcmp(name, "avs_no_cabac"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS_NOCABAC, 0);
+		if (!strcmp(name, "avs_no_cabac"))
+			format = VIDEO_DEC_AVS_NOCABAC;
 		else
-			ret = tee_load_video_fw((u32)VIDEO_DEC_AVS, 0);
+			format = VIDEO_DEC_AVS;
 		break;
 
 	case VFORMAT_MPEG12:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG12, 0);
+		format = VIDEO_DEC_MPEG12;
 		break;
 
 	case VFORMAT_MJPEG:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG, 0);
+		format = VIDEO_DEC_MJPEG;
 		break;
 
 	case VFORMAT_VP9:
-		if (!strcmp(name, "vp9_mc_g12a"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_G12A, 2);
+		if (!strcmp(name, "vp9_mc"))
+			format = VIDEO_DEC_VP9;
 		else
-			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
+			format = VIDEO_DEC_VP9_MMU;
 		break;
 
 	case VFORMAT_AVS2:
-		ret = tee_load_video_fw((u32)VIDEO_DEC_AVS2_MMU, 2);
+		format = VIDEO_DEC_AVS2_MMU;
+		vdec = OPTEE_VDEC_HEVC;
 		break;
 
 	case VFORMAT_HEVC:
 		if (!strcmp(name, "vh265_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
-		else if (!strcmp(name, "vh265_mc_mmu"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
-		else if (!strcmp(name, "vh265_mc_g12a"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_G12A, 2);
+			format = VIDEO_DEC_HEVC;
+		else
+			format = VIDEO_DEC_HEVC_MMU;
 		break;
 
 	case VFORMAT_REAL:
 		if (!strcmp(name, "vreal_mc_8"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8, 0);
+			format = VIDEO_DEC_REAL_V8;
 		else if (!strcmp(name, "vreal_mc_9"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9, 0);
+			format = VIDEO_DEC_REAL_V9;
 		break;
 
 	case VFORMAT_MPEG4:
 		if (!strcmp(name, "vmpeg4_mc_311"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3, 0);
+			format = VIDEO_DEC_MPEG4_3;
 		else if (!strcmp(name, "vmpeg4_mc_4"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4, 0);
+			format = VIDEO_DEC_MPEG4_4;
 		else if (!strcmp(name, "vmpeg4_mc_5"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5, 0);
+			format = VIDEO_DEC_MPEG4_5;
 		else if (!strcmp(name, "h263_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263, 0);
+			format = VIDEO_DEC_FORMAT_H263;
 		break;
+
 	default:
 		if (!strcmp(name, "vh265_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
+			format = VIDEO_DEC_HEVC;
 		else if (!strcmp(name, "vh265_mc_mmu"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
-		else if (!strcmp(name, "vmpeg4_mc_311"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_3, 0);
-		else if (!strcmp(name, "vmpeg4_mc_4"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_4, 0);
-		else if (!strcmp(name, "vmpeg4_mc_5"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MPEG4_5, 0);
-		else if (!strcmp(name, "h263_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_FORMAT_H263, 0);
-		else if (!strcmp(name, "vreal_mc_8"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V8, 0);
-		else if (!strcmp(name, "vreal_mc_9"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_REAL_V9, 0);
+			format = VIDEO_DEC_HEVC_MMU;
 		else if (!strcmp(name, "vmmjpeg_mc"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_MJPEG_MULTI, 0);
-		else if (!strcmp(name, "vh265_mc_g12a"))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_G12A, 2);
+			format = VIDEO_DEC_MJPEG_MULTI;
 		else
 			pr_info("unknow dec format\n");
 		break;
 	}
+
+	if (format < FIRMWARE_MAX)
+		ret = tee_load_video_fw(format, vdec);
 
 	__putname(name);
 

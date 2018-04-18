@@ -8057,10 +8057,12 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 		pr_debug ("laod\n");
 	} else
 #endif
+
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-		size = get_firmware_data(VIDEO_DEC_VP9_G12A, fw->data);
+		size = get_firmware_data(VIDEO_DEC_VP9, fw->data);
 	else
 		size = get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data);
+
 	if (size < 0) {
 		pr_err("get firmware fail.\n");
 		vfree(fw);
@@ -8096,7 +8098,7 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 	if (size == 1) {
 		pr_info ("tee load ok\n");
 		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_G12A, 2);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9, 0);
 		else
 			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
 	} else
@@ -8824,8 +8826,7 @@ static void run_front(struct vdec_s *vdec)
 	}
 
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-		ret = amhevc_loadmc_ex(VFORMAT_VP9,
-				"vp9_mc_g12a", pbi->fw->data);
+		ret = amhevc_loadmc_ex(VFORMAT_VP9, "vp9_mc", pbi->fw->data);
 	else
 		ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
 

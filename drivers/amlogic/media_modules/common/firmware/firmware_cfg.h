@@ -16,27 +16,17 @@
  */
 
 /*all firmwares in one bin.*/
-{MESON_CPU_MAJOR_ID_GXBB, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_GXTVBB, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_GXL, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_GXM, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_TXL, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_TXLX, VIDEO_PACKAGE, "video_ucode.bin"},
-{MESON_CPU_MAJOR_ID_G12A, VIDEO_PACKAGE, "video_ucode.bin"},
+{VIDEO_MISC,	VIDEO_PACKAGE,	"video_ucode.bin"},
 
 /* Note: if the addition of new package has the same name */
 /* as the firmware in the video_ucode.bin, the firmware */
 /* in the video_ucode.bin will be ignored yet, because the */
 /* video_ucode.bin will always be processed in the end */
-{MESON_CPU_MAJOR_ID_GXM, VIDEO_PACKAGE, "h264_enc.bin"},
-{MESON_CPU_MAJOR_ID_GXL, VIDEO_PACKAGE, "h264_enc.bin"},
-{MESON_CPU_MAJOR_ID_TXLX, VIDEO_PACKAGE, "h264_enc.bin"},
-{MESON_CPU_MAJOR_ID_TXL, VIDEO_PACKAGE, "h264_enc.bin"},
-{MESON_CPU_MAJOR_ID_G12A, VIDEO_PACKAGE, "h264_enc.bin"},
+{VIDEO_ENCODE,	VIDEO_FW_FILE,	"h264_enc.bin"},
+
 
 /*firmware for a special format, to replace the format in the package.*/
-{MESON_CPU_MAJOR_ID_GXL, VIDEO_DEC_HEVC, "h265.bin"},
-{MESON_CPU_MAJOR_ID_GXL, VIDEO_DEC_H264, "h264.bin"},
-{MESON_CPU_MAJOR_ID_GXL, VIDEO_DEC_H264_MULTI, "h264_multi.bin"},
-
+{VIDEO_DECODE,	VIDEO_FW_FILE,	"h265.bin"},
+{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264.bin"},
+{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264_multi.bin"},
 

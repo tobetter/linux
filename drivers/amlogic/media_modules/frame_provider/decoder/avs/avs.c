@@ -1505,7 +1505,7 @@ static s32 vavs_init(void)
 	vavs_local_init();
 
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
-		size = get_firmware_data(VIDEO_DEC_AVS_GXM, buf);
+		size = get_firmware_data(VIDEO_DEC_AVS, buf);
 	else {
 		if (firmware_sel == 1)
 			size = get_firmware_data(VIDEO_DEC_AVS_NOCABAC, buf);
@@ -1528,7 +1528,7 @@ static s32 vavs_init(void)
 		pr_info("tee load ok\n");
 
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
-		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_gxm", buf);
+		size = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
 	else if (firmware_sel == 1)
 		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_no_cabac", buf);
 	else

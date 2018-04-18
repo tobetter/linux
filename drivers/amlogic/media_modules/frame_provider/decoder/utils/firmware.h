@@ -15,7 +15,7 @@ struct firmware_s {
 extern int get_decoder_firmware_data(enum vformat_e type,
 	const char *file_name, char *buf, int size);
 extern int get_data_from_name(const char *name, char *buf);
-extern int get_firmware_data(enum firmware_type_e type, char *buf);
-extern int firmware_reload(int mode);
+extern int get_firmware_data(unsigned int foramt, char *buf);
+extern int video_fw_reload(int mode);
 
 #endif

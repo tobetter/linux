@@ -8802,16 +8802,20 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 			size = 1;
 		else
 #endif
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
-		size = get_firmware_data(VIDEO_DEC_HEVC_G12A, fw->data);
-		hevc_print(hevc, 0, "vh265 g12a ucode loaded!\n");
-	} else if (mmu_enable && (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)) {
-		size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
-		hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
+
+	if (mmu_enable) {
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+			size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
+			hevc_print(hevc, 0, "vh265 ucode loaded!\n");
+		} else {
+			size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
+			hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
+		}
 	} else {
 		size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
 		hevc_print(hevc, 0, "vh265 ucode loaded!\n");
 	}
+
 	if (size < 0) {
 		pr_err("get firmware fail.\n");
 		vfree(fw);
@@ -8845,12 +8849,13 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 
 	if (size == 1) {
 		pr_info ("tee load ok");
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_G12A, 2);
-		else if (hevc->mmu_enable &&
-			(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL))
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
-		else
+
+		if (hevc->mmu_enable) {
+			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
+			else
+				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
+		} else
 			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
 	} else
 		ret = amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data);
@@ -9618,7 +9623,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 {
 	struct hevc_state_s *hevc =
 		(struct hevc_state_s *)vdec->private;
-	int r, loadr;
+	int r, loadr = 0;
 	unsigned char check_sum = 0;
 
 	run_count[hevc->index]++;
@@ -9682,14 +9687,14 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		}
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-		loadr = amhevc_vdec_loadmc_ex(vdec,
-				"vh265_mc_g12a", hevc->fw->data);
-	else if (hevc->mmu_enable &&
-		(get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL))
-		loadr = amhevc_vdec_loadmc_ex(vdec,
-				"vh265_mc_mmu", hevc->fw->data);
-	else
+	if (hevc->mmu_enable) {
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			loadr = amhevc_vdec_loadmc_ex(vdec,
+					"vh265_mc", hevc->fw->data);
+		else
+			loadr = amhevc_vdec_loadmc_ex(vdec,
+					"vh265_mc_mmu", hevc->fw->data);
+	} else
 		loadr = amhevc_vdec_loadmc_ex(vdec,
 				"vh265_mc", hevc->fw->data);
 
