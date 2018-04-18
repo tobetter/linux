@@ -5063,11 +5063,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		if (IS_ERR_OR_NULL(fw))
 			return -ENOMEM;
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
-			size = get_firmware_data(VIDEO_DEC_H264_MULTI_GXM, fw->data);
-		else
-			size = get_firmware_data(VIDEO_DEC_H264_MULTI, fw->data);
-
+		size = get_firmware_data(VIDEO_DEC_H264_MULTI, fw->data);
 		if (size < 0) {
 			pr_err("get firmware fail.\n");
 			vfree(fw);
@@ -6354,12 +6350,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	start_process_time(hw);
 
 	if (tee_enabled()) {
-		unsigned int fw_type = VIDEO_DEC_H264_MULTI;
-
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
-			fw_type = VIDEO_DEC_H264_MULTI_GXM;
-
-		if (tee_load_video_fw(fw_type, 0) != 0) {
+		if (tee_load_video_fw(VIDEO_DEC_H264_MULTI, 0) != 0) {
 			amvdec_enable_flag = false;
 			amvdec_disable();
 			pr_err("id: %d, %s: Error amvdec_vdec_loadmc fail\n",

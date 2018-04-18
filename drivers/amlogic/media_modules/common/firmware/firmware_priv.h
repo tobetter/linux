@@ -15,42 +15,52 @@
  *
 */
 
-#ifndef __VIDEO_FIRMWARE_PRIV_HEADER_
-#define __VIDEO_FIRMWARE_PRIV_HEADER_
+#ifndef __VIDEO_FIRMWARE_PRIV_HEAD_
+#define __VIDEO_FIRMWARE_PRIV_HEAD_
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/cdev.h>
 #include "firmware_type.h"
 
-struct firmware_mgr_s {
-	struct list_head head;
+struct fw_mgr_s {
+	struct list_head fw_head;
+	struct list_head files_head;
 	spinlock_t lock;
+	int cur_cpu;
 };
 
-struct firmware_info_s {
+struct fw_files_s {
 	struct list_head node;
+	int fw_type;
+	int file_type;
 	char name[32];
 	char path[64];
-	char src_from[32];
-	enum firmware_type_e type;
-	struct firmware_s *data;
 };
 
-struct ucode_info_s {
-	int cpu;
-	enum firmware_type_e type;
+struct ucode_file_info_s {
+	int fw_type;
+	int file_type;
 	const char *name;
 };
 
-struct firmware_header_s {
+struct fw_info_s {
+	struct list_head node;
+	char name[32];
+	char src_from[32];
+	int file_type;
+	unsigned int format;
+	struct firmware_s *data;
+};
+
+struct fw_head_s {
 	int magic;
 	int checksum;
 	char name[32];
 	char cpu[16];
 	char format[32];
 	char version[32];
-	char author[32];
+	char maker[32];
 	char date[32];
 	char commit[16];
 	int data_size;
@@ -60,28 +70,30 @@ struct firmware_header_s {
 
 struct firmware_s {
 	union {
-		struct firmware_header_s header;
+		struct fw_head_s head;
 		char buf[512];
 	};
 	char data[0];
 };
 
-struct package_header_s {
+struct package_head_s {
 	int magic;
 	int size;
 	int checksum;
+	int total;
+	int version;
 	char reserved[128];
 };
 
 struct package_s {
 	union {
-		struct package_header_s header;
+		struct package_head_s head;
 		char buf[256];
 	};
 	char data[0];
 };
 
-struct info_header_s {
+struct info_head_s {
 	char name[32];
 	char format[32];
 	char cpu[32];
@@ -90,13 +102,13 @@ struct info_header_s {
 
 struct package_info_s {
 	union {
-		struct info_header_s header;
+		struct info_head_s head;
 		char buf[256];
 	};
 	char data[0];
 };
 
-struct firmware_dev_s {
+struct fw_dev_s {
 	struct cdev cdev;
 	struct device *dev;
 	dev_t dev_no;

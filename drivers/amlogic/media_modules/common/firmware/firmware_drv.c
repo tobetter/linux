@@ -39,6 +39,9 @@
 #include <linux/cdev.h>
 #include <linux/crc32.h>
 
+/* major.minor.revision */
+#define PACK_VERS "v0.0.1"
+
 #define CLASS_NAME	"firmware_codec"
 #define DEV_NAME	"firmware_vdec"
 #define DIR		"video"
@@ -56,28 +59,29 @@
 
 static DEFINE_MUTEX(mutex);
 
-static  struct ucode_info_s ucode_info[] = {
+static  struct ucode_file_info_s ucode_info[] = {
 #include "firmware_cfg.h"
 };
 
-static const struct file_operations firmware_fops = {
+static const struct file_operations fw_fops = {
 	.owner = THIS_MODULE
 };
 
-struct firmware_mgr_s *g_mgr;
-struct firmware_dev_s *g_dev;
+struct fw_mgr_s *g_mgr;
+struct fw_dev_s *g_dev;
 
 static u32 debug;
+static u32 detail;
 
-int get_firmware_data(enum firmware_type_e type, char *buf)
+int get_firmware_data(unsigned int format, char *buf)
 {
 	int data_len, ret = -1;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_info_s *info;
 
 	if (tee_enabled()) {
-		pr_info ("tee load firmware type= %d\n",(u32)type);
-		ret = tee_load_video_fw((u32)type, 0);
+		pr_info ("tee load firmware fomat = %d\n",(u32)format);
+		ret = tee_load_video_fw((u32)format, 0);
 		if (ret == 0)
 			ret = 1;
 		else
@@ -87,16 +91,16 @@ int get_firmware_data(enum firmware_type_e type, char *buf)
 
 	mutex_lock(&mutex);
 
-	if (list_empty(&mgr->head)) {
+	if (list_empty(&mgr->fw_head)) {
 		pr_info("the info list is empty.\n");
 		goto out;
 	}
 
-	list_for_each_entry(info, &mgr->head, node) {
-		if (type != info->type)
+	list_for_each_entry(info, &mgr->fw_head, node) {
+		if (format != info->format)
 			continue;
 
-		data_len = info->data->header.data_size;
+		data_len = info->data->head.data_size;
 		memcpy(buf, info->data->data, data_len);
 		ret = data_len;
 
@@ -112,28 +116,28 @@ EXPORT_SYMBOL(get_firmware_data);
 int get_data_from_name(const char *name, char *buf)
 {
 	int data_len, ret = -1;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
-	char *firmware_name = __getname();
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_info_s *info;
+	char *fw_name = __getname();
 
-	if (IS_ERR_OR_NULL(firmware_name))
+	if (IS_ERR_OR_NULL(fw_name))
 		return -ENOMEM;
 
-	strcat(firmware_name, name);
-	strcat(firmware_name, ".bin");
+	strcat(fw_name, name);
+	strcat(fw_name, ".bin");
 
 	mutex_lock(&mutex);
 
-	if (list_empty(&mgr->head)) {
+	if (list_empty(&mgr->fw_head)) {
 		pr_info("the info list is empty.\n");
 		goto out;
 	}
 
-	list_for_each_entry(info, &mgr->head, node) {
-		if (strcmp(firmware_name, info->name))
+	list_for_each_entry(info, &mgr->fw_head, node) {
+		if (strcmp(fw_name, info->name))
 			continue;
 
-		data_len = info->data->header.data_size;
+		data_len = info->data->head.data_size;
 		memcpy(buf, info->data->data, data_len);
 		ret = data_len;
 
@@ -142,13 +146,13 @@ int get_data_from_name(const char *name, char *buf)
 out:
 	mutex_unlock(&mutex);
 
-	__putname(firmware_name);
+	__putname(fw_name);
 
 	return ret;
 }
 EXPORT_SYMBOL(get_data_from_name);
 
-static int firmware_probe(char *buf)
+static int fw_probe(char *buf)
 {
 	int magic = 0;
 
@@ -160,31 +164,31 @@ static int request_firmware_from_sys(const char *file_name,
 		char *buf, int size)
 {
 	int ret = -1;
-	const struct firmware *firmware;
+	const struct firmware *fw;
 	int magic, offset = 0;
 
-	pr_info("Try load %s  ...\n", file_name);
+	pr_info("Try to load %s  ...\n", file_name);
 
-	ret = request_firmware(&firmware, file_name, g_dev->dev);
+	ret = request_firmware(&fw, file_name, g_dev->dev);
 	if (ret < 0) {
 		pr_info("Error : %d can't load the %s.\n", ret, file_name);
 		goto err;
 	}
 
-	if (firmware->size > size) {
+	if (fw->size > size) {
 		pr_info("Not enough memory size for ucode.\n");
 		ret = -ENOMEM;
 		goto release;
 	}
 
-	magic = firmware_probe((char *)firmware->data);
+	magic = fw_probe((char *)fw->data);
 	if (magic != PACK && magic != CODE) {
-		if (firmware->size < SEC_OFFSET) {
+		if (fw->size < SEC_OFFSET) {
 			pr_info("This is an invalid firmware file.\n");
 			goto release;
 		}
 
-		magic = firmware_probe((char *)firmware->data + SEC_OFFSET);
+		magic = fw_probe((char *)fw->data + SEC_OFFSET);
 		if (magic != PACK) {
 			pr_info("The firmware file is not packet.\n");
 			goto release;
@@ -193,18 +197,18 @@ static int request_firmware_from_sys(const char *file_name,
 		offset = SEC_OFFSET;
 	}
 
-	memcpy(buf, (char *)firmware->data + offset, firmware->size - offset);
+	memcpy(buf, (char *)fw->data + offset, fw->size - offset);
 
 	pr_info("load firmware size : %zd, Name : %s.\n",
-		firmware->size, file_name);
-	ret = firmware->size;
+		fw->size, file_name);
+	ret = fw->size;
 release:
-	release_firmware(firmware);
+	release_firmware(fw);
 err:
 	return ret;
 }
 
-int request_decoder_firmware_on_sys(enum vformat_e type,
+int request_decoder_firmware_on_sys(enum vformat_e format,
 	const char *file_name, char *buf, int size)
 {
 	int ret;
@@ -220,21 +224,21 @@ int request_decoder_firmware_on_sys(enum vformat_e type,
 
 	return ret;
 }
-int get_decoder_firmware_data(enum vformat_e type,
+int get_decoder_firmware_data(enum vformat_e format,
 	const char *file_name, char *buf, int size)
 {
 	int ret;
 
-	ret = request_decoder_firmware_on_sys(type, file_name, buf, size);
+	ret = request_decoder_firmware_on_sys(format, file_name, buf, size);
 	if (ret < 0)
 		pr_info("get_decoder_firmware_data %s for format %d failed!\n",
-				file_name, type);
+				file_name, format);
 
 	return ret;
 }
 EXPORT_SYMBOL(get_decoder_firmware_data);
 
-static unsigned long firmware_mgr_lock(struct firmware_mgr_s *mgr)
+static unsigned long fw_mgr_lock(struct fw_mgr_s *mgr)
 {
 	unsigned long flags;
 
@@ -242,98 +246,120 @@ static unsigned long firmware_mgr_lock(struct firmware_mgr_s *mgr)
 	return flags;
 }
 
-static void firmware_mgr_unlock(struct firmware_mgr_s *mgr, unsigned long flags)
+static void fw_mgr_unlock(struct fw_mgr_s *mgr, unsigned long flags)
 {
 	spin_unlock_irqrestore(&mgr->lock, flags);
 }
 
-static void add_info(struct firmware_info_s *info)
+static void fw_add_info(struct fw_info_s *info)
 {
 	unsigned long flags;
-	struct firmware_mgr_s *mgr = g_mgr;
+	struct fw_mgr_s *mgr = g_mgr;
 
-	flags = firmware_mgr_lock(mgr);
-	list_add(&info->node, &mgr->head);
-	firmware_mgr_unlock(mgr, flags);
+	flags = fw_mgr_lock(mgr);
+	list_add(&info->node, &mgr->fw_head);
+	fw_mgr_unlock(mgr, flags);
 }
 
-static void del_info(struct firmware_info_s *info)
+static void fw_del_info(struct fw_info_s *info)
 {
 	unsigned long flags;
-	struct firmware_mgr_s *mgr = g_mgr;
+	struct fw_mgr_s *mgr = g_mgr;
 
-	flags = firmware_mgr_lock(mgr);
+	flags = fw_mgr_lock(mgr);
 	list_del(&info->node);
-	firmware_mgr_unlock(mgr, flags);
+	kfree(info);
+	fw_mgr_unlock(mgr, flags);
 }
 
-static void walk_firmware_info(void)
+static void fw_info_walk(void)
 {
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_info_s *info;
 
-	mutex_lock(&mutex);
-
-	if (list_empty(&mgr->head)) {
+	if (list_empty(&mgr->fw_head)) {
 		pr_info("the info list is empty.\n");
 		return;
 	}
 
-	list_for_each_entry(info, &mgr->head, node) {
+	list_for_each_entry(info, &mgr->fw_head, node) {
 		if (IS_ERR_OR_NULL(info->data))
 			continue;
 
-		pr_info("path : %s.\n", info->path);
 		pr_info("name : %s.\n", info->name);
-		pr_info("version : %s.\n",
-			info->data->header.version);
-		pr_info("checksum : 0x%x.\n",
-			info->data->header.checksum);
-		pr_info("data size : %d.\n",
-			info->data->header.data_size);
-		pr_info("author : %s.\n",
-			info->data->header.author);
-		pr_info("date : %s.\n",
-			info->data->header.date);
-		pr_info("commit : %s.\n\n",
-			info->data->header.commit);
+		pr_info("ver  : %s.\n",
+			info->data->head.version);
+		pr_info("crc  : 0x%x.\n",
+			info->data->head.checksum);
+		pr_info("size : %d.\n",
+			info->data->head.data_size);
+		pr_info("maker: %s.\n",
+			info->data->head.maker);
+		pr_info("from : %s.\n", info->src_from);
+		pr_info("date : %s.\n\n",
+			info->data->head.date);
+	}
+}
+
+static void fw_files_info_walk(void)
+{
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_files_s *files;
+
+	if (list_empty(&mgr->files_head)) {
+		pr_info("the file list is empty.\n");
+		return;
 	}
 
-	mutex_unlock(&mutex);
+	list_for_each_entry(files, &mgr->files_head, node) {
+		pr_info("type : %s.\n", !files->fw_type ?
+			"VIDEO_DECODE" : files->fw_type == 1 ?
+			"VIDEO_ENCODE" : "VIDEO_MISC");
+		pr_info("from : %s.\n", !files->file_type ?
+			"VIDEO_PACKAGE" : "VIDEO_FW_FILE");
+		pr_info("path : %s.\n", files->path);
+		pr_info("name : %s.\n\n", files->name);
+	}
 }
 
 static ssize_t info_show(struct class *class,
 			struct class_attribute *attr, char *buf)
 {
 	char *pbuf = buf;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_info_s *info;
 
 	mutex_lock(&mutex);
 
-	if (list_empty(&mgr->head)) {
+	if (list_empty(&mgr->fw_head)) {
 		pbuf += sprintf(pbuf, "No firmware.\n");
 		goto out;
 	}
 
-	list_for_each_entry(info, &mgr->head, node) {
+	list_for_each_entry(info, &mgr->fw_head, node) {
 		if (IS_ERR_OR_NULL(info->data))
 			continue;
 
-		pr_info("%10s : %s\n", "from", info->src_from);
-		pr_info("%10s : %s\n", "name", info->name);
-		pr_info("%10s : %d\n", "size",
-			info->data->header.data_size);
-		pr_info("%10s : %s\n", "ver",
-			info->data->header.version);
-		pr_info("%10s : 0x%x\n", "sum",
-			info->data->header.checksum);
-		pr_info("%10s : %s\n", "commit",
-			info->data->header.commit);
-		pr_info("%10s : %s\n", "author",
-			info->data->header.author);
-		pr_info("%10s : %s\n\n", "date",
-			info->data->header.date);
+		if (detail) {
+			pr_info("%-5s: %s\n", "name", info->name);
+			pr_info("%-5s: %s\n", "ver",
+				info->data->head.version);
+			pr_info("%-5s: 0x%x\n", "sum",
+				info->data->head.checksum);
+			pr_info("%-5s: %d\n", "size",
+				info->data->head.data_size);
+			pr_info("%-5s: %s\n", "maker",
+				info->data->head.maker);
+			pr_info("%-5s: %s\n", "from",
+				info->src_from);
+			pr_info("%-5s: %s\n\n", "date",
+				info->data->head.date);
+			continue;
+		}
+
+		pr_info("fmt: %-16s, crc: 0x%-8x, size: %-5d, file: %s\n",
+			info->data->head.format, info->data->head.checksum,
+			info->data->head.data_size, info->data->head.name);
 	}
 out:
 	mutex_unlock(&mutex);
@@ -341,12 +367,12 @@ out:
 	return pbuf - buf;
 }
 
-static int set_firmware_info(void)
+static int fw_info_fill(void)
 {
 	int ret = 0, i, len;
-	struct firmware_info_s *info;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_files_s *files;
 	int info_size = ARRAY_SIZE(ucode_info);
-	int cpu = get_cpu_type();
 	char *path = __getname();
 	const char *name;
 
@@ -354,9 +380,6 @@ static int set_firmware_info(void)
 		return -ENOMEM;
 
 	for (i = 0; i < info_size; i++) {
-		if (cpu != ucode_info[i].cpu)
-			continue;
-
 		name = ucode_info[i].name;
 		if (IS_ERR_OR_NULL(name))
 			break;
@@ -366,70 +389,127 @@ static int set_firmware_info(void)
 		if (len >= PATH_MAX)
 			continue;
 
-		info = kzalloc(sizeof(struct firmware_info_s), GFP_KERNEL);
-		if (IS_ERR_OR_NULL(info)) {
+		files = kzalloc(sizeof(struct fw_files_s), GFP_KERNEL);
+		if (IS_ERR_OR_NULL(files)) {
 			__putname(path);
 			return -ENOMEM;
 		}
 
-		strcpy(info->path, path);
-		strcpy(info->name, name);
-		strcpy(info->src_from, name);
-		info->type = ucode_info[i].type;
-		info->data = NULL;
+		files->file_type = ucode_info[i].file_type;
+		files->fw_type = ucode_info[i].fw_type;
+		strncpy(files->path, path, sizeof(files->path));
+		strncpy(files->name, name, sizeof(files->name));
 
-		add_info(info);
+		list_add(&files->node, &mgr->files_head);
 	}
 
 	__putname(path);
 
+	if (debug)
+		fw_files_info_walk();
+
 	return ret;
 }
 
-static int checksum(struct firmware_s *firmware)
+static int fw_data_check_sum(struct firmware_s *fw)
 {
 	unsigned int crc;
 
-	crc = crc32_le(~0U, firmware->data, firmware->header.data_size);
+	crc = crc32_le(~0U, fw->data, fw->head.data_size);
 
-	if (debug)
-		pr_info("firmware crc result : 0x%x\n", crc ^ ~0U);
+	/*pr_info("firmware crc result : 0x%x\n", crc ^ ~0U);*/
 
-	return firmware->header.checksum != (crc ^ ~0U) ? 0 : 1;
+	return fw->head.checksum != (crc ^ ~0U) ? 0 : 1;
 }
 
-static int check_repeat(struct firmware_s *data, enum firmware_type_e type)
+static int fw_data_filter(struct firmware_s *fw,
+	struct fw_info_s *fw_info)
 {
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_info_s *info, *tmp;
+	int cpu = fw_get_cpu(fw->head.cpu);
 
-	if (list_empty(&mgr->head)) {
-		pr_info("the info list is empty.\n");
+	if (mgr->cur_cpu < cpu) {
+		pr_info("the fw %s is not match.\n", fw_info->name);
+		kfree(fw_info);
+		kfree(fw);
 		return -1;
 	}
 
-	if (type == FIRMWARE_MAX)
+	/* the encode fw need to ignoring filtering rules. */
+	if (fw_info->format == FIRMWARE_MAX)
 		return 0;
 
-	list_for_each_entry(info, &mgr->head, node) {
-		if (info->type != type)
+	list_for_each_entry_safe(info, tmp, &mgr->fw_head, node) {
+		if (info->format != fw_info->format)
 			continue;
 
-		if (IS_ERR_OR_NULL(info->data))
-			info->data = data;
+		if (IS_ERR_OR_NULL(info->data)) {
+			fw_del_info(info);
+			return 0;
+		}
 
-		return 1;
+		/* high priority of VIDEO_FW_FILE */
+		if (info->file_type == VIDEO_FW_FILE) {
+			pr_info("the %s need to priority proc.\n",info->name);
+			kfree(fw_info);
+			kfree(fw);
+			return 1;
+		}
+
+		/* the cpu ver is lower and needs to be filtered */
+		if (cpu < fw_get_cpu(info->data->head.cpu)) {
+			pr_info("the fw %s is not match.\n",
+				fw_info->name);
+			kfree(fw_info);
+			kfree(fw);
+			return 1;
+		}
+
+		/* removes not match fw from info list */
+		pr_info("the fw %s is not match.\n", info->name);
+		kfree(info->data);
+		fw_del_info(info);
 	}
 
 	return 0;
 }
 
-static int firmware_parse_package(struct firmware_info_s *fw_info,
+static int fw_check_pack_version(char *buf)
+{
+	struct package_s *pack = NULL;
+	int major, minor, rev, ver = 0;
+
+	pack = (struct package_s *) buf;
+	sscanf(PACK_VERS, "v%x.%x.%x", &major, &minor, &rev);
+	ver = (major << 24 | minor << 16 | rev);
+
+	pr_info("the package has %d fws totally.\n", pack->head.total);
+
+	major = pack->head.version >> 24;
+	minor = (pack->head.version >> 16) & 0xf;
+	rev = pack->head.version & 0xff;
+
+	if (ver < pack->head.version) {
+		pr_info("the pack ver v%d.%d.%d too higher to unsupport.\n",
+			major, minor, rev);
+		return -1;
+	}
+
+	if (ver != pack->head.version) {
+		pr_info("the fw pack ver v%d.%d.%d is too lower.\n", major, minor, rev);
+		pr_info("it may work abnormally so need to be update in time.\n");
+	}
+
+	return 0;
+}
+
+static int fw_package_parse(struct fw_files_s *files,
 	char *buf, int size)
 {
 	int ret = 0;
 	struct package_info_s *pack_info;
-	struct firmware_info_s *info;
+	struct fw_info_s *info;
 	struct firmware_s *data;
 	char *pack_data;
 	int info_len, len;
@@ -444,15 +524,15 @@ static int firmware_parse_package(struct firmware_info_s *fw_info,
 	info_len = sizeof(struct package_info_s);
 
 	do {
-		if (!pack_info->header.length)
+		if (!pack_info->head.length)
 			break;
 
 		len = snprintf(path, PATH_MAX, "%s/%s", DIR,
-			pack_info->header.name);
+			pack_info->head.name);
 		if (len >= PATH_MAX)
 			continue;
 
-		info = kzalloc(sizeof(struct firmware_info_s), GFP_KERNEL);
+		info = kzalloc(sizeof(struct fw_info_s), GFP_KERNEL);
 		if (IS_ERR_OR_NULL(info)) {
 			ret = -ENOMEM;
 			goto out;
@@ -465,39 +545,34 @@ static int firmware_parse_package(struct firmware_info_s *fw_info,
 			goto out;
 		}
 
-		strcpy(info->path, path);
-		strcpy(info->name, pack_info->header.name);
-		strcpy(info->src_from, fw_info->src_from);
-		info->type = get_firmware_type(pack_info->header.format);
+		info->file_type = files->file_type;
+		strncpy(info->src_from, files->name,
+			sizeof(info->src_from));
+		strncpy(info->name, pack_info->head.name,
+			sizeof(info->name));
+		info->format = get_fw_format(pack_info->head.format);
 
-		len = pack_info->header.length;
+		len = pack_info->head.length;
 		memcpy(data, pack_info->data, len);
 
-		pack_data += (pack_info->header.length + info_len);
+		pack_data += (pack_info->head.length + info_len);
 		pack_info = (struct package_info_s *)pack_data;
 
-		ret = checksum(data);
-		if (!ret) {
+		if (!fw_data_check_sum(data)) {
 			pr_info("check sum fail !\n");
 			kfree(data);
 			kfree(info);
 			goto out;
 		}
 
-		ret = check_repeat(data, info->type);
-		if (ret < 0) {
-			kfree(data);
-			kfree(info);
-			goto out;
-		}
-
-		if (ret) {
-			kfree(info);
+		if (fw_data_filter(data, info))
 			continue;
-		}
+
+		if (debug)
+			pr_info("adds %s to the fw list.\n", info->name);
 
 		info->data = data;
-		add_info(info);
+		fw_add_info(info);
 	} while (try_cnt--);
 out:
 	__putname(path);
@@ -505,23 +580,34 @@ out:
 	return ret;
 }
 
-static int firmware_parse_code(struct firmware_info_s *info,
+static int fw_code_parse(struct fw_files_s *files,
 	char *buf, int size)
 {
-	if (!IS_ERR_OR_NULL(info->data))
-		kfree(info->data);
+	struct fw_info_s *info;
+
+	info = kzalloc(sizeof(struct fw_info_s), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(info))
+		return -ENOMEM;
 
 	info->data = kzalloc(FRIMWARE_SIZE, GFP_KERNEL);
 	if (IS_ERR_OR_NULL(info->data))
 		return -ENOMEM;
 
+	info->file_type = files->file_type;
+	strncpy(info->src_from, files->name,
+		sizeof(info->src_from));
 	memcpy(info->data, buf, size);
 
-	if (!checksum(info->data)) {
+	if (!fw_data_check_sum(info->data)) {
 		pr_info("check sum fail !\n");
 		kfree(info->data);
 		return -1;
 	}
+
+	if (debug)
+		pr_info("adds %s to the fw list.\n", info->name);
+
+	fw_add_info(info);
 
 	return 0;
 }
@@ -538,88 +624,140 @@ static int get_firmware_from_sys(const char *path,
 	return len;
 }
 
-static int set_firmware_data(void)
+static int fw_data_binding(void)
 {
 	int ret = 0, magic = 0;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info, *temp;
-	char *buf = NULL;
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_files_s *files, *tmp;
+	char *buf = vmalloc(BUFF_SIZE);
 	int size;
 
-	if (list_empty(&mgr->head)) {
-		pr_info("the info list is empty.\n");
+	if (list_empty(&mgr->files_head)) {
+		pr_info("the file list is empty.\n");
 		return 0;
 	}
 
-	buf = vmalloc(BUFF_SIZE);
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
 	memset(buf, 0, BUFF_SIZE);
 
-	list_for_each_entry_safe(info, temp, &mgr->head, node) {
-		size = get_firmware_from_sys(info->path, buf, BUFF_SIZE);
-		magic = firmware_probe(buf);
+	list_for_each_entry_safe(files, tmp, &mgr->files_head, node) {
+		size = get_firmware_from_sys(files->path, buf, BUFF_SIZE);
+		magic = fw_probe(buf);
 
-		switch (magic) {
-		case PACK:
-			ret = firmware_parse_package(info, buf, size);
+		if (files->file_type == VIDEO_PACKAGE && magic == PACK) {
+			pr_info("start to parse fw package.\n");
 
-			del_info(info);
-			kfree(info);
-			break;
+			if (!fw_check_pack_version(buf))
+				ret = fw_package_parse(files, buf, size);
+		} else if (files->file_type == VIDEO_FW_FILE && magic == CODE) {
+			pr_info("start to parse fw code.\n");
 
-		case CODE:
-			ret = firmware_parse_code(info, buf, size);
-			break;
-
-		default:
-			del_info(info);
-			kfree(info);
-			pr_info("invaild type.\n");
+			ret = fw_code_parse(files, buf, size);
+		} else {
+			list_del(&files->node);
+			kfree(files);
+			pr_info("invaild file type.\n");
 		}
 
 		memset(buf, 0, BUFF_SIZE);
 	}
 
 	if (debug)
-		walk_firmware_info();
+		fw_info_walk();
 
 	vfree(buf);
 
 	return ret;
 }
 
-static int firmware_pre_load(void)
+static int fw_pre_load(void)
 {
-	int ret = -1;
-
-	ret = set_firmware_info();
-	if (ret < 0) {
+	if (fw_info_fill() < 0) {
 		pr_info("Get path fail.\n");
-		goto err;
+		return -1;
 	}
 
-	ret = set_firmware_data();
-	if (ret < 0) {
+	if (fw_data_binding() < 0) {
 		pr_info("Set data fail.\n");
-		goto err;
+		return -1;
 	}
-err:
-	return ret;
+
+	return 0;
 }
 
-static int firmware_mgr_init(void)
+static int fw_mgr_init(void)
 {
-	g_mgr = kzalloc(sizeof(struct firmware_mgr_s), GFP_KERNEL);
+	g_mgr = kzalloc(sizeof(struct fw_mgr_s), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(g_mgr))
 		return -ENOMEM;
 
-	INIT_LIST_HEAD(&g_mgr->head);
+	g_mgr->cur_cpu = get_cpu_type();
+	INIT_LIST_HEAD(&g_mgr->files_head);
+	INIT_LIST_HEAD(&g_mgr->fw_head);
 	spin_lock_init(&g_mgr->lock);
 
 	return 0;
 }
+
+static void fw_ctx_clean(void)
+{
+	struct fw_mgr_s *mgr = g_mgr;
+	struct fw_files_s *files;
+	struct fw_info_s *info;
+	unsigned long flags;
+
+	flags = fw_mgr_lock(mgr);
+	while (!list_empty(&mgr->files_head)) {
+		files = list_entry(mgr->files_head.next,
+			struct fw_files_s, node);
+		list_del(&files->node);
+		kfree(files);
+	}
+
+	while (!list_empty(&mgr->fw_head)) {
+		info = list_entry(mgr->fw_head.next,
+			struct fw_info_s, node);
+		list_del(&info->node);
+		kfree(info->data);
+		kfree(info);
+	}
+	fw_mgr_unlock(mgr, flags);
+}
+
+int video_fw_reload(int mode)
+{
+	int ret = 0;
+	struct fw_mgr_s *mgr = g_mgr;
+
+	if (tee_enabled())
+		return 0;
+
+	mutex_lock(&mutex);
+
+	if (mode & FW_LOAD_FORCE) {
+		fw_ctx_clean();
+
+		ret = fw_pre_load();
+		if (ret < 0)
+			pr_err("The fw reload fail.\n");
+	} else if (mode & FW_LOAD_TRY) {
+		if (!list_empty(&mgr->fw_head)) {
+			pr_info("The fw has been loaded.\n");
+			goto out;
+		}
+
+		ret = fw_pre_load();
+		if (ret < 0)
+			pr_err("The fw try to reload fail.\n");
+	}
+out:
+	mutex_unlock(&mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL(video_fw_reload);
 
 static ssize_t reload_show(struct class *class,
 			struct class_attribute *attr, char *buf)
@@ -633,46 +771,6 @@ static ssize_t reload_show(struct class *class,
 	return pbuf - buf;
 }
 
-int firmware_reload(int mode)
-{
-	int ret = 0;
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info = NULL;
-
-	if (tee_enabled())
-		return 0;
-
-	mutex_lock(&mutex);
-
-	if (mode & FW_LOAD_FORCE) {
-		while (!list_empty(&mgr->head)) {
-			info = list_entry(mgr->head.next,
-				struct firmware_info_s, node);
-			list_del(&info->node);
-			kfree(info->data);
-			kfree(info);
-		}
-
-		ret = firmware_pre_load();
-		if (ret < 0)
-			pr_err("The fw reload fail.\n");
-	} else if (mode & FW_LOAD_TRY) {
-		if (!list_empty(&mgr->head)) {
-			pr_info("The fw has been loaded.\n");
-			goto out;
-		}
-
-		ret = firmware_pre_load();
-		if (ret < 0)
-			pr_err("The fw try to reload fail.\n");
-	}
-out:
-	mutex_unlock(&mutex);
-
-	return ret;
-}
-EXPORT_SYMBOL(firmware_reload);
-
 static ssize_t reload_store(struct class *class,
 		struct class_attribute *attr,
 		const char *buf, size_t size)
@@ -684,29 +782,61 @@ static ssize_t reload_store(struct class *class,
 	if (ret != 0)
 		return -EINVAL;
 
-	ret = firmware_reload(val);
+	ret = video_fw_reload(val);
 	if (ret < 0)
 		pr_err("fw reload fail.\n");
 
 	return size;
 }
 
-static struct class_attribute firmware_class_attrs[] = {
+static ssize_t debug_show(struct class *cls,
+	struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%x\n", debug);
+}
+
+static ssize_t debug_store(struct class *cls,
+	struct class_attribute *attr, const char *buf, size_t count)
+{
+	if (kstrtoint(buf, 0, &debug) < 0)
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t detail_show(struct class *cls,
+	struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%x\n", detail);
+}
+
+static ssize_t detail_store(struct class *cls,
+	struct class_attribute *attr, const char *buf, size_t count)
+{
+	if (kstrtoint(buf, 0, &detail) < 0)
+		return -EINVAL;
+
+	return count;
+}
+
+static struct class_attribute fw_class_attrs[] = {
 	__ATTR_RO(info),
 	__ATTR(reload, 0664, reload_show, reload_store),
+	__ATTR(debug, 0664, debug_show, debug_store),
+	__ATTR(detail, 0664, detail_show, detail_store),
 	__ATTR_NULL
 };
 
-static struct class firmware_class = {
+static struct class fw_class = {
 	.name = CLASS_NAME,
-	.class_attrs = firmware_class_attrs,
+	.class_attrs = fw_class_attrs,
 };
 
-static int firmware_driver_init(void)
+static int fw_driver_init(void)
 {
 	int ret = -1;
 
-	g_dev = kzalloc(sizeof(struct firmware_dev_s), GFP_KERNEL);
+	g_dev = kzalloc(sizeof(struct fw_dev_s), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(g_dev))
 		return -ENOMEM;
 
@@ -718,7 +848,7 @@ static int firmware_driver_init(void)
 		goto err;
 	}
 
-	cdev_init(&g_dev->cdev, &firmware_fops);
+	cdev_init(&g_dev->cdev, &fw_fops);
 	g_dev->cdev.owner = THIS_MODULE;
 
 	ret = cdev_add(&g_dev->cdev, g_dev->dev_no, 1);
@@ -727,13 +857,13 @@ static int firmware_driver_init(void)
 		goto err;
 	}
 
-	ret = class_register(&firmware_class);
+	ret = class_register(&fw_class);
 	if (ret < 0) {
 		pr_info("Failed in creating class.\n");
 		goto err;
 	}
 
-	g_dev->dev = device_create(&firmware_class, NULL,
+	g_dev->dev = device_create(&fw_class, NULL,
 		g_dev->dev_no, NULL, DEV_NAME);
 	if (IS_ERR_OR_NULL(g_dev->dev)) {
 		pr_info("Create device failed.\n");
@@ -746,51 +876,33 @@ err:
 	return ret;
 }
 
-static void firmware_info_clean(void)
+static void fw_driver_exit(void)
 {
-	struct firmware_mgr_s *mgr = g_mgr;
-	struct firmware_info_s *info;
-	unsigned long flags;
-
-	flags = firmware_mgr_lock(mgr);
-	while (!list_empty(&mgr->head)) {
-		info = list_entry(mgr->head.next,
-			struct firmware_info_s, node);
-		list_del(&info->node);
-		kfree(info->data);
-		kfree(info);
-	}
-	firmware_mgr_unlock(mgr, flags);
-
+	cdev_del(&g_dev->cdev);
+	device_destroy(&fw_class, g_dev->dev_no);
+	class_unregister(&fw_class);
+	unregister_chrdev_region(g_dev->dev_no, 1);
+	kfree(g_dev);
 	kfree(g_mgr);
 }
 
-static void firmware_driver_exit(void)
-{
-	cdev_del(&g_dev->cdev);
-	device_destroy(&firmware_class, g_dev->dev_no);
-	class_unregister(&firmware_class);
-	unregister_chrdev_region(g_dev->dev_no, 1);
-	kfree(g_dev);
-}
-
-static int __init firmware_module_init(void)
+static int __init fw_module_init(void)
 {
 	int ret = -1;
 
-	ret = firmware_driver_init();
+	ret = fw_driver_init();
 	if (ret) {
 		pr_info("Error %d firmware driver init fail.\n", ret);
 		goto err;
 	}
 
-	ret = firmware_mgr_init();
+	ret = fw_mgr_init();
 	if (ret) {
 		pr_info("Error %d firmware mgr init fail.\n", ret);
 		goto err;
 	}
 
-	ret = firmware_pre_load();
+	ret = fw_pre_load();
 	if (ret) {
 		pr_info("Error %d firmware pre load fail.\n", ret);
 		goto err;
@@ -799,17 +911,15 @@ err:
 	return ret;
 }
 
-static void __exit firmware_module_exit(void)
+static void __exit fw_module_exit(void)
 {
-	firmware_info_clean();
-	firmware_driver_exit();
+	fw_ctx_clean();
+	fw_driver_exit();
 	pr_info("Firmware driver cleaned up.\n");
 }
 
-module_param(debug, uint, 0664);
-
-module_init(firmware_module_init);
-module_exit(firmware_module_exit);
+module_init(fw_module_init);
+module_exit(fw_module_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Nanxin Qin <nanxin.qin@amlogic.com>");

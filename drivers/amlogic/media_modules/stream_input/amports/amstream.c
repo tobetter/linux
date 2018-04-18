@@ -885,7 +885,7 @@ static int amstream_port_init(struct port_priv_s *priv)
 	}
 
 	/* try to reload the fw.*/
-	r = firmware_reload(FW_LOAD_TRY);
+	r = video_fw_reload(FW_LOAD_TRY);
 	if (r)
 		pr_err("the firmware reload fail.\n");
 

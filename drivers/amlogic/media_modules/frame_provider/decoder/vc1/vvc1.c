@@ -1056,20 +1056,12 @@ static s32 vvc1_init(void)
 	} else
 		pr_info("not supported VC1 format\n");
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
-		fw_type = VIDEO_DEC_VC1_G12A;
-
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A && tee_enabled()) {
-		ret = tee_load_video_fw((u32)fw_type, 1);
-		size = 1;
-	} else {
-		size = get_firmware_data(fw_type, buf);
-		if (size < 0) {
-			amvdec_disable();
-			pr_err("get firmware fail.");
-			vfree(buf);
-			return -1;
-		}
+	size = get_firmware_data(fw_type, buf);
+	if (size < 0) {
+		amvdec_disable();
+		pr_err("get firmware fail.");
+		vfree(buf);
+		return -1;
 	}
 
 	if (size == 1)
