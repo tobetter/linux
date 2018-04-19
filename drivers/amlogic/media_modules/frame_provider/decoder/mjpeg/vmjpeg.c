@@ -97,6 +97,7 @@ static void vmjpeg_local_init(void);
 
 static const char vmjpeg_dec_id[] = "vmjpeg-dev";
 static struct vdec_info *gvs;
+static struct work_struct set_clk_work;
 
 #define PROVIDER_NAME   "decoder.mjpeg"
 static const struct vframe_operations_s vmjpeg_vf_provider = {
@@ -376,6 +377,17 @@ static int vmjpeg_vf_states(struct vframe_states *states, void *op_arg)
 
 	return 0;
 }
+static void mjpeg_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_MJPEG,
+			frame_width, frame_height, fps);
+	}
+}
 
 static void vmjpeg_put_timer_func(unsigned long arg)
 {
@@ -396,14 +408,9 @@ static void vmjpeg_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
 
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_MJPEG,
-			frame_width, frame_height, fps);
-	}
+	schedule_work(&set_clk_work);
+
 	timer->expires = jiffies + PUT_INTERVAL;
 
 	add_timer(timer);
@@ -810,6 +817,8 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 
 	amlog_level(LOG_LEVEL_INFO, "amvdec_mjpeg probe start.\n");
 
+	INIT_WORK(&set_clk_work, mjpeg_set_clk);
+
 	if (pdata == NULL) {
 		amlog_level(LOG_LEVEL_ERROR,
 			"amvdec_mjpeg memory resource undefined.\n");
@@ -844,6 +853,8 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 static int amvdec_mjpeg_remove(struct platform_device *pdev)
 {
 	mutex_lock(&vmjpeg_mutex);
+
+	cancel_work_sync(&set_clk_work);
 
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();

@@ -1336,6 +1336,7 @@ struct hevc_state_s {
 	int dec_result;
 	struct work_struct work;
 	struct work_struct notify_work;
+	struct work_struct set_clk_work;
 	/* timeout handle */
 	unsigned long int start_process_time;
 	unsigned int last_lcu_idx;
@@ -8243,6 +8244,25 @@ static irqreturn_t vh265_isr(int irq, void *data)
 
 }
 
+static void vh265_set_clk(struct work_struct *work)
+{
+	struct hevc_state_s *hevc = container_of(work,
+		struct hevc_state_s, work);
+
+	if (hevc->m_ins_flag == 0 &&
+		hevc->get_frame_dur && hevc->show_frame_num > 60 &&
+		hevc->frame_dur > 0 && hevc->saved_resolution !=
+		hevc->frame_width * hevc->frame_height *
+			(96000 / hevc->frame_dur)) {
+		int fps = 96000 / hevc->frame_dur;
+
+		if (hevc_source_changed(VFORMAT_HEVC,
+			hevc->frame_width, hevc->frame_height, fps) > 0)
+			hevc->saved_resolution = hevc->frame_width *
+			hevc->frame_height * fps;
+	}
+}
+
 static void vh265_check_timer_func(unsigned long arg)
 {
 	struct hevc_state_s *hevc = (struct hevc_state_s *)arg;
@@ -8457,18 +8477,8 @@ static void vh265_check_timer_func(unsigned long arg)
 		dbg_cmd = 0;
 	}
 	/*don't changed at start.*/
-	if (hevc->m_ins_flag == 0 &&
-		hevc->get_frame_dur && hevc->show_frame_num > 60 &&
-		hevc->frame_dur > 0 && hevc->saved_resolution !=
-		hevc->frame_width * hevc->frame_height *
-			(96000 / hevc->frame_dur)) {
-		int fps = 96000 / hevc->frame_dur;
-
-		if (hevc_source_changed(VFORMAT_HEVC,
-			hevc->frame_width, hevc->frame_height, fps) > 0)
-			hevc->saved_resolution = hevc->frame_width *
-			hevc->frame_height * fps;
-	}
+	if (hevc->m_ins_flag == 0)
+		schedule_work(&hevc->set_clk_work);
 
 	mod_timer(timer, jiffies + PUT_INTERVAL);
 }
@@ -8785,7 +8795,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		return -EBUSY;
 
 	INIT_WORK(&hevc->notify_work, vh265_notify_work);
-
+	INIT_WORK(&hevc->set_clk_work, vh265_set_clk);
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
@@ -9029,6 +9039,8 @@ static int vh265_stop(struct hevc_state_s *hevc)
 
 	}
 	hevc->init_flag = 0;
+	cancel_work_sync(&hevc->notify_work);
+	cancel_work_sync(&hevc->set_clk_work);
 	uninit_mmu_buffers(hevc);
 	amhevc_disable();
 
@@ -9142,6 +9154,7 @@ static int vmh265_stop(struct hevc_state_s *hevc)
 	hevc->init_flag = 0;
 	cancel_work_sync(&hevc->work);
 	cancel_work_sync(&hevc->notify_work);
+	cancel_work_sync(&hevc->set_clk_work);
 	uninit_mmu_buffers(hevc);
 
 	vfree(hevc->fw);

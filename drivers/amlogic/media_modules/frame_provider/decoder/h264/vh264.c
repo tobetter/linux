@@ -291,7 +291,7 @@ static struct work_struct error_wd_work;
 static struct work_struct stream_switching_work;
 static struct work_struct set_parameter_work;
 static struct work_struct notify_work;
-
+static struct work_struct set_clk_work;
 static struct work_struct userdata_push_work;
 
 
@@ -2104,6 +2104,22 @@ static void vh264_isr(void)
 #endif
 }
 
+static void vh264_set_clk(struct work_struct *work)
+{
+	if (ucode_type != UCODE_IP_ONLY_PARAM &&
+		(clk_adj_frame_count > VDEC_CLOCK_ADJUST_FRAME) &&
+		frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		if (frame_dur < 10) /*dur is too small ,think it errors fps*/
+			fps = 60;
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_H264,
+			frame_width, frame_height, fps);
+	}
+}
+
 static void vh264_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -2230,18 +2246,8 @@ static void vh264_put_timer_func(unsigned long arg)
 			stream_switching_done();
 	}
 
-	if (ucode_type != UCODE_IP_ONLY_PARAM &&
-		(clk_adj_frame_count > VDEC_CLOCK_ADJUST_FRAME) &&
-		frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
+	schedule_work(&set_clk_work);
 
-		if (frame_dur < 10) /*dur is too small ,think it errors fps*/
-			fps = 60;
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_H264,
-			frame_width, frame_height, fps);
-	}
 exit:
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -3048,10 +3054,8 @@ static int amvdec_h264_probe(struct platform_device *pdev)
 	INIT_WORK(&stream_switching_work, stream_switching_do);
 	INIT_WORK(&set_parameter_work, vh264_set_params);
 	INIT_WORK(&notify_work, vh264_notify_work);
-
+	INIT_WORK(&set_clk_work, vh264_set_clk);
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
-
-
 
 	atomic_set(&vh264_active, 1);
 
@@ -3067,6 +3071,7 @@ static int amvdec_h264_remove(struct platform_device *pdev)
 	cancel_work_sync(&error_wd_work);
 	cancel_work_sync(&stream_switching_work);
 	cancel_work_sync(&notify_work);
+	cancel_work_sync(&set_clk_work);
 	cancel_work_sync(&userdata_push_work);
 
 	mutex_lock(&vh264_mutex);

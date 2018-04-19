@@ -115,6 +115,7 @@ static u32 sync_outside;
 static u32 vh264_4k2k_rotation;
 static u32 first_i_received;
 static struct vframe_s *p_last_vf;
+static struct work_struct set_clk_work;
 
 #ifdef DEBUG_PTS
 static unsigned long pts_missed, pts_hit;
@@ -880,6 +881,20 @@ static irqreturn_t vh264_4k2k_vdec2_isr(int irq, void *dev_id)
 }
 #endif
 
+static void vh264_4k2k_set_clk(struct work_struct *work)
+{
+	if (first_i_received &&/*do switch after first i frame ready.*/
+		frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		pr_info("H264 4k2k resolution changed!!\n");
+		if (vdec_source_changed(VFORMAT_H264_4K2K,
+			frame_width, frame_height, fps) > 0)/*changed clk ok*/
+			saved_resolution = frame_width * frame_height * fps;
+	}
+}
+
 static void vh264_4k2k_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -937,16 +952,9 @@ static void vh264_4k2k_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	if (first_i_received &&/*do switch after first i frame ready.*/
-		frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
 
-		pr_info("H264 4k2k resolution changed!!\n");
-		if (vdec_source_changed(VFORMAT_H264_4K2K,
-			frame_width, frame_height, fps) > 0)/*changed clk ok*/
-			saved_resolution = frame_width * frame_height * fps;
-	}
+	schedule_work(&set_clk_work);
+
 	timer->expires = jiffies + PUT_INTERVAL;
 
 	add_timer(timer);
@@ -1689,6 +1697,8 @@ static int amvdec_h264_4k2k_probe(struct platform_device *pdev)
 	/*set the max clk for smooth playing...*/
 		vdec_source_changed(VFORMAT_H264_4K2K,
 				4096, 2048, 30);
+	INIT_WORK(&set_clk_work, vh264_4k2k_set_clk);
+
 	atomic_set(&vh264_4k2k_active, 1);
 	mutex_unlock(&vh264_4k2k_mutex);
 
@@ -1698,7 +1708,7 @@ static int amvdec_h264_4k2k_probe(struct platform_device *pdev)
 static int amvdec_h264_4k2k_remove(struct platform_device *pdev)
 {
 	cancel_work_sync(&alloc_work);
-
+	cancel_work_sync(&set_clk_work);
 	mutex_lock(&vh264_4k2k_mutex);
 	atomic_set(&vh264_4k2k_active, 0);
 
