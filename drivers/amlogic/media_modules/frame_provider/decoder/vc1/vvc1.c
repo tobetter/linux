@@ -135,6 +135,7 @@ static u32 total_frame;
 static u32 next_pts;
 static u64 next_pts_us64;
 static bool is_reset;
+static struct work_struct set_clk_work;
 
 #ifdef DEBUG_PTS
 static u32 pts_hit, pts_missed, pts_i_hit, pts_i_missed;
@@ -974,6 +975,18 @@ static void vvc1_ppmgr_reset(void)
 }
 #endif
 
+static void vvc1_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_VC1,
+			frame_width, frame_height, fps);
+	}
+}
+
 static void vvc1_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -1006,14 +1019,7 @@ static void vvc1_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
-
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_VC1,
-			frame_width, frame_height, fps);
-	}
+	schedule_work(&set_clk_work);
 	timer->expires = jiffies + PUT_INTERVAL;
 
 	add_timer(timer);
@@ -1141,12 +1147,13 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 		gvs = NULL;
 		return -ENODEV;
 	}
-
+	INIT_WORK(&set_clk_work, vvc1_set_clk);
 	return 0;
 }
 
 static int amvdec_vc1_remove(struct platform_device *pdev)
 {
+	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
 		stat &= ~STAT_VDEC_RUN;

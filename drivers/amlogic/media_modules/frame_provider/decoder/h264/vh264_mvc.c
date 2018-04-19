@@ -89,6 +89,7 @@ static const char vh264mvc_dec_id[] = "vh264mvc-dev";
 
 static struct vdec_info *gvs;
 static struct work_struct alloc_work;
+static struct work_struct set_clk_work;
 
 static DEFINE_MUTEX(vh264_mvc_mutex);
 
@@ -1060,6 +1061,18 @@ static void vh264mvc_isr(void)
 #endif
 }
 
+static void vh264_mvc_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_H264MVC,
+			frame_width, frame_height, fps * 2);
+	}
+}
+
 static void vh264mvc_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -1110,15 +1123,7 @@ static void vh264mvc_put_timer_func(unsigned long arg)
 		}
 	}
 
-
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
-
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_H264MVC,
-			frame_width, frame_height, fps * 2);
-	}
+	schedule_work(&set_clk_work);
 
 	/* RESTART: */
 	timer->expires = jiffies + PUT_INTERVAL;
@@ -1606,6 +1611,7 @@ static int amvdec_h264mvc_probe(struct platform_device *pdev)
 	}
 
 	INIT_WORK(&error_wd_work, error_do_work);
+	INIT_WORK(&set_clk_work, vh264_mvc_set_clk);
 
 	atomic_set(&vh264mvc_active, 1);
 
@@ -1621,6 +1627,7 @@ static int amvdec_h264mvc_remove(struct platform_device *pdev)
 	pr_info("amvdec_h264mvc_remove\n");
 	cancel_work_sync(&alloc_work);
 	cancel_work_sync(&error_wd_work);
+	cancel_work_sync(&set_clk_work);
 	vh264mvc_stop();
 	frame_width = 0;
 	frame_height = 0;

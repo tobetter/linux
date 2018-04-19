@@ -1008,6 +1008,7 @@ struct VP9Decoder_s {
 	struct vframe_chunk_s *chunk;
 	int dec_result;
 	struct work_struct work;
+	struct work_struct set_clk_work;
 	u32 start_shift_bytes;
 
 	struct BuffInfo_s work_space_buf_store;
@@ -7555,6 +7556,24 @@ static irqreturn_t vvp9_isr(int irq, void *data)
 	return IRQ_WAKE_THREAD;
 }
 
+static void vp9_set_clk(struct work_struct *work)
+{
+	struct VP9Decoder_s *pbi = container_of(work,
+		struct VP9Decoder_s, work);
+
+	if (pbi->get_frame_dur && pbi->show_frame_num > 60 &&
+		pbi->frame_dur > 0 && pbi->saved_resolution !=
+		frame_width * frame_height *
+			(96000 / pbi->frame_dur)) {
+		int fps = 96000 / pbi->frame_dur;
+
+		if (hevc_source_changed(VFORMAT_VP9,
+			frame_width, frame_height, fps) > 0)
+			pbi->saved_resolution = frame_width *
+			frame_height * fps;
+	}
+}
+
 static void vvp9_put_timer_func(unsigned long arg)
 {
 	struct VP9Decoder_s *pbi = (struct VP9Decoder_s *)arg;
@@ -7757,17 +7776,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 		dbg_cmd = 0;
 	}
 	/*don't changed at start.*/
-	if (pbi->get_frame_dur && pbi->show_frame_num > 60 &&
-		pbi->frame_dur > 0 && pbi->saved_resolution !=
-		frame_width * frame_height *
-			(96000 / pbi->frame_dur)) {
-		int fps = 96000 / pbi->frame_dur;
-
-		if (hevc_source_changed(VFORMAT_VP9,
-			frame_width, frame_height, fps) > 0)
-			pbi->saved_resolution = frame_width *
-			frame_height * fps;
-	}
+	schedule_work(&pbi->set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 	add_timer(timer);
@@ -8031,6 +8040,8 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 	int fw_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL;
 
+	INIT_WORK(&pbi->set_clk_work, vp9_set_clk);
+
 	init_timer(&pbi->timer);
 
 	pbi->stat |= STAT_TIMER_INIT;
@@ -8187,6 +8198,7 @@ static int vmvp9_stop(struct VP9Decoder_s *pbi)
 	if (pbi->used_stage_buf_num > 0)
 		cancel_work_sync(&pbi->s1_work);
 #endif
+	cancel_work_sync(&pbi->set_clk_work);
 	uninit_mmu_buffers(pbi);
 
 	return 0;
@@ -8239,6 +8251,7 @@ static int vvp9_stop(struct VP9Decoder_s *pbi)
 #else
 	amhevc_disable();
 #endif
+	cancel_work_sync(&pbi->set_clk_work);
 	uninit_mmu_buffers(pbi);
 
 	vfree(pbi->fw);

@@ -179,6 +179,7 @@ static struct dec_sysinfo vavs_amstream_dec_info;
 static struct vdec_info *gvs;
 static u32 fr_hint_status;
 static struct work_struct notify_work;
+static struct work_struct set_clk_work;
 static bool is_reset;
 
 static struct vdec_s *vdec;
@@ -1257,6 +1258,25 @@ static void vavs_notify_work(struct work_struct *work)
 	return;
 }
 
+static void avs_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		if (firmware_sel == 0 &&
+			(debug_flag & AVS_DEBUG_USE_FULL_SPEED)) {
+			vdec_source_changed(VFORMAT_AVS,
+				4096, 2048, 60);
+		} else {
+			vdec_source_changed(VFORMAT_AVS,
+			frame_width, frame_height, fps);
+		}
+
+	}
+}
+
 static void vavs_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -1346,21 +1366,8 @@ static void vavs_put_timer_func(unsigned long arg)
 		}
 
 	}
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
 
-		saved_resolution = frame_width * frame_height * fps;
-		if (firmware_sel == 0 &&
-			(debug_flag & AVS_DEBUG_USE_FULL_SPEED)) {
-			vdec_source_changed(VFORMAT_AVS,
-				4096, 2048, 60);
-		} else {
-			vdec_source_changed(VFORMAT_AVS,
-			frame_width, frame_height, fps);
-		}
-
-	}
+	schedule_work(&set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -1661,6 +1668,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 #endif
 	INIT_WORK(&notify_work, vavs_notify_work);
+	INIT_WORK(&set_clk_work, avs_set_clk);
 	return 0;
 }
 
@@ -1672,6 +1680,7 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 	cancel_work_sync(&userdata_push_work);
 #endif
 	cancel_work_sync(&notify_work);
+	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
 		stat &= ~STAT_VDEC_RUN;

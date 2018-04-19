@@ -150,6 +150,7 @@ static u32 real_err_count;
 
 static u32 fatal_flag;
 static s32 wait_buffer_counter;
+static struct work_struct set_clk_work;
 static bool is_reset;
 
 static DEFINE_SPINLOCK(lock);
@@ -438,6 +439,20 @@ static void vreal_ppmgr_reset(void)
 }
 #endif
 #endif
+
+static void vreal_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 &&
+		saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_REAL,
+			frame_width, frame_height, fps);
+	}
+}
+
 static void vreal_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -494,15 +509,7 @@ static void vreal_put_timer_func(unsigned long arg)
 		}
 	}
 
-	if (frame_dur > 0 &&
-		saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
-
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_REAL,
-			frame_width, frame_height, fps);
-	}
+	schedule_work(&set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -921,12 +928,13 @@ static int amvdec_real_probe(struct platform_device *pdev)
 		pr_info("amvdec_real init failed.\n");
 		return -ENODEV;
 	}
-
+	INIT_WORK(&set_clk_work, vreal_set_clk);
 	return 0;
 }
 
 static int amvdec_real_remove(struct platform_device *pdev)
 {
+	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
 		stat &= ~STAT_VDEC_RUN;

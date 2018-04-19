@@ -173,6 +173,7 @@ u32 pts_hit, pts_missed, pts_i_hit, pts_i_missed;
 
 static struct work_struct reset_work;
 static struct work_struct notify_work;
+static struct work_struct set_clk_work;
 static bool is_reset;
 
 static DEFINE_SPINLOCK(lock);
@@ -694,6 +695,18 @@ static void reset_do_work(struct work_struct *work)
 	amvdec_start();
 }
 
+static void vmpeg4_set_clk(struct work_struct *work)
+{
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur)) {
+		int fps = 96000 / frame_dur;
+
+		saved_resolution = frame_width * frame_height * fps;
+		vdec_source_changed(VFORMAT_MPEG4,
+			frame_width, frame_height, fps);
+	}
+}
+
 static void vmpeg_put_timer_func(unsigned long arg)
 {
 	struct timer_list *timer = (struct timer_list *)arg;
@@ -711,14 +724,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
-		int fps = 96000 / frame_dur;
 
-		saved_resolution = frame_width * frame_height * fps;
-		vdec_source_changed(VFORMAT_MPEG4,
-			frame_width, frame_height, fps);
-	}
+	schedule_work(&set_clk_work);
+
 	if (READ_VREG(AV_SCRATCH_L)) {
 		pr_info("mpeg4 fatal error happened,need reset    !!\n");
 		schedule_work(&reset_work);
@@ -1132,6 +1140,7 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 
 	INIT_WORK(&reset_work, reset_do_work);
 	INIT_WORK(&notify_work, vmpeg4_notify_work);
+	INIT_WORK(&set_clk_work, vmpeg4_set_clk);
 
 	vmpeg4_vdec_info_init();
 
@@ -1174,6 +1183,7 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 
 	cancel_work_sync(&reset_work);
 	cancel_work_sync(&notify_work);
+	cancel_work_sync(&set_clk_work);
 
 	amvdec_disable();
 
