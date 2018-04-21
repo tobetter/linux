@@ -8828,6 +8828,10 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		hevc->timer.function = vh265_check_timer_func;
 		hevc->timer.expires = jiffies + PUT_INTERVAL;
 
+#ifdef USE_UNINIT_SEMA
+		sema_init(&hevc->h265_uninit_done_sema, 0);
+#endif
+
 		/*add_timer(&hevc->timer);
 		 *hevc->stat |= STAT_TIMER_ARM;
 		 */
