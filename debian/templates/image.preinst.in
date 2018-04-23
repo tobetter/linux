@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-version=@abiname@@localversion@
+version=@upstreamversion@@localversion@
 image_path=/boot/@image-stem@-$version
 
 if [ "$1" = abort-upgrade ]; then

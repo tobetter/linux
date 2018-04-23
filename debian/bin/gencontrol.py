@@ -71,7 +71,7 @@ class Gencontrol(Base):
         super(Gencontrol, self).do_main_setup(vars, makeflags, extra)
         makeflags.update({
             'VERSION': self.version.linux_version,
-            'UPSTREAMVERSION': self.version.linux_upstream,
+            'UPSTREAMVERSION': self.version.linux_upstream_full,
             'ABINAME': self.abiname_version + self.abiname_part,
             'SOURCEVERSION': self.version.complete,
         })
@@ -459,7 +459,7 @@ class Gencontrol(Base):
         # translations and lintian overrides
         self._substitute_file('headers.postinst', vars,
                               'debian/linux-headers-%s%s.postinst' %
-                              (vars['abiname'], vars['localversion']))
+                              (vars['upstreamversion'], vars['localversion']))
         for name in ['postinst', 'postrm', 'preinst', 'prerm']:
             self._substitute_file('image.%s' % name, vars,
                                   'debian/%s.%s' % (image_main['Package'], name))
@@ -482,7 +482,7 @@ class Gencontrol(Base):
         self.abiname_version = re.sub('^(\d+\.\d+)(?=-|$)', r'\1.0',
                                       self.version.linux_upstream)
         self.vars = {
-            'upstreamversion': self.version.linux_upstream,
+            'upstreamversion': self.version.linux_upstream_full,
             'version': self.version.linux_version,
             'source_upstream': self.version.upstream,
             'source_package': self.changelog[0].source,
