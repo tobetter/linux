@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-version=3.16.0-1-odroid-arm64
+version=3.16.56-odroid-arm64
 image_path=/boot/vmlinuz-$version
 
 if [ "$1" = abort-upgrade ]; then

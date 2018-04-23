@@ -1,10 +1,9 @@
 Section: kernel
 Priority: optional
-Maintainer: Debian Kernel Team <debian-kernel@lists.debian.org>
-Uploaders: Bastian Blank <waldi@debian.org>, maximilian attems <maks@debian.org>, Ben Hutchings <ben@decadent.org.uk>, Salvatore Bonaccorso <carnil@debian.org>
+Maintainer: Dongjin Kim <tobetter@gmail.com>
 Standards-Version: 4.1.1
 Build-Depends:
- debhelper (>= 9.0~), dh-exec,
+ debhelper, dh-exec,
 # used to run debian/bin/*.py
  python3:any,
 # used by debian/rules.real to prepare the source
@@ -17,27 +16,27 @@ Build-Depends:
  dh-python <!stage1>,
 Build-Depends-Arch:
 # used by debian/rules.real to build udebs
- kernel-wedge (>= 2.93~) <!stage1>,
+ kernel-wedge <!stage1>,
 # used by kernel-wedge (only on Linux, thus not declared as a dependency)
  kmod <!stage1>,
 # used by upstream to build include/generated/timeconst.h
  bc <!stage1>,
 # used by upstream to build signing tools and to process certificates
  libssl-dev:native <!stage1>, libssl-dev <!stage1 !pkg.linux.notools cross>,
- openssl (>= 1.0.2g) <!stage1>,
+ openssl <!stage1>,
 # used by upstream to build perf documentation
  asciidoc-base <!stage1 !nodoc !pkg.linux.notools>,
  xmlto <!stage1 !nodoc !pkg.linux.notools>,
 # used by upstream to build kconfig and perf
  bison <!stage1>,
 # - flex needs to run on the host; we have the same problem as for openssl
- flex (>= 2.6.1-1.1~) <!stage1>,
+ flex <!stage1>,
 # used by upstream to build perf
  gcc-multilib [amd64 ppc64 s390x sparc64] <!stage1 !pkg.linux.notools !nopython>,
  libaudit-dev <!stage1 !pkg.linux.notools !nopython>,
- libbabeltrace-dev (>= 1.5.0) <!stage1 !pkg.linux.notools !nopython>,
+ libbabeltrace-dev <!stage1 !pkg.linux.notools !nopython>,
 # - libbabeltrace-ctf-dev may or may not be needed as well
- libbabeltrace-dev (>= 1.5.3-2~) <!stage1 !pkg.linux.notools !nopython> | libbabeltrace-ctf-dev (>= 1.5.0) <!stage1 !pkg.linux.notools !nopython>,
+ libbabeltrace-dev <!stage1 !pkg.linux.notools !nopython> | libbabeltrace-ctf-dev <!stage1 !pkg.linux.notools !nopython>,
  libdw-dev <!stage1 !pkg.linux.notools !nopython>,
  libelf-dev <!stage1 !pkg.linux.notools !nopython>,
  libiberty-dev <!stage1 !pkg.linux.notools !nopython>,
@@ -65,6 +64,6 @@ Build-Depends-Indep:
  python-sphinx <!stage1 !nodoc>,
  python-sphinx-rtd-theme <!stage1 !nodoc>,
 Rules-Requires-Root: no
-Vcs-Git: https://anonscm.debian.org/git/kernel/linux.git
-Vcs-Browser: https://anonscm.debian.org/cgit/kernel/linux.git
+Vcs-Git: https://github.com/tobetter/linux.git
+Vcs-Browser: https://github.com/tobetter/linux.git
 Homepage: https://www.kernel.org/

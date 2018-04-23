@@ -162,12 +162,10 @@ $
         d = match.groupdict()
         self.linux_modifier = d['modifier']
         self.linux_version = d['version']
+        self.linux_upstream = d['version'] + d['update']
+        self.linux_upstream_full = self.linux_upstream
         if d['modifier'] is not None:
-            assert not d['update']
-            self.linux_upstream = '-'.join((d['version'], d['modifier']))
-        else:
-            self.linux_upstream = d['version']
-        self.linux_upstream_full = self.linux_upstream + d['update']
+            self.linux_upstream_full = self.linux_upstream + '-' + d['modifier']
         self.linux_dfsg = d['dfsg']
         self.linux_revision_experimental = match.group('revision_experimental') and True
         self.linux_revision_security = match.group('revision_security') and True

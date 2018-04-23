@@ -1,11 +1,11 @@
-Package: linux-headers-@abiname@-common-odroid@localversion@
+Package: linux-headers-@upstreamversion@-common-odroid@localversion@
 Build-Profiles: <!stage1>
 Architecture: all
 Depends: ${misc:Depends}
 Multi-Arch: foreign
-Description: Common header files for Linux @abiname@@localversion@
+Description: Common header files for Linux @upstreamversion@@localversion@
  This package provides the common kernel header files for Linux kernel
- version @abiname@@featureset_desc@, generally used for building
+ version @upstreamversion@@featureset_desc@, generally used for building
  out-of-tree kernel modules.  To obtain a complete set of headers you
- also need to install the linux-headers-@abiname@-(flavour) package,
+ also need to install the linux-headers-@upstreamversion@-(flavour) package,
  matching the flavour of the kernel you intend the build for.

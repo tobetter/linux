@@ -37,12 +37,12 @@ undefine LANGUAGE
 
 stamp = [ -d $(dir $@) ] || mkdir $(dir $@); touch $@
 
-setup_env := env -u ABINAME -u ARCH -u FEATURESET -u FLAVOUR -u VERSION -u LOCALVERSION
+setup_env := env -u UPSTREAMVERSION -u ARCH -u FEATURESET -u FLAVOUR -u VERSION -u LOCALVERSION
 setup_env += DISTRIBUTION_OFFICIAL_BUILD=1 DISTRIBUTOR="$(DISTRIBUTOR)" DISTRIBUTION_VERSION="$(SOURCEVERSION)" KBUILD_BUILD_TIMESTAMP="$(SOURCE_DATE)" KBUILD_BUILD_VERSION_TIMESTAMP="$(DISTRIBUTOR) $(SOURCEVERSION) ($(SOURCE_DATE_UTC_ISO))" KBUILD_BUILD_USER="$(word 1,$(subst @, ,$(MAINTAINER)))" KBUILD_BUILD_HOST="$(word 2,$(subst @, ,$(MAINTAINER)))"
 
 MAKE_CLEAN = $(setup_env) $(MAKE) CFLAGS_KERNEL=-fdebug-prefix-map=$(CURDIR)=. CFLAGS_MODULE=-fdebug-prefix-map=$(CURDIR)=.
 MAKE_SELF := $(MAKE) -f debian/rules.real $(MAKEOVERRIDES)
-MAKEOVERRIDES =
+MAKEOVERRIDES = LOCALVERSION=$(LOCALVERSION)
 
 #
 # Targets
@@ -151,7 +151,7 @@ $(STAMPS_DIR)/setup_$(ARCH)_$(FEATURESET)_$(FLAVOUR): $(STAMPS_DIR)/source_$(FEA
 	mkdir '$(DIR)'
 	cp '$(CONFIG)' '$(DIR)/.config'
 	echo 'override ARCH = $(KERNEL_ARCH)' >> '$(DIR)/.kernelvariables'
-	echo 'override KERNELRELEASE = $(ABINAME)$(LOCALVERSION_IMAGE)' >> '$(DIR)/.kernelvariables'
+	echo 'override KERNELRELEASE = $(UPSTREAMVERSION)$(LOCALVERSION_IMAGE)' >> '$(DIR)/.kernelvariables'
 	echo 'CCACHE = ccache' >> '$(DIR)/.kernelvariables'
 	echo 'CC = $$(if $$(DEBIAN_KERNEL_USE_CCACHE),$$(CCACHE)) $$(CROSS_COMPILE)$(COMPILER)' >> '$(DIR)/.kernelvariables'
 # TODO: Should we set CROSS_COMPILE always?
@@ -254,14 +254,14 @@ install-manual: $(STAMPS_DIR)/build-doc
 		xargs dh_installman
 	+$(MAKE_SELF) install-base
 
-install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(ABINAME)-all-odroid linux-headers-$(ABINAME)-all-odroid-$(ARCH)
+install-headers_$(ARCH): PACKAGE_NAMES = linux-headers-$(UPSTREAMVERSION)-all-odroid-$(ARCH)
 install-headers_$(ARCH): DH_OPTIONS = $(foreach p, $(PACKAGE_NAMES), -p$(p))
 install-headers_$(ARCH):
 	dh_testdir
 	dh_testroot
 	+$(MAKE_SELF) install-base GENCONTROL_ARGS='-Vkernel:Arch=$(ARCH)'
 
-install-common-headers_$(FEATURESET): PACKAGE_NAME = linux-headers-$(ABINAME)-common-odroid$(LOCALVERSION)
+install-common-headers_$(FEATURESET): PACKAGE_NAME = linux-headers-$(UPSTREAMVERSION)-common-odroid$(LOCALVERSION)
 install-common-headers_$(FEATURESET): PACKAGE_NAME_KBUILD = linux-kbuild-$(VERSION)
 install-common-headers_$(FEATURESET): DH_OPTIONS = -p$(PACKAGE_NAME)
 install-common-headers_$(FEATURESET): BASE_DIR = /usr/src/$(PACKAGE_NAME)
@@ -291,9 +291,9 @@ install-common-headers_$(FEATURESET): $(STAMPS_DIR)/source_$(FEATURESET)
 
 	+$(MAKE_SELF) install-base
 
-install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(ABINAME)$(LOCALVERSION)
+install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(UPSTREAMVERSION)$(LOCALVERSION)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME = linux-headers-$(REAL_VERSION)
-install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_COMMON = linux-headers-$(ABINAME)-common-odroid$(LOCALVERSION_HEADERS)
+install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_COMMON = linux-headers-$(UPSTREAMVERSION)-common-odroid$(LOCALVERSION_HEADERS)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME_KBUILD = linux-kbuild-$(VERSION)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): DH_OPTIONS = -p$(PACKAGE_NAME)
 install-headers_$(ARCH)_$(FEATURESET)_$(FLAVOUR): BASE_DIR = /usr/src/$(PACKAGE_NAME)
@@ -366,7 +366,7 @@ install-libc-dev_$(ARCH):
 
 	+$(MAKE_SELF) install-base
 
-install-support: PACKAGE_NAME = $(SOURCE_PACKAGE_NAME)-support-$(ABINAME)-odroid
+install-support: PACKAGE_NAME = $(SOURCE_PACKAGE_NAME)-support-$(UPSTREAMVERSION)-odroid
 install-support: DH_OPTIONS = -p$(PACKAGE_NAME)
 install-support: PACKAGE_DIR = debian/$(PACKAGE_NAME)
 install-support: PACKAGE_ROOT = /usr/share/$(PACKAGE_NAME)
@@ -381,7 +381,7 @@ install-support:
 	dh_link $(PACKAGE_ROOT) /usr/src/$(PACKAGE_NAME)
 	+$(MAKE_SELF) install-base
 
-install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(ABINAME)$(LOCALVERSION)
+install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(UPSTREAMVERSION)$(LOCALVERSION)
 install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME = $(IMAGE_PACKAGE_NAME)
 install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_DIR = debian/$(PACKAGE_NAME)
 install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR): INSTALL_DIR = $(PACKAGE_DIR)/boot
@@ -443,7 +443,7 @@ install-image_$(ARCH)_$(FEATURESET)_$(FLAVOUR)_bug:
 	chmod 755 $(PACKAGE_DIR)/usr/share/bug/$(PACKAGE_NAME)/script
 	printf "RELEASE='$(REAL_VERSION)'\nDISTRIBUTOR='$(DISTRIBUTOR)'\nSOURCEVERSION='$(SOURCEVERSION)'\nPACKAGE_NAME='$(PACKAGE_NAME)'\nPACKAGE_VERSION='$(SOURCEVERSION)'" > $(PACKAGE_DIR)/usr/share/bug/$(PACKAGE_NAME)/info
 
-install-image-dbg_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(ABINAME)$(LOCALVERSION)
+install-image-dbg_$(ARCH)_$(FEATURESET)_$(FLAVOUR): REAL_VERSION = $(UPSTREAMVERSION)$(LOCALVERSION)
 install-image-dbg_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_NAME = linux-image-$(REAL_VERSION)-dbg
 install-image-dbg_$(ARCH)_$(FEATURESET)_$(FLAVOUR): PACKAGE_DIR = debian/$(PACKAGE_NAME)
 install-image-dbg_$(ARCH)_$(FEATURESET)_$(FLAVOUR): DEBUG_DIR = $(PACKAGE_DIR)/usr/lib/debug

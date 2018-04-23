@@ -4,31 +4,31 @@ binary-arch_arm64: binary-arch_arm64_none binary-arch_arm64_real
 binary-arch_arm64_none: binary-arch_arm64_none_odroid-arm64 binary-arch_arm64_none_real
 binary-arch_arm64_none_odroid-arm64: binary-arch_arm64_none_odroid-arm64_real
 binary-arch_arm64_none_odroid-arm64_real::
-	$(MAKE) -f debian/rules.real binary-arch-flavour ABINAME='3.16.0-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.0-1-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VDSO='True' VERSION='3.16'
+	$(MAKE) -f debian/rules.real binary-arch-flavour ABINAME='3.16.56-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.56-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VDSO='True' VERSION='3.16'
 binary-arch_arm64_none_real:
 binary-arch_arm64_real::
-	$(MAKE) -f debian/rules.real binary-arch-arch ABINAME='3.16.0-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real binary-arch-arch ABINAME='3.16.56-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 binary-indep:: binary-indep_none setup
 binary-indep::
-	$(MAKE) -f debian/rules.real binary-indep ABINAME='3.16.0-1' ALL_FEATURESETS='none' ALL_TRIPLETS='arm64_none_odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real binary-indep ABINAME='3.16.56-1' ALL_FEATURESETS='none' ALL_TRIPLETS='arm64_none_odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 binary-indep_none: binary-indep_none_real
 binary-indep_none_real::
-	$(MAKE) -f debian/rules.real binary-indep-featureset ABINAME='3.16.0-1' ALL_KERNEL_ARCHES='arm64' FEATURESET='none' LOCALVERSION='' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real binary-indep-featureset ABINAME='3.16.56-1' ALL_KERNEL_ARCHES='arm64' FEATURESET='none' LOCALVERSION='' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 binary-libc-dev_arm64:: source_none_real
 binary-libc-dev_arm64::
-	$(MAKE) -f debian/rules.real install-libc-dev_arm64 ABINAME='3.16.0-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real install-libc-dev_arm64 ABINAME='3.16.56-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 build-arch: build-arch_arm64
 build-arch_arm64: build-arch_arm64_none build-arch_arm64_real
 build-arch_arm64_none: build-arch_arm64_none_odroid-arm64 build-arch_arm64_none_real
 build-arch_arm64_none_odroid-arm64: build-arch_arm64_none_odroid-arm64_real
 build-arch_arm64_none_odroid-arm64_real::
-	$(MAKE) -f debian/rules.real build-arch-flavour ABINAME='3.16.0-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.0-1-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VDSO='True' VERSION='3.16'
+	$(MAKE) -f debian/rules.real build-arch-flavour ABINAME='3.16.56-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.56-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VDSO='True' VERSION='3.16'
 build-arch_arm64_none_real:
 build-arch_arm64_real::
-	$(MAKE) -f debian/rules.real build-arch-arch ABINAME='3.16.0-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real build-arch-arch ABINAME='3.16.56-1' ARCH='arm64' KERNEL_ARCH='arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 build-indep:: build-indep_none
 build-indep::
-	$(MAKE) -f debian/rules.real build-indep ABINAME='3.16.0-1' ALL_FEATURESETS='none' ALL_TRIPLETS='arm64_none_odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real build-indep ABINAME='3.16.56-1' ALL_FEATURESETS='none' ALL_TRIPLETS='arm64_none_odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
 build-indep_none: build-indep_none_real
 build-indep_none_real:
 setup: setup_arm64 setup_none
@@ -36,7 +36,7 @@ setup_arm64: setup_arm64_none setup_arm64_real
 setup_arm64_none: setup_arm64_none_odroid-arm64 setup_arm64_none_real
 setup_arm64_none_odroid-arm64: setup_arm64_none_odroid-arm64_real
 setup_arm64_none_odroid-arm64_real::
-	$(MAKE) -f debian/rules.real setup-arch-flavour ABINAME='3.16.0-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.0-1-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VDSO='True' VERSION='3.16'
+	$(MAKE) -f debian/rules.real setup-arch-flavour ABINAME='3.16.56-1' ARCH='arm64' COMPILER='gcc-6' FEATURESET='none' FLAVOUR='odroid-arm64' IMAGE_FILE='arch/arm64/boot/Image' IMAGE_INSTALL_STEM='vmlinuz' IMAGE_PACKAGE_NAME='linux-image-3.16.56-odroid-arm64' KCONFIG='debian/config/config debian/config/arm64/config' KCONFIG_OPTIONS=' -o DEBUG_INFO=y' KERNEL_ARCH='arm64' LOCALVERSION='-odroid-arm64' LOCALVERSION_HEADERS='' LOCALVERSION_IMAGE='-odroid-arm64' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VDSO='True' VERSION='3.16'
 setup_arm64_none_real:
 setup_arm64_real:
 setup_none: setup_none_real
@@ -44,4 +44,4 @@ setup_none_real:
 source: source_none
 source_none: source_none_real
 source_none_real::
-	$(MAKE) -f debian/rules.real source-featureset ABINAME='3.16.0-1' FEATURESET='none' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16' VERSION='3.16'
+	$(MAKE) -f debian/rules.real source-featureset ABINAME='3.16.56-1' FEATURESET='none' SOURCEVERSION='3.16.56-0' UPSTREAMVERSION='3.16.56' VERSION='3.16'
