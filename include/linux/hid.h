@@ -487,6 +487,7 @@ struct hid_input {
 	struct list_head list;
 	struct hid_report *report;
 	struct input_dev *input;
+	const char *name;
 	unsigned int application;	/* application usage for this input */
 };
 
