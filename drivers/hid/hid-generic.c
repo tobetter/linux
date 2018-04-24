@@ -24,6 +24,22 @@
 
 #include <linux/hid.h>
 
+static struct hid_driver hid_generic;
+
+static int hid_generic_probe(struct hid_device *hdev,
+			     const struct hid_device_id *id)
+{
+	int ret;
+
+	hdev->quirks |= HID_QUIRK_INPUT_PER_APP;
+
+	ret = hid_parse(hdev);
+	if (ret)
+		return ret;
+
+	return hid_hw_start(hdev, HID_CONNECT_DEFAULT);
+}
+
 static const struct hid_device_id hid_table[] = {
 	{ HID_DEVICE(HID_BUS_ANY, HID_GROUP_GENERIC, HID_ANY_ID, HID_ANY_ID) },
 	{ }
@@ -33,6 +49,7 @@ MODULE_DEVICE_TABLE(hid, hid_table);
 static struct hid_driver hid_generic = {
 	.name = "hid-generic",
 	.id_table = hid_table,
+	.probe = hid_generic_probe,
 };
 module_hid_driver(hid_generic);
 
