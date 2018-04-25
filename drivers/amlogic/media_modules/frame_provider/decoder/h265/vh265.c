@@ -8138,14 +8138,12 @@ pic_done:
 
 	} else if (dec_status == HEVC_DECODE_OVER_SIZE) {
 		hevc_print(hevc, 0 , "hevc  decode oversize !!\n");
-		debug |= (H265_DEBUG_DIS_LOC_ERROR_PROC |
-			H265_DEBUG_DIS_SYS_ERROR_PROC);
-		hevc->fatal_error |= DECODER_FATAL_ERROR_SIZE_OVERFLOW;
 #ifdef MULTI_INSTANCE_SUPPORT
-	if (hevc->m_ins_flag)
-		reset_process_time(hevc);
+		if (!hevc->m_ins_flag)
+			debug |= (H265_DEBUG_DIS_LOC_ERROR_PROC |
+				H265_DEBUG_DIS_SYS_ERROR_PROC);
 #endif
-		return IRQ_HANDLED;
+		hevc->fatal_error |= DECODER_FATAL_ERROR_SIZE_OVERFLOW;
 	}
 	return IRQ_HANDLED;
 }

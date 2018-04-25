@@ -298,8 +298,7 @@ void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 EXPORT_SYMBOL(vdec_count_info);
 int vdec_is_support_4k(void)
 {
-	//return !is_meson_gxl_package_805X();
-	return 1;
+	return !is_meson_gxl_package_805X();
 }
 EXPORT_SYMBOL(vdec_is_support_4k);
 
