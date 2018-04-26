@@ -78,6 +78,7 @@ $
     _version_re = re.compile(_version_rules, re.X)
 
     def __init__(self, version):
+        print ('%s : %s' % (self._version_re, version))
         match = self._version_re.match(version)
         if match is None:
             raise RuntimeError(u"Invalid debian version")
