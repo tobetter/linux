@@ -13,6 +13,12 @@ class Changelog(list):
 )
 \ 
 \(
+(?:
+    (?P<epoch>
+        \d+
+    )
+    :
+)?
 (?P<version>
     [^\(\)\ \t]+
 )

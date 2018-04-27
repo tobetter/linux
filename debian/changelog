@@ -1,4 +1,4 @@
-linux (3.16.56-0) unstable; urgency=medium
+linux (5:3.16.56-0) unstable; urgency=medium
 
   * Initiate the build for Hardkernel's SBC ODROID
 
