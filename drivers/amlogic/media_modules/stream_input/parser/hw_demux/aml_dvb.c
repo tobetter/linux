@@ -1803,7 +1803,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		struct i2c_adapter *i2c_adapter = NULL;
 		char buf[32];
 		const char *str = NULL;
-		u32 adap_id = 0xFFFFFFFF;
+		struct device_node *node_i2c = NULL;
 		u32 i2c_addr = 0xFFFFFFFF;
 
 		memset(buf, 0, 32);
@@ -1839,11 +1839,12 @@ static int aml_dvb_probe(struct platform_device *pdev)
 			}
 			memset(buf, 0, 32);
 			snprintf(buf, sizeof(buf), "tuner%d_i2c_adap_id",i);
-			ret = of_property_read_u32(pdev->dev.of_node, buf,&adap_id);
-			if (ret) {
+			node_i2c = of_parse_phandle(pdev->dev.of_node,buf,0);
+			if (!node_i2c) {
 				pr_error("tuner_i2c_adap_id error\n");
 			} else {
-				i2c_adapter = i2c_get_adapter(adap_id);
+				i2c_adapter = of_find_i2c_adapter_by_node(node_i2c);
+				of_node_put(node_i2c);
 				if (i2c_adapter == NULL) {
 					pr_error("i2c_get_adapter error\n");
 					goto error_fe;
@@ -1860,8 +1861,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 			frontend->callback = NULL;
 
 			if (!strcmp(str,"si2151_tuner")) {
-				if (!dvb_attach(si2151_attach, frontend,i2c_addr,
-						   i2c_adapter)) {
+				if (!dvb_attach(si2151_attach, frontend,i2c_adapter,i2c_addr)) {
 					pr_error("dvb attach tuner error\n");
 					goto error_fe;
 				} else {
@@ -1877,6 +1877,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 				goto error_fe;
 			}
 		}
+		return 0;
 error_fe:
 		if (s_demod_type == DEMOD_INTERNAL) {
 			dvb_detach(aml_dtvdm_attach);
