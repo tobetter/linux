@@ -30,11 +30,9 @@ static inline struct dvb_frontend* aml_dtvdm_attach (const struct amlfe_exp_conf
 	return NULL;
 }
 
-static inline struct dvb_frontend* si2151_attach (struct dvb_frontend *fe, u8 addr,
-				     struct i2c_adapter *i2c/*,
+static inline struct dvb_frontend* si2151_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c,u8 i2c_addr/*,
 				     struct si2151_config *cfg*/)
 {
 	return NULL;
 }
-
 #endif	/*__AML_DEMOD_GT_H__*/
