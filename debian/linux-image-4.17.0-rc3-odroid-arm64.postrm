@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-version=4.17.0-rc2-odroid-armmp
+version=4.17.0-rc3-odroid-arm64
 image_path=/boot/vmlinuz-$version
 
 rm -f /lib/modules/$version/.fresh-install
