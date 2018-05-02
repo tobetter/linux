@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-version=4.14.35-odroid-armmp
+version=4.14.37-odroid-armmp
 image_path=/boot/vmlinuz-$version
 
 if [ "$1" != remove ]; then

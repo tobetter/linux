@@ -1,3 +1,9 @@
+linux (4.14.37-0) unstable; urgency=medium
+
+  * Linux kernel v4.14.37, merged from 'hkdk/odroidxu4-4.14.y'
+
+ -- Dongjin Kim <tobetter@gmail.com>  Wed, 02 May 2018 07:32:46 -0400
+
 linux (4.14.35-0) unstable; urgency=medium
 
   * Initiate the build for Hardkernel's SBC ODROID

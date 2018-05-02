@@ -5,7 +5,7 @@
 #         Debian linux-image postinst script.
 
 $|=1;
-my $version  = "4.14.35-odroid-armmp";
+my $version  = "4.14.37-odroid-armmp";
 
 if (-d "/etc/kernel/header_postinst.d") {
   system ("run-parts --report --exit-on-error --arg=$version " .

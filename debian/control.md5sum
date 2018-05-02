@@ -1,13 +1,13 @@
 a192684cc663f2effafc8fbdfc05c978  debian/bin/gencontrol.py
-8e949689d277ffa59a784f5afe3076fb  debian/changelog
+bca31a8292291a060d335201b40ff99c  debian/changelog
 09d1784f420650aa08f4df7f347285f9  debian/templates/control.main.in
 338f1616874d5fe39915d8cf058c3cfd  debian/templates/image.preinst.in
 279db6c0dfdc22441b1ddfbf768c3de6  debian/templates/image.prerm.in
-2c903be7ddc7fd54ef522239c678b206  debian/templates/headers.postinst.in
+63c0d01ea032d0acfa5e069d31daa938  debian/templates/control.libc-dev.in
 47a9cf838b364ccaebbff0a9e4175fa8  debian/templates/control.image.in
 0c06ba7ad1925435aeac7ca7cbfc2863  debian/templates/image.postrm.in
+2c903be7ddc7fd54ef522239c678b206  debian/templates/headers.postinst.in
 492f24161b921f2fb2bbe4b97ee425a5  debian/templates/control.source.in
-63c0d01ea032d0acfa5e069d31daa938  debian/templates/control.libc-dev.in
 98e8d13aac4c51cac444f38d263a7c47  debian/templates/control.headers.featureset.in
 a647b2e7ea5190752d692e6e1822b502  debian/templates/image.postinst.in
 de01de31a6895bc43a26f3de8c9056e2  debian/templates/control.headers.in

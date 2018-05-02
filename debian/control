@@ -26,25 +26,25 @@ Description: Linux kernel source for version 4.14 with Debian patches
 Build-Profiles: <!stage1>
 Multi-Arch: foreign
 
-Package: linux-support-4.14.35-odroid
+Package: linux-support-4.14.37-odroid
 Architecture: all
 Section: devel
 Depends: ${python3:Depends}, ${misc:Depends}
-Description: Support files for Linux 4.14.35
+Description: Support files for Linux 4.14.37
  This package provides support files for the Linux kernel build, e.g.
  scripts to handle ABI information and for generation of build system meta
  data.
 Build-Profiles: <!stage1>
 Multi-Arch: foreign
 
-Package: linux-headers-4.14.35-common-odroid
+Package: linux-headers-4.14.37-common-odroid
 Architecture: all
 Depends: ${misc:Depends}
-Description: Common header files for Linux 4.14.35
+Description: Common header files for Linux 4.14.37
  This package provides the common kernel header files for Linux kernel
- version 4.14.35, generally used for building out-of-tree kernel modules.
+ version 4.14.37, generally used for building out-of-tree kernel modules.
  To obtain a complete set of headers you also need to install the
- linux-headers-4.14.35-(flavour) package, matching the flavour of the
+ linux-headers-4.14.37-(flavour) package, matching the flavour of the
  kernel you intend the build for.
 Build-Profiles: <!stage1>
 Multi-Arch: foreign
@@ -60,36 +60,36 @@ Description: Linux support headers for userspace development
  libraries.
 Multi-Arch: same
 
-Package: linux-headers-4.14.35-all-odroid-armhf
+Package: linux-headers-4.14.37-all-odroid-armhf
 Architecture: armhf
-Depends: ${misc:Depends}, linux-headers-4.14.35-odroid-armmp (= ${binary:Version})
+Depends: ${misc:Depends}, linux-headers-4.14.37-odroid-armmp (= ${binary:Version})
 Description: All header files for Linux 4.14 (meta-package)
  This package depends against all architecture-specific kernel header files
- for Linux kernel version 4.14.35, generally used for building out-of-tree
+ for Linux kernel version 4.14.37, generally used for building out-of-tree
  kernel modules.
 Build-Profiles: <!stage1>
 
-Package: linux-image-4.14.35-odroid-armmp
+Package: linux-image-4.14.37-odroid-armmp
 Architecture: armhf
 Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}, initramfs-tools (>= 0.120+deb8u2) [armhf] | linux-initramfs-tool [armhf]
 Recommends: firmware-linux-free, ${kernel:Recommends}, apparmor [armhf]
 Suggests: linux-doc-4.14, debian-kernel-handbook
 Breaks: initramfs-tools (<< 0.120+deb8u2)
-Description: Linux 4.14.35 for ARMv7 multiplatform compatible SoCs
- The Linux kernel 4.14.35 and modules for use on ARMv7 multiplatform
+Description: Linux 4.14.37 for ARMv7 multiplatform compatible SoCs
+ The Linux kernel 4.14.37 and modules for use on ARMv7 multiplatform
  kernel.  See https://wiki.debian.org/DebianKernel/ARMMP for details of
  supported platforms.
 Build-Profiles: <!stage1>
 
-Package: linux-headers-4.14.35-odroid-armmp
+Package: linux-headers-4.14.37-odroid-armmp
 Architecture: armhf
-Depends: linux-headers-4.14.35-common-odroid (= ${source:Version}), linux-kbuild-4.14, ${misc:Depends}, linux-compiler-gcc-6-arm
-Description: Header files for Linux 4.14.35-odroid-armmp
+Depends: linux-headers-4.14.37-common-odroid (= ${source:Version}), linux-kbuild-4.14, ${misc:Depends}, linux-compiler-gcc-6-arm
+Description: Header files for Linux 4.14.37-odroid-armmp
  This package provides the architecture-specific kernel header files for
- Linux kernel 4.14.35-odroid-armmp, generally used for building out-of-tree
+ Linux kernel 4.14.37-odroid-armmp, generally used for building out-of-tree
  kernel modules.  These files are going to be installed into
- /usr/src/linux-headers-4.14.35-odroid-armmp, and can be used for building
- modules that load into the kernel provided by the linux-image-4.14.35--
+ /usr/src/linux-headers-4.14.37-odroid-armmp, and can be used for building
+ modules that load into the kernel provided by the linux-image-4.14.37--
  odroid-armmp package.
 Build-Profiles: <!stage1>
 
