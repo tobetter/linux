@@ -211,4 +211,6 @@ source "drivers/mux/Kconfig"
 
 # Hardkernel Specific drivers
 source "drivers/hardkernel/Kconfig"
+
+source "drivers/gator/Kconfig"
 endmenu

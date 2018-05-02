@@ -186,3 +186,5 @@ obj-$(CONFIG_MULTIPLEXER)	+= mux/
 
 # Hardkernel Specific drivers
 obj-y				+= hardkernel/
+
+obj-$(CONFIG_GATOR)		+= gator/
