@@ -2253,6 +2253,52 @@ static bool test_hevc(u32 decomp_addr, u32 us_delay)
 	return (READ_VREG(HEVCD_IPP_DBG_DATA) & 3) == 1;
 }
 
+void vdec_power_reset(void)
+{
+	/* enable vdec1 isolation */
+	WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
+		READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0xc0);
+	/* power off vdec1 memories */
+	WRITE_VREG(DOS_MEM_PD_VDEC, 0xffffffffUL);
+	/* vdec1 power off */
+	WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
+		READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0xc);
+
+	if (has_vdec2()) {
+		/* enable vdec2 isolation */
+		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0x300);
+		/* power off vdec2 memories */
+		WRITE_VREG(DOS_MEM_PD_VDEC2, 0xffffffffUL);
+		/* vdec2 power off */
+		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0x30);
+	}
+
+	if (has_hdec()) {
+		/* enable hcodec isolation */
+		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0x30);
+		/* power off hcodec memories */
+		WRITE_VREG(DOS_MEM_PD_HCODEC, 0xffffffffUL);
+		/* hcodec power off */
+		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 3);
+	}
+
+	if (has_hevc_vdec()) {
+		/* enable hevc isolation */
+		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0xc00);
+		/* power off hevc memories */
+		WRITE_VREG(DOS_MEM_PD_HEVC, 0xffffffffUL);
+		/* hevc power off */
+		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0xc0);
+	}
+}
+EXPORT_SYMBOL(vdec_power_reset);
+
 void vdec_poweron(enum vdec_type_e core)
 {
 	void *decomp_addr = NULL;

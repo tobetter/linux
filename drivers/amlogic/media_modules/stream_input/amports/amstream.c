@@ -3793,6 +3793,11 @@ static int amstream_probe(struct platform_device *pdev)
 	/*prealloc fetch buf to avoid no continue buffer later...*/
 	stbuf_fetch_init();
 	REG_PATH_CONFIGS("media.amports", amports_configs);
+
+	/* poweroff the decode core because dos can not be reset when reboot */
+	if (get_cpu_type() == MESON_CPU_MAJOR_ID_G12A)
+		vdec_power_reset();
+
 	return 0;
 
 	/*
