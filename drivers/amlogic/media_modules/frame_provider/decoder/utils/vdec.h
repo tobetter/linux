@@ -70,6 +70,7 @@ extern void vdec2_power_mode(int level);
 extern void vdec_poweron(enum vdec_type_e core);
 extern void vdec_poweroff(enum vdec_type_e core);
 extern bool vdec_on(enum vdec_type_e core);
+extern void vdec_power_reset(void);
 
 /*irq num as same as .dts*/
 
