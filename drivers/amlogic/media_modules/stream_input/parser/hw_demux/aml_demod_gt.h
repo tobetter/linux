@@ -35,4 +35,9 @@ static inline struct dvb_frontend* si2151_attach (struct dvb_frontend *fe,struct
 {
 	return NULL;
 }
+static inline struct dvb_frontend* mxl661_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c,u8 i2c_addr/*,
+				     struct si2151_config *cfg*/)
+{
+	return NULL;
+}
 #endif	/*__AML_DEMOD_GT_H__*/
