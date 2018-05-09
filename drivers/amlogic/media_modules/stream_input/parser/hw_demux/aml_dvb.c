@@ -51,6 +51,7 @@ typedef enum __tuner_type
 	TUNER_INVALID,
 	TUNER_SI2151,
 	TUNER_MXL661,
+	TUNER_SI2159,
 	TUNER_MAX_NUM
 }tuner_type;
 
@@ -1877,6 +1878,14 @@ static int aml_dvb_probe(struct platform_device *pdev)
 					pr_inf("mxl661_attach  attach sucess\n");
 					s_tuner_type = TUNER_MXL661;
 				}
+			}else if(!strcmp(str,"si2159_tuner")) {
+				if (!dvb_attach(si2159_attach, frontend,i2c_adapter,i2c_addr)) {
+					pr_error("dvb attach si2159_attach tuner error\n");
+					goto error_fe;
+				} else {
+					pr_inf("si2159_attach  attach sucess\n");
+					s_tuner_type = TUNER_SI2159;
+				}
 			}else {
 				pr_error("can't support tuner type: %s\n",str);
 			}
@@ -1898,6 +1907,9 @@ error_fe:
 			s_tuner_type = TUNER_INVALID;
 		}else if (s_tuner_type == TUNER_MXL661) {
 			dvb_detach(mxl661_attach);
+			s_tuner_type = TUNER_INVALID;
+		}else if (s_tuner_type == TUNER_SI2159) {
+			dvb_detach(si2159_attach);
 			s_tuner_type = TUNER_INVALID;
 		}
 		return 0;
@@ -1937,9 +1949,11 @@ static int aml_dvb_remove(struct platform_device *pdev)
 		dvb_detach(si2151_attach);
 	}else if (s_tuner_type == TUNER_MXL661) {
 		dvb_detach(mxl661_attach);
+	}else if (s_tuner_type == TUNER_SI2159) {
+		dvb_detach(si2159_attach);
 	}
 	if (frontend && \
-		((s_tuner_type == TUNER_SI2151) || (s_tuner_type == TUNER_MXL661)) \
+		( (s_tuner_type == TUNER_SI2151) || (s_tuner_type == TUNER_MXL661) || (s_tuner_type == TUNER_SI2159) ) \
 		)
 	{
 		dvb_unregister_frontend(frontend);
