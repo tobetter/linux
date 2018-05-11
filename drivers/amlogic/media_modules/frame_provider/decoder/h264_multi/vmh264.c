@@ -6109,6 +6109,7 @@ result_done:
 				}
 			}
 		decode_frame_count[DECODE_ID(hw)]++;
+		amvdec_stop();
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s dec_result %d %x %x %x\n",
 			__func__,
@@ -6133,7 +6134,9 @@ result_done:
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s: end of stream\n",
 			__func__);
-
+		amvdec_stop();
+		if (hw->mmu_enable)
+			amhevc_stop();
 		hw->eos = 1;
 		flush_dpb(p_H264_Dpb);
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
@@ -6222,7 +6225,7 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		not_run_ready[DECODE_ID(hw)] = 0;
 	else
 		not_run_ready[DECODE_ID(hw)]++;
-	return ret;
+	return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
 static unsigned char get_data_check_sum
