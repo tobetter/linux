@@ -1431,6 +1431,8 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 
 	p->cma_dev = vdec_core->cma_dev;
 	p->get_canvas = get_canvas;
+	atomic_set(&p->inirq_flag, 0);
+	atomic_set(&p->inirq_thread_flag, 0);
 	/* todo */
 	if (!vdec_dual(vdec))
 		p->use_vfm_path = vdec_stream_based(vdec);
@@ -1652,6 +1654,10 @@ void vdec_release(struct vdec_s *vdec)
 		}
 	}
 
+	while ((atomic_read(&vdec->inirq_flag) > 0)
+		|| (atomic_read(&vdec->inirq_thread_flag) > 0))
+		schedule();
+
 	platform_device_unregister(vdec->dev);
 	vdec_destroy(vdec);
 
@@ -1808,9 +1814,13 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
 	struct vdec_s *vdec = c->vdec;
-
-	if (c->dev_isr)
-		return c->dev_isr(irq, c->dev_id);
+	irqreturn_t ret = IRQ_HANDLED;
+	if (vdec)
+		atomic_set(&vdec->inirq_flag, 1);
+	if (c->dev_isr) {
+		ret = c->dev_isr(irq, c->dev_id);
+		goto isr_done;
+	}
 
 	if ((c != &vdec_core->isr_context[VDEC_IRQ_0]) &&
 	    (c != &vdec_core->isr_context[VDEC_IRQ_1]) &&
@@ -1818,7 +1828,7 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 #if 0
 		pr_warn("vdec interrupt w/o a valid receiver\n");
 #endif
-		return IRQ_HANDLED;
+		goto isr_done;
 	}
 
 	if (!vdec) {
@@ -1826,17 +1836,21 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 		pr_warn("vdec interrupt w/o an active instance running. core = %p\n",
 			core);
 #endif
-		return IRQ_HANDLED;
+		goto isr_done;
 	}
 
 	if (!vdec->irq_handler) {
 #if 0
 		pr_warn("vdec instance has no irq handle.\n");
 #endif
-		return IRQ_HANDLED;
+		goto  isr_done;
 	}
 
-	return vdec->irq_handler(vdec, c->index);
+	ret = vdec->irq_handler(vdec, c->index);
+isr_done:
+	if (vdec)
+		atomic_set(&vdec->inirq_flag, 0);
+	return ret;
 }
 
 static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
@@ -1844,17 +1858,23 @@ static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
 	struct vdec_s *vdec = c->vdec;
-
-	if (c->dev_threaded_isr)
-		return c->dev_threaded_isr(irq, c->dev_id);
-
+	irqreturn_t ret = IRQ_HANDLED;
+	if (vdec)
+		atomic_set(&vdec->inirq_thread_flag, 1);
+	if (c->dev_threaded_isr) {
+		ret = c->dev_threaded_isr(irq, c->dev_id);
+		goto thread_isr_done;
+	}
 	if (!vdec)
-		return IRQ_HANDLED;
+		goto thread_isr_done;
 
 	if (!vdec->threaded_irq_handler)
-		return IRQ_HANDLED;
-
-	return vdec->threaded_irq_handler(vdec, c->index);
+		goto thread_isr_done;
+	ret = vdec->threaded_irq_handler(vdec, c->index);
+thread_isr_done:
+	if (vdec)
+		atomic_set(&vdec->inirq_thread_flag, 0);
+	return ret;
 }
 
 unsigned long vdec_ready_to_run(struct vdec_s *vdec, unsigned long mask)
@@ -3244,9 +3264,6 @@ void vdec_free_irq(enum vdec_irq_num num, void *dev)
 		pr_err("[%s] request irq error, irq num too big!", __func__);
 		return;
 	}
-
-	synchronize_irq(vdec_core->isr_context[num].irq);
-
 	/*
 	 *assume amrisc is stopped already and there is no mailbox interrupt
 	 * when we reset pointers here.
@@ -3254,6 +3271,7 @@ void vdec_free_irq(enum vdec_irq_num num, void *dev)
 	vdec_core->isr_context[num].dev_isr = NULL;
 	vdec_core->isr_context[num].dev_threaded_isr = NULL;
 	vdec_core->isr_context[num].dev_id = NULL;
+	synchronize_irq(vdec_core->isr_context[num].irq);
 }
 EXPORT_SYMBOL(vdec_free_irq);
 

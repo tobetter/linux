@@ -8156,6 +8156,19 @@ pic_done:
 	return IRQ_HANDLED;
 }
 
+static void wait_hevc_search_done(struct hevc_state_s *hevc)
+{
+	int count = 0;
+	WRITE_VREG(HEVC_SHIFT_STATUS, 0);
+	while (READ_VREG(HEVC_STREAM_CONTROL) & 0x2) {
+		msleep(20);
+		count++;
+		if (count > 100) {
+			hevc_print(hevc, 0, "%s timeout\n", __func__);
+			break;
+		}
+	}
+}
 static irqreturn_t vh265_isr(int irq, void *data)
 {
 	int i, temp;
@@ -8299,7 +8312,7 @@ static void vh265_check_timer_func(unsigned long arg)
 
 	if (hevc->m_ins_flag) {
 		if ((input_frame_based(hw_to_vdec(hevc)) ||
-			(READ_VREG(HEVC_STREAM_LEVEL) > 0x200)) &&
+			(READ_VREG(HEVC_STREAM_LEVEL) > 0xb0)) &&
 			((get_dbg_flag(hevc) &
 			H265_DEBUG_DIS_LOC_ERROR_PROC) == 0) &&
 			(decode_timeout_val > 0) &&
@@ -9136,6 +9149,15 @@ static unsigned char is_new_pic_available(struct hevc_state_s *hevc)
 
 static int vmh265_stop(struct hevc_state_s *hevc)
 {
+	hevc->init_flag = 0;
+	if (hevc->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		hevc->stat &= ~STAT_VDEC_RUN;
+	}
+	if (hevc->stat & STAT_ISR_REG) {
+		vdec_free_irq(VDEC_IRQ_1, (void *)hevc);
+		hevc->stat &= ~STAT_ISR_REG;
+	}
 	if (hevc->stat & STAT_TIMER_ARM) {
 		del_timer_sync(&hevc->timer);
 		hevc->stat &= ~STAT_TIMER_ARM;
@@ -9230,10 +9252,23 @@ static void vh265_work(struct work_struct *work)
 	struct hevc_state_s *hevc = container_of(work,
 		struct hevc_state_s, work);
 	struct vdec_s *vdec = hw_to_vdec(hevc);
+
+	if (hevc->uninit_list) {
+		/*USE_BUF_BLOCK*/
+		uninit_pic_list(hevc);
+		hevc_print(hevc, 0, "uninit list\n");
+		hevc->uninit_list = 0;
+#ifdef USE_UNINIT_SEMA
+		up(&hevc->h265_uninit_done_sema);
+#endif
+		return;
+	}
+
 	/* finished decoding one frame or error,
 	 * notify vdec core to switch context
 	 */
-	if (hevc->pic_list_init_flag == 1) {
+	if (hevc->pic_list_init_flag == 1
+		&& (hevc->dec_result != DEC_RESULT_FORCE_EXIT)) {
 		hevc->pic_list_init_flag = 2;
 		init_pic_list(hevc);
 		init_pic_list_hw(hevc);
@@ -9242,19 +9277,6 @@ static void vh265_work(struct work_struct *work)
 			"set pic_list_init_flag to 2\n");
 
 		WRITE_VREG(HEVC_ASSIST_MBOX0_IRQ_REG, 0x1);
-		return;
-	}
-
-	if (hevc->uninit_list) {
-		/*USE_BUF_BLOCK*/
-		uninit_pic_list(hevc);
-		hevc_print(hevc, 0, "uninit list\n");
-		hevc->uninit_list = 0;
-#ifdef USE_UNINIT_SEMA
-		if (use_cma && hevc->init_flag) {
-			up(&hevc->h265_uninit_done_sema);
-		}
-#endif
 		return;
 	}
 
@@ -9546,9 +9568,6 @@ static void vh265_work(struct work_struct *work)
 			hevc->stat &= ~STAT_VDEC_RUN;
 		}
 		if (hevc->stat & STAT_ISR_REG) {
-#ifdef MULTI_INSTANCE_SUPPORT
-			if (!hevc->m_ins_flag)
-#endif
 				WRITE_VREG(HEVC_ASSIST_MBOX0_MASK, 0);
 			vdec_free_irq(VDEC_IRQ_0, (void *)hevc);
 			hevc->stat &= ~STAT_ISR_REG;
@@ -9565,6 +9584,7 @@ static void vh265_work(struct work_struct *work)
 		hevc->stat &= ~STAT_TIMER_ARM;
 	}
 
+	wait_hevc_search_done(hevc);
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (hevc->switch_dvlayer_flag) {
 		if (vdec->slave)
