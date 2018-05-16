@@ -559,7 +559,7 @@ static void vavs_isr(void)
 				pr_info("buffer_index %d, canvas addr %x\n",
 					   buffer_index, vf->canvas0Addr);
 			}
-
+			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
 			vfbuf_use[buffer_index]++;
 			vf->mem_handle =
 				decoder_bmmu_box_get_mem_handle(
@@ -610,7 +610,7 @@ static void vavs_isr(void)
 			vf->canvas0Addr = vf->canvas1Addr =
 				index2canvas(buffer_index);
 			vf->type_original = vf->type;
-			vf->pts_us64 = (pts_valid) ? pts_us64 : 0;
+			vf->pts_us64 = 0;
 			vfbuf_use[buffer_index]++;
 			vf->mem_handle =
 				decoder_bmmu_box_get_mem_handle(
