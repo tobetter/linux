@@ -6870,21 +6870,29 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 				SubHeightC = 1;
 				break;
 			}
-			vf->width -= SubWidthC *
+			 vf->width -= SubWidthC *
 				(hevc->param.p.conf_win_left_offset +
 				hevc->param.p.conf_win_right_offset);
-			vf->height -= SubHeightC *
+			 vf->height -= SubHeightC *
 				(hevc->param.p.conf_win_top_offset +
 				hevc->param.p.conf_win_bottom_offset);
+
+			 vf->compWidth -= SubWidthC *
+				(hevc->param.p.conf_win_left_offset +
+				hevc->param.p.conf_win_right_offset);
+			 vf->compHeight -= SubHeightC *
+				(hevc->param.p.conf_win_top_offset +
+				hevc->param.p.conf_win_bottom_offset);
+
 			if (get_dbg_flag(hevc) & H265_DEBUG_BUFMGR)
 				hevc_print(hevc, 0,
-					"conformance_window %d, %d, %d, %d, %d => cropped width %d, height %d\n",
+					"conformance_window %d, %d, %d, %d, %d => cropped width %d, height %d com_w %d com_h %d\n",
 					hevc->param.p.chroma_format_idc,
 					hevc->param.p.conf_win_left_offset,
 					hevc->param.p.conf_win_right_offset,
 					hevc->param.p.conf_win_top_offset,
 					hevc->param.p.conf_win_bottom_offset,
-					vf->width, vf->height);
+					vf->width, vf->height, vf->compWidth, vf->compHeight);
 		}
 
 #ifdef HEVC_PIC_STRUCT_SUPPORT
