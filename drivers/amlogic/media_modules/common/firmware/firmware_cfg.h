@@ -22,7 +22,7 @@
 /* as the firmware in the video_ucode.bin, the firmware */
 /* in the video_ucode.bin will be ignored yet, because the */
 /* video_ucode.bin will always be processed in the end */
-{VIDEO_ENCODE,	VIDEO_FW_FILE,	"h264_enc.bin"},
+{VIDEO_ENCODE,	VIDEO_PACKAGE,	"h264_enc.bin"},
 
 
 /*firmware for a special format, to replace the format in the package.*/
