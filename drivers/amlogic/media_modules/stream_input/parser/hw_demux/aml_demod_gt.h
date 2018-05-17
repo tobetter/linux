@@ -26,6 +26,15 @@ struct amlfe_exp_config {
 	int set_mode;
 };
 
+struct amlfe_demod_config {
+	int	dev_id;
+	u32 ts;
+	struct i2c_adapter *i2c_adap;
+	int i2c_addr;
+	int	reset_gpio;
+	int	reset_value;
+};
+
 static inline struct dvb_frontend* aml_dtvdm_attach (const struct amlfe_exp_config *config) {
 	return NULL;
 }
@@ -44,6 +53,11 @@ static inline struct dvb_frontend* si2159_attach (struct dvb_frontend *fe,struct
                       struct si2159_config *cfg*/)
 {
     return NULL;
+}
+
+static inline struct dvb_frontend* atbm8881_attach (const struct amlfe_demod_config *config)
+{
+	return NULL;
 }
 
 #endif	/*__AML_DEMOD_GT_H__*/
