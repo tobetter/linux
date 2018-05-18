@@ -8824,7 +8824,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		else
 #endif
 
-	if (mmu_enable) {
+	if (hevc->mmu_enable) {
 		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
 			size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
 			hevc_print(hevc, 0, "vh265 ucode loaded!\n");
