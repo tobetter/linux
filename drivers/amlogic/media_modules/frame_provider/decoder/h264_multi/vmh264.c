@@ -6360,19 +6360,32 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 				DECODE_ID(hw), __func__);
 			return;
 		}
-	} else if (amvdec_vdec_loadmc_ex(vdec, NULL, hw->fw->data) < 0) {
-		amvdec_enable_flag = false;
-		amvdec_disable();
-		pr_err("id: %d, %s: Error amvdec_vdec_loadmc fail\n",
-			DECODE_ID(hw), __func__);
-		return;
-	}
+		if (hw->mmu_enable) {
+			if (tee_load_video_fw(VIDEO_DEC_H264_MULTI_MMU,
+				OPTEE_VDEC_HEVC) < 0) {
+				amvdec_enable_flag = false;
+				amhevc_disable();
+				pr_debug("tee mmu fw load fail\n");
+				return;
+			}
+		}
 
-	if (hw->mmu_enable) {
-		if (amhevc_loadmc_ex(VFORMAT_HEVC,
-			NULL, hw->fw_mmu->data) < 0) {
-			amhevc_disable();
+	} else {
+		if (amvdec_vdec_loadmc_ex(vdec, NULL, hw->fw->data) < 0) {
+			amvdec_enable_flag = false;
+			amvdec_disable();
+			pr_err("id: %d, %s: Error amvdec_vdec_loadmc fail\n",
+				DECODE_ID(hw), __func__);
 			return;
+		}
+		if (hw->mmu_enable) {
+			if (amhevc_loadmc_ex(VFORMAT_HEVC,
+				NULL, hw->fw_mmu->data) < 0) {
+				amvdec_enable_flag = false;
+				amhevc_disable();
+				pr_debug("mmu fw load fail\n");
+				return;
+			}
 		}
 	}
 
