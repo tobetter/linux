@@ -1,3 +1,9 @@
+linux (4.17.0~rc6-1) unstable; urgency=medium
+
+  * Upstream Linux kernel release 4.17-rc6
+
+ -- Dongjin Kim <tobetter@none>  Mon, 21 May 2018 20:38:39 -0400
+
 linux (4.17.0~rc5-1) unstable; urgency=medium
 
   * Upstream Linux kernel release 4.17-rc5
