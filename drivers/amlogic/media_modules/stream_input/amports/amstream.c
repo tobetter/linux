@@ -3733,6 +3733,8 @@ static struct mconfig amports_configs[] = {
 	MC_FUN_ID("videobufused", videobufused_show_fun, NULL, 0),
 };
 
+
+
 /*static struct resource memobj;*/
 static int amstream_probe(struct platform_device *pdev)
 {
@@ -3783,7 +3785,7 @@ static int amstream_probe(struct platform_device *pdev)
 		r = (-EIO);
 		goto error3;
 	}
-
+	tsdemux_tsync_func_init();
 	init_waitqueue_head(&amstream_sub_wait);
 	init_waitqueue_head(&amstream_userdata_wait);
 	reset_canuse_buferlevel(10000);

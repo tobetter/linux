@@ -25,6 +25,7 @@
 #define VIDEO_PTS_READY            0
 #define DIS_CONTINUITY_PACKET      6
 #define SUB_PES_READY              7
+#define PCR_READY                  11
 
 #define PARSER_INTSTAT_FETCH_CMD    (1<<7)
 
@@ -82,7 +83,11 @@ extern ssize_t tsdemux_write(struct file *file,
 
 extern u32 tsdemux_pcrscr_get(void);
 extern u8 tsdemux_pcrscr_valid(void);
+extern u8 tsdemux_pcraudio_valid(void);
+extern u8 tsdemux_pcrvideo_valid(void);
 extern u32 tsdemux_first_pcrscr_get(void);
+extern void timestamp_pcrscr_enable(u32 enable);
+extern void timestamp_pcrscr_set(u32 pts);
 
 int tsdemux_class_register(void);
 void tsdemux_class_unregister(void);
@@ -92,4 +97,7 @@ void tsdemux_audio_reset(void);
 void tsdemux_sub_reset(void);
 void tsdemux_set_skipbyte(int skipbyte);
 void tsdemux_set_demux(int dev);
+void tsdemux_tsync_func_init(void);
+
+
 #endif /* TSDEMUX_H */

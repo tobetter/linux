@@ -385,6 +385,7 @@ static void dmxn_op_chan(int dmx, int ch, int(*op)(int, int), int ch_op)
 			((0<<(AUDIO_SPLICING_POINT))    |\
 			(0<<(VIDEO_SPLICING_POINT))     |\
 			(1<<(OTHER_PES_READY))          |\
+			(1<<(PCR_READY))                |\
 			(1<<(SUB_PES_READY))            |\
 			(1<<(SECTION_BUFFER_READY))     |\
 			(0<<(OM_CMD_READ_PENDING))      |\
