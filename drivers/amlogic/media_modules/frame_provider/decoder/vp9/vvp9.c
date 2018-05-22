@@ -8202,7 +8202,9 @@ static int vmvp9_stop(struct VP9Decoder_s *pbi)
 #endif
 	cancel_work_sync(&pbi->set_clk_work);
 	uninit_mmu_buffers(pbi);
-
+	if (pbi->fw)
+		vfree(pbi->fw);
+	pbi->fw = NULL;
 	return 0;
 }
 
