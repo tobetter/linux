@@ -24,6 +24,7 @@
 #include <linux/fs.h>
 #include <linux/dma-mapping.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
+#include <linux/amlogic/media/frame_sync/tsync.h>
 #include <linux/amlogic/media/utils/amstream.h>
 #include <linux/amlogic/media/vfm/vframe_provider.h>
 #include <linux/device.h>
@@ -61,6 +62,9 @@ static u32 fetch_done;
 static u32 discontinued_counter;
 static u32 first_pcr;
 static u8 pcrscr_valid;
+static u8 pcraudio_valid;
+static u8 pcrvideo_valid;
+static u8 pcr_init_flag;
 
 static int demux_skipbyte;
 
@@ -215,6 +219,7 @@ static int tsdemux_config(void)
 	return 0;
 }
 
+static void tsdemux_pcr_set(unsigned int pcr);
 /*TODO irq*/
 static irqreturn_t tsdemux_isr(int irq, void *dev_id)
 {
@@ -283,6 +288,11 @@ static irqreturn_t tsdemux_isr(int irq, void *dev_id)
 		/* TODO: put data to somewhere */
 		/* pr_info("subtitle pes ready\n"); */
 		wakeup_sub_poll();
+	}
+	if (int_status & (1<<PCR_READY)) {
+		unsigned int pcr_pts = 0xffffffff;
+		pcr_pts = DMX_READ_REG(id, PCR_DEMUX);
+		tsdemux_pcr_set(pcr_pts);
 	}
 
 	if (!enable_demux_driver())
@@ -367,14 +377,15 @@ static ssize_t _tsdemux_write(const char __user *buf, size_t count,
 	return count - r;
 }
 
+#define PCR_EN                     12
+
 static int reset_pcr_regs(void)
 {
 	u32 pcr_num;
-
+	u32 pcr_regs = 0;
 	if (curr_pcr_id >= 0x1FFF)
 		return 0;
-
-	/* set parameter to fetch pcr */
+	/* set paramater to fetch pcr */
 	pcr_num = 0;
 	if (curr_pcr_id == curr_vid_id)
 		pcr_num = 0;
@@ -384,45 +395,46 @@ static int reset_pcr_regs(void)
 		pcr_num = 2;
 	else
 		pcr_num = 3;
-
 	if (pcr_num != curr_pcr_num) {
 		u32 clk_unit = 0;
 		u32 clk_81 = 0;
 		struct clk *clk;
-
-		clk = clk_get_sys("clk81", "clk81");
+		//clk = clk_get(NULL,"clk81");
+		clk= devm_clk_get(amports_get_dma_device(),"clk_81");
 		if (IS_ERR(clk) || clk == 0) {
-			pr_info("[%s:%d] error clock\n", __func__,
-					__LINE__);
+			pr_info("[%s:%d] error clock\n", __func__, __LINE__);
 			return 0;
 		}
-
 		clk_81 = clk_get_rate(clk);
-		clk_unit = clk_81 / 80000;
-
+		clk_unit = clk_81 / 90000;
 		pr_info("[%s:%d] clk_81 = %x clk_unit =%x\n", __func__,
 				__LINE__, clk_81, clk_unit);
-
+		pcr_regs = 1 << PCR_EN | clk_unit;
+		pr_info("[tsdemux_init] the set pcr_regs =%x\n", pcr_regs);
 		if (READ_DEMUX_REG(TS_HIU_CTL_2) & 0x80) {
-			WRITE_DEMUX_REG(PCR90K_CTL_2, (12 << 1) | clk_unit);
+			WRITE_DEMUX_REG(PCR90K_CTL_2, pcr_regs);
 			WRITE_DEMUX_REG(ASSIGN_PID_NUMBER_2, pcr_num);
 			pr_info("[tsdemux_init] To use device 2,pcr_num=%d\n",
 					pcr_num);
+			pr_info("tsdemux_init] the read  pcr_regs= %x\n",
+				READ_DEMUX_REG(PCR90K_CTL_2));
 		} else if (READ_DEMUX_REG(TS_HIU_CTL_3) & 0x80) {
-			WRITE_DEMUX_REG(PCR90K_CTL_3, (12 << 1) | clk_unit);
+			WRITE_DEMUX_REG(PCR90K_CTL_3, pcr_regs);
 			WRITE_DEMUX_REG(ASSIGN_PID_NUMBER_3, pcr_num);
 			pr_info("[tsdemux_init] To use device 3,pcr_num=%d\n",
 					pcr_num);
+			pr_info("tsdemux_init] the read  pcr_regs= %x\n",
+				READ_DEMUX_REG(PCR90K_CTL_3));
 		} else {
-			WRITE_DEMUX_REG(PCR90K_CTL, (12 << 1) | clk_unit);
+			WRITE_DEMUX_REG(PCR90K_CTL, pcr_regs);
 			WRITE_DEMUX_REG(ASSIGN_PID_NUMBER, pcr_num);
 			pr_info("[tsdemux_init] To use device 1,pcr_num=%d\n",
 					pcr_num);
+			pr_info("tsdemux_init] the read  pcr_regs= %x\n",
+				READ_DEMUX_REG(PCR90K_CTL));
 		}
-
 		curr_pcr_num = pcr_num;
 	}
-
 	return 1;
 }
 
@@ -433,6 +445,9 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 	u32 parser_sub_start_ptr;
 	u32 parser_sub_end_ptr;
 	u32 parser_sub_rp;
+	pcrvideo_valid = 0;
+	pcraudio_valid = 0;
+	pcr_init_flag = 0;
 
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	/*TODO clk */
@@ -636,10 +651,12 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 		if (vid < 0x1FFF) {
 			curr_vid_id = vid;
 			tsdemux_set_vid(vid);
+			pcrvideo_valid = 1;
 		}
 		if (aid < 0x1FFF) {
 			curr_aud_id = aid;
 			tsdemux_set_aid(aid);
+			pcraudio_valid = 1;
 		}
 		if (sid < 0x1FFF) {
 			curr_sub_id = sid;
@@ -681,11 +698,11 @@ void tsdemux_release(void)
 {
 	pcrscr_valid = 0;
 	first_pcr = 0;
+	pcr_init_flag = 0;
 
 	WRITE_PARSER_REG(PARSER_INT_ENABLE, 0);
 	WRITE_PARSER_REG(PARSER_VIDEO_HOLE, 0);
 	WRITE_PARSER_REG(PARSER_AUDIO_HOLE, 0);
-
 
 	/*TODO irq */
 
@@ -715,13 +732,11 @@ void tsdemux_release(void)
 	pts_stop(PTS_TYPE_AUDIO);
 
 	WRITE_RESET_REG(RESET1_REGISTER, RESET_PARSER);
-
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
-		SET_PARSER_REG_MASK(PARSER_ES_CONTROL, ES_VID_MAN_RD_PTR);
-		WRITE_PARSER_REG(PARSER_VIDEO_WP, 0);
-		WRITE_PARSER_REG(PARSER_VIDEO_RP, 0);
+	SET_PARSER_REG_MASK(PARSER_ES_CONTROL, ES_VID_MAN_RD_PTR);
+	WRITE_PARSER_REG(PARSER_VIDEO_WP, 0);
+	WRITE_PARSER_REG(PARSER_VIDEO_RP, 0);
 #endif
-
 
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	/*TODO clk */
@@ -1127,3 +1142,46 @@ u8 tsdemux_pcrscr_valid(void)
 {
 	return pcrscr_valid;
 }
+
+u8 tsdemux_pcraudio_valid(void)
+{
+	return pcraudio_valid;
+}
+
+u8 tsdemux_pcrvideo_valid(void)
+{
+	return pcrvideo_valid;
+}
+
+void tsdemux_pcr_set(unsigned int pcr)
+{
+	if (pcr_init_flag == 0) {
+		timestamp_pcrscr_set(pcr);
+		timestamp_pcrscr_enable(1);
+		pcr_init_flag = 1;
+	}
+}
+
+void tsdemux_tsync_func_init(void)
+{
+	register_tsync_callbackfunc(
+		TSYNC_PCRSCR_VALID, (void *)(tsdemux_pcrscr_valid));
+	register_tsync_callbackfunc(
+		TSYNC_PCRSCR_GET, (void *)(tsdemux_pcrscr_get));
+	register_tsync_callbackfunc(
+		TSYNC_FIRST_PCRSCR_GET, (void *)(tsdemux_first_pcrscr_get));
+	register_tsync_callbackfunc(
+		TSYNC_PCRAUDIO_VALID, (void *)(tsdemux_pcraudio_valid));
+	register_tsync_callbackfunc(
+		TSYNC_PCRVIDEO_VALID, (void *)(tsdemux_pcrvideo_valid));
+	register_tsync_callbackfunc(
+		TSYNC_BUF_BY_BYTE, (void *)(get_buf_by_type));
+	register_tsync_callbackfunc(
+		TSYNC_STBUF_LEVEL, (void *)(stbuf_level));
+	register_tsync_callbackfunc(
+		TSYNC_STBUF_SPACE, (void *)(stbuf_space));
+	register_tsync_callbackfunc(
+		TSYNC_STBUF_SIZE, (void *)(stbuf_size));
+}
+
+

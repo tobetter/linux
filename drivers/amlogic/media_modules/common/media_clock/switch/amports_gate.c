@@ -44,6 +44,9 @@ struct gate_switch_node gates[] = {
 		.name = "vdec",
 	},
 	{
+		.name = "clk_81",
+	},
+	{
 		.name = "clk_vdec_mux",
 	},
 	{
