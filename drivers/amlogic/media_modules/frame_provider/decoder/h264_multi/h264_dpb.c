@@ -1091,6 +1091,7 @@ static struct StorablePicture *get_new_pic(struct h264_dpb_stru *p_H264_Dpb,
 		s->is_output           = 0;
 		s->pre_output          = 0;
 		s->max_slice_id        = 0;
+		s->data_flag &= ~(ERROR_FLAG | NODISP_FLAG | MAYBE_ERROR_FLAG);
 #if (MVC_EXTENSION_ENABLE)
 		s->view_id = -1;
 #endif

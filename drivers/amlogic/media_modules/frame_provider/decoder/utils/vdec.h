@@ -410,6 +410,9 @@ int vdec_wakeup_userdata_poll(struct vdec_s *vdec);
 
 void vdec_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
 
+#ifdef VDEC_DEBUG_SUPPORT
+extern void vdec_set_step_mode(void);
+#endif
 int vdec_get_debug_flags(void);
 
 unsigned char is_mult_inc(unsigned int);
