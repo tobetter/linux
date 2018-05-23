@@ -74,6 +74,7 @@ static DEFINE_MUTEX(vdec_mutex);
 #define CMA_ALLOC_SIZE SZ_64M
 #define MEM_NAME "vdec_prealloc"
 static int inited_vcodec_num;
+#define jiffies_ms div64_u64(get_jiffies_64() * 1000, HZ)
 static int poweron_clock_level;
 static int keep_vdec_mem;
 static unsigned int debug_trace_num = 16 * 20;
@@ -218,7 +219,7 @@ static int get_canvas(unsigned int index, unsigned int base)
 
 int vdec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
-	if (vdec->dec_status)
+	if (vdec && vdec->dec_status)
 		return vdec->dec_status(vdec, vstatus);
 
 	return -1;
@@ -235,6 +236,7 @@ int vdec_set_trickmode(struct vdec_s *vdec, unsigned long trickmode)
 		if ((r == 0) && (vdec->slave) && (vdec->slave->set_trickmode))
 			r = vdec->slave->set_trickmode(vdec->slave,
 				trickmode);
+		return r;
 	}
 
 	return -1;
@@ -1108,6 +1110,20 @@ bool vdec_need_more_data(struct vdec_s *vdec)
 }
 EXPORT_SYMBOL(vdec_need_more_data);
 
+
+void hevc_wait_ddr(void)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+		codec_dmcbus_read(DMC_REQ_CTRL) & (~(1 << 4)));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+
+	while (!(codec_dmcbus_read(DMC_CHAN_STS)
+		& (1 << 4)))
+		;
+}
+
 void vdec_save_input_context(struct vdec_s *vdec)
 {
 	struct vdec_input_s *input = &vdec->input;
@@ -1169,6 +1185,8 @@ void vdec_save_input_context(struct vdec_s *vdec)
 			/* pr_info("master->input.last_swap_slave = %d\n",
 				master->input.last_swap_slave); */
 		}
+
+		hevc_wait_ddr();
 	}
 }
 EXPORT_SYMBOL(vdec_save_input_context);
@@ -1813,7 +1831,7 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = c->vdec;
+	struct vdec_s *vdec = vdec_core->active_vdec;
 	irqreturn_t ret = IRQ_HANDLED;
 	if (vdec)
 		atomic_set(&vdec->inirq_flag, 1);
@@ -1857,7 +1875,7 @@ static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = c->vdec;
+	struct vdec_s *vdec = vdec_core->active_vdec;
 	irqreturn_t ret = IRQ_HANDLED;
 	if (vdec)
 		atomic_set(&vdec->inirq_thread_flag, 1);
@@ -3148,7 +3166,8 @@ static ssize_t show_debug(struct class *class,
 	list_for_each_entry(vdec,
 		&core->connected_vdec_list, list) {
 		enum vdec_type_e type;
-
+		if ((vdec->status == VDEC_STATUS_CONNECTED
+			|| vdec->status == VDEC_STATUS_ACTIVE)) {
 		for (type = VDEC_1; type < VDEC_MAX; type++) {
 			if (vdec->core_mask & (1 << type)) {
 				pbuf += sprintf(pbuf, "%s(%d):",
@@ -3168,6 +3187,7 @@ static ssize_t show_debug(struct class *class,
 					/ vdec->total_clk[type]));
 			}
 		}
+	  }
 	}
 
 	vdec_core_unlock(vdec_core, flags);

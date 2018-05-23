@@ -9,6 +9,7 @@
 #define PRINT_FLAG_VDEC_STATUS        0X0001
 #define PRINT_FLAG_UCODE_EVT          0x0002
 #define PRINT_FLAG_MMU_DETAIL		0x0004
+#define PRINT_FLAG_ERRORFLAG_DBG	0x0008
 #define PRINT_FLAG_DPB_DETAIL         0x0010
 #define PRINT_FLAG_DEC_DETAIL         0x0020
 #define PRINT_FLAG_VDEC_DETAIL        0x0040
@@ -17,6 +18,7 @@
 #define PRINT_FLAG_DEBUG_POC          0x0200
 #define RRINT_FLAG_RPM                0x0400
 #define DEBUG_DISABLE_RUNREADY_RMBUF  0x0800
+#define PRINT_FLAG_DUMP_BUFSPEC       0x1000
 #define DISABLE_ERROR_HANDLE          0x10000
 #define DEBUG_DUMP_STAT               0x80000
 
@@ -685,6 +687,7 @@ struct FrameStore {
 #define IDR_FLAG		0x02
 #define ERROR_FLAG		0x10
 #define NULL_FLAG		0x20
+#define MAYBE_ERROR_FLAG	0x40
 #define NODISP_FLAG		0x80
 	unsigned char data_flag;
 #endif

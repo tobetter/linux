@@ -278,7 +278,7 @@ static u32 bit_depth_chroma;
 static u32 frame_width;
 static u32 frame_height;
 static u32 video_signal_type;
-static u32 pts_unstable;
+
 static u32 on_no_keyframe_skiped;
 
 #define PROB_SIZE    (496 * 2 * 4)
@@ -1563,10 +1563,14 @@ static int get_double_write_mode(struct VP9Decoder_s *pbi)
 	u32 dw;
 	if (valid_dw_mode == 0x100) {
 		struct VP9_Common_s *cm = &pbi->common;
-		struct PIC_BUFFER_CONFIG_s *cur_pic_config
-			= &cm->cur_frame->buf;
-		int w = cur_pic_config->y_crop_width;
-		int h = cur_pic_config->y_crop_width;
+		struct PIC_BUFFER_CONFIG_s *cur_pic_config;
+		int w, h;
+
+		if (!cm->cur_frame)
+			return 1;/*no valid frame,*/
+		cur_pic_config = &cm->cur_frame->buf;
+		w = cur_pic_config->y_crop_width;
+		h = cur_pic_config->y_crop_width;
 		if (w > 1920 && h > 1088)
 			dw = 0x4; /*1:2*/
 		else
@@ -1622,7 +1626,15 @@ int vp9_alloc_mmu(
 	int bit_depth_10 = (bit_depth == VPX_BITS_10);
 	int picture_size;
 	int cur_mmu_4k_number;
-
+	if (!pbi->mmu_box) {
+		pr_err("error no mmu box!\n");
+		return -1;
+	}
+	if (bit_depth >= VPX_BITS_12) {
+		pbi->fatal_error = DECODER_FATAL_ERROR_SIZE_OVERFLOW;
+		pr_err("fatal_error, un support bit depth 12!\n\n");
+		return -1;
+	}
 	picture_size = compute_losless_comp_body_size(pic_width, pic_height,
 				   bit_depth_10);
 	cur_mmu_4k_number = ((picture_size + (1 << 12) - 1) >> 12);
@@ -5119,7 +5131,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	/*set them all 0 for H265_NV21 (no down-scale)*/
 	data32 &= ~(0xff << 16);
 	WRITE_VREG(HEVC_SAO_CTRL5, data32);
-	ata32 = READ_VREG(HEVCD_IPP_AXIIF_CONFIG);
+	data32 = READ_VREG(HEVCD_IPP_AXIIF_CONFIG);
 	data32 &= (~0x30);
 	/*[5:4] address_format 00:linear 01:32x32 10:64x32*/
 	data32 |= (MEM_MAP_MODE << 4);
@@ -6218,7 +6230,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 #endif
 	init_pic_list(pbi);
 
-	pts_unstable = ((unsigned long)(pbi->vvp9_amstream_dec_info.param)
+	pbi->pts_unstable = ((unsigned long)(pbi->vvp9_amstream_dec_info.param)
 			& 0x40) >> 6;
 
 	if ((debug & VP9_DEBUG_SEND_PARAM_WITH_REG) == 0) {
@@ -8193,6 +8205,14 @@ static int vmvp9_stop(struct VP9Decoder_s *pbi)
 {
 	pbi->init_flag = 0;
 
+	if (pbi->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		pbi->stat &= ~STAT_VDEC_RUN;
+	}
+	if (pbi->stat & STAT_ISR_REG) {
+		vdec_free_irq(VDEC_IRQ_0, (void *)pbi);
+		pbi->stat &= ~STAT_ISR_REG;
+	}
 	if (pbi->stat & STAT_TIMER_ARM) {
 		del_timer_sync(&pbi->timer);
 		pbi->stat &= ~STAT_TIMER_ARM;
@@ -8284,8 +8304,12 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 
 #ifdef VP9_10B_MMU
 	int buf_size = 48;
-	if ((pbi->max_pic_w * pbi->max_pic_h) > 0 && (pbi->max_pic_w * pbi->max_pic_h) <= 1920*1088) {
+	if ((pbi->max_pic_w * pbi->max_pic_h > 1280*736) &&
+		(pbi->max_pic_w * pbi->max_pic_h <= 1920*1088)) {
 		buf_size = 12;
+	} else if ((pbi->max_pic_w * pbi->max_pic_h > 0) &&
+		(pbi->max_pic_w * pbi->max_pic_h <= 1280*736)) {
+		buf_size = 4;
 	}
 	pbi->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 		pbi->index, FRAME_BUFFERS + STAGE_MAX_BUFFERS,
@@ -8666,6 +8690,10 @@ static void vp9_work(struct work_struct *work)
 			vdec_free_irq(VDEC_IRQ_0, (void *)pbi);
 			pbi->stat &= ~STAT_ISR_REG;
 		}
+	}
+	if (pbi->stat & STAT_VDEC_RUN) {
+		amhevc_stop();
+		pbi->stat &= ~STAT_VDEC_RUN;
 	}
 
 	if (pbi->stat & STAT_TIMER_ARM) {
