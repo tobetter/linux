@@ -1987,7 +1987,8 @@ static s32 __init vpu_init(void)
 
 	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM)
 		&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A)
-			&& (get_cpu_type() != MESON_CPU_MAJOR_ID_GXL)) {
+			&& (get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX)
+				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)) {
 		enc_pr(LOG_DEBUG,
 			"The chip is not support hevc encoder\n");
 		return -1;
