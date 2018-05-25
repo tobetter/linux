@@ -2203,7 +2203,7 @@ static int vdec_core_thread(void *data)
 		 * is running, sleep 20ms
 		 */
 		if ((!worker) && (!core->sched_mask)) {
-			msleep(20);
+			usleep_range(1000, 2000);
 			up(&core->sem);
 		}
 
