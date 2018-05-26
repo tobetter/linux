@@ -6676,6 +6676,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 		    (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) &&
 		    (get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX) &&
 		    (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A) &&
+			(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B) &&
 			(pdata->sys_info->height * pdata->sys_info->width
 			> 1920 * 1088))
 			hw->mmu_enable = 1;
