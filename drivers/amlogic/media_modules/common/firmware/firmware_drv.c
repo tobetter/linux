@@ -328,6 +328,8 @@ static ssize_t info_show(struct class *class,
 	char *pbuf = buf;
 	struct fw_mgr_s *mgr = g_mgr;
 	struct fw_info_s *info;
+	unsigned int secs = 0;
+	struct tm tm;
 
 	mutex_lock(&mutex);
 
@@ -357,14 +359,30 @@ static ssize_t info_show(struct class *class,
 			continue;
 		}
 
-		pr_info("fmt: %-16s, crc: 0x%-8x, size: %-5d, file: %s\n",
-			info->data->head.format, info->data->head.checksum,
-			info->data->head.data_size, info->data->head.name);
+		secs = info->data->head.time
+			- sys_tz.tz_minuteswest * 60;
+		time_to_tm(secs, 0, &tm);
+
+		pr_info("%s %-16s, %02d:%02d:%02d %d/%d/%ld, %s %-8s, %s %s\n",
+			"fmt:", info->data->head.format,
+			tm.tm_hour, tm.tm_min, tm.tm_sec,
+			tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900,
+			"id:", info->data->head.commit,
+			"mk:", info->data->head.maker);
 	}
 out:
 	mutex_unlock(&mutex);
 
 	return pbuf - buf;
+}
+
+static ssize_t info_store(struct class *cls,
+	struct class_attribute *attr, const char *buf, size_t count)
+{
+	if (kstrtoint(buf, 0, &detail) < 0)
+		return -EINVAL;
+
+	return count;
 }
 
 static int fw_info_fill(void)
@@ -804,26 +822,10 @@ static ssize_t debug_store(struct class *cls,
 	return count;
 }
 
-static ssize_t detail_show(struct class *cls,
-	struct class_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%x\n", detail);
-}
-
-static ssize_t detail_store(struct class *cls,
-	struct class_attribute *attr, const char *buf, size_t count)
-{
-	if (kstrtoint(buf, 0, &detail) < 0)
-		return -EINVAL;
-
-	return count;
-}
-
 static struct class_attribute fw_class_attrs[] = {
-	__ATTR_RO(info),
+	__ATTR(info, 0664, info_show, info_store),
 	__ATTR(reload, 0664, reload_show, reload_store),
 	__ATTR(debug, 0664, debug_show, debug_store),
-	__ATTR(detail, 0664, detail_show, detail_store),
 	__ATTR_NULL
 };
 
