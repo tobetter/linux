@@ -53,3 +53,26 @@
 		};
 	};
 };
+
+&custom_maps {
+	mapnum = <1>;
+	map0 = <&map_0>;
+	map_0: map_0 {
+		mapname = "hardkernel-remote";
+		customcode = <0x4db2>;
+		release_delay = <80>;
+		size  = <12>;
+		keymap = <REMOTE_KEY(0x88,113)
+			REMOTE_KEY(0xdc,116)
+			REMOTE_KEY(0xc5,139)
+			REMOTE_KEY(0x9a,158)
+			REMOTE_KEY(0xca,103)
+			REMOTE_KEY(0x99,105)
+			REMOTE_KEY(0xc1,106)
+			REMOTE_KEY(0xd2,108)
+			REMOTE_KEY(0x80,104)
+			REMOTE_KEY(0x81,109)
+			REMOTE_KEY(0x82,102)
+			REMOTE_KEY(0xce,97)>;
+	};
+};
