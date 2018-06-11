@@ -434,7 +434,7 @@ tp234
 (dp235
 Vsource
 p236
-V4.17.0~rc6-1
+V4.17.0-1
 p237
 sVupstream
 p238
@@ -445,5 +445,6 @@ p240
 g239
 sVabiname
 p241
-g239
+V4.17.0-1
+p242
 ss.
