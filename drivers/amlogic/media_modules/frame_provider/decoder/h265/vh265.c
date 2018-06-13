@@ -4581,6 +4581,7 @@ static struct PIC_s *get_new_pic(struct hevc_state_s *hevc,
 				rpm_param->p.bit_depth,
 				hevc->frame_mmu_map_addr);
 			if (ret != 0) {
+				put_mv_buf(hevc, new_pic);
 				hevc_print(hevc, 0,
 				"can't alloc need mmu1,idx %d ret =%d\n",
 				new_pic->decode_idx,
@@ -8251,7 +8252,8 @@ pic_done:
 		hevc->lcu_size = 1 << (log + 3 + log_s);
 		hevc->lcu_size_log2 = log2i(hevc->lcu_size);
 		if (hevc->pic_w == 0 || hevc->pic_h == 0
-						|| hevc->lcu_size == 0) {
+						|| hevc->lcu_size == 0
+						|| OVER_SIZE(hevc->pic_w, hevc->pic_h)) {
 			/* skip search next start code */
 			WRITE_VREG(HEVC_WAIT_FLAG, READ_VREG(HEVC_WAIT_FLAG)
 						& (~0x2));
