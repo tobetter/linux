@@ -45,7 +45,7 @@
 #define CLASS_NAME	"firmware_codec"
 #define DEV_NAME	"firmware_vdec"
 #define DIR		"video"
-#define FRIMWARE_SIZE	(128 * 1024) /*128k*/
+#define FRIMWARE_SIZE	(64 * 1024) /*64k*/
 #define BUFF_SIZE	(1024 * 1024 * 2)
 
 #define FW_LOAD_FORCE	(0x1)
