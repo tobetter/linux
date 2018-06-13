@@ -730,7 +730,6 @@ static int error_recovery_mode;   /*0: blocky  1: mosaic*/
  *static uint error_watchdog_count;
  *static uint error_watchdog_buf_threshold = 0x4000000;
  */
-static uint long_cabac_busy;
 
 static struct vframe_s *vavs_vf_peek(void *op_arg)
 {
@@ -1653,6 +1652,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 			user_data_buffer, (u32)user_data_buffer_phys);
 	}
 #endif
+	INIT_WORK(&set_clk_work, avs_set_clk);
 	if (vavs_init() < 0) {
 		pr_info("amvdec_avs init failed.\n");
 		kfree(gvs);
@@ -1668,7 +1668,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 #endif
 	INIT_WORK(&notify_work, vavs_notify_work);
-	INIT_WORK(&set_clk_work, avs_set_clk);
+
 	return 0;
 }
 

@@ -123,45 +123,6 @@
 
 #define PARSER_CMD_NUMBER 37
 
-unsigned short parser_cmd[PARSER_CMD_NUMBER] = {
-0x0401,
-0x8401,
-0x0800,
-0x0402,
-0x9002,
-0x1423,
-0x8CC3,
-0x1423,
-0x8804,
-0x9825,
-0x0800,
-0x04FE,
-0x8406,
-0x8411,
-0x1800,
-0x8408,
-0x8409,
-0x8C2A,
-0x9C2B,
-0x1C00,
-0x840F,
-0x8407,
-0x8000,
-0x8408,
-0x2000,
-0xA800,
-0x8410,
-0x04DE,
-0x840C,
-0x840D,
-0xAC00,
-0xA000,
-0x08C0,
-0x08E0,
-0xA40E,
-0xFC00,
-0x7C00
-};
 /*#define HEVC_PIC_STRUCT_SUPPORT*/
 /* to remove, fix build error */
 
@@ -181,7 +142,7 @@ unsigned short parser_cmd[PARSER_CMD_NUMBER] = {
 #endif
 
 #ifdef MULTI_INSTANCE_SUPPORT
-#define MAX_DECODE_INSTANCE_NUM     12
+#define MAX_DECODE_INSTANCE_NUM     9
 #define MULTI_DRIVER_NAME "ammvdec_vp9"
 
 static unsigned int max_decode_instance_num
@@ -633,6 +594,7 @@ enum REFERENCE_MODE {
 
 #define REF_FRAMES_LOG2 3
 #define REF_FRAMES (1 << REF_FRAMES_LOG2)
+#define REF_FRAMES_4K (6)
 
 /*4 scratch frames for the new frames to support a maximum of 4 cores decoding
  *in parallel, 3 for scaled references on the encoder.
@@ -1191,7 +1153,7 @@ struct VP9Decoder_s {
 	union param_u s1_param;
 	u8 back_not_run_ready;
 #endif
-} VP9Decoder;
+} ;
 
 static void resize_context_buffers(struct VP9Decoder_s *pbi,
 	struct VP9_Common_s *cm, int width, int height)
@@ -1720,6 +1682,15 @@ static int init_mv_buf_list(struct VP9Decoder_s *pbi)
 		(~0xffff);
 	if (mv_buf_margin > 0)
 		count = REF_FRAMES + mv_buf_margin;
+
+	if (pbi->init_pic_w > 2048 && pbi->init_pic_h > 1088)
+		count = REF_FRAMES_4K + mv_buf_margin;
+
+	if (debug) {
+		pr_info("%s w:%d, h:%d, count: %d\n",
+		__func__, pbi->init_pic_w, pbi->init_pic_h, count);
+	}
+
 	for (i = 0;
 		i < count && i < MV_BUFFER_NUM; i++) {
 		if (alloc_mv_buf(pbi, i, size) < 0) {
@@ -2591,7 +2562,7 @@ int vp9_bufmgr_init(struct VP9Decoder_s *pbi, struct BuffInfo_s *buf_spec_i,
 		struct buff_s *mc_buf_i) {
 	struct VP9_Common_s *cm = &pbi->common;
 
-	/*memset(pbi, 0, sizeof(struct VP9Decoder));*/
+	/*memset(pbi, 0, sizeof(struct VP9Decoder_s));*/
 	pbi->frame_count = 0;
 	pbi->pic_count = 0;
 	pbi->pre_stream_offset = 0;
@@ -2801,7 +2772,7 @@ static u32 max_decoding_time;
 static u32 error_handle_policy;
 /*static u32 parser_sei_enable = 1;*/
 
-static u32 max_buf_num = 12;
+static u32 max_buf_num = 10;
 
 static u32 run_ready_min_buf_num = 2;
 
@@ -5632,7 +5603,15 @@ static void vp9_init_decoder_hw(struct VP9Decoder_s *pbi, u32 mask)
 {
 	unsigned int data32;
 	int i;
-
+	const unsigned short parser_cmd[PARSER_CMD_NUMBER] = {
+		0x0401, 0x8401, 0x0800, 0x0402, 0x9002, 0x1423,
+		0x8CC3, 0x1423, 0x8804, 0x9825, 0x0800, 0x04FE,
+		0x8406, 0x8411, 0x1800, 0x8408, 0x8409, 0x8C2A,
+		0x9C2B, 0x1C00, 0x840F, 0x8407, 0x8000, 0x8408,
+		0x2000, 0xA800, 0x8410, 0x04DE, 0x840C, 0x840D,
+		0xAC00, 0xA000, 0x08C0, 0x08E0, 0xA40E, 0xFC00,
+		0x7C00
+	};
 #if 0
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
 		/* Set MCR fetch priorities*/
@@ -6042,8 +6021,6 @@ static void  config_mcrcc_axi_hw_new(struct VP9Decoder_s *pbi)
 
 #endif
 
-
-static struct VP9Decoder_s gHevc;
 
 static void free_lf_buf(struct VP9Decoder_s *pbi)
 {
@@ -8335,11 +8312,14 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 	}
 	return 0;
 }
+
+static struct VP9Decoder_s *gHevc;
+
 static int amvdec_vp9_probe(struct platform_device *pdev)
 {
 	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
 	struct BUF_s BUF[MAX_BUF_NUM];
-	struct VP9Decoder_s *pbi = &gHevc;
+	struct VP9Decoder_s *pbi;
 	int ret;
 #ifndef MULTI_INSTANCE_SUPPORT
 	int i;
@@ -8347,9 +8327,16 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	pr_debug("%s\n", __func__);
 
 	mutex_lock(&vvp9_mutex);
+	pbi = vmalloc(sizeof(struct VP9Decoder_s));
+	if (pbi == NULL) {
+		pr_info("\namvdec_vp9 device data allocation failed\n");
+		mutex_unlock(&vvp9_mutex);
+		return -ENOMEM;
+	}
 
+	gHevc = pbi;
 	memcpy(&BUF[0], &pbi->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
-	memset(pbi, 0, sizeof(VP9Decoder));
+	memset(pbi, 0, sizeof(struct VP9Decoder_s));
 	memcpy(&pbi->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	pbi->init_flag = 0;
@@ -8365,6 +8352,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	pbi->show_frame_num = 0;
 	if (pdata == NULL) {
 		pr_info("\namvdec_vp9 memory resource undefined.\n");
+		vfree(pbi);
 		mutex_unlock(&vvp9_mutex);
 		return -EFAULT;
 	}
@@ -8374,6 +8362,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 #endif
 	if (amvdec_vp9_mmu_init(pbi) < 0) {
+		vfree(pbi);
 		mutex_unlock(&vvp9_mutex);
 		pr_err("vp9 alloc bmmu box failed!!\n");
 		return -1;
@@ -8383,6 +8372,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 			work_buf_size, DRIVER_NAME, &pdata->mem_start);
 	if (ret < 0) {
 		uninit_mmu_buffers(pbi);
+		vfree(pbi);
 		mutex_unlock(&vvp9_mutex);
 		return ret;
 	}
@@ -8429,6 +8419,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 		pr_info("\namvdec_vp9 init failed.\n");
 		vp9_local_uninit(pbi);
 		uninit_mmu_buffers(pbi);
+		vfree(pbi);
 		mutex_unlock(&vvp9_mutex);
 		return -ENODEV;
 	}
@@ -8442,7 +8433,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 
 static int amvdec_vp9_remove(struct platform_device *pdev)
 {
-	struct VP9Decoder_s *pbi = &gHevc;
+	struct VP9Decoder_s *pbi = gHevc;
 
 	if (debug)
 		pr_info("amvdec_vp9_remove\n");
@@ -8459,7 +8450,7 @@ static int amvdec_vp9_remove(struct platform_device *pdev)
 	pr_info("pts missed %ld, pts hit %ld, duration %d\n",
 		   pbi->pts_missed, pbi->pts_hit, pbi->frame_dur);
 #endif
-
+	vfree(pbi);
 	mutex_unlock(&vvp9_mutex);
 
 	return 0;
@@ -9256,11 +9247,11 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		sizeof(struct VP9Decoder_s), GFP_KERNEL);*/
 	memset(&vf_dp, 0, sizeof(struct vframe_master_display_colour_s));
 	pbi = vmalloc(sizeof(struct VP9Decoder_s));
-	memset(pbi, 0, sizeof(struct VP9Decoder_s));
 	if (pbi == NULL) {
 		pr_info("\nammvdec_vp9 device data allocation failed\n");
 		return -ENOMEM;
 	}
+	memset(pbi, 0, sizeof(struct VP9Decoder_s));
 	pdata->private = pbi;
 	pdata->dec_status = vvp9_dec_status;
 	/* pdata->set_trickmode = set_trickmode; */
@@ -9271,10 +9262,8 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 	pdata->threaded_irq_handler = vp9_threaded_irq_cb;
 	pdata->dump_state = vp9_dump_state;
 
-
-
 	memcpy(&BUF[0], &pbi->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
-	memset(pbi, 0, sizeof(VP9Decoder));
+	memset(pbi, 0, sizeof(struct VP9Decoder_s));
 	memcpy(&pbi->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	pbi->index = pdev->id;

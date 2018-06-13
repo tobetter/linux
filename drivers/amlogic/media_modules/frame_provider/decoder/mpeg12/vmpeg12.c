@@ -2020,6 +2020,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 
 	vmpeg12_vdec_info_init();
 
+	INIT_WORK(&set_clk_work, vmpeg12_set_clk);
 	if (vmpeg12_init() < 0) {
 		amlog_level(LOG_LEVEL_ERROR, "amvdec_mpeg12 init failed.\n");
 		kfree(gvs);
@@ -2036,7 +2037,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 	INIT_WORK(&notify_work, vmpeg12_notify_work);
 	INIT_WORK(&reset_work, reset_do_work);
-	INIT_WORK(&set_clk_work, vmpeg12_set_clk);
+
 
 	last_offset = 0xFFFFFFFF;
 #ifdef DUMP_USER_DATA
@@ -2168,7 +2169,7 @@ module_param(error_frame_skip_level, uint, 0664);
 MODULE_PARM_DESC(error_frame_skip_level,
 				 "\n amvdec_mpeg12 error_frame_skip_level\n");
 module_param(force_first_i_ready, uint, 0664);
-MODULE_PARM_DESC(dec_control, "\n amvmpeg12 force_first_i_ready\n");
+MODULE_PARM_DESC(force_first_i_ready, "\n amvmpeg12 force_first_i_ready\n");
 
 module_init(amvdec_mpeg12_driver_init_module);
 module_exit(amvdec_mpeg12_driver_remove_module);

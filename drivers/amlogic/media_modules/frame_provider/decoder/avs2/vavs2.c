@@ -139,67 +139,8 @@
 
 #define PARSER_CMD_SKIP_CFG_2 0x001b1910
 
-
 #define PARSER_CMD_NUMBER 37
 
-static unsigned short parser_cmd[PARSER_CMD_NUMBER] = {
-0x0401,
-0x8401,
-0x0800,
-0x0402,
-0x9002,
-0x1423,
-0x8CC3,
-0x1423,
-0x8804,
-0x9825,
-0x0800,
-0x04FE,
-0x8406,
-0x8411,
-0x1800,
-0x8408,
-0x8409,
-0x8C2A,
-0x9C2B,
-0x1C00,
-0x840F,
-0x8407,
-0x8000,
-0x8408,
-0x2000,
-0xA800,
-0x8410,
-0x04DE,
-0x840C,
-0x840D,
-0xAC00,
-0xA000,
-0x08C0,
-0x08E0,
-0xA40E,
-0xFC00,
-0x7C00
-};
-
-static int32_t g_WqMDefault4x4[16] = {
-	64,     64,     64,     68,
-	64,     64,     68,     72,
-	64,     68,     76,     80,
-	72,     76,     84,     96
-};
-
-
-static int32_t g_WqMDefault8x8[64] = {
-	64,     64,     64,     64,     68,     68,     72,     76,
-	64,     64,     64,     68,     72,     76,     84,     92,
-	64,     64,     68,     72,     76,     80,     88,     100,
-	64,     68,     72,     80,     84,     92,     100,    112,
-	68,     72,     80,     84,     92,     104,    112,    128,
-	76,     80,     84,     92,     104,    116,    132,    152,
-	96,     100,    104,    116,    124,    140,    164,    188,
-	104,    108,    116,    128,    152,    172,    192,    216
-};
 /*#define HEVC_PIC_STRUCT_SUPPORT*/
 /* to remove, fix build error */
 
@@ -218,7 +159,7 @@ static int32_t g_WqMDefault8x8[64] = {
 #endif
 
 #ifdef MULTI_INSTANCE_SUPPORT
-#define MAX_DECODE_INSTANCE_NUM     12
+#define MAX_DECODE_INSTANCE_NUM     9
 #define MULTI_DRIVER_NAME "ammvdec_avs2"
 
 #define lock_buffer(dec, flags) \
@@ -3049,6 +2990,32 @@ static void avs2_init_decoder_hw(struct AVS2Decoder_s *dec)
 {
 	unsigned int data32;
 	int i;
+	const unsigned short parser_cmd[PARSER_CMD_NUMBER] = {
+		0x0401, 0x8401, 0x0800, 0x0402, 0x9002, 0x1423,
+		0x8CC3, 0x1423, 0x8804, 0x9825, 0x0800, 0x04FE,
+		0x8406, 0x8411, 0x1800, 0x8408, 0x8409, 0x8C2A,
+		0x9C2B, 0x1C00, 0x840F, 0x8407, 0x8000, 0x8408,
+		0x2000, 0xA800, 0x8410, 0x04DE, 0x840C, 0x840D,
+		0xAC00, 0xA000, 0x08C0, 0x08E0, 0xA40E, 0xFC00,
+		0x7C00
+	};
+	const int32_t g_WqMDefault4x4[16] = {
+		64,     64,     64,     68,
+		64,     64,     68,     72,
+		64,     68,     76,     80,
+		72,     76,     84,     96
+	};
+
+	const int32_t g_WqMDefault8x8[64] = {
+		64,  64,  64,  64,  68,  68,  72,  76,
+		64,  64,  64,  68,  72,  76,  84,  92,
+		64,  64,  68,  72,  76,  80,  88,  100,
+		64,  68,  72,  80,  84,  92,  100, 112,
+		68,  72,  80,  84,  92,  104, 112, 128,
+		76,  80,  84,  92,  104, 116, 132, 152,
+		96,  100, 104, 116, 124, 140, 164, 188,
+		104, 108, 116, 128, 152, 172, 192, 216
+	};
 
 	/*if (debug & AVS2_DBG_BUFMGR_MORE)
 		pr_info("%s\n", __func__);*/
@@ -3250,7 +3217,7 @@ static void config_avs2_clk_forced_on(void)
 
 
 
-static struct AVS2Decoder_s gHevc;
+static struct AVS2Decoder_s *gHevc;
 
 static void avs2_local_uninit(struct AVS2Decoder_s *dec)
 {
@@ -5022,11 +4989,17 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 {
 	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
 	struct BUF_s BUF[MAX_BUF_NUM];
-	struct AVS2Decoder_s *dec = &gHevc;
+	struct AVS2Decoder_s *dec;
 	int ret;
 	pr_info("%s\n", __func__);
 	mutex_lock(&vavs2_mutex);
 
+	dec = vmalloc(sizeof(struct AVS2Decoder_s));
+	if (dec == NULL) {
+		pr_info("failed to vamlloc amvdec_avs2 dec struct\n");
+		return -ENOMEM;
+	}
+	gHevc = dec;
 	memcpy(&BUF[0], &dec->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 	memset(dec, 0, sizeof(struct AVS2Decoder_s));
 	memcpy(&dec->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
@@ -5041,6 +5014,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 	if (pdata == NULL) {
 		avs2_print(dec, 0,
 			"\namvdec_avs2 memory resource undefined.\n");
+		vfree(dec);
 		mutex_unlock(&vavs2_mutex);
 		return -EFAULT;
 	}
@@ -5049,6 +5023,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 
 	if (amvdec_avs2_mmu_init(dec) < 0) {
+		vfree(dec);
 		mutex_unlock(&vavs2_mutex);
 		pr_err("avs2 alloc bmmu box failed!!\n");
 		return -1;
@@ -5058,6 +5033,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 			work_buf_size, DRIVER_NAME, &pdata->mem_start);
 	if (ret < 0) {
 		uninit_mmu_buffers(dec);
+		vfree(dec);
 		mutex_unlock(&vavs2_mutex);
 		return ret;
 	}
@@ -5089,6 +5065,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 		pr_info("\namvdec_avs2 init failed.\n");
 		avs2_local_uninit(dec);
 		uninit_mmu_buffers(dec);
+		vfree(dec);
 		mutex_unlock(&vavs2_mutex);
 		return -ENODEV;
 	}
@@ -5102,7 +5079,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 
 static int amvdec_avs2_remove(struct platform_device *pdev)
 {
-	struct AVS2Decoder_s *dec = &gHevc;
+	struct AVS2Decoder_s *dec = gHevc;
 	if (debug)
 		pr_info("amvdec_avs2_remove\n");
 
@@ -5118,6 +5095,8 @@ static int amvdec_avs2_remove(struct platform_device *pdev)
 	pr_info("pts missed %ld, pts hit %ld, duration %d\n",
 		   dec->pts_missed, dec->pts_hit, dec->frame_dur);
 #endif
+
+	vfree(dec);
 
 	mutex_unlock(&vavs2_mutex);
 

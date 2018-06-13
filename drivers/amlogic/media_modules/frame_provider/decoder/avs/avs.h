@@ -1,7 +1,9 @@
 #ifndef AVS_H_
 #define AVS_H_
 
+#ifdef CONFIG_AMLOGIC_AVSP_LONG_CABAC
 #define AVSP_LONG_CABAC
+#endif
 /*#define BITSTREAM_READ_TMP_NO_CACHE*/
 
 #ifdef AVSP_LONG_CABAC
