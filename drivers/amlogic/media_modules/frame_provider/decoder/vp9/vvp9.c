@@ -9464,8 +9464,8 @@ static struct platform_driver ammvdec_vp9_driver = {
 	.probe = ammvdec_vp9_probe,
 	.remove = ammvdec_vp9_remove,
 #ifdef CONFIG_PM
-	.suspend = amvdec_suspend,
-	.resume = amvdec_resume,
+	.suspend = amhevc_suspend,
+	.resume = amhevc_resume,
 #endif
 	.driver = {
 		.name = MULTI_DRIVER_NAME,
