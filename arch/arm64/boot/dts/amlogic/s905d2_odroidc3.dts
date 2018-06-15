@@ -1,7 +1,7 @@
 /*
  * arch/arm64/boot/dts/amlogic/s905d2_odroidc3.dts
  *
- * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ * Copyright (C) 2018 Hardkernel Co., Ltd. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "mesong12a_skt-panel.dtsi"
 
 / {
-	model = "Amlogic";
+	model = "Hardkernel, ODROID-C3";
 	compatible = "amlogic, g12a";
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
