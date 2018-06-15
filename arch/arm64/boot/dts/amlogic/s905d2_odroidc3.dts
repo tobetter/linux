@@ -766,25 +766,6 @@
 	pinctrl-names="default";
 	pinctrl-0=<&i2c0_master_pins2>;
 	clock-frequency = <400000>;
-
-	gt9xx@5d {
-		compatible = "goodix,gt9xx";
-		status = "disabled";
-		reg = <0x5d>;
-		reset-gpio = <&gpio GPIOZ_9 0x00>;
-		irq-gpio = <&gpio GPIOZ_3 0x00>;
-	};
-
-	ftxx@38 {
-		compatible = "focaltech,fts";
-		status = "disabled";
-		reg = <0x38>;
-		reset-gpio = <&gpio GPIOZ_9 0x00>;
-		irq-gpio = <&gpio GPIOZ_3 0x00>;
-		x_max = <600>;
-		y_max = <1024>;
-		max-touch-number = <10>;
-	};
 };
 
 &i2c3 {
@@ -792,31 +773,6 @@
 	pinctrl-names="default";
 	pinctrl-0=<&i2c3_master_pins2>;
 	clock-frequency = <100000>; /* default 100k */
-
-	/* for ref board */
-	ad82584f_62: ad82584f_62@62 {
-		compatible = "ESMT, ad82584f";
-		#sound-dai-cells = <0>;
-		reg = <0x31>;
-		status = "okay";
-		reset_pin = <&gpio GPIOA_5 0>;
-	};
-
-	tlv320adc3101_32: tlv320adc3101_32@32 {
-		compatible = "ti,tlv320adc3101";
-		#sound-dai-cells = <0>;
-		reg = <0x19>;
-		differential_pair = <1>;
-		status = "okay";
-	};
-
-	tas5707_36: tas5707_36@36 {
-		compatible = "ti,tas5707";
-		#sound-dai-cells = <0>;
-		reg = <0x1b>;
-		status = "disabled";
-		reset_pin = <&gpio GPIOA_5 0>;
-	};
 
 	bl_extern_i2c {
 		compatible = "amlogic, bl_extern_i2c";
