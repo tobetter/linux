@@ -433,6 +433,7 @@ static void vh264_notify_work(struct work_struct *work);
 static void user_data_push_work(struct work_struct *work);
 #ifdef MH264_USERDATA_ENABLE
 static void user_data_ready_notify_work(struct work_struct *work);
+static void vmh264_wakeup_userdata_poll(void);
 #endif
 
 static const char vh264_dec_id[] = "vh264-dev";
@@ -5700,8 +5701,8 @@ static void print_data(unsigned char *pdata,
 				rec_id,	len, flag,
 				duration, vpts, vpts_valid, poc_number);
 #endif
-	pr_info("%d len = %d, flag = %d, vpts = 0x%x, poc = %d\n",
-				rec_id,	len, flag, vpts, poc);
+	pr_info("%d len = %d, flag = %d, vpts = 0x%x\n",
+				rec_id,	len, flag, vpts);
 
 	if (len == 96) {
 		int i;
@@ -6248,6 +6249,12 @@ static void vmh264_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 		mutex_unlock(&hw->userdata_mutex);
 	}
 }
+
+static void vmh264_wakeup_userdata_poll(void)
+{
+	amstream_wakeup_userdata_poll();
+}
+
 #endif
 
 static void user_data_push_work(struct work_struct *work)
@@ -7095,9 +7102,11 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	pdata->dump_state = vmh264_dump_state;
 
 #ifdef MH264_USERDATA_ENABLE
+	pdata->wakeup_userdata_poll = vmh264_wakeup_userdata_poll;
 	pdata->user_data_read = vmh264_user_data_read;
 	pdata->reset_userdata_fifo = vmh264_reset_userdata_fifo;
 #else
+	pdata->wakeup_userdata_poll = NULL;
 	pdata->user_data_read = NULL;
 	pdata->reset_userdata_fifo = NULL;
 #endif

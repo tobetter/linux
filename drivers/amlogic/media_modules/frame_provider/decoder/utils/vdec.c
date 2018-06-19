@@ -3366,8 +3366,10 @@ EXPORT_SYMBOL(vdec_read_user_data);
 
 int vdec_wakeup_userdata_poll(struct vdec_s *vdec)
 {
-	/*if (vdec && vdec == vdec_get_default_vdec_for_userdata())
-		amstream_wakeup_userdata_poll();*/ //DEBUG_TMP
+	if (vdec && vdec == vdec_get_default_vdec_for_userdata()) {
+		if (vdec->wakeup_userdata_poll)
+			vdec->wakeup_userdata_poll();
+	}
 
 	return 0;
 }

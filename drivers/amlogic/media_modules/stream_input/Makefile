@@ -9,6 +9,7 @@ stream_input-objs	+=	parser/esparser.o
 stream_input-objs	+=	parser/tsdemux.o
 stream_input-objs	+=	parser/psparser.o
 stream_input-objs	+=	parser/rmparser.o
+stream_input-objs	+=	subtitle/subtitle.o
 
 obj-y += parser/hw_demux/
 obj-y 	+= 	tv_frontend/
