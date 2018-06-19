@@ -80,6 +80,7 @@
 #include "../../frame_provider/decoder/utils/firmware.h"
 #include "../../common/chips/chips.h"
 #include "../../common/chips/decoder_cpu_ver_info.h"
+#include "../subtitle/subtitle.h"
 
 //#define G12A_BRINGUP_DEBUG
 
@@ -1414,6 +1415,12 @@ int wakeup_userdata_poll(struct userdata_poc_info_t poc,
 	return userdata_buf->buf_rp;
 }
 EXPORT_SYMBOL(wakeup_userdata_poll);
+void amstream_wakeup_userdata_poll(void)
+{
+	atomic_set(&userdata_ready, 1);
+	wake_up_interruptible(&amstream_userdata_wait);
+}
+EXPORT_SYMBOL(amstream_wakeup_userdata_poll);
 
 static unsigned int amstream_userdata_poll(struct file *file,
 		poll_table *wait_table)
@@ -2994,9 +3001,22 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 		}
 		break;
 
+	case AMSTREAM_IOC_UD_BUF_READ:
+		{
+			struct userdata_param_t  __user *p_userdata_param;
+			p_userdata_param = (void *)arg;
+			if (this->type & PORT_TYPE_USERDATA) {
+				if (vdec_read_user_data(NULL,
+						p_userdata_param) == 0) {
+					r = -EFAULT;
+					break;
+				}
+			}
+		}
+		break;
 	case AMSTREAM_IOC_UD_FLUSH_USERDATA:
 		if (this->type & PORT_TYPE_USERDATA) {
-			reset_userdata_fifo(0);
+			vdec_reset_userdata_fifo(NULL, 0);
 			pr_info("reset_userdata_fifo\n");
 		} else
 			r = -EINVAL;
@@ -3900,12 +3920,19 @@ static int __init amstream_module_init(void)
 		pr_err("failed to register amstream module\n");
 		return -ENODEV;
 	}
+
+	if (subtitle_init()) {
+		pr_err("failed to init subtitle\n");
+		return -ENODEV;
+	}
+
 	return 0;
 }
 
 static void __exit amstream_module_exit(void)
 {
 	platform_driver_unregister(&amstream_driver);
+	subtitle_exit();
 }
 
 module_init(amstream_module_init);

@@ -1255,6 +1255,7 @@ static void vmpeg12_ppmgr_reset(void)
 #endif
 
 static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
+static void vmpeg12_wakeup_userdata_poll(void);
 
 static void reset_do_work(struct work_struct *work)
 {
@@ -1669,6 +1670,11 @@ static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 	mutex_unlock(&userdata_mutex);
 }
 
+static void vmpeg12_wakeup_userdata_poll(void)
+{
+	amstream_wakeup_userdata_poll();
+}
+
 static int vmpeg12_vdec_info_init(void)
 {
 	gvs = kzalloc(sizeof(struct vdec_info), GFP_KERNEL);
@@ -2016,7 +2022,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 
 	pdata->user_data_read = vmpeg12_user_data_read;
 	pdata->reset_userdata_fifo = vmpeg12_reset_userdata_fifo;
-
+	pdata->wakeup_userdata_poll = vmpeg12_wakeup_userdata_poll;
 	is_reset = 0;
 
 	vmpeg12_vdec_info_init();
