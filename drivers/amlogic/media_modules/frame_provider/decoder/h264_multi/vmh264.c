@@ -5150,7 +5150,6 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 static s32 vh264_init(struct vdec_h264_hw_s *hw)
 {
 	/* int trickmode_fffb = 0; */
-	int firmwareloaded = 0;
 
 	/* pr_info("\nvh264_init\n"); */
 	/* init_timer(&hw->recycle_timer); */
@@ -5191,38 +5190,28 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			return -ENOMEM;
 		}
 	}
-	if (tee_enabled() && !firmwareloaded) {
-		pr_info("VMH264 start tee load sec firmware ...\n");
-		if (hw->mmu_enable &&
-			tee_load_video_fw((u32)VIDEO_DEC_H264_MULTI_MMU, 2)
-			!= 0) {
-			amvdec_enable_flag = false;
-			amvdec_disable();
-			pr_info("%s: Error amvdec_mmu_loadmc fail\n",
-				__func__);
-			return -1;
-		}
-	} else {
-	/* -- ucode loading (amrisc and swap code) */
-	hw->mc_cpu_addr =
-		dma_alloc_coherent(amports_get_dma_device(), MC_TOTAL_SIZE,
-				&hw->mc_dma_handle, GFP_KERNEL);
-	if (!hw->mc_cpu_addr) {
-		amvdec_enable_flag = false;
-		amvdec_disable();
-		if (hw->mmu_enable)
-			amhevc_disable();
-		pr_info("vh264_init: Can not allocate mc memory.\n");
-		return -ENOMEM;
-	}
-
-	/*pr_info("264 ucode swap area: phyaddr %p, cpu vaddr %p\n",
-		(void *)hw->mc_dma_handle, hw->mc_cpu_addr);
-	*/
-	if (!firmwareloaded) {
+	if (!tee_enabled()) {
 		int ret = 0, size = -1;
 		int fw_size = 0x1000 * 16;
 		struct firmware_s *fw = NULL;
+
+		/* -- ucode loading (amrisc and swap code) */
+		hw->mc_cpu_addr =
+			dma_alloc_coherent(amports_get_dma_device(), MC_TOTAL_SIZE,
+					&hw->mc_dma_handle, GFP_KERNEL);
+		if (!hw->mc_cpu_addr) {
+			amvdec_enable_flag = false;
+			amvdec_disable();
+			if (hw->mmu_enable)
+				amhevc_disable();
+			pr_info("vh264_init: Can not allocate mc memory.\n");
+			return -ENOMEM;
+		}
+
+		/*pr_info("264 ucode swap area: phyaddr %p, cpu vaddr %p\n",
+			(void *)hw->mc_dma_handle, hw->mc_cpu_addr);
+		*/
+
 
 		pr_debug("start load orignal firmware ...\n");
 
@@ -5306,7 +5295,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			}
 			return -EBUSY;
 		}
-	}
+
 	}
 #if 1 /* #ifdef  BUFFER_MGR_IN_C */
 	hw->lmem_addr = __get_free_page(GFP_KERNEL);
