@@ -869,7 +869,11 @@
 	portnum = <1>;
 	otg = <1>;
 	gpio-vbus-power = "GPIOH_6";
-	gpios = <&gpio GPIOH_6 GPIO_ACTIVE_HIGH>;
+	hub-en = "GPIOH_5";
+	hub-rst = "GPIOH_4";
+	gpios = <&gpio GPIOH_6 GPIO_ACTIVE_HIGH
+		&gpio GPIOH_5 GPIO_ACTIVE_HIGH
+		&gpio GPIOH_4 GPIO_ACTIVE_HIGH>;
 };
 
 &dwc2_a {

@@ -491,6 +491,10 @@ static int amlogic_new_usb3_v2_probe(struct platform_device *pdev)
 	int otg = 0;
 	int ret;
 	struct device_node *tsi_pci;
+#if defined(CONFIG_ARCH_MESON64_ODROIDC3)
+	struct gpio_desc *huben_gd = NULL;
+	struct gpio_desc *hubrst_gd = NULL;
+#endif
 
 	gpio_name = of_get_property(dev->of_node, "gpio-vbus-power", NULL);
 	if (gpio_name) {
@@ -500,6 +504,32 @@ static int amlogic_new_usb3_v2_probe(struct platform_device *pdev)
 		if (IS_ERR(usb_gd))
 			return -1;
 	}
+
+#if defined(CONFIG_ARCH_MESON64_ODROIDC3)
+	gpio_name = of_get_property(dev->of_node, "hub-en", NULL);
+	if (gpio_name) {
+		huben_gd = gpiod_get_index(&pdev->dev,
+				 NULL, 1, GPIOD_OUT_HIGH);
+		if (IS_ERR(huben_gd))
+			return -1;
+		gpiod_direction_output(huben_gd, 1);
+		mdelay(20);
+		gpiod_put(huben_gd);
+	}
+
+	gpio_name = of_get_property(dev->of_node, "hub-rst", NULL);
+	if (gpio_name) {
+		hubrst_gd = gpiod_get_index(&pdev->dev,
+				 NULL, 2, GPIOD_OUT_HIGH);
+		if (IS_ERR(hubrst_gd))
+			return -1;
+		gpiod_direction_output(hubrst_gd, 0);
+		mdelay(20);
+		gpiod_direction_output(hubrst_gd, 1);
+		mdelay(20);
+		gpiod_put(hubrst_gd);
+	}
+#endif
 
 	prop = of_get_property(dev->of_node, "portnum", NULL);
 	if (prop)
