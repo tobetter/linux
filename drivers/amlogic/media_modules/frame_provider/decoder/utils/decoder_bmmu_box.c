@@ -299,6 +299,7 @@ int decoder_bmmu_box_alloc_idx_wait(
 		ret = decoder_bmmu_box_alloc_idx(handle,
 				idx, size, aligned_2n, mem_flags);
 	} else {
+		try_free_keep_video(1);
 		ret = -ENOMEM;
 	}
 	return ret;
