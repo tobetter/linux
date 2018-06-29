@@ -512,17 +512,6 @@ static int ump_file_mmap(struct file *filp, struct vm_area_struct *vma)
 	/* By setting this flag, during a process fork; the child process will not have the parent UMP mappings */
 	vma->vm_flags |= VM_DONTCOPY;
 
-	/* Test if we can make the mapping writable */
-	if (mapping_map_writable(filp->f_mapping)) {
-		/* On error, we need to allow it for forced VM_SHARED */
-		mapping_allow_writable(filp->f_mapping);
-		DBG_MSG(3, ("UMP Map function: Forcing allow writable\n"));
-	}
-	else {
-		/* On success, the counter got incremented, decrement the counter */
-		mapping_unmap_writable(filp->f_mapping);
-	}
-
 	DBG_MSG(4, ("UMP vma->flags: %x\n", vma->vm_flags));
 
 	/* Call the common mmap handler */
