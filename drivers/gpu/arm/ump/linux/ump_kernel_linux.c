@@ -321,10 +321,16 @@ static int ump_file_ioctl(struct inode *inode, struct file *filp, unsigned int c
 		break;
 
 	case UMP_IOC_ALLOCATE :
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+		mapping_allow_writable(filp->f_mapping);
+#endif
 		err = ump_allocate_wrapper((u32 __user *)argument, session_data);
 		break;
 
 	case UMP_IOC_RELEASE:
+#if defined(CONFIG_ARCH_MESON64_ODROIDC2)
+		mapping_deny_writable(filp->f_mapping);
+#endif
 		err = ump_release_wrapper((u32 __user *)argument, session_data);
 		break;
 
