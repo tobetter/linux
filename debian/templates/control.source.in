@@ -19,7 +19,7 @@ Build-Depends:
  bison <!stage1>, flex (>= 2.6.1-1.1~) <!stage1>,
 Build-Depends-Arch:
 # used by debian/rules.real to build udebs
- kernel-wedge (>= 2.99~) <!stage1 !pkg.linux.nokernel>,
+#kernel-wedge (>= 2.99~) <!stage1 !pkg.linux.nokernel>,
 # used by kernel-wedge (only on Linux, thus not declared as a dependency)
  kmod <!stage1 !pkg.linux.nokernel>,
 # used by upstream to build include/generated/timeconst.h
