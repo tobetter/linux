@@ -342,6 +342,7 @@ CONFIG_FREEZER=y
 # CONFIG_ARCH_XGENE is not set
 # CONFIG_ARCH_ZX is not set
 # CONFIG_ARCH_ZYNQMP is not set
+CONFIG_ARCH_MESON64_ODROIDC3=y
 
 #
 # Bus support
