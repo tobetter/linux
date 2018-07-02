@@ -1,3 +1,9 @@
+linux (4.18.0~rc3-1) unstable; urgency=medium
+
+  * Upstream Linux kernel release 4.18-rc3
+
+ --  Dongjin Kim <tobetter@linuxfactory.or.kr>  Tue, 03 Jul 2018 00:15:49 +0900
+
 linux (4.18.0~rc1-1) unstable; urgency=medium
 
   * Upstream Linux kernel release 4.18-rc1
