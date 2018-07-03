@@ -44,6 +44,7 @@
 #include <linux/amlogic/media/utils/amports_config.h>
 #include "firmware.h"
 #include <linux/amlogic/tee.h>
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define MC_SIZE (4096 * 16)
 
@@ -73,7 +74,7 @@ static void amvdec_pg_enable(bool enable)
 		/* AMVDEC_CLK_GATE_ON(VLD_CLK); */
 		AMVDEC_CLK_GATE_ON(AMRISC);
 		/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6TVD */
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 			WRITE_VREG(GCLK_EN, 0x3ff);
 		/* #endif */
 		CLEAR_VREG_MASK(MDEC_PIC_DC_CTRL, 1 << 31);
@@ -682,7 +683,7 @@ void amvdec_start(void)
 #endif
 
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
@@ -779,7 +780,7 @@ void amvdec_stop(void)
 	}
 
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);

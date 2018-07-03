@@ -54,6 +54,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
 #include <linux/amlogic/tee.h>
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define DRIVER_NAME "amvdec_h264"
 #define MODULE_NAME "amvdec_h264"
@@ -950,7 +951,7 @@ static void vh264_set_params(struct work_struct *work)
 	if (ucode_type == UCODE_IP_ONLY_PARAM)
 		mb_mv_byte = 96;
 	mb_width = mb_width & 0xff;
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB) {
 		if (!mb_width && mb_total)
 			mb_width = 256;
 	}
@@ -1032,7 +1033,7 @@ static void vh264_set_params(struct work_struct *work)
 	if (max_dpb_size < max_reference_size)
 		max_dpb_size = max_reference_size;
 	if (max_dpb_size > 15
-		&& get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB
+		&& get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB
 		&& (codec_mm_get_total_size() < 80 * SZ_1M)) {
 				actual_dpb_size
 				= max_reference_size + dpb_size_adj;
@@ -2394,7 +2395,7 @@ static void vh264_prot_init(void)
 	WRITE_VREG(AV_SCRATCH_I, (u32)(sei_data_buffer_phys - buf_offset));
 	WRITE_VREG(AV_SCRATCH_J, 0);
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8 */
-	if ((get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) && !is_meson_mtvd_cpu()) {
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) && !is_meson_mtvd_cpu()) {
 		/* pr_info("vh264 meson8 prot init\n"); */
 		WRITE_VREG(MDEC_PIC_DC_THRESH, 0x404038aa);
 	}
@@ -2444,7 +2445,7 @@ static int vh264_local_init(void)
 	pr_debug("sync_outside=%d, use_idr_framerate=%d\n",
 	 sync_outside, use_idr_framerate);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB)
 		size = V_BUF_ADDR_OFFSET_NEW;
 	else
 		size = V_BUF_ADDR_OFFSET;
@@ -3140,7 +3141,7 @@ static int __init amvdec_h264_driver_init_module(void)
 		pr_err("failed to register amvdec_h264 driver\n");
 		return -ENODEV;
 	}
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB
 		&& (codec_mm_get_total_size() > 80 * SZ_1M)) {
 		amvdec_h264_profile.profile = "4k";
 	}

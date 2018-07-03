@@ -67,6 +67,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
 #include "secprot.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 static DEFINE_MUTEX(vdec_mutex);
 
@@ -324,7 +325,7 @@ EXPORT_SYMBOL(update_vdec_clk_config_settings);
 
 static bool hevc_workaround_needed(void)
 {
-	return (get_cpu_type() == MESON_CPU_MAJOR_ID_GXBB) &&
+	return (get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_GXBB) &&
 		(get_meson_cpu_version(MESON_CPU_VERSION_LVL_MINOR)
 			== GXBB_REV_A_MINOR);
 }
@@ -2420,8 +2421,8 @@ void vdec_poweron(enum vdec_type_e core)
 				READ_AOREG(AO_RTI_GEN_PWR_ISO0) & ~0xC0);
 		/* reset DOS top registers */
 		WRITE_VREG(DOS_VDEC_MCRCC_STALL_CTRL, 0);
-		if (get_cpu_type() >=
-			MESON_CPU_MAJOR_ID_GXBB) {
+		if (get_cpu_major_id() >=
+			AM_MESON_CPU_MAJOR_ID_GXBB) {
 			/*
 			 *enable VDEC_1 DMC request
 			 */
@@ -2561,8 +2562,8 @@ void vdec_poweroff(enum vdec_type_e core)
 	}
 
 	if (core == VDEC_1) {
-		if (get_cpu_type() >=
-			MESON_CPU_MAJOR_ID_GXBB) {
+		if (get_cpu_major_id() >=
+			AM_MESON_CPU_MAJOR_ID_GXBB) {
 			/* disable VDEC_1 DMC REQ*/
 			unsigned long flags;
 
@@ -2623,7 +2624,7 @@ void vdec_poweroff(enum vdec_type_e core)
 
 			/* disable hevc clock */
 			hevc_clock_off();
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 				hevc_back_clock_off();
 
 			/* hevc power off */
@@ -2920,7 +2921,7 @@ static ssize_t amrisc_regs_show(struct class *class,
 	unsigned int val;
 	ssize_t ret;
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 		mutex_lock(&vdec_mutex);
 		if (!vdec_on(VDEC_1)) {
 			mutex_unlock(&vdec_mutex);
@@ -2928,7 +2929,7 @@ static ssize_t amrisc_regs_show(struct class *class,
 			ret = pbuf - buf;
 			return ret;
 		}
-	} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 1);
@@ -2941,9 +2942,9 @@ static ssize_t amrisc_regs_show(struct class *class,
 		pbuf += sprintf(pbuf, "%s(%#x)\t:%#x(%d)\n",
 				regs[i].name, regs[i].offset, val, val);
 	}
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 		mutex_unlock(&vdec_mutex);
-	else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 0);
@@ -2967,7 +2968,7 @@ static ssize_t dump_trace_show(struct class *class,
 		ret = pbuf - buf;
 		return ret;
 	}
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 		mutex_lock(&vdec_mutex);
 		if (!vdec_on(VDEC_1)) {
 			mutex_unlock(&vdec_mutex);
@@ -2976,7 +2977,7 @@ static ssize_t dump_trace_show(struct class *class,
 			ret = pbuf - buf;
 			return ret;
 		}
-	} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 1);
@@ -3005,9 +3006,9 @@ static ssize_t dump_trace_show(struct class *class,
 		i += 16;
 	};
 	pr_info("dump trace steps:%d finished\n", debug_trace_num);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 		mutex_unlock(&vdec_mutex);
-	else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 0);
@@ -3439,7 +3440,7 @@ static ssize_t dump_risc_mem_show(struct class *class,
 	char *pbuf = buf;
 	int ret;
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 		mutex_lock(&vdec_mutex);
 		if (!vdec_on(VDEC_1)) {
 			mutex_unlock(&vdec_mutex);
@@ -3447,7 +3448,7 @@ static ssize_t dump_risc_mem_show(struct class *class,
 			ret = pbuf - buf;
 			return ret;
 		}
-	} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 1);
@@ -3467,9 +3468,9 @@ static ssize_t dump_risc_mem_show(struct class *class,
 	}
 
 	/*done*/
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 		mutex_unlock(&vdec_mutex);
-	else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/*TODO:M6 define */
 		/*
 		 *  switch_mod_gate_by_type(MOD_VDEC, 0);
@@ -3737,12 +3738,12 @@ static int vdec_probe(struct platform_device *pdev)
 
 	vdec_core->cma_dev = &pdev->dev;
 
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_M8) {
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_M8) {
 		/* default to 250MHz */
 		vdec_clock_hi_enable();
 	}
 
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_GXBB) {
+	if (get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_GXBB) {
 		/* set vdec dmc request to urgent */
 		WRITE_DMCREG(DMC_AM5_CHAN_CTRL, 0x3f203cf);
 	}

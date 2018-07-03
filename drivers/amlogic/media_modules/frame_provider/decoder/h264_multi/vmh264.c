@@ -58,6 +58,7 @@
 #include <linux/uaccess.h>
 #include "../utils/config_parser.h"
 #include "../../../amvdec_ports/vdec_drv_base.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #undef pr_info
 #define pr_info printk
@@ -7054,10 +7055,10 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 
 	hw->mmu_enable = 0;
 	if (force_enable_mmu && pdata->sys_info &&
-		    (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) &&
-		    (get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX) &&
-		    (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A) &&
-			(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B) &&
+		    (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TXLX) &&
+		    (get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_GXLX) &&
+		    (get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_G12A) &&
+			(get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_G12B) &&
 			(pdata->sys_info->height * pdata->sys_info->width
 			> 1920 * 1088))
 			hw->mmu_enable = 1;
@@ -7311,10 +7312,10 @@ static int __init ammvdec_h264_driver_init_module(void)
 	}
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TXLX) {
 			ammvdec_h264_profile.profile =
 					"4k, dwrite, compressed";
-		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
+		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB) {
 			ammvdec_h264_profile.profile = "4k";
 		}
 	}

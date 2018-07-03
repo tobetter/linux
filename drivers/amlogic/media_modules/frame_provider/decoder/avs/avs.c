@@ -41,6 +41,7 @@
 #include "../utils/decoder_mmu_box.h"
 #include "../utils/decoder_bmmu_box.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define DRIVER_NAME "amvdec_avs"
 #define MODULE_NAME "amvdec_avs"
@@ -1503,7 +1504,7 @@ static s32 vavs_init(void)
 
 	vavs_local_init();
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXM)
 		size = get_firmware_data(VIDEO_DEC_AVS, buf);
 	else {
 		if (firmware_sel == 1)
@@ -1526,7 +1527,7 @@ static s32 vavs_init(void)
 	if (size == 1)
 		pr_info("tee load ok\n");
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXM)
 		size = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
 	else if (firmware_sel == 1)
 		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_no_cabac", buf);
@@ -1608,7 +1609,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		pr_info("amvdec_avs memory resource undefined.\n");
 		return -EFAULT;
 	}
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXM || disable_longcabac_trans)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXM || disable_longcabac_trans)
 		firmware_sel = 1;
 
 	if (firmware_sel == 1) {
@@ -1808,7 +1809,7 @@ static int __init amvdec_avs_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB)
 		amvdec_avs_profile.profile = "avs+";
 
 	vcodec_profile_register(&amvdec_avs_profile);

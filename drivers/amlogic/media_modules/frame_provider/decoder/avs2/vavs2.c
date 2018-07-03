@@ -53,6 +53,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/config_parser.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define MIX_STREAM_SUPPORT
 #define SUPPORT_4K2K
@@ -4578,7 +4579,7 @@ static void vavs2_put_timer_func(unsigned long arg)
 	if (dbg_cmd != 0) {
 		if (dbg_cmd == 1) {
 			u32 disp_laddr;
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB &&
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB &&
 				get_double_write_mode(dec) == 0) {
 				disp_laddr =
 					READ_VCBUS_REG(AFBC_BODY_BADDR) << 4;
@@ -5672,7 +5673,7 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 
 	dec->platform_dev = pdev;
 	dec->video_signal_type = 0;
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TXLX)
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TXLX)
 		dec->stat |= VP9_TRIGGER_FRAME_ENABLE;
 #if 1
 	if ((debug & IGNORE_PARAM_FROM_CONFIG) == 0 &&
@@ -5915,7 +5916,7 @@ static int __init amvdec_avs2_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL
 		/*&& get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX*/) {
 		if (vdec_is_support_4k())
 			amvdec_avs2_profile.profile =

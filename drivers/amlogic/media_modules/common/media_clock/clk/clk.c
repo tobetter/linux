@@ -33,6 +33,7 @@
 #include "../../chips/chips.h"
 #include "clk_priv.h"
 #include <linux/amlogic/media/utils/log.h>
+#include "../../chips/decoder_cpu_ver_info.h"
 
 #define p_vdec() (get_current_vdec_chip()->clk_mgr[VDEC_1])
 #define p_vdec2() (get_current_vdec_chip()->clk_mgr[VDEC_2])
@@ -336,7 +337,7 @@ int vdec_source_changed_for_clk_set(int format, int width, int height, int fps)
 		|| format == VFORMAT_AVS2) {
 		ret_clk = hevc_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HEVC] = width * height * fps;
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			ret_clk = hevc_back_clock_set(clk);
 			clock_source_wxhxfps_saved[VDEC_HEVCB] = width * height * fps;
 		}
@@ -344,7 +345,7 @@ int vdec_source_changed_for_clk_set(int format, int width, int height, int fps)
 		ret_clk = hcodec_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HCODEC] = width * height * fps;
 	} else if (format == VFORMAT_H264_4K2K &&
-		get_cpu_type() == MESON_CPU_MAJOR_ID_M8) {
+		get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_M8) {
 		ret_clk = vdec2_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_2] = width * height * fps;
 		ret_clk = vdec_clock_set(clk);
@@ -363,7 +364,7 @@ static int register_vdec_clk_mgr_per_cpu(int cputype,
 
 	struct chip_vdec_clk_s *mgr;
 
-	if (cputype != get_cpu_type() || vdec_type >= VDEC_MAX) {
+	if (cputype != get_cpu_major_id() || vdec_type >= VDEC_MAX) {
 		/*
 		 *pr_info("ignore vdec clk mgr for vdec[%d] cpu=%d\n",
 		 *vdec_type, cputype);
@@ -414,7 +415,7 @@ static int register_vdec_clk_setting_per_cpu(int cputype,
 
 	struct clk_set_setting *p_setting;
 
-	if (cputype != get_cpu_type()) {
+	if (cputype != get_cpu_major_id()) {
 		/*
 		 *pr_info("ignore clk_set_setting for cpu=%d\n",
 		 *cputype);
