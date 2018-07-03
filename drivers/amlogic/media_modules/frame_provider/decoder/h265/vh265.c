@@ -45,6 +45,8 @@
 #include "../utils/decoder_bmmu_box.h"
 #include "../utils/config_parser.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
+
 #define AGAIN_HAS_THRESHOLD
 /*#define TEST_NO_BUF*/
 /*#define HEVC_PIC_STRUCT_SUPPORT*/
@@ -2695,7 +2697,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 	int i;
 	int cur_pic_num = MAX_REF_PIC_NUM;
 	int dw_mode = get_double_write_mode(hevc);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL)
 		WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
 			(0x1 << 1) | (0x1 << 2));
 	else
@@ -2707,7 +2709,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 			cur_pic_num = i;
 			break;
 		}
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL) {
 			if (hevc->mmu_enable)
 				WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 					hevc->m_PIC[i]->header_adr>>5);
@@ -2719,7 +2721,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 				hevc->m_PIC[i]->mc_y_adr |
 				(hevc->m_PIC[i]->mc_canvas_y << 8) | 0x1);
 		if (dw_mode & 0x10) {
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL) {
 				if (hevc->mmu_enable)
 					WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 						hevc->m_PIC[i]->header_adr>>5);
@@ -2737,7 +2739,7 @@ static void init_pic_list_hw(struct hevc_state_s *hevc)
 	if (cur_pic_num == 0)
 		return;
 	for (; i < MAX_REF_PIC_NUM; i++) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL) {
 			if (hevc->mmu_enable)
 				WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 				hevc->m_PIC[cur_pic_num-1]->header_adr>>5);
@@ -3507,7 +3509,7 @@ static void hevc_config_work_space_hw(struct hevc_state_s *hevc)
 	WRITE_VREG(HEVC_PPS_BUFFER, buf_spec->pps.buf_start);
 	WRITE_VREG(HEVC_SAO_UP, buf_spec->sao_up.buf_start);
 	if (hevc->mmu_enable) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			WRITE_VREG(HEVC_ASSIST_MMU_MAP_ADDR, hevc->frame_mmu_map_phy_addr);
 			hevc_print(hevc, H265_DEBUG_BUFMGR_MORE,
 				"write HEVC_ASSIST_MMU_MAP_ADDR\n");
@@ -3595,7 +3597,7 @@ static void hevc_init_decoder_hw(struct hevc_state_s *hevc,
 	if (!hevc->m_ins_flag) {
 		data32 = READ_VREG(HEVC_STREAM_CONTROL);
 		data32 = data32 | (1 << 0);      /* stream_fetch_enable */
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 			data32 |= (0xf << 25); /*arwlen_axi_max*/
 		WRITE_VREG(HEVC_STREAM_CONTROL, data32);
 	}
@@ -4233,7 +4235,7 @@ static void config_sao_hw(struct hevc_state_s *hevc, union param_u *params)
 #endif
 	/* DBLK CONFIG HERE */
 	if (hevc->new_pic) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			data32 = (0x57 << 8) |  /* 1st/2nd write both enable*/
 				(0x0  << 0);   /* h265 video format*/
 			if (hevc->pic_w >= 1280)
@@ -4272,7 +4274,7 @@ static void config_sao_hw(struct hevc_state_s *hevc, union param_u *params)
 
 		WRITE_VREG(HEVC_DBLK_CFG1, data32);
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			/*if (debug & 0x80) {*/
 				data32 = 1 << 28; /* Debug only: sts1 chooses dblk_main*/
 				WRITE_VREG(HEVC_DBLK_STS1 + 4, data32); /* 0x3510 */
@@ -4315,7 +4317,7 @@ static void config_sao_hw(struct hevc_state_s *hevc, union param_u *params)
 	data32 &= (~0xff0);
 	/* data32 |= 0x670;  // Big-Endian per 64-bit */
 	data32 |= endian;	/* Big-Endian per 64-bit */
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_G12A) {
 		data32 &= (~0x3); /*[1]:dw_disable [0]:cm_disable*/
 		if (get_double_write_mode(hevc) == 0)
 			data32 |= 0x2; /*disable double write*/
@@ -8683,7 +8685,7 @@ static void vh265_check_timer_func(unsigned long arg)
 		if (dbg_cmd == 1) {
 			u32 disp_laddr;
 
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB &&
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB &&
 				get_double_write_mode(hevc) == 0) {
 				disp_laddr =
 					READ_VCBUS_REG(AFBC_BODY_BADDR) << 4;
@@ -9049,7 +9051,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 #endif
 
 	if (hevc->mmu_enable) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
 			hevc_print(hevc, 0, "vh265 ucode loaded!\n");
 		} else {
@@ -9096,7 +9098,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		pr_info ("tee load ok");
 
 		if (hevc->mmu_enable) {
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
 			else
 				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
@@ -9967,7 +9969,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	}
 
 	if (hevc->mmu_enable) {
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 			loadr = amhevc_vdec_loadmc_ex(vdec,
 					"vh265_mc", hevc->fw->data);
 		else
@@ -10076,7 +10078,7 @@ static int amvdec_h265_probe(struct platform_device *pdev)
 		hevc_print(hevc, 0, "%s\r\n", __func__);
 	mutex_lock(&vh265_mutex);
 
-	if ((get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB) &&
 		(parser_sei_enable & 0x100) == 0)
 		parser_sei_enable = 7; /*old 1*/
 	hevc->m_ins_flag = 0;
@@ -10097,7 +10099,7 @@ static int amvdec_h265_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 	if (mmu_enable_force == 0) {
-		if (get_cpu_type() < MESON_CPU_MAJOR_ID_GXL
+		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_GXL
 			|| double_write_mode == 0x10)
 			hevc->mmu_enable = 0;
 		else
@@ -10469,7 +10471,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 	}
 
 	if (mmu_enable_force == 0) {
-		if (get_cpu_type() < MESON_CPU_MAJOR_ID_GXL
+		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_GXL
 			|| hevc->double_write_mode == 0x10)
 			hevc->mmu_enable = 0;
 		else
@@ -10503,7 +10505,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 	}
 	hevc->buf_size = work_buf_size;
 #endif
-	if ((get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXTVBB) &&
 		(parser_sei_enable & 0x100) == 0)
 		parser_sei_enable = 7;
 	hevc->m_ins_flag = 1;
@@ -10705,10 +10707,10 @@ static int __init amvdec_h265_driver_init_module(void)
 		if (is_meson_m8m2_cpu()) {
 			/* m8m2 support 4k */
 			amvdec_h265_profile.profile = "4k";
-		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB) {
+		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB) {
 			amvdec_h265_profile.profile =
 				"4k, 9bit, 10bit, dwrite, compressed";
-		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_MG9TV)
+		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_MG9TV)
 			amvdec_h265_profile.profile = "4k";
 	}
 #endif

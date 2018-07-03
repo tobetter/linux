@@ -79,6 +79,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../../frame_provider/decoder/utils/firmware.h"
 #include "../../common/chips/chips.h"
+#include "../../common/chips/decoder_cpu_ver_info.h"
 
 //#define G12A_BRINGUP_DEBUG
 
@@ -605,10 +606,10 @@ static int video_port_init(struct port_priv_s *priv,
 		(priv->vdec->sys_info->height *
 			priv->vdec->sys_info->width) > 1920*1088) {
 		pbuf->for_4k = 1;
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TXLX
 				&& port->vformat == VFORMAT_H264) {
 			amports_switch_gate("clk_hevc_mux", 1);
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 				amports_switch_gate("clk_hevcb_mux", 1);
 
 			vdec_poweron(VDEC_HEVC);
@@ -875,7 +876,7 @@ static int amstream_port_init(struct port_priv_s *priv)
 
 	mutex_lock(&amstream_mutex);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 		r = check_efuse_chip(port->vformat);
 		if (r) {
 			pr_info("No support video format %d.\n", port->vformat);
@@ -1598,11 +1599,11 @@ static int amstream_open(struct inode *inode, struct file *file)
 
 	priv->port = port;
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		/* TODO: mod gate */
 		/* switch_mod_gate_by_name("demux", 1); */
 		amports_switch_gate("demux", 1);
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 			/* TODO: clc gate */
 			/* CLK_GATE_ON(HIU_PARSER_TOP); */
 			amports_switch_gate("parser_top", 1);
@@ -1617,7 +1618,7 @@ static int amstream_open(struct inode *inode, struct file *file)
 				if (port->type &
 					(PORT_TYPE_MPTS | PORT_TYPE_HEVC)) {
 					amports_switch_gate("clk_hevc_mux", 1);
-					if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+					if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 						amports_switch_gate("clk_hevcb_mux", 1);
 					vdec_poweron(VDEC_HEVC);
 				}
@@ -1627,7 +1628,7 @@ static int amstream_open(struct inode *inode, struct file *file)
 					vdec_poweron(VDEC_1);
 				}
 			} else {
-				if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 					amports_switch_gate("clk_vdec_mux", 1);
 					vdec_poweron(VDEC_1);
 				}
@@ -1738,16 +1739,16 @@ static int amstream_release(struct inode *inode, struct file *file)
 		debug_file_pos = 0;
 	}
 #endif
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		if (port->type & PORT_TYPE_VIDEO) {
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 #ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 				if (has_hevc_vdec())
 					vdec_poweroff(VDEC_HEVC);
 
 				vdec_poweroff(VDEC_1);
 #else
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TXLX
 				&& port->vformat == VFORMAT_H264
 				&& bufs[BUF_TYPE_VIDEO].for_4k)
 				vdec_poweroff(VDEC_HEVC);
@@ -1772,7 +1773,7 @@ static int amstream_release(struct inode *inode, struct file *file)
 			/* amports_switch_gate("audio", 0); */
 		}
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 			/* TODO: clc gate */
 			/* CLK_GATE_OFF(HIU_PARSER_TOP); */
 			amports_switch_gate("parser_top", 0);
@@ -3438,7 +3439,7 @@ static ssize_t bufs_show(struct class *class, struct class_attribute *attr,
 				"\tbuf regbase:%#lx\n", p->reg_base);
 
 			if (p->reg_base && p->flag & BUF_FLAG_IN_USE) {
-				if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 					/* TODO: mod gate */
 					/* switch_mod_gate_by_name("vdec", 1);*/
 					amports_switch_gate("vdec", 1);
@@ -3450,7 +3451,7 @@ static ssize_t bufs_show(struct class *class, struct class_attribute *attr,
 				pbuf += sprintf(pbuf,
 						"\tbuf read pointer:%#x\n",
 						stbuf_rp(p));
-				if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 					/* TODO: mod gate */
 					/* switch_mod_gate_by_name("vdec", 0);*/
 					amports_switch_gate("vdec", 0);
@@ -3797,7 +3798,7 @@ static int amstream_probe(struct platform_device *pdev)
 	REG_PATH_CONFIGS("media.amports", amports_configs);
 
 	/* poweroff the decode core because dos can not be reset when reboot */
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_G12A)
+	if (get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_G12A)
 		vdec_power_reset();
 
 	return 0;

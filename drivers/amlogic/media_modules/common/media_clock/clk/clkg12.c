@@ -30,6 +30,8 @@
 
 #include <linux/amlogic/media/registers/register_ops.h>
 #include "../switch/amports_gate.h"
+#include "../../chips/decoder_cpu_ver_info.h"
+
 #define MHz (1000000)
 #define debug_print pr_info
 
@@ -492,12 +494,12 @@ static int vdec_clock_init(void)
 {
 	gp_pll_user_vdec = gp_pll_user_register("vdec", 0,
 		gp_pll_user_cb_vdec);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_GXL)
 		is_gp0_div2 = false;
 	else
 		is_gp0_div2 = true;
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_GXL) {
 		pr_info("used fix clk for vdec clk source!\n");
 		//update_vdec_clk_config_settings(1);
 	}
@@ -755,7 +757,7 @@ static int hevc_back_clock_set(int clk)
 		clk = hevcb_frq;
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_TXLX) {
 		if ((READ_EFUSE_REG(EFUSE_LIC1) >> 28 & 0x1) && clk > 333) {
 			pr_info("The hevcb clock limit to 333MHz.\n");
 			clk = 333;

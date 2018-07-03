@@ -130,7 +130,7 @@ static int __init vdec_init_clk(void)
 #endif
 #ifdef VDEC_HAS_HEVC
 	register_vdec_clk_mgr(cpus, VDEC_HEVC, &vdec_hevc_clk_mgr);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A)
 		register_vdec_clk_mgr(cpus, VDEC_HEVCB, &vdec_hevc_back_clk_mgr);
 #endif
 #ifdef VDEC_HAS_VDEC_HCODEC

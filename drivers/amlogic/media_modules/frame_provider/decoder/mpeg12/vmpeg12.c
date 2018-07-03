@@ -56,6 +56,7 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 #include "../utils/amvdec.h"
 #include "../utils/vdec.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define DRIVER_NAME "amvdec_mpeg12"
 #define MODULE_NAME "amvdec_mpeg12"
@@ -1767,13 +1768,13 @@ static int vmpeg12_canvas_init(void)
 static int vmpeg12_prot_init(void)
 {
 	int ret;
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		int save_reg = READ_VREG(POWER_CTL_VLD);
 
 		WRITE_VREG(DOS_SW_RESET0, (1 << 7) | (1 << 6) | (1 << 4));
 		WRITE_VREG(DOS_SW_RESET0, 0);
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 
 			READ_VREG(DOS_SW_RESET0);
 			READ_VREG(DOS_SW_RESET0);

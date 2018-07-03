@@ -1776,7 +1776,7 @@ static int __init amvdec_h264_4k2k_driver_init_module(void)
 		pr_err("failed to register amvdec_h264_4k2k driver\n");
 		return -ENODEV;
 	}
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_GXTVBB)
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_GXTVBB)
 		vcodec_profile_register(&amvdec_h264_4k2k_profile);
 	INIT_REG_NODE_CONFIGS("media.decoder", &h264_4k2k_node,
 		"h264_4k2k", h264_4k2k_configs, CONFIG_FOR_RW);

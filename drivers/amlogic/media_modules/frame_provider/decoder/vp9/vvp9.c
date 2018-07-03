@@ -53,6 +53,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/config_parser.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define MIX_STREAM_SUPPORT
 #define SUPPORT_4K2K
@@ -5147,7 +5148,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 &= (~0xff0);
 	/* data32 |= 0x670;  // Big-Endian per 64-bit */
 	data32 |= endian;	/* Big-Endian per 64-bit */
-	if  (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A) {
+	if  (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_G12A) {
 		data32 &= (~0x3); /*[1]:dw_disable [0]:cm_disable*/
 		if (get_double_write_mode(pbi) == 0)
 			data32 |= 0x2; /*disable double write*/
@@ -5255,7 +5256,7 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 			buf_spec->ipp.buf_start);
 		WRITE_VREG(HEVC_SAO_UP, buf_spec->sao_up.buf_start);
 		WRITE_VREG(HEVC_SCALELUT, buf_spec->scalelut.buf_start);
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 			/* cfg_addr_adp*/
 			WRITE_VREG(HEVC_DBLK_CFGE, buf_spec->dblk_para.buf_start);
 			if (debug & VP9_DEBUG_BUFMGR_MORE)
@@ -5313,7 +5314,7 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 		WRITE_VREG(VP9_PROB_SWAP_BUFFER, pbi->prob_buffer_phy_addr);
 		WRITE_VREG(VP9_COUNT_SWAP_BUFFER, pbi->count_buffer_phy_addr);
 #ifdef VP9_10B_MMU
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 			WRITE_VREG(HEVC_ASSIST_MMU_MAP_ADDR, pbi->frame_mmu_map_phy_addr);
 		else
 			WRITE_VREG(VP9_MMU_MAP_BUFFER, pbi->frame_mmu_map_phy_addr);
@@ -5478,7 +5479,7 @@ void vp9_loop_filter_init(struct VP9Decoder_s *pbi)
 	}
 
 	/*video format is VP9*/
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 		unsigned int data32;
 		data32 = (0x57 << 8) |  /*1st/2nd write both enable*/
 			(0x1  << 0);   /*vp9 video format*/
@@ -7159,7 +7160,7 @@ int continue_decoding(struct VP9Decoder_s *pbi)
 		= (vp9_param.p.seg_lf_info[i]
 		& 0x100) ? -(vp9_param.p.seg_lf_info[i]
 		& 0x3f) : (vp9_param.p.seg_lf_info[i] & 0x3f);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 		/*Set pipeline mode*/
 		uint32_t lpf_data32 = READ_VREG(HEVC_DBLK_CFGB);
 		/*dblk pipeline mode=1 for performance*/
@@ -7762,7 +7763,7 @@ static void vvp9_put_timer_func(unsigned long arg)
 		if (dbg_cmd == 1) {
 			u32 disp_laddr;
 
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXBB &&
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB &&
 				get_double_write_mode(pbi) == 0) {
 				disp_laddr =
 					READ_VCBUS_REG(AFBC_BODY_BADDR) << 4;
@@ -7868,7 +7869,7 @@ static void vvp9_prot_init(struct VP9Decoder_s *pbi, u32 mask)
 		;
 	WRITE_VREG(HEVC_STREAM_CONTROL, data32);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 	    if (debug & VP9_DEBUG_BUFMGR)
 	        pr_info("[test.c] Config STREAM_FIFO_CTL\n");
 	    data32 = READ_VREG(HEVC_STREAM_FIFO_CTL);
@@ -8061,7 +8062,7 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 	} else
 #endif
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 		size = get_firmware_data(VIDEO_DEC_VP9, fw->data);
 	else
 		size = get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data);
@@ -8100,7 +8101,7 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 
 	if (size == 1) {
 		pr_info ("tee load ok\n");
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9, 0);
 		else
 			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
@@ -8860,7 +8861,7 @@ static void run_front(struct vdec_s *vdec)
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
 		ret = amhevc_loadmc_ex(VFORMAT_VP9, "vp9_mc", pbi->fw->data);
 	else
 		ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
@@ -9283,7 +9284,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 
 	pbi->platform_dev = pdev;
 	pbi->video_signal_type = 0;
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TXLX)
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TXLX)
 		pbi->stat |= VP9_TRIGGER_FRAME_ENABLE;
 #if 1
 	if ((debug & IGNORE_PARAM_FROM_CONFIG) == 0 &&
@@ -9554,7 +9555,7 @@ static int __init amvdec_vp9_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL
 		/*&& get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX*/) {
 		if (vdec_is_support_4k())
 			amvdec_vp9_profile.profile =
