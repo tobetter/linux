@@ -2062,7 +2062,24 @@ static struct dispmode_vic dispmode_vic_tab[] = {
 	{"smpte60hz", HDMI_4096x2160p60_256x135},
 	{"2160p60hz", HDMI_4k2k_60},
 	{"2160p50hz", HDMI_4k2k_50},
-
+	{"2560x1600p60hz", HDMI_2560x1600p60_8x5},
+	{"2560x1440p60hz", HDMI_2560x1440p60_16x9},
+	{"2560x1080p60hz", HDMI_2560x1080p60_64x27},
+	{"1920x1200p60hz", HDMI_1920x1200p60_8x5},
+	{"1680x1050p60hz", HDMI_1680x1050p60_8x5},
+	{"1600x1200p60hz", HDMI_1600x1200p60_4x3},
+	{"1600x900p60hz", HDMI_1600x900p60_16x9},
+	{"1440x900p60hz", HDMI_1440x900p60_8x5},
+	{"1360x768p60hz", HDMI_1360x768p60_16x9},
+	{"1280x1024p60hz", HDMI_1280x1024p60_5x4},
+	{"1280x800p60hz", HDMI_1280x800p60_8x5},
+	{"1024x768p60hz", HDMI_1024x768p60_4x3},
+	{"1024x600p60hz", HDMI_1024x600p60_16x9},
+	{"800x600p60hz", HDMI_800x600p60_4x3},
+	{"800x480p60hz", HDMI_800x480p60_5x3},
+	{"640x480p60hz", HDMI_640x480p60_4x3},
+	{"480x320p60hz", HDMI_480x320p60_4x3},
+	{"480x800p60hz", HDMI_480x800p60_4x3},
 };
 
 int hdmitx_edid_VIC_support(enum hdmi_vic vic)
