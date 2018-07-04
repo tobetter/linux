@@ -1301,3 +1301,11 @@
 &meson_cooldev {
 	status = "okay";
 };
+
+&pinctrl_periphs {
+	i2c3_master_pins2:i2c3_pins2 {
+		mux {
+			drive-strength = <3>;
+		};
+	};
+};
