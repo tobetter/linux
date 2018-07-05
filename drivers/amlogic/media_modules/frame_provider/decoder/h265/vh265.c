@@ -240,6 +240,7 @@ static u32 pts_unstable;
 #define H265_DEBUG_DUMP_PIC_LIST            0x1000
 #define H265_DEBUG_PRINT_SEI		        0x2000
 #define H265_DEBUG_PIC_STRUCT				0x4000
+#define H265_DEBUG_HAS_AUX_IN_SLICE			0x8000
 #define H265_DEBUG_DIS_LOC_ERROR_PROC       0x10000
 #define H265_DEBUG_DIS_SYS_ERROR_PROC       0x20000
 #define H265_NO_CHANG_DEBUG_FLAG_IN_CODE    0x40000
@@ -449,6 +450,8 @@ static unsigned char get_idx(struct hevc_state_s *hevc);
 static u32 dv_toggle_prov_name;
 
 static u32 dv_debug;
+
+static u32 force_bypass_dvenl;
 #endif
 #endif
 
@@ -1312,6 +1315,8 @@ struct hevc_state_s {
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	unsigned char switch_dvlayer_flag;
 	unsigned char no_switch_dvlayer_count;
+	unsigned char bypass_dvenl_enable;
+	unsigned char bypass_dvenl;
 #endif
 	unsigned char start_parser_type;
 	/*start_decoding_flag:
@@ -1335,6 +1340,7 @@ struct hevc_state_s {
 	struct BuffInfo_s work_space_buf_store;
 	struct BuffInfo_s *work_space_buf;
 
+	u8 aux_data_dirty;
 	u32 prefix_aux_size;
 	u32 suffix_aux_size;
 	void *aux_addr;
@@ -4715,6 +4721,18 @@ static void set_aux_data(struct hevc_state_s *hevc,
 	int aux_size = 0;
 	if (pic == NULL)
 		return;
+
+	if (hevc->aux_data_dirty ||
+		hevc->m_ins_flag == 0) {
+		dma_sync_single_for_cpu(
+		amports_get_dma_device(),
+		hevc->aux_phy_addr,
+		hevc->prefix_aux_size + hevc->suffix_aux_size,
+		DMA_FROM_DEVICE);
+
+		hevc->aux_data_dirty = 0;
+	}
+
 	if (suffix_flag) {
 		aux_adr = (unsigned short *)
 			(hevc->aux_addr +
@@ -4735,8 +4753,8 @@ static void set_aux_data(struct hevc_state_s *hevc,
 	}
 	if (get_dbg_flag(hevc) & H265_DEBUG_BUFMGR_MORE) {
 		hevc_print(hevc, 0,
-			"%s:old size %d count %d,suf %d dv_flag %d\r\n",
-			__func__, pic->aux_data_size,
+			"%s:pic 0x%p old size %d count %d,suf %d dv_flag %d\r\n",
+			__func__, pic, pic->aux_data_size,
 			aux_count, suffix_flag, dv_meta_flag);
 	}
 	if (aux_size > 0 && aux_count > 0) {
@@ -5380,7 +5398,11 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 			}
 			if (vdec->master == NULL &&
 				vdec->slave == NULL)
-				set_aux_data(hevc, hevc->cur_pic, 1, 0);
+				set_aux_data(hevc,
+					hevc->cur_pic, 1, 0); /*suffix*/
+			if (hevc->bypass_dvenl && !dolby_meta_with_el)
+				set_aux_data(hevc,
+					hevc->cur_pic, 0, 1); /*dv meta only*/
 #else
 			set_aux_data(hevc, hevc->cur_pic, 1, 0);
 #endif
@@ -5403,7 +5425,12 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 				hevc->curr_POC);
 			if (vdec->master == NULL &&
 				vdec->slave == NULL)
-				set_aux_data(hevc, hevc->cur_pic, 0, 0);
+				set_aux_data(hevc,
+					hevc->cur_pic, 0, 0); /*prefix*/
+
+			if (hevc->bypass_dvenl && !dolby_meta_with_el)
+				set_aux_data(hevc,
+					hevc->cur_pic, 0, 2); /*pre sei only*/
 #else
 			set_aux_data(hevc, hevc->cur_pic, 0, 0);
 #endif
@@ -5416,16 +5443,18 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 				return -1;
 			}
 		} else {
+			if (get_dbg_flag(hevc) & H265_DEBUG_HAS_AUX_IN_SLICE) {
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
-			if (vdec->master == NULL &&
-				vdec->slave == NULL) {
+				if (vdec->master == NULL &&
+					vdec->slave == NULL) {
+					set_aux_data(hevc, hevc->cur_pic, 1, 0);
+					set_aux_data(hevc, hevc->cur_pic, 0, 0);
+				}
+#else
 				set_aux_data(hevc, hevc->cur_pic, 1, 0);
 				set_aux_data(hevc, hevc->cur_pic, 0, 0);
-			}
-#else
-			set_aux_data(hevc, hevc->cur_pic, 1, 0);
-			set_aux_data(hevc, hevc->cur_pic, 0, 0);
 #endif
+			}
 			if (hevc->pic_list_init_flag != 3
 				|| hevc->cur_pic == NULL) {
 				/* make it dec from the first slice segment */
@@ -6443,13 +6472,32 @@ static struct vframe_s *vh265_vf_get(void *op_arg)
 		struct vframe_s *next_vf;
 		if (get_dbg_flag(hevc) & H265_DEBUG_PIC_STRUCT)
 			hevc_print(hevc, 0,
-				"%s(type %d index 0x%x poc %d/%d) pts(%d,%d) dur %d\n",
-				__func__, vf->type, vf->index,
+				"%s(vf 0x%p type %d index 0x%x poc %d/%d) pts(%d,%d) dur %d\n",
+				__func__, vf, vf->type, vf->index,
 				get_pic_poc(hevc, vf->index & 0xff),
 				get_pic_poc(hevc, (vf->index >> 8) & 0xff),
 				vf->pts, vf->pts_us64,
 				vf->duration);
-
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
+		if (get_dbg_flag(hevc) & H265_DEBUG_DV) {
+			struct PIC_s *pic = hevc->m_PIC[vf->index & 0xff];
+			if (pic->aux_data_buf && pic->aux_data_size > 0) {
+				int i;
+				struct PIC_s *pic =
+					hevc->m_PIC[vf->index & 0xff];
+				hevc_print(hevc, 0,
+					"pic 0x%p aux size %d:\n",
+					pic, pic->aux_data_size);
+				for (i = 0; i < pic->aux_data_size; i++) {
+					hevc_print_cont(hevc, 0,
+						"%02x ", pic->aux_data_buf[i]);
+					if (((i + 1) & 0xf) == 0)
+						hevc_print_cont(hevc, 0, "\n");
+				}
+				hevc_print_cont(hevc, 0, "\n");
+			}
+		}
+#endif
 		hevc->show_frame_num++;
 		hevc->vf_get_count++;
 
@@ -6560,11 +6608,16 @@ static int vh265_event_cb(int type, void *data, void *op_arg)
 			req->aux_buf = hevc->m_PIC[index]->aux_data_buf;
 			req->aux_size = hevc->m_PIC[index]->aux_data_size;
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
-			req->dv_enhance_exist =
-				hevc->m_PIC[index]->dv_enhance_exist;
+			if (hevc->bypass_dvenl && !dolby_meta_with_el)
+				req->dv_enhance_exist = false;
+			else
+				req->dv_enhance_exist =
+					hevc->m_PIC[index]->dv_enhance_exist;
 			hevc_print(hevc, H265_DEBUG_DV,
-			"query dv_enhance_exist for pic (poc %d) flag => %d\n",
-			hevc->m_PIC[index]->POC, req->dv_enhance_exist);
+			"query dv_enhance_exist for pic (vf 0x%p, poc %d index %d) flag => %d, aux sizd 0x%x\n",
+			req->vf,
+			hevc->m_PIC[index]->POC, index,
+			req->dv_enhance_exist, req->aux_size);
 #else
 			req->dv_enhance_exist = 0;
 #endif
@@ -6575,8 +6628,17 @@ static int vh265_event_cb(int type, void *data, void *op_arg)
 			hevc_print(hevc, 0,
 			"%s(type 0x%x vf index 0x%x)=>size 0x%x\n",
 			__func__, type, index, req->aux_size);
-	}
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
+	} else if (type & VFRAME_EVENT_RECEIVER_DOLBY_BYPASS_EL) {
+		if ((force_bypass_dvenl & 0x80000000) == 0) {
+			hevc_print(hevc, 0,
+			"%s: VFRAME_EVENT_RECEIVER_DOLBY_BYPASS_EL\n",
+			__func__);
+			hevc->bypass_dvenl_enable = 1;
+		}
 
+#endif
+	}
 	return 0;
 }
 
@@ -7508,11 +7570,7 @@ static void dump_aux_buf(struct hevc_state_s *hevc)
 static void dolby_get_meta(struct hevc_state_s *hevc)
 {
 	struct vdec_s *vdec = hw_to_vdec(hevc);
-	dma_sync_single_for_cpu(
-	amports_get_dma_device(),
-	hevc->aux_phy_addr,
-	hevc->prefix_aux_size + hevc->suffix_aux_size,
-	DMA_FROM_DEVICE);
+
 	if (get_dbg_flag(hevc) &
 		H265_DEBUG_BUFMGR_MORE)
 		dump_aux_buf(hevc);
@@ -7711,7 +7769,10 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 		if (hevc->m_ins_flag) {
 pic_done:
 			read_decode_info(hevc);
-
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
+			hevc->start_parser_type = 0;
+			hevc->switch_dvlayer_flag = 0;
+#endif
 			hevc->decoded_poc = hevc->curr_POC;
 			hevc->decoding_pic = NULL;
 			hevc->dec_result = DEC_RESULT_DONE;
@@ -8789,11 +8850,25 @@ static void config_decode_mode(struct hevc_state_s *hevc)
 		decode_mode =
 			DECODE_MODE_MULTI_FRAMEBASE;
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
-	else if (vdec->slave)
-		decode_mode =
-			(hevc->start_parser_type << 8)
-			| DECODE_MODE_MULTI_DVBAL;
-	else if (vdec->master)
+	else if (vdec->slave) {
+		if (force_bypass_dvenl & 0x80000000)
+			hevc->bypass_dvenl = force_bypass_dvenl & 0x1;
+		else
+			hevc->bypass_dvenl = hevc->bypass_dvenl_enable;
+		if (dolby_meta_with_el && hevc->bypass_dvenl) {
+			hevc->bypass_dvenl = 0;
+			hevc_print(hevc, 0,
+				"NOT support bypass_dvenl when meta_with_el\n");
+		}
+		if (hevc->bypass_dvenl)
+			decode_mode =
+				(hevc->start_parser_type << 8)
+				| DECODE_MODE_MULTI_STREAMBASE;
+		else
+			decode_mode =
+				(hevc->start_parser_type << 8)
+				| DECODE_MODE_MULTI_DVBAL;
+	} else if (vdec->master)
 		decode_mode =
 			(hevc->start_parser_type << 8)
 			| DECODE_MODE_MULTI_DVENL;
@@ -9580,11 +9655,14 @@ static void vh265_work(struct work_struct *work)
 		hevc->pic_decoded_lcu_idx =
 			READ_VREG(HEVC_PARSER_LCU_START)
 			& 0xffffff;
-		hevc->over_decode =
-			(READ_VREG(HEVC_SHIFT_STATUS) >> 15) & 0x1;
-		if (hevc->over_decode)
-			hevc_print(hevc, 0,
-				"!!!Over decode\n");
+
+		if (vdec->master == NULL && vdec->slave == NULL) {
+			hevc->over_decode =
+				(READ_VREG(HEVC_SHIFT_STATUS) >> 15) & 0x1;
+			if (hevc->over_decode)
+				hevc_print(hevc, 0,
+					"!!!Over decode\n");
+		}
 
 		if (is_log_enable(hevc))
 			add_log(hevc,
@@ -9825,7 +9903,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	run_count[hevc->index]++;
 	hevc->vdec_cb_arg = arg;
 	hevc->vdec_cb = callback;
-
+	hevc->aux_data_dirty = 1;
 	hevc_reset_core(vdec);
 
 #ifdef AGAIN_HAS_THRESHOLD
@@ -10860,6 +10938,9 @@ MODULE_PARM_DESC(dv_toggle_prov_name, "\n dv_toggle_prov_name\n");
 
 module_param(dv_debug, uint, 0664);
 MODULE_PARM_DESC(dv_debug, "\n dv_debug\n");
+
+module_param(force_bypass_dvenl, uint, 0664);
+MODULE_PARM_DESC(force_bypass_dvenl, "\n force_bypass_dvenl\n");
 #endif
 
 #ifdef AGAIN_HAS_THRESHOLD
