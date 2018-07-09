@@ -8740,15 +8740,17 @@ static int h265_task_handle(void *data)
 			hevc_print(hevc, 0, "uninit list\n");
 			hevc->uninit_list = 0;
 #ifdef USE_UNINIT_SEMA
-			if (use_cma && hevc->init_flag)
+			if (use_cma && hevc->init_flag) {
 				up(&hevc->h265_uninit_done_sema);
+				while (!kthread_should_stop())
+					msleep(1);
+				break;
+			}
 #endif
 		}
-
 	}
 
 	return 0;
-
 }
 
 void vh265_free_cmabuf(void)
@@ -9287,6 +9289,10 @@ static int vh265_stop(struct hevc_state_s *hevc)
 #ifdef USE_UNINIT_SEMA
 		if (hevc->init_flag) {
 			down(&hevc->h265_uninit_done_sema);
+			if (!IS_ERR(h265_task)) {
+				kthread_stop(h265_task);
+				h265_task = NULL;
+			}
 		}
 #else
 		while (hevc->uninit_list)	/* wait uninit complete */
@@ -10196,6 +10202,8 @@ static int amvdec_h265_remove(struct platform_device *pdev)
 #endif
 
 	vfree(hevc);
+	hevc = NULL;
+	gHevc = NULL;
 
 	mutex_unlock(&vh265_mutex);
 
