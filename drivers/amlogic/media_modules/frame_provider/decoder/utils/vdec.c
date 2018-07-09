@@ -1357,7 +1357,7 @@ int vdec_disconnect(struct vdec_s *vdec)
 		(vdec->status != VDEC_STATUS_ACTIVE)) {
 		return 0;
 	}
-
+	mutex_lock(&vdec_mutex);
 	/*
 	 *when a vdec is under the management of scheduler
 	 * the status change will only be from vdec_core_thread
@@ -1368,7 +1368,7 @@ int vdec_disconnect(struct vdec_s *vdec)
 		vdec_set_next_status(vdec->slave, VDEC_STATUS_DISCONNECTED);
 	else if (vdec->master)
 		vdec_set_next_status(vdec->master, VDEC_STATUS_DISCONNECTED);
-
+	mutex_unlock(&vdec_mutex);
 	up(&vdec_core->sem);
 
 	wait_for_completion(&vdec->inactive_done);
@@ -1799,7 +1799,7 @@ void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask)
 {
 	unsigned long i;
 	unsigned long t = mask;
-
+	mutex_lock(&vdec_mutex);
 	while (t) {
 		i = __ffs(t);
 		clear_bit(i, &vdec->active_mask);
@@ -1808,6 +1808,8 @@ void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask)
 
 	if (vdec->active_mask == 0)
 		vdec_set_status(vdec, VDEC_STATUS_CONNECTED);
+
+	mutex_unlock(&vdec_mutex);
 }
 EXPORT_SYMBOL(vdec_core_finish_run);
 /*
@@ -2077,7 +2079,7 @@ static int vdec_core_thread(void *data)
 
 		if (kthread_should_stop())
 			break;
-
+		mutex_lock(&vdec_mutex);
 		/* clean up previous active vdec's input */
 		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
 			unsigned long mask = vdec->sched_mask &
@@ -2139,7 +2141,7 @@ static int vdec_core_thread(void *data)
 				list_move(&vdec->list, &disconnecting_list);
 			}
 		}
-
+		mutex_unlock(&vdec_mutex);
 		/* elect next vdec to be scheduled */
 		vdec = core->active_vdec;
 		if (vdec) {

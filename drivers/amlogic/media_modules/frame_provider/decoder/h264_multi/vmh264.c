@@ -6236,7 +6236,7 @@ static void vmh264_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 
 	if (hw) {
 		mutex_lock(&hw->userdata_mutex);
-		pr_info("vmpeg12_reset_userdata_fifo: bInit: %d, ri: %d, wi: %d\n",
+		pr_info("vmh264_reset_userdata_fifo: bInit: %d, ri: %d, wi: %d\n",
 			bInit,
 			hw->userdata_info.read_index,
 			hw->userdata_info.write_index);
@@ -6490,7 +6490,6 @@ result_done:
 	hw->stat &= ~STAT_TIMER_ARM;
 
 	/* mark itself has all HW resource released and input released */
-	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_CONNECTED);
 
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (hw->switch_dvlayer_flag) {
