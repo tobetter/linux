@@ -474,9 +474,9 @@ static inline struct gsc_frame *ctx_get_frame(struct gsc_ctx *ctx,
 {
 	struct gsc_frame *frame;
 
-	if (V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE == type) {
+	if (V4L2_BUF_TYPE_VIDEO_OUTPUT == type || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE == type) {
 		frame = &ctx->s_frame;
-	} else if (V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
+	} else if (V4L2_BUF_TYPE_VIDEO_CAPTURE == type || V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE == type) {
 		frame = &ctx->d_frame;
 	} else {
 		pr_err("Wrong buffer/video queue type (%d)", type);
