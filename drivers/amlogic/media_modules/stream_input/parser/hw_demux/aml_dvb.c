@@ -53,6 +53,8 @@ typedef enum __tuner_type
 	TUNER_SI2151,
 	TUNER_MXL661,
 	TUNER_SI2159,
+	TUNER_R842,
+	TUNER_R840,
 	TUNER_MAX_NUM
 }tuner_type;
 
@@ -1883,6 +1885,22 @@ static int aml_dvb_probe(struct platform_device *pdev)
 						pr_inf("si2159_attach  attach sucess\n");
 						s_tuner_type[i] = TUNER_SI2159;
 					}
+				}else if(!strcmp(str,"r842_tuner")) {
+					if (!dvb_attach(r842_attach, frontend[i],i2c_adapter,i2c_addr)) {
+						pr_error("dvb attach r842_attach tuner error\n");
+						goto error_fe;
+					} else {
+						pr_inf("r842_attach  attach sucess\n");
+						s_tuner_type[i] = TUNER_R842;
+					}
+				}else if(!strcmp(str,"r840_tuner")) {
+					if (!dvb_attach(r840_attach, frontend[i],i2c_adapter,i2c_addr)) {
+						pr_error("dvb attach r840_attach tuner error\n");
+						goto error_fe;
+					} else {
+						pr_inf("r840_attach  attach sucess\n");
+						s_tuner_type[i] = TUNER_R840;
+					}
 				}else {
 					pr_error("can't support tuner type: %s\n",str);
 				}
@@ -1996,6 +2014,12 @@ error_fe:
 			}else if (s_tuner_type[i] == TUNER_SI2159) {
 				dvb_detach(si2159_attach);
 				s_tuner_type[i] = TUNER_INVALID;
+			}else if (s_tuner_type[i] == TUNER_R842) {
+				dvb_detach(r842_attach);
+				s_tuner_type[i] = TUNER_INVALID;
+			}else if (s_tuner_type[i] == TUNER_R840) {
+				dvb_detach(r840_attach);
+				s_tuner_type[i] = TUNER_INVALID;
 			}
 		}
 		return 0;
@@ -2040,10 +2064,14 @@ static int aml_dvb_remove(struct platform_device *pdev)
 			dvb_detach(mxl661_attach);
 		}else if (s_tuner_type[i] == TUNER_SI2159) {
 			dvb_detach(si2159_attach);
+		}else if (s_tuner_type[i] == TUNER_R842) {
+			dvb_detach(r842_attach);
+		}else if (s_tuner_type[i] == TUNER_R840) {
+			dvb_detach(r840_attach);
 		}
 
 		if (frontend[i] && \
-			( (s_tuner_type[i] == TUNER_SI2151) || (s_tuner_type[i] == TUNER_MXL661) || (s_tuner_type[i] == TUNER_SI2159) ) \
+			( (s_tuner_type[i] == TUNER_SI2151) || (s_tuner_type[i] == TUNER_MXL661) || (s_tuner_type[i] == TUNER_SI2159) || (s_tuner_type[i] == TUNER_R842) || (s_tuner_type[i] == TUNER_R840)) \
 			)
 		{
 			dvb_unregister_frontend(frontend[i]);
