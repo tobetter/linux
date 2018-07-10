@@ -8,7 +8,7 @@ LOCAL_ARM_MODE		:= arm
 
 LOCAL_C_INCLUDES := \
 	$(JNI_H_INCLUDE) \
-	$(ANDROID_BUILD_TOP)/vendor/amlogic/external/ffmpeg
+	$(BOARD_AML_VENDOR_PATH)/vendor/amlogic/external/ffmpeg
 
 LOCAL_SHARED_LIBRARIES := \
 	libamffmpeg
