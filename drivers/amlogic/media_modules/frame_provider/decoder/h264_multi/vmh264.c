@@ -232,7 +232,7 @@ static unsigned int i_only_flag;
 
 	bit[12] i_only when error happen
 */
-static unsigned int error_proc_policy = 0x1f36; /*0x1f14*/
+static unsigned int error_proc_policy = 0xf36; /*0x1f14*/
 
 /*
 	error_skip_count:
