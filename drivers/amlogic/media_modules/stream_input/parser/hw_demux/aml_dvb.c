@@ -670,6 +670,9 @@ static int aml_dvb_asyncfifo_init(struct aml_dvb *advb,
 	asyncfifo->id = id;
 	asyncfifo->init = 0;
 	asyncfifo->flush_size = 256 * 1024;
+	asyncfifo->secure_enable = 0;
+	asyncfifo->blk.addr = 0;
+	asyncfifo->blk.len = 0;
 
 	return aml_asyncfifo_hw_init(asyncfifo);
 }
@@ -1281,6 +1284,77 @@ ASYNCFIFO_FLUSHSIZE_FUNC_DECL(0)
 #if ASYNCFIFO_COUNT > 1
 	ASYNCFIFO_FLUSHSIZE_FUNC_DECL(1)
 #endif
+/*Show the async fifo secure buffer addr*/
+#define ASYNCFIFO_SECUREADDR_FUNC_DECL(i)  \
+static ssize_t asyncfifo##i##_show_secure_addr(struct class *class,  \
+				struct class_attribute *attr, char *buf)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	ssize_t ret = 0;\
+	ret = sprintf(buf, "0x%x\n", afifo->blk.addr);\
+	return ret;\
+} \
+static ssize_t asyncfifo##i##_store_secure_addr(struct class *class,  \
+					struct class_attribute *attr, \
+const char *buf, size_t size)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	unsigned long value;\
+	int ret = kstrtol(buf, 0, &value);\
+	if (ret == 0 && value != afifo->blk.addr) {\
+		afifo->blk.addr = value;\
+		aml_asyncfifo_hw_reset(&aml_dvb_device.asyncfifo[i]);\
+	} \
+	return size;\
+}
+
+#if ASYNCFIFO_COUNT > 0
+	ASYNCFIFO_SECUREADDR_FUNC_DECL(0)
+#endif
+
+#if ASYNCFIFO_COUNT > 1
+	ASYNCFIFO_SECUREADDR_FUNC_DECL(1)
+#endif
+
+
+/*Show the async fifo secure enable*/
+#define ASYNCFIFO_SECURENABLE_FUNC_DECL(i)  \
+static ssize_t asyncfifo##i##_show_secure_enable(struct class *class,  \
+				struct class_attribute *attr, char *buf)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	ssize_t ret = 0;\
+	ret = sprintf(buf, "%d\n", afifo->secure_enable);\
+	return ret;\
+} \
+static ssize_t asyncfifo##i##_store_secure_enable(struct class *class,  \
+					struct class_attribute *attr, \
+					const char *buf, size_t size)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	int enable = 0;\
+	long value;\
+	int ret = kstrtol(buf, 0, &value);\
+	if (ret == 0)\
+		enable = value;\
+	if (enable != afifo->secure_enable) {\
+		afifo->secure_enable = enable;\
+	aml_asyncfifo_hw_reset(&aml_dvb_device.asyncfifo[i]);\
+	} \
+	return size;\
+}
+
+#if ASYNCFIFO_COUNT > 0
+ASYNCFIFO_SECURENABLE_FUNC_DECL(0)
+#endif
+
+#if ASYNCFIFO_COUNT > 1
+	ASYNCFIFO_SECURENABLE_FUNC_DECL(1)
+#endif
 /*Reset the Demux*/
 static ssize_t demux_do_reset(struct class *class,
 				struct class_attribute *attr,
@@ -1516,13 +1590,26 @@ static struct class_attribute aml_stb_class_attrs[] = {
 	__ATTR(asyncfifo##i##_flush_size, 0664,\
 	asyncfifo##i##_show_flush_size, \
 	asyncfifo##i##_store_flush_size)
+#define ASYNCFIFO_SECUREADDR_ATTR_DECL(i)\
+	__ATTR(asyncfifo##i##_secure_addr, S_IRUGO | S_IWUSR | S_IWGRP,\
+	asyncfifo##i##_show_secure_addr, \
+	asyncfifo##i##_store_secure_addr)
+#define ASYNCFIFO_SECURENABLE_ATTR_DECL(i)\
+	__ATTR(asyncfifo##i##_secure_enable, S_IRUGO | S_IWUSR | S_IWGRP,\
+	asyncfifo##i##_show_secure_enable, \
+	asyncfifo##i##_store_secure_enable)
+
 #if ASYNCFIFO_COUNT > 0
 	ASYNCFIFO_SOURCE_ATTR_DECL(0),
 	ASYNCFIFO_FLUSHSIZE_ATTR_DECL(0),
+	ASYNCFIFO_SECUREADDR_ATTR_DECL(0),
+	ASYNCFIFO_SECURENABLE_ATTR_DECL(0),
 #endif
 #if ASYNCFIFO_COUNT > 1
 	ASYNCFIFO_SOURCE_ATTR_DECL(1),
 	ASYNCFIFO_FLUSHSIZE_ATTR_DECL(1),
+	ASYNCFIFO_SECUREADDR_ATTR_DECL(1),
+	ASYNCFIFO_SECURENABLE_ATTR_DECL(1),
 #endif
 
 	__ATTR(demux_reset, 0644, NULL, demux_do_reset),

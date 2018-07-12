@@ -214,6 +214,11 @@ struct aml_dmx {
 	u32                 crc_check_time;
 };
 
+struct aml_dvr_block {
+	u32	addr;
+	u32	len;
+};
+
 struct aml_asyncfifo {
 	int	id;
 	int	init;
@@ -225,8 +230,10 @@ struct aml_asyncfifo {
 	int	buf_toggle;
 	int buf_read;
 	int flush_size;
+	int secure_enable;
 	struct tasklet_struct     asyncfifo_tasklet;
 	struct aml_dvb *dvb;
+	struct aml_dvr_block blk;
 };
 
 enum{
