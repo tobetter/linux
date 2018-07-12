@@ -647,7 +647,7 @@ static int fw_data_binding(void)
 	int ret = 0, magic = 0;
 	struct fw_mgr_s *mgr = g_mgr;
 	struct fw_files_s *files, *tmp;
-	char *buf = vmalloc(BUFF_SIZE);
+	char *buf = NULL;
 	int size;
 
 	if (list_empty(&mgr->files_head)) {
@@ -655,6 +655,7 @@ static int fw_data_binding(void)
 		return 0;
 	}
 
+	buf = vmalloc(BUFF_SIZE);
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 
