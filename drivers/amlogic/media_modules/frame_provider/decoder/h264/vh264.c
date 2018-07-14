@@ -78,7 +78,7 @@
 #define PTS2DUR(x) ((x)*96/90)
 #define DUR2PTS_REM(x) (x*90 - DUR2PTS(x)*96)
 #define FIX_FRAME_RATE_CHECK_IDRFRAME_NUM 2
-#define VDEC_CLOCK_ADJUST_FRAME 50
+#define VDEC_CLOCK_ADJUST_FRAME 30
 
 static inline bool close_to(int a, int b, int m)
 {
@@ -912,7 +912,12 @@ static void vh264_set_params(struct work_struct *work)
 	post_canvas = get_post_canvas();
 	clk_adj_frame_count = 0;
 	/* set to max decoder clock rate at the beginning */
-	vdec_source_changed(VFORMAT_H264, 3840, 2160, 60);
+
+	if (vdec_is_support_4k())
+		vdec_source_changed(VFORMAT_H264, 3840, 2160, 60);
+	else
+		vdec_source_changed(VFORMAT_H264, 1920, 1080, 29);
+
 	timing_info_present_flag = 0;
 	mb_width = READ_VREG(AV_SCRATCH_1);
 	seq_info = READ_VREG(AV_SCRATCH_2);
@@ -1624,7 +1629,7 @@ static void vh264_isr(void)
 				return IRQ_HANDLED;
 			}
 
-			if (clk_adj_frame_count < VDEC_CLOCK_ADJUST_FRAME)
+			if (clk_adj_frame_count < (VDEC_CLOCK_ADJUST_FRAME + 1))
 				clk_adj_frame_count++;
 
 			set_frame_info(vf);
@@ -3046,7 +3051,7 @@ static int amvdec_h264_probe(struct platform_device *pdev)
 	pdata->set_trickmode = vh264_set_trickmode;
 	pdata->set_isreset = vh264_set_isreset;
 	is_reset = 0;
-
+	clk_adj_frame_count = 0;
 	if (vh264_init() < 0) {
 		pr_info("\namvdec_h264 init failed.\n");
 		kfree(gvs);

@@ -189,11 +189,14 @@ static unsigned int max_get_frame_interval[H264_DEV_NUM];
 static unsigned int run_count[H264_DEV_NUM];
 static unsigned int input_empty[H264_DEV_NUM];
 static unsigned int not_run_ready[H264_DEV_NUM];
-		/* bit[3:0]:
-		 *0, run ; 1, pause; 3, step
-		 *bit[4]:
-		 *1, schedule run
-		 */
+
+#define VDEC_CLOCK_ADJUST_FRAME 30
+static unsigned int clk_adj_frame_count;
+
+/*
+ *bit[3:0]: 0, run ; 1, pause; 3, step
+ *bit[4]: 1, schedule run
+ */
 static unsigned int step[H264_DEV_NUM];
 
 #define AUX_BUF_ALIGN(adr) ((adr + 0xf) & (~0xf))
@@ -6597,6 +6600,14 @@ result_done:
 			}
 		decode_frame_count[DECODE_ID(hw)]++;
 		amvdec_stop();
+
+		if (!vdec_is_support_4k()) {
+			if (clk_adj_frame_count < VDEC_CLOCK_ADJUST_FRAME) {
+				clk_adj_frame_count++;
+				if (clk_adj_frame_count == VDEC_CLOCK_ADJUST_FRAME)
+					vdec_source_changed(VFORMAT_H264, 3840, 2160, 60);
+			}
+		}
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s dec_result %d %x %x %x\n",
 			__func__,
@@ -7387,8 +7398,11 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	pr_debug("ammvdec_h264 mem-addr=%lx,buff_offset=%x,buf_start=%lx\n",
 		pdata->mem_start, hw->buf_offset, hw->cma_alloc_addr);
 
-
-	vdec_source_changed(VFORMAT_H264, 3840, 2160, 60);
+	if (vdec_is_support_4k() ||
+		(clk_adj_frame_count > (VDEC_CLOCK_ADJUST_FRAME - 1)))
+		vdec_source_changed(VFORMAT_H264, 3840, 2160, 60);
+	else
+		vdec_source_changed(VFORMAT_H264, 1920, 1080, 29);
 
 	if (vh264_init(hw) < 0) {
 		pr_info("\nammvdec_h264 init failed.\n");
@@ -7456,6 +7470,7 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 	ammvdec_h264_mmu_release(hw);
 	h264_free_hw_stru(&pdev->dev, (void *)hw);
+	clk_adj_frame_count = 0;
 
 	return 0;
 }
