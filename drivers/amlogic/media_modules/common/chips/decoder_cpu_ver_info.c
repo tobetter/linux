@@ -10,8 +10,9 @@
 
 #define DECODE_CPU_VER_ID_NODE_NAME "cpu_ver_name"
 #define AM_SUCESS 0
-
 #define MAJOR_ID_START AM_MESON_CPU_MAJOR_ID_M6
+
+static enum AM_MESON_CPU_MAJOR_ID cpu_ver_id = AM_MESON_CPU_MAJOR_ID_MAX;
 
 static enum AM_MESON_CPU_MAJOR_ID cpu_ver_info[AM_MESON_CPU_MAJOR_ID_MAX - MAJOR_ID_START]=
 {
@@ -70,16 +71,17 @@ static const struct of_device_id cpu_ver_of_match[] = {
 	{},
 };
 
-bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
+static bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
 {
 	struct device_node *pNode = NULL;
 	struct platform_device* pDev = NULL;
 	const struct of_device_id *pMatch = NULL;
 
 	pNode = of_find_node_by_name(NULL, DECODE_CPU_VER_ID_NODE_NAME);
+
 	if (NULL == pNode)
 	{
-	    pr_info("No find node.\n");
+		pr_err("No find node.\n");
 		return -EINVAL;
 	}
 
@@ -93,7 +95,7 @@ bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
 
 	if (NULL == pMatch)
 	{
-	    pr_info("No find of_match_device\n");
+		pr_err("No find of_match_device\n");
 		return -EINVAL;
 	}
 
@@ -102,16 +104,27 @@ bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
 	return AM_SUCESS;
 }
 
-enum AM_MESON_CPU_MAJOR_ID get_cpu_major_id(void)
+static void initial_cpu_id(void)
 {
 	enum AM_MESON_CPU_MAJOR_ID id_type = AM_MESON_CPU_MAJOR_ID_MAX;
 
 	if (AM_SUCESS == get_cpu_id_from_dtb(&id_type))
 	{
-		return id_type;
+		cpu_ver_id = id_type;
+	}else
+	{
+		cpu_ver_id = (enum AM_MESON_CPU_MAJOR_ID)get_cpu_type();
+	}
+}
+
+enum AM_MESON_CPU_MAJOR_ID get_cpu_major_id(void)
+{
+	if (AM_MESON_CPU_MAJOR_ID_MAX == cpu_ver_id)
+	{
+		initial_cpu_id();
 	}
 
-	return (enum AM_MESON_CPU_MAJOR_ID)get_cpu_type();
+	return cpu_ver_id;
 }
 
 EXPORT_SYMBOL(get_cpu_major_id);
