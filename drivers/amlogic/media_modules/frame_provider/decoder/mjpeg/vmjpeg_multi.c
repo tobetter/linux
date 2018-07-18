@@ -795,7 +795,6 @@ static void vmjpeg_work(struct work_struct *work)
 	}
 	amvdec_stop();
 	/* mark itself has all HW resource released and input released */
-	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_CONNECTED);
 	vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1
 			| CORE_MASK_HEVC);
 	del_timer_sync(&hw->check_timer);
