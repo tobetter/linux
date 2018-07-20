@@ -9055,13 +9055,8 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 #endif
 
 	if (hevc->mmu_enable) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
-			size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
-			hevc_print(hevc, 0, "vh265 ucode loaded!\n");
-		} else {
-			size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
-			hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
-		}
+		size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
+		hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
 	} else {
 		size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
 		hevc_print(hevc, 0, "vh265 ucode loaded!\n");
@@ -9102,10 +9097,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		pr_info ("tee load ok");
 
 		if (hevc->mmu_enable) {
-			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
-			else
-				ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
+			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
 		} else
 			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
 	} else
@@ -9977,12 +9969,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	}
 
 	if (hevc->mmu_enable) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-			loadr = amhevc_vdec_loadmc_ex(vdec,
-					"vh265_mc", hevc->fw->data);
-		else
-			loadr = amhevc_vdec_loadmc_ex(vdec,
-					"vh265_mc_mmu", hevc->fw->data);
+		loadr = amhevc_vdec_loadmc_ex(vdec,
+				"vh265_mc_mmu", hevc->fw->data);
 	} else
 		loadr = amhevc_vdec_loadmc_ex(vdec,
 				"vh265_mc", hevc->fw->data);
