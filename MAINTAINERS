@@ -14508,3 +14508,8 @@ F:	arch/arm64/boot/dts/amlogic/mesong12b_skt-panel.dtsi
 AMLOGIC G12B w400 buildroot dts
 M: 	liangzhuo xie <liangzhuo.xie@amlogic.com>
 F:      arch/arm64/boot/dts/amlogic/g12b_a311d_w400_buildroot.dts
+
+HARDKERNEL S922D odroidn2
+M: 	Joy Cho <joy.cho@hardkernel.com>
+F:	arch/arm64/configs/odroidn2_defconfig
+F:      arch/arm64/boot/dts/amlogic/s922d_odroidn2.dts
