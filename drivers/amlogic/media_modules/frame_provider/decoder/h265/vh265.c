@@ -608,6 +608,7 @@ enum NalUnitType {
 #define HEVC_SEI_DAT                         0xc
 #define HEVC_SEI_DAT_DONE                    0xd
 #define HEVC_NAL_DECODE_DONE				0xe
+#define HEVC_OVER_DECODE					0xf
 
 #define HEVC_DATA_REQUEST           0x12
 
@@ -2823,6 +2824,18 @@ static void clear_referenced_flag(struct hevc_state_s *hevc)
 			pic->referenced = 0;
 			put_mv_buf(hevc, pic);
 		}
+	}
+}
+
+static void clear_poc_flag(struct hevc_state_s *hevc)
+{
+	int i;
+	struct PIC_s *pic;
+	for (i = 0; i < MAX_REF_PIC_NUM; i++) {
+		pic = hevc->m_PIC[i];
+		if (pic == NULL || pic->index == -1)
+			continue;
+		pic->POC = INVALID_POC;
 	}
 }
 
@@ -5060,6 +5073,15 @@ static void check_pic_decoded_error_pre(struct hevc_state_s *hevc,
 		hevc_print(hevc, 0,
 			"head has error, set error_mark\n");
 	}
+
+	if ((error_handle_policy & 0x80) == 0) {
+		if (hevc->over_decode && hevc->cur_pic) {
+			hevc_print(hevc, 0,
+				"over decode, set error_mark\n");
+			hevc->cur_pic->error_mark = 1;
+		}
+	}
+
 	hevc->lcu_x_num_pre = hevc->lcu_x_num;
 	hevc->lcu_y_num_pre = hevc->lcu_y_num;
 }
@@ -5419,6 +5441,8 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 			}
 #ifdef MULTI_INSTANCE_SUPPORT
 			hevc->decoding_pic = hevc->cur_pic;
+			if (!hevc->m_ins_flag)
+				hevc->over_decode = 0;
 #endif
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			hevc->cur_pic->dv_enhance_exist = 0;
@@ -5472,6 +5496,9 @@ static int hevc_slice_segment_header_process(struct hevc_state_s *hevc,
 			hevc->cur_pic = get_new_pic(hevc, rpm_param);
 			if (hevc->cur_pic == NULL)
 				return -1;
+
+			if (!hevc->m_ins_flag)
+				hevc->over_decode = 0;
 
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			hevc->cur_pic->dv_enhance_exist = 0;
@@ -7920,6 +7947,7 @@ pic_done:
 			/* add to fix RAP_B_Bossen_1 */
 			hevc->m_pocRandomAccess = MAX_INT;
 			flush_output(hevc, pic);
+			clear_poc_flag(hevc);
 			WRITE_VREG(HEVC_DEC_STATUS_REG, HEVC_DISCARD_NAL);
 			/* Interrupt Amrisc to excute */
 			WRITE_VREG(HEVC_MCPU_INTR_REQ, AMRISC_MAIN_REQ);
@@ -8468,6 +8496,16 @@ static irqreturn_t vh265_isr(int irq, void *data)
 
 	if (hevc->pic_list_init_flag == 1)
 		return IRQ_HANDLED;
+
+	if (!hevc->m_ins_flag) {
+		if (dec_status == HEVC_OVER_DECODE) {
+			hevc->over_decode = 1;
+			hevc_print(hevc, 0,
+				"isr: over decode\n"),
+				WRITE_VREG(HEVC_DEC_STATUS_REG, 0);
+			return IRQ_HANDLED;
+		}
+	}
 
 	return IRQ_WAKE_THREAD;
 
