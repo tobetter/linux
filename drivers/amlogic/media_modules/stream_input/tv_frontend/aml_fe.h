@@ -51,7 +51,10 @@ enum aml_tuner_type_t {
 	AM_TUNER_R840   = 7,
 	AM_TUNER_SI2157 = 8,
 	AM_TUNER_SI2151 = 9,
-	AM_TUNER_MXL661 = 10
+	AM_TUNER_MXL661 = 10,
+	AM_TUNER_MXL608 = 11,
+	AM_TUNER_SI2159 = 12,
+	AM_TUNER_R842 = 13,
 };
 
 enum aml_atv_demod_type_t {

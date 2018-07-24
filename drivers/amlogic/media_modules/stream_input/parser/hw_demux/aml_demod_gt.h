@@ -18,34 +18,38 @@ struct amlfe_demod_config {
 	int	reset_value;
 };
 
+struct tuner_config {
+	u8 id;
+	u8 i2c_addr;
+	u8 xtal;
+	u8 xtal_cap;
+};
+
 static inline struct dvb_frontend* aml_dtvdm_attach (const struct amlfe_exp_config *config) {
 	return NULL;
 }
 
-static inline struct dvb_frontend* si2151_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c,u8 i2c_addr/*,
-				     struct si2151_config *cfg*/)
+static inline struct dvb_frontend* si2151_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c, struct tuner_config *cfg)
 {
 	return NULL;
 }
-static inline struct dvb_frontend* mxl661_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c,u8 i2c_addr/*,
-				     struct mxl661_config *cfg*/)
+
+static inline struct dvb_frontend* mxl661_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c, struct tuner_config *cfg)
 {
 	return NULL;
 }
-static inline struct dvb_frontend* si2159_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c,u8 i2c_addr/*,
-                      struct si2159_config *cfg*/)
+
+static inline struct dvb_frontend* si2159_attach (struct dvb_frontend *fe,struct i2c_adapter *i2c, struct tuner_config *cfg)
 {
     return NULL;
 }
 
-static inline struct dvb_frontend* r842_attach (struct dvb_frontend *fe, struct i2c_adapter *i2c, u8 i2c_addr/*,
-                      struct r842_config *cfg*/)
+static inline struct dvb_frontend* r842_attach (struct dvb_frontend *fe, struct i2c_adapter *i2c, struct tuner_config *cfg)
 {
     return NULL;
 }
 
-static inline struct dvb_frontend* r840_attach (struct dvb_frontend *fe, struct i2c_adapter *i2c, u8 i2c_addr/*,
-                      struct r840_config *cfg*/)
+static inline struct dvb_frontend* r840_attach (struct dvb_frontend *fe, struct i2c_adapter *i2c, struct tuner_config *cfg)
 {
     return NULL;
 }
