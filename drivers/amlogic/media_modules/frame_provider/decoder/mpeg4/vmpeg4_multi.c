@@ -46,7 +46,7 @@
 #define DRIVER_NAME "ammvdec_mpeg4"
 #define MODULE_NAME "ammvdec_mpeg4"
 
-#define MEM_NAME "codec_mpeg4"
+#define MEM_NAME "codec_mmpeg4"
 
 #define DEBUG_PTS
 
@@ -806,7 +806,8 @@ static int  vmpeg_vf_states(struct vframe_states *states, void *op_arg)
 static int dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
-
+	if (NULL == hw)
+		return -1;
 	vstatus->frame_width = hw->vmpeg4_amstream_dec_info.width;
 	vstatus->frame_height = hw->vmpeg4_amstream_dec_info.height;
 	if (0 != hw->vmpeg4_amstream_dec_info.rate)
@@ -1044,7 +1045,7 @@ static void vmpeg4_local_init(struct vdec_mpeg4_hw_s *hw)
 	INIT_WORK(&hw->work, vmpeg4_work);
 }
 
-static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
+static s32 vmmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 {
 	int trickmode_fffb = 0;
 	int size = -1, fw_size = 0x1000 * 16;
@@ -1054,17 +1055,7 @@ static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
 
-	if (hw->vmpeg4_amstream_dec_info.format ==
-		VIDEO_DEC_FORMAT_MPEG4_3) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_3, fw->data);
-
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_3\n");
-	} else if (hw->vmpeg4_amstream_dec_info.format ==
-			VIDEO_DEC_FORMAT_MPEG4_4) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_4, fw->data);
-
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_4\n");
-	} else if (hw->vmpeg4_amstream_dec_info.format ==
+	 if (hw->vmpeg4_amstream_dec_info.format ==
 			VIDEO_DEC_FORMAT_MPEG4_5) {
 		size = get_firmware_data(VIDEO_DEC_MPEG4_5, fw->data);
 
@@ -1072,9 +1063,10 @@ static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 	} else if (hw->vmpeg4_amstream_dec_info.format ==
 			VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263, fw->data);
-
 		pr_info("load VIDEO_DEC_FORMAT_H263\n");
-	}
+	} else
+		pr_info("not supported MPEG4 format %d\n",
+			hw->vmpeg4_amstream_dec_info.format);
 
 	if (size < 0) {
 		pr_err("get firmware fail.");
@@ -1087,7 +1079,7 @@ static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 
 	query_video_status(0, &trickmode_fffb);
 
-	pr_info("vmpeg4_init\n");
+	pr_info("%s\n", __func__);
 
 	amvdec_enable();
 
@@ -1123,7 +1115,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	ret = vdec_prepare_input(vdec, &hw->chunk);
 	if (ret < 0) {
-		pr_debug("amvdec_mpeg4: Input not ready\n");
+		pr_debug("amvdec_mmpeg4: Input not ready\n");
 		hw->dec_result = DEC_RESULT_AGAIN;
 		schedule_work(&hw->work);
 		return;
@@ -1146,7 +1138,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	if (vmpeg4_hw_ctx_restore(hw) < 0) {
 		hw->dec_result = DEC_RESULT_ERROR;
-		pr_err("amvdec_mpeg4: error HW context restore\n");
+		pr_err("amvdec_mmpeg4: error HW context restore\n");
 		schedule_work(&hw->work);
 		return;
 	}
@@ -1161,31 +1153,31 @@ static void reset(struct vdec_s *vdec)
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
 
-	pr_info("amvdec_mpeg4: reset.\n");
+	pr_info("amvdec_mmpeg4: reset.\n");
 
 	vmpeg4_local_init(hw);
 
 	hw->ctx_valid = false;
 }
 
-static int amvdec_mpeg4_probe(struct platform_device *pdev)
+static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 {
 	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
 	struct vdec_mpeg4_hw_s *hw = NULL;
 
-	pr_info("amvdec_mpeg4[%d] probe start.\n", pdev->id);
+	pr_info("%s [%d] probe start.\n", __func__, pdev->id);
 
 	if (pdata == NULL) {
-		pr_err("ammvdec_mpeg4 memory resource undefined.\n");
+		pr_err("%s memory resource undefined.\n", __func__);
 		return -EFAULT;
 	}
 
-	hw = (struct vdec_mpeg4_hw_s *)devm_kzalloc(&pdev->dev,
-		sizeof(struct vdec_mpeg4_hw_s), GFP_KERNEL);
+	hw = vmalloc(sizeof(struct vdec_mpeg4_hw_s));
 	if (hw == NULL) {
 		pr_info("\namvdec_mpeg4 decoder driver alloc failed\n");
 		return -ENOMEM;
 	}
+	memset(hw, 0, sizeof(struct vdec_mpeg4_hw_s));
 
 	pdata->private = hw;
 	pdata->dec_status = dec_status;
@@ -1220,6 +1212,10 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		pr_err("codec_mm alloc failed, request buf size 0x%lx\n",
 			hw->cma_alloc_count * PAGE_SIZE);
 		hw->cma_alloc_count = 0;
+		if (hw) {
+			vfree((void *)hw);
+			hw = NULL;
+		}
 		return -ENOMEM;
 	}
 	hw->buf_start = hw->cma_alloc_addr;
@@ -1228,9 +1224,16 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 	if (pdata->sys_info)
 		hw->vmpeg4_amstream_dec_info = *pdata->sys_info;
 
-	if (vmpeg4_init(hw) < 0) {
-		pr_err("amvdec_mpeg4 init failed.\n");
-
+	if (vmmpeg4_init(hw) < 0) {
+		pr_err("%s init failed.\n", __func__);
+		if (hw->cma_alloc_addr) {
+			codec_mm_free_for_dma(MEM_NAME, hw->cma_alloc_addr);
+			hw->cma_alloc_count = 0;
+		}
+		if (hw) {
+			vfree((void *)hw);
+			hw = NULL;
+		}
 		return -ENODEV;
 	}
 
@@ -1240,7 +1243,7 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int amvdec_mpeg4_remove(struct platform_device *pdev)
+static int ammvdec_mpeg4_remove(struct platform_device *pdev)
 {
 	struct vdec_mpeg4_hw_s *hw =
 		(struct vdec_mpeg4_hw_s *)
@@ -1259,7 +1262,10 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 
 	vfree(hw->fw);
 	hw->fw = NULL;
-
+	if (hw) {
+		vfree((void *)hw);
+		hw = NULL;
+	}
 	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", hw->pts_hit,
 		   hw->pts_missed, hw->pts_i_hit, hw->pts_i_missed);
 	pr_info("total frame %d, rate %d\n", hw->total_frame,
@@ -1270,9 +1276,9 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 
 /****************************************/
 
-static struct platform_driver amvdec_mpeg4_driver = {
-	.probe = amvdec_mpeg4_probe,
-	.remove = amvdec_mpeg4_remove,
+static struct platform_driver ammvdec_mpeg4_driver = {
+	.probe = ammvdec_mpeg4_probe,
+	.remove = ammvdec_mpeg4_remove,
 #ifdef CONFIG_PM
 	.suspend = amvdec_suspend,
 	.resume = amvdec_resume,
@@ -1287,29 +1293,29 @@ static struct codec_profile_t amvdec_mpeg4_profile = {
 	.profile = ""
 };
 
-static int __init amvdec_mmpeg4_driver_init_module(void)
+static int __init ammvdec_mpeg4_driver_init_module(void)
 {
-	pr_info("amvdec_mmpeg4 module init\n");
+	pr_info("%s \n", __func__);
 
-	if (platform_driver_register(&amvdec_mpeg4_driver)) {
-		pr_err("failed to register amvdec_mpeg4 driver\n");
+	if (platform_driver_register(&ammvdec_mpeg4_driver)) {
+		pr_err("failed to register ammvdec_mpeg4 driver\n");
 		return -ENODEV;
 	}
 	vcodec_profile_register(&amvdec_mpeg4_profile);
 	return 0;
 }
 
-static void __exit amvdec_mmpeg4_driver_remove_module(void)
+static void __exit ammvdec_mpeg4_driver_remove_module(void)
 {
-	pr_info("amvdec_mmpeg4 module remove.\n");
+	pr_info("ammvdec_mpeg4 module remove.\n");
 
-	platform_driver_unregister(&amvdec_mpeg4_driver);
+	platform_driver_unregister(&ammvdec_mpeg4_driver);
 }
 
 /****************************************/
 
-module_init(amvdec_mmpeg4_driver_init_module);
-module_exit(amvdec_mmpeg4_driver_remove_module);
+module_init(ammvdec_mpeg4_driver_init_module);
+module_exit(ammvdec_mpeg4_driver_remove_module);
 
 MODULE_DESCRIPTION("AMLOGIC MPEG4 Video Decoder Driver");
 MODULE_LICENSE("GPL");
