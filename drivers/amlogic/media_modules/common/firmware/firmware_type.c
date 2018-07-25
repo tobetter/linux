@@ -4,9 +4,9 @@
 static const struct format_name_s format_name[] = {
 	{VIDEO_DEC_MPEG12,		"mpeg12"},
 	{VIDEO_DEC_MPEG12_MULTI,	"mpeg12_multi"},
-	{VIDEO_DEC_MPEG4_3,		"divx311"},
-	{VIDEO_DEC_MPEG4_4,		"divx4x"},
-	{VIDEO_DEC_MPEG4_4_MULTI,	"divx4x_multi"},
+	{VIDEO_DEC_MPEG4_3,		"mpeg4_3"},
+	{VIDEO_DEC_MPEG4_4,		"mpeg4_4"},
+	{VIDEO_DEC_MPEG4_4_MULTI,	"mpeg4_4_multi"},
 	{VIDEO_DEC_MPEG4_5,		"xvid"},
 	{VIDEO_DEC_MPEG4_5_MULTI,	"xvid_multi"},
 	{VIDEO_DEC_H263,		"h263"},

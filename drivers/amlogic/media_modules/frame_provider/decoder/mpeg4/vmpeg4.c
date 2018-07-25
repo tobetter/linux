@@ -740,6 +740,8 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 int vmpeg4_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (NULL == gvs)
+		return -1;
 	vstatus->frame_width = vmpeg4_amstream_dec_info.width;
 	vstatus->frame_height = vmpeg4_amstream_dec_info.height;
 	if (0 != vmpeg4_amstream_dec_info.rate)
@@ -1017,38 +1019,19 @@ static s32 vmpeg4_init(void)
 
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
-
-	query_video_status(0, &trickmode_fffb);
-
 	amlog_level(LOG_LEVEL_INFO, "vmpeg4_init\n");
-	init_timer(&recycle_timer);
 
-	stat |= STAT_TIMER_INIT;
-
-	amvdec_enable();
-
-	vmpeg4_local_init();
-
-	if (vmpeg4_amstream_dec_info.format == VIDEO_DEC_FORMAT_MPEG4_3) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_3, buf);
-
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_3\n");
-	} else if (vmpeg4_amstream_dec_info.format ==
-				VIDEO_DEC_FORMAT_MPEG4_4) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_4, buf);
-
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_4\n");
-	} else if (vmpeg4_amstream_dec_info.format ==
+      if (vmpeg4_amstream_dec_info.format ==
 				VIDEO_DEC_FORMAT_MPEG4_5) {
 		size = get_firmware_data(VIDEO_DEC_MPEG4_5, buf);
-
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_5\n");
+		pr_info("load VIDEO_DEC_FORMAT_MPEG4_5\n");
 	} else if (vmpeg4_amstream_dec_info.format == VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263, buf);
 
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_H263\n");
+		pr_info("load VIDEO_DEC_FORMAT_H263\n");
 	} else
-		amlog_level(LOG_LEVEL_ERROR, "not supported MPEG4 format\n");
+		pr_err("not supported MPEG4 format %d\n",
+				vmpeg4_amstream_dec_info.format);
 
 	if (size < 0) {
 		pr_err("get firmware fail.");
@@ -1059,29 +1042,34 @@ static s32 vmpeg4_init(void)
 	if (size == 1)
 		pr_info ("tee load ok");
 	else if (amvdec_loadmc_ex(VFORMAT_MPEG4, NULL, buf) < 0) {
-		amvdec_disable();
 		vfree(buf);
 		return -EBUSY;
 	}
 
 	vfree(buf);
-
 	stat |= STAT_MC_LOAD;
+	query_video_status(0, &trickmode_fffb);
 
-	/* enable AMRISC side protocol */
-	r = vmpeg4_prot_init();
-	if (r < 0)
-		return r;
+	init_timer(&recycle_timer);
+	stat |= STAT_TIMER_INIT;
 
 	if (vdec_request_irq(VDEC_IRQ_1, vmpeg4_isr,
 			"vmpeg4-irq", (void *)vmpeg4_dec_id)) {
-		amvdec_disable();
-
 		amlog_level(LOG_LEVEL_ERROR, "vmpeg4 irq register error.\n");
 		return -ENOENT;
 	}
-
 	stat |= STAT_ISR_REG;
+	vmpeg4_local_init();
+	/* enable AMRISC side protocol */
+	r = vmpeg4_prot_init();
+	if (r < 0) 	 {
+		if (mm_blk_handle) {
+			decoder_bmmu_box_free(mm_blk_handle);
+			mm_blk_handle = NULL;
+		}
+		return r;
+	}
+	amvdec_enable();
 	fr_hint_status = VDEC_NO_NEED_HINT;
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 	vf_provider_init(&vmpeg_vf_prov, PROVIDER_NAME, &vmpeg_vf_provider,
