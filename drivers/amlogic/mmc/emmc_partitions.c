@@ -722,12 +722,17 @@ static int mmc_read_partition_tbl(struct mmc_card *card,
 	memset(pt_fmt, 0, sizeof(struct mmc_partitions_fmt));
 	memset(buf, 0, blk_size);
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	/* LBA unit */
+	start_blk = 8184;	/* FIXME: this should be returned later */
+#else
 	start_blk = get_reserve_partition_off(card);
 	if (start_blk < 0) {
 		ret = -EINVAL;
 		goto exit_err;
 	}
 	start_blk >>= bit;
+#endif
 	size = sizeof(struct mmc_partitions_fmt);
 	dst = (char *)pt_fmt;
 	if (size >= blk_size) {
@@ -935,22 +940,38 @@ static int add_emmc_partition(struct gendisk *disk,
 	uint64_t offset, size, cap;
 	struct partitions *pp;
 	struct proc_dir_entry *proc_card;
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	int shift = 0;
+#else
+	int shift = 9;
+#endif
+	int partno = 1;
 
 	pr_info("add_emmc_partition\n");
 
 	cap = get_capacity(disk); /* unit:512 bytes */
 	for (i = 0; i < pt_fmt->part_num; i++) {
 		pp = &(pt_fmt->partitions[i]);
-		offset = pp->offset >> 9; /* unit:512 bytes */
-		size = pp->size >> 9; /* unit:512 bytes */
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+		if (pp->name[0] == '@') {
+			/* It's hiden partition */
+			continue;
+		}
+#endif
+
+		offset = pp->offset >> shift; /* unit:512 bytes */
+		size = pp->size >> shift; /* unit:512 bytes */
 		if ((offset + size) <= cap) {
-			ret = add_emmc_each_part(disk, 1+i, offset,
+			ret = add_emmc_each_part(disk, partno, offset,
 					size, 0, pp->name);
 
 			pr_info("[%sp%02d] %20s  offset 0x%012llx, size 0x%012llx %s\n",
-					disk->disk_name, 1+i,
-					pp->name, offset<<9,
-					size<<9, IS_ERR(ret) ? "add fail":"");
+					disk->disk_name, partno,
+					pp->name, offset<<shift,
+					size << shift,
+					IS_ERR(ret) ? "add fail":"");
+			/* increase the partition number */
+			partno++;
 		} else {
 			pr_info("[%s] %s: partition exceeds device capacity:\n",
 					__func__, disk->disk_name);
