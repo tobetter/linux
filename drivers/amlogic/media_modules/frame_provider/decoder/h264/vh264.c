@@ -768,6 +768,7 @@ static void userdata_push_do_work(struct work_struct *work)
 	unsigned int sei_itu35_data_length;
 	struct userdata_poc_info_t user_data_poc;
 
+	memset(&user_data_poc, 0x0, sizeof(struct userdata_poc_info_t));
 	sei_itu35_flags = READ_VREG(AV_SCRATCH_J);
 	sei_itu35_wp = (sei_itu35_flags >> 16) & 0xffff;
 	sei_itu35_data_length = sei_itu35_flags & 0x7fff;
@@ -955,7 +956,8 @@ static void vh264_set_params(struct work_struct *work)
 		if (!mb_width && mb_total)
 			mb_width = 256;
 	}
-	mb_height = mb_total / mb_width;
+	if (mb_width)
+		mb_height = mb_total / mb_width;
 	last_duration = 0;
 	/* AV_SCRATCH_2
 	 *  bit 15: frame_mbs_only_flag
@@ -2208,7 +2210,7 @@ static void vh264_put_timer_func(unsigned long arg)
 		struct vframe_s *vf;
 
 		if (kfifo_get(&recycle_q, &vf)) {
-			if ((vf->index >= 0) && (vf->index < VF_BUF_NUM)) {
+			if (vf->index < VF_BUF_NUM) {
 				if (--vfbuf_use[vf->index] == 0) {
 					if (READ_VREG(AV_SCRATCH_7) == 0) {
 						WRITE_VREG(AV_SCRATCH_7,
@@ -2231,8 +2233,7 @@ static void vh264_put_timer_func(unsigned long arg)
 			struct vframe_s *vf;
 
 			if (kfifo_get(&recycle_q, &vf)) {
-				if ((vf->index >= 0 &&
-					(vf->index < VF_BUF_NUM))) {
+				if (vf->index < VF_BUF_NUM) {
 					vf->index = VF_BUF_NUM;
 					kfifo_put(&newframe_q,
 						(const struct vframe_s *)vf);

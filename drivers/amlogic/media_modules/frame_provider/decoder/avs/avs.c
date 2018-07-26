@@ -418,7 +418,7 @@ static void vavs_isr(void)
 	u32 picture_type;
 	u32 buffer_index;
 
-	unsigned int pts, pts_valid = 0, offset;
+	unsigned int pts, pts_valid = 0, offset = 0;
 	u64 pts_us64;
 	if (debug_flag & AVS_DEBUG_UCODE) {
 		if (READ_VREG(AV_SCRATCH_E) != 0) {

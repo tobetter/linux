@@ -187,6 +187,7 @@ static int get_canvas(unsigned int index, unsigned int base)
 {
 	int start;
 	int canvas_index = index * base;
+	int ret;
 
 	if ((base > 4) || (base == 0))
 		return -1;
@@ -204,17 +205,17 @@ static int get_canvas(unsigned int index, unsigned int base)
 	}
 
 	if (base == 1) {
-		return start;
+		ret = start;
 	} else if (base == 2) {
-		return ((start + 1) << 16) | ((start + 1) << 8) | start;
+		ret = ((start + 1) << 16) | ((start + 1) << 8) | start;
 	} else if (base == 3) {
-		return ((start + 2) << 16) | ((start + 1) << 8) | start;
+		ret = ((start + 2) << 16) | ((start + 1) << 8) | start;
 	} else if (base == 4) {
-		return (((start + 3) << 24) | (start + 2) << 16) |
+		ret = (((start + 3) << 24) | (start + 2) << 16) |
 			((start + 1) << 8) | start;
 	}
 
-	return -1;
+	return ret;
 }
 
 
@@ -1696,14 +1697,14 @@ void vdec_release(struct vdec_s *vdec)
 		schedule();
 
 	platform_device_unregister(vdec->dev);
+	pr_debug("vdec_release instance %p, total %d\n", vdec,
+		atomic_read(&vdec_core->vdec_nr));
 	vdec_destroy(vdec);
 
 	mutex_lock(&vdec_mutex);
 	inited_vcodec_num--;
 	mutex_unlock(&vdec_mutex);
 
-	pr_debug("vdec_release instance %p, total %d\n", vdec,
-		atomic_read(&vdec_core->vdec_nr));
 }
 EXPORT_SYMBOL(vdec_release);
 
@@ -1754,10 +1755,10 @@ void vdec_free_cmabuf(void)
 {
 	mutex_lock(&vdec_mutex);
 
-	if (inited_vcodec_num > 0) {
+	/*if (inited_vcodec_num > 0) {
 		mutex_unlock(&vdec_mutex);
 		return;
-	}
+	}*/
 	mutex_unlock(&vdec_mutex);
 }
 
@@ -1783,7 +1784,7 @@ int vdec_core_release(struct vdec_s *vdec, unsigned long mask)
 }
 EXPORT_SYMBOL(vdec_core_release);
 
-const bool vdec_core_with_input(unsigned long mask)
+bool vdec_core_with_input(unsigned long mask)
 {
 	enum vdec_type_e type;
 

@@ -273,7 +273,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 	u32 repeat_count;
 	u32 picture_type;
 	u32 buffer_index;
-	unsigned int pts, pts_valid = 0, offset;
+	unsigned int pts, pts_valid = 0, offset = 0;
 	u32 v_width, v_height;
 	u64 pts_us64 = 0;
 

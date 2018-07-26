@@ -1464,26 +1464,28 @@ static void dpb_combine_field(struct h264_dpb_stru *p_H264_Dpb,
 		fs->frame->data_flag |= (fs->bottom_field->data_flag & 0xf0);
 #endif
 
+	if (fs->bottom_field) {
+		fs->poc = fs->frame->poc = fs->frame->frame_poc = imin(
+				fs->top_field->poc, fs->bottom_field->poc);
 
-	fs->poc = fs->frame->poc = fs->frame->frame_poc = imin(
-			fs->top_field->poc, fs->bottom_field->poc);
+		fs->bottom_field->frame_poc = fs->top_field->frame_poc = fs->frame->poc;
 
-	fs->bottom_field->frame_poc = fs->top_field->frame_poc = fs->frame->poc;
+		fs->bottom_field->top_poc = fs->frame->top_poc = fs->top_field->poc;
+		fs->top_field->bottom_poc = fs->frame->bottom_poc =
+				fs->bottom_field->poc;
 
-	fs->bottom_field->top_poc = fs->frame->top_poc = fs->top_field->poc;
-	fs->top_field->bottom_poc = fs->frame->bottom_poc =
-			fs->bottom_field->poc;
-
-	fs->frame->used_for_reference = (fs->top_field->used_for_reference &&
-					 fs->bottom_field->used_for_reference);
-	fs->frame->is_long_term = (fs->top_field->is_long_term &&
-				   fs->bottom_field->is_long_term);
+		fs->frame->used_for_reference = (fs->top_field->used_for_reference &&
+						 fs->bottom_field->used_for_reference);
+		fs->frame->is_long_term = (fs->top_field->is_long_term &&
+					   fs->bottom_field->is_long_term);
+	}
 
 	if (fs->frame->is_long_term)
 		fs->frame->long_term_frame_idx = fs->long_term_frame_idx;
 
 	fs->frame->top_field    = fs->top_field;
-	fs->frame->bottom_field = fs->bottom_field;
+	if (fs->bottom_field)
+		fs->frame->bottom_field = fs->bottom_field;
 	fs->frame->frame = fs->frame;
 
 	fs->frame->coded_frame = 0;
@@ -1500,12 +1502,13 @@ static void dpb_combine_field(struct h264_dpb_stru *p_H264_Dpb,
 		fs->frame->frame_crop_right_offset =
 			fs->top_field->frame_crop_right_offset;
 	}
-
-	fs->top_field->frame = fs->bottom_field->frame = fs->frame;
-	fs->top_field->top_field = fs->top_field;
-	fs->top_field->bottom_field = fs->bottom_field;
-	fs->bottom_field->top_field = fs->top_field;
-	fs->bottom_field->bottom_field = fs->bottom_field;
+	if (fs->bottom_field) {
+		fs->top_field->frame = fs->bottom_field->frame = fs->frame;
+		fs->top_field->top_field = fs->top_field;
+		fs->top_field->bottom_field = fs->bottom_field;
+		fs->bottom_field->top_field = fs->top_field;
+		fs->bottom_field->bottom_field = fs->bottom_field;
+	}
 
 	/**/
 #if (MVC_EXTENSION_ENABLE)
@@ -2829,12 +2832,12 @@ static void unmark1(struct DecodedPictureBuffer *p_Dpb,
 	unsigned int curr_frame_num, int i)
 {
 	if (p_Dpb->last_picture) {
-		if ((p_Dpb->last_picture != p_Dpb->fs_ltref[i]) ||
-			p_Dpb->last_picture->frame_num != curr_frame_num) {
+		/*if ((p_Dpb->last_picture != p_Dpb->fs_ltref[i]) ||
+			p_Dpb->last_picture->frame_num != curr_frame_num) {*/
 			unmark_for_long_term_reference(p_Dpb->fs_ltref[i]);
-		} else {
+		/*} else {
 			unmark_for_long_term_reference(p_Dpb->fs_ltref[i]);
-		}
+		}*/
 	}
 }
 

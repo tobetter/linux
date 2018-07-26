@@ -170,7 +170,7 @@ int decoder_mmu_box_free_idx_tail(
 	if (!box || idx < 0 || idx >= box->max_sc_num) {
 		pr_err("can't free tail mmu box(%p),idx:%d in (%d-%d)\n",
 			box, idx, 0,
-			box->max_sc_num - 1);
+			box ? (box->max_sc_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -191,7 +191,7 @@ int decoder_mmu_box_free_idx(void *handle, int idx)
 	if (!box || idx < 0 || idx >= box->max_sc_num) {
 		pr_err("can't free idx of box(%p),idx:%d  in (%d-%d)\n",
 			box, idx, 0,
-			box->max_sc_num - 1);
+			box ? (box->max_sc_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -251,7 +251,7 @@ static int decoder_mmu_box_dump(struct decoder_mmu_box *box,
 
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 	#define BUFPRINT(args...) \
 	do {\
@@ -288,7 +288,7 @@ static int decoder_mmu_box_dump_all(void *buf, int size)
 
 	if (!pbuf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 
 	#define BUFPRINT(args...) \

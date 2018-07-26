@@ -758,7 +758,7 @@ static void userdata_push_do_work(struct work_struct *work)
 	}
 
 
-	if (p_userdata_mgr) {
+	if (p_userdata_mgr && ccbuf_phyAddress_virt) {
 		int new_wp;
 
 		new_wp = reg & 0xffff;

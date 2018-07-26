@@ -1692,7 +1692,7 @@ static unsigned char is_skip_decoding(struct hevc_state_s *hevc,
 static int get_pic_poc(struct hevc_state_s *hevc,
 		unsigned int idx)
 {
-	if (idx != 0xff && idx >= 0
+	if (idx != 0xff
 		&& idx < MAX_REF_PIC_NUM
 		&& hevc->m_PIC[idx])
 		return hevc->m_PIC[idx]->POC;
@@ -6564,7 +6564,7 @@ static void vh265_vf_put(struct vframe_s *vf, void *op_arg)
 	kfifo_put(&hevc->newframe_q, (const struct vframe_s *)vf);
 	spin_lock_irqsave(&lock, flags);
 
-	if (index_top != 0xff && index_top >= 0
+	if (index_top != 0xff
 		&& index_top < MAX_REF_PIC_NUM
 		&& hevc->m_PIC[index_top]) {
 		if (hevc->m_PIC[index_top]->vf_ref > 0) {
@@ -6580,7 +6580,7 @@ static void vh265_vf_put(struct vframe_s *vf, void *op_arg)
 		}
 	}
 
-	if (index_bot != 0xff && index_bot >= 0
+	if (index_bot != 0xff
 		&& index_bot < MAX_REF_PIC_NUM
 		&& hevc->m_PIC[index_bot]) {
 		if (hevc->m_PIC[index_bot]->vf_ref > 0) {
@@ -6632,7 +6632,7 @@ static int vh265_event_cb(int type, void *data, void *op_arg)
 		req->aux_size = 0;
 		if (req->bot_flag)
 			index = (req->vf->index >> 8) & 0xff;
-		if (index != 0xff && index >= 0
+		if (index != 0xff
 			&& index < MAX_REF_PIC_NUM
 			&& hevc->m_PIC[index]) {
 			req->aux_buf = hevc->m_PIC[index]->aux_data_buf;
@@ -10549,15 +10549,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 	hevc->uninit_list = 0;
 	hevc->fatal_error = 0;
 	hevc->show_frame_num = 0;
-	if (pdata == NULL) {
-		hevc_print(hevc, 0,
-			"\namvdec_h265 memory resource undefined.\n");
-		uninit_mmu_buffers(hevc);
-		/* devm_kfree(&pdev->dev, (void *)hevc); */
-		if (hevc)
-			vfree((void *)hevc);
-		return -EFAULT;
-	}
+
 	/*
 	 *hevc->mc_buf_spec.buf_end = pdata->mem_end + 1;
 	 *for (i = 0; i < WORK_BUF_SPEC_NUM; i++)
@@ -10607,6 +10599,9 @@ static int ammvdec_h265_remove(struct platform_device *pdev)
 		(struct hevc_state_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
 
+	if (hevc == NULL)
+		return 0;
+
 	if (get_dbg_flag(hevc))
 		hevc_print(hevc, 0, "%s\r\n", __func__);
 
@@ -10617,8 +10612,8 @@ static int ammvdec_h265_remove(struct platform_device *pdev)
 	vdec_core_release(hw_to_vdec(hevc), CORE_MASK_HEVC);
 
 	vdec_set_status(hw_to_vdec(hevc), VDEC_STATUS_DISCONNECTED);
-	if (hevc)
-		vfree((void *)hevc);
+
+	vfree((void *)hevc);
 	return 0;
 }
 

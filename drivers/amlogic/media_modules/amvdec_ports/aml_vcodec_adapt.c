@@ -664,7 +664,7 @@ int vdec_vframe_write(struct file *file, const char *buf,
 	do {
 		ret = vdec_write_vframe(vdec, buf, count);
 		if (ret == -EAGAIN) {
-			vdec_input_level(&vdec->input);
+			/*vdec_input_level(&vdec->input);*/
 			msleep(20);
 		}
 	} while (ret == -EAGAIN && try_cnt--);

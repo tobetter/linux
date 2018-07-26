@@ -1765,7 +1765,7 @@ int release_buf_spec_num(struct vdec_s *vdec, int buf_spec_num)
 	dpb_print(DECODE_ID(hw), PRINT_FLAG_MMU_DETAIL,
 		"%s buf_spec_num %d used %d\n",
 		__func__, buf_spec_num,
-		hw->buffer_spec[buf_spec_num].used);
+		buf_spec_num > 0 ? hw->buffer_spec[buf_spec_num].used : 0);
 	if (buf_spec_num >= 0 &&
 		buf_spec_num < BUFSPEC_POOL_SIZE
 		) {
@@ -3436,7 +3436,8 @@ static void vh264_config_canvs_for_mmu(struct vdec_h264_hw_s *hw)
 		if (hw->decode_pic_count == 0) {
 			for (j = 0; j < hw->dpb.mDPB.size; j++) {
 				i = get_buf_spec_by_canvas_pos(hw, j);
-				config_decode_canvas_ex(hw, i);
+				if (i >= 0)
+					config_decode_canvas_ex(hw, i);
 			}
 		}
 		mutex_unlock(&vmh264_mutex);
@@ -3449,7 +3450,7 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 	int i, j;
 	int mb_width, mb_total;
 	int max_reference_size, level_idc;
-	int mb_height;
+	int mb_height = 0;
 	unsigned long flags;
 	/*int mb_mv_byte;*/
 	struct vdec_s *vdec = hw_to_vdec(hw);
@@ -3474,7 +3475,8 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 	mb_total = (seq_info2 >> 8) & 0xffff;
 	if (!mb_width && mb_total) /*for 4k2k*/
 		mb_width = 256;
-	mb_height = mb_total/mb_width;
+	if (mb_width)
+		mb_height = mb_total/mb_width;
 	if (mb_width > 0x110 ||
 		mb_height > 0xa0 ||
 		mb_width <= 0 ||
@@ -3623,11 +3625,13 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 			i = get_buf_spec_by_canvas_pos(hw, 0);
 
 			if (hw->is_used_v4l) {
-				ret = alloc_one_buf_spec_from_queue(hw, i);
-				if (!ret)
-					config_decode_canvas(hw, i);
+				if (i != -1) {
+					ret = alloc_one_buf_spec_from_queue(hw, i);
+					if (!ret)
+						config_decode_canvas(hw, i);
+				}
 			} else {
-				if (alloc_one_buf_spec(hw, i) >= 0)
+				if ((i != -1) && alloc_one_buf_spec(hw, i) >= 0)
 					config_decode_canvas(hw, i);
 				else
 					ret = -1;
@@ -4764,11 +4768,9 @@ static irqreturn_t vh264_isr(struct vdec_s *vdec, int irq)
 
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
-	if (!hw) {
-		dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-			"decoder is not running\n");
+	if (!hw)
 		return IRQ_HANDLED;
-	}
+
 	if (hw->eos)
 		return IRQ_HANDLED;
 
@@ -7076,7 +7078,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	}
 
 	if (hw->mmu_enable) {
-		if (pdata->config && pdata->config_len) {
+		if (pdata->config_len) {
 			/*use ptr config for doubel_write_mode, etc*/
 			if (get_config_int(pdata->config,
 				"mh264_double_write_mode", &config_val) == 0)

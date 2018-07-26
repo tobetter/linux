@@ -173,7 +173,7 @@ int decoder_bmmu_box_free_idx(void *handle, int idx)
 	if (!box || idx < 0 || idx >= box->max_mm_num) {
 		pr_err("can't free idx of box(%p),idx:%d  in (%d-%d)\n",
 				box, idx, 0,
-			   box->max_mm_num - 1);
+			   box ? (box->max_mm_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -357,7 +357,7 @@ static int decoder_bmmu_box_dump(struct decoder_bmmu_box *box, void *buf,
 	int i;
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 #define BUFPRINT(args...) \
 	do {\
@@ -401,7 +401,7 @@ static int decoder_bmmu_box_dump_all(void *buf, int size)
 	struct list_head *head, *list;
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 #define BUFPRINT(args...) \
 	do {\

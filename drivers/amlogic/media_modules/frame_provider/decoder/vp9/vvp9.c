@@ -6284,7 +6284,7 @@ static struct vframe_s *vvp9_vf_get(void *op_arg)
 	if (kfifo_get(&pbi->display_q, &vf)) {
 		struct vframe_s *next_vf;
 		uint8_t index = vf->index & 0xff;
-		if (index >= 0	&& index < pbi->used_buf_num) {
+		if (index < pbi->used_buf_num) {
 			pbi->vf_get_count++;
 			if (debug & VP9_DEBUG_BUFMGR)
 				pr_info("%s type 0x%x w/h %d/%d, pts %d, %lld\n",
@@ -6312,8 +6312,7 @@ static void vvp9_vf_put(struct vframe_s *vf, void *op_arg)
 
 	kfifo_put(&pbi->newframe_q, (const struct vframe_s *)vf);
 	pbi->vf_put_count++;
-	if (index >= 0
-		&& index < pbi->used_buf_num) {
+	if (index < pbi->used_buf_num) {
 		struct VP9_Common_s *cm = &pbi->common;
 		struct BufferPool_s *pool = cm->buffer_pool;
 		unsigned long flags;
@@ -8654,16 +8653,16 @@ static void run_front(struct vdec_s *vdec)
 			pbi->frame_count, size,
 			pbi->chunk ? pbi->chunk->size : 0,
 			pbi->chunk ? pbi->chunk->offset : 0,
-			(vdec_frame_based(vdec) &&
+			pbi->chunk ? ((vdec_frame_based(vdec) &&
 			(debug & PRINT_FLAG_VDEC_STATUS)) ?
-			get_data_check_sum(pbi, size) : 0,
+			get_data_check_sum(pbi, size) : 0) : 0,
 		READ_VREG(HEVC_STREAM_START_ADDR),
 		READ_VREG(HEVC_STREAM_END_ADDR),
 		READ_VREG(HEVC_STREAM_LEVEL),
 		READ_VREG(HEVC_STREAM_WR_PTR),
 		READ_VREG(HEVC_STREAM_RD_PTR),
 		pbi->start_shift_bytes);
-		if (vdec_frame_based(vdec)) {
+		if (vdec_frame_based(vdec) && pbi->chunk) {
 			u8 *data = ((u8 *)pbi->chunk->block->start_virt) +
 				pbi->chunk->offset;
 			vp9_print_cont(pbi, 0, "data adr %p:",
@@ -9103,7 +9102,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		pbi->stat |= VP9_TRIGGER_FRAME_ENABLE;
 #if 1
 	if ((debug & IGNORE_PARAM_FROM_CONFIG) == 0 &&
-			pdata->config && pdata->config_len) {
+			pdata->config_len) {
 #ifdef MULTI_INSTANCE_SUPPORT
 		/*use ptr config for doubel_write_mode, etc*/
 		vp9_print(pbi, 0, "pdata->config=%s\n", pdata->config);
@@ -9199,13 +9198,6 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 	pbi->init_flag = 0;
 	pbi->fatal_error = 0;
 	pbi->show_frame_num = 0;
-	if (pdata == NULL) {
-		pr_info("\namvdec_vp9 memory resource undefined.\n");
-		uninit_mmu_buffers(pbi);
-		/* devm_kfree(&pdev->dev, (void *)pbi); */
-		vfree((void *)pbi);
-		return -EFAULT;
-	}
 
 	if (debug) {
 		pr_info("===VP9 decoder mem resource 0x%lx size 0x%x\n",

@@ -783,7 +783,9 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 		if (stbuf->type != BUF_TYPE_SUBTITLE
 			&& stbuf_space(stbuf) < count) {
 			/*should not write partial data in drm mode*/
-			stbuf_wait_space(stbuf, count);
+			r = stbuf_wait_space(stbuf, count);
+			if (r < 0)
+				return r;
 			if (stbuf_space(stbuf) < count)
 				return -EAGAIN;
 		}

@@ -476,15 +476,14 @@ static struct vframe_s *vh264mvc_vf_get(void *op_arg)
 
 	INCPTR(get_ptr);
 
-	if (vf) {
-		if (frame_width == 0)
-			frame_width = vh264mvc_amstream_dec_info.width;
-		if (frame_height == 0)
-			frame_height = vh264mvc_amstream_dec_info.height;
+	if (frame_width == 0)
+		frame_width = vh264mvc_amstream_dec_info.width;
+	if (frame_height == 0)
+		frame_height = vh264mvc_amstream_dec_info.height;
 
-		vf->width = frame_width;
-		vf->height = frame_height;
-	}
+	vf->width = frame_width;
+	vf->height = frame_height;
+
 	if ((no_dropping_cnt < DROPPING_FIRST_WAIT) && (vf->frame_dirty == 0))
 		no_dropping_cnt++;
 	return vf;
@@ -1405,7 +1404,7 @@ static s32 vh264mvc_init(void)
 	int ret = -1, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
 
-	if (IS_ERR_OR_NULL(buf))
+	if (buf == NULL)
 		return -ENOMEM;
 
 	pr_info("\nvh264mvc_init\n");
@@ -1414,12 +1413,16 @@ static s32 vh264mvc_init(void)
 	stat |= STAT_TIMER_INIT;
 
 	ret = vh264mvc_vdec_info_init();
-	if (0 != ret)
+	if (0 != ret) {
+		vfree(buf);
 		return -ret;
+	}
 
 	ret = vh264mvc_local_init();
-	if (ret < 0)
+	if (ret < 0) {
+		vfree(buf);
 		return ret;
+	}
 
 	amvdec_enable();
 
@@ -1428,6 +1431,7 @@ static s32 vh264mvc_init(void)
 		ret = tee_load_video_fw((u32)VIDEO_DEC_H264_MVC, 0);
 		if (ret != 0) {
 			amvdec_disable();
+			vfree(buf);
 			return -1;
 		}
 	} else {
@@ -1459,8 +1463,6 @@ static s32 vh264mvc_init(void)
 		/*slice*/
 		memcpy((u8 *) mc_cpu_addr + 0x3000, buf + 0x4000, 0x3000);
 
-		vfree(buf);
-
 		if (ret < 0) {
 			amvdec_disable();
 
@@ -1471,6 +1473,8 @@ static s32 vh264mvc_init(void)
 			return -EBUSY;
 		}
 	}
+	vfree(buf);
+
 	stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */

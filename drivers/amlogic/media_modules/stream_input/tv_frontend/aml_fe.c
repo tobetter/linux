@@ -749,7 +749,7 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 
 	ret = fe_of_property_u32(fe, "tuner", &value);
 	if (!ret) {
-		int id = value;
+		id = value;
 
 		if ((id < 0) || (id >= FE_DEV_COUNT) || !fe_man.tuner[id].drv) {
 			pr_error("invalid tuner device id %d\n", id);
@@ -762,7 +762,7 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 
 	ret = fe_of_property_u32(fe, "atv_demod", &value);
 	if (!ret) {
-		int id = value;
+		id = value;
 
 		if ((id < 0) ||
 			(id >= FE_DEV_COUNT) ||
@@ -777,7 +777,7 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 
 	ret = fe_of_property_u32(fe, "dtv_demod", &value);
 	if (!ret) {
-		int id = value;
+		id = value;
 
 		if ((id < 0) ||
 			(id >= FE_DEV_COUNT) ||
@@ -813,7 +813,7 @@ static int aml_fe_man_init(struct aml_fe_man *man, struct aml_fe *fe, int id)
 
 	ret = fe_of_property_u32(fe, "dev", &value);
 	if (!ret) {
-		int id = value;
+		id = value;
 
 		if ((id >= 0) && (id < FE_DEV_COUNT))
 			fe->dev_id = id;

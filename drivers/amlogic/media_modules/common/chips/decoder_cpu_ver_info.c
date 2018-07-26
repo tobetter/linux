@@ -86,7 +86,7 @@ static bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
 	}
 
 	pDev =  of_find_device_by_node(pNode);
-	if (NULL == pNode)
+	if (NULL == pDev)
 	{
 		return -EINVAL;
 	}

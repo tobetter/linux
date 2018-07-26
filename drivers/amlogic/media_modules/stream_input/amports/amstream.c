@@ -1266,8 +1266,7 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 			res = copy_to_user((void *)buf,
 				(void *)(codec_mm_phys_to_virt(sub_rp)),
 				data_size);
-			if (res >= 0)
-				stbuf_sub_rp_set(sub_rp + data_size - res);
+			stbuf_sub_rp_set(sub_rp + data_size - res);
 
 			return data_size - res;
 		} else {
@@ -1275,10 +1274,8 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 				res = copy_to_user((void *)buf,
 				(void *)(codec_mm_phys_to_virt(sub_rp)),
 					first_num);
-				if (res >= 0) {
-					stbuf_sub_rp_set(sub_rp + first_num -
-								res);
-				}
+				stbuf_sub_rp_set(sub_rp + first_num -
+							res);
 
 				return first_num - res;
 			}
@@ -1287,10 +1284,8 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 				(void *)(codec_mm_phys_to_virt(sub_start)),
 				data_size - first_num);
 
-			if (res >= 0) {
-				stbuf_sub_rp_set(sub_start + data_size -
-					first_num - res);
-			}
+			stbuf_sub_rp_set(sub_start + data_size -
+				first_num - res);
 
 			return data_size - first_num - res;
 		}
@@ -1300,8 +1295,7 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 				(void *)(codec_mm_phys_to_virt(sub_rp)),
 				data_size);
 
-		if (res >= 0)
-			stbuf_sub_rp_set(sub_rp + data_size - res);
+		stbuf_sub_rp_set(sub_rp + data_size - res);
 
 		return data_size - res;
 	}
@@ -1987,7 +1981,7 @@ static long amstream_ioctl_set(struct port_priv_s *priv, ulong arg)
 						parm.data_32,
 						false);
 				}
-				r = stbuf_change_size(
+				r += stbuf_change_size(
 						&bufs[BUF_TYPE_VIDEO],
 						parm.data_32,
 						false);
@@ -2177,10 +2171,7 @@ static long amstream_ioctl_set(struct port_priv_s *priv, ulong arg)
 		tsync_set_dec_reset();
 		break;
 	case AMSTREAM_SET_TS_SKIPBYTE:
-		if (parm.data_32 >= 0)
-			tsdemux_set_skipbyte(parm.data_32);
-		else
-			r = -EINVAL;
+		tsdemux_set_skipbyte(parm.data_32);
 		break;
 	case AMSTREAM_SET_SUB_TYPE:
 		sub_type = parm.data_32;
@@ -2282,11 +2273,6 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 				&bufs[BUF_TYPE_HEVC] :
 				&bufs[BUF_TYPE_VIDEO];
 
-			if (p == NULL) {
-				r = -EINVAL;
-				break;
-			}
-
 			if (this->type & PORT_TYPE_FRAME) {
 				struct vdec_input_status_s status;
 
@@ -2323,8 +2309,6 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 			struct am_ioctl_parm_ex *p = &parm;
 			struct stream_buf_s *buf = &bufs[BUF_TYPE_AUDIO];
 
-			if (p == NULL)
-				r = -EINVAL;
 
 			p->status.size = stbuf_canusesize(buf);
 			p->status.data_len = stbuf_level(buf);
@@ -2342,8 +2326,6 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 			struct vdec_info vstatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
-			if (p == NULL)
-				return -EINVAL;
 			if (vdec_status(priv->vdec, &vstatus) == -1)
 				return -ENODEV;
 			p->vstatus.width = vstatus.frame_width;
@@ -2368,8 +2350,6 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 			struct adec_status astatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
-			if (p == NULL)
-				return -EINVAL;
 			amstream_adec_status(&astatus);
 			p->astatus.channels = astatus.channels;
 			p->astatus.sample_rate = astatus.sample_rate;
@@ -2419,7 +2399,7 @@ static long amstream_ioctl_get_ptr(struct port_priv_s *priv, ulong arg)
 	if (copy_from_user
 		((void *)&parm, (void *)arg,
 		 sizeof(parm)))
-		r = -EFAULT;
+		return -EFAULT;
 
 	switch (parm.cmd) {
 	case AMSTREAM_GET_PTR_SUB_INFO:
@@ -2568,7 +2548,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 						&bufs[BUF_TYPE_HEVC],
 						arg, false);
 				}
-				r = stbuf_change_size(
+				r += stbuf_change_size(
 						&bufs[BUF_TYPE_VIDEO],
 						arg, false);
 			}
@@ -2668,11 +2648,6 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 				&bufs[BUF_TYPE_HEVC] :
 				&bufs[BUF_TYPE_VIDEO];
 
-			if (p == NULL) {
-				r = -EINVAL;
-				break;
-			}
-
 			if (this->type & PORT_TYPE_FRAME) {
 				struct vdec_input_status_s status;
 
@@ -2716,9 +2691,6 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct am_io_param para;
 			struct am_io_param *p = &para;
 			struct stream_buf_s *buf = &bufs[BUF_TYPE_AUDIO];
-
-			if (p == NULL)
-				r = -EINVAL;
 
 			p->status.size = stbuf_canusesize(buf);
 			p->status.data_len = stbuf_level(buf);
@@ -2823,8 +2795,6 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct am_io_param para;
 			struct am_io_param *p = &para;
 
-			if (p == NULL)
-				return -EINVAL;
 			if (vdec_status(priv->vdec, &vstatus) == -1)
 				return -ENODEV;
 			p->vstatus.width = vstatus.frame_width;
@@ -2844,6 +2814,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct vdec_info vinfo;
 			struct am_io_info para;
 
+			memset(&para, 0x0, sizeof(struct am_io_info));
 			if (vdec_status(priv->vdec, &vinfo) == -1)
 				return -ENODEV;
 			memcpy(&para.vinfo, &vinfo, sizeof(struct vdec_info));
@@ -2862,8 +2833,6 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct am_io_param para;
 			struct am_io_param *p = &para;
 
-			if (p == NULL)
-				return -EINVAL;
 			amstream_adec_status(&astatus);
 			p->astatus.channels = astatus.channels;
 			p->astatus.sample_rate = astatus.sample_rate;
