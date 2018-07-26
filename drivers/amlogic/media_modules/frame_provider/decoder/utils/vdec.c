@@ -2246,7 +2246,7 @@ static int vdec_core_thread(void *data)
 		/* if there is no new work scheduled and nothing
 		 * is running, sleep 20ms
 		 */
-		if ((!worker) && (!core->sched_mask)) {
+		if ((!worker) && (!core->sched_mask) && (atomic_read(&vdec_core->vdec_nr) > 0)) {
 			usleep_range(1000, 2000);
 			up(&core->sem);
 		}
