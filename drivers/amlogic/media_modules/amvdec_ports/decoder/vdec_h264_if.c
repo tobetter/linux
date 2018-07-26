@@ -275,9 +275,9 @@ static int vdec_h264_init(struct aml_vcodec_ctx *ctx, unsigned long *h_vdec)
 	//vpu_dec_deinit(&inst->vpu);
 
 //error_free_inst:
-	kfree(inst->vsi);
+	/*kfree(inst->vsi);
 	kfree(inst);
-	return err;
+	return err;*/
 }
 
 static int refer_buffer_num(int level_idc, int poc_cnt,
@@ -422,7 +422,8 @@ static int vdec_h264_probe(unsigned long h_vdec,
 		(struct vdec_h264_inst *)h_vdec;
 	struct h264_stream_t s;
 	struct h264_SPS_t *sps;
-	unsigned int nal_type, nal_idx;
+	unsigned int nal_type;
+	int nal_idx;
 	int real_data_pos, real_data_size;
 	unsigned char *buf = (unsigned char *)bs->va;
 	unsigned int size = bs->size;
@@ -440,7 +441,7 @@ static int vdec_h264_probe(unsigned long h_vdec,
 	real_data_size = size - real_data_pos;
 
 	sps = kzalloc(sizeof(struct h264_SPS_t), GFP_KERNEL);
-	if (IS_ERR_OR_NULL(sps))
+	if (sps == NULL)
 		return -ENOMEM;
 
 	h264_stream_set(&s, &buf[real_data_pos], real_data_size);
@@ -599,8 +600,8 @@ static int vdec_h264_decode(unsigned long h_vdec, struct aml_vcodec_mem *bs,
 	}
 
 	//err = vpu_dec_start(vpu, data, 2);
-	if (err)
-		goto err_free_fb_out;
+	/*if (err)
+		goto err_free_fb_out;*/
 
 #if 0
 	*res_chg = inst->vsi->dec.resolution_changed;
@@ -620,8 +621,8 @@ static int vdec_h264_decode(unsigned long h_vdec, struct aml_vcodec_mem *bs,
 	if (nal_type == NAL_NON_IDR_SLICE || nal_type == NAL_IDR_SLICE) {
 		/* wait decoder done interrupt */
 		//err = aml_vcodec_wait_for_done_ctx(inst->ctx, aml_INST_IRQ_RECEIVED, WAIT_INTR_TIMEOUT_MS);
-		if (err)
-			goto err_free_fb_out;
+		/*if (err)
+			goto err_free_fb_out;*/
 
 		//vpu_dec_end(vpu);
 	}

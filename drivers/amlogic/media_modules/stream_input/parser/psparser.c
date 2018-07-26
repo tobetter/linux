@@ -598,15 +598,6 @@ static u32 parser_process(s32 type, s32 packet_len)
 			SET_DISCARD_SIZE(packet_len);
 			return DISCARD_SEARCH;
 		}
-
-		if (!packet_len)
-			return SEARCH_START_CODE;
-
-		else {
-			SET_BLOCK(packet_len);
-			audio_data_parsed += packet_len;
-			return SEND_AUDIO_SEARCH;
-		}
 	}
 
 	return SEARCH_START_CODE;

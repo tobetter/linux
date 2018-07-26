@@ -443,7 +443,7 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec, int irq)
 
 			if (duration == hw->last_duration) {
 				hw->rate_detect++;
-				if (hw->rate_detect >= RATE_DETECT_COUNT) {
+				if ((hw->rate_detect >= RATE_DETECT_COUNT) && (time_increment_resolution != 0)) {
 					hw->vmpeg4_amstream_dec_info.rate =
 					duration * DURATION_UNIT /
 					time_increment_resolution;

@@ -84,7 +84,7 @@ static int fops_vcodec_open(struct file *file)
 
 	/* Deinit when failure occurred */
 //err_load_fw:
-	v4l2_m2m_ctx_release(ctx->m2m_ctx);
+	/*v4l2_m2m_ctx_release(ctx->m2m_ctx);*/
 err_m2m_ctx_init:
 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
 err_ctrls_setup:
@@ -146,11 +146,6 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 
 	INIT_LIST_HEAD(&dev->ctx_list);
 	dev->plat_dev = pdev;
-
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Failed to get mt vcodec clock source");
-		return ret;
-	}
 
 	mutex_init(&dev->dec_mutex);
 	mutex_init(&dev->dev_mutex);

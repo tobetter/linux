@@ -397,7 +397,7 @@ extern int vdec_core_request(struct vdec_s *vdec, unsigned long mask);
 
 extern int vdec_core_release(struct vdec_s *vdec, unsigned long mask);
 
-extern const bool vdec_core_with_input(unsigned long mask);
+extern bool vdec_core_with_input(unsigned long mask);
 
 extern void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask);
 

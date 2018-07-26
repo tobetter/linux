@@ -499,7 +499,7 @@ static void vreal_put_timer_func(unsigned long arg)
 		struct vframe_s *vf;
 
 		if (kfifo_get(&recycle_q, &vf)) {
-			if ((vf->index >= 0) && (vf->index < VF_BUF_NUM)
+			if ((vf->index < VF_BUF_NUM)
 				&& (--vfbuf_use[vf->index] == 0)) {
 				WRITE_VREG(TO_AMRISC, ~(1 << vf->index));
 				vf->index = VF_BUF_NUM;

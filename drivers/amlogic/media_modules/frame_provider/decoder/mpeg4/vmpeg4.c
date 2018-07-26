@@ -715,8 +715,7 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		struct vframe_s *vf;
 
 		if (kfifo_get(&recycle_q, &vf)) {
-			if ((vf->index >= 0)
-				&& (vf->index < DECODE_BUFFER_NUM_MAX)
+			if ((vf->index < DECODE_BUFFER_NUM_MAX)
 				&& (--vfbuf_use[vf->index] == 0)) {
 				WRITE_VREG(MREG_BUFFERIN, ~(1 << vf->index));
 				vf->index = DECODE_BUFFER_NUM_MAX;

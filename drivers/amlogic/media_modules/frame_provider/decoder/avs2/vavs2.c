@@ -3579,7 +3579,7 @@ static struct vframe_s *vavs2_vf_get(void *op_arg)
 	if (kfifo_get(&dec->display_q, &vf)) {
 		uint8_t index = vf->index & 0xff;
 
-		if (index >= 0	&& index < dec->used_buf_num) {
+		if (index < dec->used_buf_num) {
 			struct avs2_frame_s *pic = get_pic_by_index(dec, index);
 			dec->vf_get_count++;
 			avs2_print(dec, AVS2_DBG_BUFMGR,
@@ -3612,8 +3612,7 @@ static void vavs2_vf_put(struct vframe_s *vf, void *op_arg)
 		__func__, vf->index,
 		dec->vf_put_count);
 
-	if (index >= 0
-		&& index < dec->used_buf_num) {
+	if (index < dec->used_buf_num) {
 		unsigned long flags;
 		struct avs2_frame_s *pic;
 
@@ -5387,16 +5386,16 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			dec->frame_count, r,
 			dec->chunk ? dec->chunk->size : 0,
 			dec->chunk ? dec->chunk->offset : 0,
-			(vdec_frame_based(vdec) &&
+			dec->chunk ? ((vdec_frame_based(vdec) &&
 			(debug & PRINT_FLAG_VDEC_STATUS)) ?
-			get_data_check_sum(dec, r) : 0,
+			get_data_check_sum(dec, r) : 0) : 0,
 		READ_VREG(HEVC_STREAM_START_ADDR),
 		READ_VREG(HEVC_STREAM_END_ADDR),
 		READ_VREG(HEVC_STREAM_LEVEL),
 		READ_VREG(HEVC_STREAM_WR_PTR),
 		READ_VREG(HEVC_STREAM_RD_PTR),
 		dec->start_shift_bytes);
-		if (vdec_frame_based(vdec)) {
+		if (vdec_frame_based(vdec) && dec->chunk) {
 			u8 *data = ((u8 *)dec->chunk->block->start_virt) +
 				dec->chunk->offset;
 			avs2_print_cont(dec, 0, "data adr %p:",
@@ -5431,7 +5430,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	WRITE_VREG(HEVC_DEC_STATUS_REG, AVS2_ACTION_DONE);
 
-	if (vdec_frame_based(vdec)) {
+	if (vdec_frame_based(vdec) && dec->chunk) {
 		if (debug & PRINT_FLAG_VDEC_DATA)
 			dump_data(dec, dec->chunk->size);
 
@@ -5677,7 +5676,7 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 		dec->stat |= VP9_TRIGGER_FRAME_ENABLE;
 #if 1
 	if ((debug & IGNORE_PARAM_FROM_CONFIG) == 0 &&
-			pdata->config && pdata->config_len) {
+			pdata->config_len) {
 		/*use ptr config for doubel_write_mode, etc*/
 		avs2_print(dec, 0, "pdata->config=%s\n", pdata->config);
 		if (get_config_int(pdata->config, "avs2_double_write_mode",
@@ -5761,13 +5760,6 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	dec->init_flag = 0;
 	dec->fatal_error = 0;
 	dec->show_frame_num = 0;
-	if (pdata == NULL) {
-		pr_info("\namvdec_avs2 memory resource undefined.\n");
-		uninit_mmu_buffers(dec);
-		/* devm_kfree(&pdev->dev, (void *)dec); */
-		vfree((void *)dec);
-		return -EFAULT;
-	}
 
 	if (debug) {
 		pr_info("===AVS2 decoder mem resource 0x%lx size 0x%x\n",

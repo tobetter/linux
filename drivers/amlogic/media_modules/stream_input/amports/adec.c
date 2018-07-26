@@ -224,7 +224,7 @@ s32 adec_init(struct stream_port_s *port)
 	astream_dev->datawidth = port->adatawidth;
 
 	/*wmb();don't need it...*/
-	if (af <= ARRAY_SIZE(astream_format))
+	if (af < ARRAY_SIZE(astream_format))
 		astream_dev->format = astream_format[af];
 	else
 		astream_dev->format = NULL;
@@ -250,7 +250,7 @@ int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
 	int ret = -1;
 	void *buf, *getbuf = NULL;
 	if (size < PAGE_SIZE) {
-		void *getbuf = (void *)__get_free_page(GFP_KERNEL);
+		getbuf = (void *)__get_free_page(GFP_KERNEL);
 		if (!getbuf)
 			return -ENOMEM;
 		buf = getbuf;
@@ -277,7 +277,7 @@ int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
 		ret = -1;
 	}
 	if (ret > 0 && getbuf != NULL) {
-		int ret = min_t(int, ret, size);
+		ret = min_t(int, ret, size);
 		strncpy(sbuf, buf, ret);
 	}
 	if (getbuf != NULL)

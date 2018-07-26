@@ -111,7 +111,7 @@ int tsdemux_set_reset_flag(void)
 static int tsdemux_reset(void)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->reset) {
@@ -126,7 +126,7 @@ static int tsdemux_reset(void)
 static int tsdemux_request_irq(irq_handler_t handler, void *data)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->request_irq)
@@ -139,7 +139,7 @@ static int tsdemux_request_irq(irq_handler_t handler, void *data)
 static int tsdemux_free_irq(void)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->free_irq)
