@@ -9,6 +9,7 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-mem2mem.h>
 #include <media/videobuf2-dma-contig.h>
+#include <linux/kthread.h>
 
 #include "aml_vcodec_drv.h"
 #include "aml_vcodec_dec.h"
@@ -49,24 +50,26 @@ static int fops_vcodec_open(struct file *file)
 	file->private_data = &ctx->fh;
 	v4l2_fh_add(&ctx->fh);
 	INIT_LIST_HEAD(&ctx->list);
+	INIT_LIST_HEAD(&ctx->capture_list);
+	INIT_LIST_HEAD(&ctx->vdec_thread_list);
 	dev->filp = file;
 	ctx->dev = dev;
 	init_waitqueue_head(&ctx->queue);
+	mutex_init(&ctx->state_lock);
 	mutex_init(&ctx->lock);
-	sema_init(&ctx->sem, 1);
 	init_waitqueue_head(&ctx->wq);
 
 	ctx->type = AML_INST_DECODER;
 	ret = aml_vcodec_dec_ctrls_setup(ctx);
 	if (ret) {
-		aml_v4l2_err("Failed to setup mt vcodec controls\n");
+		aml_v4l2_err("Failed to setup vcodec controls");
 		goto err_ctrls_setup;
 	}
 	ctx->m2m_ctx = v4l2_m2m_ctx_init(dev->m2m_dev_dec, ctx,
 		&aml_vcodec_dec_queue_init);
 	if (IS_ERR((__force void *)ctx->m2m_ctx)) {
 		ret = PTR_ERR((__force void *)ctx->m2m_ctx);
-		aml_v4l2_err("Failed to v4l2_m2m_ctx_init() (%d)\n", ret);
+		aml_v4l2_err("Failed to v4l2_m2m_ctx_init() (%d)", ret);
 		goto err_m2m_ctx_init;
 	}
 	src_vq = v4l2_m2m_get_vq(ctx->m2m_ctx,
@@ -74,6 +77,12 @@ static int fops_vcodec_open(struct file *file)
 	ctx->empty_flush_buf->vb.vb2_buf.vb2_queue = src_vq;
 	ctx->empty_flush_buf->lastframe = true;
 	aml_vcodec_dec_set_default_params(ctx);
+
+	ret = aml_thread_start(ctx, try_to_capture, AML_THREAD_CAPTURE, "cap");
+	if (ret) {
+		aml_v4l2_err("Failed to creat capture thread.");
+		goto err_creat_thread;
+	}
 
 	list_add(&ctx->list, &dev->ctx_list);
 
@@ -83,8 +92,8 @@ static int fops_vcodec_open(struct file *file)
 	return ret;
 
 	/* Deinit when failure occurred */
-//err_load_fw:
-	/*v4l2_m2m_ctx_release(ctx->m2m_ctx);*/
+err_creat_thread:
+	v4l2_m2m_ctx_release(ctx->m2m_ctx);
 err_m2m_ctx_init:
 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
 err_ctrls_setup:
@@ -111,12 +120,14 @@ static int fops_vcodec_release(struct file *file)
 	 * Second, the decoder will be flushed and all the buffers will be
 	 * returned in stop_streaming.
 	 */
-	v4l2_m2m_ctx_release(ctx->m2m_ctx);
 	aml_vcodec_dec_release(ctx);
+	v4l2_m2m_ctx_release(ctx->m2m_ctx);
 
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
+
+	aml_thread_stop(ctx);
 
 	list_del_init(&ctx->list);
 	kfree(ctx->empty_flush_buf);
@@ -156,7 +167,7 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 
 	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);
 	if (ret) {
-		aml_v4l2_err("v4l2_device_register err=%d\n", ret);
+		aml_v4l2_err("v4l2_device_register err=%d", ret);
 		goto err_res;
 	}
 
@@ -164,7 +175,7 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 
 	vfd_dec = video_device_alloc();
 	if (!vfd_dec) {
-		aml_v4l2_err("Failed to allocate video device\n");
+		aml_v4l2_err("Failed to allocate video device");
 		ret = -ENOMEM;
 		goto err_dec_alloc;
 	}
@@ -186,7 +197,7 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 
 	dev->m2m_dev_dec = v4l2_m2m_init(&aml_vdec_m2m_ops);
 	if (IS_ERR((__force void *)dev->m2m_dev_dec)) {
-		aml_v4l2_err("Failed to init mem2mem dec device\n");
+		aml_v4l2_err("Failed to init mem2mem dec device");
 		ret = PTR_ERR((__force void *)dev->m2m_dev_dec);
 		goto err_dec_mem_init;
 	}
@@ -195,28 +206,17 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 		alloc_ordered_workqueue(AML_VCODEC_DEC_NAME,
 			WQ_MEM_RECLAIM | WQ_FREEZABLE);
 	if (!dev->decode_workqueue) {
-		aml_v4l2_err("Failed to create decode workqueue\n");
+		aml_v4l2_err("Failed to create decode workqueue");
 		ret = -EINVAL;
-		goto err_event_workq;
-	}
-
-	dev->decode_workqueue_vf =
-		alloc_ordered_workqueue("aml-vcodec-dec-vf",
-			WQ_MEM_RECLAIM | WQ_FREEZABLE);
-	if (!dev->decode_workqueue_vf) {
-		aml_v4l2_err("Failed to create decode workqueue\n");
-		ret = -EINVAL;
-		destroy_workqueue(dev->decode_workqueue);
 		goto err_event_workq;
 	}
 
 	dev->reset_workqueue =
 		alloc_ordered_workqueue("aml-vcodec-reset",
 			WQ_MEM_RECLAIM | WQ_FREEZABLE);
-	if (!dev->decode_workqueue_vf) {
-		aml_v4l2_err("Failed to create decode workqueue\n");
+	if (!dev->reset_workqueue) {
+		aml_v4l2_err("Failed to create decode workqueue");
 		ret = -EINVAL;
-		destroy_workqueue(dev->decode_workqueue_vf);
 		destroy_workqueue(dev->decode_workqueue);
 		goto err_event_workq;
 	}
@@ -235,7 +235,6 @@ static int aml_vcodec_probe(struct platform_device *pdev)
 
 err_dec_reg:
 	destroy_workqueue(dev->reset_workqueue);
-	destroy_workqueue(dev->decode_workqueue_vf);
 	destroy_workqueue(dev->decode_workqueue);
 err_event_workq:
 	v4l2_m2m_release(dev->m2m_dev_dec);
@@ -259,8 +258,8 @@ static int aml_vcodec_dec_remove(struct platform_device *pdev)
 {
 	struct aml_vcodec_dev *dev = platform_get_drvdata(pdev);
 
-	flush_workqueue(dev->decode_workqueue_vf);
-	destroy_workqueue(dev->decode_workqueue_vf);
+	flush_workqueue(dev->reset_workqueue);
+	destroy_workqueue(dev->reset_workqueue);
 
 	flush_workqueue(dev->decode_workqueue);
 	destroy_workqueue(dev->decode_workqueue);

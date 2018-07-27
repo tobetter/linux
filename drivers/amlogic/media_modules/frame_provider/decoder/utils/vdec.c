@@ -1581,7 +1581,8 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				"vdec-map-%d", vdec->id);
 		} else if (p->frame_base_video_path == FRAME_BASE_PATH_V4L_VIDEO) {
 			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
-				"%s %s", vdec->vf_provider_name, "v4l2-video");
+				"%s %s", vdec->vf_provider_name,
+				vdec->vf_receiver_name);
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
 		}
@@ -2442,6 +2443,7 @@ void vdec_poweron(enum vdec_type_e core)
 		 * m8baby and m8m2 can dynamic adjust vdec clock,
 		 * power on with default clock level
 		 */
+		amports_switch_gate("clk_vdec_mux", 1);
 		vdec_clock_hi_enable();
 		/* power up vdec memories */
 		WRITE_VREG(DOS_MEM_PD_VDEC, 0);
@@ -2519,6 +2521,9 @@ void vdec_poweron(enum vdec_type_e core)
 				WRITE_VREG(DOS_SW_RESET3, 0xffffffff);
 				WRITE_VREG(DOS_SW_RESET3, 0);
 				/* enable hevc clock */
+				amports_switch_gate("clk_hevc_mux", 1);
+				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
+					amports_switch_gate("clk_hevcb_mux", 1);
 				hevc_clock_hi_enable();
 				hevc_back_clock_hi_enable();
 				/* power up hevc memories */

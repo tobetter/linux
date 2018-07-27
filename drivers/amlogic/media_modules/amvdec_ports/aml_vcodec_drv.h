@@ -12,7 +12,7 @@
 #define AML_VCODEC_DRV_NAME	"aml_vcodec_drv"
 #define AML_VCODEC_DEC_NAME	"aml-vcodec-dec"
 #define AML_VCODEC_ENC_NAME	"aml-vcodec-enc"
-#define AML_PLATFORM_STR	"platform:mt8173"
+#define AML_PLATFORM_STR	"platform:amlogic"
 
 #define AML_VCODEC_MAX_PLANES	3
 #define AML_V4L2_BENCHMARK	0
@@ -52,20 +52,25 @@ enum aml_instance_type {
 
 /**
  * enum aml_instance_state - The state of an AML Vcodec instance.
- * @AML_STATE_FREE - default state when instance is created
- * @AML_STATE_INIT - vcodec instance is initialized
- * @AML_STATE_HEADER - vdec had sps/pps header parsed or venc
- *			had sps/pps header encoded
- * @AML_STATE_FLUSH - vdec is flushing. Only used by decoder
- * @AML_STATE_ABORT - vcodec should be aborted
+ * @AML_STATE_IDLE	- default state when instance is created
+ * @AML_STATE_INIT	- vcodec instance is initialized
+ * @AML_STATE_PROBE	- vdec/venc had sps/pps header parsed/encoded
+ * @AML_STATE_ACTIVE	- vdec is ready for work.
+ * @AML_STATE_FLUSHING	- vdec is flushing. Only used by decoder
+ * @AML_STATE_FLUSHED	- decoder has transacted the last frame.
+ * @AML_STATE_RESET	- decoder has be reset after flush.
+ * @AML_STATE_ABORT	- vcodec should be aborted
  */
 enum aml_instance_state {
-	AML_STATE_FREE = 0,
-	AML_STATE_INIT = 1,
-	AML_STATE_HEADER = 2,
-	AML_STATE_FLUSH = 3,
-	AML_STATE_ABORT = 4,
-	AML_STATE_RESET = 5,
+	AML_STATE_IDLE,
+	AML_STATE_INIT,
+	AML_STATE_PROBE,
+	AML_STATE_READY,
+	AML_STATE_ACTIVE,
+	AML_STATE_FLUSHING,
+	AML_STATE_FLUSHED,
+	AML_STATE_RESET,
+	AML_STATE_ABORT,
 };
 
 /**
@@ -186,10 +191,10 @@ struct aml_vcodec_pm {
 
 /**
  * struct vdec_pic_info  - picture size information
- * @pic_w: picture width
- * @pic_h: picture height
- * @buf_w: picture buffer width (64 aligned up from pic_w)
- * @buf_h: picture buffer heiht (64 aligned up from pic_h)
+ * @visible_width: picture width
+ * @visible_height: picture height
+ * @coded_width: picture buffer width (64 aligned up from pic_w)
+ * @coded_height: picture buffer heiht (64 aligned up from pic_h)
  * @y_bs_sz: Y bitstream size
  * @c_bs_sz: CbCr bitstream size
  * @y_len_sz: additional size required to store decompress information for y
@@ -200,14 +205,33 @@ struct aml_vcodec_pm {
  *      buffer size will be aligned to 176x160.
  */
 struct vdec_pic_info {
-	unsigned int pic_w;
-	unsigned int pic_h;
-	unsigned int buf_w;
-	unsigned int buf_h;
+	unsigned int visible_width;
+	unsigned int visible_height;
+	unsigned int coded_width;
+	unsigned int coded_height;
 	unsigned int y_bs_sz;
 	unsigned int c_bs_sz;
 	unsigned int y_len_sz;
 	unsigned int c_len_sz;
+};
+
+enum aml_thread_type {
+	AML_THREAD_OUTPUT,
+	AML_THREAD_CAPTURE,
+};
+
+typedef void (*aml_thread_func)(struct aml_vcodec_ctx *ctx);
+
+struct aml_vdec_thread {
+	struct list_head node;
+	spinlock_t lock;
+	struct semaphore sem;
+	struct task_struct *task;
+	enum aml_thread_type type;
+	void *priv;
+	int stop;
+
+	aml_thread_func func;
 };
 
 /**
@@ -256,8 +280,10 @@ struct aml_vcodec_ctx {
 
 	struct v4l2_fh fh;
 	struct v4l2_m2m_ctx *m2m_ctx;
+	struct aml_vdec_adapt *ada_ctx;
 	struct aml_q_data q_data[2];
 	int id;
+	struct mutex state_lock;
 	enum aml_instance_state state;
 	enum aml_encode_param param_change;
 	struct aml_enc_params enc_params;
@@ -276,7 +302,6 @@ struct aml_vcodec_ctx {
 
 	struct v4l2_ctrl_handler ctrl_hdl;
 	struct work_struct decode_work;
-	struct work_struct decode_work_vf;
 	struct work_struct encode_work;
 	struct work_struct reset_work;
 	struct vdec_pic_info last_decoded_picinfo;
@@ -289,10 +314,10 @@ struct aml_vcodec_ctx {
 
 	int decoded_frame_cnt;
 	struct mutex lock;
-	struct semaphore sem;
 	wait_queue_head_t wq;
 	bool has_receive_eos;
-
+	struct list_head capture_list;
+	struct list_head vdec_thread_list;
 };
 
 /**
@@ -352,7 +377,6 @@ struct aml_vcodec_dev {
 	unsigned long id_counter;
 
 	struct workqueue_struct *decode_workqueue;
-	struct workqueue_struct *decode_workqueue_vf;
 	struct workqueue_struct *encode_workqueue;
 	struct workqueue_struct *reset_workqueue;
 	int int_cond;

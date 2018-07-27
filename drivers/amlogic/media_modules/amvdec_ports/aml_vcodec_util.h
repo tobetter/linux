@@ -23,11 +23,10 @@ extern bool aml_vcodec_dbg;
 
 #if defined(DEBUG)
 
-#define aml_v4l2_debug(level, fmt, args...)				 \
-	do {								 \
-		if (aml_v4l2_dbg_level >= level)			 \
-			pr_info("[AML_V4L2] level=%d %s(),%d: " fmt "\n",\
-				level, __func__, __LINE__, ##args);	 \
+#define aml_v4l2_debug(level, fmt, args...)				\
+	do {								\
+		if (aml_v4l2_dbg_level >= level)			\
+			pr_info(fmt "\n", ##args);			\
 	} while (0)
 
 #define aml_v4l2_debug_enter()  aml_v4l2_debug(3, "+")
@@ -36,8 +35,8 @@ extern bool aml_vcodec_dbg;
 #define aml_vcodec_debug(h, fmt, args...)				\
 	do {								\
 		if (aml_vcodec_dbg)					\
-			pr_info("[AML_VCODEC][%d]: %s() " fmt "\n",	\
-				((struct aml_vcodec_ctx *)h->ctx)->id, \
+			pr_info("[%d]: %s() " fmt "\n",			\
+				((struct aml_vcodec_ctx *)h->ctx)->id,	\
 				__func__, ##args);			\
 	} while (0)
 
@@ -56,13 +55,12 @@ extern bool aml_vcodec_dbg;
 
 #endif
 
-#define aml_v4l2_err(fmt, args...)                \
-	pr_err("[AML_V4L2][ERROR] %s:%d: " fmt "\n", __func__, __LINE__, \
-	       ##args)
+#define aml_v4l2_err(fmt, args...) \
+	pr_err("[ERR]" fmt "\n", ##args)
 
 #define aml_vcodec_err(h, fmt, args...)					\
-	pr_err("[AML_VCODEC][ERROR][%d]: %s() " fmt "\n",		\
-	       ((struct aml_vcodec_ctx *)h->ctx)->id, __func__, ##args)
+	pr_err("[ERR][%d]" fmt "\n",					\
+		((struct aml_vcodec_ctx *)h->ctx)->id, ##args)
 
 void __iomem *aml_vcodec_get_reg_addr(struct aml_vcodec_ctx *data,
 				unsigned int reg_idx);

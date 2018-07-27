@@ -89,31 +89,17 @@ static struct stream_buf_s bufs[BUF_MAX_NUM] = {
 	},
 };
 
-struct vdec_adapt_config {
-	struct vdec_s		*vdec;
-	struct stream_port_s	port;
-	struct dec_sysinfo	dec_prop;
-};
-
-struct vdec_adapt_config g_cfg;
-
 static void set_cfg_info(struct aml_vdec_adapt *vdec)
 {
 	unsigned long sync_mode = (PTS_OUTSIDE | SYNC_OUTSIDE | USE_V4L_PORTS);
 
-	g_cfg.port.type |= (PORT_TYPE_VIDEO | PORT_TYPE_ES);
-	g_cfg.port.flag |= PORT_FLAG_VFORMAT;
-	g_cfg.dec_prop.format = VFORMAT_H264;
-	g_cfg.dec_prop.width = 1920;
-	g_cfg.dec_prop.height = 1080;
-	g_cfg.dec_prop.rate = 3200;
-	g_cfg.dec_prop.param = (void *)sync_mode;
-}
-
-static void set_system_info(struct vdec_s *vdec)
-{
-	vdec->sys_info = &g_cfg.dec_prop;
-	vdec->sys_info_store = g_cfg.dec_prop;
+	vdec->port.type |= (PORT_TYPE_VIDEO | PORT_TYPE_FRAME/* | PORT_TYPE_ES*/);
+	vdec->port.flag |= PORT_FLAG_VFORMAT;
+	vdec->dec_prop.format = vdec->format;
+	vdec->dec_prop.width = 1920;
+	vdec->dec_prop.height = 1080;
+	vdec->dec_prop.rate = 3200;
+	vdec->dec_prop.param = (void *)sync_mode;
 }
 
 static void set_vdec_mode(struct vdec_s *vdec)
@@ -127,10 +113,8 @@ static void set_vdec_vfm(struct vdec_s *vdec)
 	vdec->frame_base_video_path = FRAME_BASE_PATH_V4L_VIDEO;
 }
 
-static int enable_hardware(void)
+static int enable_hardware(struct stream_port_s *port)
 {
-	struct stream_port_s *port = &g_cfg.port;
-
 	if (get_cpu_type() < MESON_CPU_MAJOR_ID_M6)
 		return -1;
 
@@ -142,30 +126,22 @@ static int enable_hardware(void)
 		amports_switch_gate("vdec", 1);
 
 		if (has_hevc_vdec()) {
-			if (port->type & (PORT_TYPE_MPTS | PORT_TYPE_HEVC)) {
-				amports_switch_gate("clk_hevc_mux", 1);
+			if (port->type & (PORT_TYPE_MPTS | PORT_TYPE_HEVC))
 				vdec_poweron(VDEC_HEVC);
-			}
 
-			if ((port->type & PORT_TYPE_HEVC) == 0) {
-				amports_switch_gate("clk_vdec_mux", 1);
+			if ((port->type & PORT_TYPE_HEVC) == 0)
 				vdec_poweron(VDEC_1);
-			}
 		} else {
-			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
-				amports_switch_gate("clk_vdec_mux", 1);
+			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
 				vdec_poweron(VDEC_1);
-			}
 		}
 	}
 
 	return 0;
 }
 
-static int disable_hardware(void)
+static int disable_hardware(struct stream_port_s *port)
 {
-	struct stream_port_s *port = &g_cfg.port;
-
 	if (get_cpu_type() < MESON_CPU_MAJOR_ID_M6)
 		return -1;
 
@@ -316,9 +292,9 @@ static int audio_component_init(struct stream_port_s *port,
 static void video_component_release(struct stream_port_s *port,
 struct stream_buf_s *pbuf, int release_num)
 {
-	struct vdec_adapt_config *cfg
-		= container_of(port, struct vdec_adapt_config, port);
-	struct vdec_s *vdec = cfg->vdec;
+	struct aml_vdec_adapt *ada_ctx
+		= container_of(port, struct aml_vdec_adapt, port);
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	struct vdec_s *slave = NULL;
 	bool is_multidec = !vdec_single(vdec);
@@ -355,9 +331,9 @@ static int video_component_init(struct stream_port_s *port,
 			  struct stream_buf_s *pbuf)
 {
 	int ret = -1;
-	struct vdec_adapt_config *cfg
-		= container_of(port, struct vdec_adapt_config, port);
-	struct vdec_s *vdec = cfg->vdec;
+	struct aml_vdec_adapt *ada_ctx
+		= container_of(port, struct aml_vdec_adapt, port);
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	if ((vdec->port_flag & PORT_FLAG_VFORMAT) == 0) {
 		pr_err("vformat not set\n");
@@ -437,9 +413,9 @@ static int video_component_init(struct stream_port_s *port,
 
 static int vdec_ports_release(struct stream_port_s *port)
 {
-	struct vdec_adapt_config *cfg
-		= container_of(port, struct vdec_adapt_config, port);
-	struct vdec_s *vdec = cfg->vdec;
+	struct aml_vdec_adapt *ada_ctx
+		= container_of(port, struct aml_vdec_adapt, port);
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	struct stream_buf_s *pvbuf = &bufs[BUF_TYPE_VIDEO];
 	struct stream_buf_s *pabuf = &bufs[BUF_TYPE_AUDIO];
@@ -492,7 +468,7 @@ static int vdec_ports_init(struct aml_vdec_adapt *vdec_adapt)
 	struct stream_buf_s *pvbuf = &bufs[BUF_TYPE_VIDEO];
 	struct stream_buf_s *pabuf = &bufs[BUF_TYPE_AUDIO];
 	//struct stream_buf_s *psbuf = &bufs[BUF_TYPE_SUBTITLE];
-	struct stream_port_s *port = &g_cfg.port;
+	struct stream_port_s *port = &vdec_adapt->port;
 	struct vdec_s *vdec = NULL;
 
 	/* create the vdec instance.*/
@@ -503,11 +479,13 @@ static int vdec_ports_init(struct aml_vdec_adapt *vdec_adapt)
 	/* set v4l2 ctx */
 	vdec->private = vdec_adapt->ctx;
 
-	g_cfg.vdec = vdec;
+	vdec_adapt->vdec = vdec;
+	vdec->sys_info = &vdec_adapt->dec_prop;
+	vdec->sys_info_store = vdec_adapt->dec_prop;
+	vdec->vf_receiver_name = vdec_adapt->recv_name;
 
 	/* set video format and sys info */
-	vdec_set_format(vdec, g_cfg.dec_prop.format); //set by ioctl ???
-	set_system_info(vdec);
+	vdec_set_format(vdec, vdec_adapt->dec_prop.format);
 	set_vdec_mode(vdec);
 	set_vdec_vfm(vdec);
 
@@ -563,7 +541,7 @@ int video_decoder_init(struct aml_vdec_adapt *vdec)
 	set_cfg_info(vdec);
 
 	/* init hw and gate*/
-	ret = enable_hardware();
+	ret = enable_hardware(&vdec->port);
 	if (ret < 0) {
 		pr_info("enable hw fail.\n");
 		goto out;
@@ -582,7 +560,7 @@ out:
 int video_decoder_release(struct aml_vdec_adapt *vdec)
 {
 	int ret = -1;
-	struct stream_port_s *port = &g_cfg.port;
+	struct stream_port_s *port = &vdec->port;
 
 	ret = vdec_ports_release(port);
 	if (ret < 0) {
@@ -591,7 +569,7 @@ int video_decoder_release(struct aml_vdec_adapt *vdec)
 	}
 
 	/* disable gates */
-	ret = disable_hardware();
+	ret = disable_hardware(port);
 	if (ret < 0) {
 		pr_info("disable hw fail.\n");
 		goto out;
@@ -600,12 +578,13 @@ out:
 	return ret;
 }
 
-int vdec_vbuf_write(struct file *file, const char *buf, unsigned int count)
+int vdec_vbuf_write(struct aml_vdec_adapt *ada_ctx,
+	const char *buf, unsigned int count)
 {
 	int ret = -1;
 	int try_cnt = 100;
-	struct stream_port_s *port = &g_cfg.port;
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct stream_port_s *port = &ada_ctx->port;
+	struct vdec_s *vdec = ada_ctx->vdec;
 	struct stream_buf_s *pbuf = NULL;
 
 	if (has_hevc_vdec()) {
@@ -622,9 +601,9 @@ int vdec_vbuf_write(struct file *file, const char *buf, unsigned int count)
 
 	do {
 		if (vdec->port_flag & PORT_FLAG_DRM)
-			ret = drm_write(file, pbuf, buf, count);
+			ret = drm_write(ada_ctx->filp, pbuf, buf, count);
 		else
-			ret = esparser_write(file, pbuf, buf, count);
+			ret = esparser_write(ada_ctx->filp, pbuf, buf, count);
 	} while (ret == -EAGAIN && try_cnt--);
 
 	if (slow_input) {
@@ -641,9 +620,9 @@ int vdec_vbuf_write(struct file *file, const char *buf, unsigned int count)
 	return ret;
 }
 
-int is_need_to_buf(void)
+int is_need_to_buf(struct aml_vdec_adapt *ada_ctx)
 {
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	if (vdec->input.have_frame_num > 8)
 		return 0;
@@ -651,12 +630,12 @@ int is_need_to_buf(void)
 		return 1;
 }
 
-int vdec_vframe_write(struct file *file, const char *buf,
-	unsigned int count, unsigned long int timestamp)
+int vdec_vframe_write(struct aml_vdec_adapt *ada_ctx,
+	const char *buf, unsigned int count, unsigned long int timestamp)
 {
 	int ret = -1;
 	int try_cnt = 10;
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	/* set timestamp */
 	vdec_set_timestamp(vdec, timestamp);
@@ -678,33 +657,36 @@ int vdec_vframe_write(struct file *file, const char *buf,
 	/* dump to file */
 	dump_write(buf, count);
 #endif
-	aml_v4l2_debug(1, "vdec_vframe_write, vbuf: %p, size: %u, ret: %d, crc: %x\n",
-		buf, count, ret, crc32(0, buf, count));
+	aml_v4l2_debug(2, "[%d] write frames, vbuf: %p, size: %u, ret: %d, crc: %x",
+		ada_ctx->ctx->id, buf, count, ret, crc32(0, buf, count));
 
 	return ret;
 }
 
-void aml_decoder_flush(void)
+void aml_decoder_flush(struct aml_vdec_adapt *ada_ctx)
 {
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct vdec_s *vdec = ada_ctx->vdec;
 
 	if (vdec)
 		vdec_set_eos(vdec, true);
 }
 
-void aml_codec_reset(void)
+int aml_codec_reset(struct aml_vdec_adapt *ada_ctx)
 {
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct vdec_s *vdec = ada_ctx->vdec;
+	int ret = 0;
 
 	if (vdec) {
 		vdec_set_eos(vdec, false);
-		vdec_reset(vdec);
+		ret = vdec_reset(vdec);
 	}
+
+	return ret;
 }
 
-bool is_decoder_ready(void)
+bool is_input_ready(struct aml_vdec_adapt *ada_ctx)
 {
-	struct vdec_s *vdec = g_cfg.vdec;
+	struct vdec_s *vdec = ada_ctx->vdec;
 	int state = VDEC_STATUS_UNINITIALIZED;
 
 	if (vdec) {
