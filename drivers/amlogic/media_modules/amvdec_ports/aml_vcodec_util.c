@@ -45,10 +45,10 @@ int aml_vcodec_mem_alloc(struct aml_vcodec_ctx *data,
 
 	memset(mem->va, 0, size);
 
-	aml_v4l2_debug(3, "[%d]  - va      = %p", ctx->id, mem->va);
-	aml_v4l2_debug(3, "[%d]  - dma     = 0x%lx", ctx->id,
+	aml_v4l2_debug(4, "[%d]  - va      = %p", ctx->id, mem->va);
+	aml_v4l2_debug(4, "[%d]  - dma     = 0x%lx", ctx->id,
 		       (unsigned long)mem->dma_addr);
-	aml_v4l2_debug(3, "[%d]    size = 0x%lx", ctx->id, size);
+	aml_v4l2_debug(4, "[%d]    size = 0x%lx", ctx->id, size);
 
 	return 0;
 }
@@ -67,10 +67,10 @@ void aml_vcodec_mem_free(struct aml_vcodec_ctx *data,
 		return;
 	}
 
-	aml_v4l2_debug(3, "[%d]  - va      = %p", ctx->id, mem->va);
-	aml_v4l2_debug(3, "[%d]  - dma     = 0x%lx", ctx->id,
+	aml_v4l2_debug(4, "[%d]  - va      = %p", ctx->id, mem->va);
+	aml_v4l2_debug(4, "[%d]  - dma     = 0x%lx", ctx->id,
 		       (unsigned long)mem->dma_addr);
-	aml_v4l2_debug(3, "[%d]    size = 0x%lx", ctx->id, size);
+	aml_v4l2_debug(4, "[%d]    size = 0x%lx", ctx->id, size);
 
 	dma_free_coherent(dev, size, mem->va, mem->dma_addr);
 	mem->va = NULL;

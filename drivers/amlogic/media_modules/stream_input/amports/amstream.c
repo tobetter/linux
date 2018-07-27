@@ -612,10 +612,6 @@ static int video_port_init(struct port_priv_s *priv,
 		pbuf->for_4k = 1;
 		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TXLX
 				&& port->vformat == VFORMAT_H264) {
-			amports_switch_gate("clk_hevc_mux", 1);
-			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-				amports_switch_gate("clk_hevcb_mux", 1);
-
 			vdec_poweron(VDEC_HEVC);
 		}
 	} else {
@@ -1620,22 +1616,14 @@ static int amstream_open(struct inode *inode, struct file *file)
 
 			if (has_hevc_vdec()) {
 				if (port->type &
-					(PORT_TYPE_MPTS | PORT_TYPE_HEVC)) {
-					amports_switch_gate("clk_hevc_mux", 1);
-					if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-						amports_switch_gate("clk_hevcb_mux", 1);
+					(PORT_TYPE_MPTS | PORT_TYPE_HEVC))
 					vdec_poweron(VDEC_HEVC);
-				}
 
-				if ((port->type & PORT_TYPE_HEVC) == 0) {
-					amports_switch_gate("clk_vdec_mux", 1);
+				if ((port->type & PORT_TYPE_HEVC) == 0)
 					vdec_poweron(VDEC_1);
-				}
 			} else {
-				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
-					amports_switch_gate("clk_vdec_mux", 1);
+				if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 					vdec_poweron(VDEC_1);
-				}
 			}
 		}
 

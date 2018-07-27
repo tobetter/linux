@@ -49,8 +49,11 @@ struct aml_video_dec_buf {
 
 	struct vdec_fb frame_buffer;
 	struct codec_mm_s *mem[2];
+	char mem_onwer[32];
+	struct list_head node;
 	bool used;
 	bool ready_to_display;
+	bool que_in_m2m;
 	bool queued_in_vb2;
 	bool queued_in_v4l2;
 	bool lastframe;
@@ -76,5 +79,12 @@ void aml_vcodec_dec_release(struct aml_vcodec_ctx *ctx);
 int aml_vcodec_dec_ctrls_setup(struct aml_vcodec_ctx *ctx);
 
 void vdec_device_vf_run(struct aml_vcodec_ctx *ctx);
+
+void try_to_capture(struct aml_vcodec_ctx *ctx);
+void aml_thread_notify(struct aml_vcodec_ctx *ctx,
+	enum aml_thread_type type);
+int aml_thread_start(struct aml_vcodec_ctx *ctx, aml_thread_func func,
+	enum aml_thread_type type, const char *thread_name);
+void aml_thread_stop(struct aml_vcodec_ctx *ctx);
 
 #endif /* _AML_VCODEC_DEC_H_ */

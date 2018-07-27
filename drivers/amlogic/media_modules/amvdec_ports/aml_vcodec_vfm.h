@@ -8,10 +8,11 @@
 #include <linux/amlogic/media/vfm/vframe_receiver.h>
 
 #define VF_NAME_SIZE	(32)
-#define POOL_SIZE	(16)
+#define POOL_SIZE	(64)
 
 struct vcodec_vfm_s {
 	struct aml_vcodec_ctx *ctx;
+	struct aml_vdec_adapt *ada_ctx;
 	struct vfq_s vf_que;
 	struct vframe_s *vf;
 	struct vframe_s *pool[POOL_SIZE + 1];
@@ -32,6 +33,6 @@ struct vframe_s *get_video_frame(struct vcodec_vfm_s *vfm);
 int get_fb_from_queue(struct aml_vcodec_ctx *ctx, struct vdec_fb **out_fb);
 int put_fb_to_queue(struct aml_vcodec_ctx *ctx, struct vdec_fb *in_fb);
 
-void video_vf_put(struct vdec_fb *fb);
+void video_vf_put(char *receiver, struct vdec_fb *fb, int id);
 
 #endif /* __AML_VCODEC_VFM_H_ */

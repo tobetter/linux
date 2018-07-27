@@ -13,9 +13,9 @@
  * @FB_ST_FREE		: frame buffer is not used by decoder any more
  */
 enum vdec_fb_status {
-	FB_ST_NORMAL		= 0,
-	FB_ST_DISPLAY		= (1 << 0),
-	FB_ST_FREE		= (1 << 1)
+	FB_ST_NORMAL,
+	FB_ST_DISPLAY,
+	FB_ST_FREE
 };
 
 /* For GET_PARAM_DISP_FRAME_BUFFER and GET_PARAM_FREE_FRAME_BUFFER,
