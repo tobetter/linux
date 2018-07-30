@@ -1935,6 +1935,9 @@ static long amstream_ioctl_get(struct port_priv_s *priv, ulong arg)
 	case AMSTREAM_GET_NEED_MORE_DATA:
 		parm.data_32 = vdec_need_more_data(priv->vdec);
 		break;
+	case AMSTREAM_GET_FREED_HANDLE:
+		parm.data_32 = vdec_input_get_freed_handle(priv->vdec);
+		break;
 	default:
 		r = -ENOIOCTLCMD;
 		break;

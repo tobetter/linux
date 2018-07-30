@@ -1547,26 +1547,26 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 			r = ionvideo_assign_map(&vdec->vf_receiver_name,
 					&vdec->vf_receiver_inst);
 #else
-		/*
-		 * temporarily just use decoder instance ID as iondriver ID
-		 * to solve OMX iondriver instance number check time sequence
-		 * only the limitation is we can NOT mix different video
-		 * decoders since same ID will be used for different decoder
-		 * formats.
-		 */
-		vdec->vf_receiver_inst = p->dev->id;
-		r = ionvideo_assign_map(&vdec->vf_receiver_name,
-				&vdec->vf_receiver_inst);
+			/*
+			 * temporarily just use decoder instance ID as iondriver ID
+			 * to solve OMX iondriver instance number check time sequence
+			 * only the limitation is we can NOT mix different video
+			 * decoders since same ID will be used for different decoder
+			 * formats.
+			 */
+			vdec->vf_receiver_inst = p->dev->id;
+			r = ionvideo_assign_map(&vdec->vf_receiver_name,
+					&vdec->vf_receiver_inst);
 #endif
-		if (r < 0) {
-			pr_err("IonVideo frame receiver allocation failed.\n");
+			if (r < 0) {
+				pr_err("IonVideo frame receiver allocation failed.\n");
 
-			mutex_lock(&vdec_mutex);
-			inited_vcodec_num--;
-			mutex_unlock(&vdec_mutex);
+				mutex_lock(&vdec_mutex);
+				inited_vcodec_num--;
+				mutex_unlock(&vdec_mutex);
 
-			goto error;
-		}
+				goto error;
+			}
 
 			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
 				"%s %s", vdec->vf_provider_name,
@@ -1575,9 +1575,15 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				"vdec-map-%d", vdec->id);
 		} else if (p->frame_base_video_path ==
 				FRAME_BASE_PATH_AMLVIDEO_AMVIDEO) {
-			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
-				"%s %s", vdec->vf_provider_name,
-				"amlvideo deinterlace amvideo");
+			if (vdec_secure(vdec)) {
+				snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
+					"%s %s", vdec->vf_provider_name,
+					"amlvideo amvideo");
+			} else {
+				snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
+					"%s %s", vdec->vf_provider_name,
+					"amlvideo deinterlace amvideo");
+			}
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
 		} else if (p->frame_base_video_path ==
@@ -1593,6 +1599,10 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				vdec->vf_receiver_name);
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
+		} else if (p->frame_base_video_path == FRAME_BASE_PATH_TUNNEL_MODE) {
+			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
+				"%s %s", vdec->vf_provider_name,
+				"amvideo");
 		}
 
 		if (vfm_map_add(vdec->vfm_map_id,
