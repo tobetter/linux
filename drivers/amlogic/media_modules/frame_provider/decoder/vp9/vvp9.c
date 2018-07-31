@@ -7856,40 +7856,29 @@ static s32 vvp9_init(struct vdec_s *vdec)
 static s32 vvp9_init(struct VP9Decoder_s *pbi)
 {
 #endif
-	int ret, size = -1;
+	int ret;
 	int fw_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL;
 
-	INIT_WORK(&pbi->set_clk_work, vp9_set_clk);
-
-	init_timer(&pbi->timer);
-
 	pbi->stat |= STAT_TIMER_INIT;
+
 	if (vvp9_local_init(pbi) < 0)
 		return -EBUSY;
 
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-#ifdef MULTI_INSTANCE_SUPPORT
-	if (tee_enabled()) {
-		size = 1;
-		pr_debug ("laod\n");
-	} else
-#endif
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-		size = get_firmware_data(VIDEO_DEC_VP9, fw->data);
-	else
-		size = get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data);
-
-	if (size < 0) {
+	if (get_firmware_data(VIDEO_DEC_VP9_MMU, fw->data) < 0) {
 		pr_err("get firmware fail.\n");
 		vfree(fw);
 		return -1;
 	}
 
 	fw->len = fw_size;
+
+	INIT_WORK(&pbi->set_clk_work, vp9_set_clk);
+	init_timer(&pbi->timer);
 
 #ifdef MULTI_INSTANCE_SUPPORT
 	if (pbi->m_ins_flag) {
@@ -7915,18 +7904,12 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 
 	amhevc_enable();
 
-	if (size == 1) {
-		pr_info ("tee load ok\n");
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9, 0);
-		else
-			ret = tee_load_video_fw((u32)VIDEO_DEC_VP9_MMU, 0);
-	} else
-		ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data);
-
+	ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data);
 	if (ret < 0) {
 		amhevc_disable();
 		vfree(fw);
+		pr_err("VP9: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -8674,15 +8657,12 @@ static void run_front(struct vdec_s *vdec)
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-		ret = amhevc_loadmc_ex(VFORMAT_VP9, "vp9_mc", pbi->fw->data);
-	else
-		ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
-
+	ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
 	if (ret < 0) {
 		amhevc_disable();
-		vp9_print(pbi, 0,
-			"%s: Error amvdec_loadmc fail\n", __func__);
+		vp9_print(pbi, PRINT_FLAG_ERROR,
+			"VP9: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return;
 	}
 

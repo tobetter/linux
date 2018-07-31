@@ -2575,9 +2575,12 @@ static s32 vh264_init(void)
 
 	amvdec_enable();
 	if (!firmwareloaded && tee_enabled()) {
-		if (tee_load_video_fw((u32)VIDEO_DEC_H264, 0) != 0) {
+		ret = amvdec_loadmc_ex(VFORMAT_H264, NULL, NULL);
+		if (ret < 0) {
 			amvdec_disable();
-			return -1;
+			pr_err("H264: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
+			return ret;
 		}
 	} else {
 	/* -- ucode loading (amrisc and swap code) */
@@ -2651,14 +2654,13 @@ static s32 vh264_init(void)
 		}
 		firmwareloaded = 1;
 	} else {
-		int ret = -1, size = -1;
+		int ret = -1;
 		char *buf = vmalloc(0x1000 * 16);
 
 		if (IS_ERR_OR_NULL(buf))
 			return -ENOMEM;
 
-		size = get_firmware_data(VIDEO_DEC_H264, buf);
-		if (size < 0) {
+		if (get_firmware_data(VIDEO_DEC_H264, buf) < 0) {
 			pr_err("get firmware fail.");
 			vfree(buf);
 			return -1;
@@ -2679,7 +2681,6 @@ static s32 vh264_init(void)
 		vfree(buf);
 
 		if (ret < 0) {
-			pr_err("h264 load orignal firmware error %d.\n", ret);
 			amvdec_disable();
 			if (mc_cpu_addr) {
 				dma_free_coherent(amports_get_dma_device(),
@@ -2687,6 +2688,8 @@ static s32 vh264_init(void)
 					mc_dma_handle);
 				mc_cpu_addr = NULL;
 			}
+			pr_err("H264: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
 			return -EBUSY;
 		}
 	}

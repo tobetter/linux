@@ -52,6 +52,7 @@
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
+#include <linux/amlogic/tee.h>
 
 #define DRIVER_NAME "amvdec_real"
 #define MODULE_NAME "amvdec_real"
@@ -793,6 +794,7 @@ static void load_block_data(void *dest, unsigned int count)
 s32 vreal_init(struct vdec_s *vdec)
 {
 	int ret = -1, size = -1;
+	char fw_name[32] = {0};
 	char *buf = vmalloc(0x1000 * 16);
 
 	if (IS_ERR_OR_NULL(buf))
@@ -832,10 +834,12 @@ s32 vreal_init(struct vdec_s *vdec)
 		while (READ_VREG(LMEM_DMA_CTRL) & 0x8000)
 			;
 		size = get_firmware_data(VIDEO_DEC_REAL_V8, buf);
+		strncpy(fw_name, "vreal_mc_8", sizeof(fw_name));
 
 		pr_info("load VIDEO_DEC_FORMAT_REAL_8\n");
 	} else if (vreal_amstream_dec_info.format == VIDEO_DEC_FORMAT_REAL_9) {
 		size = get_firmware_data(VIDEO_DEC_REAL_V9, buf);
+		strncpy(fw_name, "vreal_mc_9", sizeof(fw_name));
 
 		pr_info("load VIDEO_DEC_FORMAT_REAL_9\n");
 	} else
@@ -848,12 +852,14 @@ s32 vreal_init(struct vdec_s *vdec)
 		vfree(buf);
 		return -1;
 	}
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_REAL, NULL, buf) < 0) {
+
+	ret = amvdec_loadmc_ex(VFORMAT_REAL, fw_name, buf);
+	if (ret < 0) {
 		rmparser_release();
 		amvdec_disable();
 		vfree(buf);
+		pr_err("%s: the %s fw loading failed, err: %x\n",
+			fw_name, tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 

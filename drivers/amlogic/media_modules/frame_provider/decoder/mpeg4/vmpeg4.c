@@ -40,6 +40,7 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include <linux/amlogic/tee.h>
 
 /* #define CONFIG_AM_VDEC_MPEG4_LOG */
 #ifdef CONFIG_AM_VDEC_MPEG4_LOG
@@ -1011,21 +1012,24 @@ static void vmpeg4_local_init(void)
 
 static s32 vmpeg4_init(void)
 {
-	int r;
 	int trickmode_fffb = 0;
-	int size = -1;
+	int size = -1, ret = -1;
+	char fw_name[32] = {0};
 	char *buf = vmalloc(0x1000 * 16);
 
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
 	amlog_level(LOG_LEVEL_INFO, "vmpeg4_init\n");
 
-      if (vmpeg4_amstream_dec_info.format ==
+	if (vmpeg4_amstream_dec_info.format ==
 				VIDEO_DEC_FORMAT_MPEG4_5) {
 		size = get_firmware_data(VIDEO_DEC_MPEG4_5, buf);
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_5\n");
+		strncpy(fw_name, "vmpeg4_mc_5", sizeof(fw_name));
+
+		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_5\n");
 	} else if (vmpeg4_amstream_dec_info.format == VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263, buf);
+		strncpy(fw_name, "h263_mc", sizeof(fw_name));
 
 		pr_info("load VIDEO_DEC_FORMAT_H263\n");
 	} else
@@ -1038,10 +1042,12 @@ static s32 vmpeg4_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_MPEG4, NULL, buf) < 0) {
+	ret = amvdec_loadmc_ex(VFORMAT_MPEG4, fw_name, buf);
+	if (ret < 0) {
+		amvdec_disable();
 		vfree(buf);
+		pr_err("%s: the %s fw loading failed, err: %x\n",
+			fw_name, tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -1060,13 +1066,13 @@ static s32 vmpeg4_init(void)
 	stat |= STAT_ISR_REG;
 	vmpeg4_local_init();
 	/* enable AMRISC side protocol */
-	r = vmpeg4_prot_init();
-	if (r < 0) 	 {
+	ret = vmpeg4_prot_init();
+	if (ret < 0) 	 {
 		if (mm_blk_handle) {
 			decoder_bmmu_box_free(mm_blk_handle);
 			mm_blk_handle = NULL;
 		}
-		return r;
+		return ret;
 	}
 	amvdec_enable();
 	fr_hint_status = VDEC_NO_NEED_HINT;

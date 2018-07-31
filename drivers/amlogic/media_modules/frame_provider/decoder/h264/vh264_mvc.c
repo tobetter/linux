@@ -1401,7 +1401,7 @@ static int vh264mvc_local_init(void)
 
 static s32 vh264mvc_init(void)
 {
-	int ret = -1, size = -1;
+	int ret = -1;
 	char *buf = vmalloc(0x1000 * 16);
 
 	if (buf == NULL)
@@ -1427,11 +1427,12 @@ static s32 vh264mvc_init(void)
 	amvdec_enable();
 
 	if (tee_enabled()) {
-		pr_info("the video fw from the teeload.\n");
-		ret = tee_load_video_fw((u32)VIDEO_DEC_H264_MVC, 0);
+		ret = amvdec_loadmc_ex(VFORMAT_H264MVC, NULL, buf);
 		if (ret != 0) {
 			amvdec_disable();
 			vfree(buf);
+			pr_err("H264_MVC: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
 			return -1;
 		}
 	} else {
@@ -1447,8 +1448,7 @@ static s32 vh264mvc_init(void)
 
 		WRITE_VREG(UCODE_START_ADDR, mc_dma_handle);
 
-		size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
-		if (size < 0) {
+		if (get_firmware_data(VIDEO_DEC_H264_MVC, buf) < 0) {
 			pr_err("get firmware fail.");
 			vfree(buf);
 			return -1;

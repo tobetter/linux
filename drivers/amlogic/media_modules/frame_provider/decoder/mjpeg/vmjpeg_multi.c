@@ -601,10 +601,7 @@ static s32 vmjpeg_init(struct vdec_s *vdec)
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-	if (tee_enabled()) {
-		size = 1;
-		pr_debug (" tee load\n");
-	} else
+
 	size = get_firmware_data(VIDEO_DEC_MJPEG_MULTI, fw->data);
 	if (size < 0) {
 		pr_err("get firmware fail.");
@@ -722,8 +719,10 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	hw->dec_result = DEC_RESULT_NONE;
 
-	if (amvdec_vdec_loadmc_ex(vdec, "vmmjpeg_mc",hw->fw->data) < 0) {
-		pr_err("%s: Error amvdec_loadmc fail\n", __func__);
+	ret = amvdec_vdec_loadmc_ex(VFORMAT_MJPEG, "mmjpeg", vdec, hw->fw->data);
+	if (ret < 0) {
+		pr_err("[%d] MMJPEG: the %s fw loading failed, err: %x\n",
+			vdec->id, tee_enabled() ? "TEE" : "local", ret);
 		return;
 	}
 /*	if (amvdec_vdec_loadmc_buf_ex(vdec, hw->fw->data, hw->fw->len) < 0) {
