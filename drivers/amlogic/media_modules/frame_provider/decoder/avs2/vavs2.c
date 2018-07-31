@@ -54,6 +54,7 @@
 #include "../utils/config_parser.h"
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
+#include <linux/amlogic/tee.h>
 
 #define MIX_STREAM_SUPPORT
 #define SUPPORT_4K2K
@@ -4771,7 +4772,7 @@ TODO:FOR VERSION
 
 static s32 vavs2_init(struct vdec_s *vdec)
 {
-	int size = -1;
+	int ret = -1, size = -1;
 	int fw_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL;
 	struct AVS2Decoder_s *dec = (struct AVS2Decoder_s *)vdec->private;
@@ -4784,20 +4785,14 @@ static s32 vavs2_init(struct vdec_s *vdec)
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-#ifdef MULTI_INSTANCE_SUPPORT
-	if (tee_enabled()) {
-		size = 1;
-		pr_debug ("laod\n");
-	} else
-#endif
+
 	size = get_firmware_data(VIDEO_DEC_AVS2_MMU, fw->data);
 	if (size < 0) {
 		pr_err("get firmware fail.\n");
 		vfree(fw);
 		return -1;
 	}
-	avs2_print(dec, AVS2_DBG_BUFMGR,
-		"firmware size %d\n", size);
+
 	fw->len = fw_size;
 
 	if (dec->m_ins_flag) {
@@ -4817,18 +4812,18 @@ static s32 vavs2_init(struct vdec_s *vdec)
 	}
 
 	amhevc_enable();
-	if (size == 1)
-		pr_info ("tee load ok\n");
 
-	if (amhevc_loadmc_ex(VFORMAT_AVS2, NULL, fw->data) < 0) {
+	ret = amhevc_loadmc_ex(VFORMAT_AVS2, NULL, fw->data);
+	if (ret < 0) {
 		amhevc_disable();
 		vfree(fw);
+		pr_err("AVS2: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
-	avs2_print(dec, AVS2_DBG_BUFMGR,
-		"firmware size %d\n", size);
 
 	vfree(fw);
+
 	dec->stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */

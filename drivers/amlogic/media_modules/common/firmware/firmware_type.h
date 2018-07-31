@@ -69,7 +69,7 @@ struct cpu_type_s {
 	const char *name;
 };
 
-const char *get_firmware_type_name(unsigned int format);
+const char *get_fw_format_name(unsigned int format);
 unsigned int get_fw_format(const char *name);
 int fw_get_cpu(const char *name);
 

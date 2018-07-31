@@ -42,6 +42,7 @@
 #include "../utils/decoder_bmmu_box.h"
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
+#include <linux/amlogic/tee.h>
 
 #define DRIVER_NAME "amvdec_avs"
 #define MODULE_NAME "amvdec_avs"
@@ -1489,7 +1490,7 @@ static void init_avsp_long_cabac_buf(void)
 
 static s32 vavs_init(void)
 {
-	int r, size = -1;
+	int ret, size = -1;
 	char *buf = vmalloc(0x1000 * 16);
 
 	if (IS_ERR_OR_NULL(buf))
@@ -1524,19 +1525,18 @@ static s32 vavs_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info("tee load ok\n");
-
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXM)
-		size = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
+		ret = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
 	else if (firmware_sel == 1)
-		size = amvdec_loadmc_ex(VFORMAT_AVS, "avs_no_cabac", buf);
+		ret = amvdec_loadmc_ex(VFORMAT_AVS, "avs_no_cabac", buf);
 	else
-		size = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
+		ret = amvdec_loadmc_ex(VFORMAT_AVS, NULL, buf);
 
-	if (size < 0) {
+	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
+		pr_err("AVS: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -1545,9 +1545,9 @@ static s32 vavs_init(void)
 	stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */
-	r = vavs_prot_init();
-	if (r < 0)
-		return r;
+	ret = vavs_prot_init();
+	if (ret < 0)
+		return ret;
 
 #ifdef HANDLE_AVS_IRQ
 	if (vdec_request_irq(VDEC_IRQ_1, vavs_isr,

@@ -79,15 +79,12 @@ int get_firmware_data(unsigned int format, char *buf)
 	struct fw_mgr_s *mgr = g_mgr;
 	struct fw_info_s *info;
 
-	if (tee_enabled()) {
-		pr_info ("tee load firmware fomat = %d\n",(u32)format);
-		ret = tee_load_video_fw((u32)format, 0);
-		if (ret == 0)
-			ret = 1;
-		else
-			ret = -1;
-		return ret;
-	}
+	pr_info("[%s], the fw (%s) will be loaded.\n",
+		tee_enabled() ? "TEE" : "LOCAL",
+		get_fw_format_name(format));
+
+	if (tee_enabled())
+		return 0;
 
 	mutex_lock(&mutex);
 

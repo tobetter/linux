@@ -9083,22 +9083,15 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 
 	INIT_WORK(&hevc->notify_work, vh265_notify_work);
 	INIT_WORK(&hevc->set_clk_work, vh265_set_clk);
+
 	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
-#ifdef MULTI_INSTANCE_SUPPORT
-		if (tee_enabled())
-			size = 1;
-		else
-#endif
 
-	if (hevc->mmu_enable) {
+	if (hevc->mmu_enable)
 		size = get_firmware_data(VIDEO_DEC_HEVC_MMU, fw->data);
-		hevc_print(hevc, 0, "vh265 mmu ucode loaded!\n");
-	} else {
+	else
 		size = get_firmware_data(VIDEO_DEC_HEVC, fw->data);
-		hevc_print(hevc, 0, "vh265 ucode loaded!\n");
-	}
 
 	if (size < 0) {
 		pr_err("get firmware fail.\n");
@@ -9131,19 +9124,16 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 #endif
 	amhevc_enable();
 
-	if (size == 1) {
-		pr_info ("tee load ok");
-
-		if (hevc->mmu_enable) {
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC_MMU, 0);
-		} else
-			ret = tee_load_video_fw((u32)VIDEO_DEC_HEVC, 0);
-	} else
+	if (hevc->mmu_enable)
+		ret = amhevc_loadmc_ex(VFORMAT_HEVC, "h265_mmu", fw->data);
+	else
 		ret = amhevc_loadmc_ex(VFORMAT_HEVC, NULL, fw->data);
 
 	if (ret < 0) {
 		amhevc_disable();
 		vfree(fw);
+		pr_err("H265: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -10006,18 +9996,17 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		}
 	}
 
-	if (hevc->mmu_enable) {
-		loadr = amhevc_vdec_loadmc_ex(vdec,
-				"vh265_mc_mmu", hevc->fw->data);
-	} else
-		loadr = amhevc_vdec_loadmc_ex(vdec,
-				"vh265_mc", hevc->fw->data);
+	if (hevc->mmu_enable)
+		loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
+				"h265_mmu", hevc->fw->data);
+	else
+		loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
+				NULL, hevc->fw->data);
 
 	if (loadr < 0) {
 		amhevc_disable();
-		hevc_print(hevc, 0,
-			"%s: Error amvdec_loadmc fail\n",
-			__func__);
+		hevc_print(hevc, 0, "H265: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", loadr);
 		return;
 	}
 

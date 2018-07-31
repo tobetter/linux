@@ -41,6 +41,7 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/uaccess.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include <linux/amlogic/tee.h>
 
 #ifdef CONFIG_AM_VDEC_MPEG12_LOG
 #define AMLOG
@@ -1928,11 +1929,12 @@ static s32 vmpeg12_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf) < 0) {
+	ret = amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf);
+	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
+		pr_err("MPEG12: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 

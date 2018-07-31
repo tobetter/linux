@@ -8,6 +8,7 @@
 #define FW_LOAD_TRY	(0X2)
 
 struct firmware_s {
+	char name[32];
 	unsigned int len;
 	char data[0];
 };

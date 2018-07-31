@@ -42,6 +42,7 @@
 #include "../utils/vdec_input.h"
 #include "../utils/vdec.h"
 #include "../utils/firmware.h"
+#include <linux/amlogic/tee.h>
 
 #define DRIVER_NAME "ammvdec_mpeg4"
 #define MODULE_NAME "ammvdec_mpeg4"
@@ -1055,14 +1056,17 @@ static s32 vmmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 	if (IS_ERR_OR_NULL(fw))
 		return -ENOMEM;
 
-	 if (hw->vmpeg4_amstream_dec_info.format ==
+	if (hw->vmpeg4_amstream_dec_info.format ==
 			VIDEO_DEC_FORMAT_MPEG4_5) {
 		size = get_firmware_data(VIDEO_DEC_MPEG4_5, fw->data);
+		strncpy(fw->name, "vmpeg4_mc_5", sizeof(fw->name));
 
 		pr_info("load VIDEO_DEC_FORMAT_MPEG4_5\n");
 	} else if (hw->vmpeg4_amstream_dec_info.format ==
 			VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263, fw->data);
+		strncpy(fw->name, "h263_mc", sizeof(fw->name));
+
 		pr_info("load VIDEO_DEC_FORMAT_H263\n");
 	} else
 		pr_info("not supported MPEG4 format %d\n",
@@ -1129,10 +1133,14 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	hw->dec_result = DEC_RESULT_NONE;
 
-	if (amvdec_vdec_loadmc_buf_ex(vdec, hw->fw->data, hw->fw->len) < 0) {
-		pr_err("VIDEO_DEC_FORMAT_MPEG4 ucode loading failed\n");
+	ret = amvdec_vdec_loadmc_buf_ex(VFORMAT_MPEG4,hw->fw->name, vdec,
+		hw->fw->data, hw->fw->len);
+	if (ret < 0) {
 		hw->dec_result = DEC_RESULT_ERROR;
 		schedule_work(&hw->work);
+
+		pr_err("[%d] %s: the %s fw loading failed, err: %x\n", vdec->id,
+			hw->fw->name, tee_enabled() ? "TEE" : "local", ret);
 		return;
 	}
 

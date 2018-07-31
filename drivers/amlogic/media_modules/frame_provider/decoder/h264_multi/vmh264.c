@@ -5321,6 +5321,11 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 
 static s32 vh264_init(struct vdec_h264_hw_s *hw)
 {
+	int ret = 0, size = -1;
+	int fw_size = 0x1000 * 16;
+	int fw_mmu_size = 0x1000 * 16;
+	struct firmware_s *fw = NULL, *fw_mmu = NULL;
+
 	/* int trickmode_fffb = 0; */
 
 	/* pr_info("\nvh264_init\n"); */
@@ -5362,11 +5367,38 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			return -ENOMEM;
 		}
 	}
-	if (!tee_enabled()) {
-		int ret = 0, size = -1;
-		int fw_size = 0x1000 * 16;
-		struct firmware_s *fw = NULL;
 
+	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
+	if (IS_ERR_OR_NULL(fw))
+		return -ENOMEM;
+
+	size = get_firmware_data(VIDEO_DEC_H264_MULTI, fw->data);
+	if (size < 0) {
+		pr_err("get firmware fail.\n");
+		vfree(fw);
+		return -1;
+	}
+
+	fw->len = size;
+	hw->fw = fw;
+
+	if (hw->mmu_enable) {
+		fw_mmu = vmalloc(sizeof(struct firmware_s) + fw_mmu_size);
+		if (IS_ERR_OR_NULL(fw_mmu))
+			return -ENOMEM;
+
+		size = get_firmware_data(VIDEO_DEC_H264_MULTI_MMU, fw_mmu->data);
+		if (size < 0) {
+			pr_err("get mmu fw fail.\n");
+			vfree(fw_mmu);
+			return -1;
+		}
+
+		fw_mmu->len = size;
+		hw->fw_mmu = fw_mmu;
+	}
+
+	if (!tee_enabled()) {
 		/* -- ucode loading (amrisc and swap code) */
 		hw->mc_cpu_addr =
 			dma_alloc_coherent(amports_get_dma_device(), MC_TOTAL_SIZE,
@@ -5383,23 +5415,6 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		/*pr_info("264 ucode swap area: phyaddr %p, cpu vaddr %p\n",
 			(void *)hw->mc_dma_handle, hw->mc_cpu_addr);
 		*/
-
-
-		pr_debug("start load orignal firmware ...\n");
-
-		fw = vmalloc(sizeof(struct firmware_s) + fw_size);
-		if (IS_ERR_OR_NULL(fw))
-			return -ENOMEM;
-
-		size = get_firmware_data(VIDEO_DEC_H264_MULTI, fw->data);
-		if (size < 0) {
-			pr_err("get firmware fail.\n");
-			vfree(fw);
-			return -1;
-		}
-
-		fw->len = size;
-		hw->fw = fw;
 
 		/*ret = amvdec_loadmc_ex(VFORMAT_H264, NULL, buf);*/
 
@@ -5428,34 +5443,11 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN + 0x3000,
 			fw->data + 0x5000, 0x1000);
 
-		if (hw->mmu_enable) {
-			int fw_mmu_size = 0x1000 * 16;
-			struct firmware_s *fw_mmu = NULL;
-
-			pr_debug("start load mmu fw ...\n");
-
-			fw_mmu = vmalloc(sizeof(struct firmware_s) + fw_mmu_size);
-			if (IS_ERR_OR_NULL(fw_mmu))
-				return -ENOMEM;
-
-			size = get_firmware_data(VIDEO_DEC_H264_MULTI_MMU,
-				fw_mmu->data);
-			if (size < 0) {
-				pr_err("get mmu fw fail.\n");
-				vfree(fw_mmu);
-				return -1;
-			}
-
+		if (hw->mmu_enable)
 			ret = amhevc_loadmc_ex(VFORMAT_HEVC,
 				NULL, fw_mmu->data);
 
-			fw_mmu->len = size;
-			hw->fw_mmu = fw_mmu;
-		}
-
 		if (ret < 0) {
-			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-			"264 load orignal firmware error.\n");
 			amvdec_disable();
 			if (hw->mmu_enable)
 				amhevc_disable();
@@ -5465,10 +5457,15 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 					hw->mc_dma_handle);
 				hw->mc_cpu_addr = NULL;
 			}
+
+			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+				"MH264: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
+
 			return -EBUSY;
 		}
-
 	}
+
 #if 1 /* #ifdef  BUFFER_MGR_IN_C */
 	hw->lmem_addr = __get_free_page(GFP_KERNEL);
 	if (!hw->lmem_addr) {
@@ -6597,7 +6594,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
 	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
-	int size;
+	int size, ret = -1;
 
 	run_count[DECODE_ID(hw)]++;
 	if (hw->mmu_enable)
@@ -6707,38 +6704,28 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	start_process_time(hw);
 
-	if (tee_enabled()) {
-		if (tee_load_video_fw(VIDEO_DEC_H264_MULTI, 0) != 0) {
-			amvdec_enable_flag = false;
-			amvdec_disable();
-		dpb_print(DECODE_ID(hw), 0, "%s: Error amvdec_vdec_loadmc fail\n", __func__);
-			return;
-		}
-		if (hw->mmu_enable) {
-			if (tee_load_video_fw(VIDEO_DEC_H264_MULTI_MMU,
-				OPTEE_VDEC_HEVC) < 0) {
-				amvdec_enable_flag = false;
-				amhevc_disable();
-				dpb_print(DECODE_ID(hw), 0, "tee mmu fw load fail\n");
-				return;
-			}
-		}
+	ret = amvdec_vdec_loadmc_ex(VFORMAT_H264, "mh264", vdec, hw->fw->data);
+	if (ret < 0) {
+		amvdec_enable_flag = false;
+		amvdec_disable();
 
-	} else {
-		if (amvdec_vdec_loadmc_ex(vdec, NULL, hw->fw->data) < 0) {
+		dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+			"MH264 the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
+		return;
+	}
+
+	if (hw->mmu_enable) {
+		ret = amhevc_loadmc_ex(VFORMAT_H264, "mh264_mmu",
+			hw->fw_mmu->data);
+		if (ret < 0) {
 			amvdec_enable_flag = false;
-			amvdec_disable();
-			dpb_print(DECODE_ID(hw), 0, "%s: Error amvdec_vdec_loadmc fail\n", __func__);
+			amhevc_disable();
+
+			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+				"MH264_MMU the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
 			return;
-		}
-		if (hw->mmu_enable) {
-			if (amhevc_loadmc_ex(VFORMAT_HEVC,
-				NULL, hw->fw_mmu->data) < 0) {
-				amvdec_enable_flag = false;
-				amhevc_disable();
-				dpb_print(DECODE_ID(hw), 0, "mmu fw load fail\n");
-				return;
-			}
 		}
 	}
 

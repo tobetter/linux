@@ -14,7 +14,7 @@
  * more details.
  *
  */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -267,7 +267,7 @@ static s32 am_vdec_loadmc_ex(struct vdec_s *vdec,
 		pr_err("loading firmware %s to vdec ram  failed!\n", name);
 		return err;
 	}
-	pr_debug("loading firmware %s to vdec ram  ok!\n", name);
+
 	return err;
 }
 
@@ -286,7 +286,7 @@ static s32 am_vdec_loadmc_buf_ex(struct vdec_s *vdec,
 		pr_err("loading firmware to vdec ram  failed!\n");
 		return err;
 	}
-	pr_debug("loading firmware to vdec ram  ok!\n");
+
 	return err;
 }
 
@@ -316,7 +316,7 @@ static s32 am_loadmc_ex(enum vformat_e type,
 		return err;
 	}
 	vfree(mc_addr);
-	pr_debug("loading firmware %s to vdec ram  ok!\n", name);
+
 	return err;
 }
 
@@ -401,7 +401,10 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_MJPEG:
-		format = VIDEO_DEC_MJPEG;
+		if (!strcmp(name, "mmjpeg"))
+			format = VIDEO_DEC_MJPEG_MULTI;
+		else
+			format = VIDEO_DEC_MJPEG;
 		break;
 
 	case VFORMAT_VP9:
@@ -417,10 +420,10 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_HEVC:
-		if (!strcmp(name, "vh265_mc"))
-			format = VIDEO_DEC_HEVC;
-		else
+		if (!strcmp(name, "h265_mmu"))
 			format = VIDEO_DEC_HEVC_MMU;
+		else
+			format = VIDEO_DEC_HEVC;
 		break;
 
 	case VFORMAT_REAL:
@@ -441,15 +444,29 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 			format = VIDEO_DEC_FORMAT_H263;
 		break;
 
-	default:
-		if (!strcmp(name, "vh265_mc"))
-			format = VIDEO_DEC_HEVC;
-		else if (!strcmp(name, "vh265_mc_mmu"))
-			format = VIDEO_DEC_HEVC_MMU;
-		else if (!strcmp(name, "vmmjpeg_mc"))
-			format = VIDEO_DEC_MJPEG_MULTI;
+	case VFORMAT_H264_4K2K:
+		if (!strcmp(name, "single_core"))
+			format = VIDEO_DEC_H264_4k2K_SINGLE;
 		else
-			pr_info("unknow dec format\n");
+			format = VIDEO_DEC_H264_4k2K;
+		break;
+
+	case VFORMAT_H264MVC:
+		format = VIDEO_DEC_H264_MVC;
+		break;
+
+	case VFORMAT_H264:
+		if (!strcmp(name, "mh264"))
+			format = VIDEO_DEC_H264_MULTI;
+		else if (!strcmp(name, "mh264_mmu")) {
+			format = VIDEO_DEC_H264_MULTI_MMU;
+			vdec = OPTEE_VDEC_HEVC;
+		} else
+			format = VIDEO_DEC_H264;
+		break;
+
+	default:
+		pr_info("Unknow vdec format!\n");
 		break;
 	}
 
@@ -471,18 +488,23 @@ s32 amvdec_loadmc_ex(enum vformat_e type, const char *name, char *def)
 }
 EXPORT_SYMBOL(amvdec_loadmc_ex);
 
-s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
+s32 amvdec_vdec_loadmc_ex(enum vformat_e type, const char *name,
+	struct vdec_s *vdec, char *def)
 {
 	if (tee_enabled())
-		return optee_load_fw(FIRMWARE_MAX, name);
+		return optee_load_fw(type, name);
 	else
-	return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
+		return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_ex);
 
-s32 amvdec_vdec_loadmc_buf_ex(struct vdec_s *vdec, char *buf, int size)
+s32 amvdec_vdec_loadmc_buf_ex(enum vformat_e type, const char *name,
+	struct vdec_s *vdec, char *buf, int size)
 {
-	return am_vdec_loadmc_buf_ex(vdec, buf, size, &amvdec_loadmc);
+	if (tee_enabled())
+		return optee_load_fw(type, name);
+	else
+		return am_vdec_loadmc_buf_ex(vdec, buf, size, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_buf_ex);
 
@@ -661,19 +683,20 @@ s32 amhevc_loadmc_ex(enum vformat_e type, const char *name, char *def)
 		else
 			return am_loadmc_ex(type, name, def, &amhevc_loadmc);
 	else
-		return 0;
+		return -1;
 }
 EXPORT_SYMBOL(amhevc_loadmc_ex);
 
-s32 amhevc_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
+s32 amhevc_vdec_loadmc_ex(enum vformat_e type, struct vdec_s *vdec,
+	const char *name, char *def)
 {
 	if (has_hevc_vdec())
 		if (tee_enabled())
-			return optee_load_fw(FIRMWARE_MAX, name);
+			return optee_load_fw(type, name);
 		else
-		return am_vdec_loadmc_ex(vdec, name, def, &amhevc_loadmc);
+			return am_vdec_loadmc_ex(vdec, name, def, &amhevc_loadmc);
 	else
-		return 0;
+		return -1;
 }
 EXPORT_SYMBOL(amhevc_vdec_loadmc_ex);
 
