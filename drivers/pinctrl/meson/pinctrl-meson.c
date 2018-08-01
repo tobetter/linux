@@ -54,6 +54,7 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/seq_file.h>
+#include <linux/firmware/meson/meson_sm.h>
 
 #include "../core.h"
 #include "../pinctrl-utils.h"
@@ -99,8 +100,14 @@ static void meson_calc_reg_and_bit(struct meson_bank *bank, unsigned int pin,
 {
 	struct meson_reg_desc *desc = &bank->regs[reg_type];
 
-	*reg = desc->reg * 4;
-	*bit = desc->bit + pin - bank->first;
+	/* TEST_N pin direction needs to be set using a Secure Monitor call */
+	if (reg_type == REG_DIR && bank->smc) {
+		*reg = desc->reg;
+		*bit = desc->bit;
+	} else {
+		*reg = desc->reg * 4;
+		*bit = desc->bit + pin - bank->first;
+	}
 }
 
 static int meson_get_groups_count(struct pinctrl_dev *pcdev)
@@ -342,6 +349,12 @@ static int meson_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 
 	meson_calc_reg_and_bit(bank, gpio, REG_DIR, &reg, &bit);
 
+	/* TEST_N pin direction needs to be set using a Secure Monitor call */
+	if (bank->smc) {
+		u32 smc_ret = 0;
+		return meson_sm_call(reg, &smc_ret, 0, 0, 0, 0, 0);
+	}
+
 	return regmap_update_bits(pc->reg_gpio, reg, BIT(bit), BIT(bit));
 }
 
@@ -358,9 +371,17 @@ static int meson_gpio_direction_output(struct gpio_chip *chip, unsigned gpio,
 		return ret;
 
 	meson_calc_reg_and_bit(bank, gpio, REG_DIR, &reg, &bit);
-	ret = regmap_update_bits(pc->reg_gpio, reg, BIT(bit), 0);
-	if (ret)
-		return ret;
+	/* TEST_N pin direction needs to be set using a Secure Monitor call */
+	if (bank->smc) {
+		u32 smc_ret = 0;
+		ret = meson_sm_call(reg, &smc_ret, bit, 0, 0, 0, 0);
+		if (ret)
+			return ret;
+	} else {
+		ret = regmap_update_bits(pc->reg_gpio, reg, BIT(bit), 0);
+		if (ret)
+			return ret;
+	}
 
 	meson_calc_reg_and_bit(bank, gpio, REG_OUT, &reg, &bit);
 	return regmap_update_bits(pc->reg_gpio, reg, BIT(bit),

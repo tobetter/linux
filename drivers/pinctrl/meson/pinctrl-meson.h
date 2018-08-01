@@ -92,6 +92,7 @@ struct meson_bank {
 	const char *name;
 	unsigned int first;
 	unsigned int last;
+	bool smc; /* Direction needs to use a Secure Monitor call */
 	int irq_first;
 	int irq_last;
 	struct meson_reg_desc regs[NUM_REG];
@@ -131,11 +132,12 @@ struct meson_pinctrl {
 		.num_groups = ARRAY_SIZE(fn ## _groups),		\
 	}
 
-#define BANK(n, f, l, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib)	\
+#define __BANK(n, f, l, sm, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib) \
 	{								\
 		.name		= n,					\
 		.first		= f,					\
 		.last		= l,					\
+		.smc		= sm,					\
 		.irq_first	= fi,					\
 		.irq_last	= li,					\
 		.regs = {						\
@@ -146,6 +148,12 @@ struct meson_pinctrl {
 			[REG_IN]	= { ir, ib },			\
 		},							\
 	 }
+
+#define BANK(n, f, l, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib) \
+	__BANK(n, f, l, false, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib)
+
+#define BANK_SMC(n, f, l, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib) \
+	__BANK(n, f, l, true, fi, li, per, peb, pr, pb, dr, db, or, ob, ir, ib)
 
 #define MESON_PIN(x) PINCTRL_PIN(x, #x)
 

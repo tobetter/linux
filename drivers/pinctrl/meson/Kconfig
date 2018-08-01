@@ -8,6 +8,7 @@ menuconfig PINCTRL_MESON
 	select GPIOLIB
 	select OF_GPIO
 	select REGMAP_MMIO
+	select MESON_SM
 
 if PINCTRL_MESON
 
