@@ -48,6 +48,7 @@ struct meson_sm_chip gxbb_chip = {
 		CMD(SM_EFUSE_READ,	0x82000030),
 		CMD(SM_EFUSE_WRITE,	0x82000031),
 		CMD(SM_EFUSE_USER_MAX,	0x82000033),
+		CMD(SM_TEST_N_DIR,	0x82000046),
 		{ /* sentinel */ },
 	},
 };
