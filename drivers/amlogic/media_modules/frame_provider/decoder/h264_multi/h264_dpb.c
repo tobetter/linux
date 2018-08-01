@@ -9,6 +9,8 @@
 
 #include "h264_dpb.h"
 
+#define FRAME_NUM_MAX_SIZE 0x10000
+
 #undef pr_info
 #define pr_info printk
 int dpb_print(int index, int debug_flag, const char *fmt, ...)
@@ -5612,6 +5614,7 @@ int h264_slice_header_process(struct h264_dpb_stru *p_H264_Dpb)
 		p_Vid->pre_frame_num,
 		p_Vid->max_frame_num);
 		if (p_Vid->recovery_point == 0 &&
+			p_Vid->max_frame_num <= FRAME_NUM_MAX_SIZE &&
 			currSlice->frame_num != p_Vid->pre_frame_num &&
 			currSlice->frame_num !=
 			(p_Vid->pre_frame_num + 1) % p_Vid->max_frame_num) {
