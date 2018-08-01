@@ -259,8 +259,9 @@ static unsigned int first_i_policy = (15 << 8) | 2;
 	bit [1], output frame if the current poc is 1 big than the previous poc
 	bit [2], if even poc only, output frame ifthe cuurent poc
 			is 2 big than the previous poc
+	bit [3],  ip only
 */
-static unsigned int fast_output_enable = 4;
+static unsigned int fast_output_enable = H264_OUTPUT_MODE_NORMAL;
 
 static unsigned int enable_itu_t35 = 1;
 
@@ -4231,12 +4232,12 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 				schedule_work(&hw->user_data_work);
 			}
 			if (slice_header_process_status == 1) {
-				/* for baseline , set fast_output mode */
-				if ((p_H264_Dpb->mSPS.profile_idc == BASELINE)
-					|| ((((unsigned long)
-					hw->vh264_amstream_dec_info.param) & 0x8)
-					&& (!hw->i_only)))
-					p_H264_Dpb->fast_output_enable = 4;
+				if ((p_H264_Dpb->mSPS.profile_idc == BASELINE) ||
+					(((unsigned long)(hw->vh264_amstream_dec_info
+						.param)) & 0x8)) {
+					p_H264_Dpb->fast_output_enable =
+					H264_OUTPUT_MODE_FAST;
+				}
 				else
 					p_H264_Dpb->fast_output_enable
 							= fast_output_enable;
