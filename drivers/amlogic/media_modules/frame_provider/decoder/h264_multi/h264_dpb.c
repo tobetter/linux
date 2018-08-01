@@ -3447,7 +3447,8 @@ int store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	while (remove_unused_frame_from_dpb(p_H264_Dpb))
 		;
 
-	while (output_frames(p_H264_Dpb, 0))
+	while (output_frames(p_H264_Dpb,
+		(p_H264_Dpb->fast_output_enable == H264_OUTPUT_MODE_FAST)))
 		;
 
 	/* check for duplicate frame number in short term reference buffer */
@@ -3501,6 +3502,11 @@ int store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	update_ltref_list(p_Dpb);
 
 	check_num_ref(p_Dpb);
+
+	if (p_H264_Dpb->fast_output_enable == H264_OUTPUT_MODE_FAST) {
+		while (output_frames(p_H264_Dpb,	1))
+			;
+	}
 
 	dump_dpb(p_Dpb, 0);
 	p_Dpb->first_pic_done = 1; /*by rain*/
