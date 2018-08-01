@@ -10,6 +10,7 @@
 #include <dt-bindings/gpio/meson-axg-gpio.h>
 #include "pinctrl-meson.h"
 #include "pinctrl-meson-axg-pmx.h"
+#include <linux/firmware/meson/meson_sm.h>
 
 static const struct pinctrl_pin_desc meson_axg_periphs_pins[] = {
 	MESON_PIN(GPIOZ_0),
@@ -1006,6 +1007,9 @@ static struct meson_bank meson_axg_periphs_banks[] = {
 static struct meson_bank meson_axg_aobus_banks[] = {
 	/*   name    first      last      irq	pullen  pull    dir     out     in  */
 	BANK("AO",   GPIOAO_0,  GPIOAO_13, 0, 13, 0,  16,  0, 0,  0,  0,  0, 16,  1,  0),
+	/* This PIN Direction must be set using a SMC call, so dir reg offset is the sm call */
+	BANK_SMC("TEST", GPIO_TEST_N, GPIO_TEST_N,
+					 -1, -1, 0, 30,  0, 14, SM_TEST_N_DIR, 1, 0, 31, 1, 31),
 };
 
 static struct meson_pmx_bank meson_axg_periphs_pmx_banks[] = {
