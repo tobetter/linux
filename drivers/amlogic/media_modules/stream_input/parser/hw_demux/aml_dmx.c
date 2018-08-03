@@ -2776,7 +2776,7 @@ static int dmx_enable(struct aml_dmx *dmx)
 		pr_dbg("dsc2 ctrl: 0x%x\n", READ_MPEG_REG(COMM_DESC_2_CTL));
 	}
 
-	pr_info("[dmx-%d]src: %d, rec: %d, hi_bsf: %d, dsc: %d\n",
+	pr_dbg("[dmx-%d]src: %d, rec: %d, hi_bsf: %d, dsc: %d\n",
 	       dmx->id, dmx->source, record, hi_bsf, fec_core_sel);
 
 	if (dmx->chan_count) {
