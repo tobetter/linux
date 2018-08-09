@@ -1960,12 +1960,6 @@ static int aml_dvb_probe(struct platform_device *pdev)
 				else
 					cfg.xtal = value;
 
-				ret = of_property_read_u32(node_tuner, "tuner_xtal_mode", &value);
-				if (ret)
-					pr_err("tuner_xtal_mode error.\n");
-				else
-					cfg.xtal_mode = value;
-
 				ret = of_property_read_u32(node_tuner, "tuner_xtal_cap", &value);
 				if (ret)
 					pr_err("tuner_xtal_cap error.\n");
