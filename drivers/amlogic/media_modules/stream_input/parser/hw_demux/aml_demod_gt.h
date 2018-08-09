@@ -18,11 +18,14 @@ struct amlfe_demod_config {
 	int	reset_value;
 };
 
+/* For configure different tuners */
+/* It can add fields as extensions */
 struct tuner_config {
 	u8 id;
 	u8 i2c_addr;
-	u8 xtal;
+	u8 xtal; /* 0: 16MHz, 1: 24MHz, 3: 27MHz */
 	u8 xtal_cap;
+	u8 xtal_mode;
 };
 
 static inline struct dvb_frontend* aml_dtvdm_attach (const struct amlfe_exp_config *config) {
