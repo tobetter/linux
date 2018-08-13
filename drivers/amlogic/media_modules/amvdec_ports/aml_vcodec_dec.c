@@ -253,9 +253,9 @@ void trans_vframe_to_user(struct aml_vcodec_ctx *ctx, struct vdec_fb *fb)
 	if (!dstbuf->used)
 		return;
 
-	aml_v4l2_debug(4,"%s() [%d], base_y: %lu, idx: %u\n",
+	aml_v4l2_debug(4,"%s() [%d], base_y: %zu, idx: %u\n",
 		__FUNCTION__, __LINE__, fb->base_y.size, dstbuf->vb.vb2_buf.index);
-	aml_v4l2_debug(4,"%s() [%d], base_c: %lu, idx: %u\n",
+	aml_v4l2_debug(4,"%s() [%d], base_c: %zu, idx: %u\n",
 		__FUNCTION__, __LINE__, fb->base_c.size, dstbuf->vb.vb2_buf.index);
 
 	dstbuf->vb.vb2_buf.timestamp = vf->timestamp;

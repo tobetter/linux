@@ -491,6 +491,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY32:
 		{
 			struct vpudrv_buffer_pool_t *vbp;
@@ -560,6 +561,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_FREE_PHYSICALMEMORY:
 		{
 			struct vpudrv_buffer_pool_t *vbp, *n;
@@ -596,6 +598,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_FREE_PHYSICALMEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_FREE_PHYSICALMEMORY32:
 		{
 			struct vpudrv_buffer_pool_t *vbp, *n;
@@ -642,6 +645,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_FREE_PHYSICALMEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO:
 		{
 			enc_pr(LOG_ALL,
@@ -659,6 +663,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -686,6 +691,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_WAIT_INTERRUPT:
 		{
 			struct vpudrv_intr_info_t info;
@@ -804,6 +810,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_INSTANCE_POOL\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_INSTANCE_POOL32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -875,6 +882,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_INSTANCE_POOL32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_GET_COMMON_MEMORY:
 		{
 			enc_pr(LOG_ALL,
@@ -907,6 +915,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_COMMON_MEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_COMMON_MEMORY32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -965,6 +974,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_COMMON_MEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_OPEN_INSTANCE:
 		{
 			struct vpudrv_inst_info_t inst_info;
@@ -1133,6 +1143,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				s_vpu_register.size);
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_REGISTER_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -1207,6 +1218,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_FLUSH_BUFFER32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_FLUSH_BUFFER:
 		{
 			struct vpudrv_buffer_pool_t *pool, *n;

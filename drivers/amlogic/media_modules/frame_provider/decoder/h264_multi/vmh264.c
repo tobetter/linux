@@ -6082,11 +6082,13 @@ static int vmh264_user_data_read(struct vdec_s *vdec,
 	struct mh264_userdata_record_t *p_userdata_rec;
 	u32 data_size;
 	u32 res;
+	unsigned long addr;
 	int copy_ok = 1;
 
 	hw = (struct vdec_h264_hw_s *)vdec->private;
 
-	pdest_buf = (void *)(puserdata_para->pbuf_addr);
+	addr = puserdata_para->pbuf_addr;
+	pdest_buf = (void *)addr;
 	mutex_lock(&hw->userdata_mutex);
 
 /*

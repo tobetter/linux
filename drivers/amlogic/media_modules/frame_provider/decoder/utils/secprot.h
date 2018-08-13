@@ -31,7 +31,7 @@
 
 #define OPTEE_SMC_CONFIG_DEVICE_SECURE 0xb200000e
 
-#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"
+/*#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"*/
 
 extern int tee_config_device_secure(int dev_id, int secure);
 

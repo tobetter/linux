@@ -15,7 +15,14 @@
  *
 */
 
+#include <linux/kernel.h>
+#include <asm/compiler.h>
 #include "secprot.h"
+#ifndef CONFIG_ARM64
+#include <asm/opcodes-sec.h>
+#endif
+
+#ifdef CONFIG_ARM64
 
 int tee_config_device_secure(int dev_id, int secure)
 {
@@ -40,4 +47,29 @@ int tee_config_device_secure(int dev_id, int secure)
 
 	return ret;
 }
+#else
+int tee_config_device_secure(int dev_id, int secure)
+{
+	int ret = 0;
+	register unsigned int r0 asm("r0");
+	register unsigned int r1 asm("r1");
+	register unsigned int r2 asm("r2");
+
+	r0 = OPTEE_SMC_CONFIG_DEVICE_SECURE;
+	r1 = dev_id;
+	r2 = secure;
+
+	asm volatile(
+		__asmeq("%0", "r0")
+		__asmeq("%1", "r0")
+		__asmeq("%2", "r1")
+		__asmeq("%3", "r2")
+		__SMC(0)
+		: "=r"(r0)
+		: "r"(r0), "r"(r1), "r"(r2));
+	ret = r0;
+
+	return ret;
+}
+#endif
 
