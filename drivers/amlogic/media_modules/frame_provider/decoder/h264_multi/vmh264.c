@@ -111,6 +111,7 @@
 #define H264_DEV_NUM        9
 
 #define H264_MMU
+#define VIDEO_SIGNAL_TYPE_AVAILABLE_MASK	0x20000000
 static int mmu_enable;
 static int force_enable_mmu = 1;
 unsigned int h264_debug_flag; /* 0xa0000000; */
@@ -3355,6 +3356,12 @@ static void set_frame_info(struct vdec_h264_hw_s *hw, struct vframe_s *vf,
 #ifndef NV21
 	vf->canvas1_config[2] = hw->buffer_spec[index].canvas_config[2];
 #endif
+	/* signal_type */
+	if (hw->video_signal_from_vui & VIDEO_SIGNAL_TYPE_AVAILABLE_MASK)
+		vf->signal_type = hw->video_signal_from_vui;
+	else
+		vf->signal_type = 0;
+
 }
 
 static int get_max_dec_frame_buf_size(int level_idc,
@@ -4080,6 +4087,10 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 		hw->dec_result = DEC_RESULT_CONFIG_PARAM;
 		vdec_schedule_work(&hw->work);
 	} else if (dec_dpb_status == H264_SLICE_HEAD_DONE) {
+		u16 data_hight;
+		u16 data_low;
+		u32 video_signal;
+
 		int slice_header_process_status = 0;
 		/*unsigned char is_idr;*/
 		unsigned short *p = (unsigned short *)hw->lmem_addr;
@@ -4164,6 +4175,24 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 			}
 		}
 #endif
+		data_low = p_H264_Dpb->dpb_param.l.data[VIDEO_SIGNAL_LOW];
+		data_hight = p_H264_Dpb->dpb_param.l.data[VIDEO_SIGNAL_HIGHT];
+
+		video_signal = (data_hight << 16) | data_low;
+		hw->video_signal_from_vui =
+					((video_signal & 0xffff) << 8) |
+					((video_signal & 0xff0000) >> 16) |
+					((video_signal & 0x3f000000));
+
+
+		/*dpb_print(DECODE_ID(hw),
+				0,
+				"video_signal_from_vui:0x%x, "
+				"data_low:0x%x, data_hight:0x%x\n",
+				hw->video_signal_from_vui,
+				data_low,
+				data_hight);*/
+
 		if (hw->config_bufmgr_done == 0) {
 			hw->dec_result = DEC_RESULT_DONE;
 			vdec_schedule_work(&hw->work);

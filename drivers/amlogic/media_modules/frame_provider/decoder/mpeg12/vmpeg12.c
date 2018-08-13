@@ -930,7 +930,9 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 			}
 
 			set_frame_info(vf);
-			vf->signal_type = 0;
+			/*pr_info("video signal type:0x%x\n",
+				READ_VREG(AV_SCRATCH_H));*/
+			vf->signal_type = READ_VREG(AV_SCRATCH_H);
 			vf->index = index;
 #ifdef NV21
 			vf->type =

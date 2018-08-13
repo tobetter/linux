@@ -51,6 +51,10 @@
 #define H264_SEARCH_BUFEMPTY        0x22
 #define H264_DECODE_OVER_SIZE       0x23
 
+#define VIDEO_SIGNAL_LOW						0x26
+#define VIDEO_SIGNAL_HIGHT						0x27
+
+
 #define H264_FIND_NEXT_PIC_NAL              0x50
 #define H264_FIND_NEXT_DVEL_NAL             0x51
 #define H264_AUX_DATA_READY					0x52
