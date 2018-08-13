@@ -3168,6 +3168,7 @@ static ssize_t show_debug(struct class *class,
 	struct vdec_s *vdec;
 	struct vdec_core_s *core = vdec_core;
 	unsigned long flags = vdec_core_lock(vdec_core);
+	u64 tmp;
 
 	pbuf += sprintf(pbuf,
 		"============== help:\n");
@@ -3207,11 +3208,12 @@ static ssize_t show_debug(struct class *class,
 					vdec->input_underrun_count[type]);
 				pbuf += sprintf(pbuf, "\t%d",
 					vdec->not_run_ready_count[type]);
+				tmp = vdec->run_clk[type] * 100;
+				do_div(tmp, vdec->total_clk[type]);
 				pbuf += sprintf(pbuf,
 					"\t%d%%\n",
 					vdec->total_clk[type] == 0 ? 0 :
-					(u32)((vdec->run_clk[type] * 100)
-					/ vdec->total_clk[type]));
+					(u32)tmp);
 			}
 		}
 	  }

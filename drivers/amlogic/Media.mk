@@ -1,4 +1,9 @@
+ifeq ($(KERNEL_A32_SUPPORT), true)
+KERNEL_ARCH := arm
+else
 KERNEL_ARCH := arm64
+endif
+
 CONFIGS := CONFIG_AMLOGIC_MEDIA_VDEC_MPEG12=m \
 	CONFIG_AMLOGIC_MEDIA_VDEC_MPEG4=m \
 	CONFIG_AMLOGIC_MEDIA_VDEC_MPEG4_MULTI=m \
@@ -82,7 +87,11 @@ ifeq (,$(wildcard $(MODS_OUT)))
 $(shell mkdir $(MODS_OUT) -p)
 endif
 
+ifeq ($(KERNEL_A32_SUPPORT), true)
+TOOLS := /opt/gcc-linaro-6.3.1-2017.02-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+else
 TOOLS := /opt/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+endif
 
 modules:
 	@$(MAKE) -C $(KDIR) M=$(MEDIA_DRIVERS) ARCH=$(KERNEL_ARCH) \

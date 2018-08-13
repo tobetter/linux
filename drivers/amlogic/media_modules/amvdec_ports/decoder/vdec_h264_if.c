@@ -517,10 +517,10 @@ static void vdec_h264_get_vf(struct vdec_h264_inst *inst, struct vdec_fb **out)
 	//dump_write(fb->base_y.va, fb->base_y.bytes_used);
 	//dump_write(fb->base_c.va, fb->base_c.bytes_used);
 
-	aml_vcodec_debug(inst, "%s() [%d], va: %p, phy: %x, size: %lu\n",
+	aml_vcodec_debug(inst, "%s() [%d], va: %p, phy: %x, size: %zu\n",
 		__FUNCTION__, __LINE__, fb->base_y.va,
 		(unsigned int)virt_to_phys(fb->base_y.va), fb->base_y.size);
-	aml_vcodec_debug(inst, "%s() [%d], va: %p, phy: %x, size: %lu\n",
+	aml_vcodec_debug(inst, "%s() [%d], va: %p, phy: %x, size: %zu\n",
 		__FUNCTION__, __LINE__, fb->base_c.va,
 		(unsigned int)virt_to_phys(fb->base_c.va), fb->base_c.size);
 }
