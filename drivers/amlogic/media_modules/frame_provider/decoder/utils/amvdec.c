@@ -441,7 +441,7 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		else if (!strcmp(name, "vmpeg4_mc_5"))
 			format = VIDEO_DEC_MPEG4_5;
 		else if (!strcmp(name, "h263_mc"))
-			format = VIDEO_DEC_FORMAT_H263;
+			format = VIDEO_DEC_H263;
 		break;
 
 	case VFORMAT_H264_4K2K:
