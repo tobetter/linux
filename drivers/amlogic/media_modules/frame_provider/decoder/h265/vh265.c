@@ -10491,9 +10491,10 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		hevc->vh265_amstream_dec_info.width = 0;
 		hevc->vh265_amstream_dec_info.height = 0;
 		hevc->vh265_amstream_dec_info.rate = 30;
-		hevc->dynamic_buf_num_margin = dynamic_buf_num_margin;
 		hevc->double_write_mode = double_write_mode;
 	}
+
+	hevc->dynamic_buf_num_margin = dynamic_buf_num_margin;
 
 	if (mmu_enable_force == 0) {
 		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_GXL
