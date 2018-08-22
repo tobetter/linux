@@ -2899,6 +2899,38 @@ static const struct mmc_fixup blk_fixups[] =
 	END_FIXUP
 };
 
+#ifdef CONFIG_AMLOGIC_MMC
+static int mmc_validate_mpt_partition(struct mmc_card *card)
+{
+	char *buf;
+	int ret;
+
+	/* check only if 'card' is eMMC device */
+	if (strcmp(mmc_hostname(card->host), "emmc"))
+		return -EINVAL;
+
+	buf = (char*)kmalloc(1 << card->csd.read_blkbits, GFP_KERNEL);
+	if (buf == NULL)
+		return -ENOMEM;
+
+	mmc_claim_host(card->host);
+
+	/* FIXME: fix up the magic number for start block to check MPT partition */
+	ret = mmc_read_internal(card, 8184, 1, buf);
+	if (ret == 0) {
+		if (strncmp(buf, MMC_PARTITIONS_MAGIC,
+			sizeof(((struct mmc_partitions_fmt*)0)->magic)) != 0) {
+			ret = -EINVAL;
+		}
+	}
+
+	mmc_release_host(card->host);
+
+	kfree(buf);
+	return ret;
+}
+#endif
+
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
@@ -2931,8 +2963,10 @@ static int mmc_blk_probe(struct mmc_card *card)
 		goto out;
 
 #ifdef CONFIG_AMLOGIC_MMC
-	/* amlogic add emmc partitions ops */
-	aml_emmc_partition_ops(card, md->disk);
+	if (mmc_validate_mpt_partition(card) == 0) {
+		/* amlogic add emmc partitions ops */
+		aml_emmc_partition_ops(card, md->disk);
+	}
 #endif
 
 	list_for_each_entry(part_md, &md->part, part) {
