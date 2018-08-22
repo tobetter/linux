@@ -995,17 +995,17 @@ static int add_emmc_partition(struct gendisk *disk,
 	return 0;
 }
 
-//static int is_card_emmc(struct mmc_card *card)
-//{
-//	struct mmc_host *mmc = card->host;
+static int is_card_emmc(struct mmc_card *card)
+{
+	struct mmc_host *mmc = card->host;
 
 	/* emmc port, so it must be an eMMC or TSD */
-//	if (!strcmp(mmc_hostname(mmc), "emmc"))
-//		return 1;
-//	else
-//		return 0;
+	if (!strcmp(mmc_hostname(mmc), "emmc"))
+		return 1;
+	else
+		return 0;
 	/*return mmc->is_emmc_port;*/
-//}
+}
 
 static ssize_t emmc_version_get(struct class *class,
 		struct class_attribute *attr, char *buf)
@@ -1164,7 +1164,7 @@ int aml_emmc_partition_ops(struct mmc_card *card, struct gendisk *disk)
 
 	pr_info("Enter %s\n", __func__);
 
-//	if (!is_card_emmc(card)) /* not emmc, nothing to do */
+	if (!is_card_emmc(card)) /* not emmc, nothing to do */
 		return 0;
 
 	store_device = host->storage_flag;
