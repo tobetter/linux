@@ -602,7 +602,10 @@ static int video_port_init(struct port_priv_s *priv,
 		pr_err("vformat not set\n");
 		return -EPERM;
 	}
-
+	if (vdec_dual(vdec) && vdec_secure(vdec)) {
+		/*copy drm flags for slave dec.*/
+		vdec->slave->port_flag |= PORT_FLAG_DRM;
+	}
 	if (port->vformat == VFORMAT_H264_4K2K ||
 		(priv->vdec->sys_info->height *
 			priv->vdec->sys_info->width) > 1920*1088) {
