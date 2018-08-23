@@ -1556,6 +1556,7 @@ struct hevc_state_s {
 	u8 next_again_flag;
 	u32 pre_parser_wr_ptr;
 #endif
+	u32 first_pic_flag;
 } /*hevc_stru_t */;
 
 #ifdef AGAIN_HAS_THRESHOLD
@@ -1949,6 +1950,7 @@ static void hevc_init_stru(struct hevc_state_s *hevc,
 
 	hevc->sei_present_flag = 0;
 	hevc->valve_count = 0;
+	hevc->first_pic_flag = 0;
 #ifdef MULTI_INSTANCE_SUPPORT
 	hevc->decoded_poc = INVALID_POC;
 	hevc->start_process_time = 0;
@@ -2932,6 +2934,10 @@ static struct PIC_s *output_pic(struct hevc_state_s *hevc,
 			} else
 				pic_display = NULL;
 		}
+	}
+	if (pic_display && (hevc->vf_pre_count == 1) && (hevc->first_pic_flag == 1)) {
+		pic_display = NULL;
+		hevc->first_pic_flag = 0;
 	}
 	return pic_display;
 }
@@ -7799,6 +7805,9 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 		return IRQ_HANDLED;
 	} else if (dec_status == HEVC_DECPIC_DATA_DONE) {
 		if (hevc->m_ins_flag) {
+			struct PIC_s *pic;
+			struct PIC_s *pic_display;
+			int decoded_poc;
 pic_done:
 			read_decode_info(hevc);
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
@@ -7811,6 +7820,95 @@ pic_done:
 			amhevc_stop();
 
 			reset_process_time(hevc);
+
+			if (hevc->vf_pre_count == 0) {
+				decoded_poc = hevc->curr_POC;
+				pic = get_pic_by_POC(hevc, decoded_poc);
+				if (pic && (pic->POC != INVALID_POC)) {
+					/*PB skip control */
+					if (pic->error_mark == 0
+							&& hevc->PB_skip_mode == 1) {
+						/* start decoding after
+						 *   first I
+						 */
+						hevc->ignore_bufmgr_error |= 0x1;
+					}
+					if (hevc->ignore_bufmgr_error & 1) {
+						if (hevc->PB_skip_count_after_decoding > 0) {
+							hevc->PB_skip_count_after_decoding--;
+						} else {
+							/* start displaying */
+							hevc->ignore_bufmgr_error |= 0x2;
+						}
+					}
+					if (hevc->mmu_enable) {
+						if (!hevc->m_ins_flag) {
+							hevc->used_4k_num =
+							READ_VREG(HEVC_SAO_MMU_STATUS) >> 16;
+
+							if ((!is_skip_decoding(hevc, pic)) &&
+								(hevc->used_4k_num >= 0) &&
+								(hevc->cur_pic->scatter_alloc
+								== 1)) {
+								hevc_print(hevc,
+								H265_DEBUG_BUFMGR_MORE,
+								"%s pic index %d scatter_alloc %d page_start %d\n",
+								"decoder_mmu_box_free_idx_tail",
+								hevc->cur_pic->index,
+								hevc->cur_pic->scatter_alloc,
+								hevc->used_4k_num);
+								decoder_mmu_box_free_idx_tail(
+								hevc->mmu_box,
+								hevc->cur_pic->index,
+								hevc->used_4k_num);
+								hevc->cur_pic->scatter_alloc
+									= 2;
+							}
+							hevc->used_4k_num = -1;
+						}
+					}
+
+					pic->output_mark = 1;
+					pic->recon_mark = 1;
+				}
+
+				pic_display = output_pic(hevc, 1);
+
+				if (pic_display) {
+					if ((pic_display->error_mark &&
+						((hevc->ignore_bufmgr_error &
+								  0x2) == 0))
+						|| (get_dbg_flag(hevc) &
+							H265_DEBUG_DISPLAY_CUR_FRAME)
+						|| (get_dbg_flag(hevc) &
+							H265_DEBUG_NO_DISPLAY)) {
+						pic_display->output_ready = 0;
+						if (get_dbg_flag(hevc) &
+							H265_DEBUG_BUFMGR) {
+							hevc_print(hevc, 0,
+							"[BM] Display: POC %d, ",
+								 pic_display->POC);
+							hevc_print_cont(hevc, 0,
+							"decoding index %d ==> ",
+								 pic_display->
+								 decode_idx);
+							hevc_print_cont(hevc, 0,
+							"Debug or err,recycle it\n");
+						}
+					} else {
+						if (pic_display->
+						slice_type != 2) {
+						pic_display->output_ready = 0;
+						} else {
+							prepare_display_buf
+								(hevc,
+								 pic_display);
+							hevc->first_pic_flag = 1;
+						}
+					}
+				}
+			}
+
 			vdec_schedule_work(&hevc->work);
 		}
 
