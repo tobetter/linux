@@ -1258,6 +1258,7 @@ struct PIC_s {
 	u32 sar_width;
 	u32 sar_height;
 	u32 double_write_mode;
+	u32 video_signal_type;
 } /*PIC_t */;
 
 #define MAX_TILE_COL_NUM    10
@@ -4622,7 +4623,8 @@ static struct PIC_s *get_new_pic(struct hevc_state_s *hevc,
 			hevc->bit_depth_luma;
 		new_pic->bit_depth_chroma =
 			hevc->bit_depth_chroma;
-
+		new_pic->video_signal_type =
+			hevc->video_signal_type;
 		hevc_print(hevc, H265_DEBUG_BUFMGR_MORE,
 			"%s: index %d, buf_idx %d, decode_idx %d, POC %d\n",
 			__func__, new_pic->index,
@@ -6290,7 +6292,7 @@ static void set_frame_info(struct hevc_state_s *hevc, struct vframe_s *vf,
 
 	/* signal_type */
 	if (hevc->video_signal_type & VIDEO_SIGNAL_TYPE_AVAILABLE_MASK)
-		vf->signal_type = hevc->video_signal_type;
+		vf->signal_type = pic->video_signal_type;
 	else
 		vf->signal_type = 0;
 
