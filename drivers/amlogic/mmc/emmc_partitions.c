@@ -724,7 +724,7 @@ static int mmc_read_partition_tbl(struct mmc_card *card,
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 	/* LBA unit */
-	start_blk = 8184;	/* FIXME: this should be returned later */
+	start_blk = 2048;
 #else
 	start_blk = get_reserve_partition_off(card);
 	if (start_blk < 0) {
