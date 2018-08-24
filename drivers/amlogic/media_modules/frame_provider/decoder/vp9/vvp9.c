@@ -2756,8 +2756,9 @@ static u32 max_decoding_time;
 
 static u32 error_handle_policy;
 /*static u32 parser_sei_enable = 1;*/
-
-static u32 max_buf_num = 10;
+#define MAX_BUF_NUM     12
+#define MAX_BUF_NUM_LESS   10
+static u32 max_buf_num = MAX_BUF_NUM;
 
 static u32 run_ready_min_buf_num = 2;
 
@@ -9081,6 +9082,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 	pbi->m_ins_flag = 1;
 	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TXLX)
 		pbi->stat |= VP9_TRIGGER_FRAME_ENABLE;
+
 #if 1
 	if ((debug & IGNORE_PARAM_FROM_CONFIG) == 0 &&
 			pdata->config_len) {
@@ -9352,6 +9354,9 @@ static int __init amvdec_vp9_driver_init_module(void)
 	} else {
 		amvdec_vp9_profile.name = "vp9_unsupport";
 	}
+
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
+		max_buf_num = MAX_BUF_NUM_LESS;
 
 	vcodec_profile_register(&amvdec_vp9_profile);
 	INIT_REG_NODE_CONFIGS("media.decoder", &vp9_node,
