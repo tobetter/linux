@@ -207,4 +207,6 @@ source "drivers/fpga/Kconfig"
 source "drivers/tee/Kconfig"
 
 source "drivers/gpu/arm/Kconfig"
+
+source "drivers/gator/Kconfig"
 endmenu
