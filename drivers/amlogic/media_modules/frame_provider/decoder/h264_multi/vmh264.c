@@ -770,8 +770,10 @@ struct vdec_h264_hw_s {
 	struct mh264_ud_record_wait_node_t free_nodes[MAX_FREE_USERDATA_NODES];
 	int wait_for_udr_send;
 #endif
+	u32 no_mem_count;
 	bool is_used_v4l;
 	void *v4l2_ctx;
+	wait_queue_head_t wait_q;
 };
 
 static u32 again_threshold = 0x40;
@@ -1514,6 +1516,9 @@ static int alloc_one_buf_spec(struct vdec_h264_hw_s *hw, int i)
 		PAGE_ALIGN(buf_size), DRIVER_NAME,
 		&hw->buffer_spec[i].cma_alloc_addr) < 0) {
 		hw->buffer_spec[i].cma_alloc_addr = 0;
+		if (hw->no_mem_count++ > 3) {
+			hw->stat |= DECODER_FATAL_ERROR_NO_MEM;
+		}
 		dpb_print(DECODE_ID(hw), 0,
 		"%s, fail to alloc buf for bufspec%d, try later\n",
 				__func__, i
@@ -4084,6 +4089,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 	if (dec_dpb_status == H264_CONFIG_REQUEST) {
 		WRITE_VREG(DPB_STATUS_REG, H264_ACTION_CONFIG_DONE);
 		reset_process_time(hw);
+		hw->reg_iqidct_control = READ_VREG(IQIDCT_CONTROL);
 		hw->dec_result = DEC_RESULT_CONFIG_PARAM;
 		vdec_schedule_work(&hw->work);
 	} else if (dec_dpb_status == H264_SLICE_HEAD_DONE) {
@@ -4663,6 +4669,7 @@ send_again:
 			"%s H264_DATA_REQUEST (%d)\n",
 			__func__, hw->get_data_count);
 			hw->dec_result = DEC_RESULT_GET_DATA;
+			hw->reg_iqidct_control = READ_VREG(IQIDCT_CONTROL);
 			hw->get_data_start_time = jiffies;
 			hw->get_data_count++;
 			if (hw->get_data_count >= frame_max_data_packet)
@@ -5279,6 +5286,7 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 	hw->reg_rv_ai_mb_count = 0;
 	hw->vld_dec_control = 0;
 	hw->decode_timeout_count = 0;
+	hw->no_mem_count = 0;
 
 	hw->vh264_ratio = hw->vh264_amstream_dec_info.ratio;
 	/* vh264_ratio = 0x100; */
@@ -5345,12 +5353,14 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 	hw->vh264_stream_switching_state = SWITCHING_STATE_OFF;
 	hw->hevc_cur_buf_idx = 0xffff;
 
+	init_waitqueue_head(&hw->wait_q);
+
 	return;
 }
 
 static s32 vh264_init(struct vdec_h264_hw_s *hw)
 {
-	int ret = 0, size = -1;
+	int size = -1;
 	int fw_size = 0x1000 * 16;
 	int fw_mmu_size = 0x1000 * 16;
 	struct firmware_s *fw = NULL, *fw_mmu = NULL;
@@ -5471,28 +5481,6 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 		/*slice*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN + 0x3000,
 			fw->data + 0x5000, 0x1000);
-
-		if (hw->mmu_enable)
-			ret = amhevc_loadmc_ex(VFORMAT_HEVC,
-				NULL, fw_mmu->data);
-
-		if (ret < 0) {
-			amvdec_disable();
-			if (hw->mmu_enable)
-				amhevc_disable();
-			if (hw->mc_cpu_addr) {
-				dma_free_coherent(amports_get_dma_device(),
-					MC_TOTAL_SIZE, hw->mc_cpu_addr,
-					hw->mc_dma_handle);
-				hw->mc_cpu_addr = NULL;
-			}
-
-			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-				"MH264: the %s fw loading failed, err: %x\n",
-				tee_enabled() ? "TEE" : "local", ret);
-
-			return -EBUSY;
-		}
 	}
 
 #if 1 /* #ifdef  BUFFER_MGR_IN_C */
@@ -6541,7 +6529,7 @@ result_done:
 
 	/* mark itself has all HW resource released and input released */
 	vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
-
+	wake_up_interruptible(&hw->wait_q);
 	if (hw->vdec_cb)
 		hw->vdec_cb(hw_to_vdec(hw), hw->vdec_cb_arg);
 }
@@ -6573,6 +6561,9 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		return 0;
 #endif
 	if (hw->eos)
+		return 0;
+
+	if (hw->stat & DECODER_FATAL_ERROR_NO_MEM)
 		return 0;
 
 	if (disp_vframe_valve_level &&
@@ -6628,6 +6619,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	int size, ret = -1;
 
 	run_count[DECODE_ID(hw)]++;
+	vdec_reset_core(vdec);
 	if (hw->mmu_enable)
 		hevc_reset_core(vdec);
 	hw->vdec_cb_arg = arg;
@@ -6743,6 +6735,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 			"MH264 the %s fw loading failed, err: %x\n",
 			tee_enabled() ? "TEE" : "local", ret);
+		hw->dec_result = DEC_RESULT_FORCE_EXIT;
+		vdec_schedule_work(&hw->work);
 		return;
 	}
 
@@ -6756,6 +6750,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 				"MH264_MMU the %s fw loading failed, err: %x\n",
 				tee_enabled() ? "TEE" : "local", ret);
+			hw->dec_result = DEC_RESULT_FORCE_EXIT;
+			vdec_schedule_work(&hw->work);
 			return;
 		}
 	}
@@ -7254,6 +7250,17 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 		(struct vdec_h264_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
 	int i;
+	struct vdec_s *vdec = hw_to_vdec(hw);
+
+	if (vdec->next_status == VDEC_STATUS_DISCONNECTED
+				&& (vdec->status == VDEC_STATUS_ACTIVE)) {
+			pr_info("%s  force exit %d\n", __func__, __LINE__);
+			hw->dec_result = DEC_RESULT_FORCE_EXIT;
+			vdec_schedule_work(&hw->work);
+			wait_event_interruptible_timeout(hw->wait_q,
+				(vdec->status == VDEC_STATUS_CONNECTED),
+				msecs_to_jiffies(50));  /* wait for work done */
+	}
 
 	for (i = 0; i < BUFSPEC_POOL_SIZE; i++)
 		release_aux_data(hw, i);

@@ -10009,6 +10009,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		amhevc_disable();
 		hevc_print(hevc, 0, "H265: the %s fw loading failed, err: %x\n",
 			tee_enabled() ? "TEE" : "local", loadr);
+		hevc->dec_result = DEC_RESULT_FORCE_EXIT;
+		vdec_schedule_work(&hevc->work);
 		return;
 	}
 
@@ -10142,7 +10144,6 @@ static int amvdec_h265_probe(struct platform_device *pdev)
 			work_buf_size, DRIVER_NAME, &hevc->buf_start);
 	if (ret < 0) {
 		uninit_mmu_buffers(hevc);
-		devm_kfree(&pdev->dev, (void *)hevc);
 		vfree(hevc);
 		mutex_unlock(&vh265_mutex);
 		return ret;

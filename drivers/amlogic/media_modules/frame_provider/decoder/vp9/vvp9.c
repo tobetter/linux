@@ -6998,8 +6998,7 @@ int continue_decoding(struct VP9Decoder_s *pbi)
 	}
 	pbi->process_state = PROC_STATE_DECODESLICE;
 	if (pbi->mmu_enable) {
-		if (pbi->last_put_idx >= 0 &&
-				pbi->last_put_idx < pbi->used_buf_num) {
+		if (pbi->last_put_idx < pbi->used_buf_num) {
 			struct RefCntBuffer_s *frame_bufs =
 				cm->buffer_pool->frame_bufs;
 			int i = pbi->last_put_idx;
@@ -8663,6 +8662,8 @@ static void run_front(struct vdec_s *vdec)
 		vp9_print(pbi, PRINT_FLAG_ERROR,
 			"VP9: the %s fw loading failed, err: %x\n",
 			tee_enabled() ? "TEE" : "local", ret);
+		pbi->dec_result = DEC_RESULT_FORCE_EXIT;
+		vdec_schedule_work(&pbi->work);
 		return;
 	}
 

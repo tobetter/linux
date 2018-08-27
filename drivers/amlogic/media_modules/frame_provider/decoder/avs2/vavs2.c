@@ -5411,6 +5411,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		amhevc_disable();
 		avs2_print(dec, 0,
 			"%s: Error amvdec_loadmc fail\n", __func__);
+		dec->dec_result = DEC_RESULT_FORCE_EXIT;
+		vdec_schedule_work(&dec->work);
 		return;
 	} else
 		vdec->mc_loaded = 1;

@@ -802,11 +802,10 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 		/*nopts*/
 		input->last_in_nopts_cnt++;
 	}
-	vdec_input_unlock(input, flags);
 	if (chunk->size > input->frame_max_size)
 		input->frame_max_size = chunk->size;
 	input->total_wr_count += count;
-
+	vdec_input_unlock(input, flags);
 #if 0
 	if (add_count == 2)
 		input->total_wr_count += 38;
