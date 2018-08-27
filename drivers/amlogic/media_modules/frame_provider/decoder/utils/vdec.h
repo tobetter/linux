@@ -385,6 +385,8 @@ extern void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 
 extern bool vdec_need_more_data(struct vdec_s *vdec);
 
+extern void vdec_reset_core(struct vdec_s *vdec);
+
 extern void hevc_reset_core(struct vdec_s *vdec);
 
 extern void vdec_set_suspend_clk(int mode, int hevc);

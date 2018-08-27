@@ -1213,7 +1213,7 @@ void vdec_clean_input(struct vdec_s *vdec)
 	while (!list_empty(&input->vframe_chunk_list)) {
 		struct vframe_chunk_s *chunk =
 			vdec_input_next_chunk(input);
-		if (chunk->flag & VFRAME_CHUNK_FLAG_CONSUMED)
+		if (chunk && (chunk->flag & VFRAME_CHUNK_FLAG_CONSUMED))
 			vdec_input_release_chunk(input, chunk);
 		else
 			break;
@@ -1372,13 +1372,23 @@ int vdec_disconnect(struct vdec_s *vdec)
 	mutex_unlock(&vdec_mutex);
 	up(&vdec_core->sem);
 
-	wait_for_completion(&vdec->inactive_done);
+	if(!wait_for_completion_timeout(&vdec->inactive_done,
+		msecs_to_jiffies(2000)))
+		goto discon_timeout;
 
-	if (vdec->slave)
-		wait_for_completion(&vdec->slave->inactive_done);
-	else if (vdec->master)
-		wait_for_completion(&vdec->master->inactive_done);
+	if (vdec->slave) {
+		if(!wait_for_completion_timeout(&vdec->slave->inactive_done,
+			msecs_to_jiffies(2000)))
+			goto discon_timeout;
+	} else if (vdec->master) {
+		if(!wait_for_completion_timeout(&vdec->master->inactive_done,
+			msecs_to_jiffies(2000)))
+			goto discon_timeout;
+	}
 
+	return 0;
+discon_timeout:
+	pr_err("%s timeout!!! status: 0x%x\n", __func__, vdec->status);
 	return 0;
 }
 EXPORT_SYMBOL(vdec_disconnect);
@@ -2021,6 +2031,20 @@ static void vdec_route_interrupt(struct vdec_s *vdec, unsigned long mask,
 	}
 }
 
+static void vdec_remove_reset(struct vdec_s *vdec)
+{
+	struct vdec_input_s *input = &vdec->input;
+
+	if (input->target == VDEC_INPUT_TARGET_VLD) {
+		amvdec_stop();
+		vdec_reset_core(vdec);
+	} else if (input->target == VDEC_INPUT_TARGET_HEVC) {
+		amhevc_stop();
+		hevc_reset_core(vdec);
+	}
+	pr_info(" %s  vdec %p\n", __func__, vdec);
+}
+
 /*
  * Set up secure protection for each decoder instance running.
  * Note: The operation from REE side only resets memory access
@@ -2102,8 +2126,8 @@ static int vdec_core_thread(void *data)
 					&input->vframe_chunk_list)) {
 					struct vframe_chunk_s *chunk =
 						vdec_input_next_chunk(input);
-					if (chunk->flag &
-						VFRAME_CHUNK_FLAG_CONSUMED)
+					if (chunk && (chunk->flag &
+						VFRAME_CHUNK_FLAG_CONSUMED))
 						vdec_input_release_chunk(input,
 							chunk);
 					else
@@ -2137,8 +2161,10 @@ static int vdec_core_thread(void *data)
 			&core->connected_vdec_list, list) {
 			if ((vdec->status == VDEC_STATUS_CONNECTED) &&
 			    (vdec->next_status == VDEC_STATUS_DISCONNECTED)) {
-				if (core->active_vdec == vdec)
+				if (core->active_vdec == vdec) {
+					vdec_remove_reset(vdec);
 					core->active_vdec = NULL;
+				}
 				list_move(&vdec->list, &disconnecting_list);
 			}
 		}
@@ -2772,6 +2798,45 @@ int vdec_source_changed(int format, int width, int height, int fps)
 
 }
 EXPORT_SYMBOL(vdec_source_changed);
+
+void vdec_reset_core(struct vdec_s *vdec)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+		codec_dmcbus_read(DMC_REQ_CTRL) & (~(1 << 13)));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+
+	while (!(codec_dmcbus_read(DMC_CHAN_STS)
+		& (1 << 13)))
+		;
+	/*
+	 * 2: assist
+	 * 3: vld_reset
+	 * 4: vld_part_reset
+	 * 5: vfifo reset
+	 * 6: iqidct
+	 * 7: mc
+	 * 8: dblk
+	 * 9: pic_dc
+	 * 10: psc
+	 * 11: mcpu
+	 * 12: ccpu
+	 * 13: ddr
+	 * 14: afifo
+	 */
+
+	WRITE_VREG(DOS_SW_RESET0,
+		(1<<3)|(1<<4)|(1<<5));
+
+	WRITE_VREG(DOS_SW_RESET0, 0);
+
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+		codec_dmcbus_read(DMC_REQ_CTRL) | (1 << 13));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+}
+EXPORT_SYMBOL(vdec_reset_core);
 
 void hevc_reset_core(struct vdec_s *vdec)
 {

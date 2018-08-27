@@ -397,7 +397,10 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_MPEG12:
-		format = VIDEO_DEC_MPEG12;
+		if (!strcmp(name, "mpeg12"))
+			format = VIDEO_DEC_MPEG12;
+		else if (!strcmp(name, "mmpeg12"))
+			format = VIDEO_DEC_MPEG12_MULTI;
 		break;
 
 	case VFORMAT_MJPEG:
@@ -434,14 +437,19 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_MPEG4:
-		if (!strcmp(name, "vmpeg4_mc_311"))
-			format = VIDEO_DEC_MPEG4_3;
-		else if (!strcmp(name, "vmpeg4_mc_4"))
-			format = VIDEO_DEC_MPEG4_4;
+		if (!strcmp(name, "mmpeg4_mc_5"))
+			format = VIDEO_DEC_MPEG4_5_MULTI;
+		else if ((!strcmp(name, "mh263_mc")))
+			format = VIDEO_DEC_H263_MULTI;
 		else if (!strcmp(name, "vmpeg4_mc_5"))
 			format = VIDEO_DEC_MPEG4_5;
 		else if (!strcmp(name, "h263_mc"))
 			format = VIDEO_DEC_H263;
+		/*not support now*/
+		else if (!strcmp(name, "vmpeg4_mc_311"))
+			format = VIDEO_DEC_MPEG4_3;
+		else if (!strcmp(name, "vmpeg4_mc_4"))
+			format = VIDEO_DEC_MPEG4_4;
 		break;
 
 	case VFORMAT_H264_4K2K:
@@ -803,6 +811,12 @@ void amvdec_stop(void)
 			break;
 	}
 
+	timeout = jiffies + HZ;
+	while (READ_VREG(LMEM_DMA_CTRL) & 0x8000) {
+		if (time_after(jiffies, timeout))
+			break;
+	}
+
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		READ_VREG(DOS_SW_RESET0);
@@ -872,6 +886,12 @@ void amhevc_stop(void)
 		WRITE_VREG(HEVC_CPSR, 0);
 
 		while (READ_VREG(HEVC_IMEM_DMA_CTRL) & 0x8000) {
+			if (time_after(jiffies, timeout))
+				break;
+		}
+
+		timeout = jiffies + HZ;
+		while (READ_VREG(HEVC_LMEM_DMA_CTRL) & 0x8000) {
 			if (time_after(jiffies, timeout))
 				break;
 		}
