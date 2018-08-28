@@ -1933,7 +1933,7 @@ static s32 vmpeg12_init(void)
 		return -1;
 	}
 
-	ret = amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf);
+	ret = amvdec_loadmc_ex(VFORMAT_MPEG12, "mpeg12", buf);
 	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
