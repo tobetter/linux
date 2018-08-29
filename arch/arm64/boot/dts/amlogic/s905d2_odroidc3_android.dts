@@ -42,6 +42,13 @@
 					mnt_flags = "ro,barrier=1,inode_readahead_blks=8";
 					fsmgr_flags = "wait";
 				};
+				odm {
+					compatible = "android,odm";
+					dev = "/dev/block/odm";
+					type = "ext4";
+					mnt_flags = "ro,barrier=1,inode_readahead_blks=8";
+					fsmgr_flags = "wait";
+				};
 			};
 		};
 	};
