@@ -2756,9 +2756,9 @@ static u32 max_decoding_time;
 
 static u32 error_handle_policy;
 /*static u32 parser_sei_enable = 1;*/
-#define MAX_BUF_NUM     12
+#define MAX_BUF_NUM_NORMAL     12
 #define MAX_BUF_NUM_LESS   10
-static u32 max_buf_num = MAX_BUF_NUM;
+static u32 max_buf_num = MAX_BUF_NUM_NORMAL;
 
 static u32 run_ready_min_buf_num = 2;
 
