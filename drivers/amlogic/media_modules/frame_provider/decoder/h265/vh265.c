@@ -2704,6 +2704,7 @@ static void init_pic_list(struct hevc_state_s *hevc)
 	int i;
 	int init_buf_num = get_work_pic_num(hevc);
 	int dw_mode = get_double_write_mode(hevc);
+	struct vdec_s *vdec = hw_to_vdec(hevc);
 	/*alloc decoder buf*/
 	for (i = 0; i < init_buf_num; i++) {
 		if (alloc_buf(hevc) < 0) {
@@ -2731,6 +2732,10 @@ static void init_pic_list(struct hevc_state_s *hevc)
 		pic->index = i;
 		pic->BUF_index = -1;
 		pic->mv_buf_index = -1;
+		if (vdec->parallel_dec == 1) {
+			pic->y_canvas_index = -1;
+			pic->uv_canvas_index = -1;
+		}
 		if (config_pic(hevc, pic) < 0) {
 			if (get_dbg_flag(hevc))
 				hevc_print(hevc, 0,
@@ -2759,12 +2764,17 @@ static void init_pic_list(struct hevc_state_s *hevc)
 		hevc->m_PIC[i] = pic;
 		pic->index = -1;
 		pic->BUF_index = -1;
+		if (vdec->parallel_dec == 1) {
+			pic->y_canvas_index = -1;
+			pic->uv_canvas_index = -1;
+		}
 	}
 
 }
 
 static void uninit_pic_list(struct hevc_state_s *hevc)
 {
+	struct vdec_s *vdec = hw_to_vdec(hevc);
 	int i;
 #ifndef MV_USE_FIXED_BUF
 	dealloc_mv_bufs(hevc);
@@ -2773,6 +2783,10 @@ static void uninit_pic_list(struct hevc_state_s *hevc)
 		struct PIC_s *pic = hevc->m_PIC[i];
 
 		if (pic) {
+			if (vdec->parallel_dec == 1) {
+				vdec->free_canvas_ex(pic->y_canvas_index, vdec->id);
+				vdec->free_canvas_ex(pic->uv_canvas_index, vdec->id);
+			}
 			release_aux_data(hevc, pic);
 			vfree(pic);
 			hevc->m_PIC[i] = NULL;
@@ -6173,6 +6187,7 @@ static int hevc_local_init(struct hevc_state_s *hevc)
 
 static void set_canvas(struct hevc_state_s *hevc, struct PIC_s *pic)
 {
+	struct vdec_s *vdec = hw_to_vdec(hevc);
 	int canvas_w = ALIGN(pic->width, 64)/4;
 	int canvas_h = ALIGN(pic->height, 32)/4;
 	int blkmode = mem_map_mode;
@@ -6191,8 +6206,15 @@ static void set_canvas(struct hevc_state_s *hevc, struct PIC_s *pic)
 			canvas_w = ALIGN(canvas_w, 64);
 		canvas_h = ALIGN(canvas_h, 32);
 
-		pic->y_canvas_index = 128 + pic->index * 2;
-		pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+		if (vdec->parallel_dec == 1) {
+			if (pic->y_canvas_index == -1)
+				pic->y_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+			if (pic->uv_canvas_index == -1)
+				pic->uv_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+		} else {
+			pic->y_canvas_index = 128 + pic->index * 2;
+			pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+		}
 
 		canvas_config_ex(pic->y_canvas_index,
 			pic->dw_y_adr, canvas_w, canvas_h,
@@ -6224,8 +6246,14 @@ static void set_canvas(struct hevc_state_s *hevc, struct PIC_s *pic)
 	} else {
 		if (!hevc->mmu_enable) {
 			/* to change after 10bit VPU is ready ... */
-			pic->y_canvas_index = 128 + pic->index;
-			pic->uv_canvas_index = 128 + pic->index;
+			if (vdec->parallel_dec == 1) {
+				if (pic->y_canvas_index == -1)
+					pic->y_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+				pic->uv_canvas_index = pic->y_canvas_index;
+			} else {
+				pic->y_canvas_index = 128 + pic->index;
+				pic->uv_canvas_index = 128 + pic->index;
+			}
 
 			canvas_config_ex(pic->y_canvas_index,
 				pic->mc_y_adr, canvas_w, canvas_h,
@@ -6236,8 +6264,16 @@ static void set_canvas(struct hevc_state_s *hevc, struct PIC_s *pic)
 		}
 	}
 #else
-	pic->y_canvas_index = 128 + pic->index * 2;
-	pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+	if (vdec->parallel_dec == 1) {
+		if (pic->y_canvas_index == -1)
+			pic->y_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+		if (pic->uv_canvas_index == -1)
+			pic->uv_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+	} else {
+		pic->y_canvas_index = 128 + pic->index * 2;
+		pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+	}
+
 
 	canvas_config_ex(pic->y_canvas_index, pic->mc_y_adr, canvas_w, canvas_h,
 		CANVAS_ADDR_NOWRAP, blkmode, 0x7);
@@ -10205,8 +10241,10 @@ static void vh265_work(struct work_struct *work)
 #endif
 
 	/* mark itself has all HW resource released and input released */
-	vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
-
+	if (vdec->parallel_dec == 1)
+		vdec_core_finish_run(vdec, CORE_MASK_HEVC);
+	else
+		vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	if (hevc->vdec_cb)
 		hevc->vdec_cb(hw_to_vdec(hevc), hevc->vdec_cb_arg);
@@ -10291,7 +10329,10 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		not_run_ready[hevc->index] = 0;
 	else
 		not_run_ready[hevc->index]++;
-	return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
+	if (vdec->parallel_dec == 1)
+		return ret ? (CORE_MASK_HEVC) : 0;
+	else
+		return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
 static void run(struct vdec_s *vdec, unsigned long mask,
@@ -10985,9 +11026,11 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 	/*set the max clk for smooth playing...*/
 	hevc_source_changed(VFORMAT_HEVC,
 			3840, 2160, 60);
-
-	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
-				| CORE_MASK_COMBINE);
+	if (pdata->parallel_dec == 1)
+		vdec_core_request(pdata, CORE_MASK_HEVC);
+	else
+		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+					| CORE_MASK_COMBINE);
 
 	return 0;
 }
@@ -10997,6 +11040,7 @@ static int ammvdec_h265_remove(struct platform_device *pdev)
 	struct hevc_state_s *hevc =
 		(struct hevc_state_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
+	struct vdec_s *vdec = hw_to_vdec(hevc);
 
 	if (hevc == NULL)
 		return 0;
@@ -11007,8 +11051,10 @@ static int ammvdec_h265_remove(struct platform_device *pdev)
 	vmh265_stop(hevc);
 
 	/* vdec_source_changed(VFORMAT_H264, 0, 0, 0); */
-
-	vdec_core_release(hw_to_vdec(hevc), CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_release(hw_to_vdec(hevc), CORE_MASK_HEVC);
+	else
+		vdec_core_release(hw_to_vdec(hevc), CORE_MASK_HEVC);
 
 	vdec_set_status(hw_to_vdec(hevc), VDEC_STATUS_DISCONNECTED);
 

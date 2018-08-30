@@ -3880,6 +3880,7 @@ static void set_canvas(struct AVS2Decoder_s *dec,
 	int canvas_w = ALIGN(pic->pic_w, 64)/4;
 	int canvas_h = ALIGN(pic->pic_h, 32)/4;
 	int blkmode = mem_map_mode;
+	struct vdec_s *vdec = hw_to_vdec(dec);
 	/*CANVAS_BLKMODE_64X32*/
 	if	(pic->double_write_mode) {
 		canvas_w = pic->pic_w	/
@@ -3895,8 +3896,15 @@ static void set_canvas(struct AVS2Decoder_s *dec,
 			canvas_w = ALIGN(canvas_w, 64);
 		canvas_h = ALIGN(canvas_h, 32);
 
-		pic->y_canvas_index = 128 + pic->index * 2;
-		pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+		if (vdec->parallel_dec == 1) {
+			if (pic->y_canvas_index == -1)
+				pic->y_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+			if (pic->uv_canvas_index == -1)
+				pic->uv_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+		} else {
+			pic->y_canvas_index = 128 + pic->index * 2;
+			pic->uv_canvas_index = 128 + pic->index * 2 + 1;
+		}
 
 		canvas_config_ex(pic->y_canvas_index,
 			pic->dw_y_adr, canvas_w, canvas_h,
@@ -3927,8 +3935,15 @@ static void set_canvas(struct AVS2Decoder_s *dec,
 #endif
 	} else {
 	#ifndef AVS2_10B_MMU
-		pic->y_canvas_index = 128 + pic->index;
-		pic->uv_canvas_index = 128 + pic->index;
+		if (vdec->parallel_dec == 1) {
+			if (pic->y_canvas_index == -1)
+				pic->y_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+			if (pic->uv_canvas_index == -1)
+				pic->uv_canvas_index = vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+		} else {
+			pic->y_canvas_index = 128 + pic->index;
+			pic->uv_canvas_index = 128 + pic->index;
+		}
 
 		canvas_config_ex(pic->y_canvas_index,
 			pic->mc_y_adr, canvas_w, canvas_h,
@@ -6172,7 +6187,10 @@ static void avs2_work(struct work_struct *work)
 		dec->stat &= ~STAT_TIMER_ARM;
 	}
 	/* mark itself has all HW resource released and input released */
-	vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec ==1)
+		vdec_core_finish_run(vdec, CORE_MASK_HEVC);
+	else
+		vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	if (dec->vdec_cb)
 		dec->vdec_cb(hw_to_vdec(dec), dec->vdec_cb_arg);
@@ -6245,7 +6263,11 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		not_run_ready[dec->index] = 0;
 	else
 		not_run_ready[dec->index]++;
-	return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
+
+	if (vdec->parallel_dec == 1)
+		return ret ? CORE_MASK_HEVC : 0;
+	else
+		return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
 static void run(struct vdec_s *vdec, unsigned long mask,
@@ -6560,6 +6582,13 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 		pr_info("\nammvdec_avs2 device data allocation failed\n");
 		return -ENOMEM;
 	}
+	if (pdata->parallel_dec == 1) {
+		int i;
+		for (i = 0; i < AVS2_MAX_BUFFER_NUM; i++) {
+			dec->avs2_dec.frm_pool[i].y_canvas_index = -1;
+			dec->avs2_dec.frm_pool[i].uv_canvas_index = -1;
+		}
+	}
 	pdata->private = dec;
 	pdata->dec_status = vavs2_dec_status;
 	/* pdata->set_trickmode = set_trickmode; */
@@ -6717,9 +6746,12 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	vdec_set_prepare_level(pdata, start_decode_buf_level);
 	hevc_source_changed(VFORMAT_AVS2,
 			4096, 2048, 60);
-
-	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+	if (pdata->parallel_dec == 1)
+		vdec_core_request(pdata, CORE_MASK_HEVC);
+	else {
+		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
 				| CORE_MASK_COMBINE);
+	}
 
 	return 0;
 }
@@ -6728,14 +6760,26 @@ static int ammvdec_avs2_remove(struct platform_device *pdev)
 {
 	struct AVS2Decoder_s *dec = (struct AVS2Decoder_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
+	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
+	int i;
+
 	if (debug)
 		pr_info("amvdec_avs2_remove\n");
 
 	vmavs2_stop(dec);
 
-	vdec_core_release(hw_to_vdec(dec), CORE_MASK_HEVC);
+	if (pdata->parallel_dec == 1)
+		vdec_core_release(hw_to_vdec(dec), CORE_MASK_HEVC);
+	else
+		vdec_core_release(hw_to_vdec(dec), CORE_MASK_HEVC);
 
 	vdec_set_status(hw_to_vdec(dec), VDEC_STATUS_DISCONNECTED);
+	if (pdata->parallel_dec == 1) {
+		for (i = 0; i < AVS2_MAX_BUFFER_NUM; i++) {
+			pdata->free_canvas_ex(dec->avs2_dec.frm_pool[i].y_canvas_index, pdata->id);
+			pdata->free_canvas_ex(dec->avs2_dec.frm_pool[i].uv_canvas_index, pdata->id);
+		}
+	}
 
 
 #ifdef DEBUG_PTS

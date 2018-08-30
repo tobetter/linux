@@ -218,6 +218,8 @@ struct vdec_s {
 
 	/* canvas */
 	int (*get_canvas)(unsigned int index, unsigned int base);
+	int (*get_canvas_ex)(int type, int id);
+	void (*free_canvas_ex)(int index, int id);
 
 	int (*dec_status)(struct vdec_s *vdec, struct vdec_info *vstatus);
 	int (*set_trickmode)(struct vdec_s *vdec, unsigned long trickmode);
@@ -249,6 +251,7 @@ struct vdec_s {
 #endif
 	atomic_t inirq_thread_flag;
 	atomic_t inirq_flag;
+	int parallel_dec;
 };
 
 /* common decoder vframe provider name to use default vfm path */

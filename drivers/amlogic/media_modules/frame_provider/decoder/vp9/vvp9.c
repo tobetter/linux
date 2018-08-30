@@ -4712,7 +4712,7 @@ static void init_pic_list(struct VP9Decoder_s *pbi)
 	struct VP9_Common_s *cm = &pbi->common;
 	struct PIC_BUFFER_CONFIG_s *pic_config;
 	u32 header_size;
-
+	struct vdec_s *vdec = hw_to_vdec(pbi);
 	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		header_size = vvp9_mmu_compress_header_size(pbi);
 		/*alloc VP9 compress header first*/
@@ -4735,6 +4735,10 @@ static void init_pic_list(struct VP9Decoder_s *pbi)
 		pic_config->index = i;
 		pic_config->BUF_index = -1;
 		pic_config->mv_buf_index = -1;
+		if (vdec->parallel_dec == 1) {
+			pic_config->y_canvas_index = -1;
+			pic_config->uv_canvas_index = -1;
+		}
 		if (config_pic(pbi, pic_config) < 0) {
 			if (debug)
 				pr_info("Config_pic %d fail\n",
@@ -4754,6 +4758,10 @@ static void init_pic_list(struct VP9Decoder_s *pbi)
 		pic_config->index = -1;
 		pic_config->BUF_index = -1;
 		pic_config->mv_buf_index = -1;
+		if (vdec->parallel_dec == 1) {
+			pic_config->y_canvas_index = -1;
+			pic_config->uv_canvas_index = -1;
+		}
 	}
 	pr_info("%s ok, used_buf_num = %d\n",
 		__func__, pbi->used_buf_num);
@@ -6332,6 +6340,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 static void set_canvas(struct VP9Decoder_s *pbi,
 	struct PIC_BUFFER_CONFIG_s *pic_config)
 {
+	struct vdec_s *vdec = hw_to_vdec(pbi);
 	int canvas_w = ALIGN(pic_config->y_crop_width, 64)/4;
 	int canvas_h = ALIGN(pic_config->y_crop_height, 32)/4;
 	int blkmode = mem_map_mode;
@@ -6350,8 +6359,17 @@ static void set_canvas(struct VP9Decoder_s *pbi,
 			canvas_w = ALIGN(canvas_w, 64);
 		canvas_h = ALIGN(canvas_h, 32);
 
-		pic_config->y_canvas_index = 128 + pic_config->index * 2;
-		pic_config->uv_canvas_index = 128 + pic_config->index * 2 + 1;
+		if (vdec->parallel_dec == 1) {
+			if (pic_config->y_canvas_index == -1)
+				pic_config->y_canvas_index =
+					vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+			if (pic_config->uv_canvas_index == -1)
+				pic_config->uv_canvas_index =
+					vdec->get_canvas_ex(CORE_MASK_HEVC, vdec->id);
+		} else {
+			pic_config->y_canvas_index = 128 + pic_config->index * 2;
+			pic_config->uv_canvas_index = 128 + pic_config->index * 2 + 1;
+		}
 
 		canvas_config_ex(pic_config->y_canvas_index,
 			pic_config->dw_y_adr, canvas_w, canvas_h,
@@ -8697,8 +8715,11 @@ static void vp9_work(struct work_struct *work)
 				| CORE_MASK_HEVC_BACK
 				);
 #else
-	vdec_core_finish_run(hw_to_vdec(pbi), CORE_MASK_VDEC_1
-				| CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_finish_run(vdec, CORE_MASK_HEVC);
+	else
+		vdec_core_finish_run(hw_to_vdec(pbi), CORE_MASK_VDEC_1
+					| CORE_MASK_HEVC);
 #endif
 	trigger_schedule(pbi);
 }
@@ -8785,8 +8806,12 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 
 #else
 	if (get_free_buf_count(pbi) >=
-		run_ready_min_buf_num)
-		ret = CORE_MASK_VDEC_1 | CORE_MASK_HEVC;
+		run_ready_min_buf_num) {
+		if (vdec->parallel_dec == 1)
+			ret = CORE_MASK_HEVC;
+		else
+			ret = CORE_MASK_VDEC_1 | CORE_MASK_HEVC;
+		}
 	if (ret)
 		not_run_ready[pbi->index] = 0;
 	else
@@ -9470,6 +9495,9 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 			| CORE_MASK_HEVC_FRONT | CORE_MASK_HEVC_BACK
 					| CORE_MASK_COMBINE);
 #else
+	if (pdata->parallel_dec == 1)
+		vdec_core_request(pdata, CORE_MASK_HEVC);
+	else
 		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
 					| CORE_MASK_COMBINE);
 #endif
@@ -9480,6 +9508,8 @@ static int ammvdec_vp9_remove(struct platform_device *pdev)
 {
 	struct VP9Decoder_s *pbi = (struct VP9Decoder_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
+	struct vdec_s *vdec = hw_to_vdec(pbi);
+	int i;
 	if (debug)
 		pr_info("amvdec_vp9_remove\n");
 
@@ -9490,9 +9520,23 @@ static int ammvdec_vp9_remove(struct platform_device *pdev)
 		| CORE_MASK_HEVC_FRONT | CORE_MASK_HEVC_BACK
 		);
 #else
-	vdec_core_release(hw_to_vdec(pbi), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_release(hw_to_vdec(pbi), CORE_MASK_HEVC);
+	else
+		vdec_core_release(hw_to_vdec(pbi), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 #endif
 	vdec_set_status(hw_to_vdec(pbi), VDEC_STATUS_DISCONNECTED);
+
+	if (vdec->parallel_dec == 1) {
+		for (i = 0; i < FRAME_BUFFERS; i++) {
+			vdec->free_canvas_ex
+				(pbi->common.buffer_pool->frame_bufs[i].buf.y_canvas_index,
+				vdec->id);
+			vdec->free_canvas_ex
+				(pbi->common.buffer_pool->frame_bufs[i].buf.uv_canvas_index,
+				vdec->id);
+		}
+	}
 
 
 #ifdef DEBUG_PTS
