@@ -91,10 +91,13 @@ static int hevc_max_reset_count;
 #define MAX_INSTANCE_MUN  9
 
 static int no_powerdown;
+static int parallel_decode = 1;
 static DEFINE_SPINLOCK(vdec_spin_lock);
 
 #define HEVC_TEST_LIMIT 100
 #define GXBB_REV_A_MINOR 0xA
+
+#define CANVAS_MAX_SIZE (AMVDEC_CANVAS_MAX1 - AMVDEC_CANVAS_START_INDEX + 1 + AMVDEC_CANVAS_MAX2 + 1)
 
 struct am_reg {
 	char *name;
@@ -113,10 +116,12 @@ struct vdec_isr_context_s {
 struct vdec_core_s {
 	struct list_head connected_vdec_list;
 	spinlock_t lock;
+	spinlock_t canvas_lock;
 	struct ida ida;
 	atomic_t vdec_nr;
 	struct vdec_s *vfm_vdec;
 	struct vdec_s *active_vdec;
+	struct vdec_s *active_hevc;
 	struct vdec_s *hint_fr_vdec;
 	struct platform_device *vdec_core_platform_device;
 	struct device *cma_dev;
@@ -127,8 +132,18 @@ struct vdec_core_s {
 	unsigned long sched_mask;
 	struct vdec_isr_context_s isr_context[VDEC_IRQ_MAX];
 	int power_ref_count[VDEC_MAX];
-	void *last_vdec;
+	struct vdec_s *last_vdec;
+	int parallel_dec;
+	unsigned long power_ref_mask;
+	int vdec_combine_flag;
 };
+
+struct canvas_status_s {
+	int type;
+	int canvas_used_flag;
+	int id;
+};
+
 
 static struct vdec_core_s *vdec_core;
 
@@ -140,6 +155,9 @@ static const char * const vdec_status_string[] = {
 };
 
 static int debugflags;
+
+static struct canvas_status_s canvas_stat[AMVDEC_CANVAS_MAX1 - AMVDEC_CANVAS_START_INDEX + 1 + AMVDEC_CANVAS_MAX2 + 1];
+
 
 int vdec_get_debug_flags(void)
 {
@@ -174,6 +192,20 @@ static const int cores_int[VDEC_MAX] = {
 	VDEC_IRQ_0,
 	VDEC_IRQ_HEVC_BACK
 };
+
+unsigned long vdec_canvas_lock(struct vdec_core_s *core)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&core->canvas_lock, flags);
+
+	return flags;
+}
+
+void vdec_canvas_unlock(struct vdec_core_s *core, unsigned long flags)
+{
+	spin_unlock_irqrestore(&core->canvas_lock, flags);
+}
+
 
 unsigned long vdec_core_lock(struct vdec_core_s *core)
 {
@@ -222,6 +254,146 @@ static int get_canvas(unsigned int index, unsigned int base)
 	}
 
 	return ret;
+}
+
+static int get_canvas_ex(int type, int id)
+{
+	int i;
+	unsigned long flags;
+
+	flags = vdec_canvas_lock(vdec_core);
+
+	for (i = 0; i < CANVAS_MAX_SIZE; i++) {
+		/*0x10-0x15 has been used by rdma*/
+		if ((i >= 0x10) && (i <= 0x15))
+				continue;
+		if ((canvas_stat[i].type == type) &&
+			(canvas_stat[i].id & (1 << id)) == 0) {
+			canvas_stat[i].canvas_used_flag++;
+			canvas_stat[i].id |= (1 << id);
+			pr_debug("get used canvas %d\n", i);
+			vdec_canvas_unlock(vdec_core, flags);
+			if (i < AMVDEC_CANVAS_MAX2 + 1)
+				return i;
+			else
+				return (i + AMVDEC_CANVAS_START_INDEX - AMVDEC_CANVAS_MAX2 - 1);
+		}
+	}
+
+	for (i = 0; i < CANVAS_MAX_SIZE; i++) {
+		/*0x10-0x15 has been used by rdma*/
+		if ((i >= 0x10) && (i <= 0x15))
+				continue;
+		if (canvas_stat[i].type == 0) {
+			canvas_stat[i].type = type;
+			canvas_stat[i].canvas_used_flag = 1;
+			canvas_stat[i].id = (1 << id);
+			pr_debug("get canvas %d\n", i);
+			pr_debug("canvas_used_flag %d\n",
+				canvas_stat[i].canvas_used_flag);
+			pr_debug("canvas_stat[i].id %d\n",
+				canvas_stat[i].id);
+			vdec_canvas_unlock(vdec_core, flags);
+			if (i < AMVDEC_CANVAS_MAX2 + 1)
+				return i;
+			else
+				return (i + AMVDEC_CANVAS_START_INDEX - AMVDEC_CANVAS_MAX2 - 1);
+		}
+	}
+	vdec_canvas_unlock(vdec_core, flags);
+
+	pr_info("cannot get canvas\n");
+
+	return -1;
+}
+
+static void free_canvas_ex(int index, int id)
+{
+	unsigned long flags;
+	int offset;
+
+	flags = vdec_canvas_lock(vdec_core);
+	if (index >= 0 &&
+		index < AMVDEC_CANVAS_MAX2 + 1)
+		offset = index;
+	else if ((index >= AMVDEC_CANVAS_START_INDEX) &&
+		(index <= AMVDEC_CANVAS_MAX1))
+		offset = index + AMVDEC_CANVAS_MAX2 + 1 - AMVDEC_CANVAS_START_INDEX;
+	else {
+		vdec_canvas_unlock(vdec_core, flags);
+		return;
+	}
+
+	if ((canvas_stat[offset].canvas_used_flag > 0) &&
+		(canvas_stat[offset].id & (1 << id))) {
+		canvas_stat[offset].canvas_used_flag--;
+		canvas_stat[offset].id &= ~(1 << id);
+		if (canvas_stat[offset].canvas_used_flag == 0) {
+			canvas_stat[offset].type = 0;
+			canvas_stat[offset].id = 0;
+		}
+		pr_debug("free index %d used_flag %d, type = %d, id = %d\n",
+			offset,
+			canvas_stat[offset].canvas_used_flag,
+			canvas_stat[offset].type,
+			canvas_stat[offset].id);
+	}
+	vdec_canvas_unlock(vdec_core, flags);
+
+	return;
+
+}
+
+
+
+
+static int vdec_get_hw_type(int value)
+{
+	int type;
+	switch (value) {
+		case VFORMAT_HEVC:
+		case VFORMAT_VP9:
+		case VFORMAT_AVS2:
+			type = CORE_MASK_HEVC;
+		break;
+
+		case VFORMAT_MPEG12:
+		case VFORMAT_MPEG4:
+		case VFORMAT_H264:
+		case VFORMAT_MJPEG:
+		case VFORMAT_REAL:
+		case VFORMAT_JPEG:
+		case VFORMAT_VC1:
+		case VFORMAT_AVS:
+		case VFORMAT_YUV:
+		case VFORMAT_H264MVC:
+		case VFORMAT_H264_4K2K:
+		case VFORMAT_H264_ENC:
+		case VFORMAT_JPEG_ENC:
+			type = CORE_MASK_VDEC_1;
+		break;
+
+		default:
+			type = -1;
+	}
+
+	return type;
+}
+
+
+static void vdec_save_active_hw(struct vdec_s *vdec)
+{
+	int type;
+
+	type = vdec_get_hw_type(vdec->port->vformat);
+
+	if (type == CORE_MASK_HEVC) {
+		vdec_core->active_hevc = vdec;
+	} else if (type == CORE_MASK_VDEC_1) {
+		vdec_core->active_vdec = vdec;
+	} else {
+		pr_info("save_active_fw wrong\n");
+	}
 }
 
 
@@ -1482,6 +1654,8 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 
 	p->cma_dev = vdec_core->cma_dev;
 	p->get_canvas = get_canvas;
+	p->get_canvas_ex = get_canvas_ex;
+	p->free_canvas_ex = free_canvas_ex;
 	atomic_set(&p->inirq_flag, 0);
 	atomic_set(&p->inirq_thread_flag, 0);
 	/* todo */
@@ -1490,6 +1664,8 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 	/* vdec_dev_reg.flag = 0; */
 	if (vdec->id >= 0)
 		id = vdec->id;
+	p->parallel_dec = parallel_decode;
+	vdec_core->parallel_dec = parallel_decode;
 	p->dev = platform_device_register_data(
 				&vdec_core->vdec_core_platform_device->dev,
 				dev_name,
@@ -1800,6 +1976,10 @@ void vdec_core_request(struct vdec_s *vdec, unsigned long mask)
 
 	if (vdec->slave)
 		vdec->slave->core_mask |= mask;
+	if (vdec_core->parallel_dec == 1) {
+		if (mask & CORE_MASK_COMBINE)
+			vdec_core->vdec_combine_flag++;
+	}
 
 }
 EXPORT_SYMBOL(vdec_core_request);
@@ -1810,7 +1990,10 @@ int vdec_core_release(struct vdec_s *vdec, unsigned long mask)
 
 	if (vdec->slave)
 		vdec->slave->core_mask &= ~mask;
-
+	if (vdec_core->parallel_dec == 1) {
+		if (mask & CORE_MASK_COMBINE)
+			vdec_core->vdec_combine_flag--;
+	}
 	return 0;
 }
 EXPORT_SYMBOL(vdec_core_release);
@@ -1889,8 +2072,18 @@ static irqreturn_t vdec_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = vdec_core->active_vdec;
+	struct vdec_s *vdec = vdec_core->last_vdec;
 	irqreturn_t ret = IRQ_HANDLED;
+
+	if (vdec_core->parallel_dec == 1) {
+		if (irq == vdec_core->isr_context[VDEC_IRQ_0].irq)
+			vdec = vdec_core->active_hevc;
+		else if (irq == vdec_core->isr_context[VDEC_IRQ_1].irq)
+			vdec = vdec_core->active_vdec;
+		else
+			vdec = NULL;
+	}
+
 	if (vdec)
 		atomic_set(&vdec->inirq_flag, 1);
 	if (c->dev_isr) {
@@ -1933,8 +2126,18 @@ static irqreturn_t vdec_thread_isr(int irq, void *dev_id)
 {
 	struct vdec_isr_context_s *c =
 		(struct vdec_isr_context_s *)dev_id;
-	struct vdec_s *vdec = vdec_core->active_vdec;
+	struct vdec_s *vdec = vdec_core->last_vdec;
 	irqreturn_t ret = IRQ_HANDLED;
+
+	if (vdec_core->parallel_dec == 1) {
+		if (irq == vdec_core->isr_context[VDEC_IRQ_0].irq)
+			vdec = vdec_core->active_hevc;
+		else if (irq == vdec_core->isr_context[VDEC_IRQ_1].irq)
+			vdec = vdec_core->active_vdec;
+		else
+			vdec = NULL;
+	}
+
 	if (vdec)
 		atomic_set(&vdec->inirq_thread_flag, 1);
 	if (c->dev_threaded_isr) {
@@ -2097,13 +2300,13 @@ void vdec_prepare_run(struct vdec_s *vdec, unsigned long mask)
 static int vdec_core_thread(void *data)
 {
 	struct vdec_core_s *core = (struct vdec_core_s *)data;
-	struct vdec_s *lastvdec = (struct vdec_s *) core->last_vdec;
 	struct sched_param param = {.sched_priority = MAX_RT_PRIO/2};
+	int i;
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
 
 	allow_signal(SIGTERM);
-	lastvdec = NULL;
+
 	while (down_interruptible(&core->sem) == 0) {
 		struct vdec_s *vdec, *tmp, *worker;
 		unsigned long sched_mask = 0;
@@ -2112,6 +2315,15 @@ static int vdec_core_thread(void *data)
 		if (kthread_should_stop())
 			break;
 		mutex_lock(&vdec_mutex);
+
+		if (core->parallel_dec == 1) {
+			for (i = VDEC_1; i < VDEC_MAX; i++) {
+				core->power_ref_mask =
+					core->power_ref_count[i] > 0 ?
+					(core->power_ref_mask | (1 << i)) :
+					(core->power_ref_mask & ~(1 << i));
+			}
+		}
 		/* clean up previous active vdec's input */
 		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
 			unsigned long mask = vdec->sched_mask &
@@ -2168,14 +2380,20 @@ static int vdec_core_thread(void *data)
 			&core->connected_vdec_list, list) {
 			if ((vdec->status == VDEC_STATUS_CONNECTED) &&
 			    (vdec->next_status == VDEC_STATUS_DISCONNECTED)) {
-				if (core->active_vdec == vdec)
-					core->active_vdec = NULL;
+				if (core->parallel_dec == 1) {
+					if (vdec_core->active_hevc == vdec)
+						vdec_core->active_hevc = NULL;
+					if (vdec_core->active_vdec == vdec)
+						vdec_core->active_vdec = NULL;
+				}
+				if (core->last_vdec == vdec)
+					core->last_vdec = NULL;
 				list_move(&vdec->list, &disconnecting_list);
 			}
 		}
 		mutex_unlock(&vdec_mutex);
 		/* elect next vdec to be scheduled */
-		vdec = core->active_vdec;
+		vdec = core->last_vdec;
 		if (vdec) {
 			vdec = list_entry(vdec->list.next, struct vdec_s, list);
 			list_for_each_entry_from(vdec,
@@ -2200,7 +2418,7 @@ static int vdec_core_thread(void *data)
 				&core->connected_vdec_list, list) {
 				sched_mask = vdec_schedule_mask(vdec,
 					core->sched_mask);
-				if (vdec == core->active_vdec) {
+				if (vdec == core->last_vdec) {
 					if (!sched_mask) {
 						vdec = NULL;
 						break;
@@ -2246,17 +2464,19 @@ static int vdec_core_thread(void *data)
 
 			/* vdec's sched_mask is only set from core thread */
 			vdec->sched_mask |= mask;
-			if (lastvdec) {
-				if ((lastvdec != vdec) && (lastvdec->mc_type != vdec->mc_type))
+			if (core->last_vdec) {
+				if ((core->last_vdec != vdec) &&
+					(core->last_vdec->mc_type != vdec->mc_type))
 					vdec->mc_loaded = 0;/*clear for reload firmware*/
 			}
-			lastvdec = vdec;
+			core->last_vdec = vdec;
 			if (debug & 2)
 				vdec->mc_loaded = 0;/*alway reload firmware*/
 			vdec_set_status(vdec, VDEC_STATUS_ACTIVE);
 
 			core->sched_mask |= mask;
-			core->active_vdec = vdec;
+			if (core->parallel_dec == 1)
+				vdec_save_active_hw(vdec);
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 			vdec_profile(vdec, VDEC_PROFILE_EVENT_RUN);
 #endif
@@ -2271,21 +2491,39 @@ static int vdec_core_thread(void *data)
 			/* we have some cores scheduled, keep working until
 			 * all vdecs are checked with no cores to schedule
 			 */
-			up(&core->sem);
+			if (core->parallel_dec == 1) {
+				if (vdec_core->vdec_combine_flag == 0)
+					up(&core->sem);
+			} else
+				up(&core->sem);
 		}
 
 		/* remove disconnected decoder from active list */
 		list_for_each_entry_safe(vdec, tmp, &disconnecting_list, list) {
 			list_del(&vdec->list);
 			vdec_set_status(vdec, VDEC_STATUS_DISCONNECTED);
-			lastvdec = NULL;
+			/*core->last_vdec = NULL;*/
 			complete(&vdec->inactive_done);
 		}
 
 		/* if there is no new work scheduled and nothing
 		 * is running, sleep 20ms
 		 */
-		if ((!worker) && (!core->sched_mask) && (atomic_read(&vdec_core->vdec_nr) > 0)) {
+		if (core->parallel_dec == 1) {
+			if (vdec_core->vdec_combine_flag == 0) {
+				if ((!worker) &&
+					((core->sched_mask != core->power_ref_mask)) &&
+					(atomic_read(&vdec_core->vdec_nr) > 0)) {
+						usleep_range(1000, 2000);
+						up(&core->sem);
+				}
+			} else {
+				if ((!worker) && (!core->sched_mask) && (atomic_read(&vdec_core->vdec_nr) > 0)) {
+					usleep_range(1000, 2000);
+					up(&core->sem);
+				}
+			}
+		} else if ((!worker) && (!core->sched_mask) && (atomic_read(&vdec_core->vdec_nr) > 0)) {
 			usleep_range(1000, 2000);
 			up(&core->sem);
 		}
@@ -3607,7 +3845,7 @@ static ssize_t core_show(struct class *class, struct class_attribute *attr,
 
 		pbuf += sprintf(pbuf,
 			" Core: last_sched %p, sched_mask %lx\n",
-			core->active_vdec,
+			core->last_vdec,
 			core->sched_mask);
 
 		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
@@ -3864,6 +4102,7 @@ static int vdec_probe(struct platform_device *pdev)
 	}
 	INIT_LIST_HEAD(&vdec_core->connected_vdec_list);
 	spin_lock_init(&vdec_core->lock);
+	spin_lock_init(&vdec_core->canvas_lock);
 	ida_init(&vdec_core->ida);
 	vdec_core->thread = kthread_run(vdec_core_thread, vdec_core,
 					"vdec-core");
@@ -3996,6 +4235,7 @@ module_param(hevc_max_reset_count, int, 0664);
 module_param(clk_config, uint, 0664);
 module_param(step_mode, int, 0664);
 module_param(debugflags, int, 0664);
+module_param(parallel_decode, int, 0664);
 
 /*
 *module_init(vdec_module_init);

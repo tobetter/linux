@@ -904,6 +904,7 @@ static void vmpeg4_work(struct work_struct *work)
 {
 	struct vdec_mpeg4_hw_s *hw =
 		container_of(work, struct vdec_mpeg4_hw_s, work);
+	struct vdec_s *vdec = hw_to_vdec(hw);
 
 	/* finished decoding one frame or error,
 	 * notify vdec core to switch context
@@ -963,7 +964,10 @@ static void vmpeg4_work(struct work_struct *work)
 	hw->stat &= ~STAT_TIMER_ARM;
 
 	/* mark itself has all HW resource released and input released */
-	vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1);
+	else
+		vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	if (hw->vdec_cb)
 		hw->vdec_cb(hw_to_vdec(hw), hw->vdec_cb_arg);
@@ -1128,9 +1132,26 @@ static int vmpeg4_canvas_init(struct vdec_mpeg4_hw_s *hw)
 		if (i == (MAX_BMMU_BUFFER_NUM - 1)) {
 			hw->buf_start = decbuf_start;
 		} else {
-			canvas = vdec->get_canvas(i, 2);
-
-		hw->canvas_spec[i] = canvas;
+			if (vdec->parallel_dec == 1) {
+				unsigned tmp;
+				if (canvas_u(hw->canvas_spec[i]) == 0xff) {
+					tmp =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+					hw->canvas_spec[i] &= ~(0xffff << 8);
+					hw->canvas_spec[i] |= tmp << 8;
+					hw->canvas_spec[i] |= tmp << 16;
+				}
+				if (canvas_y(hw->canvas_spec[i]) == 0xff) {
+					tmp =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+					hw->canvas_spec[i] &= ~0xff;
+					hw->canvas_spec[i] |= tmp;
+				}
+				canvas = hw->canvas_spec[i];
+			} else {
+				canvas = vdec->get_canvas(i, 2);
+				hw->canvas_spec[i] = canvas;
+			}
 
 			hw->canvas_config[i][0].phy_addr =
 			decbuf_start;
@@ -1590,8 +1611,10 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 	}
 	hw->not_run_ready = 0;
 	hw->buffer_not_ready = 0;
-
-	return (unsigned long)(CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		return (unsigned long)(CORE_MASK_VDEC_1);
+	else
+		return (unsigned long)(CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 }
 
 static unsigned char get_data_check_sum
@@ -1806,6 +1829,12 @@ static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
 			PROVIDER_NAME ".%02x", pdev->id & 0xff);
 
+	if (pdata->parallel_dec == 1) {
+		int i;
+		for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++)
+			hw->canvas_spec[i] = 0xffffff;
+	}
+
 	vf_provider_init(&pdata->vframe_provider,
 		pdata->vf_provider_name, &vf_provider_ops, pdata);
 
@@ -1858,9 +1887,12 @@ static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
-
-	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+	if (pdata->parallel_dec == 1)
+		vdec_core_request(pdata, CORE_MASK_VDEC_1);
+	else {
+		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
 				| CORE_MASK_COMBINE);
+	}
 
 	return 0;
 }
@@ -1870,6 +1902,8 @@ static int ammvdec_mpeg4_remove(struct platform_device *pdev)
 	struct vdec_mpeg4_hw_s *hw =
 		(struct vdec_mpeg4_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
+	struct vdec_s *vdec = hw_to_vdec(hw);
+	int i;
 
 	vmpeg4_stop(hw);
 	/*
@@ -1879,8 +1913,18 @@ static int ammvdec_mpeg4_remove(struct platform_device *pdev)
 		hw->cma_alloc_count = 0;
 	}
 	*/
-	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1);
+	else
+		vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
+
+	if (vdec->parallel_dec == 1) {
+		for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++) {
+			vdec->free_canvas_ex(canvas_y(hw->canvas_spec[i]), vdec->id);
+			vdec->free_canvas_ex(canvas_u(hw->canvas_spec[i]), vdec->id);
+		}
+	}
 
 	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", hw->pts_hit,
 		   hw->pts_missed, hw->pts_i_hit, hw->pts_i_missed);

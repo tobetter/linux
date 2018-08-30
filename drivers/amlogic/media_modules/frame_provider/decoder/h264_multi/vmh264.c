@@ -1143,6 +1143,8 @@ static void    hevc_mcr_config_mc_ref(struct vdec_h264_hw_s *hw)
 	/*REFLIST[0]*/
 	for (i = 0; i < (unsigned int)(pSlice->listXsize[0]); i++) {
 		struct StorablePicture *ref = pSlice->listX[0][i];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(CURR_CANVAS_CTRL, ref->buf_spec_num<<24);
 		ref_canv = READ_VREG(CURR_CANVAS_CTRL)&0xffffff;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
@@ -1152,6 +1154,8 @@ static void    hevc_mcr_config_mc_ref(struct vdec_h264_hw_s *hw)
 	/*REFLIST[1]*/
 	for (i = 0; i < (unsigned int)(pSlice->listXsize[1]); i++) {
 		struct StorablePicture *ref = pSlice->listX[1][i];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(CURR_CANVAS_CTRL, ref->buf_spec_num<<24);
 		ref_canv = READ_VREG(CURR_CANVAS_CTRL)&0xffffff;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
@@ -1177,6 +1181,8 @@ static void   hevc_mcr_config_mcrcc(struct vdec_h264_hw_s *hw)
 	}
 	if (slice_type == B_SLICE) {
 		ref = pSlice->listX[0][0];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 				((ref->buf_spec_num & 0x3f) << 8));
 		rdata32 = READ_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR);
@@ -1185,6 +1191,8 @@ static void   hevc_mcr_config_mcrcc(struct vdec_h264_hw_s *hw)
 		WRITE_VREG(HEVCD_MCRCC_CTL2, rdata32);
 
 		ref = pSlice->listX[1][0];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 			((ref->buf_spec_num & 0x3f) << 8));
 		rdata32_2 = READ_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR);
@@ -1192,6 +1200,8 @@ static void   hevc_mcr_config_mcrcc(struct vdec_h264_hw_s *hw)
 		rdata32_2 = rdata32_2 | (rdata32_2 << 16);
 		if (rdata32 == rdata32_2) {
 			ref = pSlice->listX[1][1];
+			if (ref == NULL)
+				return;
 			WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 				((ref->buf_spec_num & 0x3f) << 8));
 			rdata32_2 = READ_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR);
@@ -1201,6 +1211,8 @@ static void   hevc_mcr_config_mcrcc(struct vdec_h264_hw_s *hw)
 		WRITE_VREG(HEVCD_MCRCC_CTL3, rdata32_2);
 	} else { /*P-PIC*/
 		ref = pSlice->listX[0][0];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 				((ref->buf_spec_num & 0x3f) << 8));
 		rdata32 = READ_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR);
@@ -1209,6 +1221,8 @@ static void   hevc_mcr_config_mcrcc(struct vdec_h264_hw_s *hw)
 		WRITE_VREG(HEVCD_MCRCC_CTL2, rdata32);
 
 		ref = pSlice->listX[0][1];
+		if (ref == NULL)
+			return;
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 				((ref->buf_spec_num & 0x3f) << 8));
 		rdata32 = READ_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR);
@@ -2054,14 +2068,35 @@ static void config_buf_specs(struct vdec_s *vdec)
 		int canvas;
 		if (hw->buffer_spec[i].used != -1)
 			continue;
-		canvas = vdec->get_canvas(j * mode, 2);
-		hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
-		hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
-		hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
-		dpb_print(DECODE_ID(hw),
-				PRINT_FLAG_DPB_DETAIL,
-				"config canvas (%d) %x for bufspec %d\r\n",
-			j, canvas, i);
+		if (vdec->parallel_dec == 1) {
+			if (hw->buffer_spec[i].y_canvas_index == -1)
+				hw->buffer_spec[i].y_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+			if (hw->buffer_spec[i].u_canvas_index == -1) {
+				hw->buffer_spec[i].u_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+				hw->buffer_spec[i].v_canvas_index = hw->buffer_spec[i].u_canvas_index;
+			}
+#ifdef VDEC_DW
+			if (IS_VDEC_DW(hw)) {
+				if (hw->buffer_spec[i].vdec_dw_y_canvas_index == -1)
+					hw->buffer_spec[i].vdec_dw_y_canvas_index =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+				if (hw->buffer_spec[i].vdec_dw_u_canvas_index == -1) {
+					hw->buffer_spec[i].vdec_dw_u_canvas_index =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+					hw->buffer_spec[i].vdec_dw_v_canvas_index =
+						hw->buffer_spec[i].vdec_dw_u_canvas_index;
+				}
+			}
+#endif
+		} else {
+			canvas = vdec->get_canvas(j * mode, 2);
+			hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
+			hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
+			hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+			dpb_print(DECODE_ID(hw),
+					PRINT_FLAG_DPB_DETAIL,
+					"config canvas (%d) %x for bufspec %d\r\n",
+				j, canvas, i);
 #ifdef VDEC_DW
 		  if (IS_VDEC_DW(hw)) {
 			canvas = vdec->get_canvas(j * mode + 1, 2);
@@ -2074,8 +2109,9 @@ static void config_buf_specs(struct vdec_s *vdec)
 				j, canvas, i);
 		  }
 #endif
-		hw->buffer_spec[i].used = 0;
+		}
 
+		hw->buffer_spec[i].used = 0;
 		hw->buffer_spec[i].canvas_pos = j;
 
 
@@ -2096,30 +2132,53 @@ static void config_buf_specs_ex(struct vdec_s *vdec)
 		j < hw->dpb.mDPB.size
 		&& i < BUFSPEC_POOL_SIZE;
 		i++) {
-		int canvas;
+		int canvas = 0;
 		if (hw->buffer_spec[i].used != -1)
 			continue;
-		canvas = vdec->get_canvas(j* mode, 2);
-		hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
-		hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
-		hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
-
-		dpb_print(DECODE_ID(hw),
-				PRINT_FLAG_DPB_DETAIL,
-				"config canvas (%d) %x for bufspec %d\r\n",
-			j, canvas, i);
+		if (vdec->parallel_dec == 1) {
+			if (hw->buffer_spec[i].y_canvas_index == -1)
+				hw->buffer_spec[i].y_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+			if (hw->buffer_spec[i].u_canvas_index == -1) {
+				hw->buffer_spec[i].u_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+				hw->buffer_spec[i].v_canvas_index = hw->buffer_spec[i].u_canvas_index;
+			}
 #ifdef VDEC_DW
-		if (IS_VDEC_DW(hw)) {
-			canvas = vdec->get_canvas(j*mode + 1, 2);
-			hw->buffer_spec[i].vdec_dw_y_canvas_index = canvas_y(canvas);
-			hw->buffer_spec[i].vdec_dw_u_canvas_index = canvas_u(canvas);
-			hw->buffer_spec[i].vdec_dw_v_canvas_index = canvas_v(canvas);
-			dpb_print(DECODE_ID(hw),
-				PRINT_FLAG_DPB_DETAIL,
-				"vdec_dw: config canvas (%d) %x for bufspec %d\r\n",
-				j, canvas, i);
-		}
+			if (IS_VDEC_DW(hw)) {
+				if (hw->buffer_spec[i].vdec_dw_y_canvas_index == -1)
+					hw->buffer_spec[i].vdec_dw_y_canvas_index =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+				if (hw->buffer_spec[i].vdec_dw_u_canvas_index == -1) {
+					hw->buffer_spec[i].vdec_dw_u_canvas_index =
+						vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+					hw->buffer_spec[i].vdec_dw_v_canvas_index =
+						hw->buffer_spec[i].vdec_dw_u_canvas_index;
+				}
+			}
 #endif
+		} else {
+			canvas = vdec->get_canvas(j* mode, 2);
+			hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
+			hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
+			hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+
+			dpb_print(DECODE_ID(hw),
+					PRINT_FLAG_DPB_DETAIL,
+					"config canvas (%d) %x for bufspec %d\r\n",
+				j, canvas, i);
+#ifdef VDEC_DW
+			if (IS_VDEC_DW(hw)) {
+				canvas = vdec->get_canvas(j*mode + 1, 2);
+				hw->buffer_spec[i].vdec_dw_y_canvas_index = canvas_y(canvas);
+				hw->buffer_spec[i].vdec_dw_u_canvas_index = canvas_u(canvas);
+				hw->buffer_spec[i].vdec_dw_v_canvas_index = canvas_v(canvas);
+				dpb_print(DECODE_ID(hw),
+					PRINT_FLAG_DPB_DETAIL,
+					"vdec_dw: config canvas (%d) %x for bufspec %d\r\n",
+					j, canvas, i);
+			}
+#endif
+		}
+
 		hw->buffer_spec[i].used = 0;
 		hw->buffer_spec[i].alloc_header_addr = 0;
 		hw->buffer_spec[i].canvas_pos = j;
@@ -6981,7 +7040,14 @@ result_done:
 #endif
 
 	/* mark itself has all HW resource released and input released */
-	vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1) {
+		if (hw->mmu_enable == 0)
+			vdec_core_finish_run(vdec, CORE_MASK_VDEC_1);
+		else
+			vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	} else
+		vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+
 	wake_up_interruptible(&hw->wait_q);
 	if (hw->vdec_cb)
 		hw->vdec_cb(hw_to_vdec(hw), hw->vdec_cb_arg);
@@ -7062,7 +7128,13 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		not_run_ready[DECODE_ID(hw)] = 0;
 	else
 		not_run_ready[DECODE_ID(hw)]++;
-	return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
+	if (vdec->parallel_dec == 1) {
+		if (hw->mmu_enable == 0)
+			return ret ? (CORE_MASK_VDEC_1) : 0;
+		else
+			return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
+	} else
+		return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
 static unsigned char get_data_check_sum
@@ -7616,6 +7688,22 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	if (hw->mmu_enable)
 			hw->double_write_mode &= 0xffff;
 
+	if (pdata->parallel_dec == 1) {
+		int i;
+		for (i = 0; i < BUFSPEC_POOL_SIZE; i++) {
+			hw->buffer_spec[i].y_canvas_index = -1;
+			hw->buffer_spec[i].u_canvas_index = -1;
+			hw->buffer_spec[i].v_canvas_index = -1;
+#ifdef VDEC_DW
+			if (IS_VDEC_DW(hw)) {
+				hw->buffer_spec[i].vdec_dw_y_canvas_index = -1;
+				hw->buffer_spec[i].vdec_dw_u_canvas_index = -1;
+				hw->buffer_spec[i].vdec_dw_v_canvas_index = -1;
+			}
+#endif
+		}
+	}
+
 	dpb_print(DECODE_ID(hw), 0,
 		"%s mmu_enable %d double_write_mode 0x%x\n",
 		__func__, hw->mmu_enable, hw->double_write_mode);
@@ -7771,9 +7859,16 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 #endif
 
 	vdec_set_prepare_level(pdata, start_decode_buf_level);
-
-	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
-			| CORE_MASK_COMBINE);
+	if (pdata->parallel_dec == 1) {
+		if (hw->mmu_enable == 0)
+			vdec_core_request(pdata, CORE_MASK_VDEC_1);
+		else {
+			vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+				| CORE_MASK_COMBINE);
+		}
+	} else
+		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+				| CORE_MASK_COMBINE);
 
 	atomic_set(&hw->vh264_active, 1);
 
@@ -7786,6 +7881,7 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 		(struct vdec_h264_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
 	int i;
+
 	struct vdec_s *vdec = hw_to_vdec(hw);
 
 	if (vdec->next_status == VDEC_STATUS_DISCONNECTED
@@ -7818,10 +7914,28 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 	/* vdec_source_changed(VFORMAT_H264, 0, 0, 0); */
 
 	atomic_set(&hw->vh264_active, 0);
-
-	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1) {
+		if (hw->mmu_enable == 0)
+			vdec_core_release(vdec, CORE_MASK_VDEC_1);
+		else
+			vdec_core_release(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC |
+				CORE_MASK_COMBINE);
+	} else
+		vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
+	if (vdec->parallel_dec == 1) {
+		for (i = 0; i < BUFSPEC_POOL_SIZE; i++) {
+			vdec->free_canvas_ex(hw->buffer_spec[i].y_canvas_index, vdec->id);
+			vdec->free_canvas_ex(hw->buffer_spec[i].u_canvas_index, vdec->id);
+			vdec->free_canvas_ex(hw->buffer_spec[i].v_canvas_index, vdec->id);
+			if (IS_VDEC_DW(hw)) {
+				vdec->free_canvas_ex(hw->buffer_spec[i].vdec_dw_y_canvas_index, vdec->id);
+				vdec->free_canvas_ex(hw->buffer_spec[i].vdec_dw_u_canvas_index, vdec->id);
+				vdec->free_canvas_ex(hw->buffer_spec[i].vdec_dw_v_canvas_index, vdec->id);
+			}
+		}
+	}
 	ammvdec_h264_mmu_release(hw);
 	h264_free_hw_stru(&pdev->dev, (void *)hw);
 	clk_adj_frame_count = 0;

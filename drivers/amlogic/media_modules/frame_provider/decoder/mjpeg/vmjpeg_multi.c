@@ -419,7 +419,7 @@ static void vmjpeg_canvas_init(struct vdec_s *vdec)
 	for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++) {
 		int canvas;
 
-		canvas = vdec->get_canvas(i, 3);
+
 
 		ret = decoder_bmmu_box_alloc_buf_phy(hw->mm_blk_handle, i,
 				decbuf_size, DRIVER_NAME, &buf_start);
@@ -438,9 +438,19 @@ static void vmjpeg_canvas_init(struct vdec_s *vdec)
 		addr += decbuf_uv_size;
 		hw->buffer_spec[i].v_addr = addr;
 
-		hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
-		hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
-		hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+		if (vdec->parallel_dec == 1) {
+			if (hw->buffer_spec[i].y_canvas_index == -1)
+				hw->buffer_spec[i].y_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+			if (hw->buffer_spec[i].u_canvas_index == -1)
+				hw->buffer_spec[i].u_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+			if (hw->buffer_spec[i].v_canvas_index == -1)
+				hw->buffer_spec[i].v_canvas_index = vdec->get_canvas_ex(CORE_MASK_VDEC_1, vdec->id);
+		} else {
+			canvas = vdec->get_canvas(i, 3);
+			hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
+			hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
+			hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+		}
 
 		canvas_config(hw->buffer_spec[i].y_canvas_index,
 			hw->buffer_spec[i].y_addr,
@@ -894,7 +904,10 @@ static unsigned long run_ready(struct vdec_s *vdec,
 			return 0;
 	}
 	hw->not_run_ready = 0;
-	return CORE_MASK_VDEC_1 | CORE_MASK_HEVC;
+	if (vdec->parallel_dec == 1)
+		return CORE_MASK_VDEC_1;
+	else
+		return CORE_MASK_VDEC_1 | CORE_MASK_HEVC;
 }
 
 static void run(struct vdec_s *vdec, unsigned long mask,
@@ -1011,6 +1024,7 @@ static void vmjpeg_work(struct work_struct *work)
 {
 	struct vdec_mjpeg_hw_s *hw = container_of(work,
 	struct vdec_mjpeg_hw_s, work);
+	struct vdec_s *vdec = hw_to_vdec(hw);
 
 	mmjpeg_debug_print(DECODE_ID(hw), PRINT_FLAG_BUFFER_DETAIL,
 	"%s: result=%d,len=%d:%d\n",
@@ -1056,8 +1070,12 @@ static void vmjpeg_work(struct work_struct *work)
 	}
 	wait_vmjpeg_search_done(hw);
 	/* mark itself has all HW resource released and input released */
-	vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1
+	if (vdec->parallel_dec == 1)
+		vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1);
+	else {
+		vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1
 			| CORE_MASK_HEVC);
+	}
 	del_timer_sync(&hw->check_timer);
 	hw->stat &= ~STAT_TIMER_ARM;
 
@@ -1125,6 +1143,14 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 	pdata->irq_handler = vmjpeg_isr;
 	pdata->dump_state = vmjpeg_dump_state;
 
+	if (pdata->parallel_dec == 1) {
+		int i;
+		for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++) {
+			hw->buffer_spec[i].y_canvas_index = -1;
+			hw->buffer_spec[i].u_canvas_index = -1;
+			hw->buffer_spec[i].v_canvas_index = -1;
+		}
+	}
 
 	if (pdata->use_vfm_path)
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
@@ -1151,9 +1177,12 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
-
-	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+	if (pdata->parallel_dec == 1)
+		vdec_core_request(pdata, CORE_MASK_VDEC_1);
+	else {
+		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
 				| CORE_MASK_COMBINE);
+	}
 
 	return 0;
 }
@@ -1163,11 +1192,23 @@ static int ammvdec_mjpeg_remove(struct platform_device *pdev)
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
+	struct vdec_s *vdec = hw_to_vdec(hw);
+	int i;
 
 	vmjpeg_stop(hw);
 
-	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+	if (vdec->parallel_dec == 1)
+		vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1);
+	else
+		vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
+	if (vdec->parallel_dec == 1) {
+		for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++) {
+			vdec->free_canvas_ex(hw->buffer_spec[i].y_canvas_index, vdec->id);
+			vdec->free_canvas_ex(hw->buffer_spec[i].u_canvas_index, vdec->id);
+			vdec->free_canvas_ex(hw->buffer_spec[i].v_canvas_index, vdec->id);
+		}
+	}
 
 	pr_info("%s\n", __func__);
 	return 0;
