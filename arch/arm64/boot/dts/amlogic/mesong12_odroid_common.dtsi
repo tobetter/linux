@@ -31,11 +31,6 @@
 		tsensor1 = &d_tsensor;
 	};
 
-	memory@00000000 {
-		device_type = "memory";
-		linux,usable-memory = <0x0 0x100000 0x0 0x7ff00000>;
-	};
-
 	codec_mm {
 		compatible = "amlogic, codec, mm";
 		memory-region = <&codec_mm_cma &codec_mm_reserved>;
