@@ -21,7 +21,7 @@
 #include "mesong12_odroid_common.dtsi"
 
 / {
-	model = "Hardkernel, ODROID-N2";
+	model = "Hardkernel ODROID-N2";
 	compatible = "amlogic, g12b";
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
