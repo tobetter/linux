@@ -487,6 +487,7 @@ struct hid_input {
 	struct list_head list;
 	struct hid_report *report;
 	struct input_dev *input;
+	unsigned int application;	/* application usage for this input */
 };
 
 enum hid_type {

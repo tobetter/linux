@@ -1440,6 +1440,7 @@ static struct hid_input *hidinput_allocate(struct hid_device *hid)
 	input_dev->id.version = hid->version;
 	input_dev->dev.parent = &hid->dev;
 	hidinput->input = input_dev;
+	hidinput->application = application;
 	list_add_tail(&hidinput->list, &hid->inputs);
 
 	return hidinput;
@@ -1526,8 +1527,7 @@ static struct hid_input *hidinput_match_application(struct hid_report *report)
 	struct hid_input *hidinput;
 
 	list_for_each_entry(hidinput, &hid->inputs, list) {
-		if (hidinput->report &&
-		    hidinput->report->application == report->application)
+		if (hidinput->application == report->application)
 			return hidinput;
 	}
 
