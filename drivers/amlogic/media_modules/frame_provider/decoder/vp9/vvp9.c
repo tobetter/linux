@@ -7243,6 +7243,9 @@ static irqreturn_t vvp9_isr_thread_fn(int irq, void *data)
 #endif
 			{
 				reset_process_time(pbi);
+				if (pbi->vf_pre_count == 0)
+					vp9_bufmgr_postproc(pbi);
+
 				pbi->dec_result = DEC_RESULT_DONE;
 				amhevc_stop();
 				if (mcrcc_cache_alg_flag)
