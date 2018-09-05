@@ -156,6 +156,7 @@ static struct class astream_class = {
 
 #if 1
 #define IO_CBUS_PHY_BASE 0xc1100000
+#define IO_AOBUS_PHY_BASE 0xc8100000
 #define CBUS_REG_OFFSET(reg) ((reg) << 2)
 #define IO_SECBUS_PHY_BASE 0xda000000
 
@@ -179,13 +180,15 @@ static struct uio_info astream_uio_info = {
 			(IO_CBUS_PHY_BASE + CBUS_REG_OFFSET(VCOP_CTRL_REG)),
 			.size = PAGE_SIZE,
 		},
+/*
 		[2] = {
 			.name = "SECBUS",
 			.memtype = UIO_MEM_PHYS,
 			.addr = (IO_SECBUS_PHY_BASE),
 			.size = PAGE_SIZE,
 		},
-		[3] = {
+*/
+		[2] = {
 			.name = "CBUS",
 			.memtype = UIO_MEM_PHYS,
 			.addr =
@@ -193,11 +196,17 @@ static struct uio_info astream_uio_info = {
 			&(PAGE_MASK),
 			.size = PAGE_SIZE,
 		},
-		[4] = {
+		[3] = {
 			.name = "CBUS-START",
 			.memtype = UIO_MEM_PHYS,
 			.addr = (IO_CBUS_PHY_BASE + CBUS_REG_OFFSET(0x1000)),
-			.size = PAGE_SIZE * 4,
+			.size = PAGE_SIZE,
+		},
+		[4] = {
+			.name = "AOBUS-START",
+			.memtype = UIO_MEM_PHYS,
+			.addr = (IO_AOBUS_PHY_BASE),
+			.size = PAGE_SIZE,
 		},
 	},
 };
