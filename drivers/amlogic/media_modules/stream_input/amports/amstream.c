@@ -2440,10 +2440,14 @@ static long amstream_ioctl_set_ptr(struct port_priv_s *priv, ulong arg)
 	case AMSTREAM_SET_PTR_AUDIO_INFO:
 		if ((this->type & PORT_TYPE_VIDEO)
 			|| (this->type & PORT_TYPE_AUDIO)) {
-			if (parm.pdata_audio_info != NULL)
-				memcpy((void *)&audio_dec_info,
-					(void *)parm.pdata_audio_info,
-					 sizeof(audio_dec_info));
+			if (parm.pdata_audio_info != NULL) {
+				if (copy_from_user
+					((void *)&audio_dec_info, (void *)parm.pdata_audio_info,
+					 sizeof(audio_dec_info))) {
+					pr_err("[%s]%d, arg err\n", __func__, __LINE__);
+					r = -EFAULT;
+				}
+			}
 		} else
 			r = -EINVAL;
 		break;
@@ -2963,14 +2967,29 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 
 	case AMSTREAM_IOC_UD_BUF_READ:
 		{
-			struct userdata_param_t  __user *p_userdata_param;
-			p_userdata_param = (void *)arg;
 			if (this->type & PORT_TYPE_USERDATA) {
+				struct userdata_param_t  param;
+				struct userdata_param_t  *p_userdata_param;
+
+				p_userdata_param = &param;
+
+				if (copy_from_user(p_userdata_param,
+					(void __user *)arg,
+					sizeof(struct userdata_param_t))) {
+					r = -EFAULT;
+					break;
+				}
+
 				if (vdec_read_user_data(NULL,
 						p_userdata_param) == 0) {
 					r = -EFAULT;
 					break;
 				}
+
+				if (copy_to_user((void *)arg,
+					p_userdata_param,
+					sizeof(struct userdata_param_t)))
+					r = -EFAULT;
 			}
 		}
 		break;
@@ -3233,18 +3252,22 @@ static long amstream_ioc_setget_ptr(struct port_priv_s *priv,
 		unsigned int cmd, struct am_ioctl_parm_ptr32 __user *arg)
 {
 	struct am_ioctl_parm_ptr __user *data;
-	struct am_ioctl_parm_ptr32 __user *data32 = arg;
+	struct am_ioctl_parm_ptr32 param;
 	int ret;
+
+	if (copy_from_user(&param,
+		(void __user *)arg,
+		sizeof(struct am_ioctl_parm_ptr32)))
+		return -EFAULT;
 
 	data = compat_alloc_user_space(sizeof(*data));
 	if (!access_ok(VERIFY_WRITE, data, sizeof(*data)))
 		return -EFAULT;
 
-	if (put_user(data32->cmd, &data->cmd) ||
-		put_user(compat_ptr(data32->pointer), &data->pointer) ||
-		put_user(data32->len, &data->len))
+	if (put_user(param.cmd, &data->cmd) ||
+		put_user(compat_ptr(param.pointer), &data->pointer) ||
+		put_user(param.len, &data->len))
 		return -EFAULT;
-
 
 	ret = amstream_do_ioctl(priv, cmd, (unsigned long)data);
 	if (ret < 0)
@@ -3259,13 +3282,19 @@ static long amstream_set_sysinfo(struct port_priv_s *priv,
 	struct dec_sysinfo __user *data;
 	struct dec_sysinfo32 __user *data32 = arg;
 	int ret;
+	struct dec_sysinfo32 param;
+
+	if (copy_from_user(&param,
+		(void __user *)arg,
+		sizeof(struct dec_sysinfo32)))
+		return -EFAULT;
 
 	data = compat_alloc_user_space(sizeof(*data));
 	if (!access_ok(VERIFY_WRITE, data, sizeof(*data)))
 		return -EFAULT;
 	if (copy_in_user(data, data32, 7 * sizeof(u32)))
 		return -EFAULT;
-	if (put_user(compat_ptr(data32->param), &data->param))
+	if (put_user(compat_ptr(param.param), &data->param))
 		return -EFAULT;
 	if (copy_in_user(&data->ratio64, &data32->ratio64,
 					sizeof(data->ratio64)))

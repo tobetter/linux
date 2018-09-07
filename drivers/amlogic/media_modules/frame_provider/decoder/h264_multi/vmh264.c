@@ -6359,9 +6359,7 @@ static int vmh264_user_data_read(struct vdec_s *vdec,
 		}
 
 	}
-	res = (u32)copy_to_user((void *)&puserdata_para->meta_info,
-				(void *)&p_userdata_rec->meta_info,
-				sizeof(p_userdata_rec->meta_info));
+	puserdata_para->meta_info = p_userdata_rec->meta_info;
 
 	if (hw->userdata_info.read_index <= hw->userdata_info.write_index)
 		puserdata_para->meta_info.records_in_que =
