@@ -196,6 +196,10 @@ static struct work_struct reset_work;
 static struct work_struct set_clk_work;
 static bool is_reset;
 
+static DEFINE_MUTEX(userdata_mutex);
+
+static void vmpeg12_create_userdata_manager(u8 *userdata_buf, int buf_len);
+
 struct mpeg12_userdata_recored_t {
 	struct userdata_meta_info_t meta_info;
 	u32 rec_start;
@@ -758,7 +762,7 @@ static void userdata_push_do_work(struct work_struct *work)
 			DMA_FROM_DEVICE);
 	}
 
-
+	mutex_lock(&userdata_mutex);
 	if (p_userdata_mgr && ccbuf_phyAddress_virt) {
 		int new_wp;
 
@@ -771,6 +775,7 @@ static void userdata_push_do_work(struct work_struct *work)
 		memcpy(head_info, pdata, 8);
 	} else
 		memset(head_info, 0, 8);
+	mutex_unlock(&userdata_mutex);
 	aml_swap_data(head_info, 8);
 
 	wp = (head_info[0] << 8 | head_info[1]);
@@ -1272,6 +1277,7 @@ static void reset_do_work(struct work_struct *work)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	vmpeg12_prot_init();
+	vmpeg12_create_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
 	vmpeg12_reset_userdata_fifo(vdec, 1);
 #ifdef DUMP_USER_DATA
 	last_wp = 0;
@@ -1386,10 +1392,10 @@ int vmpeg12_set_isreset(struct vdec_s *vdec, int isreset)
 	return 0;
 }
 
-static DEFINE_MUTEX(userdata_mutex);
 
 
-void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
+
+static void vmpeg12_create_userdata_manager(u8 *userdata_buf, int buf_len)
 {
 	mutex_lock(&userdata_mutex);
 
@@ -1405,7 +1411,7 @@ void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
 	mutex_unlock(&userdata_mutex);
 }
 
-void vmpeg12_destroy_userdata_manager(void)
+static void vmpeg12_destroy_userdata_manager(void)
 {
 	mutex_lock(&userdata_mutex);
 
@@ -1637,9 +1643,8 @@ static int vmpeg12_user_data_read(struct vdec_s *vdec,
 		}
 
 	}
-	res = (u32)copy_to_user((void *)&puserdata_para->meta_info,
-				(void *)&p_userdata_rec->meta_info,
-				sizeof(p_userdata_rec->meta_info));
+
+	puserdata_para->meta_info = p_userdata_rec->meta_info;
 
 	if (p_userdata_mgr->read_index <= p_userdata_mgr->write_index)
 		puserdata_para->meta_info.records_in_que =
@@ -1887,10 +1892,20 @@ static void vmpeg12_local_init(void)
 
 	for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++)
 		vfbuf_use[i] = 0;
-
 	if (mm_blk_handle) {
+		mutex_lock(&userdata_mutex);
+		if (p_userdata_mgr) {
+			vfree(p_userdata_mgr);
+			p_userdata_mgr = NULL;
+		}
+		if (ccbuf_phyAddress_is_remaped_nocache)
+			iounmap(ccbuf_phyAddress_virt);
+		ccbuf_phyAddress_virt = NULL;
+		ccbuf_phyAddress = 0;
+		ccbuf_phyAddress_is_remaped_nocache = 0;
 		decoder_bmmu_box_free(mm_blk_handle);
 		mm_blk_handle = NULL;
+		mutex_unlock(&userdata_mutex);
 	}
 
 		mm_blk_handle = decoder_bmmu_box_alloc_box(
@@ -2045,7 +2060,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 #ifdef DUMP_USER_DATA
 	amvdec_mpeg12_init_userdata_dump();
 #endif
-	vmpeg12_crate_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
+	vmpeg12_create_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
 
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 	INIT_WORK(&notify_work, vmpeg12_notify_work);
