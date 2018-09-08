@@ -69,15 +69,7 @@
  * - Powering Up HDMI controller and PHY
  */
 
-static void meson_fb_output_poll_changed(struct drm_device *dev)
-{
-	struct meson_drm *priv = dev->dev_private;
-
-	drm_fbdev_cma_hotplug_event(priv->fbdev);
-}
-
 static const struct drm_mode_config_funcs meson_mode_config_funcs = {
-	.output_poll_changed = meson_fb_output_poll_changed,
 	.atomic_check        = drm_atomic_helper_check,
 	.atomic_commit       = drm_atomic_helper_commit,
 	.fb_create           = drm_gem_fb_create,
@@ -314,13 +306,6 @@ static int meson_drv_bind_master(struct device *dev, bool has_components)
 
 	drm_mode_config_reset(drm);
 
-	priv->fbdev = drm_fbdev_cma_init(drm, 32,
-					 drm->mode_config.num_connector);
-	if (IS_ERR(priv->fbdev)) {
-		ret = PTR_ERR(priv->fbdev);
-		goto free_drm;
-	}
-
 	drm_kms_helper_poll_init(drm);
 
 	platform_set_drvdata(pdev, priv);
@@ -328,6 +313,8 @@ static int meson_drv_bind_master(struct device *dev, bool has_components)
 	ret = drm_dev_register(drm, 0);
 	if (ret)
 		goto free_drm;
+
+	drm_fbdev_generic_setup(drm, 32);
 
 	return 0;
 
@@ -345,7 +332,6 @@ static int meson_drv_bind(struct device *dev)
 static void meson_drv_unbind(struct device *dev)
 {
 	struct drm_device *drm = dev_get_drvdata(dev);
-	struct meson_drm *priv = drm->dev_private;
 
 	if (priv->canvas) {
 		meson_canvas_free(priv->canvas, priv->canvas_id_osd1);
@@ -356,7 +342,6 @@ static void meson_drv_unbind(struct device *dev)
 
 	drm_dev_unregister(drm);
 	drm_kms_helper_poll_fini(drm);
-	drm_fbdev_cma_fini(priv->fbdev);
 	drm_mode_config_cleanup(drm);
 	drm_dev_put(drm);
 
