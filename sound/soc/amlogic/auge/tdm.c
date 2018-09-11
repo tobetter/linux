@@ -124,13 +124,13 @@ static const struct snd_pcm_hardware aml_tdm_hardware = {
 	    SNDRV_PCM_FMTBIT_S32_LE,
 
 	.period_bytes_min = 64,
-	.period_bytes_max = 256 * 1024,
+	.period_bytes_max = 256 * 1024 * 2,
 	.periods_min = 2,
 	.periods_max = 1024,
-	.buffer_bytes_max = 512 * 1024,
+	.buffer_bytes_max = 512 * 1024 * 2,
 
 	.rate_min = 8000,
-	.rate_max = 192000,
+	.rate_max = 384000,
 	.channels_min = 1,
 	.channels_max = 32,
 };
@@ -565,7 +565,10 @@ static int pcm_setting_init(struct pcm_setting *setting, unsigned int rate,
 		/* for some TDM codec, mclk limites */
 		ratio = 2;
 	} else {
-		ratio = 4;
+		if (rate > 192000)
+			ratio = 2;
+		else
+			ratio = 4;
 	}
 	setting->sysclk_bclk_ratio = ratio;
 	setting->sysclk = ratio * setting->bclk;
@@ -982,7 +985,7 @@ static struct snd_soc_dai_ops aml_dai_tdm_ops = {
 	.set_tdm_slot = aml_dai_set_tdm_slot,
 };
 
-#define AML_DAI_TDM_RATES		(SNDRV_PCM_RATE_8000_192000)
+#define AML_DAI_TDM_RATES		(SNDRV_PCM_RATE_8000_384000)
 #define AML_DAI_TDM_FORMATS		(SNDRV_PCM_FMTBIT_S16_LE |\
 		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 
