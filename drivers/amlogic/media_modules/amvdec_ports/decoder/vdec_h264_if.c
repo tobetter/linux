@@ -302,7 +302,7 @@ static int refer_buffer_num(int level_idc, int poc_cnt,
 	int mb_width, int mb_height)
 {
 	int max_ref_num = 27;
-	int size, size_margin = 7;
+	int size, size_margin = 6;
 	int pic_size = mb_width * mb_height * 384;
 
 	switch (level_idc) {
@@ -359,11 +359,12 @@ static int refer_buffer_num(int level_idc, int poc_cnt,
 	}
 
 	size /= pic_size;
-	size = size + size_margin; /* need more buffers */
+	size = size + 1; /* need more buffers */
 
 	if (poc_cnt > size)
 		size = poc_cnt;
 
+	size = size + size_margin;
 	if (size > max_ref_num)
 		size = max_ref_num;
 
