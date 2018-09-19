@@ -74,6 +74,15 @@ struct meson_cpufreq_driver_data {
 	struct clk *low_freq_clk_p;
 };
 
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+#define OF_NODE_CPU_OPP_0	"/cpu_opp_table0/"	/* Core A53 */
+#define OF_NODE_CPU_OPP_1	"/cpu_opp_table1/"	/* Core A73 */
+
+static unsigned long max_freq[2] = {
+		1896000, /* defalut freq for A53 is 1.896GHz */
+		1704000  /* defalut freq for A73 is 1.704GHz */
+};
+#endif
 
 static DEFINE_PER_CPU(unsigned int, physical_cluster);
 
@@ -355,6 +364,9 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 	unsigned long freq_hz = 0;
 	int cpu = 0;
 	int ret = 0;
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+	int i = 0;
+#endif
 
 	if (!policy) {
 		pr_err("invalid cpufreq_policy\n");
@@ -441,6 +453,19 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 		goto free_reg;
 	}
 
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+	for (i = 0; (freq_table[cur_cluster][i].frequency != CPUFREQ_TABLE_END)
+		&& max_freq[cur_cluster]; i++) {
+		if (freq_table[cur_cluster][i].frequency > max_freq[cur_cluster]) {
+			pr_info("dvfs [%s] - cluster %d freq %d\n",
+				__func__, cur_cluster,
+				freq_table[cur_cluster][i].frequency);
+
+			freq_table[cur_cluster][i].frequency = CPUFREQ_TABLE_END;
+		}
+	}
+#endif
+
 	ret = cpufreq_table_validate_and_show(policy, freq_table[cur_cluster]);
 	if (ret) {
 		dev_err(cpu_dev, "CPU %d, cluster: %d invalid freq table\n",
@@ -500,6 +525,46 @@ free_np:
 		of_node_put(np);
 	return ret;
 }
+
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+static int __init get_max_freq_a53(char *str)
+{
+	int ret;
+
+	if (str == NULL) {
+		/* default freq value for A53 core is 1.896GHz */
+		max_freq[0] = 1896000;
+		return -EINVAL;
+	}
+	ret = kstrtoul(str, 0, &max_freq[0]);
+
+	/* in unit kHz */
+	max_freq[0] *= 1000;
+	pr_info("dvfs [%s] - max_freq : %ld\n", __func__, max_freq[0]);
+
+	return 0;
+}
+__setup("max_freq_a53=", get_max_freq_a53);
+
+static int __init get_max_freq_a73(char *str)
+{
+	int ret;
+
+	if (str == NULL) {
+		/* default freq value for A73 core is 1.704GHz */
+		max_freq[1] = 1704000;
+		return -EINVAL;
+	}
+	ret = kstrtoul(str, 0, &max_freq[1]);
+
+	/* in unit kHz */
+	max_freq[1] *= 1000;
+	pr_info("dvfs [%s] - max_freq : %ld\n", __func__, max_freq[1]);
+
+	return 0;
+}
+__setup("max_freq_a73=", get_max_freq_a73);
+#endif
 
 static int meson_cpufreq_exit(struct cpufreq_policy *policy)
 {
