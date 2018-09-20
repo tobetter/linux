@@ -108,8 +108,19 @@ union param {
 #define BUFFER_SIZE_HI							0X69
 #define CROPPING_LEFT_RIGHT						0X6A
 #define CROPPING_TOP_BOTTOM						0X6B
+#if 1
+ /* sps_flags2:
+ *bit 3, bitstream_restriction_flag
+ *bit 2, pic_struct_present_flag
+ *bit 1, vcl_hrd_parameters_present_flag
+ *bit 0, nal_hrd_parameters_present_flag
+ */
+#define SPS_FLAGS2						0x6c
+#define NUM_REORDER_FRAMES				0x6d
+#else
 #define POC_SELECT_NEED_SWAP						0X6C
 #define POC_SELECT_SWAP							0X6D
+#endif
 #define MAX_BUFFER_FRAME						0X6E
 
 #define NON_CONFORMING_STREAM						0X70
@@ -800,6 +811,9 @@ struct h264_dpb_stru {
 	unsigned int aspect_ratio_idc;
 	unsigned int aspect_ratio_sar_width;
 	unsigned int aspect_ratio_sar_height;
+	u8 bitstream_restriction_flag;
+	u16 num_reorder_frames;
+	u16 max_dec_frame_buffering;
 
 	unsigned int dec_dpb_status;
 	unsigned char buf_alloc_fail;
