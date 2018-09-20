@@ -646,6 +646,9 @@ struct vdec_h264_hw_s {
 	u32 video_signal_from_vui; /*to do .. */
 	u32 timing_info_present_flag;
 	u32 fixed_frame_rate_flag;
+	u32 bitstream_restriction_flag;
+	u32 num_reorder_frames;
+	u32 max_dec_frame_buffering;
 	u32 iframe_count;
 	u32 aspect_ratio_info;
 	u32 num_units_in_tick;
@@ -1550,13 +1553,18 @@ static int alloc_one_buf_spec(struct vdec_h264_hw_s *hw, int i)
 		hw->buffer_spec[i].cma_alloc_addr = 0;
 		if (hw->no_mem_count++ > 3) {
 			hw->stat |= DECODER_FATAL_ERROR_NO_MEM;
+			hw->reset_bufmgr_flag = 1;
 		}
 		dpb_print(DECODE_ID(hw), 0,
 		"%s, fail to alloc buf for bufspec%d, try later\n",
 				__func__, i
 		);
 		return -1;
+	} else {
+		hw->no_mem_count = 0;
+		hw->stat &= ~DECODER_FATAL_ERROR_NO_MEM;
 	}
+
 	hw->buffer_spec[i].buf_adr =
 	hw->buffer_spec[i].cma_alloc_addr;
 	addr = hw->buffer_spec[i].buf_adr;
@@ -3643,6 +3651,22 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		hw->dpb.reorder_pic_num =
 			get_max_dec_frame_buf_size(level_idc,
 			max_reference_size, mb_width, mb_height);
+
+		dpb_print(DECODE_ID(hw), 0,
+			"restriction_flag=%d, max_dec_frame_buffering=%d, reorder_pic_num=%d\n",
+			hw->bitstream_restriction_flag,
+			hw->max_dec_frame_buffering,
+			hw->dpb.reorder_pic_num);
+
+		if ((hw->bitstream_restriction_flag) &&
+			(hw->max_dec_frame_buffering <
+			hw->dpb.reorder_pic_num)) {
+			hw->dpb.reorder_pic_num = hw->max_dec_frame_buffering;
+			dpb_print(DECODE_ID(hw), 0,
+			"set reorder_pic_num to %d\n",
+			hw->dpb.reorder_pic_num);
+		}
+
 		active_buffer_spec_num =
 			hw->dpb.reorder_pic_num
 			+ used_reorder_dpb_size_margin;
@@ -3794,6 +3818,19 @@ static void vui_config(struct vdec_h264_hw_s *hw)
 	hw->num_units_in_tick = p_H264_Dpb->num_units_in_tick;
 	hw->time_scale = p_H264_Dpb->time_scale;
 	hw->timing_info_present_flag = p_H264_Dpb->vui_status & 0x2;
+
+	hw->bitstream_restriction_flag =
+		p_H264_Dpb->bitstream_restriction_flag;
+	hw->num_reorder_frames =
+		p_H264_Dpb->num_reorder_frames;
+	hw->max_dec_frame_buffering =
+		p_H264_Dpb->max_dec_frame_buffering;
+
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_DPB_DETAIL,
+		"vui_config: pdb %d, %d, %d\n",
+		p_H264_Dpb->bitstream_restriction_flag,
+		p_H264_Dpb->num_reorder_frames,
+		p_H264_Dpb->max_dec_frame_buffering);
 
 	hw->fixed_frame_rate_flag = 0;
 	if (hw->timing_info_present_flag) {
@@ -4129,6 +4166,55 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 	int ret;
 
 	if (dec_dpb_status == H264_CONFIG_REQUEST) {
+#if 1
+		unsigned short *p = (unsigned short *)hw->lmem_addr;
+		dma_sync_single_for_cpu(
+			amports_get_dma_device(),
+			hw->lmem_addr_remap,
+			PAGE_SIZE,
+			DMA_FROM_DEVICE);
+		for (i = 0; i < (RPM_END-RPM_BEGIN); i += 4) {
+			int ii;
+			for (ii = 0; ii < 4; ii++) {
+				p_H264_Dpb->dpb_param.l.data[i+ii] =
+					p[i+3-ii];
+				if (dpb_is_debug(DECODE_ID(hw),
+					RRINT_FLAG_RPM)) {
+					if (((i + ii) & 0xf) == 0)
+						dpb_print(DECODE_ID(hw),
+							0, "%04x:",
+							i);
+					dpb_print_cont(DECODE_ID(hw),
+						0, "%04x ",
+						p[i+3-ii]);
+					if (((i + ii + 1) & 0xf) == 0)
+						dpb_print_cont(
+						DECODE_ID(hw),
+							0, "\r\n");
+				}
+			}
+		}
+
+		p_H264_Dpb->bitstream_restriction_flag =
+			(p_H264_Dpb->dpb_param.l.data[SPS_FLAGS2] >> 3) & 0x1;
+		p_H264_Dpb->num_reorder_frames =
+			p_H264_Dpb->dpb_param.l.data[NUM_REORDER_FRAMES];
+		p_H264_Dpb->max_dec_frame_buffering =
+			p_H264_Dpb->dpb_param.l.data[MAX_BUFFER_FRAME];
+
+		dpb_print(DECODE_ID(hw), PRINT_FLAG_DPB_DETAIL,
+			"H264_CONFIG_REQUEST: pdb %d, %d, %d\n",
+			p_H264_Dpb->bitstream_restriction_flag,
+			p_H264_Dpb->num_reorder_frames,
+			p_H264_Dpb->max_dec_frame_buffering);
+		hw->bitstream_restriction_flag =
+			p_H264_Dpb->bitstream_restriction_flag;
+		hw->num_reorder_frames =
+			p_H264_Dpb->num_reorder_frames;
+		hw->max_dec_frame_buffering =
+			p_H264_Dpb->max_dec_frame_buffering;
+#endif
+
 		WRITE_VREG(DPB_STATUS_REG, H264_ACTION_CONFIG_DONE);
 		reset_process_time(hw);
 		hw->reg_iqidct_control = READ_VREG(IQIDCT_CONTROL);

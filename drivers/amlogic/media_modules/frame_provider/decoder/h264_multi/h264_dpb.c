@@ -518,6 +518,14 @@ void slice_prepare(struct h264_dpb_stru *p_H264_Dpb,
 		p_H264_Dpb->dpb_param.l.data[NUM_UNITS_IN_TICK];
 	p_H264_Dpb->time_scale = p_H264_Dpb->dpb_param.l.data[TIME_SCALE] |
 		(p_H264_Dpb->dpb_param.l.data[TIME_SCALE + 1] << 16);
+
+	p_H264_Dpb->bitstream_restriction_flag =
+		(p_H264_Dpb->dpb_param.l.data[SPS_FLAGS2] >> 3) & 0x1;
+	p_H264_Dpb->num_reorder_frames =
+		p_H264_Dpb->dpb_param.l.data[NUM_REORDER_FRAMES];
+	p_H264_Dpb->max_dec_frame_buffering =
+		p_H264_Dpb->dpb_param.l.data[MAX_BUFFER_FRAME];
+
 	/**/
 	dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
 		"%s return\n", __func__);
