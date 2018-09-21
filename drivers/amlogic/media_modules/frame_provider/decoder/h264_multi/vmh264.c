@@ -7318,10 +7318,12 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 #if 1
 		/*init internal buf*/
 		tmpbuf = (char *)codec_mm_phys_to_virt(hw->cma_alloc_addr);
-		memset(tmpbuf, 0, V_BUF_ADDR_OFFSET);
-		dma_sync_single_for_device(amports_get_dma_device(),
-			hw->cma_alloc_addr,
-			V_BUF_ADDR_OFFSET, DMA_TO_DEVICE);
+		if (tmpbuf) {
+			memset(tmpbuf, 0, V_BUF_ADDR_OFFSET);
+			dma_sync_single_for_device(amports_get_dma_device(),
+				hw->cma_alloc_addr,
+				V_BUF_ADDR_OFFSET, DMA_TO_DEVICE);
+		}
 #else
 		/*init sps/pps internal buf 64k*/
 		tmpbuf = (char *)codec_mm_phys_to_virt(hw->cma_alloc_addr
