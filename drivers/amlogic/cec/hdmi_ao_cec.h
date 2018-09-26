@@ -541,11 +541,8 @@ void aocec_irq_enable(bool enable);
 extern void dump_reg(void);
 #endif
 extern void cec_dump_info(void);
-extern void cec_hw_reset(unsigned int cec_sel);
-extern void cec_restore_logical_addr(unsigned int cec_sel,
-	unsigned int addr_en);
+extern void cec_hw_reset(void);
+extern void cec_restore_logical_addr(unsigned int addr_en);
 extern void cec_logicaddr_add(unsigned int cec_sel, unsigned int l_add);
 extern void cec_clear_all_logical_addr(unsigned int cec_sel);
-extern int dump_cecrx_reg(char *b);
-
 #endif	/* __AO_CEC_H__ */
