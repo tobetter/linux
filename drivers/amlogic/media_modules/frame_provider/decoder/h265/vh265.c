@@ -2558,7 +2558,6 @@ static void init_pic_list(struct hevc_state_s *hevc)
 	int i;
 	int init_buf_num = get_work_pic_num(hevc);
 	int dw_mode = get_double_write_mode(hevc);
-
 	/*alloc decoder buf*/
 	for (i = 0; i < init_buf_num; i++) {
 		if (alloc_buf(hevc) < 0) {
@@ -8381,7 +8380,8 @@ pic_done:
 		hevc->lcu_size_log2 = log2i(hevc->lcu_size);
 		if (hevc->pic_w == 0 || hevc->pic_h == 0
 						|| hevc->lcu_size == 0
-						|| OVER_SIZE(hevc->pic_w, hevc->pic_h)) {
+						|| OVER_SIZE(hevc->pic_w, hevc->pic_h)
+						|| (hevc->param.p.sps_num_reorder_pics_0 == 0)) {
 			/* skip search next start code */
 			WRITE_VREG(HEVC_WAIT_FLAG, READ_VREG(HEVC_WAIT_FLAG)
 						& (~0x2));
