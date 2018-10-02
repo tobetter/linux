@@ -62,7 +62,7 @@ static u64 get_us_time_hw(void)
 	int offset = 0;
 
 	/* txlx, g12a isa register base is 0x3c00 */
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX)
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_TXLX)
 		offset = 0x1600;
 
 	do {

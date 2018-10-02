@@ -3800,7 +3800,7 @@ static int vdec_probe(struct platform_device *pdev)
 		return r;
 	}
 #if 0
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A) {
 		r = vdec_request_threaded_irq(VDEC_IRQ_HEVC_BACK, NULL, NULL,
 			IRQF_ONESHOT, "vdec-hevc_back", NULL);
 		if (r < 0) {

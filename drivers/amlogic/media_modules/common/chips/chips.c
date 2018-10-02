@@ -31,6 +31,7 @@
 #include "chips.h"
 #include <linux/amlogic/media/utils/log.h>
 #include <linux/amlogic/media/utils/vdec_reg.h>
+#include "decoder_cpu_ver_info.h"
 
 #define VIDEO_FIRMWARE_FATHER_NAME "video"
 
@@ -56,22 +57,23 @@ struct type_name {
 	const char *name;
 };
 static const struct type_name cpu_type_name[] = {
-	{MESON_CPU_MAJOR_ID_M6, "m6"},
-	{MESON_CPU_MAJOR_ID_M6TV, "m6tv"},
-	{MESON_CPU_MAJOR_ID_M6TVL, "m6tvl"},
-	{MESON_CPU_MAJOR_ID_M8, "m8"},
-	{MESON_CPU_MAJOR_ID_MTVD, "mtvd"},
-	{MESON_CPU_MAJOR_ID_M8B, "m8b"},
-	{MESON_CPU_MAJOR_ID_MG9TV, "mg9tv"},
-	{MESON_CPU_MAJOR_ID_M8M2, "m8"},
-	{MESON_CPU_MAJOR_ID_GXBB, "gxbb"},
-	{MESON_CPU_MAJOR_ID_GXTVBB, "gxtvbb"},
-	{MESON_CPU_MAJOR_ID_GXL, "gxl"},
-	{MESON_CPU_MAJOR_ID_GXM, "gxm"},
-	{MESON_CPU_MAJOR_ID_TXL, "txl"},
-	{MESON_CPU_MAJOR_ID_TXLX, "txlx"},
-	{MESON_CPU_MAJOR_ID_G12A, "g12a"},
-	{MESON_CPU_MAJOR_ID_G12B, "g12b"},
+	{AM_MESON_CPU_MAJOR_ID_M6, "m6"},
+	{AM_MESON_CPU_MAJOR_ID_M6TV, "m6tv"},
+	{AM_MESON_CPU_MAJOR_ID_M6TVL, "m6tvl"},
+	{AM_MESON_CPU_MAJOR_ID_M8, "m8"},
+	{AM_MESON_CPU_MAJOR_ID_MTVD, "mtvd"},
+	{AM_MESON_CPU_MAJOR_ID_M8B, "m8b"},
+	{AM_MESON_CPU_MAJOR_ID_MG9TV, "mg9tv"},
+	{AM_MESON_CPU_MAJOR_ID_M8M2, "m8"},
+	{AM_MESON_CPU_MAJOR_ID_GXBB, "gxbb"},
+	{AM_MESON_CPU_MAJOR_ID_GXTVBB, "gxtvbb"},
+	{AM_MESON_CPU_MAJOR_ID_GXL, "gxl"},
+	{AM_MESON_CPU_MAJOR_ID_GXM, "gxm"},
+	{AM_MESON_CPU_MAJOR_ID_TXL, "txl"},
+	{AM_MESON_CPU_MAJOR_ID_TXLX, "txlx"},
+	{AM_MESON_CPU_MAJOR_ID_G12A, "g12a"},
+	{AM_MESON_CPU_MAJOR_ID_G12B, "g12b"},
+	{AM_MESON_CPU_MAJOR_ID_TL1, "tl1"},
 	{0, NULL},
 };
 
@@ -99,7 +101,7 @@ const char *get_cpu_type_name(void)
 
 	return get_type_name(cpu_type_name,
 		sizeof(cpu_type_name) / sizeof(struct type_name),
-		get_cpu_type());
+		get_cpu_major_id());
 }
 EXPORT_SYMBOL(get_cpu_type_name);
 

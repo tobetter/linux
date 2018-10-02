@@ -1,5 +1,5 @@
 #include "firmware_type.h"
-#include <linux/amlogic/cpu_version.h>
+#include "../chips/decoder_cpu_ver_info.h"
 
 static const struct format_name_s format_name[] = {
 	{VIDEO_DEC_MPEG12,		"mpeg12"},
@@ -42,10 +42,12 @@ static const struct format_name_s format_name[] = {
 };
 
 static const struct cpu_type_s cpu_type[] = {
-	{MESON_CPU_MAJOR_ID_GXL,	"gxl"},
-	{MESON_CPU_MAJOR_ID_GXM,	"gxm"},
-	{MESON_CPU_MAJOR_ID_G12A,	"g12a"},
-	{MESON_CPU_MAJOR_ID_G12B,	"g12b"},
+	{AM_MESON_CPU_MAJOR_ID_GXL,	"gxl"},
+	{AM_MESON_CPU_MAJOR_ID_GXM,	"gxm"},
+	{AM_MESON_CPU_MAJOR_ID_G12A,	"g12a"},
+	{AM_MESON_CPU_MAJOR_ID_G12B,	"g12b"},
+	{AM_MESON_CPU_MAJOR_ID_GXLX2,	"gxlx2"},
+	{AM_MESON_CPU_MAJOR_ID_TL1, 	"tl1"},
 };
 
 const char *get_fw_format_name(unsigned int format)

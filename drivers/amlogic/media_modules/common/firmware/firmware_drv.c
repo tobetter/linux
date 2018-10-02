@@ -38,6 +38,7 @@
 #include <linux/amlogic/major.h>
 #include <linux/cdev.h>
 #include <linux/crc32.h>
+#include "../chips/decoder_cpu_ver_info.h"
 
 /* major.minor.revision */
 #define PACK_VERS "v0.0.1"
@@ -721,7 +722,7 @@ static int fw_mgr_init(void)
 	if (IS_ERR_OR_NULL(g_mgr))
 		return -ENOMEM;
 
-	g_mgr->cur_cpu = get_cpu_type();
+	g_mgr->cur_cpu = get_cpu_major_id();
 	INIT_LIST_HEAD(&g_mgr->files_head);
 	INIT_LIST_HEAD(&g_mgr->fw_head);
 	spin_lock_init(&g_mgr->lock);

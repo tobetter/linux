@@ -1226,7 +1226,7 @@ static void  hevc_mcr_sao_global_hw_init(struct vdec_h264_hw_s *hw,
 	/* ipp_enable*/
 	WRITE_VREG(HEVCD_IPP_TOP_CNTL, 0x1 << 1);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A) {
 		  WRITE_VREG(HEVC_DBLK_CFG1, 0x2); // set ctusize==16
 		  WRITE_VREG(HEVC_DBLK_CFG2, ((height & 0xffff)<<16) | (width & 0xffff));
 		  if (hw->double_write_mode)
@@ -1389,7 +1389,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 	}
 
 	/*Reset SAO + Enable SAO slice_start*/
-	if (hw->mmu_enable  && get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+	if (hw->mmu_enable  && get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A)
 		WRITE_VREG(HEVC_DBLK_CFG0, 0x1); // reset buffer32x4 in lpf for every picture
 	WRITE_VREG(HEVC_SAO_INT_STATUS,
 			READ_VREG(HEVC_SAO_INT_STATUS) | 0x1 << 28);
@@ -1398,7 +1398,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 	/*pr_info("hevc_sao_set_pic_buffer:mc_y_adr: %x\n", mc_y_adr);*/
 	/*Send coommand to hevc-code to supply 4k buffers to sao*/
 
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() < MESON_CPU_MAJOR_ID_G12A) {
 		WRITE_VREG(H265_SAO_4K_SET_BASE, (u32)hw->frame_mmu_map_phy_addr);
 		WRITE_VREG(H265_SAO_4K_SET_COUNT, MAX_FRAME_4K_NUM);
 	} else
@@ -1473,7 +1473,7 @@ static void  hevc_sao_wait_done(struct vdec_h264_hw_s *hw)
 	}
 	timeout = jiffies + HZ;
 	if ((hw->frame_busy == 1) && (hw->frame_done == 1) ) {
-		if (get_cpu_type() <  MESON_CPU_MAJOR_ID_G12A) {
+		if (get_cpu_major_id() <  MESON_CPU_MAJOR_ID_G12A) {
 		WRITE_VREG(SYS_COMMAND, H265_ABORT_SAO_4K_SET);
 			while ((READ_VREG(SYS_COMMAND) & 0xff) !=
 					H265_ABORT_SAO_4K_SET_DONE) {
@@ -6923,7 +6923,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		WRITE_VREG(AV_SCRATCH_K, udebug_flag);
 	mod_timer(&hw->check_timer, jiffies + CHECK_INTERVAL);
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A) {
 
 		if (hw->mmu_enable)
 			SET_VREG_MASK(VDEC_ASSIST_MMC_CTRL1, 1 << 3);
@@ -7306,7 +7306,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 			DCAC_READ_MARGIN;
 	if (hw->mmu_enable) {
 		u32 extif_size = EXTIF_BUF_SIZE;
-		if (get_cpu_type() >=  MESON_CPU_MAJOR_ID_G12A)
+		if (get_cpu_major_id() >=  MESON_CPU_MAJOR_ID_G12A)
 			extif_size <<= 1;
 		if (decoder_bmmu_box_alloc_buf_phy(hw->bmmu_box, BMMU_EXTIF_IDX,
 			extif_size, DRIVER_NAME, &hw->extif_addr) < 0) {
