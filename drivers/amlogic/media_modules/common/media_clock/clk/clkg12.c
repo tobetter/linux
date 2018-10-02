@@ -599,6 +599,16 @@ static int hevc_clock_init(void)
 
 	return (gp_pll_user_hevc) ? 0 : -ENOMEM;
 }
+static int hevc_back_clock_init(void)
+{
+	return 0;
+}
+
+static int hevc_back_clock_set(int clk)
+{
+	return 0;
+}
+
 static int hevc_clock_set(int clk)
 {
 	int use_gpll = 0;

@@ -56,7 +56,6 @@
 #include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define MIX_STREAM_SUPPORT
-#define SUPPORT_4K2K
 
 #include "vvp9.h"
 
@@ -132,11 +131,6 @@
 #define MULTI_INSTANCE_SUPPORT
 #define SUPPORT_10BIT
 /* #define ERROR_HANDLE_DEBUG */
-#if 0 /* MESON_CPU_TYPE == MESON_CPU_TYPE_MESON8B*/
-#undef SUPPORT_4K2K
-#else
-#define SUPPORT_4K2K
-#endif
 
 #ifndef STAT_KTHREAD
 #define STAT_KTHREAD 0x40
@@ -243,7 +237,7 @@ static u32 on_no_keyframe_skiped;
 #define COUNT_BUF_SIZE   (0x300 * 4 * 4)
 /*compute_losless_comp_body_size(4096, 2304, 1) = 18874368(0x1200000)*/
 #define MAX_FRAME_4K_NUM 0x1200
-#define FRAME_MMU_MAP_SIZE  (MAX_FRAME_4K_NUM * 4)
+#define MAX_FRAME_8K_NUM (0x1200*4)
 
 #define HEVC_ASSIST_MMU_MAP_ADDR                   0x3009
 
@@ -295,7 +289,8 @@ struct MVBUF_s {
 	/* #undef BUFMGR_ONLY to enable hardware configuration */
 
 /*#define TEST_WR_PTR_INC*/
-#define WR_PTR_INC_NUM 128
+/*#define WR_PTR_INC_NUM 128*/
+#define WR_PTR_INC_NUM 1
 
 #define SIMULATION
 #define DOS_PROJECT
@@ -409,7 +404,22 @@ VP9 buffer management start
 ***************************************************/
 
 #define MMU_COMPRESS_HEADER_SIZE  0x48000
+#define MMU_COMPRESS_8K_HEADER_SIZE  (0x48000*4)
 
+static int vvp9_mmu_compress_header_size(void)
+{
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		return (MMU_COMPRESS_8K_HEADER_SIZE);
+	return (MMU_COMPRESS_HEADER_SIZE);
+}
+
+/*#define FRAME_MMU_MAP_SIZE  (MAX_FRAME_4K_NUM * 4)*/
+static int vvp9_frame_mmu_map_size(void)
+{
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		return (MAX_FRAME_8K_NUM * 4);
+	return (MAX_FRAME_4K_NUM * 4);
+}
 
 #define INVALID_IDX -1  /* Invalid buffer index.*/
 
@@ -1211,7 +1221,9 @@ static int setup_frame_size(
 		(" * 16-bits h read : %d (height : %d)\n", width, height);
 
 	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
-
+#ifdef VP9_10B_HED_FB
+  WRITE_VREG(HEVC_ASSIST_PIC_SIZE_FB_READ, (height << 16) | width);
+#endif
 	if (pbi->mmu_enable) {
 		ret = vp9_alloc_mmu(pbi,
 			cm->new_fb_idx,
@@ -1566,7 +1578,7 @@ static int get_double_write_ratio(struct VP9Decoder_s *pbi,
 	return ratio;
 }
 
-#define	MAX_4K_NUM		0x1200
+//#define	MAX_4K_NUM		0x1200
 
 int vp9_alloc_mmu(
 	struct VP9Decoder_s *pbi,
@@ -1578,7 +1590,7 @@ int vp9_alloc_mmu(
 {
 	int bit_depth_10 = (bit_depth == VPX_BITS_10);
 	int picture_size;
-	int cur_mmu_4k_number;
+	int cur_mmu_4k_number, max_frame_num;
 	if (!pbi->mmu_box) {
 		pr_err("error no mmu box!\n");
 		return -1;
@@ -1591,7 +1603,13 @@ int vp9_alloc_mmu(
 	picture_size = compute_losless_comp_body_size(pic_width, pic_height,
 				   bit_depth_10);
 	cur_mmu_4k_number = ((picture_size + (1 << 12) - 1) >> 12);
-	if (cur_mmu_4k_number > MAX_4K_NUM) {
+
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		max_frame_num = MAX_FRAME_8K_NUM;
+	else
+		max_frame_num = MAX_FRAME_4K_NUM;
+
+	if (cur_mmu_4k_number > max_frame_num) {
 		pr_err("over max !! cur_mmu_4k_number 0x%x width %d height %d\n",
 			cur_mmu_4k_number, pic_width, pic_height);
 		return -1;
@@ -1672,13 +1690,16 @@ static int init_mv_buf_list(struct VP9Decoder_s *pbi)
 	int size = ((lcu_total * MV_MEM_UNIT) + 0xffff) &
 		(~0xffff);
 
+#ifndef MV_USE_FIXED_BUF
 	if (pbi->init_pic_w >= 3840 && pbi->init_pic_h >= 2160)
 		count = REF_FRAMES_4K;
 	else if (pbi->init_pic_w > 2048 && pbi->init_pic_h > 1088)
 		count = REF_FRAMES_2K;
 	else
+#endif
 		count = REF_FRAMES;
 	count += pbi->dec_buf_margin;
+
 	if (debug) {
 		pr_info("%s w:%d, h:%d, count: %d\n",
 		__func__, pbi->init_pic_w, pbi->init_pic_h, count);
@@ -2692,18 +2713,11 @@ static u32 decode_pic_begin;
 static uint slice_parse_begin;
 static u32 step;
 #ifdef MIX_STREAM_SUPPORT
-#ifdef SUPPORT_4K2K
 static u32 buf_alloc_width = 4096;
 static u32 buf_alloc_height = 2304;
 static u32 vp9_max_pic_w = 4096;
 static u32 vp9_max_pic_h = 2304;
-#else
-static u32 buf_alloc_width = 1920;
-static u32 buf_alloc_height = 1088;
-static u32 vp9_max_pic_w = 1920;
-static u32 vp9_max_pic_h = 1088;
 
-#endif
 static u32 dynamic_buf_num_margin;
 #else
 static u32 buf_alloc_width;
@@ -2836,7 +2850,7 @@ static struct device *cma_dev;
 #endif
 #define LMEM_BUF_SIZE (0x400 * 2)
 
-#define WORK_BUF_SPEC_NUM 2
+#define WORK_BUF_SPEC_NUM 3
 static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 	{
 		/* 8M bytes */
@@ -3041,6 +3055,78 @@ static struct BuffInfo_s amvvp9_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		},
 		.lmem = {
 			.buf_size = 0x400 * 2,
+		}
+	},
+	{
+		.max_width = 4096*2,
+		.max_height = 2304*2,
+		.ipp = {
+			// IPP work space calculation : 4096 * (Y+CbCr+Flags) = 12k, round to 16k
+			.buf_size = 0x4000*2,
+		},
+		.sao_abv = {
+			.buf_size = 0x30000*2,
+		},
+		.sao_vb = {
+			.buf_size = 0x30000*2,
+		},
+		.short_term_rps = {
+			// SHORT_TERM_RPS - Max 64 set, 16 entry every set, total 64x16x2 = 2048 bytes (0x800)
+			.buf_size = 0x800,
+		},
+		.vps = {
+			// VPS STORE AREA - Max 16 VPS, each has 0x80 bytes, total 0x0800 bytes
+			.buf_size = 0x800,
+		},
+		.sps = {
+			// SPS STORE AREA - Max 16 SPS, each has 0x80 bytes, total 0x0800 bytes
+			.buf_size = 0x800,
+		},
+		.pps = {
+			// PPS STORE AREA - Max 64 PPS, each has 0x80 bytes, total 0x2000 bytes
+			.buf_size = 0x2000,
+		},
+		.sao_up = {
+			// SAO UP STORE AREA - Max 640(10240/16) LCU, each has 16 bytes total 0x2800 bytes
+			.buf_size = 0x2800*2,
+		},
+		.swap_buf = {
+			// 256cyclex64bit = 2K bytes 0x800 (only 144 cycles valid)
+			.buf_size = 0x800,
+		},
+		.swap_buf2 = {
+			.buf_size = 0x800,
+		},
+		.scalelut = {
+			// support up to 32 SCALELUT 1024x32 = 32Kbytes (0x8000)
+			.buf_size = 0x8000*2,
+		},
+		.dblk_para = {
+			// DBLK -> Max 256(4096/16) LCU, each para 1024bytes(total:0x40000), data 1024bytes(total:0x40000)
+			.buf_size = 0x80000*2,
+		},
+		.dblk_data = {
+			.buf_size = 0x80000*2,
+		},
+		.mmu_vbh = {
+			.buf_size = 0x5000*2, //2*16*(more than 2304)/4, 4K
+		},
+		.cm_header = {
+			//.buf_size = MMU_COMPRESS_HEADER_SIZE*8, // 0x44000 = ((1088*2*1024*4)/32/4)*(32/8)
+			.buf_size = MMU_COMPRESS_HEADER_SIZE*16, // 0x44000 = ((1088*2*1024*4)/32/4)*(32/8)
+		},
+		.mpred_above = {
+			.buf_size = 0x10000*2, /* 2 * size of hevc*/
+		},
+#ifdef MV_USE_FIXED_BUF
+		.mpred_mv = {
+			//4k2k , 0x100000 per buffer */
+			/* 4096x2304 , 0x120000 per buffer */
+			.buf_size = 0x120000 * 16 * 4,
+		},
+#endif
+		.rpm = {
+			.buf_size = 0x80*2,
 		}
 	}
 };
@@ -4587,13 +4673,16 @@ static void init_pic_list(struct VP9Decoder_s *pbi)
 	int i;
 	struct VP9_Common_s *cm = &pbi->common;
 	struct PIC_BUFFER_CONFIG_s *pic_config;
+	u32 header_size;
+
 	if (pbi->mmu_enable) {
+		header_size = vvp9_mmu_compress_header_size();
 		/*alloc VP9 compress header first*/
 		for (i = 0; i < pbi->used_buf_num; i++) {
 			unsigned long buf_addr;
 			if (decoder_bmmu_box_alloc_buf_phy
 				(pbi->bmmu_box,
-				HEADER_BUFFER_IDX(i), MMU_COMPRESS_HEADER_SIZE,
+				HEADER_BUFFER_IDX(i), header_size,
 				DRIVER_HEADER_NAME,
 				&buf_addr) < 0) {
 				pr_info("%s malloc compress header failed %d\n",
@@ -4760,7 +4849,8 @@ static int config_pic_size(struct VP9Decoder_s *pbi, unsigned short bit_depth)
 		else
 			WRITE_VREG(HEVCD_MPP_DECOMP_CTL1, (1 << 3));
 	}
-	WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, (losless_comp_body_size >> 5));
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TL1)
+		WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, (losless_comp_body_size >> 5));
 	/*WRITE_VREG(HEVCD_MPP_DECOMP_CTL3,(0xff<<20) | (0xff<<10) | 0xff);*/
 	WRITE_VREG(HEVC_CM_BODY_LENGTH, losless_comp_body_size);
 	WRITE_VREG(HEVC_CM_HEADER_OFFSET, losless_comp_body_size);
@@ -5112,11 +5202,21 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 		/* cfg_d_addr */
 		WRITE_VREG(HEVC_DBLK_CFG5, buf_spec->dblk_data.buf_start);
 
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		 /*
+	     * data32 = (READ_VREG(P_HEVC_DBLK_CFG3)>>8) & 0xff; // xio left offset, default is 0x40
+	     * data32 = data32 * 2;
+	     * data32 = (READ_VREG(P_HEVC_DBLK_CFG3)>>16) & 0xff; // adp left offset, default is 0x040
+	     * data32 = data32 * 2;
+	     */
+		WRITE_VREG(HEVC_DBLK_CFG3, 0x808010); // make left storage 2 x 4k]
+	}
 #ifdef LOSLESS_COMPRESS_MODE
 	if (pbi->mmu_enable) {
 		/*bit[4] : paged_mem_mode*/
 		WRITE_VREG(HEVCD_MPP_DECOMP_CTL1, (0x1 << 4));
-		WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, 0);
+		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TL1)
+			WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, 0);
 	} else {
 		/*if(cur_pic_config->bit_depth == VPX_BITS_10)
 		 *	WRITE_VREG(P_HEVCD_MPP_DECOMP_CTL1, (0<<3));
@@ -5301,6 +5401,7 @@ void vp9_loop_filter_init(struct VP9Decoder_s *pbi)
 	struct loopfilter *lf = pbi->lf;
 	struct segmentation *seg_4lf = pbi->seg_4lf;
 	int i;
+	unsigned int data32;
 
 	memset(lfi, 0, sizeof(struct loop_filter_info_n));
 	memset(lf, 0, sizeof(struct loopfilter));
@@ -5326,16 +5427,21 @@ void vp9_loop_filter_init(struct VP9Decoder_s *pbi)
 	}
 
 	/*video format is VP9*/
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
-		unsigned int data32;
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		data32 = (0x3 << 14) | // (dw fifo thres r and b)
+		(0x3 << 12) | // (dw fifo thres r or b)
+		(0x3 << 10) | // (dw fifo thres not r/b)
+		(0x3 << 8) | // 1st/2nd write both enable
+		(0x1 << 0); // vp9 video format
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 		data32 = (0x57 << 8) |  /*1st/2nd write both enable*/
-			(0x1  << 0);   /*vp9 video format*/
-		WRITE_VREG(HEVC_DBLK_CFGB, data32);
-
-		if (debug & VP9_DEBUG_BUFMGR_MORE)
-			pr_info("[DBLK DEBUG] CFGB : 0x%x\n", data32);
+			(0x1  << 0); /*vp9 video format*/
 	} else
-		WRITE_VREG(HEVC_DBLK_CFGB, 0x40400001);
+		data32 = 0x40400001;
+
+	WRITE_VREG(HEVC_DBLK_CFGB, data32);
+	if (debug & VP9_DEBUG_BUFMGR_MORE)
+		pr_info("[DBLK DEBUG] CFGB : 0x%x\n", data32);
 }
 	/* perform this function per frame*/
 void vp9_loop_filter_frame_init(struct segmentation *seg,
@@ -5461,7 +5567,7 @@ static void vp9_init_decoder_hw(struct VP9Decoder_s *pbi, u32 mask)
 		0x7C00
 	};
 #if 0
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A) {
 		/* Set MCR fetch priorities*/
 		data32 = 0x1 | (0x1 << 2) | (0x1 <<3) |
 			(24 << 4) | (32 << 11) | (24 << 18) | (32 << 25);
@@ -5681,11 +5787,11 @@ static void  config_mcrcc_axi_hw(struct VP9Decoder_s *pbi)
 		return;
 	}
 
-#if 0
-	mcrcc_get_hitrate();
-	decomp_get_hitrate();
-	decomp_get_comprate();
-#endif
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		mcrcc_get_hitrate(pbi->m_ins_flag);
+		decomp_get_hitrate();
+		decomp_get_comprate();
+	}
 
 	WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 			(0 << 8) | (1 << 1) | 0);
@@ -5931,10 +6037,11 @@ static void vp9_local_uninit(struct VP9Decoder_s *pbi)
 		pbi->count_buffer_addr = NULL;
 	}
 	if (pbi->mmu_enable) {
+		u32 mmu_map_size = vvp9_frame_mmu_map_size();
 		if (pbi->frame_mmu_map_addr) {
 			if (pbi->frame_mmu_map_phy_addr)
 				dma_free_coherent(amports_get_dma_device(),
-					FRAME_MMU_MAP_SIZE,
+					mmu_map_size,
 					pbi->frame_mmu_map_addr,
 					pbi->frame_mmu_map_phy_addr);
 			pbi->frame_mmu_map_addr = NULL;
@@ -5972,31 +6079,32 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	memset(&pbi->common, 0, sizeof(struct VP9_Common_s));
 #ifdef MULTI_INSTANCE_SUPPORT
 	cur_buf_info = &pbi->work_space_buf_store;
-#ifdef SUPPORT_4K2K
-	if (vdec_is_support_4k())
-		memcpy(cur_buf_info, &amvvp9_workbuff_spec[1],	/* 4k */
-		sizeof(struct BuffInfo_s));
-	else
+
+	if (vdec_is_support_4k()) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+			memcpy(cur_buf_info, &amvvp9_workbuff_spec[2],	/* 4k */
+			sizeof(struct BuffInfo_s));
+		} else
+			memcpy(cur_buf_info, &amvvp9_workbuff_spec[1],	/* 4k */
+			sizeof(struct BuffInfo_s));
+	} else
 		memcpy(cur_buf_info, &amvvp9_workbuff_spec[0],/* 1080p */
 		sizeof(struct BuffInfo_s));
-#else
-	memcpy(cur_buf_info, &amvvp9_workbuff_spec[0],	/* 1080p work space */
-		sizeof(struct BuffInfo_s));
-#endif
+
 	cur_buf_info->start_adr = pbi->buf_start;
 	if (!pbi->mmu_enable)
 		pbi->mc_buf_spec.buf_end = pbi->buf_start + pbi->buf_size;
 
 #else
 /*! MULTI_INSTANCE_SUPPORT*/
-#ifdef SUPPORT_4K2K
-	if (vdec_is_support_4k())
-		cur_buf_info = &amvvp9_workbuff_spec[1];/* 4k2k work space */
-	else
+	if (vdec_is_support_4k()) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			cur_buf_info = &amvvp9_workbuff_spec[2];/* 8k work space */
+		else
+			cur_buf_info = &amvvp9_workbuff_spec[1];/* 4k2k work space */
+	} else
 		cur_buf_info = &amvvp9_workbuff_spec[0];/* 1080p work space */
-#else
-	cur_buf_info = &amvvp9_workbuff_spec[0];	/* 1080p work space */
-#endif
+
 #endif
 
 	init_buff_spec(pbi, cur_buf_info);
@@ -6010,6 +6118,11 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 			pbi->max_pic_w = 1920;
 			pbi->max_pic_h = 1088;
 		}
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		buf_alloc_width = 8192;
+		buf_alloc_height = 4608;
+		pbi->max_pic_w = 8192;
+		pbi->max_pic_h = 4068;
 	}
 	pbi->init_pic_w = pbi->max_pic_w ? pbi->max_pic_w :
 		(buf_alloc_width ? buf_alloc_width :
@@ -6122,9 +6235,10 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	}
 */
 	if (pbi->mmu_enable) {
+		u32 mmu_map_size = vvp9_frame_mmu_map_size();
 		pbi->frame_mmu_map_addr =
 			dma_alloc_coherent(amports_get_dma_device(),
-				FRAME_MMU_MAP_SIZE,
+				mmu_map_size,
 				&pbi->frame_mmu_map_phy_addr, GFP_KERNEL);
 		if (pbi->frame_mmu_map_addr == NULL) {
 			pr_err("%s: failed to alloc count_buffer\n", __func__);
@@ -6132,7 +6246,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 		}
 		memset(pbi->frame_mmu_map_addr, 0, COUNT_BUF_SIZE);
 	/*	pbi->frame_mmu_map_phy_addr = dma_map_single(amports_get_dma_device(),
-		pbi->frame_mmu_map_addr, FRAME_MMU_MAP_SIZE, DMA_BIDIRECTIONAL);
+		pbi->frame_mmu_map_addr, mmu_map_size, DMA_BIDIRECTIONAL);
 		if (dma_mapping_error(amports_get_dma_device(),
 		pbi->frame_mmu_map_phy_addr)) {
 			pr_err("%s: failed to map count_buffer\n", __func__);
@@ -8154,6 +8268,11 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	memcpy(&pbi->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	pbi->init_flag = 0;
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		vp9_max_pic_w = 8192;
+		vp9_max_pic_h = 4608;
+		pr_info("%s tl1 force vp9 max resolution 8192*4608\n", __func__);
+	}
 	pbi->max_pic_w = vp9_max_pic_w;
 	pbi->max_pic_h = vp9_max_pic_h;
 
@@ -9125,6 +9244,11 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 				&config_val) == 0) {
 				pbi->max_pic_h = config_val;
 		}
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+			pbi->max_pic_w = 8192;
+			pbi->max_pic_h = 4608;
+			pr_info("%s tl1 force vp9 max resolution 8192*4608\n", __func__);
+		}
 #endif
 		if (get_config_int(pdata->config, "HDRStaticInfo",
 				&vf_dp.present_flag) == 0
@@ -9327,14 +9451,15 @@ static int __init amvdec_vp9_driver_init_module(void)
 {
 
 	struct BuffInfo_s *p_buf_info;
-#ifdef SUPPORT_4K2K
-	if (vdec_is_support_4k())
-		p_buf_info = &amvvp9_workbuff_spec[1];
-	else
+
+	if (vdec_is_support_4k()) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			p_buf_info = &amvvp9_workbuff_spec[2];
+		else
+			p_buf_info = &amvvp9_workbuff_spec[1];
+	} else
 		p_buf_info = &amvvp9_workbuff_spec[0];
-#else
-	p_buf_info = &amvvp9_workbuff_spec[0];
-#endif
+
 	init_buff_spec(NULL, p_buf_info);
 	work_buf_size =
 		(p_buf_info->end_adr - p_buf_info->start_adr
@@ -9364,7 +9489,7 @@ static int __init amvdec_vp9_driver_init_module(void)
 	}
 
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL
-		/*&& get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX*/) {
+		/*&& get_cpu_major_id() != MESON_CPU_MAJOR_ID_GXLX*/) {
 		if (vdec_is_support_4k())
 			amvdec_vp9_profile.profile =
 				"4k, 10bit, dwrite, compressed";
