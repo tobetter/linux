@@ -274,8 +274,9 @@ static inline int div_r32(int64_t m, int n)
 return (int)(m/n)
 */
 #ifndef CONFIG_ARM64
-	div_s64(m, n);
-	return (int)m;
+	int64_t qu = 0;
+	qu = div_s64(m, n);
+	return (int)qu;
 #else
 	return (int)(m/n);
 #endif
