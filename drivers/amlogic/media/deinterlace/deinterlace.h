@@ -192,6 +192,9 @@ extern bool is_vsync_rdma_enable(void);
 #define DI_SUSPEND_FLAG 0x2
 #define DI_LOAD_REG_FLAG 0x4
 #define DI_VPU_CLKB_SET 0x8
+
+#define TABLE_LEN_MAX 10000
+
 struct di_dev_s {
 	dev_t			   devt;
 	struct cdev		   cdev; /* The cdev structure */
@@ -224,6 +227,7 @@ struct di_dev_s {
 	unsigned int	   flag_cma;
 	struct page			*total_pages;
 	atomic_t			mem_flag;
+	struct dentry *dbg_root;	/*dbg_fs*/
 };
 
 struct di_pre_stru_s {

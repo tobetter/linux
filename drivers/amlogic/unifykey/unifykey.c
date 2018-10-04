@@ -275,7 +275,9 @@ static int key_storage_query(char *keyname, unsigned int *keystate)
 static int key_efuse_init(struct key_info_t *uk_info,
 	char *buf, unsigned int len)
 {
-	unifykey_get_efuse_version(uk_info);
+	char var = 0;
+
+	var = unifykey_get_efuse_version(uk_info);
 
 	return 0;
 }
@@ -283,7 +285,7 @@ static int key_efuse_init(struct key_info_t *uk_info,
 static int key_efuse_write(char *keyname, unsigned char *keydata,
 		unsigned int datalen)
 {
-#ifdef CONFIG_EFUSE
+#if defined(CONFIG_ARM64) && defined(CONFIG_AMLOGIC_EFUSE)
 	char *title = keyname;
 	struct efusekey_info info;
 
@@ -306,7 +308,7 @@ static int key_efuse_write(char *keyname, unsigned char *keydata,
 static int key_efuse_read(char *keyname, unsigned char *keydata,
 		unsigned int datalen, unsigned int *reallen)
 {
-#ifdef CONFIG_EFUSE
+#if defined(CONFIG_ARM64) && defined(CONFIG_AMLOGIC_EFUSE)
 	char *title = keyname;
 	struct efusekey_info info;
 	int err = 0;
@@ -320,7 +322,7 @@ static int key_efuse_read(char *keyname, unsigned char *keydata,
 		return -ENOMEM;
 	memset(buf, 0, info.size);
 
-	err = efuse_user_attr_show(title, buf);
+	err = efuse_user_attr_read(title, buf);
 	if (err >= 0) {
 		*reallen = info.size;
 		if (datalen > info.size)
@@ -337,7 +339,7 @@ static int key_efuse_read(char *keyname, unsigned char *keydata,
 static int key_efuse_query(char *keyname, unsigned int *keystate)
 {
 	int err =  -EINVAL;
-#ifdef CONFIG_EFUSE
+#if defined(CONFIG_ARM64) && defined(CONFIG_AMLOGIC_EFUSE)
 	int i;
 	char *title = keyname;
 	struct efusekey_info info;
@@ -351,7 +353,7 @@ static int key_efuse_query(char *keyname, unsigned int *keystate)
 		return -ENOMEM;
 	}
 	memset(buf, 0, info.size);
-	err = efuse_user_attr_show(title, buf);
+	err = efuse_user_attr_read(title, buf);
 	*keystate = KEY_NO_EXIST;
 	if (err > 0) {
 		for (i = 0; i < info.size; i++) {
@@ -543,7 +545,7 @@ int key_unify_size(struct aml_unifykey_dev *ukdev,
 
 	if (unifykey->permit & KEY_M_PERMIT_READ) {
 		switch (unifykey->dev) {
-#ifdef CONFIG_EFUSE
+#if defined(CONFIG_ARM64) && defined(CONFIG_AMLOGIC_EFUSE)
 		case KEY_M_EFUSE:
 		{
 			struct efusekey_info info;
@@ -812,7 +814,6 @@ static long unifykey_unlocked_ioctl(struct file *file,
 			char *keyname;
 			int ret;
 
-
 			key_item_info = kmalloc(sizeof(struct key_item_info_t),
 				GFP_KERNEL);
 			if (!key_item_info)
@@ -825,6 +826,7 @@ static long unifykey_unlocked_ioctl(struct file *file,
 				kfree(key_item_info);
 				return ret;
 			}
+			key_item_info->name[KEY_UNIFY_NAME_LEN - 1] = '\0';
 			index = key_item_info->id;
 			keyname = key_item_info->name;
 			if (strlen(keyname) > KEY_UNIFY_NAME_LEN - 1) {
@@ -860,7 +862,8 @@ static long unifykey_unlocked_ioctl(struct file *file,
 			key_item_info->flag = keystate;
 			key_item_info->id = kkey->id;
 			strncpy(key_item_info->name,
-					kkey->name, KEY_UNIFY_NAME_LEN);
+					kkey->name, (KEY_UNIFY_NAME_LEN - 1));
+			key_item_info->name[KEY_UNIFY_NAME_LEN - 1] = '\0';
 			ret = key_unify_size(ukdev, kkey->name, &reallen);
 			if (ret < 0) {
 				pr_err("%s() %d, get size fail\n",

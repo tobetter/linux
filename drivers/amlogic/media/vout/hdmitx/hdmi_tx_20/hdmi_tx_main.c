@@ -181,6 +181,8 @@ static void hdmitx_late_resume(struct early_suspend *h)
 		hdmitx_device.hpd_state =
 		!!(hdmitx_device.HWOp.CntlMisc(&hdmitx_device,
 		MISC_HPD_GPI_ST, 0));
+
+		pr_info("hdmitx hpd state: %d\n", hdmitx_device.hpd_state);
 		hdmitx_notify_hpd(hdmitx_device.hpd_state);
 
 		/*force to get EDID after resume for Amplifer Power case*/
@@ -194,6 +196,8 @@ static void hdmitx_late_resume(struct early_suspend *h)
 		extcon_set_state_sync(hdmitx_extcon_hdmi, EXTCON_DISP_HDMI,
 			hdmitx_device.hpd_state);
 		extcon_set_state_sync(hdmitx_extcon_power, EXTCON_DISP_HDMI,
+			hdmitx_device.hpd_state);
+		extcon_set_state_sync(hdmitx_extcon_audio, EXTCON_DISP_HDMI,
 			hdmitx_device.hpd_state);
 
 		pr_info("amhdmitx: late resume module %d\n", __LINE__);
@@ -574,7 +578,10 @@ ssize_t store_attr(struct device *dev,
 
 void setup_attr(const char *buf)
 {
-	store_attr(NULL, NULL, buf, 0);
+	char attr[16] = {0};
+
+	memcpy(attr, buf, sizeof(attr));
+	memcpy(hdmitx_device.fmt_attr, attr, sizeof(hdmitx_device.fmt_attr));
 }
 EXPORT_SYMBOL(setup_attr);
 
@@ -3085,8 +3092,7 @@ static void hdmitx_hpd_plugin_handler(struct work_struct *work)
 	pr_info(SYS "plugin\n");
 	hdev->hdmitx_event &= ~HDMI_TX_HPD_PLUGIN;
 	/* start reading E-EDID */
-	if (hdev->repeater_tx)
-		rx_repeat_hpd_state(1);
+	rx_repeat_hpd_state(1);
 	hdmitx_get_edid(hdev);
 	hdmi_physcial_size_update(hdev);
 	if (hdev->RXCap.IEEEOUI != 0x000c03)
@@ -3175,6 +3181,7 @@ static void hdmitx_hpd_plugout_handler(struct work_struct *work)
 	hdev->hdmitx_event &= ~HDMI_TX_HPD_PLUGOUT;
 	hdev->HWOp.CntlMisc(hdev, MISC_ESM_RESET, 0);
 	clear_hdr_info(hdev);
+	rx_edid_physical_addr(0, 0, 0, 0);
 	hdmitx_edid_clear(hdev);
 	hdmi_physcial_size_update(hdev);
 	hdmitx_edid_ram_buffer_clear(hdev);

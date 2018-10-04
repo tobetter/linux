@@ -186,7 +186,9 @@ static void push_ip(struct page_trace *base, struct page_trace *ip)
 		base[i] = base[i - 1];
 
 	/* debug check */
+#if DEBUG_PAGE_TRACE
 	check_trace_valid(base);
+#endif
 	end = (((unsigned long)trace_buffer) + ptrace_size);
 	WARN_ON((unsigned long)(base + trace_step - 1) >= end);
 
@@ -379,7 +381,7 @@ static void __init find_static_common_symbol(void)
 	for (i = 0; i < COMMON_CALLER_SIZE; i++) {
 		s = &common_func[i];
 		if (!s->name)
-			break;	/* end */
+			break;  /* end */
 		if (s->full_match) {
 			addr = kallsyms_contain_name(s->name, 1, NULL);
 			if (addr)
@@ -555,7 +557,6 @@ unsigned int pack_ip(unsigned long ip, int order, gfp_t flag)
 	}
 
 	trace.ret_ip = (ip - text) >> 2;
-	WARN_ON(trace.ret_ip > IP_RANGE_MASK);
 #ifdef CONFIG_AMLOGIC_CMA
 	if (flag == __GFP_BDEV)
 		trace.migrate_type = MIGRATE_CMA;

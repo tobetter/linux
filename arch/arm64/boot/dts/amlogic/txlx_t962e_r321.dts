@@ -212,6 +212,15 @@
 		};
 	};
 
+	dummy-battery {
+		compatible = "amlogic, dummy-battery";
+		status = "okay";
+	};
+	dummy-charger {
+		compatible = "amlogic, dummy-charger";
+		status = "okay";
+	};
+
 	ethmac: ethernet@0xff3f0000 {
 		compatible = "amlogic, gxbb-eth-dwmac";
 		status = "okay";
@@ -952,6 +961,7 @@
 		pinctrl-2=<&hdmitx_aocecb>;
 		reg = <0x0 0xFF80023c 0x0 0x4
 		       0x0 0xFF800000 0x0 0x400>;
+		reg-names = "ao_exit","ao";
 	};
 
 

@@ -309,6 +309,11 @@ ssize_t efuse_user_attr_store(char *name, const char *buf, size_t count)
 	}
 
 	local_buf = kzalloc(sizeof(char)*(count), GFP_KERNEL);
+	if (!local_buf) {
+		ret = -ENOMEM;
+		pr_err("efuse: failed to allocate memory!\n");
+		return ret;
+	}
 
 	memcpy(local_buf, buf, count);
 
@@ -367,6 +372,12 @@ ssize_t efuse_user_attr_show(char *name, char *buf)
 	}
 
 	local_buf = kzalloc(sizeof(char)*(info.size), GFP_KERNEL);
+	if (!local_buf) {
+		ret = -ENOMEM;
+		pr_err("efuse: failed to allocate memory!\n");
+		return ret;
+	}
+
 	memset(local_buf, 0, info.size);
 
 	pos = ((loff_t)(info.offset)) & 0xffffffff;
@@ -388,6 +399,44 @@ ssize_t efuse_user_attr_show(char *name, char *buf)
 	}
 	len += sprintf(buf + len, "\n");
 	ret = len;
+
+error_exit:
+	kfree(local_buf);
+	return ret;
+}
+
+ssize_t efuse_user_attr_read(char *name, char *buf)
+{
+	char *local_buf;
+	ssize_t ret;
+	struct efusekey_info info;
+	loff_t pos;
+
+	if (efuse_getinfo(name, &info) < 0) {
+		pr_err("%s is not found\n", name);
+		return -EFAULT;
+	}
+
+	local_buf = kzalloc(sizeof(char)*(info.size), GFP_KERNEL);
+	if (!local_buf) {
+		ret = -ENOMEM;
+		pr_err("efuse: failed to allocate memory!\n");
+		return ret;
+	}
+
+	memset(local_buf, 0, info.size);
+
+	pos = ((loff_t)(info.offset)) & 0xffffffff;
+	ret = efuse_read_usr(local_buf, info.size, &pos);
+	if (ret == -1) {
+		pr_err("ERROR: efuse read user data fail!\n");
+		goto error_exit;
+	}
+	if (ret != info.size)
+		pr_err("ERROR: read %zd byte(s) not %d byte(s) data\n",
+			ret, info.size);
+
+	memcpy(buf, local_buf, info.size);
 
 error_exit:
 	kfree(local_buf);
@@ -483,6 +532,43 @@ static ssize_t userdata_write(struct class *cla,
 }
 #endif
 
+static ssize_t amlogic_set_store(struct class *cla,
+	struct class_attribute *attr, const char *buf, size_t count)
+{
+	int i;
+	int ret;
+	char *op = NULL;
+
+	if (count != GXB_EFUSE_PATTERN_SIZE) {
+		pr_err("efuse: bad size, only support size %d!\n",
+			GXB_EFUSE_PATTERN_SIZE);
+		return -EINVAL;
+	}
+
+	op = kzalloc((sizeof(char)*count), GFP_KERNEL);
+	if (!op) {
+		ret = -ENOMEM;
+		pr_err("efuse: failed to allocate memory!\n");
+		return ret;
+	}
+
+	memset(op, 0, count);
+	for (i = 0; i < count; i++)
+		op[i] = buf[i];
+
+	ret = efuse_amlogic_set(op, count);
+	kfree(op);
+
+	if (ret) {
+		pr_err("EFUSE pattern programming fail! ret: %d\n", ret);
+		return -EINVAL;
+	}
+
+	pr_info("EFUSE pattern programming success!\n");
+
+	return count;
+}
+
 static struct class_attribute efuse_class_attrs[] = {
 
 	#ifndef EFUSE_READ_ONLY
@@ -501,6 +587,8 @@ static struct class_attribute efuse_class_attrs[] = {
 	__ATTR(mac_wifi, 0700, show_mac_wifi, store_mac_wifi),
 
 	__ATTR(usid, 0700, show_usid, store_usid),
+
+	__ATTR_WO(amlogic_set),
 
 	__ATTR_NULL
 
@@ -522,6 +610,7 @@ int get_efusekey_info(struct device_node *np)
 	char *propname;
 	const char *uname;
 	int ret;
+	int size;
 
 	phandle = of_get_property(np, "key", NULL);
 	if (!phandle) {
@@ -570,9 +659,9 @@ int get_efusekey_info(struct device_node *np)
 			pr_err("please config keyname item\n");
 			goto err;
 		}
+		size = sizeof(efusekey_infos[index].keyname) - 1;
 		strncpy(efusekey_infos[index].keyname, uname,
-			strlen(uname) > sizeof(efusekey_infos[index].keyname) ?
-			sizeof(efusekey_infos[index].keyname):strlen(uname));
+			strlen(uname) > size ? size:strlen(uname));
 		ret = of_property_read_u32(np_key, "offset",
 			&(efusekey_infos[index].offset));
 		if (ret) {

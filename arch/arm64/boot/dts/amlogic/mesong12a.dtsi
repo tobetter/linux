@@ -1104,7 +1104,9 @@
 		pinctrl-1=<&eecec_b>;
 		pinctrl-2=<&eecec_b>;
 		reg = <0x0 0xFF80023c 0x0 0x4
-		       0x0 0xFF800000 0x0 0x400>;
+		       0x0 0xFF800000 0x0 0x400
+		       0x0 0xFF634400 0x0 0x26>;
+		reg-names = "ao_exit","ao","periphs";
 	};
 
 	/*if you want to use vdin just modify status to "ok"*/
@@ -1266,6 +1268,12 @@
 			"mailbox_2";
 	};
 
+	vcodec_dec {
+		compatible = "amlogic, vcodec-dec";
+		dev_name = "aml-vcodec-dec";
+		status = "okay";
+	};
+
 	amvenc_avc{
 		compatible = "amlogic, amvenc_avc";
 		dev_name = "amvenc_avc";
@@ -1406,7 +1414,7 @@
 		status = "disabled";
 		compatible = "amlogic, meson-mmc-g12a";
 		reg = <0x0 0xffe05000 0x0 0x800>;
-		interrupts = <0 190 1>;
+		interrupts = <0 190 4>;
 
 		pinctrl-names = "sd_all_pins",
 			"sd_clk_cmd_pins",
@@ -2024,10 +2032,14 @@
 				   "GPIOC_1",
 				   "GPIOC_2",
 				   "GPIOC_3",
-				   "GPIOC_4",
 				   "GPIOC_5";
 			function = "gpio_periphs";
 			output-high;
+		};
+		mux1 {
+			groups = "GPIOC_4";
+			function = "gpio_periphs";
+			output-low;
 		};
 	};
 
@@ -2131,7 +2143,12 @@
 			groups = "GPIOV_0";
 			function = "gpio_periphs";
 			bias-pull-up;
-			output-high;
+			output-low;
+		};
+		mux1 {
+			groups = "GPIOX_4";
+			function = "gpio_periphs";
+			output-low;
 		};
 	};
 

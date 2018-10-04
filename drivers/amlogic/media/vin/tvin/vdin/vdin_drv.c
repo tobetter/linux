@@ -2307,6 +2307,15 @@ static void vdin_delete_device(int minor)
 	dev_t devno = MKDEV(MAJOR(vdin_devno), minor);
 	device_destroy(vdin_clsp, devno);
 }
+
+struct vdin_dev_s *vdin_get_dev(unsigned int index)
+{
+	if (index)
+		return vdin_devp[1];
+	else
+		return vdin_devp[0];
+}
+
 static int vdin_drv_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2555,6 +2564,7 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	vdevp->canvas_config_mode = canvas_config_mode;
 	INIT_DELAYED_WORK(&vdevp->dv.dv_dwork, vdin_dv_dwork);
 
+	vdin_debugfs_init(vdevp);/*2018-07-18 add debugfs*/
 	pr_info("%s: driver initialized ok\n", __func__);
 	return 0;
 
@@ -2586,6 +2596,7 @@ static int vdin_drv_remove(struct platform_device *pdev)
 #endif
 	mutex_destroy(&vdevp->fe_lock);
 
+	vdin_debugfs_exit(vdevp);/*2018-07-18 add debugfs*/
 	vf_pool_free(vdevp->vfp);
 	vdin_remove_device_files(vdevp->dev);
 	vdin_delete_device(vdevp->index);

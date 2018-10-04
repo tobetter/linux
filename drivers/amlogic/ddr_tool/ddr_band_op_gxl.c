@@ -31,6 +31,9 @@
 #include <linux/io.h>
 #include <linux/slab.h>
 
+#undef pr_fmt
+#define pr_fmt(fmt) "ddr_tool: " fmt
+
 static void gxl_dmc_port_config(struct ddr_bandwidth *db, int channel, int port)
 {
 	unsigned int val;
@@ -42,12 +45,15 @@ static void gxl_dmc_port_config(struct ddr_bandwidth *db, int channel, int port)
 		subport = port - PORT_MAJOR;
 
 	val = readl(db->ddr_reg + port_reg[channel]);
-	if (subport < 0) {
+	if (port < 16) {
 		val &= ~(0xffff << 16);
 		val |= ((1 << (16 + port)) | 0xffff);
-	} else {
+	} else if (subport > 0) {
 		val &= ~(0xffffffff);
 		val |= (1 << 23) | (1 << subport);
+	} else {
+		pr_err("port config fail, %s: %d\n", __func__, __LINE__);
+		return;
 	}
 	writel(val, db->ddr_reg + port_reg[channel]);
 }
@@ -63,7 +69,8 @@ static unsigned long gxl_get_dmc_freq_quick(struct ddr_bandwidth *db)
 	m    = (val >>  4) & 0x1ff;
 	n    = (val >> 16) & 0x1f;
 	od1  = (val >>  0) & 0x03;
-	freq = (DEFAULT_XTAL_FREQ * m / (n * (1 + od))) >> od1;
+	freq = DEFAULT_XTAL_FREQ / 1000;	/* avoid overflow */
+	freq = ((freq * m / (n * (1 + od))) >> od1) * 1000;
 	return freq;
 }
 
