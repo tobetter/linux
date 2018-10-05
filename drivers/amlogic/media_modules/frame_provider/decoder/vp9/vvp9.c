@@ -1218,9 +1218,9 @@ static int setup_frame_size(
 
 	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
 #ifdef VP9_10B_HED_FB
-  WRITE_VREG(HEVC_ASSIST_PIC_SIZE_FB_READ, (height << 16) | width);
+	WRITE_VREG(HEVC_ASSIST_PIC_SIZE_FB_READ, (height << 16) | width);
 #endif
-	if (pbi->mmu_enable) {
+	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		ret = vp9_alloc_mmu(pbi,
 			cm->new_fb_idx,
 			params->p.width,
@@ -1337,7 +1337,7 @@ static int setup_frame_size_with_refs(
 	params->p.height = height;
 
 	WRITE_VREG(HEVC_PARSER_PICTURE_SIZE, (height << 16) | width);
-	if (pbi->mmu_enable) {
+	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		/*if(cm->prev_fb_idx >= 0) release_unused_4k(cm->prev_fb_idx);
 		 *cm->prev_fb_idx = cm->new_fb_idx;
 		 */
@@ -1591,6 +1591,8 @@ int vp9_alloc_mmu(
 		pr_err("error no mmu box!\n");
 		return -1;
 	}
+	if (pbi->double_write_mode & 0x10)
+		return 0;
 	if (bit_depth >= VPX_BITS_12) {
 		pbi->fatal_error = DECODER_FATAL_ERROR_SIZE_OVERFLOW;
 		pr_err("fatal_error, un support bit depth 12!\n\n");
@@ -4684,7 +4686,7 @@ static void init_pic_list(struct VP9Decoder_s *pbi)
 	struct PIC_BUFFER_CONFIG_s *pic_config;
 	u32 header_size;
 
-	if (pbi->mmu_enable) {
+	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		header_size = vvp9_mmu_compress_header_size();
 		/*alloc VP9 compress header first*/
 		for (i = 0; i < pbi->used_buf_num; i++) {
@@ -4747,11 +4749,8 @@ static void init_pic_list_hw(struct VP9Decoder_s *pbi)
 		if (pic_config->index < 0)
 			break;
 
-		if (pbi->mmu_enable) {
-			/*WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
-			 *	pic_config->header_adr
-			 *	| (pic_config->mc_canvas_y << 8)|0x1);
-			 */
+		if (pbi->mmu_enable && ((pic_config->double_write_mode & 0x10) == 0)) {
+
 			WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 				pic_config->header_adr >> 5);
 		} else {
@@ -4767,14 +4766,10 @@ static void init_pic_list_hw(struct VP9Decoder_s *pbi)
 		 *	pic_config->mc_u_v_adr
 		 *	| (pic_config->mc_canvas_u_v << 8)| 0x1);
 		 */
-		WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
+			WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 				pic_config->header_adr >> 5);
 #else
 		if (pic_config->double_write_mode & 0x10) {
-			if (pbi->mmu_enable)
-				WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
-					pic_config->header_adr>>5);
-			else
 				WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_DATA,
 				pic_config->dw_u_v_adr >> 5);
 		}
@@ -5098,8 +5093,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 		data32 &= (~0x3); /*[1]:dw_disable [0]:cm_disable*/
 		if (get_double_write_mode(pbi) == 0)
 			data32 |= 0x2; /*disable double write*/
-	else if (!pbi->mmu_enable &&
-		get_double_write_mode(pbi) & 0x10)
+	else if (get_double_write_mode(pbi) & 0x10)
 		data32 |= 0x1; /*disable cm*/
 	} else { /* >= G12A dw write control */
 		unsigned int data;
@@ -5107,7 +5101,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 		data &= (~0x300); /*[8]:first write enable (compress)  [9]:double write enable (uncompress)*/
 		if (get_double_write_mode(pbi) == 0)
 			data |= (0x1 << 8); /*enable first write*/
-		else if (get_double_write_mode(pbi) == 0x10)
+		else if (get_double_write_mode(pbi) & 0x10)
 			data |= (0x1 << 9); /*double write only*/
 		else
 			data |= ((0x1 << 8)  |(0x1 << 9));
@@ -6334,6 +6328,7 @@ static void set_canvas(struct VP9Decoder_s *pbi,
 		canvas_config_ex(pic_config->uv_canvas_index,
 			pic_config->dw_u_v_adr,	canvas_w, canvas_h,
 			CANVAS_ADDR_NOWRAP, blkmode, 0x7);
+
 #ifdef MULTI_INSTANCE_SUPPORT
 		pic_config->canvas_config[0].phy_addr =
 				pic_config->dw_y_adr;
@@ -6948,6 +6943,8 @@ static void debug_buffer_mgr_more(struct VP9Decoder_s *pbi)
 static void vp9_recycle_mmu_buf_tail(struct VP9Decoder_s *pbi)
 {
 	struct VP9_Common_s *const cm = &pbi->common;
+	if (pbi->double_write_mode & 0x10)
+		return;
 	if (cm->cur_fb_idx_mmu != INVALID_IDX) {
 		if (pbi->used_4k_num == -1)
 			pbi->used_4k_num =
@@ -6964,6 +6961,8 @@ static void vp9_recycle_mmu_buf_tail(struct VP9Decoder_s *pbi)
 static void vp9_recycle_mmu_buf(struct VP9Decoder_s *pbi)
 {
 	struct VP9_Common_s *const cm = &pbi->common;
+	if (pbi->double_write_mode & 0x10)
+		return;
 	if (cm->cur_fb_idx_mmu != INVALID_IDX) {
 		decoder_mmu_box_free_idx(pbi->mmu_box,
 			cm->cur_fb_idx_mmu);
@@ -7006,7 +7005,7 @@ int continue_decoding(struct VP9Decoder_s *pbi)
 			pbi->slice_idx++;
 	} else {
 		union param_u *params = &vp9_param;
-		if (pbi->mmu_enable) {
+		if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 			ret = vp9_alloc_mmu(pbi,
 				cm->new_fb_idx,
 				params->p.width,
@@ -7133,7 +7132,7 @@ int continue_decoding(struct VP9Decoder_s *pbi)
 		WRITE_VREG(HEVC_DEC_STATUS_REG, VP9_10B_DECODE_SLICE);
 	}
 	pbi->process_state = PROC_STATE_DECODESLICE;
-	if (pbi->mmu_enable) {
+	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		if (pbi->last_put_idx < pbi->used_buf_num) {
 			struct RefCntBuffer_s *frame_bufs =
 				cm->buffer_pool->frame_bufs;
@@ -8225,7 +8224,7 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 		(pbi->max_pic_w * pbi->max_pic_h <= 1280*736)) {
 		buf_size = 4;
 	}
-	if (pbi->mmu_enable) {
+	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		pbi->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 			pbi->index, FRAME_BUFFERS,
 			buf_size * SZ_1M,
@@ -8306,7 +8305,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 #endif
 	pbi->double_write_mode = double_write_mode;
-	pbi->mmu_enable = !(pbi->double_write_mode == 0x10);
+	pbi->mmu_enable = 1;
 	if (amvdec_vp9_mmu_init(pbi) < 0) {
 		vfree(pbi);
 		mutex_unlock(&vvp9_mutex);
@@ -9355,7 +9354,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		pbi->vvp9_amstream_dec_info.rate = 30;*/
 		pbi->double_write_mode = double_write_mode;
 	}
-	pbi->mmu_enable = !(pbi->double_write_mode == 0x10);
+	pbi->mmu_enable = 1;
 	video_signal_type = pbi->video_signal_type;
 #if 0
 	pbi->buf_start = pdata->mem_start;
