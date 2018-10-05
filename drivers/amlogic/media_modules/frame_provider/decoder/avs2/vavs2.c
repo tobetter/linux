@@ -6546,13 +6546,12 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	pdata->threaded_irq_handler = avs2_threaded_irq_cb;
 	pdata->dump_state = avs2_dump_state;
 
-
-
 	memcpy(&BUF[0], &dec->m_BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 	memset(dec, 0, sizeof(struct AVS2Decoder_s));
 	memcpy(&dec->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	dec->index = pdev->id;
+	dec->m_ins_flag = 1;
 
 	if (pdata->use_vfm_path)
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
@@ -6653,8 +6652,6 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	dec->buf_start = dec->cma_alloc_addr;
 	dec->buf_size = work_buf_size;
 #endif
-	dec->m_ins_flag = 1;
-
 	dec->init_flag = 0;
 	dec->fatal_error = 0;
 	dec->show_frame_num = 0;
