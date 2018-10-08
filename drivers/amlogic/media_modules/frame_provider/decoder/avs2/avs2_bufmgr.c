@@ -481,6 +481,14 @@ void Get_I_Picture_Header(struct avs2_decoder *avs2_dec)
 			hd->curr_RPS.num_to_remove =
 				get_param(rpm_param->p.num_to_remove_cur,
 				"num of removed picture");
+#ifdef SANITY_CHECK
+			if (hd->curr_RPS.num_to_remove > 8)	{
+				hd->curr_RPS.num_to_remove = 8;
+				pr_info("Warning, %s: num_to_remove %d beyond range, force to 8\n",
+					__func__, hd->curr_RPS.num_to_remove);
+			}
+#endif
+
 			for (j = 0; j < hd->curr_RPS.num_to_remove; j++) {
 				hd->curr_RPS.remove_pic[j] =
 					get_param(
@@ -663,6 +671,13 @@ void Get_PB_Picture_Header(struct avs2_decoder *avs2_dec)
 				get_param(
 				rpm_param->p.num_to_remove_cur,
 				"num of removed picture");
+#ifdef SANITY_CHECK
+			if (hd->curr_RPS.num_to_remove > 8)	{
+				hd->curr_RPS.num_to_remove = 8;
+				pr_info("Warning, %s: num_to_remove %d beyond range, force to 8\n",
+					__func__, hd->curr_RPS.num_to_remove);
+			}
+#endif
 			for (j = 0;
 				j < hd->curr_RPS.num_to_remove; j++) {
 				hd->curr_RPS.remove_pic[j] =
@@ -1065,12 +1080,14 @@ void prepare_RefInfo(struct avs2_decoder *avs2_dec)
 		(avs2_dec->fref[0]->imgtr_fwRefDistance <= img->tr
 		|| avs2_dec->fref[1]->imgtr_fwRefDistance >= img->tr)) {
 
-		pr_info("wrong reference configuration for B frame");
+		pr_info("wrong reference configuration for B frame\n");
 		pr_info(
 			"fref0 imgtr_fwRefDistance %d, fref1 imgtr_fwRefDistance %d, img->tr %d\n",
 				avs2_dec->fref[0]->imgtr_fwRefDistance,
 				avs2_dec->fref[1]->imgtr_fwRefDistance,
 				img->tr);
+		hc->f_rec->error_mark = 1;
+		avs2_dec->bufmgr_error_flag = 1;
 		return; /* exit(-1);*/
 		/*******************************************/
 	}
@@ -1111,14 +1128,18 @@ void prepare_RefInfo(struct avs2_decoder *avs2_dec)
 				&& avs2_dec->fref[i]->bg_flag == 0
 #ifndef NO_DISPLAY
 				&& avs2_dec->fref[i]->vf_ref == 0
-				&& avs2_dec->fref[i]->to_prepare_disp ==0
+				&& avs2_dec->fref[i]->to_prepare_disp == 0
 #endif
 				) {
 			break;
 		}
 	}
-	if (i == avs2_dec->ref_maxbuffer)
+	if (i == avs2_dec->ref_maxbuffer) {
+		pr_info(
+			"%s, warning, no enough buf\n",
+			__func__);
 		i--;
+	}
 
 	hc->f_rec        = avs2_dec->fref[i];
 	hc->currentFrame = hc->f_rec->ref;
@@ -1128,11 +1149,17 @@ void prepare_RefInfo(struct avs2_decoder *avs2_dec)
 	hc->f_rec->temporal_id = hd->cur_layer;
 #endif
 	hc->f_rec->is_output = 1;
+#ifdef AML
+	hc->f_rec->error_mark = 0;
+	hc->f_rec->decoded_lcu = 0;
+	hc->f_rec->slice_type = img->type;
+#endif
 	hc->f_rec->refered_by_others = hd->curr_RPS.referd_by_others;
 	if (is_avs2_print_bufmgr_detail())
 		pr_info(
-			"%s, set f_rec (cur_pic) <= fref[%d] img->tr %d coding_order %d\n",
-			__func__, i, img->tr, img->coding_order);
+			"%s, set f_rec (cur_pic) <= fref[%d] img->tr %d coding_order %d img_type %d\n",
+			__func__, i, img->tr, img->coding_order,
+			img->type);
 
 	if (img->type != B_IMG) {
 		for (j = 0;
@@ -1181,24 +1208,24 @@ void prepare_RefInfo(struct avs2_decoder *avs2_dec)
 #if 1
 	/*rain*/
 	if (is_avs2_print_bufmgr_detail()) {
-	for (ii = 0; ii < avs2_dec->ref_maxbuffer; ii++) {
-		pr_info(
+		for (ii = 0; ii < avs2_dec->ref_maxbuffer; ii++) {
+			pr_info(
 			"fref[%d]: index %d imgcoi_ref %d imgtr_fwRefDistance %d refered %d, is_out %d, bg %d, vf_ref %d ref_pos(%d,%d,%d,%d,%d,%d,%d)\n",
 			ii, avs2_dec->fref[ii]->index,
 			avs2_dec->fref[ii]->imgcoi_ref,
 			avs2_dec->fref[ii]->imgtr_fwRefDistance,
-            avs2_dec->fref[ii]->refered_by_others,
-            avs2_dec->fref[ii]->is_output,
-            avs2_dec->fref[ii]->bg_flag,
-            avs2_dec->fref[ii]->vf_ref,
-            avs2_dec->fref[ii]->ref_poc[0],
-            avs2_dec->fref[ii]->ref_poc[1],
-            avs2_dec->fref[ii]->ref_poc[2],
-            avs2_dec->fref[ii]->ref_poc[3],
-            avs2_dec->fref[ii]->ref_poc[4],
-            avs2_dec->fref[ii]->ref_poc[5],
-            avs2_dec->fref[ii]->ref_poc[6]
-			);
+			avs2_dec->fref[ii]->refered_by_others,
+			avs2_dec->fref[ii]->is_output,
+			avs2_dec->fref[ii]->bg_flag,
+			avs2_dec->fref[ii]->vf_ref,
+			avs2_dec->fref[ii]->ref_poc[0],
+			avs2_dec->fref[ii]->ref_poc[1],
+			avs2_dec->fref[ii]->ref_poc[2],
+			avs2_dec->fref[ii]->ref_poc[3],
+			avs2_dec->fref[ii]->ref_poc[4],
+			avs2_dec->fref[ii]->ref_poc[5],
+			avs2_dec->fref[ii]->ref_poc[6]
+		);
 	}
 	}
 #endif
@@ -1270,7 +1297,7 @@ void flushDPB(struct avs2_decoder *avs2_dec)
 	for (j = 0; j < search_times; j++) {
 		pos = -1;
 		tmp_min = (1 << 20);
-		//search for min poi picture to display
+		/*search for min poi picture to display*/
 		for (i = 0; i < avs2_dec->outprint.buffer_num; i++) {
 			if (avs2_dec->outprint.stdoutdata[i].tr < tmp_min) {
 				pos = i;
@@ -1281,20 +1308,23 @@ void flushDPB(struct avs2_decoder *avs2_dec)
 		if (pos != -1) {
 			hd->last_output = avs2_dec->outprint.stdoutdata[pos].tr;
 			report_frame(avs2_dec, &avs2_dec->outprint, pos);
-			if (avs2_dec->outprint.stdoutdata[pos].typeb == BACKGROUND_IMG && avs2_dec->outprint.stdoutdata[pos].background_picture_output_flag == 0) {
+			if (avs2_dec->outprint.stdoutdata[pos].typeb
+				== BACKGROUND_IMG &&
+			avs2_dec->outprint.stdoutdata[pos].
+			background_picture_output_flag
+			== 0) {
 				/*write_GB_frame(hd->p_out_background);*/
-			}
-			else {
-				write_frame(avs2_dec, avs2_dec->outprint.stdoutdata[pos].tr);
+			} else {
+				write_frame(avs2_dec,
+					avs2_dec->outprint.stdoutdata[pos].tr);
 			}
 
 			delete_trbuffer(&avs2_dec->outprint, pos);
 		}
 	}
 
-	// clear dpb info
-	for (j = 0; j < REF_MAXBUFFER; j++)
-	{
+	/*clear dpb info*/
+	for (j = 0; j < REF_MAXBUFFER; j++) {
 		avs2_dec->fref[j]->imgtr_fwRefDistance = -256;
 		avs2_dec->fref[j]->imgcoi_ref = -257;
 		avs2_dec->fref[j]->temporal_id = -1;
@@ -1310,19 +1340,19 @@ void cleanRefMVBufRef(int pos)
 {
 #if 0
 	int k, x, y;
-	//re-init mvbuf
+	/*re-init mvbuf*/
 	for (k = 0; k < 2; k++) {
 		for (y = 0; y < img->height / MIN_BLOCK_SIZE; y++) {
-			for (x = 0; x < img->width / MIN_BLOCK_SIZE; x++) {
+			for (x = 0; x < img->width / MIN_BLOCK_SIZE; x++)
 				fref[pos]->mvbuf[y][x][k] = 0;
-			}
+
 		}
 	}
-	//re-init refbuf
+	/*re-init refbuf*/
 	for (y = 0; y < img->height / MIN_BLOCK_SIZE; y++) {
-		for (x = 0; x < img->width / MIN_BLOCK_SIZE ; x++) {
+		for (x = 0; x < img->width / MIN_BLOCK_SIZE ; x++)
 			fref[pos]->refbuf[y][x] = -1;
-		}
+
 	}
 #endif
 }
@@ -1510,6 +1540,7 @@ void write_frame(struct avs2_decoder *avs2_dec, int32_t pos)
 
 	for (j = 0; j < avs2_dec->ref_maxbuffer; j++) {
 		if (avs2_dec->fref[j]->imgtr_fwRefDistance == pos) {
+			avs2_dec->fref[j]->imgtr_fwRefDistance_bak = pos;
 			avs2_dec->fref[j]->is_output = -1;
 			avs2_dec->fref[j]->to_prepare_disp =
 				avs2_dec->to_prepare_disp_count++;
@@ -1523,7 +1554,8 @@ void write_frame(struct avs2_decoder *avs2_dec, int32_t pos)
 				avs2_dec->fref[j]->temporal_id = -1;
 #endif
 				if (is_avs2_print_bufmgr_detail())
-					pr_info("%s, fref index %d\n", __func__, j);
+					pr_info("%s, fref index %d\n",
+						 __func__, j);
 			}
 			break;
 		}
@@ -1689,6 +1721,7 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 #endif
 			img->number = 0;
 			img->PrevPicDistanceLsb = 0;
+			avs2_dec->init_hw_flag = 0;
 		}
 #endif
 
@@ -1710,6 +1743,7 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 #endif
 			img->number = 0;
 			img->PrevPicDistanceLsb = 0;
+			avs2_dec->init_hw_flag = 0;
 		}
 #endif
 		img->seq_header_indicate = 1;
@@ -1772,6 +1806,8 @@ void avs2_prepare_header(struct avs2_decoder *avs2_dec, int32_t start_code)
 
 		break;
 	case SEQUENCE_END_CODE:
+		if (is_avs2_print_bufmgr_detail())
+			pr_info("SEQUENCE_END_CODE\n");
 #ifdef TO_CHECK
 #if SEQ_CHANGE_CHECKER
 		if (seq_checker_buf != NULL) {
@@ -1981,6 +2017,16 @@ int avs2_post_process(struct avs2_decoder *avs2_dec)
 	/* delete the frame that will never be used*/
 	{
 		int32_t i, j;
+		if (is_avs2_print_bufmgr_detail()) {
+			pr_info(
+				"%s, coding_order %d to remove %d buf: ",
+				__func__,
+				img->coding_order,
+				hd->curr_RPS.num_to_remove);
+			for (i = 0; i < hd->curr_RPS.num_to_remove; i++)
+				pr_info("%d ", hd->curr_RPS.remove_pic[i]);
+			pr_info("\n");
+		}
 		for (i = 0; i < hd->curr_RPS.num_to_remove; i++) {
 			for (j = 0; j < avs2_dec->ref_maxbuffer; j++) {
 
