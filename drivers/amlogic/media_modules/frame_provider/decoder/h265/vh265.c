@@ -6178,8 +6178,9 @@ static int parse_sei(struct hevc_state_s *hevc,
 					hevc->luminance[1]);*/
 				break;
 			case SEI_ContentLightLevel:
-				hevc_print(hevc, 0,
-					"sei type: max content light level %d, size %d\n",
+				if (get_dbg_flag(hevc) & H265_DEBUG_PRINT_SEI)
+					hevc_print(hevc, 0,
+						"sei type: max content light level %d, size %d\n",
 					payload_type, payload_size);
 				/* content_light_level */
 				p_sei = p;
@@ -6191,8 +6192,9 @@ static int parse_sei(struct hevc_state_s *hevc,
 				p_sei += 2;
 				hevc->sei_present_flag |=
 					SEI_CONTENT_LIGHT_LEVEL_MASK;
-				hevc_print(hevc, 0,
-					"\tmax cll = %04x, max_pa_cll = %04x\n",
+				if (get_dbg_flag(hevc) & H265_DEBUG_PRINT_SEI)
+					hevc_print(hevc, 0,
+						"\tmax cll = %04x, max_pa_cll = %04x\n",
 					hevc->content_light_level[0],
 					hevc->content_light_level[1]);
 				break;
