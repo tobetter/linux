@@ -1849,10 +1849,9 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	for (i = 0; i<DSC_DEV_COUNT; i++)
 		advb->dsc[i].id = -1;
 
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A) {
-		for (i = 0; i < ASYNCFIFO_COUNT; i++)
-			advb->asyncfifo[i].id = -1;
-	}
+	for (i = 0; i < ASYNCFIFO_COUNT; i++)
+		advb->asyncfifo[i].id = -1;
+
 	advb->dvb_adapter.priv = advb;
 	dev_set_drvdata(advb->dev, advb);
 
@@ -1867,15 +1866,14 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		if (ret < 0)
 			goto error;
 	}
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
-	{
-		/*Init the async fifos */
-		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
-			ret = aml_dvb_asyncfifo_init(advb, &advb->asyncfifo[i], i);
-			if (ret < 0)
-				goto error;
-		}
+
+	/*Init the async fifos */
+	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+		ret = aml_dvb_asyncfifo_init(advb, &advb->asyncfifo[i], i);
+		if (ret < 0)
+			goto error;
 	}
+
 	aml_regist_dmx_class();
 
 	if (class_register(&aml_stb_class) < 0) {
@@ -2147,13 +2145,11 @@ error_fe:
 	}
 	return 0;
 error:
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
-	{
-		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
-			if (advb->asyncfifo[i].id != -1)
-				aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
-		}
+	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+		if (advb->asyncfifo[i].id != -1)
+			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
 	}
+
 	for (i = 0; i < DMX_DEV_COUNT; i++) {
 		if (advb->dmx[i].id != -1)
 			aml_dvb_dmx_release(advb, &advb->dmx[i]);
@@ -2207,12 +2203,10 @@ static int aml_dvb_remove(struct platform_device *pdev)
 
 	aml_unregist_dmx_class();
 	class_unregister(&aml_stb_class);
-	if (get_cpu_type() < MESON_CPU_MAJOR_ID_G12A)
-	{
-		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
-			if (advb->asyncfifo[i].id != -1)
-				aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
-		}
+
+	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+		if (advb->asyncfifo[i].id != -1)
+			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
 	}
 
 	for (i = 0; i < DMX_DEV_COUNT; i++) {
