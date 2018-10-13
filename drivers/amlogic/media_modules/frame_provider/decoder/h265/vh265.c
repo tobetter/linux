@@ -1538,6 +1538,7 @@ struct hevc_state_s {
 	int double_write_mode;
 	int dynamic_buf_num_margin;
 	int start_action;
+	int save_buffer_mode;
 #endif
 	u32 i_only;
 	struct list_head log_list;
@@ -2452,6 +2453,11 @@ static int get_work_pic_num(struct hevc_state_s *hevc)
 #endif
 	} else
 		used_buf_num = max_buf_num;
+
+	if (hevc->save_buffer_mode)
+			hevc_print(hevc, 0,
+				"save buf _mode : dynamic_buf_num_margin %d ----> %d \n",
+				dynamic_buf_num_margin,  hevc->dynamic_buf_num_margin);
 
 	if (used_buf_num > MAX_BUF_NUM)
 		used_buf_num = MAX_BUF_NUM;
@@ -10579,6 +10585,12 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		else
 			hevc->double_write_mode = double_write_mode;
 
+		if (get_config_int(pdata->config, "save_buffer_mode",
+				&config_val) == 0)
+			hevc->save_buffer_mode = config_val;
+		else
+			hevc->save_buffer_mode = 0;
+
 		/*use ptr config for max_pic_w, etc*/
 		if (get_config_int(pdata->config, "hevc_buf_width",
 				&config_val) == 0) {
@@ -10596,8 +10608,10 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		hevc->vh265_amstream_dec_info.rate = 30;
 		hevc->double_write_mode = double_write_mode;
 	}
-
-	hevc->dynamic_buf_num_margin = dynamic_buf_num_margin;
+	if (hevc->save_buffer_mode && dynamic_buf_num_margin > 2)
+		hevc->dynamic_buf_num_margin = dynamic_buf_num_margin -2;
+	else
+		hevc->dynamic_buf_num_margin = dynamic_buf_num_margin;
 
 	if (mmu_enable_force == 0) {
 		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_GXL
