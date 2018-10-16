@@ -8243,6 +8243,8 @@ pic_done:
 							- ii];
 					}
 				}
+				if (hevc->param.p.sps_num_reorder_pics_0 == 0)
+					hevc->param.p.sps_num_reorder_pics_0 = 7;
 #ifdef SEND_LMEM_WITH_RPM
 				dma_sync_single_for_cpu(
 					amports_get_dma_device(),
@@ -8388,8 +8390,7 @@ pic_done:
 		hevc->lcu_size_log2 = log2i(hevc->lcu_size);
 		if (hevc->pic_w == 0 || hevc->pic_h == 0
 						|| hevc->lcu_size == 0
-						|| OVER_SIZE(hevc->pic_w, hevc->pic_h)
-						|| (hevc->param.p.sps_num_reorder_pics_0 == 0)) {
+						|| OVER_SIZE(hevc->pic_w, hevc->pic_h)) {
 			/* skip search next start code */
 			WRITE_VREG(HEVC_WAIT_FLAG, READ_VREG(HEVC_WAIT_FLAG)
 						& (~0x2));
