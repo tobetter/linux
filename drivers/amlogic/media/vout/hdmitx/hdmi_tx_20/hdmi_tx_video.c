@@ -822,14 +822,27 @@ int hdmitx_set_display(struct hdmitx_dev *hdev, enum hdmi_vic VideoCode)
 			 * TMDS_MODE[hdmi_config]
 			 * 0: DVI Mode	   1: HDMI Mode
 			 */
-			if (is_dvi_device(&hdev->RXCap)) {
-				pr_info(VID "Sink is DVI device\n");
-				hdev->HWOp.CntlConfig(hdev,
-					CONF_HDMI_DVI_MODE, DVI_MODE);
-			} else {
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+			if (odroid_voutmode() == VOUTMODE_HDMI) {
 				pr_info(VID "Sink is HDMI device\n");
 				hdev->HWOp.CntlConfig(hdev,
 					CONF_HDMI_DVI_MODE, HDMI_MODE);
+			} else if (odroid_voutmode() == VOUTMODE_DVI) {
+				pr_info(VID "Sink is DVI device\n");
+				hdev->HWOp.CntlConfig(hdev,
+					CONF_HDMI_DVI_MODE, DVI_MODE);
+			} else
+#endif
+			{
+				if (is_dvi_device(&hdev->RXCap)) {
+					pr_info(VID "Sink is DVI device\n");
+					hdev->HWOp.CntlConfig(hdev,
+						CONF_HDMI_DVI_MODE, DVI_MODE);
+				} else {
+					pr_info(VID "Sink is HDMI device\n");
+					hdev->HWOp.CntlConfig(hdev,
+						CONF_HDMI_DVI_MODE, HDMI_MODE);
+				}
 			}
 			hdmi_tx_construct_avi_packet(param, (char *)AVI_DB);
 

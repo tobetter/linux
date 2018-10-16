@@ -360,4 +360,12 @@ struct hdmitx_info {
 	/* ------------------------------------------------------- */
 };
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+#define VOUTMODE_NOINIT		0x00
+#define VOUTMODE_HDMI		0x01
+#define VOUTMODE_DVI		0x02
+
+int odroid_voutmode(void);
+#endif
+
 #endif  /* _HDMI_RX_GLOBAL_H */
