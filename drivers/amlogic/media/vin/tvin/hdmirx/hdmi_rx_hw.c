@@ -1865,7 +1865,9 @@ void rx_aud_pll_ctl(bool en)
 		/*External_Mute(0);*/
 	} else{
 		/* disable pll, into reset mode */
+#ifdef CONFIG_AMLOGIC_AMAUDIO2
 		External_Mute(1);
+#endif
 		wr_reg_hhi(HHI_AUD_PLL_CNTL, 0x20000000);
 	}
 }
