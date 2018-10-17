@@ -4431,6 +4431,11 @@ CONFIG_MALI_PLATFORM_NAME="devicetree"
 CONFIG_MALI_KUTF=m
 
 #
+# Gator module for ARM streamline
+#
+# CONFIG_GATOR is not set
+
+#
 # Firmware Drivers
 #
 CONFIG_ARM_PSCI_FW=y
