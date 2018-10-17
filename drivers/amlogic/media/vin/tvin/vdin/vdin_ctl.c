@@ -1743,7 +1743,13 @@ static inline void vdin_set_hist_mux(struct vdin_dev_s *devp)
 	/* use 11: form matrix1 din */
 	wr_bits(devp->addr_offset, VDIN_HIST_CTRL, 3,
 			HIST_HIST_DIN_SEL_BIT, HIST_HIST_DIN_SEL_WID);
+
+	/*for project get vdin1 hist*/
+	//if (devp->index == 1)
+	//	wr_bits(devp->addr_offset, VDIN_WR_CTRL2, 1, 8, 1);
 }
+
+
 /* urgent ctr config */
 /*if vdin fifo over up_th,will trigger increase
  * urgent responds to vdin write,

@@ -80,6 +80,7 @@ static unsigned long mem_start, mem_end;
 static unsigned int use_reserved_mem;
 static int afbc_init_flag;
 static int afbc_write_down_flag;
+static unsigned int pr_times;
 /*
  * canvas_config_mode
  * 0: canvas_config in driver probe
@@ -142,6 +143,8 @@ static unsigned int vdin_drop_cnt;
 module_param(vdin_drop_cnt, uint, 0664);
 MODULE_PARM_DESC(vdin_drop_cnt, "vdin_drop_cnt");
 
+struct vdin_hist_s vdin1_hist;
+struct vdin_v4l2_param_s vdin_v4l2_param;
 
 static int irq_max_count;
 
@@ -756,17 +759,31 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 		pr_info("v_active:%d;scan_mode:%d**\n",
 				para->v_active, para->scan_mode);
 	}
+
+	if (devp->index == 1) {
+		devp->parm.reserved |= para->reserved;
+		pr_info("vdin1 add reserved = 0x%lx\n", para->reserved);
+		pr_info("vdin1 all reserved = 0x%x\n", devp->parm.reserved);
+	}
 	devp->start_time = jiffies_to_msecs(jiffies);
 	if (devp->flags & VDIN_FLAG_DEC_STARTED) {
 		pr_err("%s: port 0x%x, decode started already.\n",
 				__func__, para->port);
-		ret = -EBUSY;
-		return ret;
+		if ((devp->parm.reserved & PARAM_STATE_SCREENCAP) &&
+			(devp->parm.reserved & PARAM_STATE_HISTGRAM) &&
+			(devp->index == 1))
+			return 0;
+		else
+			return -EBUSY;
 	}
 	if ((para->port != TVIN_PORT_VIU1) ||
 		(viu_hw_irq != 0)) {
 		ret = request_irq(devp->irq, vdin_v4l2_isr, IRQF_SHARED,
 				devp->irq_name, (void *)devp);
+		if (ret != 0) {
+			pr_info("vdin_v4l2_isr request irq error.\n");
+			return -1;
+		}
 		devp->flags |= VDIN_FLAG_ISR_REQ;
 		/*disable vsync irq until vdin configured completely*/
 		disable_irq_nosync(devp->irq);
@@ -867,6 +884,14 @@ int stop_tvin_service(int no)
 	unsigned int end_time;
 
 	devp = vdin_devp[no];
+	if ((devp->parm.reserved & PARAM_STATE_HISTGRAM) &&
+		(devp->parm.reserved & PARAM_STATE_SCREENCAP) &&
+		(devp->index == 1)) {
+		pr_info("stop vdin v4l2 screencap.\n");
+		devp->parm.reserved &= ~PARAM_STATE_SCREENCAP;
+		return 0;
+	}
+
 	if (!(devp->flags&VDIN_FLAG_DEC_STARTED)) {
 		pr_err("%s:decode hasn't started.\n", __func__);
 		return -EBUSY;
@@ -1222,7 +1247,34 @@ static u64 func_div(u64 cur, u32 divid)
 	return cur;
 }
 
+static void vdin_hist_tgt(struct vdin_dev_s *devp, struct vframe_s *vf)
+{
+	int ave_luma;
+	int pix_sum;
+	ulong flags;
 
+	spin_lock_irqsave(&devp->hist_lock, flags);
+	vdin1_hist.sum    = vf->prop.hist.luma_sum;
+	pix_sum = vf->prop.hist.pixel_sum;
+	vdin1_hist.height = vf->prop.hist.height;
+	vdin1_hist.width =  vf->prop.hist.width;
+
+	if ((vdin1_hist.height == 0) || (vdin1_hist.width == 0)) {
+		spin_unlock_irqrestore(&devp->hist_lock, flags);
+		return;
+	}
+
+	vdin1_hist.ave =
+		vdin1_hist.sum/(vdin1_hist.height * vdin1_hist.width);
+
+	ave_luma = vdin1_hist.ave;
+	ave_luma = (ave_luma - 16) < 0 ? 0 : (ave_luma - 16);
+	vdin1_hist.ave = ave_luma*255/(235-16);
+	if (vdin1_hist.ave > 255)
+		vdin1_hist.ave = 255;
+
+	spin_unlock_irqrestore(&devp->hist_lock, flags);
+}
 
 /*
  *VDIN_FLAG_RDMA_ENABLE=1
@@ -1765,6 +1817,7 @@ irqreturn_t vdin_v4l2_isr(int irq, void *dev_id)
 
 	vdin_set_vframe_prop_info(curr_wr_vf, devp);
 	vdin_backup_histgram(curr_wr_vf, devp);
+	vdin_hist_tgt(devp, curr_wr_vf);
 
 	if (devp->frontend && devp->frontend->dec_ops) {
 		decops = devp->frontend->dec_ops;
@@ -2006,6 +2059,9 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int callmaster_status = 0;
 	struct vdin_dev_s *devp = NULL;
 	void __user *argp = (void __user *)arg;
+	struct vdin_parm_s param;
+	ulong flags;
+	struct vdin_hist_s vdin1_hist_temp;
 
 	/* Get the per-device structure that contains this cdev */
 	devp = file->private_data;
@@ -2379,6 +2435,100 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				devp->auto_ratio_en);
 		}
 		break;
+	case TVIN_IOC_GET_LATENCY_MODE:
+		mutex_unlock(&devp->fe_lock);
+		if (copy_to_user(argp,
+			&(devp->prop.latency),
+			sizeof(struct tvin_latency_s))) {
+			mutex_unlock(&devp->fe_lock);
+			ret = -EFAULT;
+			pr_info("TVIN_IOC_GET_ALLM_MODE err\n\n");
+			break;
+		}
+		pr_info("allm mode-%d,IT=%d,CN=%d\n\n",
+			devp->prop.latency.allm_mode,
+			devp->prop.latency.it_content,
+			devp->prop.latency.cn_type);
+		mutex_unlock(&devp->fe_lock);
+		break;
+	case TVIN_IOC_G_VDIN_HIST:
+		if (devp->index == 0) {
+			pr_info("TVIN_IOC_G_VDIN_HIST cann't be used at vdin0\n");
+			break;
+		}
+
+		spin_lock_irqsave(&devp->hist_lock, flags);
+		vdin1_hist_temp.sum = vdin1_hist.sum;
+		vdin1_hist_temp.width = vdin1_hist.width;
+		vdin1_hist_temp.height = vdin1_hist.height;
+		vdin1_hist_temp.ave = vdin1_hist.ave;
+		spin_unlock_irqrestore(&devp->hist_lock, flags);
+		if (vdin_dbg_en) {
+			if (pr_times++ > 10) {
+				pr_times = 0;
+				pr_info("-:h=%d,w=%d,a=%d\n",
+					vdin1_hist_temp.height,
+					vdin1_hist_temp.width,
+					vdin1_hist_temp.ave);
+			}
+		}
+
+		if ((vdin1_hist.height == 0) || (vdin1_hist.width == 0))
+			ret = -EFAULT;
+		else if (copy_to_user(argp,
+				&vdin1_hist_temp,
+				sizeof(struct vdin_hist_s))) {
+			pr_info("vdin1_hist copy fail\n");
+			ret = -EFAULT;
+		}
+		break;
+	case TVIN_IOC_S_VDIN_V4L2START:
+		if (devp->index == 0) {
+			pr_info("TVIN_IOC_S_VDIN_V4L2START cann't be used at vdin0\n");
+			break;
+		}
+		if (devp->flags & VDIN_FLAG_ISR_REQ)
+			free_irq(devp->irq, (void *)devp);
+
+		if (copy_from_user(&vdin_v4l2_param, argp,
+				sizeof(struct vdin_v4l2_param_s))) {
+			pr_info("vdin_v4l2_param copy fail\n");
+			return -EFAULT;
+		}
+		memset(&param, 0, sizeof(struct vdin_parm_s));
+		param.port = TVIN_PORT_VIU1;
+		param.reserved |= PARAM_STATE_HISTGRAM;
+		param.h_active = vdin_v4l2_param.width;
+		param.v_active = vdin_v4l2_param.height;
+		/* use 1280X720 for histgram*/
+		if ((vdin_v4l2_param.width > 1280) &&
+			(vdin_v4l2_param.height > 720)) {
+			devp->debug.scaler4w = 1280;
+			devp->debug.scaler4h = 720;
+			devp->debug.dest_cfmt = TVIN_YUV422;
+			devp->flags |= VDIN_FLAG_MANUAL_CONVERSION;
+		}
+		param.frame_rate = vdin_v4l2_param.fps;
+		param.cfmt = TVIN_YUV422;
+		param.dfmt = TVIN_YUV422;
+		param.scan_mode = TVIN_SCAN_MODE_PROGRESSIVE;
+		param.fmt = TVIN_SIG_FMT_MAX;
+		//devp->flags |= VDIN_FLAG_V4L2_DEBUG;
+		devp->hist_bar_enable = 1;
+		devp->index = 1;
+		start_tvin_service(devp->index, &param);
+		break;
+
+	case TVIN_IOC_S_VDIN_V4L2STOP:
+		if (devp->index == 0) {
+			pr_info("TVIN_IOC_S_VDIN_V4L2STOP cann't be used at vdin0\n");
+			break;
+		}
+		devp->parm.reserved &= ~PARAM_STATE_HISTGRAM;
+		devp->flags &= (~VDIN_FLAG_ISR_REQ);
+		devp->flags &= (~VDIN_FLAG_FS_OPENED);
+		stop_tvin_service(devp->index);
+		break;
 	default:
 		ret = -ENOIOCTLCMD;
 	/* pr_info("%s %d is not supported command\n", __func__, cmd); */
@@ -2655,6 +2805,7 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	vdevp->flags &= (~VDIN_FLAG_FS_OPENED);
 	mutex_init(&vdevp->fe_lock);
 	spin_lock_init(&vdevp->isr_lock);
+	spin_lock_init(&vdevp->hist_lock);
 	vdevp->frontend = NULL;
 
 	/* @todo vdin_addr_offset */

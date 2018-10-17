@@ -205,6 +205,7 @@ struct vdin_dev_s {
 
 	struct timer_list timer;
 	spinlock_t isr_lock;
+	spinlock_t hist_lock;
 	struct mutex fe_lock;
 	struct clk *msr_clk;
 	unsigned int msr_clk_val;
@@ -346,6 +347,19 @@ struct vdin_dev_s {
 	wait_queue_head_t queue;
 
 	struct dentry *dbg_root;	/*dbg_fs*/
+};
+
+struct vdin_hist_s {
+	ulong sum;
+	int width;
+	int height;
+	int ave;
+};
+
+struct vdin_v4l2_param_s {
+	int width;
+	int height;
+	int fps;
 };
 
 extern struct vframe_provider_s *vf_get_provider_by_name(
