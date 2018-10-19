@@ -191,6 +191,29 @@
 		key_pin = <&gpio_ao  GPIOAO_3  GPIO_ACTIVE_HIGH>;
 	};
 
+	custom_maps {
+		mapnum = <4>;
+		map3 = <&map_3>;
+		map_3: map_3{
+			mapname = "hardkernel-remote";
+			release_delay = <80>;
+			size  = <12>;
+			customcode = <0x4db2>;
+			keymap = <REMOTE_KEY(0xCA, KEY_UP)
+				REMOTE_KEY(0xD2, KEY_DOWN)
+				REMOTE_KEY(0xC1, KEY_RIGHT)
+				REMOTE_KEY(0x99, KEY_LEFT)
+				REMOTE_KEY(0xCE, KEY_ENTER)
+				REMOTE_KEY(0x82, KEY_HOME)
+				REMOTE_KEY(0x88, KEY_MUTE)
+				REMOTE_KEY(0xC5, KEY_MENU)
+				REMOTE_KEY(0x9A, KEY_BACK)
+				REMOTE_KEY(0x81, KEY_VOLUMEDOWN)
+				REMOTE_KEY(0x80, KEY_VOLUMEUP)
+				REMOTE_KEY(0xDC, KEY_POWER)>;
+		};
+	};
+
 	unifykey{
 		compatible = "amlogic, unifykey";
 		status = "ok";
