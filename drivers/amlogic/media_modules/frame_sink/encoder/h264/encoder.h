@@ -149,6 +149,7 @@ enum amvenc_frame_fmt_e {
 	FMT_YUV422_12BIT,
 	FMT_YUV444_10BIT,
 	FMT_YUV422_10BIT,
+	FMT_BGR888,
 	MAX_FRAME_FMT
 };
 
