@@ -1059,6 +1059,9 @@ static int scale_frame(struct encode_wq_s *wq,
 			|| (request->fmt == FMT_NV12)) {
 			src_canvas = src_addr & 0xffff;
 			input_format = GE2D_FORMAT_M24_NV21;
+		} else if (request->fmt == FMT_BGR888) {
+			src_canvas = src_addr & 0xffffff;
+			input_format = GE2D_FORMAT_S24_RGB; //Opposite color after ge2d
 		} else {
 			src_canvas = src_addr & 0xffffff;
 			input_format = GE2D_FORMAT_M24_YUV420;
@@ -1082,6 +1085,16 @@ static int scale_frame(struct encode_wq_s *wq,
 				((ENC_CANVAS_OFFSET + 10) << 8)
 				| (ENC_CANVAS_OFFSET + 9);
 			input_format = GE2D_FORMAT_M24_NV21;
+		} else if (request->fmt == FMT_BGR888) {
+			src_canvas_w =
+				((request->src_w + 31) >> 5) << 5;
+			canvas_config(ENC_CANVAS_OFFSET + 9,
+				src_addr,
+				src_canvas_w * 3, src_h,
+				CANVAS_ADDR_NOWRAP,
+				CANVAS_BLKMODE_LINEAR);
+			src_canvas = ENC_CANVAS_OFFSET + 9;
+			input_format = GE2D_FORMAT_S24_RGB; //Opposite color after ge2d
 		} else {
 			src_canvas_w =
 				((request->src_w + 63) >> 6) << 6;
@@ -1169,6 +1182,7 @@ static int scale_frame(struct encode_wq_s *wq,
 	ge2d_config->dst_para.height = dst_h;
 	ge2d_config->dst_para.x_rev = 0;
 	ge2d_config->dst_para.y_rev = 0;
+
 	if (ge2d_context_config_ex(context, ge2d_config) < 0) {
 		pr_err("++ge2d configing error.\n");
 		return -1;
