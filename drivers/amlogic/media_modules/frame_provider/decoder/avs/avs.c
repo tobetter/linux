@@ -94,6 +94,11 @@
 #define INT_AMVENCODER INT_MAILBOX_1A
 #endif
 
+
+#define DEC_CONTROL_FLAG_FORCE_2500_1080P_INTERLACE 0x0001
+static u32 dec_control = DEC_CONTROL_FLAG_FORCE_2500_1080P_INTERLACE;
+
+
 #define VPP_VD1_POSTBLEND       (1 << 10)
 
 static int debug_flag;
@@ -419,7 +424,7 @@ static void vavs_isr(void)
 	u32 repeat_count;
 	u32 picture_type;
 	u32 buffer_index;
-
+	bool force_interlaced_frame = false;
 	unsigned int pts, pts_valid = 0, offset = 0;
 	u64 pts_us64;
 	if (debug_flag & AVS_DEBUG_UCODE) {
@@ -487,6 +492,11 @@ static void vavs_isr(void)
 		}
 #endif
 
+		if ((dec_control & DEC_CONTROL_FLAG_FORCE_2500_1080P_INTERLACE)
+			&& frame_width == 1920 && frame_height == 1080) {
+			force_interlaced_frame = true;
+		}
+
 		if (throw_pb_flag && picture_type != I_PICTURE) {
 
 			if (debug_flag & AVS_DEBUG_PRINT) {
@@ -494,7 +504,7 @@ static void vavs_isr(void)
 					   picture_type);
 			}
 			WRITE_VREG(AVS_BUFFERIN, ~(1 << buffer_index));
-		} else if (reg & INTERLACE_FLAG) {	/* interlace */
+		} else if (reg & INTERLACE_FLAG || force_interlaced_frame) {	/* interlace */
 			throw_pb_flag = 0;
 
 			if (debug_flag & AVS_DEBUG_PRINT) {
@@ -547,10 +557,14 @@ static void vavs_isr(void)
 			vf->signal_type = 0;
 			vf->index = buffer_index;
 			vf->duration_pulldown = 0;
-			vf->type =
+			if (force_interlaced_frame) {
+				vf->type = VIDTYPE_INTERLACE_TOP;
+			}else{
+				vf->type =
 				(reg & TOP_FIELD_FIRST_FLAG)
 				? VIDTYPE_INTERLACE_TOP
 				: VIDTYPE_INTERLACE_BOTTOM;
+				}
 #ifdef NV21
 			vf->type |= VIDTYPE_VIU_NV21;
 #endif
@@ -581,8 +595,11 @@ static void vavs_isr(void)
 						}
 			set_frame_info(vf, &dur);
 			vf->bufWidth = 1920;
-
+			if (force_interlaced_frame)
+				vf->pts = 0;
+			else
 			vf->pts = next_pts;
+
 			if ((repeat_count > 1) && avi_flag) {
 				/* vf->duration = vavs_amstream_dec_info.rate *
 				 *   repeat_count >> 1;
@@ -603,10 +620,14 @@ static void vavs_isr(void)
 			vf->signal_type = 0;
 			vf->index = buffer_index;
 			vf->duration_pulldown = 0;
-			vf->type =
-				(reg & TOP_FIELD_FIRST_FLAG) ?
-				VIDTYPE_INTERLACE_BOTTOM :
-				VIDTYPE_INTERLACE_TOP;
+			if (force_interlaced_frame) {
+				vf->type = VIDTYPE_INTERLACE_BOTTOM;
+			} else {
+						vf->type =
+						(reg & TOP_FIELD_FIRST_FLAG) ?
+						VIDTYPE_INTERLACE_BOTTOM :
+						VIDTYPE_INTERLACE_TOP;
+					}
 #ifdef NV21
 			vf->type |= VIDTYPE_VIU_NV21;
 #endif
@@ -714,7 +735,6 @@ static void vavs_isr(void)
 		 */
 		WRITE_VREG(AVS_BUFFEROUT, 0);
 	}
-
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
 #ifdef HANDLE_AVS_IRQ
@@ -1888,6 +1908,9 @@ MODULE_PARM_DESC(firmware_sel, "\n firmware_sel\n");
 
 module_param(disable_longcabac_trans, uint, 0664);
 MODULE_PARM_DESC(disable_longcabac_trans, "\n disable_longcabac_trans\n");
+
+module_param(dec_control, uint, 0664);
+MODULE_PARM_DESC(dec_control, "\n amvdec_vavs decoder control\n");
 
 module_init(amvdec_avs_driver_init_module);
 module_exit(amvdec_avs_driver_remove_module);
