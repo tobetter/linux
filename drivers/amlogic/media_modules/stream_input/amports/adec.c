@@ -155,10 +155,10 @@ static struct class astream_class = {
 	};
 
 #if 1
-#define IO_CBUS_PHY_BASE 0xc1100000
-#define IO_AOBUS_PHY_BASE 0xc8100000
+#define IO_CBUS_PHY_BASE 0xc1100000ULL
+#define IO_AOBUS_PHY_BASE 0xc8100000ULL
 #define CBUS_REG_OFFSET(reg) ((reg) << 2)
-#define IO_SECBUS_PHY_BASE 0xda000000
+#define IO_SECBUS_PHY_BASE 0xda000000ULL
 
 static struct uio_info astream_uio_info = {
 	.name = "astream_uio",
@@ -344,7 +344,11 @@ s32 astream_dev_register(void)
 			goto err_1;
 		}
 
+#ifdef CONFIG_ARM64_A32
+		r = of_property_read_u32_index(node, "reg", 0, &cbus_base);
+#else
 		r = of_property_read_u32_index(node, "reg", 1, &cbus_base);
+#endif
 		if (r) {
 			pr_info("No find node.\n");
 			goto err_1;
