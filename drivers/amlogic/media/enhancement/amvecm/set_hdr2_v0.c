@@ -1301,6 +1301,14 @@ void set_hdr_matrix(
 				adpscl_alpha[i] = 10 * in_luma *
 					(1 << adp_scal_shift) / out_luma;
 
+			if (hdr_mtx_param->p_sel & HDR_SDR) {
+				if (i == 0)
+					adpscl_shift[i] = adp_scal_shift;
+				else
+					adpscl_shift[i] = adp_scal_shift - 2;
+			} else
+				adpscl_shift[i] = adp_scal_shift;
+
 			adpscl_ys_coef[i] =
 					1 << adp_scal_shift;
 			adpscl_beta_s[i] = 0;
