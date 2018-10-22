@@ -1670,17 +1670,24 @@ void (*callback)(struct vdec_s *, void *),
 			hw->chunk->offset, hw->chunk->size);
 
 	hw->dec_result = DEC_RESULT_NONE;
-
-	ret = amvdec_vdec_loadmc_buf_ex(VFORMAT_MPEG12, "mmpeg12", vdec,
-		hw->fw->data, hw->fw->len);
-	if (ret < 0) {
-		pr_err("[%d] %s: the %s fw loading failed, err: %x\n", vdec->id,
-			hw->fw->name, tee_enabled() ? "TEE" : "local", ret);
-		hw->dec_result = DEC_RESULT_FORCE_EXIT;
-		vdec_schedule_work(&hw->work);
-		return;
+	if (vdec->mc_loaded) {
+	/*firmware have load before,
+	  and not changes to another.
+	  ignore reload.
+	*/
+	} else {
+		ret = amvdec_vdec_loadmc_buf_ex(VFORMAT_MPEG12, "mmpeg12", vdec,
+			hw->fw->data, hw->fw->len);
+		if (ret < 0) {
+			pr_err("[%d] %s: the %s fw loading failed, err: %x\n", vdec->id,
+				hw->fw->name, tee_enabled() ? "TEE" : "local", ret);
+			hw->dec_result = DEC_RESULT_FORCE_EXIT;
+			vdec_schedule_work(&hw->work);
+			return;
+		}
+		vdec->mc_loaded = 1;
+		vdec->mc_type = VFORMAT_MPEG12;
 	}
-
 	if (vmpeg12_hw_ctx_restore(hw) < 0) {
 		hw->dec_result = DEC_RESULT_ERROR;
 		debug_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
