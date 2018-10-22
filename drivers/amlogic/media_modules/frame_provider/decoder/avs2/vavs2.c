@@ -5662,8 +5662,10 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		dec->dec_result = DEC_RESULT_FORCE_EXIT;
 		vdec_schedule_work(&dec->work);
 		return;
-	} else
+	} else {
 		vdec->mc_loaded = 1;
+		vdec->mc_type = VFORMAT_AVS2;
+	}
 
 
 	if (avs2_hw_ctx_restore(dec) < 0) {

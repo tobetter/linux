@@ -200,7 +200,7 @@ struct vdec_s {
 	/* mc cache */
 	u32 mc[4096 * 4];
 	bool mc_loaded;
-
+	u32 mc_type;
 	/* frame provider/receiver interface */
 	char vf_provider_name[VDEC_PROVIDER_NAME_SIZE];
 	struct vframe_provider_s vframe_provider;

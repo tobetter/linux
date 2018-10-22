@@ -10239,23 +10239,30 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 					"\n");
 		}
 	}
+	if (vdec->mc_loaded) {
+		/*firmware have load before,
+		  and not changes to another.
+		  ignore reload.
+		*/
+	} else {
+		if (hevc->mmu_enable)
+			loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
+					"h265_mmu", hevc->fw->data);
+		else
+			loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
+					NULL, hevc->fw->data);
 
-	if (hevc->mmu_enable)
-		loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
-				"h265_mmu", hevc->fw->data);
-	else
-		loadr = amhevc_vdec_loadmc_ex(VFORMAT_HEVC, vdec,
-				NULL, hevc->fw->data);
-
-	if (loadr < 0) {
-		amhevc_disable();
-		hevc_print(hevc, 0, "H265: the %s fw loading failed, err: %x\n",
-			tee_enabled() ? "TEE" : "local", loadr);
-		hevc->dec_result = DEC_RESULT_FORCE_EXIT;
-		vdec_schedule_work(&hevc->work);
-		return;
+		if (loadr < 0) {
+			amhevc_disable();
+			hevc_print(hevc, 0, "H265: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", loadr);
+			hevc->dec_result = DEC_RESULT_FORCE_EXIT;
+			vdec_schedule_work(&hevc->work);
+			return;
+		}
+		vdec->mc_loaded = 1;
+		vdec->mc_type = VFORMAT_HEVC;
 	}
-
 	if (vh265_hw_ctx_restore(hevc) < 0) {
 		vdec_schedule_work(&hevc->work);
 		return;

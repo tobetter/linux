@@ -8779,16 +8779,24 @@ static void run_front(struct vdec_s *vdec)
 		}
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
-
-	ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
-	if (ret < 0) {
-		amhevc_disable();
-		vp9_print(pbi, PRINT_FLAG_ERROR,
-			"VP9: the %s fw loading failed, err: %x\n",
-			tee_enabled() ? "TEE" : "local", ret);
-		pbi->dec_result = DEC_RESULT_FORCE_EXIT;
-		vdec_schedule_work(&pbi->work);
-		return;
+	if (vdec->mc_loaded) {
+	/*firmware have load before,
+	  and not changes to another.
+	  ignore reload.
+	*/
+	} else {
+			ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, pbi->fw->data);
+			if (ret < 0) {
+			amhevc_disable();
+			vp9_print(pbi, PRINT_FLAG_ERROR,
+				"VP9: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
+			pbi->dec_result = DEC_RESULT_FORCE_EXIT;
+			vdec_schedule_work(&pbi->work);
+			return;
+		}
+		vdec->mc_loaded = 1;
+		vdec->mc_type = VFORMAT_VP9;
 	}
 
 	if (vp9_hw_ctx_restore(pbi) < 0) {
