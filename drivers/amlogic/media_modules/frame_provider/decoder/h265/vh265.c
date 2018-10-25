@@ -116,6 +116,9 @@
 #define MAX_SIZE_8K ((4096 * 2304) * 2)
 #define MAX_SIZE_4K (4096 * 2304)
 
+
+#define SEI_UserDataITU_T_T35	4
+
 static struct semaphore h265_sema;
 
 struct hevc_state_s;
@@ -1344,6 +1347,7 @@ struct tile_s {
 
 #define SEI_MASTER_DISPLAY_COLOR_MASK 0x00000001
 #define SEI_CONTENT_LIGHT_LEVEL_MASK  0x00000002
+#define SEI_HDR10PLUS_MASK			  0x00000004
 
 #define VF_POOL_SIZE        32
 
@@ -1559,6 +1563,7 @@ struct hevc_state_s {
 	u32 bit_depth_luma;
 	u32 bit_depth_chroma;
 	u32 video_signal_type;
+	u32 video_signal_type_debug;
 	u32 saved_resolution;
 	bool get_frame_dur;
 	u32 error_watchdog_count;
@@ -6012,6 +6017,7 @@ static int hevc_local_init(struct hevc_state_s *hevc)
 	hevc->bit_depth_luma = 8;
 	hevc->bit_depth_chroma = 8;
 	hevc->video_signal_type = 0;
+	hevc->video_signal_type_debug = 0;
 	bit_depth_luma = hevc->bit_depth_luma;
 	bit_depth_chroma = hevc->bit_depth_chroma;
 	video_signal_type = hevc->video_signal_type;
@@ -6247,6 +6253,17 @@ static int parse_sei(struct hevc_state_s *hevc,
 					hevc->curr_pic_struct);
 				}
 				break;
+			case SEI_UserDataITU_T_T35:
+				p_sei = p;
+				if (p_sei[0] == 0xB5
+					&& p_sei[1] == 0x00
+					&& p_sei[2] == 0x3C
+					&& p_sei[3] == 0x00
+					&& p_sei[4] == 0x01
+					&& p_sei[5] == 0x04)
+					hevc->sei_present_flag |= SEI_HDR10PLUS_MASK;
+
+				break;
 			case SEI_MasteringDisplayColorVolume:
 				/*hevc_print(hevc, 0,
 					"sei type: primary display color volume %d, size %d\n",
@@ -6413,11 +6430,6 @@ static void set_frame_info(struct hevc_state_s *hevc, struct vframe_s *vf,
 	ar = min_t(u32, hevc->frame_ar, DISP_RATIO_ASPECT_RATIO_MAX);
 	vf->ratio_control = (ar << DISP_RATIO_ASPECT_RATIO_BIT);
 
-	/* signal_type */
-	if (hevc->video_signal_type & VIDEO_SIGNAL_TYPE_AVAILABLE_MASK)
-		vf->signal_type = pic->video_signal_type;
-	else
-		vf->signal_type = 0;
 
 	if (((pic->aspect_ratio_idc == 255) &&
 		pic->sar_width &&
@@ -6455,6 +6467,19 @@ static void set_frame_info(struct hevc_state_s *hevc, struct vframe_s *vf,
 			p += size;
 		}
 	}
+	if (hevc->video_signal_type & VIDEO_SIGNAL_TYPE_AVAILABLE_MASK) {
+		vf->signal_type = pic->video_signal_type;
+		if (hevc->sei_present_flag & SEI_HDR10PLUS_MASK) {
+			u32 data;
+			data = vf->signal_type;
+			data = data & 0xFFFF00FF;
+			data = data | (0x30<<8);
+			vf->signal_type = data;
+		}
+	}
+	else
+		vf->signal_type = 0;
+	hevc->video_signal_type_debug = vf->signal_type;
 
 	/* master_display_colour */
 	if (hevc->sei_present_flag & SEI_MASTER_DISPLAY_COLOR_MASK) {
@@ -10468,11 +10493,12 @@ static void vh265_dump_state(struct vdec_s *vdec)
 		"====== %s\n", __func__);
 
 	hevc_print(hevc, 0,
-		"width/height (%d/%d), reorder_pic_num %d buf count(bufspec size) %d\n",
+		"width/height (%d/%d), reorder_pic_num %d buf count(bufspec size) %d, video_signal_type 0x%x\n",
 		hevc->frame_width,
 		hevc->frame_height,
 		hevc->sps_num_reorder_pics_0,
-		get_work_pic_num(hevc)
+		get_work_pic_num(hevc),
+		hevc->video_signal_type_debug
 		);
 
 	hevc_print(hevc, 0,
