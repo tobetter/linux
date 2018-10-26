@@ -600,10 +600,7 @@ enum REFERENCE_MODE {
 
 #define REF_FRAMES_LOG2 3
 #define REF_FRAMES (1 << REF_FRAMES_LOG2)
-#define REF_FRAMES_2K (6)
-#define REF_FRAMES_4K (4)
-
-
+#define REF_FRAMES_4K (6)
 
 /*4 scratch frames for the new frames to support a maximum of 4 cores decoding
  *in parallel, 3 for scaled references on the encoder.
@@ -1128,7 +1125,6 @@ struct VP9Decoder_s {
 	struct firmware_s *fw;
 	int max_pic_w;
 	int max_pic_h;
-	u32 dec_buf_margin;
 #ifdef SUPPORT_FB_DECODING
 	int dec_s1_result;
 	int s1_test_cmd;
@@ -1689,16 +1685,11 @@ static int init_mv_buf_list(struct VP9Decoder_s *pbi)
 	int lcu_total       = pic_width_lcu * pic_height_lcu;
 	int size = ((lcu_total * MV_MEM_UNIT) + 0xffff) &
 		(~0xffff);
+	if (mv_buf_margin > 0)
+		count = REF_FRAMES + mv_buf_margin;
 
-#ifndef MV_USE_FIXED_BUF
-	if (pbi->init_pic_w >= 3840 && pbi->init_pic_h >= 2160)
-		count = REF_FRAMES_4K;
-	else if (pbi->init_pic_w > 2048 && pbi->init_pic_h > 1088)
-		count = REF_FRAMES_2K;
-	else
-#endif
-		count = REF_FRAMES;
-	count += pbi->dec_buf_margin;
+	if (pbi->init_pic_w > 2048 && pbi->init_pic_h > 1088)
+		count = REF_FRAMES_4K + mv_buf_margin;
 
 	if (debug) {
 		pr_info("%s w:%d, h:%d, count: %d\n",
@@ -2778,9 +2769,10 @@ static u32 max_decoding_time;
 
 static u32 error_handle_policy;
 /*static u32 parser_sei_enable = 1;*/
-#define BUF_NUM_NORMAL     4
-#define BUF_NUM_LESS   3
-static u32 dec_buf_margin = BUF_NUM_NORMAL;
+#define MAX_BUF_NUM_NORMAL     12
+#define MAX_BUF_NUM_LESS   10
+static u32 max_buf_num = MAX_BUF_NUM_NORMAL;
+#define MAX_BUF_NUM_SAVE_BUF  8
 
 static u32 run_ready_min_buf_num = 2;
 
@@ -6141,12 +6133,10 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	}
 #endif
 
-	if (pbi->init_pic_w >= 3840 && pbi->init_pic_h >= 2160)
-		pbi->used_buf_num = REF_FRAMES_4K + pbi->dec_buf_margin;
-	else if (pbi->init_pic_w > 2048 && pbi->init_pic_h > 1088)
-		pbi->used_buf_num = REF_FRAMES_2K + pbi->dec_buf_margin;
+	if (pbi->save_buffer_mode)
+		pbi->used_buf_num = MAX_BUF_NUM_SAVE_BUF;
 	else
-		pbi->used_buf_num = REF_FRAMES + pbi->dec_buf_margin;
+		pbi->used_buf_num = max_buf_num;
 
 	if (pbi->used_buf_num > MAX_BUF_NUM)
 		pbi->used_buf_num = MAX_BUF_NUM;
@@ -9234,7 +9224,6 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		else
 			pbi->save_buffer_mode = 0;
 
-		pbi->dec_buf_margin = dec_buf_margin;
 		/*use ptr config for max_pic_w, etc*/
 		if (get_config_int(pdata->config, "vp9_max_pic_w",
 				&config_val) == 0) {
@@ -9432,6 +9421,7 @@ static struct mconfig vp9_configs[] = {
 	MC_PU32("buf_alloc_size", &buf_alloc_size),
 	MC_PU32("buffer_mode", &buffer_mode),
 	MC_PU32("buffer_mode_dbg", &buffer_mode_dbg),
+	MC_PU32("max_buf_num", &max_buf_num),
 	MC_PU32("dynamic_buf_num_margin", &dynamic_buf_num_margin),
 	MC_PU32("mem_map_mode", &mem_map_mode),
 	MC_PU32("double_write_mode", &double_write_mode),
@@ -9501,7 +9491,7 @@ static int __init amvdec_vp9_driver_init_module(void)
 	}
 
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A)
-		 dec_buf_margin = BUF_NUM_LESS;
+		max_buf_num = MAX_BUF_NUM_LESS;
 
 	vcodec_profile_register(&amvdec_vp9_profile);
 	INIT_REG_NODE_CONFIGS("media.decoder", &vp9_node,
@@ -9587,15 +9577,14 @@ MODULE_PARM_DESC(buffer_mode, "\n buffer_mode\n");
 module_param(buffer_mode_dbg, uint, 0664);
 MODULE_PARM_DESC(buffer_mode_dbg, "\n buffer_mode_dbg\n");
 /*USE_BUF_BLOCK*/
+module_param(max_buf_num, uint, 0664);
+MODULE_PARM_DESC(max_buf_num, "\n max_buf_num\n");
+
 module_param(dynamic_buf_num_margin, uint, 0664);
 MODULE_PARM_DESC(dynamic_buf_num_margin, "\n dynamic_buf_num_margin\n");
 
 module_param(mv_buf_margin, uint, 0664);
 MODULE_PARM_DESC(mv_buf_margin, "\n mv_buf_margin\n");
-
-module_param(dec_buf_margin, uint, 0664);
-MODULE_PARM_DESC(dec_buf_margin, "\n dec_buf_margin\n");
-
 
 module_param(run_ready_min_buf_num, uint, 0664);
 MODULE_PARM_DESC(run_ready_min_buf_num, "\n run_ready_min_buf_num\n");
