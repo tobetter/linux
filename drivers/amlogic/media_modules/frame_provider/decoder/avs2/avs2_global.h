@@ -49,7 +49,6 @@
 /* #include <stdlib.h> */
 
 #define AML
-#define SANITY_CHECK
 #undef NO_DISPLAY
 
 /* #include "define.h" */
@@ -793,9 +792,6 @@ struct avs2_frame_s {
 	int vf_ref;
 	int decode_idx;
 	int slice_type;
-	int32_t imgtr_fwRefDistance_bak;
-	int32_t error_mark;
-	int32_t decoded_lcu;
 #endif
 #ifndef MV_USE_FIXED_BUF
 	int mv_buf_index;
@@ -1589,17 +1585,6 @@ union param_u {
 		uint16_t chroma_quant_param_delta_cb;
 		uint16_t chroma_quant_param_delta_cr;
 		uint16_t loop_filter_disable;
-
-		uint16_t video_signal_type;
-		uint16_t color_description;
-		uint16_t display_primaries_x[3];
-		uint16_t display_primaries_y[3];
-		uint16_t white_point_x;
-		uint16_t white_point_y;
-		uint16_t max_display_mastering_luminance;
-		uint16_t min_display_mastering_luminance;
-		uint16_t max_content_light_level;
-		uint16_t max_picture_average_light_level;
 	} p;
 	struct {
 		uint16_t padding[ALF_BEGIN - RPM_BEGIN];
@@ -1644,8 +1629,7 @@ struct avs2_decoder {
 	int32_t lcu_y_num;
 	int32_t lcu_total;
 	int32_t ref_maxbuffer;
-	int32_t to_prepare_disp_count;
-	int8_t bufmgr_error_flag;
+  int32_t to_prepare_disp_count;
 #endif
 };
 
