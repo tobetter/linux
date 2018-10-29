@@ -390,10 +390,8 @@ static int atv_demod_set_config(struct dvb_frontend *fe, void *priv_cfg)
 
 	case AML_ATVDEMOD_RESUME:
 		if (priv->state == ATVDEMOD_STATE_SLEEP) {
-			if (!atv_demod_enter_mode(fe)) {
+			if (!atv_demod_enter_mode(fe))
 				priv->state = ATVDEMOD_STATE_WORK;
-				priv->standby = false;
-			}
 		}
 		break;
 
