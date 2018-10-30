@@ -32,6 +32,7 @@
 #include <linux/amlogic/media/video_sink/video_keeper.h>
 #include "decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
+#include <linux/amlogic/media/codec_mm/codec_mm_keeper.h>
 
 struct decoder_bmmu_box {
 	int max_mm_num;
@@ -133,19 +134,28 @@ int decoder_bmmu_box_alloc_idx(void *handle, int idx, int size, int aligned_2n,
 	mm = box->mm_list[idx];
 	if (mm) {
 		int invalid = 0;
+		int keeped = 0;
 
-		if (mm->page_count * PAGE_SIZE < size) {
-			/*size is small. */
-			invalid = 1;
-		} else if (box->change_size_on_need_smaller &&
-				   (mm->buffer_size > (size << 1))) {
-			/*size is too large. */
-			invalid = 2;
-		} else if (mm->phy_addr & ((1 << align) - 1)) {
-			/*addr is not align */
-			invalid = 4;
-		}
-		if (invalid) {
+		keeped = is_codec_mm_keeped(mm);
+		if (!keeped) {
+			if (mm->page_count * PAGE_SIZE < size) {
+				/*size is small. */
+				invalid = 1;
+			} else if (box->change_size_on_need_smaller &&
+					   (mm->buffer_size > (size << 1))) {
+				/*size is too large. */
+				invalid = 2;
+			} else if (mm->phy_addr & ((1 << align) - 1)) {
+				/*addr is not align */
+				invalid = 4;
+			}
+			if (invalid) {
+				box->total_size -= mm->buffer_size;
+				codec_mm_release(mm, box->name);
+				box->mm_list[idx] = NULL;
+				mm = NULL;
+			}
+		} else {
 			box->total_size -= mm->buffer_size;
 			codec_mm_release(mm, box->name);
 			box->mm_list[idx] = NULL;
@@ -289,9 +299,19 @@ int decoder_bmmu_box_alloc_idx_wait(
 {
 	int have_space;
 	int ret = -1;
+	int keeped = 0;
 
-	if (decoder_bmmu_box_get_mem_size(handle, idx) >= size)
-		return 0;/*have alloced memery before.*/
+	if (decoder_bmmu_box_get_mem_size(handle, idx) >= size) {
+		struct decoder_bmmu_box *box = handle;
+		struct codec_mm_s *mm;
+		mutex_lock(&box->mutex);
+		mm = box->mm_list[idx];
+		keeped = is_codec_mm_keeped(mm);
+		mutex_unlock(&box->mutex);
+
+		if (!keeped)
+			return 0;/*have alloced memery before.*/
+	}
 	have_space = decoder_bmmu_box_check_and_wait_size(
 					size,
 					wait_flags);

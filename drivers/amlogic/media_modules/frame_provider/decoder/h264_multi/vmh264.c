@@ -7044,6 +7044,7 @@ static void h264_clear_dpb(struct vdec_h264_hw_s *hw)
 static void h264_reset_bufmgr(struct vdec_s *vdec)
 {
 	int i;
+	ulong timeout;
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
 #if 0
 	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
@@ -7100,6 +7101,13 @@ static void h264_reset_bufmgr(struct vdec_s *vdec)
 	"%s frame count %d to skip %d\n\n",
 	__func__, hw->decode_pic_count+1,
 	hw->skip_frame_count);
+
+	timeout = jiffies + HZ;
+	while (kfifo_len(&hw->display_q) > 0) {
+		if (time_after(jiffies, timeout))
+			break;
+		schedule();
+	}
 
 	for (i = 0; i < VF_POOL_SIZE; i++)
 		hw->vfpool[hw->cur_pool][i].index = -1; /* VF_BUF_NUM; */
