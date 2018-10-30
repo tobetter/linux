@@ -10179,8 +10179,12 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 			READ_PARSER_REG(PARSER_VIDEO_WP);
 		if (parser_wr_ptr >= hevc->pre_parser_wr_ptr &&
 			(parser_wr_ptr - hevc->pre_parser_wr_ptr) <
-			again_threshold)
+			again_threshold) {
+			int r = vdec_sync_input(vdec);
+			hevc_print(hevc,
+			PRINT_FLAG_VDEC_DETAIL, "%s buf lelvel:%x\n",  __func__, r);
 			return 0;
+		}
 	}
 #endif
 
