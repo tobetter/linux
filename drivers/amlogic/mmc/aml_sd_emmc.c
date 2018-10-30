@@ -1917,6 +1917,7 @@ static void aml_sd_emmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 		}
 		pdata->irq_sdio_sleep = 1;
 	}
+	pdata->irq_sdio_sleep = 1;
 
 	spin_unlock_irqrestore(&host->mrq_lock, flags);
 
