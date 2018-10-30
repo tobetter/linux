@@ -1944,7 +1944,7 @@ int osd_set_scan_mode(u32 index)
 			if ((vinfo->width == 720)
 				&& (vinfo->height == 480)) {
 				if (osd_hw.free_scale_mode[index]) {
-					osd_hw.field_out_en = 1;
+					//osd_hw.field_out_en = 1;
 					switch (y_end) {
 					case 719:
 						osd_hw.bot_type = 2;
@@ -1964,7 +1964,7 @@ int osd_set_scan_mode(u32 index)
 			} else if ((vinfo->width == 720)
 				&& (vinfo->height == 576)) {
 				if (osd_hw.free_scale_mode[index]) {
-					osd_hw.field_out_en = 1;
+					//osd_hw.field_out_en = 1;
 					switch (y_end) {
 					case 719:
 						osd_hw.bot_type = 2;
@@ -1985,7 +1985,7 @@ int osd_set_scan_mode(u32 index)
 			} else if ((vinfo->width == 1920)
 				&& (vinfo->height == 1080)) {
 				if (osd_hw.free_scale_mode[index]) {
-					osd_hw.field_out_en = 1;
+					//osd_hw.field_out_en = 1;
 					switch (y_end) {
 					case 719:
 						osd_hw.bot_type = 1;
@@ -6119,12 +6119,12 @@ static void osd_setting_blend1(struct hw_osd_blending_s *blending)
 	if (!blending)
 		return;
 	if (osd_hw.hdr_used)
-		workaround_line = osd_hw.workaround_line;
+		workaround_line = 1;
 	else {
 		if (blending->layer_cnt == 2)
 			workaround_line = 0;
 		else
-			workaround_line = osd_hw.workaround_line;
+			workaround_line = 1;
 	}
 	layer_blend = &(blending->layer_blend);
 	blend_reg = &(blending->blend_reg);
@@ -6415,7 +6415,7 @@ static void osd_set_freescale(u32 index,
 	struct layer_blend_reg_s *blend_reg;
 	u32 width, height;
 	u32 src_height;
-	u32 workaround_line = osd_hw.workaround_line;
+	u32 workaround_line = 1;
 
 	layer_blend = &(blending->layer_blend);
 	blend_reg = &(blending->blend_reg);
@@ -6557,7 +6557,6 @@ static void osd_setting_blend0_input(u32 index,
 	u32 workaround_line = 0;
 	/* for g12a blend shift issue */
 
-	workaround_line = osd_hw.workaround_line;
 	layer_blend = &(blending->layer_blend);
 	if (index == OSD1) {
 
@@ -6600,12 +6599,12 @@ static void osd_setting_blend1_input(u32 index,
 	/* for g12a blend shift issue */
 
 	if (osd_hw.hdr_used)
-		workaround_line = osd_hw.workaround_line;
+		workaround_line = 1;
 	else {
 		if (blending->layer_cnt == 2)
 			workaround_line = 0;
 		else
-			workaround_line = osd_hw.workaround_line;
+			workaround_line = 1;
 	}
 
 	layer_blend = &(blending->layer_blend);
@@ -7672,101 +7671,6 @@ static bool set_old_hwc_freescale(u32 index)
 		return false;
 }
 
-#if 0
-static bool set_old_hwc_freescale(u32 index)
-{
-	u32 x_start, x_end, y_start, y_end;
-	u32 width_src = 0, width_dst = 0, height_src = 0, height_dst = 0;
-	u32 width, height;
-	u32 screen_ratio_w, screen_ratio_h;
-
-	width_src = osd_hw.disp_info.background_w;
-	height_src = osd_hw.disp_info.background_h;
-
-	width_dst = osd_hw.vinfo_width;
-	height_dst = osd_hw.vinfo_height;
-	screen_ratio_w = (osd_hw.disp_info.position_w << OSD_CALC)
-		/ osd_hw.disp_info.background_w;
-	screen_ratio_h = (osd_hw.disp_info.position_h << OSD_CALC)
-		/ osd_hw.disp_info.background_h;
-	osd_log_dbg("width_src:%d,%d\n",
-		width_src, height_src);
-	osd_log_dbg("width_src:%d,%d\n",
-		width_dst, height_dst);
-
-	width = osd_hw.free_dst_data[index].x_end -
-		osd_hw.free_dst_data[index].x_start;
-	height = osd_hw.free_dst_data[index].y_end -
-		osd_hw.free_dst_data[index].y_start;
-	osd_hw.free_dst_data[index].x_start =
-		(osd_hw.free_dst_data[index].x_start
-		* screen_ratio_w >> OSD_CALC);
-	osd_hw.free_dst_data[index].y_start =
-		(osd_hw.free_dst_data[index].y_start
-		* screen_ratio_h >> OSD_CALC);
-	width = (width * screen_ratio_w >> OSD_CALC);
-	height = (height * screen_ratio_h >> OSD_CALC);
-
-	osd_hw.free_dst_data[index].x_start +=
-		osd_hw.disp_info.position_x;
-	osd_hw.free_dst_data[index].x_end =
-		osd_hw.free_dst_data[index].x_start + width;
-	osd_hw.free_dst_data[index].y_start +=
-		osd_hw.disp_info.position_y;
-	osd_hw.free_dst_data[index].y_end =
-		osd_hw.free_dst_data[index].y_start + height;
-
-	if (osd_hw.osd_reverse[index] == REVERSE_TRUE) {
-		x_start = osd_hw.vinfo_width
-			- osd_hw.free_dst_data[index].x_end - 1;
-		y_start = osd_hw.vinfo_height
-			- osd_hw.free_dst_data[index].y_end - 1;
-		x_end = osd_hw.vinfo_width
-			- osd_hw.free_dst_data[index].x_start - 1;
-		y_end = osd_hw.vinfo_height
-			- osd_hw.free_dst_data[index].y_start - 1;
-		osd_hw.free_dst_data[index].x_start = x_start;
-		osd_hw.free_dst_data[index].y_start = y_start;
-		osd_hw.free_dst_data[index].x_end = x_end;
-		osd_hw.free_dst_data[index].y_end = y_end;
-	} else if (osd_hw.osd_reverse[index] == REVERSE_X) {
-		x_start = osd_hw.vinfo_width
-			- osd_hw.free_dst_data[index].x_end - 1;
-		x_end = osd_hw.vinfo_width
-			- osd_hw.free_dst_data[index].x_start - 1;
-		osd_hw.free_dst_data[index].x_start = x_start;
-		osd_hw.free_dst_data[index].x_end = x_end;
-	} else if (osd_hw.osd_reverse[index] == REVERSE_Y) {
-		y_start = osd_hw.vinfo_height
-			- osd_hw.free_dst_data[index].y_end - 1;
-		y_end = osd_hw.vinfo_height
-			- osd_hw.free_dst_data[index].y_start - 1;
-		osd_hw.free_dst_data[index].y_start = y_start;
-		osd_hw.free_dst_data[index].y_end = y_end;
-	}
-	osd_log_dbg("free_dst_data: %x,%x,%x,%x\n",
-		osd_hw.free_dst_data[index].x_start,
-		osd_hw.free_dst_data[index].x_end,
-		osd_hw.free_dst_data[index].y_start,
-		osd_hw.free_dst_data[index].y_end);
-	if ((memcmp(&(osd_hw.free_src_data[index]),
-		&osd_hw.free_src_data_backup[index],
-		sizeof(struct pandata_s)) != 0) ||
-		(memcmp(&(osd_hw.free_dst_data[index]),
-		&osd_hw.free_dst_data_backup[index],
-		sizeof(struct pandata_s)) != 0)) {
-		memcpy(&osd_hw.free_src_data_backup[index],
-			&osd_hw.free_src_data[index],
-			sizeof(struct pandata_s));
-		memcpy(&osd_hw.free_dst_data_backup[index],
-			&osd_hw.free_dst_data[index],
-			sizeof(struct pandata_s));
-		return true;
-	} else
-		return false;
-}
-#endif
-
 static void osd_setting_old_hwc(void)
 {
 	int index = OSD1;
@@ -8498,13 +8402,7 @@ void osd_init_hw(u32 logo_loaded, u32 osd_probe,
 		osd_hw.disp_info.position_h = 1080;
 		osd_hw.vinfo_width = 1920;
 		osd_hw.vinfo_height = 1080;
-		osd_hw.workaround_line = 0;
-		if ((osd_hw.osd_meson_dev.cpu_id ==
-			__MESON_CPU_MAJOR_ID_G12A) ||
-			((osd_hw.osd_meson_dev.cpu_id ==
-			__MESON_CPU_MAJOR_ID_G12B) &&
-			is_meson_rev_a()))
-			osd_hw.workaround_line = 1;
+
 		for (idx = 0; idx < osd_hw.osd_meson_dev.osd_count; idx++) {
 			osd_hw.premult_en[idx] = 0;
 			osd_hw.osd_afbcd[idx].format = COLOR_INDEX_32_ABGR;
