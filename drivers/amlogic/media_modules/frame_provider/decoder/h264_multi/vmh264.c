@@ -6758,8 +6758,12 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 			READ_PARSER_REG(PARSER_VIDEO_WP);
 		if (parser_wr_ptr >= hw->pre_parser_wr_ptr &&
 			(parser_wr_ptr - hw->pre_parser_wr_ptr) <
-			again_threshold)
+			again_threshold) {
+			int r = vdec_sync_input(vdec);
+				dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_DETAIL,
+					"%s buf lelvel:%x\n",  __func__, r);
 			return 0;
+		}
 	}
 
 	if (h264_debug_flag & 0x20000000) {
