@@ -5943,20 +5943,37 @@ static unsigned char get_data_check_sum
 {
 	int jj;
 	int sum = 0;
-	u8 *data = ((u8 *)dec->chunk->block->start_virt) +
-		dec->chunk->offset;
+	u8 *data = NULL;
+
+	if (!dec->chunk->block->is_mapped)
+		data = codec_mm_vmap(dec->chunk->block->start +
+			dec->chunk->offset, size);
+	else
+		data = ((u8 *)dec->chunk->block->start_virt) +
+			dec->chunk->offset;
+
 	for (jj = 0; jj < size; jj++)
 		sum += data[jj];
+
+	if (!dec->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 	return sum;
 }
 
 static void dump_data(struct AVS2Decoder_s *dec, int size)
 {
 	int jj;
-	u8 *data = ((u8 *)dec->chunk->block->start_virt) +
-		dec->chunk->offset;
+	u8 *data = NULL;
 	int padding_size = dec->chunk->offset &
 		(VDEC_FIFO_ALIGN - 1);
+
+	if (!dec->chunk->block->is_mapped)
+		data = codec_mm_vmap(dec->chunk->block->start +
+			dec->chunk->offset, size);
+	else
+		data = ((u8 *)dec->chunk->block->start_virt) +
+			dec->chunk->offset;
+
 	avs2_print(dec, 0, "padding: ");
 	for (jj = padding_size; jj > 0; jj--)
 		avs2_print_cont(dec,
@@ -5981,6 +5998,9 @@ static void dump_data(struct AVS2Decoder_s *dec, int size)
 	avs2_print(dec,
 	 0,
 		"\n");
+
+	if (!dec->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 }
 
 static void avs2_work(struct work_struct *work)
@@ -6249,13 +6269,21 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		READ_VREG(HEVC_STREAM_RD_PTR),
 		dec->start_shift_bytes);
 		if (vdec_frame_based(vdec) && dec->chunk) {
-			u8 *data = ((u8 *)dec->chunk->block->start_virt) +
-				dec->chunk->offset;
+			u8 *data = NULL;
+			if (!dec->chunk->block->is_mapped)
+				data = codec_mm_vmap(dec->chunk->block->start +
+					dec->chunk->offset, 8);
+			else
+				data = ((u8 *)dec->chunk->block->start_virt) +
+					dec->chunk->offset;
+
 			avs2_print_cont(dec, 0, "data adr %p:",
 				data);
 			for (ii = 0; ii < 8; ii++)
 				avs2_print_cont(dec, 0, "%02x ",
 					data[ii]);
+			if (!dec->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 		avs2_print_cont(dec, 0, "\r\n");
 	}
@@ -6451,9 +6479,13 @@ static void avs2_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (dec->chunk && dec->chunk->block &&
 			dec->chunk->size > 0) {
-			u8 *data =
-			((u8 *)dec->chunk->block->start_virt) +
-				dec->chunk->offset;
+			u8 *data = NULL;
+			if (!dec->chunk->block->is_mapped)
+				data = codec_mm_vmap(dec->chunk->block->start +
+					dec->chunk->offset, dec->chunk->size);
+			else
+				data = ((u8 *)dec->chunk->block->start_virt) +
+					dec->chunk->offset;
 			avs2_print(dec, 0,
 				"frame data size 0x%x\n",
 				dec->chunk->size);
@@ -6467,6 +6499,9 @@ static void avs2_dump_state(struct vdec_s *vdec)
 					avs2_print_cont(dec, 0,
 						"\n");
 			}
+
+			if (!dec->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 

@@ -9720,10 +9720,20 @@ static unsigned char get_data_check_sum
 {
 	int jj;
 	int sum = 0;
-	u8 *data = ((u8 *)hevc->chunk->block->start_virt) +
-		hevc->chunk->offset;
+	u8 *data = NULL;
+
+	if (!hevc->chunk->block->is_mapped)
+		data = codec_mm_vmap(hevc->chunk->block->start +
+			hevc->chunk->offset, size);
+	else
+		data = ((u8 *)hevc->chunk->block->start_virt) +
+			hevc->chunk->offset;
+
 	for (jj = 0; jj < size; jj++)
 		sum += data[jj];
+
+	if (!hevc->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 	return sum;
 }
 
@@ -9878,9 +9888,17 @@ static void vh265_work(struct work_struct *work)
 
 			if (get_dbg_flag(hevc) & PRINT_FRAMEBASE_DATA) {
 				int jj;
-				u8 *data =
-				((u8 *)hevc->chunk->block->start_virt) +
-					hevc->chunk->offset;
+				u8 *data = NULL;
+
+				if (!hevc->chunk->block->is_mapped)
+					data = codec_mm_vmap(
+						hevc->chunk->block->start +
+						hevc->chunk->offset, r);
+				else
+					data = ((u8 *)
+						hevc->chunk->block->start_virt)
+						+ hevc->chunk->offset;
+
 				for (jj = 0; jj < r; jj++) {
 					if ((jj & 0xf) == 0)
 						hevc_print(hevc,
@@ -9894,6 +9912,9 @@ static void vh265_work(struct work_struct *work)
 						PRINT_FRAMEBASE_DATA,
 							"\n");
 				}
+
+				if (!hevc->chunk->block->is_mapped)
+					codec_mm_unmap_phyaddr(data);
 			}
 
 			decode_size = hevc->chunk->size +
@@ -10243,8 +10264,15 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	if ((get_dbg_flag(hevc) & PRINT_FRAMEBASE_DATA) &&
 		input_frame_based(vdec)) {
 		int jj;
-		u8 *data = ((u8 *)hevc->chunk->block->start_virt) +
-			hevc->chunk->offset;
+		u8 *data = NULL;
+
+		if (!hevc->chunk->block->is_mapped)
+			data = codec_mm_vmap(hevc->chunk->block->start +
+				hevc->chunk->offset, r);
+		else
+			data = ((u8 *)hevc->chunk->block->start_virt)
+				+ hevc->chunk->offset;
+
 		for (jj = 0; jj < r; jj++) {
 			if ((jj & 0xf) == 0)
 				hevc_print(hevc, PRINT_FRAMEBASE_DATA,
@@ -10255,6 +10283,9 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 				hevc_print_cont(hevc, PRINT_FRAMEBASE_DATA,
 					"\n");
 		}
+
+		if (!hevc->chunk->block->is_mapped)
+			codec_mm_unmap_phyaddr(data);
 	}
 	if (vdec->mc_loaded) {
 		/*firmware have load before,
@@ -10634,9 +10665,13 @@ static void vh265_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (hevc->chunk && hevc->chunk->block &&
 			hevc->chunk->size > 0) {
-			u8 *data =
-			((u8 *)hevc->chunk->block->start_virt) +
-				hevc->chunk->offset;
+			u8 *data = NULL;
+			if (!hevc->chunk->block->is_mapped)
+				data = codec_mm_vmap(hevc->chunk->block->start +
+					hevc->chunk->offset, hevc->chunk->size);
+			else
+				data = ((u8 *)hevc->chunk->block->start_virt)
+					+ hevc->chunk->offset;
 			hevc_print(hevc, 0,
 				"frame data size 0x%x\n",
 				hevc->chunk->size);
@@ -10653,6 +10688,9 @@ static void vh265_dump_state(struct vdec_s *vdec)
 					PRINT_FRAMEBASE_DATA,
 						"\n");
 			}
+
+			if (!hevc->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 
