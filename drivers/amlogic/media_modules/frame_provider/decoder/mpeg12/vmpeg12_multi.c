@@ -1265,9 +1265,15 @@ static void vmpeg2_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (hw->chunk && hw->chunk->block &&
 			hw->chunk->size > 0) {
-			u8 *data =
-			((u8 *)hw->chunk->block->start_virt) +
-				hw->chunk->offset;
+			u8 *data = NULL;
+
+			if (!hw->chunk->block->is_mapped)
+				data = codec_mm_vmap(hw->chunk->block->start +
+					hw->chunk->offset, hw->chunk->size);
+			else
+				data = ((u8 *)hw->chunk->block->start_virt) +
+					hw->chunk->offset;
+
 			debug_print(DECODE_ID(hw), 0,
 				"frame data size 0x%x\n",
 				hw->chunk->size);
@@ -1284,6 +1290,9 @@ static void vmpeg2_dump_state(struct vdec_s *vdec)
 					PRINT_FRAMEBASE_DATA,
 						"\n");
 			}
+
+			if (!hw->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 }
@@ -1581,10 +1590,20 @@ static unsigned char get_data_check_sum
 {
 	int jj;
 	int sum = 0;
-	u8 *data = ((u8 *)hw->chunk->block->start_virt) +
-		hw->chunk->offset;
+	u8 *data = NULL;
+
+	if (!hw->chunk->block->is_mapped)
+		data = codec_mm_vmap(hw->chunk->block->start +
+			hw->chunk->offset, size);
+	else
+		data = ((u8 *)hw->chunk->block->start_virt) +
+			hw->chunk->offset;
+
 	for (jj = 0; jj < size; jj++)
 		sum += data[jj];
+
+	if (!hw->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 	return sum;
 }
 
@@ -1613,8 +1632,15 @@ void (*callback)(struct vdec_s *, void *),
 		return;
 	}
 	if (input_frame_based(vdec)) {
-		u8 *data = ((u8 *)hw->chunk->block->start_virt) +
-			hw->chunk->offset;
+		u8 *data = NULL;
+
+		if (!hw->chunk->block->is_mapped)
+			data = codec_mm_vmap(hw->chunk->block->start +
+				hw->chunk->offset, size);
+		else
+			data = ((u8 *)hw->chunk->block->start_virt) +
+				hw->chunk->offset;
+
 		if (debug_enable & PRINT_FLAG_VDEC_STATUS
 			) {
 			debug_print(DECODE_ID(hw), 0,
@@ -1628,9 +1654,7 @@ void (*callback)(struct vdec_s *, void *),
 		if (debug_enable & PRINT_FRAMEBASE_DATA
 			) {
 			int jj;
-			u8 *data =
-			((u8 *)hw->chunk->block->start_virt) +
-				hw->chunk->offset;
+
 			for (jj = 0; jj < size; jj++) {
 				if ((jj & 0xf) == 0)
 					debug_print(DECODE_ID(hw),
@@ -1646,6 +1670,8 @@ void (*callback)(struct vdec_s *, void *),
 			}
 		}
 
+		if (!hw->chunk->block->is_mapped)
+			codec_mm_unmap_phyaddr(data);
 	} else
 		debug_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s: %x %x %x %x %x size 0x%x\n",

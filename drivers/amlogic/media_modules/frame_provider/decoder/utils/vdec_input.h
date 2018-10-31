@@ -28,6 +28,7 @@ struct vframe_block_list_s {
 	ulong start;
 	void *start_virt;
 	ulong addr;
+	bool is_mapped;
 	int type;
 	u32 size;
 	u32 wp;

@@ -25,6 +25,9 @@
 #include "vdec.h"
 #include "vdec_input.h"
 
+#include <asm/cacheflush.h>
+#include <linux/crc32.h>
+
 #define VFRAME_BLOCK_SIZE (512 * SZ_1K)/*512 for 1080p default init.*/
 #define VFRAME_BLOCK_SIZE_4K (2 * SZ_1M) /*2M for 4K default.*/
 #define VFRAME_BLOCK_SIZE_MAX (4 * SZ_1M)
@@ -47,49 +50,101 @@
 #define EXTRA_PADDING_SIZE  (16 * SZ_1K) /*HEVC_PADDING_SIZE*/
 
 #define MEM_NAME "VFRAME_INPUT"
+
 //static int vdec_input_get_duration_u64(struct vdec_input_s *input);
 static struct vframe_block_list_s *
 	vdec_input_alloc_new_block(struct vdec_input_s *input);
+
+static int copy_from_user_to_phyaddr(void *virts, const char __user *buf,
+		u32 size, ulong phys, u32 pading, bool is_mapped)
+{
+	u32 i, span = SZ_1M;
+	u32 count = size / PAGE_ALIGN(span);
+	u32 remain = size % PAGE_ALIGN(span);
+	ulong addr = phys;
+	u8 *p = virts;
+
+	if (is_mapped) {
+		if (copy_from_user(p, buf, size))
+			return -EFAULT;
+
+		if (pading) {
+			p += size;
+			memset(p, 0, pading);
+		}
+
+		dma_sync_single_for_device(get_vdec_device(),
+			addr, size + pading, DMA_TO_DEVICE);
+
+		return 0;
+	}
+
+	for (i = 0; i < count; i++) {
+		addr = phys + i * span;
+		p = codec_mm_vmap(addr, span);
+		if (!p)
+			return -1;
+
+		if (copy_from_user(p, buf + i * span, span)) {
+			codec_mm_unmap_phyaddr(p);
+			return -EFAULT;
+		}
+
+		codec_mm_unmap_phyaddr(p);
+
+		dma_sync_single_for_device(get_vdec_device(),
+			addr, span, DMA_TO_DEVICE);
+	}
+
+	if (!remain)
+		return 0;
+
+	span = size - remain;
+	addr = phys + span;
+	p = codec_mm_vmap(addr, remain + pading);
+	if (!p)
+		return -1;
+
+	if (copy_from_user(p, buf + span, remain)) {
+		codec_mm_unmap_phyaddr(p);
+		return -EFAULT;
+	}
+
+	if (pading)
+		memset(p + remain, 0, pading);
+
+	codec_mm_unmap_phyaddr(p);
+
+	dma_sync_single_for_device(get_vdec_device(),
+		addr, remain + pading, DMA_TO_DEVICE);
+
+	return 0;
+}
 
 static int vframe_chunk_fill(struct vdec_input_s *input,
 			struct vframe_chunk_s *chunk, const char *buf,
 			size_t count, struct vframe_block_list_s *block)
 {
 	u8 *p = (u8 *)block->start_virt + block->wp;
-	int total_size = count + chunk->pading_size;
 	if (block->type == VDEC_TYPE_FRAME_BLOCK) {
-		if (copy_from_user(p, buf, count))
-			return -EFAULT;
-
-		p += count;
-
-		memset(p, 0, chunk->pading_size);
-
-		dma_sync_single_for_device(get_vdec_device(),
+		copy_from_user_to_phyaddr(p, buf, count,
 			block->start + block->wp,
-			total_size, DMA_TO_DEVICE);
-
+			chunk->pading_size,
+			block->is_mapped);
 	} else if (block->type == VDEC_TYPE_FRAME_CIRCULAR) {
 		size_t len = min((size_t)(block->size - block->wp), count);
 		u32 wp;
 
-		if (copy_from_user(p, buf, len))
-			return -EFAULT;
-
-		dma_sync_single_for_device(get_vdec_device(),
-			block->start + block->wp,
-			len, DMA_TO_DEVICE);
-
+		copy_from_user_to_phyaddr(p, buf, len,
+				block->start + block->wp, 0,
+				block->is_mapped);
 		p += len;
 
 		if (count > len) {
-			p = (u8 *)block->start_virt;
-			if (copy_from_user(p, buf, count - len))
-				return -EFAULT;
-
-			dma_sync_single_for_device(get_vdec_device(),
-				block->start,
-				count-len, DMA_TO_DEVICE);
+			copy_from_user_to_phyaddr(p, buf + len,
+				count - len,
+				block->start, 0,
+				block->is_mapped);
 
 			p += count - len;
 		}
@@ -100,7 +155,12 @@ static int vframe_chunk_fill(struct vdec_input_s *input,
 
 		len = min(block->size - wp, chunk->pading_size);
 
-		memset(p, 0, len);
+		if (!block->is_mapped) {
+			p = codec_mm_vmap(block->start + wp, len);
+			memset(p, 0, len);
+			codec_mm_unmap_phyaddr(p);
+		} else
+			memset(p, 0, len);
 
 		dma_sync_single_for_device(get_vdec_device(),
 			block->start + wp,
@@ -109,6 +169,11 @@ static int vframe_chunk_fill(struct vdec_input_s *input,
 		if (chunk->pading_size > len) {
 			p = (u8 *)block->start_virt;
 
+		if (!block->is_mapped) {
+			p = codec_mm_vmap(block->start, count - len);
+			memset(p, 0, count - len);
+			codec_mm_unmap_phyaddr(p);
+		} else
 			memset(p, 0, count - len);
 
 			dma_sync_single_for_device(get_vdec_device(),
@@ -182,6 +247,8 @@ static int vframe_block_init_alloc_storage(struct vdec_input_s *input,
 	}
 
 	block->start_virt = (void *)codec_mm_phys_to_virt(block->addr);
+	if (block->start_virt)
+		block->is_mapped = true;
 	block->start = block->addr;
 	block->size = alloc_size;
 
@@ -706,6 +773,7 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 #endif
 	if (input_stream_based(input))
 		return -EINVAL;
+
 	if (count < PAGE_SIZE) {
 		need_pading_size = PAGE_ALIGN(count + need_pading_size) -
 			count;

@@ -637,9 +637,15 @@ static void vmjpeg_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (hw->chunk && hw->chunk->block &&
 			hw->chunk->size > 0) {
-			u8 *data =
-			((u8 *)hw->chunk->block->start_virt) +
-				hw->chunk->offset;
+			u8 *data = NULL;
+
+			if (!hw->chunk->block->is_mapped)
+				data = codec_mm_vmap(hw->chunk->block->start +
+					hw->chunk->offset, hw->chunk->size);
+			else
+				data = ((u8 *)hw->chunk->block->start_virt) +
+					hw->chunk->offset;
+
 			mmjpeg_debug_print(DECODE_ID(hw), 0,
 				"frame data size 0x%x\n",
 				hw->chunk->size);
@@ -656,6 +662,9 @@ static void vmjpeg_dump_state(struct vdec_s *vdec)
 					PRINT_FRAMEBASE_DATA,
 						"\n");
 			}
+
+			if (!hw->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 }

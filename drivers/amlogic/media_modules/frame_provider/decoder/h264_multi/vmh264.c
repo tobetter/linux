@@ -59,6 +59,7 @@
 #include "../utils/config_parser.h"
 #include "../../../amvdec_ports/vdec_drv_base.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
+#include <linux/crc32.h>
 
 #undef pr_info
 #define pr_info printk
@@ -5113,9 +5114,15 @@ static void vmh264_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (hw->chunk && hw->chunk->block &&
 			hw->chunk->size > 0) {
-			u8 *data =
-			((u8 *)hw->chunk->block->start_virt) +
-				hw->chunk->offset;
+			u8 *data = NULL;
+
+			if (!hw->chunk->block->is_mapped)
+				data = codec_mm_vmap(hw->chunk->block->start +
+					hw->chunk->offset, hw->chunk->size);
+			else
+				data = ((u8 *)hw->chunk->block->start_virt)
+					+ hw->chunk->offset;
+
 			dpb_print(DECODE_ID(hw), 0,
 				"frame data size 0x%x\n",
 				hw->chunk->size);
@@ -5132,6 +5139,9 @@ static void vmh264_dump_state(struct vdec_s *vdec)
 					PRINT_FRAMEBASE_DATA,
 						"\n");
 			}
+
+			if (!hw->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 }
@@ -6540,9 +6550,17 @@ static void vh264_work(struct work_struct *work)
 			if (dpb_is_debug(DECODE_ID(hw),
 				PRINT_FRAMEBASE_DATA)) {
 				int jj;
-				u8 *data =
-				((u8 *)hw->chunk->block->start_virt) +
-					hw->chunk->offset;
+				u8 *data = NULL;
+
+				if (!hw->chunk->block->is_mapped)
+					data = codec_mm_vmap(
+						hw->chunk->block->start +
+						hw->chunk->offset, r);
+				else
+					data = ((u8 *)
+						hw->chunk->block->start_virt)
+						+ hw->chunk->offset;
+
 				for (jj = 0; jj < r; jj++) {
 					if ((jj & 0xf) == 0)
 						dpb_print(DECODE_ID(hw),
@@ -6556,6 +6574,9 @@ static void vh264_work(struct work_struct *work)
 						PRINT_FRAMEBASE_DATA,
 							"\n");
 				}
+
+				if (!hw->chunk->block->is_mapped)
+					codec_mm_unmap_phyaddr(data);
 			}
 			WRITE_VREG(POWER_CTL_VLD,
 				READ_VREG(POWER_CTL_VLD) |
@@ -6755,10 +6776,20 @@ static unsigned char get_data_check_sum
 {
 	int jj;
 	int sum = 0;
-	u8 *data = ((u8 *)hw->chunk->block->start_virt) +
-		hw->chunk->offset;
+	u8 *data = NULL;
+
+	if (!hw->chunk->block->is_mapped)
+		data = codec_mm_vmap(hw->chunk->block->start +
+			hw->chunk->offset, size);
+	else
+		data = ((u8 *)hw->chunk->block->start_virt)
+			+ hw->chunk->offset;
+
 	for (jj = 0; jj < size; jj++)
 		sum += data[jj];
+
+	if (!hw->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 	return sum;
 }
 
@@ -6831,8 +6862,15 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 #endif
 
 	if (input_frame_based(vdec)) {
-		u8 *data = ((u8 *)hw->chunk->block->start_virt) +
-			hw->chunk->offset;
+		u8 *data = NULL;
+
+		if (!hw->chunk->block->is_mapped)
+			data = codec_mm_vmap(hw->chunk->block->start +
+				hw->chunk->offset, size);
+		else
+			data = ((u8 *)hw->chunk->block->start_virt)
+				+ hw->chunk->offset;
+
 		if (dpb_is_debug(DECODE_ID(hw),
 			PRINT_FLAG_VDEC_STATUS)
 			) {
@@ -6848,9 +6886,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			PRINT_FRAMEBASE_DATA)
 			) {
 			int jj;
-			u8 *data =
-			((u8 *)hw->chunk->block->start_virt) +
-				hw->chunk->offset;
+
 			for (jj = 0; jj < size; jj++) {
 				if ((jj & 0xf) == 0)
 					dpb_print(DECODE_ID(hw),
@@ -6866,6 +6902,8 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			}
 		}
 
+		if (!hw->chunk->block->is_mapped)
+			codec_mm_unmap_phyaddr(data);
 	} else
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
 			"%s: %x %x %x %x %x size 0x%x\n",
@@ -6923,7 +6961,9 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		return;
 	}
 	if (input_frame_based(vdec)) {
-		int decode_size = hw->chunk->size +
+		int decode_size = 0;
+
+		decode_size = hw->chunk->size +
 			(hw->chunk->offset & (VDEC_FIFO_ALIGN - 1));
 		WRITE_VREG(H264_DECODE_INFO, (1<<13));
 		WRITE_VREG(H264_DECODE_SIZE, decode_size);
@@ -7361,6 +7401,18 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 			dma_sync_single_for_device(amports_get_dma_device(),
 				hw->cma_alloc_addr,
 				V_BUF_ADDR_OFFSET, DMA_TO_DEVICE);
+		} else {
+			tmpbuf = codec_mm_vmap(hw->cma_alloc_addr,
+				V_BUF_ADDR_OFFSET);
+			if (tmpbuf) {
+				memset(tmpbuf, 0, V_BUF_ADDR_OFFSET);
+				dma_sync_single_for_device(
+					amports_get_dma_device(),
+					hw->cma_alloc_addr,
+					V_BUF_ADDR_OFFSET,
+					DMA_TO_DEVICE);
+				codec_mm_unmap_phyaddr(tmpbuf);
+			}
 		}
 #else
 		/*init sps/pps internal buf 64k*/

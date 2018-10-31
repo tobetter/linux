@@ -1738,12 +1738,13 @@ static int vmpeg12_canvas_init(void)
 				= (u32)buf_start;
 
 				ccbuf_phyAddress_virt
-				= codec_mm_phys_to_virt(ccbuf_phyAddress);
+					= codec_mm_phys_to_virt(
+						ccbuf_phyAddress);
 				if (!ccbuf_phyAddress_virt) {
 					ccbuf_phyAddress_virt
-					= ioremap_nocache(
-					ccbuf_phyAddress,
-					CCBUF_SIZE);
+						= codec_mm_vmap(
+							ccbuf_phyAddress,
+							CCBUF_SIZE);
 					ccbuf_phyAddress_is_remaped_nocache = 1;
 				}
 			}
@@ -1899,7 +1900,7 @@ static void vmpeg12_local_init(void)
 			p_userdata_mgr = NULL;
 		}
 		if (ccbuf_phyAddress_is_remaped_nocache)
-			iounmap(ccbuf_phyAddress_virt);
+			codec_mm_unmap_phyaddr(ccbuf_phyAddress_virt);
 		ccbuf_phyAddress_virt = NULL;
 		ccbuf_phyAddress = 0;
 		ccbuf_phyAddress_is_remaped_nocache = 0;
@@ -2112,7 +2113,7 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 
 	amvdec_disable();
 	if (ccbuf_phyAddress_is_remaped_nocache)
-		iounmap(ccbuf_phyAddress_virt);
+		codec_mm_unmap_phyaddr(ccbuf_phyAddress_virt);
 
 	ccbuf_phyAddress_virt = NULL;
 	ccbuf_phyAddress = 0;

@@ -3232,70 +3232,87 @@ static void init_buff_spec(struct VP9Decoder_s *pbi,
 		buf_spec->lmem.buf_start +
 		buf_spec->lmem.buf_size;
 
-	if (pbi) {
+	if (!pbi)
+		return;
+
+	if (!vdec_secure(hw_to_vdec(pbi))) {
 		mem_start_virt =
 			codec_mm_phys_to_virt(buf_spec->dblk_para.buf_start);
 		if (mem_start_virt) {
-			memset(mem_start_virt, 0, buf_spec->dblk_para.buf_size);
+			memset(mem_start_virt, 0,
+				buf_spec->dblk_para.buf_size);
 			codec_mm_dma_flush(mem_start_virt,
 				buf_spec->dblk_para.buf_size,
 				DMA_TO_DEVICE);
 		} else {
-			/*not virt for tvp playing,
-			may need clear on ucode.*/
-			pr_err("mem_start_virt failed\n");
-		}
-		if (debug) {
-			pr_info("%s workspace (%x %x) size = %x\n", __func__,
-				   buf_spec->start_adr, buf_spec->end_adr,
-				   buf_spec->end_adr - buf_spec->start_adr);
-		}
-		if (debug) {
-			pr_info("ipp.buf_start             :%x\n",
-				   buf_spec->ipp.buf_start);
-			pr_info("sao_abv.buf_start          :%x\n",
-				   buf_spec->sao_abv.buf_start);
-			pr_info("sao_vb.buf_start          :%x\n",
-				   buf_spec->sao_vb.buf_start);
-			pr_info("short_term_rps.buf_start  :%x\n",
-				   buf_spec->short_term_rps.buf_start);
-			pr_info("vps.buf_start             :%x\n",
-				   buf_spec->vps.buf_start);
-			pr_info("sps.buf_start             :%x\n",
-				   buf_spec->sps.buf_start);
-			pr_info("pps.buf_start             :%x\n",
-				   buf_spec->pps.buf_start);
-			pr_info("sao_up.buf_start          :%x\n",
-				   buf_spec->sao_up.buf_start);
-			pr_info("swap_buf.buf_start        :%x\n",
-				   buf_spec->swap_buf.buf_start);
-			pr_info("swap_buf2.buf_start       :%x\n",
-				   buf_spec->swap_buf2.buf_start);
-			pr_info("scalelut.buf_start        :%x\n",
-				   buf_spec->scalelut.buf_start);
-			pr_info("dblk_para.buf_start       :%x\n",
-				   buf_spec->dblk_para.buf_start);
-			pr_info("dblk_data.buf_start       :%x\n",
-				   buf_spec->dblk_data.buf_start);
-			pr_info("seg_map.buf_start       :%x\n",
-				buf_spec->seg_map.buf_start);
-		if (pbi->mmu_enable) {
-			pr_info("mmu_vbh.buf_start     :%x\n",
-				buf_spec->mmu_vbh.buf_start);
-		}
-			pr_info("mpred_above.buf_start     :%x\n",
-				   buf_spec->mpred_above.buf_start);
-#ifdef MV_USE_FIXED_BUF
-			pr_info("mpred_mv.buf_start        :%x\n",
-				   buf_spec->mpred_mv.buf_start);
-#endif
-			if ((debug & VP9_DEBUG_SEND_PARAM_WITH_REG) == 0) {
-				pr_info("rpm.buf_start             :%x\n",
-					   buf_spec->rpm.buf_start);
+			mem_start_virt = codec_mm_vmap(
+				buf_spec->dblk_para.buf_start,
+				buf_spec->dblk_para.buf_size);
+			if (mem_start_virt) {
+				memset(mem_start_virt, 0,
+					buf_spec->dblk_para.buf_size);
+				codec_mm_dma_flush(mem_start_virt,
+					buf_spec->dblk_para.buf_size,
+					DMA_TO_DEVICE);
+				codec_mm_unmap_phyaddr(mem_start_virt);
+			} else {
+				/*not virt for tvp playing,
+				may need clear on ucode.*/
+				pr_err("mem_start_virt failed\n");
 			}
 		}
 	}
 
+	if (debug) {
+		pr_info("%s workspace (%x %x) size = %x\n", __func__,
+			   buf_spec->start_adr, buf_spec->end_adr,
+			   buf_spec->end_adr - buf_spec->start_adr);
+	}
+
+	if (debug) {
+		pr_info("ipp.buf_start             :%x\n",
+			   buf_spec->ipp.buf_start);
+		pr_info("sao_abv.buf_start          :%x\n",
+			   buf_spec->sao_abv.buf_start);
+		pr_info("sao_vb.buf_start          :%x\n",
+			   buf_spec->sao_vb.buf_start);
+		pr_info("short_term_rps.buf_start  :%x\n",
+			   buf_spec->short_term_rps.buf_start);
+		pr_info("vps.buf_start             :%x\n",
+			   buf_spec->vps.buf_start);
+		pr_info("sps.buf_start             :%x\n",
+			   buf_spec->sps.buf_start);
+		pr_info("pps.buf_start             :%x\n",
+			   buf_spec->pps.buf_start);
+		pr_info("sao_up.buf_start          :%x\n",
+			   buf_spec->sao_up.buf_start);
+		pr_info("swap_buf.buf_start        :%x\n",
+			   buf_spec->swap_buf.buf_start);
+		pr_info("swap_buf2.buf_start       :%x\n",
+			   buf_spec->swap_buf2.buf_start);
+		pr_info("scalelut.buf_start        :%x\n",
+			   buf_spec->scalelut.buf_start);
+		pr_info("dblk_para.buf_start       :%x\n",
+			   buf_spec->dblk_para.buf_start);
+		pr_info("dblk_data.buf_start       :%x\n",
+			   buf_spec->dblk_data.buf_start);
+		pr_info("seg_map.buf_start       :%x\n",
+			buf_spec->seg_map.buf_start);
+	if (pbi->mmu_enable) {
+		pr_info("mmu_vbh.buf_start     :%x\n",
+			buf_spec->mmu_vbh.buf_start);
+	}
+		pr_info("mpred_above.buf_start     :%x\n",
+			   buf_spec->mpred_above.buf_start);
+#ifdef MV_USE_FIXED_BUF
+		pr_info("mpred_mv.buf_start        :%x\n",
+			   buf_spec->mpred_mv.buf_start);
+#endif
+		if ((debug & VP9_DEBUG_SEND_PARAM_WITH_REG) == 0) {
+			pr_info("rpm.buf_start             :%x\n",
+				   buf_spec->rpm.buf_start);
+		}
+	}
 }
 
 /* cache_util.c */
@@ -8405,20 +8422,37 @@ static unsigned char get_data_check_sum
 {
 	int jj;
 	int sum = 0;
-	u8 *data = ((u8 *)pbi->chunk->block->start_virt) +
-		pbi->chunk->offset;
+	u8 *data = NULL;
+
+	if (!pbi->chunk->block->is_mapped)
+		data = codec_mm_vmap(pbi->chunk->block->start +
+			pbi->chunk->offset, size);
+	else
+		data = ((u8 *)pbi->chunk->block->start_virt) +
+			pbi->chunk->offset;
+
 	for (jj = 0; jj < size; jj++)
 		sum += data[jj];
+
+	if (!pbi->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 	return sum;
 }
 
 static void dump_data(struct VP9Decoder_s *pbi, int size)
 {
 	int jj;
-	u8 *data = ((u8 *)pbi->chunk->block->start_virt) +
-		pbi->chunk->offset;
+	u8 *data = NULL;
 	int padding_size = pbi->chunk->offset &
 		(VDEC_FIFO_ALIGN - 1);
+
+	if (!pbi->chunk->block->is_mapped)
+		data = codec_mm_vmap(pbi->chunk->block->start +
+			pbi->chunk->offset, size);
+	else
+		data = ((u8 *)pbi->chunk->block->start_virt) +
+			pbi->chunk->offset;
+
 	vp9_print(pbi, 0, "padding: ");
 	for (jj = padding_size; jj > 0; jj--)
 		vp9_print_cont(pbi,
@@ -8443,6 +8477,9 @@ static void dump_data(struct VP9Decoder_s *pbi, int size)
 	vp9_print(pbi,
 	 0,
 		"\n");
+
+	if (!pbi->chunk->block->is_mapped)
+		codec_mm_unmap_phyaddr(data);
 }
 
 static void vp9_work(struct work_struct *work)
@@ -8769,13 +8806,23 @@ static void run_front(struct vdec_s *vdec)
 		READ_VREG(HEVC_STREAM_RD_PTR),
 		pbi->start_shift_bytes);
 		if (vdec_frame_based(vdec) && pbi->chunk) {
-			u8 *data = ((u8 *)pbi->chunk->block->start_virt) +
-				pbi->chunk->offset;
+			u8 *data = NULL;
+
+			if (!pbi->chunk->block->is_mapped)
+				data = codec_mm_vmap(pbi->chunk->block->start +
+					pbi->chunk->offset, 8);
+			else
+				data = ((u8 *)pbi->chunk->block->start_virt) +
+					pbi->chunk->offset;
+
 			vp9_print_cont(pbi, 0, "data adr %p:",
 				data);
 			for (ii = 0; ii < 8; ii++)
 				vp9_print_cont(pbi, 0, "%02x ",
 					data[ii]);
+
+			if (!pbi->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 		vp9_print_cont(pbi, 0, "\r\n");
 	}
@@ -9133,9 +9180,16 @@ static void vp9_dump_state(struct vdec_s *vdec)
 		int jj;
 		if (pbi->chunk && pbi->chunk->block &&
 			pbi->chunk->size > 0) {
-			u8 *data =
-			((u8 *)pbi->chunk->block->start_virt) +
-				pbi->chunk->offset;
+			u8 *data = NULL;
+
+			if (!pbi->chunk->block->is_mapped)
+				data = codec_mm_vmap(
+					pbi->chunk->block->start +
+					pbi->chunk->offset,
+					pbi->chunk->size);
+			else
+				data = ((u8 *)pbi->chunk->block->start_virt)
+					+ pbi->chunk->offset;
 			vp9_print(pbi, 0,
 				"frame data size 0x%x\n",
 				pbi->chunk->size);
@@ -9149,6 +9203,9 @@ static void vp9_dump_state(struct vdec_s *vdec)
 					vp9_print_cont(pbi, 0,
 						"\n");
 			}
+
+			if (!pbi->chunk->block->is_mapped)
+				codec_mm_unmap_phyaddr(data);
 		}
 	}
 
