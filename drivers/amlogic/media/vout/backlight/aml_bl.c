@@ -2288,12 +2288,34 @@ static struct notifier_block aml_bl_off_nb = {
 	.priority = LCD_PRIORITY_POWER_BL_OFF,
 };
 
+static inline int aml_bl_pwm_vs_lcd_update(struct bl_pwm_config_s *bl_pwm)
+{
+	unsigned int cnt;
+
+	if (bl_pwm == NULL) {
+		BLERR("%s: bl_pwm is null\n", __func__);
+		return 0;
+	}
+
+	cnt = bl_vcbus_read(ENCL_VIDEO_MAX_LNCNT) + 1;
+	if (cnt != bl_pwm->pwm_cnt) {
+		bl_pwm_config_init(bl_pwm);
+		if (brightness_bypass)
+			bl_set_duty_pwm(bl_pwm);
+		else
+			aml_bl_update_status(bl_drv->bldev);
+	}
+
+	return 0;
+}
+
 static int aml_bl_lcd_update_notifier(struct notifier_block *nb,
 		unsigned long event, void *data)
 {
 	struct bl_pwm_config_s *bl_pwm = NULL;
 #ifdef CONFIG_AMLOGIC_LOCAL_DIMMING
 	struct aml_ldim_driver_s *ldim_drv = aml_ldim_get_driver();
+	unsigned int *frame_rate;
 #endif
 
 	/* If we aren't interested in this event, skip it immediately */
@@ -2308,13 +2330,8 @@ static int aml_bl_lcd_update_notifier(struct notifier_block *nb,
 	case BL_CTRL_PWM:
 		if (bl_drv->bconf->bl_pwm->pwm_port == BL_PWM_VS) {
 			bl_pwm = bl_drv->bconf->bl_pwm;
-			if (bl_pwm) {
-				bl_pwm_config_init(bl_pwm);
-				if (brightness_bypass)
-					bl_set_duty_pwm(bl_pwm);
-				else
-					aml_bl_update_status(bl_drv->bldev);
-			}
+			if (bl_pwm)
+				aml_bl_pwm_vs_lcd_update(bl_pwm);
 		}
 		break;
 	case BL_CTRL_PWM_COMBO:
@@ -2322,16 +2339,16 @@ static int aml_bl_lcd_update_notifier(struct notifier_block *nb,
 			bl_pwm = bl_drv->bconf->bl_pwm_combo0;
 		else if (bl_drv->bconf->bl_pwm_combo1->pwm_port == BL_PWM_VS)
 			bl_pwm = bl_drv->bconf->bl_pwm_combo1;
-		if (bl_pwm) {
-			bl_pwm_config_init(bl_pwm);
-			if (brightness_bypass)
-				bl_set_duty_pwm(bl_pwm);
-			else
-				aml_bl_update_status(bl_drv->bldev);
-		}
+		if (bl_pwm)
+			aml_bl_pwm_vs_lcd_update(bl_pwm);
 		break;
 #ifdef CONFIG_AMLOGIC_LOCAL_DIMMING
 	case BL_CTRL_LOCAL_DIMMING:
+		if (data) {
+			frame_rate = (unsigned int *)data;
+			ldim_drv->vsync_change_flag =
+				(unsigned char)(*frame_rate);
+		}
 		if (ldim_drv->pwm_vs_update)
 			ldim_drv->pwm_vs_update();
 		break;

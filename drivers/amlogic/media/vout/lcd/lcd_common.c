@@ -1066,7 +1066,7 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 
 void lcd_venc_change(struct lcd_config_s *pconf)
 {
-	unsigned int htotal, vtotal;
+	unsigned int htotal, vtotal, frame_rate;
 
 	htotal = lcd_vcbus_read(ENCL_VIDEO_MAX_PXCNT) + 1;
 	vtotal = lcd_vcbus_read(ENCL_VIDEO_MAX_LNCNT) + 1;
@@ -1084,8 +1084,10 @@ void lcd_venc_change(struct lcd_config_s *pconf)
 			pconf->lcd_basic.v_period);
 	}
 
-	if (pconf->lcd_basic.v_period != vtotal)
-		aml_lcd_notifier_call_chain(LCD_EVENT_BACKLIGHT_UPDATE, NULL);
+	frame_rate = (pconf->lcd_timing.sync_duration_num * 100) /
+		pconf->lcd_timing.sync_duration_den;
+	frame_rate = (frame_rate + 50) / 100;
+	aml_lcd_notifier_call_chain(LCD_EVENT_BACKLIGHT_UPDATE, &frame_rate);
 }
 
 void lcd_if_enable_retry(struct lcd_config_s *pconf)

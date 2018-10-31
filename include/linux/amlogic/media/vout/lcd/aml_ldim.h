@@ -92,6 +92,7 @@ struct aml_ldim_driver_s {
 	unsigned char valid_flag;
 	unsigned char dev_index;
 	unsigned char static_pic_flag;
+	unsigned char vsync_change_flag;
 	unsigned char pinmux_flag;
 
 	struct ldim_config_s *ldim_conf;

@@ -321,12 +321,21 @@ static int ldim_pwm_pinmux_ctrl(int status)
 
 static int ldim_pwm_vs_update(void)
 {
-	struct bl_pwm_config_s *bl_pwm = NULL;
+	struct bl_pwm_config_s *bl_pwm = &ldim_dev_config.pwm_config;
+	unsigned int cnt;
 	int ret = 0;
 
-	bl_pwm = &ldim_dev_config.pwm_config;
-	bl_pwm_config_init(bl_pwm);
-	ldim_set_duty_pwm(bl_pwm);
+	if (bl_pwm->pwm_port != BL_PWM_VS)
+		return 0;
+
+	if (ldim_debug_print)
+		LDIMPR("%s\n", __func__);
+
+	cnt = bl_vcbus_read(ENCL_VIDEO_MAX_LNCNT) + 1;
+	if (cnt != bl_pwm->pwm_cnt) {
+		bl_pwm_config_init(bl_pwm);
+		ldim_set_duty_pwm(bl_pwm);
+	}
 
 	return ret;
 }
@@ -466,9 +475,11 @@ static void ldim_dev_config_print(void)
 	LDIMPR("%s:\n", __func__);
 
 	pr_info("valid_flag            = %d\n"
-		"dev_index             = %d\n",
+		"dev_index             = %d\n"
+		"vsync_change_flag     = %d\n",
 		ldim_drv->valid_flag,
-		ldim_drv->dev_index);
+		ldim_drv->dev_index,
+		ldim_drv->vsync_change_flag);
 	if (ldim_drv->ldev_conf == NULL) {
 		LDIMERR("%s: device config is null\n", __func__);
 		return;

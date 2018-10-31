@@ -1745,6 +1745,7 @@ static struct aml_ldim_driver_s ldim_driver = {
 	.valid_flag = 0, /* default invalid, active when bl_ctrl_method=ldim */
 	.dev_index = 0xff,
 	.static_pic_flag = 0,
+	.vsync_change_flag = 0,
 	.pinmux_flag = 0xff,
 	.ldim_conf = &ldim_config,
 	.ldev_conf = NULL,
