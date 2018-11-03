@@ -113,7 +113,7 @@
 #define H264_MMU
 #define VIDEO_SIGNAL_TYPE_AVAILABLE_MASK	0x20000000
 static int mmu_enable;
-static int force_enable_mmu = 1;
+static int force_enable_mmu;
 unsigned int h264_debug_flag; /* 0xa0000000; */
 unsigned int h264_debug_mask = 0xff;
 	/*
@@ -129,6 +129,8 @@ static unsigned int fixed_frame_rate_mode;
 static unsigned int error_recovery_mode_in;
 static int start_decode_buf_level = 0x8000;
 static int pre_decode_buf_level = 0x1000;
+static int stream_mode_start_num = 4;
+
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 /*to make reorder size difference of bl and el not too big*/
 static unsigned int reorder_dpb_size_margin_dv = 16;
@@ -6670,6 +6672,15 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
 
+	/*
+	if (hw->mmu_enable && vdec_stream_based(vdec)) {
+		if( (pts_get_rec_num(PTS_TYPE_VIDEO,
+			vdec->input.total_rd_count) < stream_mode_start_num)) {
+			vdec->need_more_data |= VDEC_NEED_MORE_DATA;
+			return false;
+		}
+		vdec->need_more_data &= ~VDEC_NEED_MORE_DATA;
+	}*/
 
 	if (vdec_stream_based(vdec) && (hw->init_flag == 0)
 		&& pre_decode_buf_level != 0) {
@@ -7662,6 +7673,8 @@ MODULE_PARM_DESC(force_enable_mmu, "\n force_enable_mmu\n");
 module_param(again_threshold, uint, 0664);
 MODULE_PARM_DESC(again_threshold, "\n again_threshold\n");
 
+module_param(stream_mode_start_num, uint, 0664);
+MODULE_PARM_DESC(stream_mode_start_num, "\n stream_mode_start_num\n");
 
 /*
 module_param(trigger_task, uint, 0664);
