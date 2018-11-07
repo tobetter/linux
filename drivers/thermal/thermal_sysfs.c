@@ -21,6 +21,8 @@
 
 #include "thermal_core.h"
 
+#define TRIP_ATTR_NUM 4
+
 /* sys I/F for thermal zone */
 
 static ssize_t
@@ -164,6 +166,28 @@ trip_point_temp_show(struct device *dev, struct device_attribute *attr,
 		return ret;
 
 	return sprintf(buf, "%d\n", temperature);
+}
+
+static ssize_t
+trip_point_irq_mode_show(struct device *dev, struct device_attribute *attr,
+			 char *buf)
+{
+	struct thermal_zone_device *tz = to_thermal_zone(dev);
+	int trip, ret;
+	bool mode;
+
+	if (!tz->ops->get_trip_irq_mode)
+		return -EPERM;
+
+	if (sscanf(attr->attr.name, "trip_point_%d_irq", &trip) != 1)
+		return -EINVAL;
+
+	ret = tz->ops->get_trip_irq_mode(tz, trip, &mode);
+
+	if (ret)
+		return ret;
+
+	return sprintf(buf, "%d\n", mode);
 }
 
 static ssize_t
@@ -520,10 +544,19 @@ static int create_trip_attrs(struct thermal_zone_device *tz, int mask)
 	if (!tz->trip_type_attrs)
 		return -ENOMEM;
 
+	tz->trip_irq_mode_attrs = kcalloc(tz->trips,
+					  sizeof(*tz->trip_irq_mode_attrs),
+					  GFP_KERNEL);
+	if (!tz->trip_irq_mode_attrs) {
+		kfree(tz->trip_type_attrs);
+		return -ENOMEM;
+	}
+
 	tz->trip_temp_attrs = kcalloc(tz->trips, sizeof(*tz->trip_temp_attrs),
 				      GFP_KERNEL);
 	if (!tz->trip_temp_attrs) {
 		kfree(tz->trip_type_attrs);
+		kfree(tz->trip_irq_mode_attrs);
 		return -ENOMEM;
 	}
 
@@ -533,14 +566,17 @@ static int create_trip_attrs(struct thermal_zone_device *tz, int mask)
 					      GFP_KERNEL);
 		if (!tz->trip_hyst_attrs) {
 			kfree(tz->trip_type_attrs);
+			kfree(tz->trip_irq_mode_attrs);
 			kfree(tz->trip_temp_attrs);
 			return -ENOMEM;
 		}
 	}
 
-	attrs = kcalloc(tz->trips * 3 + 1, sizeof(*attrs), GFP_KERNEL);
+	attrs = kcalloc(tz->trips * TRIP_ATTR_NUM + 1, sizeof(*attrs),
+			GFP_KERNEL);
 	if (!attrs) {
 		kfree(tz->trip_type_attrs);
+		kfree(tz->trip_irq_mode_attrs);
 		kfree(tz->trip_temp_attrs);
 		if (tz->ops->get_trip_hyst)
 			kfree(tz->trip_hyst_attrs);
@@ -558,6 +594,19 @@ static int create_trip_attrs(struct thermal_zone_device *tz, int mask)
 		tz->trip_type_attrs[indx].attr.attr.mode = S_IRUGO;
 		tz->trip_type_attrs[indx].attr.show = trip_point_type_show;
 		attrs[indx] = &tz->trip_type_attrs[indx].attr.attr;
+
+		/* create trip irq_mode attribute */
+		snprintf(tz->trip_irq_mode_attrs[indx].name,
+			 THERMAL_NAME_LENGTH, "trip_point_%d_irq", indx);
+
+		sysfs_attr_init(&tz->trip_irq_mode_attrs[indx].attr.attr);
+		tz->trip_irq_mode_attrs[indx].attr.attr.name =
+			tz->trip_irq_mode_attrs[indx].name;
+		tz->trip_irq_mode_attrs[indx].attr.attr.mode = S_IRUGO;
+		tz->trip_irq_mode_attrs[indx].attr.show =
+			trip_point_irq_mode_show;
+		attrs[indx + tz->trips * 3] =
+			&tz->trip_irq_mode_attrs[indx].attr.attr;
 
 		/* create trip temp attribute */
 		snprintf(tz->trip_temp_attrs[indx].name, THERMAL_NAME_LENGTH,
@@ -595,7 +644,7 @@ static int create_trip_attrs(struct thermal_zone_device *tz, int mask)
 		attrs[indx + tz->trips * 2] =
 					&tz->trip_hyst_attrs[indx].attr.attr;
 	}
-	attrs[tz->trips * 3] = NULL;
+	attrs[tz->trips * TRIP_ATTR_NUM] = NULL;
 
 	tz->trips_attribute_group.attrs = attrs;
 
