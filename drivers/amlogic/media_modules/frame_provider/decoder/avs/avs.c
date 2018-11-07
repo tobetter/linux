@@ -21,6 +21,7 @@
 #include <linux/interrupt.h>
 #include <linux/timer.h>
 #include <linux/kfifo.h>
+#include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/amlogic/media/utils/amstream.h>
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
@@ -1200,6 +1201,8 @@ static void vavs_local_reset(void)
 	recover_flag = 1;
 	pr_info("error, local reset\n");
 	amvdec_stop();
+	msleep(20);
+	vdec_reset_core(NULL);
 	vf_notify_receiver(PROVIDER_NAME, VFRAME_EVENT_PROVIDER_RESET, NULL);
 	vavs_local_init();
 	vavs_recover();
@@ -1506,6 +1509,8 @@ static s32 vavs_init(void)
 
 	amvdec_enable();
 
+	vdec_enable_DMC(NULL);
+
 	vavs_local_init();
 
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXM)
@@ -1755,7 +1760,9 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 		user_data_buffer_phys = 0;
 	}
 #endif
+
 	amvdec_disable();
+	vdec_disable_DMC(NULL);
 
 	pic_type = 0;
 	if (mm_blk_handle) {
