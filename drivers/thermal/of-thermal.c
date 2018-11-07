@@ -315,6 +315,20 @@ static int of_thermal_get_trip_type(struct thermal_zone_device *tz, int trip,
 	return 0;
 }
 
+static int
+of_thermal_get_trip_irq_mode(struct thermal_zone_device *tz, int trip,
+			     bool *mode)
+{
+	struct __thermal_zone *data = tz->devdata;
+
+	if (trip >= data->ntrips || trip < 0)
+		return -EDOM;
+
+	*mode = data->trips[trip].irq_mode;
+
+	return 0;
+}
+
 static int of_thermal_get_trip_temp(struct thermal_zone_device *tz, int trip,
 				    int *temp)
 {
@@ -397,6 +411,7 @@ static struct thermal_zone_device_ops of_thermal_ops = {
 	.set_mode = of_thermal_set_mode,
 
 	.get_trip_type = of_thermal_get_trip_type,
+	.get_trip_irq_mode = of_thermal_get_trip_irq_mode,
 	.get_trip_temp = of_thermal_get_trip_temp,
 	.set_trip_temp = of_thermal_set_trip_temp,
 	.get_trip_hyst = of_thermal_get_trip_hyst,
@@ -829,6 +844,8 @@ static int thermal_of_populate_trip(struct device_node *np,
 		pr_err("wrong trip type property\n");
 		return ret;
 	}
+
+	trip->irq_mode = of_property_read_bool(np, "irq-mode");
 
 	/* Required for cooling map matching */
 	trip->np = np;
