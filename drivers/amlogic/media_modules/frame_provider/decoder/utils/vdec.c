@@ -2819,6 +2819,32 @@ int vdec_source_changed(int format, int width, int height, int fps)
 }
 EXPORT_SYMBOL(vdec_source_changed);
 
+void vdec_disable_DMC(struct vdec_s *vdec)
+{
+	/*close first,then wait pedding end,timing suggestion from vlsi*/
+	unsigned long flags;
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+		codec_dmcbus_read(DMC_REQ_CTRL) & (~(1 << 13)));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+
+	while (!(codec_dmcbus_read(DMC_CHAN_STS)
+		& (1 << 13)))
+		;
+}
+EXPORT_SYMBOL(vdec_disable_DMC);
+
+void vdec_enable_DMC(struct vdec_s *vdec)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+	codec_dmcbus_read(DMC_REQ_CTRL) | (1 << 13));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+}
+
+EXPORT_SYMBOL(vdec_enable_DMC);
+
 void vdec_reset_core(struct vdec_s *vdec)
 {
 	unsigned long flags;

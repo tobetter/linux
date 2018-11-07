@@ -407,6 +407,9 @@ extern void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask);
 extern void vdec_set_step_mode(void);
 #endif
 
+extern void vdec_disable_DMC(struct vdec_s *vdec);
+extern void vdec_enable_DMC(struct vdec_s *vdec);
+
 int vdec_read_user_data(struct vdec_s *vdec,
 				struct userdata_param_t *p_userdata_param);
 
