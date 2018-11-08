@@ -26,7 +26,7 @@
 
 
 /*firmware for a special format, to replace the format in the package.*/
-{VIDEO_DECODE,	VIDEO_FW_FILE,	"h265.bin"},
-{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264.bin"},
-{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264_multi.bin"},
+/*{VIDEO_DECODE,	VIDEO_FW_FILE,	"h265.bin"},*/
+/*{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264.bin"},*/
+/*{VIDEO_DECODE,	VIDEO_FW_FILE,	"h264_multi.bin"},*/
 
