@@ -14,7 +14,6 @@
  * more details.
  *
  */
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
@@ -40,8 +39,8 @@
 #include <linux/crc32.h>
 #include "../chips/decoder_cpu_ver_info.h"
 
-/* major.minor.revision */
-#define PACK_VERS "v0.0.1"
+/* major.minor */
+#define PACK_VERS "v0.1"
 
 #define CLASS_NAME	"firmware_codec"
 #define DEV_NAME	"firmware_vdec"
@@ -361,11 +360,12 @@ static ssize_t info_show(struct class *class,
 			- sys_tz.tz_minuteswest * 60;
 		time_to_tm(secs, 0, &tm);
 
-		pr_info("%s %-16s, %02d:%02d:%02d %d/%d/%ld, %s %-8s, %s %s\n",
+		pr_info("%s %-16s, %02d:%02d:%02d %d/%d/%ld, %s %-8s, %s %-8s, %s %s\n",
 			"fmt:", info->data->head.format,
 			tm.tm_hour, tm.tm_min, tm.tm_sec,
 			tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900,
-			"id:", info->data->head.commit,
+			"cmtid:", info->data->head.commit,
+			"chgid:", info->data->head.change_id,
 			"mk:", info->data->head.maker);
 	}
 out:
@@ -448,7 +448,6 @@ static int fw_data_filter(struct firmware_s *fw,
 	int cpu = fw_get_cpu(fw->head.cpu);
 
 	if (mgr->cur_cpu < cpu) {
-		pr_info("the fw %s is not match.\n", fw_info->name);
 		kfree(fw_info);
 		kfree(fw);
 		return -1;
@@ -477,15 +476,18 @@ static int fw_data_filter(struct firmware_s *fw,
 
 		/* the cpu ver is lower and needs to be filtered */
 		if (cpu < fw_get_cpu(info->data->head.cpu)) {
-			pr_info("the fw %s is not match.\n",
-				fw_info->name);
+			if (debug)
+				pr_info("keep the newer fw (%s) and ignore the older fw (%s).\n",
+					info->name, fw_info->name);
 			kfree(fw_info);
 			kfree(fw);
 			return 1;
 		}
 
 		/* removes not match fw from info list */
-		pr_info("the fw %s is not match.\n", info->name);
+		if (debug)
+			pr_info("drop the old fw (%s) will be load the newer fw (%s).\n",
+					info->name, fw_info->name);
 		kfree(info->data);
 		fw_del_info(info);
 	}
@@ -496,30 +498,30 @@ static int fw_data_filter(struct firmware_s *fw,
 static int fw_check_pack_version(char *buf)
 {
 	struct package_s *pack = NULL;
-	int major, minor, rev, ver = 0;
+	int major, minor, major_fw, minor_fw, ver = 0;
 	int ret;
 
 	pack = (struct package_s *) buf;
-	ret = sscanf(PACK_VERS, "v%x.%x.%x", &major, &minor, &rev);
-	if (ret != 3)
+	ret = sscanf(PACK_VERS, "v%x.%x", &major, &minor);
+	if (ret != 2)
 		return -1;
 
-	ver = (major << 24 | minor << 16 | rev);
+	ver = (major << 16 | minor);
 
-	pr_info("the package has %d fws totally.\n", pack->head.total);
+	if (debug)
+		pr_info("the package has %d fws totally.\n", pack->head.total);
 
-	major = pack->head.version >> 24;
-	minor = (pack->head.version >> 16) & 0xf;
-	rev = pack->head.version & 0xff;
+	major_fw = (pack->head.version >> 16) & 0xff;
+	minor_fw = pack->head.version & 0xff;
 
-	if (ver < pack->head.version) {
-		pr_info("the pack ver v%d.%d.%d too higher to unsupport.\n",
-			major, minor, rev);
+	if (major < major_fw) {
+		pr_info("the pack ver v%d.%d too higher to unsupport.\n",
+			major_fw, minor_fw);
 		return -1;
 	}
 
 	if (ver != pack->head.version) {
-		pr_info("the fw pack ver v%d.%d.%d is too lower.\n", major, minor, rev);
+		pr_info("the fw pack ver v%d.%d is too lower.\n", major_fw, minor_fw);
 		pr_info("it may work abnormally so need to be update in time.\n");
 	}
 
@@ -676,13 +678,9 @@ static int fw_data_binding(void)
 		magic = fw_probe(buf);
 
 		if (files->file_type == VIDEO_PACKAGE && magic == PACK) {
-			pr_info("start to parse fw package.\n");
-
 			if (!fw_check_pack_version(buf))
 				ret = fw_package_parse(files, buf, size);
 		} else if (files->file_type == VIDEO_FW_FILE && magic == CODE) {
-			pr_info("start to parse fw code.\n");
-
 			ret = fw_code_parse(files, buf, size);
 		} else {
 			list_del(&files->node);
