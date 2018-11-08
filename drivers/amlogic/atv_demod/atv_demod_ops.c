@@ -73,8 +73,7 @@ void aml_fe_get_atvaudio_state(int *state)
 	/* scan mode need mute */
 	if (priv->state == ATVDEMOD_STATE_WORK
 			&& !priv->scanning
-			&& !priv->standby
-			&& av_status) {
+			&& !priv->standby) {
 		retrieve_vpll_carrier_lock(&vpll_lock);
 		retrieve_vpll_carrier_line_lock(&line_lock);
 		if ((vpll_lock == 0) && (line_lock == 0)) {
@@ -87,9 +86,9 @@ void aml_fe_get_atvaudio_state(int *state)
 		}
 	} else {
 		*state = 0;
-		pr_audio("ATV state[%d], scan[%d], standby[%d], av[%d].\n",
-				priv->state, priv->scanning,
-				priv->standby, av_status);
+		pr_audio("%s, ATV in state[%d], scanning[%d], standby[%d].\n",
+				__func__, priv->state,
+				priv->scanning, priv->standby);
 	}
 
 	/* If the atv signal is locked, it means there is audio data,
@@ -173,9 +172,6 @@ int atv_demod_leave_mode(struct dvb_frontend *fe)
 	struct atv_demod_priv *priv = fe->analog_demod_priv;
 
 	priv->state = ATVDEMOD_STATE_IDEL;
-	priv->standby = true;
-
-	usleep_range(30 * 1000, 30 * 1000 + 100);
 
 	if (priv->afc.disable)
 		priv->afc.disable(&priv->afc);
@@ -287,6 +283,8 @@ static void atv_demod_set_params(struct dvb_frontend *fe,
 		/* for searching mute audio */
 		priv->standby = false;
 	}
+
+	priv->standby = false;
 }
 
 static int atv_demod_has_signal(struct dvb_frontend *fe, u16 *signal)
@@ -390,8 +388,10 @@ static int atv_demod_set_config(struct dvb_frontend *fe, void *priv_cfg)
 
 	case AML_ATVDEMOD_RESUME:
 		if (priv->state == ATVDEMOD_STATE_SLEEP) {
-			if (!atv_demod_enter_mode(fe))
+			if (!atv_demod_enter_mode(fe)) {
 				priv->state = ATVDEMOD_STATE_WORK;
+				priv->standby = false;
+			}
 		}
 		break;
 
