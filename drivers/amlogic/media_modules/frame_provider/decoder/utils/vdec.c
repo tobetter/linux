@@ -2253,6 +2253,7 @@ static int vdec_core_thread(void *data)
 				if ((lastvdec != vdec) && (lastvdec->mc_type != vdec->mc_type))
 					vdec->mc_loaded = 0;/*clear for reload firmware*/
 			}
+			lastvdec = vdec;
 			if (debug & 2)
 				vdec->mc_loaded = 0;/*alway reload firmware*/
 			vdec_set_status(vdec, VDEC_STATUS_ACTIVE);
@@ -2280,6 +2281,7 @@ static int vdec_core_thread(void *data)
 		list_for_each_entry_safe(vdec, tmp, &disconnecting_list, list) {
 			list_del(&vdec->list);
 			vdec_set_status(vdec, VDEC_STATUS_DISCONNECTED);
+			lastvdec = NULL;
 			complete(&vdec->inactive_done);
 		}
 
