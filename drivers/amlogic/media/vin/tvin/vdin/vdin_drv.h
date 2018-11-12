@@ -45,7 +45,7 @@
 #include "vdin_vf.h"
 #include "vdin_regs.h"
 
-#define VDIN_VER "Ref.2018/11/07a"
+#define VDIN_VER "Ref.2018/11/21a"
 
 /*the counter of vdin*/
 #define VDIN_MAX_DEVS			2
@@ -84,6 +84,12 @@
 #define VDIN_BYPASS_CYC_CHECK           0x00000002
 #define VDIN_BYPASS_VGA_CHECK           0x00000008
 #define VDIN_CANVAS_MAX_CNT				9
+
+/*values of vdin game mode process flag */
+#define VDIN_GAME_MODE_0                (1 << 0)
+#define VDIN_GAME_MODE_1                (1 << 1)
+#define VDIN_GAME_MODE_2                (1 << 2)
+#define VDIN_GAME_MODE_SWITCH_EN        (1 << 3)
 
 /*flag for flush vdin buff*/
 #define VDIN_FLAG_BLACK_SCREEN_ON	1
@@ -312,6 +318,8 @@ struct vdin_dev_s {
 	 *game_mode:
 	 *bit0:enable/disable
 	 *bit1:for true bypas and put vframe in advance one vsync
+	 *bit2:for true bypas and put vframe in advance two vsync,
+	 *vdin & vpp read/write same buffer may happen
 	 */
 	unsigned int game_mode;
 	unsigned int rdma_enable;
@@ -330,6 +338,7 @@ struct vdin_dev_s {
 	/*use frame rate to cal duraton*/
 	unsigned int use_frame_rate;
 	unsigned int irq_cnt;
+	unsigned int frame_cnt;
 	unsigned int rdma_irq_cnt;
 	unsigned int vdin_irq_flag;
 	unsigned int vdin_reset_flag;
