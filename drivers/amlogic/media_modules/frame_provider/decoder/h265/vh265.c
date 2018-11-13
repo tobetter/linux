@@ -56,7 +56,9 @@
 			/* .buf_size = 0x100000*16,
 			//4k2k , 0x100000 per buffer */
 			/* 4096x2304 , 0x120000 per buffer */
-#define MPRED_MV_BUF_SIZE		0x120000
+#define MPRED_8K_MV_BUF_SIZE		(0x120000*4)
+#define MPRED_4K_MV_BUF_SIZE		(0x120000)
+#define MPRED_MV_BUF_SIZE		(0x40000)
 
 #define MMU_COMPRESS_HEADER_SIZE  0x48000
 #define MMU_COMPRESS_8K_HEADER_SIZE  (0x48000*4)
@@ -113,9 +115,11 @@
 
 #define DUR2PTS(x) ((x)*90/96)
 
-#define MAX_SIZE_8K ((4096 * 2304) * 2)
+#define MAX_SIZE_8K (8192 * 4608)
 #define MAX_SIZE_4K (4096 * 2304)
 
+#define IS_8K_SIZE(w, h)  (((w) * (h)) > MAX_SIZE_4K)
+#define IS_4K_SIZE(w, h)  (((w) * (h)) > (1920*1088))
 
 #define SEI_UserDataITU_T_T35	4
 
@@ -1044,7 +1048,7 @@ static struct BuffInfo_s amvh265_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 			/* .buf_size = 0x100000*16,
 			//4k2k , 0x100000 per buffer */
 			/* 4096x2304 , 0x120000 per buffer */
-			.buf_size = MPRED_MV_BUF_SIZE * MAX_REF_PIC_NUM,
+			.buf_size = MPRED_4K_MV_BUF_SIZE * MAX_REF_PIC_NUM,
 		},
 #endif
 		.rpm = {
@@ -1105,16 +1109,18 @@ static struct BuffInfo_s amvh265_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		.mmu_vbh = {
 			.buf_size = 0x5000*2, //2*16*2304/4, 4K
 		},
+#if 0
 		.cm_header = {
 			.buf_size = MMU_COMPRESS_8K_HEADER_SIZE *
 				MAX_REF_PIC_NUM, 	// 0x44000 = ((1088*2*1024*4)/32/4)*(32/8)
 		},
+#endif
 		.mpred_above = {
 			.buf_size = 0x8000*2,
 		},
 #ifdef MV_USE_FIXED_BUF
 		.mpred_mv = {
-			.buf_size = MPRED_MV_BUF_SIZE * MAX_REF_PIC_NUM * 4, //4k2k , 0x120000 per buffer
+			.buf_size = MPRED_8K_MV_BUF_SIZE * MAX_REF_PIC_NUM, //4k2k , 0x120000 per buffer
 		},
 #endif
 		.rpm = {
@@ -2274,19 +2280,28 @@ static int alloc_mv_buf(struct hevc_state_s *hevc, int i)
 static int get_mv_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 {
 #ifdef MV_USE_FIXED_BUF
-	if (pic && pic->index >= 0)
-		pic->mpred_mv_wr_start_addr =
-			hevc->work_space_buf->mpred_mv.buf_start
-			+ (pic->index * MPRED_MV_BUF_SIZE);
+	if (pic && pic->index >= 0) {
+		if (IS_8K_SIZE(pic->width, pic->height)) {
+			pic->mpred_mv_wr_start_addr =
+				hevc->work_space_buf->mpred_mv.buf_start
+				+ (pic->index * MPRED_8K_MV_BUF_SIZE);
+		} else {
+			pic->mpred_mv_wr_start_addr =
+				hevc->work_space_buf->mpred_mv.buf_start
+				+ (pic->index * MPRED_4K_MV_BUF_SIZE);
+		}
+	}
 	return 0;
 #else
 	int i;
 	int ret = -1;
 	int new_size;
-	if (pic->width > 1920 || pic->height > 1088)
-		new_size = MPRED_MV_BUF_SIZE + 0x10000; /*0x120000*/
+	if (IS_8K_SIZE(pic->width, pic->height))
+		new_size = MPRED_8K_MV_BUF_SIZE + 0x10000;
+	else if (IS_4K_SIZE(pic->width, pic->height))
+		new_size = MPRED_4K_MV_BUF_SIZE + 0x10000; /*0x120000*/
 	else
-		new_size = 0x40000 + 0x10000;
+		new_size = MPRED_MV_BUF_SIZE + 0x10000;
 	if (new_size != hevc->mv_buf_size) {
 		dealloc_mv_bufs(hevc);
 		hevc->mv_buf_size = new_size;
@@ -2381,7 +2396,8 @@ static int cal_current_buf_size(struct hevc_state_s *hevc,
 	int dw_mode = get_double_write_mode(hevc);
 
 	if (hevc->mmu_enable) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+			(IS_8K_SIZE(hevc->pic_w, hevc->pic_h)))
 			buf_size = ((MMU_COMPRESS_8K_HEADER_SIZE + 0xffff) >> 16)
 				<< 16;
 		else
@@ -2606,7 +2622,8 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 
 	if (hevc->mmu_enable) {
 		pic->header_adr = hevc->m_BUF[i].start_adr;
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+			(IS_8K_SIZE(hevc->pic_w, hevc->pic_h)))
 			y_adr = hevc->m_BUF[i].start_adr +
 				MMU_COMPRESS_8K_HEADER_SIZE;
 		else
