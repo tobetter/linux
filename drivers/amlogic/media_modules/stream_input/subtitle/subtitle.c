@@ -113,9 +113,9 @@ static ssize_t store_curr(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &curr);
-	//r = sscanf(buf, "%d", &curr);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
+
 
 	subtitle_current = curr;
 
@@ -135,8 +135,8 @@ static ssize_t store_index(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &curr);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
 
 	subtitle_index = curr;
 
@@ -158,8 +158,9 @@ static ssize_t store_reset(struct class *class, struct class_attribute *attr,
 	r = kstrtoint(buf, 0, &reset);
 
 	pr_info("reset is %d\n", reset);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
+
 
 	subtitle_reset = reset;
 
@@ -179,8 +180,8 @@ static ssize_t store_type(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &type);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
 
 	subtitle_type = type;
 
@@ -200,8 +201,8 @@ static ssize_t store_width(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &width);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
 
 	subtitle_width = width;
 
@@ -221,8 +222,8 @@ static ssize_t store_height(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &height);
-	/* if ((r != 1)) */
-	/* return -EINVAL; */
+	if (r < 0)
+		return -EINVAL;
 
 	subtitle_height = height;
 
@@ -242,7 +243,7 @@ static ssize_t store_total(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &total);
-	if ((r <= 0))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle num is %d\n", total);
 	subtitle_total = total;
@@ -266,7 +267,7 @@ static ssize_t store_enable(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &mode);
-	if ((r != 1))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle enable is %d\n", mode);
 	subtitle_enable = mode ? 1 : 0;
@@ -290,7 +291,7 @@ static ssize_t store_size(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &ssize);
-	if ((r <= 0))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle size is %d\n", ssize);
 	subtitle_data[subtitle_write_pos].subtitle_size = ssize;
@@ -311,7 +312,7 @@ static ssize_t store_startpts(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &spts);
-	if ((r <= 0))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle start pts is %x\n", spts);
 	subtitle_start_pts = spts;
@@ -370,7 +371,7 @@ static ssize_t store_fps(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &ssize);
-	if ((r <= 0))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle fps is %d\n", ssize);
 	subtitle_fps = ssize;
@@ -391,7 +392,7 @@ static ssize_t store_subtype(struct class *class, struct class_attribute *attr,
 	ssize_t r;
 
 	r = kstrtoint(buf, 0, &ssize);
-	if ((r <= 0))
+	if (r < 0)
 		return -EINVAL;
 	pr_info("subtitle subtype is %d\n", ssize);
 	subtitle_subtype = ssize;

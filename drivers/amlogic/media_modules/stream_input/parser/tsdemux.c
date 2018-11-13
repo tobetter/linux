@@ -47,6 +47,8 @@
 #include <linux/reset.h>
 #include "../amports/amports_priv.h"
 
+#define MAX_DRM_PACKAGE_SIZE 0x500000
+
 
 static const char tsdemux_fetch_id[] = "tsdemux-fetch-id";
 static const char tsdemux_irq_id[] = "tsdemux-irq-id";
@@ -821,7 +823,12 @@ ssize_t drm_tswrite(struct file *file,
 
 	if (drm->drm_flag == TYPE_DRMINFO && drm->drm_level == DRM_LEVEL1) {
 		/* buf only has drminfo not have esdata; */
-		realcount = drm->drm_pktsize;
+		if (drm->drm_pktsize <= MAX_DRM_PACKAGE_SIZE)
+			realcount = drm->drm_pktsize;
+		else {
+			pr_err("drm package size is error, size is %u\n", drm->drm_pktsize);
+			return -EINVAL;
+		}
 		realbuf = drm->drm_phy;
 		isphybuf = 1;
 	} else

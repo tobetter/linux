@@ -61,6 +61,9 @@
 #define PARSER_DISCARD      (ES_DISCARD | ES_PARSER_START)
 #define PARSER_BUSY         (ES_PARSER_BUSY)
 
+#define MAX_DRM_PACKAGE_SIZE 0x500000
+
+
 static unsigned char *search_pattern;
 static dma_addr_t search_pattern_map;
 static u32 audio_real_wp;
@@ -747,6 +750,10 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 	}
 
 	if ((drm->drm_flag & TYPE_DRMINFO) && (drm->drm_hasesdata == 0)) {
+		if (drm->drm_pktsize > MAX_DRM_PACKAGE_SIZE) {
+			pr_err("drm package size is error, size is %u\n", drm->drm_pktsize);
+			return -EINVAL;
+		}
 		/* buf only has drminfo not have esdata; */
 		realbuf = drm->drm_phy;
 		realcount = drm->drm_pktsize;
@@ -757,6 +764,10 @@ ssize_t drm_write(struct file *file, struct stream_buf_s *stbuf,
 		 *drm->drm_hasesdata,stbuf->type,buf);
 		 */
 	} else if (drm->drm_hasesdata == 1) {	/* buf is drminfo+es; */
+		if (drm->drm_pktsize > MAX_DRM_PACKAGE_SIZE) {
+			pr_err("drm package size is error, size is %u\n", drm->drm_pktsize);
+			return -EINVAL;
+		}
 		realcount = drm->drm_pktsize;
 		realbuf = (unsigned long)buf + sizeof(struct drm_info);
 		isphybuf = 0;
