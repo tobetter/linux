@@ -1780,14 +1780,13 @@ void vdec_free_cmabuf(void)
 	mutex_unlock(&vdec_mutex);
 }
 
-int vdec_core_request(struct vdec_s *vdec, unsigned long mask)
+void vdec_core_request(struct vdec_s *vdec, unsigned long mask)
 {
 	vdec->core_mask |= mask;
 
 	if (vdec->slave)
 		vdec->slave->core_mask |= mask;
 
-	return 0;
 }
 EXPORT_SYMBOL(vdec_core_request);
 
