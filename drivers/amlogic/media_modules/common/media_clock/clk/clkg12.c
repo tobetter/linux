@@ -34,6 +34,7 @@
 
 #define MHz (1000000)
 #define debug_print pr_info
+#define TL1_HEVC_MAX_CLK  (800)
 
 //#define  NO_CLKTREE
 
@@ -764,7 +765,10 @@ static int hevc_back_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVCB] == 648)
 		return 648;
-		clk = 667;
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			clk = TL1_HEVC_MAX_CLK;
+		else
+			clk = 667;
 	}
 
 	if (set_frq_enable && hevcb_frq) {
@@ -809,7 +813,10 @@ static int hevc_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVC] == 648)
 			return 648;
-		clk = 667;
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			clk = TL1_HEVC_MAX_CLK;
+		else
+			clk = 667;
 	}
 
 	if (set_frq_enable && hevc_frq) {
@@ -994,14 +1001,15 @@ static int vdec_clock_get(enum vdec_type_e core)
 #define VDEC_HAS_VDEC_HCODEC
 #define VDEC_HAS_CLK_SETTINGS
 #define CLK_FOR_CPU {\
-	MESON_CPU_MAJOR_ID_GXBB,\
-	MESON_CPU_MAJOR_ID_GXTVBB,\
-	MESON_CPU_MAJOR_ID_GXL,\
-	MESON_CPU_MAJOR_ID_GXM,\
-	MESON_CPU_MAJOR_ID_TXL,\
-	MESON_CPU_MAJOR_ID_TXLX,\
-	MESON_CPU_MAJOR_ID_G12A,\
-	MESON_CPU_MAJOR_ID_G12B,\
+	AM_MESON_CPU_MAJOR_ID_GXBB,\
+	AM_MESON_CPU_MAJOR_ID_GXTVBB,\
+	AM_MESON_CPU_MAJOR_ID_GXL,\
+	AM_MESON_CPU_MAJOR_ID_GXM,\
+	AM_MESON_CPU_MAJOR_ID_TXL,\
+	AM_MESON_CPU_MAJOR_ID_TXLX,\
+	AM_MESON_CPU_MAJOR_ID_G12A,\
+	AM_MESON_CPU_MAJOR_ID_G12B,\
+	AM_MESON_CPU_MAJOR_ID_TL1,\
 	0}
 #include "clk.h"
 
