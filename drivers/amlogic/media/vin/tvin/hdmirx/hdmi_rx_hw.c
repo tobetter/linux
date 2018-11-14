@@ -1003,6 +1003,28 @@ else
 	return false;
 }
 
+void rx_afifo_store_all_subpkt(bool all_pkt)
+{
+	static bool flag = true;
+
+	if (all_pkt) {
+		if (log_level & AUDIO_LOG)
+			rx_pr("afifo store all subpkts: %d\n", flag);
+		/* when afifo overflow, try afifo store
+		 * configuration alternatively
+		 */
+		if (flag)
+			hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+				AFIF_SUBPACKETS, 0);
+		else
+			hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+				AFIF_SUBPACKETS, 1);
+		flag = !flag;
+	} else
+		hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+			AFIF_SUBPACKETS, 1);
+}
+
 /*
 * hdmirx_audio_fifo_rst - reset afifo
 */
