@@ -519,6 +519,9 @@ static void vreal_put_timer_func(unsigned long arg)
 
 int vreal_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = vreal_amstream_dec_info.width;
 	vstatus->frame_height = vreal_amstream_dec_info.height;
 	if (0 != vreal_amstream_dec_info.rate)

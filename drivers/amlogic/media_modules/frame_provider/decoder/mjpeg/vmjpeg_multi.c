@@ -384,6 +384,10 @@ static int vmjpeg_vf_states(struct vframe_states *states, void *op_arg)
 static int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mjpeg_hw_s *hw = (struct vdec_mjpeg_hw_s *)vdec->private;
+
+	if (!hw || !(hw->stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = hw->frame_width;
 	vstatus->frame_height = hw->frame_height;
 	if (0 != hw->frame_dur)

@@ -721,6 +721,9 @@ static int vvc1_event_cb(int type, void *data, void *private_data)
 
 int vvc1_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = vvc1_amstream_dec_info.width;
 	vstatus->frame_height = vvc1_amstream_dec_info.height;
 	if (vvc1_amstream_dec_info.rate != 0)

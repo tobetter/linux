@@ -9078,6 +9078,9 @@ int vh265_dec_status(struct vdec_info *vstatus)
 #else
 	struct hevc_state_s *hevc = gHevc;
 #endif
+	if (!hevc || !(hevc->stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = hevc->frame_width;
 	vstatus->frame_height = hevc->frame_height;
 	if (hevc->frame_dur != 0)

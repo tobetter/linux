@@ -740,8 +740,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 int vmpeg4_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
-	if (NULL == gvs)
+	if (!(stat & STAT_VDEC_RUN))
 		return -1;
+
 	vstatus->frame_width = vmpeg4_amstream_dec_info.width;
 	vstatus->frame_height = vmpeg4_amstream_dec_info.height;
 	if (0 != vmpeg4_amstream_dec_info.rate)

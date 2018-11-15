@@ -2263,6 +2263,9 @@ exit:
 
 int vh264_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = frame_width;
 	vstatus->frame_height = frame_height;
 	if (frame_dur != 0)

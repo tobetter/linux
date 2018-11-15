@@ -5443,6 +5443,10 @@ int vavs2_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct AVS2Decoder_s *dec =
 		(struct AVS2Decoder_s *)vdec->private;
+
+	if (!dec || !(dec->stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = dec->frame_width;
 	vstatus->frame_height = dec->frame_height;
 
