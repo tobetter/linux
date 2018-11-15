@@ -956,6 +956,8 @@ bool meson_venc_hdmi_venc_repeat(int vic)
 EXPORT_SYMBOL_GPL(meson_venc_hdmi_venc_repeat);
 
 void meson_venc_hdmi_mode_set(struct meson_drm *priv, int vic,
+			      unsigned int ycrcb_map,
+			      bool yuv420_mode,
 			      struct drm_display_mode *mode)
 {
 	union meson_hdmi_venc_mode *vmode = NULL;
@@ -1506,8 +1508,8 @@ void meson_venc_hdmi_mode_set(struct meson_drm *priv, int vic,
 	writel_relaxed((use_enci ? 1 : 2) |
 		       (mode->flags & DRM_MODE_FLAG_PHSYNC ? 1 << 2 : 0) |
 		       (mode->flags & DRM_MODE_FLAG_PVSYNC ? 1 << 3 : 0) |
-		       4 << 5 |
-		       (venc_repeat ? 1 << 8 : 0) |
+		       (ycrcb_map << 5) |
+		       (venc_repeat || yuv420_mode ? 1 << 8 : 0) |
 		       (hdmi_repeat ? 1 << 12 : 0),
 		       priv->io_base + _REG(VPU_HDMI_SETTING));
 
