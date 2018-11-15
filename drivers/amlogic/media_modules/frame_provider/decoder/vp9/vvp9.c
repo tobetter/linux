@@ -7742,6 +7742,10 @@ int vvp9_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct VP9Decoder_s *vp9 =
 		(struct VP9Decoder_s *)vdec->private;
+
+	if (!vp9 || !(vp9->stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = frame_width;
 	vstatus->frame_height = frame_height;
 	if (vp9->frame_dur != 0)

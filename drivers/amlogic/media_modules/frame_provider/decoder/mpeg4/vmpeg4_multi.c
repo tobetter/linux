@@ -1039,8 +1039,10 @@ static int  vmpeg_vf_states(struct vframe_states *states, void *op_arg)
 static int dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
-	if (NULL == hw)
+
+	if (!hw || !(hw->stat & STAT_VDEC_RUN))
 		return -1;
+
 	vstatus->frame_width = hw->vmpeg4_amstream_dec_info.width;
 	vstatus->frame_height = hw->vmpeg4_amstream_dec_info.height;
 	if (0 != hw->vmpeg4_amstream_dec_info.rate)
