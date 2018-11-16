@@ -253,14 +253,17 @@ dmx_write_reg(int r, u32 v)
 #define WRITE_PERI_REG			WRITE_CBUS_REG
 
 #define READ_ASYNC_FIFO_REG(i, r)\
-	((i) ? READ_PERI_REG(ASYNC_FIFO2_##r) : READ_PERI_REG(ASYNC_FIFO_##r))
+	((i) ? ((i-1)?READ_PERI_REG(ASYNC_FIFO1_##r):\
+	READ_PERI_REG(ASYNC_FIFO2_##r)) : READ_PERI_REG(ASYNC_FIFO_##r))
 
 #define WRITE_ASYNC_FIFO_REG(i, r, d)\
 	do {\
-		if (i == 1) {\
-			WRITE_PERI_REG(ASYNC_FIFO2_##r, d);\
-		} else {\
+		if (i == 2) {\
+			WRITE_PERI_REG(ASYNC_FIFO1_##r, d);\
+		} else if (i == 0) {\
 			WRITE_PERI_REG(ASYNC_FIFO_##r, d);\
+		} else {\
+			WRITE_PERI_REG(ASYNC_FIFO2_##r, d);\
 		} \
 	} while (0)
 
@@ -1481,6 +1484,7 @@ static void dvr_irq_bh_handler(unsigned long arg)
 
 	if (dvb && afifo->source >= AM_DMX_0 && afifo->source < AM_DMX_MAX) {
 		dmx = &dvb->dmx[afifo->source];
+	//	pr_inf("async fifo %d irq, source:%d\n", afifo->id,afifo->source);
 		if (dmx->init && dmx->record) {
 			struct aml_swfilter *sf = &dvb->swfilter;
 			int issf = 0;
@@ -1525,8 +1529,8 @@ static void stb_enable(struct aml_dvb *dvb)
 {
 	int out_src, des_in, en_des, fec_clk, hiu, dec_clk_en;
 	int src, tso_src, i;
-	u32 fec_s0, fec_s1;
-	u32 invert0, invert1;
+	u32 fec_s0, fec_s1,fec_s2;
+	u32 invert0, invert1, invert2;
 	u32 data;
 
 	switch (dvb->stb_source) {
@@ -1554,6 +1558,10 @@ static void stb_enable(struct aml_dvb *dvb)
 		hiu = 0;
 		break;
 	case AM_TS_SRC_TS2:
+		fec_clk = tsfile_clkdiv;
+		hiu = 0;
+		break;
+	case AM_TS_SRC_TS3:
 		fec_clk = tsfile_clkdiv;
 		hiu = 0;
 		break;
@@ -1627,10 +1635,17 @@ static void stb_enable(struct aml_dvb *dvb)
 	case AM_TS_SRC_TS2:
 		out_src = 2;
 		break;
+	case AM_TS_SRC_TS3:
+		out_src = 3;
+		break;
 	case AM_TS_SRC_S_TS0:
-	case AM_TS_SRC_S_TS1:
-	case AM_TS_SRC_S_TS2:
 		out_src = 6;
+		break;
+	case AM_TS_SRC_S_TS1:
+		out_src = 5;
+		break;
+	case AM_TS_SRC_S_TS2:
+		out_src = 4;
 		break;
 	case AM_TS_SRC_HIU:
 		out_src = 7;
@@ -1644,14 +1659,18 @@ static void stb_enable(struct aml_dvb *dvb)
 
 	fec_s0 = 0;
 	fec_s1 = 0;
+	fec_s2 = 0;
 	invert0 = 0;
 	invert1 = 0;
+	invert2 = 0;
 
-	for (i = 0; i < TS_IN_COUNT; i++) {
+	for (i = 0; i < dvb->ts_in_total_count; i++) {
 		if (dvb->ts[i].s2p_id == 0)
 			fec_s0 = i;
 		else if (dvb->ts[i].s2p_id == 1)
 			fec_s1 = i;
+		else if (dvb->ts[i].s2p_id == 2)
+			fec_s2 = i;
 	}
 
 	invert0 = dvb->s2p[0].invert;
@@ -1666,6 +1685,15 @@ static void stb_enable(struct aml_dvb *dvb)
 		       (dec_clk_en << ENABLE_DES_PL_CLK) |
 		       (invert0 << INVERT_S2P0_FEC_CLK) |
 		       (fec_s0 << S2P0_FEC_SERIAL_SEL));
+
+
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TL1) {
+		invert2 = dvb->s2p[2].invert;
+
+		WRITE_MPEG_REG(STB_S2P2_CONFIG,
+		       (invert2 << INVERT_S2P2_FEC_CLK) |
+		       (fec_s2 << S2P2_FEC_SERIAL_SEL));
+	}
 
 	if (dvb->reset_flag)
 		hiu = 0;
@@ -2628,7 +2656,7 @@ static int dmx_get_record_flag(struct aml_dmx *dmx)
 	struct aml_dvb *dvb = (struct aml_dvb *)dmx->demux.priv;
 
 	/*Check whether a async fifo connected to this dmx */
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+	for (i = 0; i < dvb->async_fifo_total_count; i++) {
 		if (!dvb->asyncfifo[i].init)
 			continue;
 		if ((dvb->asyncfifo[i].source == dmx->id)
@@ -2681,7 +2709,7 @@ static int dmx_enable(struct aml_dmx *dmx)
 	int fec_core_sel = 0;
 	int set_stb = 0, fec_s = 0;
 	int s2p_id;
-	u32 invert0 = 0, invert1 = 0, fec_s0 = 0, fec_s1 = 0;
+	u32 invert0 = 0, invert1 = 0, invert2 = 0, fec_s0 = 0, fec_s1 = 0, fec_s2 = 0;
 	u32 use_sop = 0;
 
 	record = dmx_get_record_flag(dmx);
@@ -2720,7 +2748,8 @@ static int dmx_enable(struct aml_dmx *dmx)
 			s2p_id = dvb->ts[2].s2p_id;
 			fec_ctrl = dvb->ts[2].control;
 		}
-		fec_sel = (s2p_id == 1) ? 5 : 6;
+		//fec_sel = (s2p_id == 1) ? 5 : 6;
+		fec_sel = 6 - s2p_id;
 		record = record ? 1 : 0;
 		set_stb = 1;
 		fec_s = dmx->source - AM_TS_SRC_S_TS0;
@@ -2809,11 +2838,13 @@ static int dmx_enable(struct aml_dmx *dmx)
 			u32 v = READ_MPEG_REG(STB_TOP_CONFIG);
 			int i;
 
-			for (i = 0; i < TS_IN_COUNT; i++) {
+			for (i = 0; i < dvb->ts_in_total_count; i++) {
 				if (dvb->ts[i].s2p_id == 0)
 					fec_s0 = i;
 				else if (dvb->ts[i].s2p_id == 1)
 					fec_s1 = i;
+				else if (dvb->ts[i].s2p_id == 2)
+					fec_s2 = i;
 			}
 
 			invert0 = dvb->s2p[0].invert;
@@ -2829,6 +2860,18 @@ static int dmx_enable(struct aml_dmx *dmx)
 			    (fec_s1 << S2P1_FEC_SERIAL_SEL) |
 			    (invert1 << INVERT_S2P1_FEC_CLK);
 			WRITE_MPEG_REG(STB_TOP_CONFIG, v);
+
+			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TL1) {
+			    invert2 = dvb->s2p[2].invert;
+
+			//add s2p2 config
+			v = READ_MPEG_REG(STB_S2P2_CONFIG);
+			v &= ~((0x3 << S2P2_FEC_SERIAL_SEL) |
+			       (0x1f << INVERT_S2P2_FEC_CLK));
+			    v |= (fec_s2 << S2P2_FEC_SERIAL_SEL) |
+				   (invert2 << INVERT_S2P2_FEC_CLK);
+			    WRITE_MPEG_REG(STB_S2P2_CONFIG, v);
+			}
 		}
 
 		/*Initialize the registers */
@@ -3284,11 +3327,12 @@ static void reset_async_fifos(struct aml_dvb *dvb)
 {
 	struct aml_asyncfifo *low_dmx_fifo = NULL;
 	struct aml_asyncfifo *high_dmx_fifo = NULL;
+	struct aml_asyncfifo *highest_dmx_fifo = NULL;
 	int i, j;
 	int record_enable;
 
 	pr_dbg("reset ASYNC FIFOs\n");
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+	for (i = 0; i < dvb->async_fifo_total_count; i++) {
 		if (!dvb->asyncfifo[i].init)
 			continue;
 		pr_dbg("Disable ASYNC FIFO id=%d\n", dvb->asyncfifo[i].id);
@@ -3311,7 +3355,7 @@ static void reset_async_fifos(struct aml_dvb *dvb)
 		if (!dvb->dmx[j].init)
 			continue;
 		record_enable = 0;
-		for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+		for (i = 0; i < dvb->async_fifo_total_count; i++) {
 			if (!dvb->asyncfifo[i].init)
 				continue;
 
@@ -3325,11 +3369,25 @@ static void reset_async_fifos(struct aml_dvb *dvb)
 					low_dmx_fifo = &dvb->asyncfifo[i];
 				} else if (low_dmx_fifo->source >
 					   dvb->asyncfifo[i].source) {
-					high_dmx_fifo = low_dmx_fifo;
+					if (!high_dmx_fifo)
+						high_dmx_fifo = low_dmx_fifo;
+					else {
+						highest_dmx_fifo = high_dmx_fifo;
+						high_dmx_fifo = low_dmx_fifo;
+					}
 					low_dmx_fifo = &dvb->asyncfifo[i];
 				} else if (low_dmx_fifo->source <
 					   dvb->asyncfifo[i].source) {
-					high_dmx_fifo = &dvb->asyncfifo[i];
+					if (!high_dmx_fifo)
+						high_dmx_fifo = &dvb->asyncfifo[i];
+					else {
+						if (high_dmx_fifo->source > dvb->asyncfifo[i].source) {
+							highest_dmx_fifo = high_dmx_fifo;
+							high_dmx_fifo = &dvb->asyncfifo[i];
+						} else {
+							highest_dmx_fifo = &dvb->asyncfifo[i];
+						}
+					}
 				}
 
 				break;
@@ -3358,8 +3416,12 @@ static void reset_async_fifos(struct aml_dvb *dvb)
 	if (low_dmx_fifo) {
 		async_fifo_set_regs(low_dmx_fifo, 0x3);
 
-		if (high_dmx_fifo)
+		if (high_dmx_fifo) {
 			async_fifo_set_regs(high_dmx_fifo, 0x2);
+
+			if (highest_dmx_fifo)
+				async_fifo_set_regs(highest_dmx_fifo, 0x0);
+		}
 	}
 }
 
@@ -3402,6 +3464,7 @@ void dmx_reset_hw_ex(struct aml_dvb *dvb, int reset_irq)
 	}
 
 	WRITE_MPEG_REG(STB_TOP_CONFIG, 0);
+	WRITE_MPEG_REG(STB_S2P2_CONFIG, 0);
 
 	for (id = 0; id < DMX_DEV_COUNT; id++) {
 		u32 version, data;
@@ -4572,17 +4635,22 @@ int aml_dmx_hw_set_source(struct dmx_demux *demux, dmx_source_t src)
 	case DMX_SOURCE_FRONT0:
 		hw_src =
 		    (dvb->ts[0].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS0 : AM_TS_SRC_TS0;
+		     AM_TS_SERIAL) ? (dvb->ts[0].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS0;
 		break;
 	case DMX_SOURCE_FRONT1:
 		hw_src =
 		    (dvb->ts[1].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS1 : AM_TS_SRC_TS1;
+		     AM_TS_SERIAL) ? (dvb->ts[1].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS1;
 		break;
 	case DMX_SOURCE_FRONT2:
 		hw_src =
 		    (dvb->ts[2].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS2 : AM_TS_SRC_TS2;
+		     AM_TS_SERIAL) ? (dvb->ts[2].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS2;
+		break;
+	case DMX_SOURCE_FRONT3:
+		hw_src =
+			(dvb->ts[3].mode ==
+			 AM_TS_SERIAL) ? (dvb->ts[3].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS2;
 		break;
 	case DMX_SOURCE_DVR0:
 		hw_src = AM_TS_SRC_HIU;
@@ -4621,17 +4689,22 @@ int aml_stb_hw_set_source(struct aml_dvb *dvb, dmx_source_t src)
 	case DMX_SOURCE_FRONT0:
 		hw_src =
 		    (dvb->ts[0].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS0 : AM_TS_SRC_TS0;
+		     AM_TS_SERIAL) ? (dvb->ts[0].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS0;
 		break;
 	case DMX_SOURCE_FRONT1:
 		hw_src =
 		    (dvb->ts[1].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS1 : AM_TS_SRC_TS1;
+		     AM_TS_SERIAL) ? (dvb->ts[1].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS1;
 		break;
 	case DMX_SOURCE_FRONT2:
 		hw_src =
 		    (dvb->ts[2].mode ==
-		     AM_TS_SERIAL) ? AM_TS_SRC_S_TS2 : AM_TS_SRC_TS2;
+		     AM_TS_SERIAL) ? (dvb->ts[2].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS2;
+		break;
+	case DMX_SOURCE_FRONT3:
+		hw_src =
+		    (dvb->ts[3].mode ==
+		     AM_TS_SERIAL) ? (dvb->ts[3].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS3;
 		break;
 	case DMX_SOURCE_DVR0:
 		hw_src = AM_TS_SRC_HIU;
@@ -4836,15 +4909,19 @@ int aml_tso_hw_set_source(struct aml_dvb *dvb, dmx_source_t src)
 	switch (src) {
 	case DMX_SOURCE_FRONT0:
 		hw_src = (dvb->ts[0].mode == AM_TS_SERIAL)
-		    ? AM_TS_SRC_S_TS0 : AM_TS_SRC_TS0;
+		    ? (dvb->ts[0].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS0;
 		break;
 	case DMX_SOURCE_FRONT1:
 		hw_src = (dvb->ts[1].mode == AM_TS_SERIAL)
-		    ? AM_TS_SRC_S_TS1 : AM_TS_SRC_TS1;
+		    ? (dvb->ts[1].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS1;
 		break;
 	case DMX_SOURCE_FRONT2:
 		hw_src = (dvb->ts[2].mode == AM_TS_SERIAL)
-		    ? AM_TS_SRC_S_TS2 : AM_TS_SRC_TS2;
+		    ? (dvb->ts[2].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS2;
+		break;
+	case DMX_SOURCE_FRONT3:
+		hw_src = (dvb->ts[3].mode == AM_TS_SERIAL)
+		    ? (dvb->ts[3].s2p_id + AM_TS_SRC_S_TS0) : AM_TS_SRC_TS3;
 		break;
 	case DMX_SOURCE_DVR0:
 		hw_src = AM_TS_SRC_HIU;
