@@ -54,8 +54,14 @@
 #include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
 
+#define TS_IN_COUNT       4
+#define S2P_COUNT         3
+#define ASYNCFIFO_COUNT   3
+#if 0
 #define TS_IN_COUNT       3
 #define S2P_COUNT         2
+#define ASYNCFIFO_COUNT   2
+#endif
 
 #define DMX_DEV_COUNT     3
 #define FE_DEV_COUNT      2
@@ -67,7 +73,6 @@
 #define SEC_BUF_GRP_COUNT 4
 #define SEC_BUF_BUSY_SIZE 4
 #define SEC_BUF_COUNT     (SEC_BUF_GRP_COUNT*8)
-#define ASYNCFIFO_COUNT 2
 
 enum aml_dmx_id_t {
 	AM_DMX_0 = 0,
@@ -80,9 +85,12 @@ enum aml_ts_source_t {
 	AM_TS_SRC_TS0,
 	AM_TS_SRC_TS1,
 	AM_TS_SRC_TS2,
+	AM_TS_SRC_TS3,
+
 	AM_TS_SRC_S_TS0,
 	AM_TS_SRC_S_TS1,
 	AM_TS_SRC_S_TS2,
+
 	AM_TS_SRC_HIU,
 	AM_TS_SRC_DMX0,
 	AM_TS_SRC_DMX1,
@@ -286,11 +294,13 @@ struct aml_swfilter {
 
 struct aml_dvb {
 	struct dvb_device    dvb_dev;
-
+	int ts_in_total_count;
 	struct aml_ts_input  ts[TS_IN_COUNT];
+	int s2p_total_count;
 	struct aml_s2p       s2p[S2P_COUNT];
 	struct aml_dmx       dmx[DMX_DEV_COUNT];
 	struct aml_dsc       dsc[DSC_DEV_COUNT];
+	int async_fifo_total_count;
 	struct aml_asyncfifo asyncfifo[ASYNCFIFO_COUNT];
 	struct dvb_adapter   dvb_adapter;
 	struct device       *dev;

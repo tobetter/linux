@@ -25,9 +25,10 @@
 #define ID_STB_CBUS_BASE		0
 #define ID_SMARTCARD_REG_BASE		1
 #define ID_ASYNC_FIFO_REG_BASE		2
-#define ID_ASYNC_FIFO2_REG_BASE	3
-#define ID_RESET_BASE			4
-#define ID_PARSER_SUB_START_PTR_BASE	5
+#define ID_ASYNC_FIFO1_REG_BASE		3
+#define ID_ASYNC_FIFO2_REG_BASE	4
+#define ID_RESET_BASE			5
+#define ID_PARSER_SUB_START_PTR_BASE	6
 
 long aml_stb_get_base(int id);
 #include "c_stb_define.h"
@@ -52,5 +53,6 @@ long aml_stb_get_base(int id);
 #define INT_ASYNC_FIFO2_FILL    AM_IRQ(24)
 #define INT_ASYNC_FIFO2_FLUSH   AM_IRQ(25)
 
+#define INT_ASYNC_FIFO3_FLUSH   AM_IRQ(17)
 #endif
 

@@ -156,6 +156,8 @@ long aml_stb_get_base(int id)
 		return (newbase) ? 0x9400 : 0x2110;
 	case ID_ASYNC_FIFO_REG_BASE:
 		return (newbase) ? 0x2800 : 0x2310;
+	case ID_ASYNC_FIFO1_REG_BASE:
+		return 0x9800;
 	case ID_ASYNC_FIFO2_REG_BASE:
 		return (newbase) ? 0x2400 : 0x2314;
 	case ID_RESET_BASE:
@@ -677,6 +679,8 @@ static int aml_dvb_asyncfifo_init(struct aml_dvb *advb,
 
 	if (id == 0)
 		asyncfifo->asyncfifo_irq = INT_ASYNC_FIFO_FLUSH;
+	else if(id == 2)
+		asyncfifo->asyncfifo_irq = INT_ASYNC_FIFO3_FLUSH;
 	else
 		asyncfifo->asyncfifo_irq = INT_ASYNC_FIFO2_FLUSH;
 
@@ -752,6 +756,9 @@ static ssize_t stb_show_source(struct class *class,
 	case AM_TS_SRC_S_TS2:
 		src = "ts2";
 		break;
+	case AM_TS_SRC_TS3:
+		src = "ts3";
+		break;
 	case AM_TS_SRC_HIU:
 		src = "hiu";
 		break;
@@ -786,6 +793,8 @@ static ssize_t stb_store_source(struct class *class,
 		src = DMX_SOURCE_FRONT1;
 	else if (!strncmp("ts2", buf, 3))
 		src = DMX_SOURCE_FRONT2;
+	else if (!strncmp("ts3", buf, 3))
+		src = DMX_SOURCE_FRONT3;
 	else if (!strncmp("hiu", buf, 3))
 		src = DMX_SOURCE_DVR0;
 	else if (!strncmp("dmx0", buf, 4))
@@ -923,6 +932,9 @@ static ssize_t tso_show_source(struct class *class,
 	case AM_TS_SRC_S_TS2:
 		src = "ts2";
 		break;
+	case AM_TS_SRC_TS3:
+		src = "ts3";
+		break;
 	case AM_TS_SRC_HIU:
 		src = "hiu";
 		break;
@@ -957,6 +969,8 @@ static ssize_t tso_store_source(struct class *class,
 		src = DMX_SOURCE_FRONT1;
 	else if (!strncmp("ts2", buf, 3))
 		src = DMX_SOURCE_FRONT2;
+	else if (!strncmp("ts3", buf, 3))
+		src = DMX_SOURCE_FRONT3;
 	else if (!strncmp("hiu", buf, 3))
 		src = DMX_SOURCE_DVR0;
 	else if (!strncmp("dmx0", buf, 4))
@@ -1225,6 +1239,8 @@ static ssize_t asyncfifo##i##_show_source(struct class *class,  \
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	ssize_t ret = 0;\
 	char *src;\
+	if (dvb->async_fifo_total_count <= i)\
+		return ret;\
 	switch (afifo->source) {\
 	CASE_PREFIX case AM_DMX_0:\
 		src = "dmx0";\
@@ -1247,6 +1263,8 @@ static ssize_t asyncfifo##i##_store_source(struct class *class,  \
 {\
 	enum aml_dmx_id_t src = -1;\
 	\
+	if (aml_dvb_device.async_fifo_total_count <= i)\
+		return 0;\
 	if (!strncmp("dmx0", buf, 4)) {\
 		src = AM_DMX_0;\
 	} else if (!strncmp("dmx1", buf, 4)) {\
@@ -1266,6 +1284,11 @@ ASYNCFIFO_SOURCE_FUNC_DECL(0)
 #if ASYNCFIFO_COUNT > 1
 	ASYNCFIFO_SOURCE_FUNC_DECL(1)
 #endif
+
+#if ASYNCFIFO_COUNT > 2
+	ASYNCFIFO_SOURCE_FUNC_DECL(2)
+#endif
+
 /*Show the async fifo flush size*/
 #define ASYNCFIFO_FLUSHSIZE_FUNC_DECL(i)  \
 static ssize_t asyncfifo##i##_show_flush_size(struct class *class,  \
@@ -1274,6 +1297,8 @@ static ssize_t asyncfifo##i##_show_flush_size(struct class *class,  \
 	struct aml_dvb *dvb = &aml_dvb_device;\
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	ssize_t ret = 0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return ret;\
 	ret = sprintf(buf, "%d\n", afifo->flush_size);\
 	return ret;\
 } \
@@ -1286,7 +1311,10 @@ static ssize_t asyncfifo##i##_store_flush_size(struct class *class,  \
 	/*int fsize = simple_strtol(buf, NULL, 10);*/\
 	int fsize = 0;\
 	long value;\
-	int ret = kstrtol(buf, 0, &value);\
+	int ret =0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return (size_t)0;\
+	ret = kstrtol(buf, 0, &value);\
 	if (ret == 0)\
 		fsize = value;\
 	if (fsize != afifo->flush_size) {\
@@ -1303,6 +1331,11 @@ ASYNCFIFO_FLUSHSIZE_FUNC_DECL(0)
 #if ASYNCFIFO_COUNT > 1
 	ASYNCFIFO_FLUSHSIZE_FUNC_DECL(1)
 #endif
+
+#if ASYNCFIFO_COUNT > 2
+	ASYNCFIFO_FLUSHSIZE_FUNC_DECL(2)
+#endif
+
 /*Show the async fifo secure buffer addr*/
 #define ASYNCFIFO_SECUREADDR_FUNC_DECL(i)  \
 static ssize_t asyncfifo##i##_show_secure_addr(struct class *class,  \
@@ -1311,6 +1344,8 @@ static ssize_t asyncfifo##i##_show_secure_addr(struct class *class,  \
 	struct aml_dvb *dvb = &aml_dvb_device;\
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	ssize_t ret = 0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return ret;\
 	ret = sprintf(buf, "0x%x\n", afifo->blk.addr);\
 	return ret;\
 } \
@@ -1321,7 +1356,10 @@ const char *buf, size_t size)\
 	struct aml_dvb *dvb = &aml_dvb_device;\
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	unsigned long value;\
-	int ret = kstrtol(buf, 0, &value);\
+	int ret=0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return (size_t)0;\
+	ret = kstrtol(buf, 0, &value);\
 	if (ret == 0 && value != afifo->blk.addr) {\
 		afifo->blk.addr = value;\
 		aml_asyncfifo_hw_reset(&aml_dvb_device.asyncfifo[i]);\
@@ -1337,6 +1375,10 @@ const char *buf, size_t size)\
 	ASYNCFIFO_SECUREADDR_FUNC_DECL(1)
 #endif
 
+#if ASYNCFIFO_COUNT > 2
+	ASYNCFIFO_SECUREADDR_FUNC_DECL(2)
+#endif
+
 
 /*Show the async fifo secure enable*/
 #define ASYNCFIFO_SECURENABLE_FUNC_DECL(i)  \
@@ -1346,6 +1388,8 @@ static ssize_t asyncfifo##i##_show_secure_enable(struct class *class,  \
 	struct aml_dvb *dvb = &aml_dvb_device;\
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	ssize_t ret = 0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return ret;\
 	ret = sprintf(buf, "%d\n", afifo->secure_enable);\
 	return ret;\
 } \
@@ -1357,7 +1401,10 @@ static ssize_t asyncfifo##i##_store_secure_enable(struct class *class,  \
 	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
 	int enable = 0;\
 	long value;\
-	int ret = kstrtol(buf, 0, &value);\
+	int ret=0;\
+	if (dvb->async_fifo_total_count <= i)\
+		return (size_t)0;\
+	ret = kstrtol(buf, 0, &value);\
 	if (ret == 0)\
 		enable = value;\
 	if (enable != afifo->secure_enable) {\
@@ -1374,6 +1421,11 @@ ASYNCFIFO_SECURENABLE_FUNC_DECL(0)
 #if ASYNCFIFO_COUNT > 1
 	ASYNCFIFO_SECURENABLE_FUNC_DECL(1)
 #endif
+
+#if ASYNCFIFO_COUNT > 2
+	ASYNCFIFO_SECURENABLE_FUNC_DECL(2)
+#endif
+
 /*Reset the Demux*/
 static ssize_t demux_do_reset(struct class *class,
 				struct class_attribute *attr,
@@ -1450,7 +1502,7 @@ static ssize_t stb_show_hw_setting(struct class *class,
 	struct aml_dvb *dvb = &aml_dvb_device;
 	int invert, ctrl;
 
-	for (i = 0; i < TS_IN_COUNT; i++) {
+	for (i = 0; i < dvb->ts_in_total_count; i++) {
 		struct aml_ts_input *ts = &dvb->ts[i];
 
 		if (ts->s2p_id != -1)
@@ -1486,7 +1538,7 @@ static ssize_t stb_store_hw_setting(struct class *class,
 	if (r != 4)
 		return -EINVAL;
 
-	if (id < 0 || id >= TS_IN_COUNT)
+	if (id < 0 || id >= dvb->ts_in_total_count)
 		return -EINVAL;
 
 	if ((mname[0] == 's') || (mname[0] == 'S')) {
@@ -1506,12 +1558,12 @@ static ssize_t stb_store_hw_setting(struct class *class,
 		int i;
 		int scnt = 0;
 
-		for (i = 0; i < TS_IN_COUNT; i++) {
+		for (i = 0; i < dvb->ts_in_total_count; i++) {
 			if (dvb->ts[i].s2p_id != -1)
 				scnt++;
 		}
 
-		if (scnt >= S2P_COUNT)
+		if (scnt >= dvb->s2p_total_count)
 			pr_error("no free s2p\n");
 		else
 			ts->s2p_id = scnt;
@@ -1631,6 +1683,13 @@ static struct class_attribute aml_stb_class_attrs[] = {
 	ASYNCFIFO_SECURENABLE_ATTR_DECL(1),
 #endif
 
+#if ASYNCFIFO_COUNT > 2
+	ASYNCFIFO_SOURCE_ATTR_DECL(2),
+	ASYNCFIFO_FLUSHSIZE_ATTR_DECL(2),
+	ASYNCFIFO_SECUREADDR_ATTR_DECL(2),
+	ASYNCFIFO_SECURENABLE_ATTR_DECL(2),
+#endif
+
 	__ATTR(demux_reset, 0644, NULL, demux_do_reset),
 	__ATTR(video_pts, 0664, demux_show_video_pts,
 	       NULL),
@@ -1685,7 +1744,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	int i, ret = 0;
 	struct devio_aml_platform_data *pd_dvb;
 
-	pr_inf("probe amlogic dvb driver\n");
+	pr_dbg("probe amlogic dvb driver\n");
 
 	/*switch_mod_gate_by_name("demux", 1); */
 #if 0
@@ -1750,6 +1809,16 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		amports_switch_gate("demux", 1);
 		amports_switch_gate("ahbarb0", 1);
 		amports_switch_gate("parser_top", 1);
+		if (get_cpu_type() == MESON_CPU_MAJOR_ID_TL1)
+		{
+			aml_dvb_afifo_clk =
+				devm_clk_get(&pdev->dev, "asyncfifo");
+			if (IS_ERR_OR_NULL(aml_dvb_afifo_clk)) {
+				dev_err(&pdev->dev, "get asyncfifo clk fail\n");
+				return -1;
+			}
+			clk_prepare_enable(aml_dvb_afifo_clk);
+		}
 	}
 #endif
 	advb = &aml_dvb_device;
@@ -1761,6 +1830,16 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	advb->pdev = pdev;
 	advb->stb_source = -1;
 	advb->tso_source = -1;
+
+	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TL1) {
+		advb->ts_in_total_count = 3;
+		advb->s2p_total_count = 2;
+		advb->async_fifo_total_count = 2;
+	} else {
+		advb->ts_in_total_count = 4;
+		advb->s2p_total_count = 3;
+		advb->async_fifo_total_count = 3;
+	}
 
 	for (i = 0; i < DMX_DEV_COUNT; i++) {
 		advb->dmx[i].dmx_irq = -1;
@@ -1774,7 +1853,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 		const char *str;
 		u32 value;
 
-		for (i = 0; i < TS_IN_COUNT; i++) {
+		for (i = 0; i < advb->ts_in_total_count; i++) {
 
 			advb->ts[i].mode = AM_TS_DISABLE;
 			advb->ts[i].s2p_id = -1;
@@ -1788,7 +1867,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 				if (!strcmp(str, "serial")) {
 					pr_inf("%s: serial\n", buf);
 
-					if (s2p_id >= S2P_COUNT)
+					if (s2p_id >= advb->s2p_total_count)
 						pr_error("no free s2p\n");
 					else {
 						snprintf(buf, sizeof(buf),
@@ -1868,7 +1947,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	for (i = 0; i<DSC_DEV_COUNT; i++)
 		advb->dsc[i].id = -1;
 
-	for (i = 0; i < ASYNCFIFO_COUNT; i++)
+	for (i = 0; i < advb->async_fifo_total_count; i++)
 		advb->asyncfifo[i].id = -1;
 
 	advb->dvb_adapter.priv = advb;
@@ -1887,7 +1966,7 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	}
 
 	/*Init the async fifos */
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+	for (i = 0; i < advb->async_fifo_total_count; i++) {
 		ret = aml_dvb_asyncfifo_init(advb, &advb->asyncfifo[i], i);
 		if (ret < 0)
 			goto error;
@@ -2164,7 +2243,7 @@ error_fe:
 	}
 	return 0;
 error:
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+	for (i = 0; i < advb->async_fifo_total_count; i++) {
 		if (advb->asyncfifo[i].id != -1)
 			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
 	}
@@ -2223,7 +2302,7 @@ static int aml_dvb_remove(struct platform_device *pdev)
 	aml_unregist_dmx_class();
 	class_unregister(&aml_stb_class);
 
-	for (i = 0; i < ASYNCFIFO_COUNT; i++) {
+	for (i = 0; i < advb->async_fifo_total_count; i++) {
 		if (advb->asyncfifo[i].id != -1)
 			aml_dvb_asyncfifo_release(advb, &advb->asyncfifo[i]);
 	}
@@ -2240,7 +2319,7 @@ static int aml_dvb_remove(struct platform_device *pdev)
 	}
 	dvb_unregister_adapter(&advb->dvb_adapter);
 
-	for (i = 0; i < TS_IN_COUNT; i++) {
+	for (i = 0; i < advb->ts_in_total_count; i++) {
 		if (advb->ts[i].pinctrl && !IS_ERR_VALUE(advb->ts[i].pinctrl))
 			devm_pinctrl_put(advb->ts[i].pinctrl);
 	}
@@ -2265,6 +2344,10 @@ static int aml_dvb_remove(struct platform_device *pdev)
 		amports_switch_gate("demux", 0);
 		amports_switch_gate("ahbarb0", 0);
 		amports_switch_gate("parser_top", 0);
+
+		if (get_cpu_type() == MESON_CPU_MAJOR_ID_TL1) {
+			clk_disable_unprepare(aml_dvb_afifo_clk);
+		}
 	}
 #endif
 #endif

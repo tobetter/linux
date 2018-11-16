@@ -96,6 +96,17 @@
 #define INVERT_S2P0_FEC_CLK         2
 #define S2P0_FEC_SERIAL_SEL         0
 
+//define STB_S2P2_CONFIG
+#define S2P2_DISABLE                11
+#define S2P2_CLK_DIV                7
+#define INVERT_S2P2_FEC_ERROR       6
+#define INVERT_S2P2_FEC_DATA        5
+#define INVERT_S2P2_FEC_SYNC        4
+#define INVERT_S2P2_FEC_VALID       3
+#define INVERT_S2P2_FEC_CLK         2
+#define S2P2_FEC_SERIAL_SEL         0
+
+
 /* 31:28 - s2p1_clk_div*/
 /* 27:24 - s2p0_clk_div*/
 /* 23    - s2p1_disable*/
