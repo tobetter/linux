@@ -169,12 +169,12 @@ static int vframe_chunk_fill(struct vdec_input_s *input,
 		if (chunk->pading_size > len) {
 			p = (u8 *)block->start_virt;
 
-		if (!block->is_mapped) {
-			p = codec_mm_vmap(block->start, count - len);
-			memset(p, 0, count - len);
-			codec_mm_unmap_phyaddr(p);
-		} else
-			memset(p, 0, count - len);
+			if (!block->is_mapped) {
+				p = codec_mm_vmap(block->start, count - len);
+				memset(p, 0, count - len);
+				codec_mm_unmap_phyaddr(p);
+			} else
+				memset(p, 0, count - len);
 
 			dma_sync_single_for_device(get_vdec_device(),
 					block->start,
