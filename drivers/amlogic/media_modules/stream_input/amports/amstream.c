@@ -917,11 +917,14 @@ static int amstream_port_init(struct port_priv_s *priv)
 				port->vformat == VFORMAT_VP9)
 				pvbuf = &bufs[BUF_TYPE_HEVC];
 		}
+		mutex_lock(&priv->mutex);
 		r = video_port_init(priv, pvbuf);
 		if (r < 0) {
+			mutex_unlock(&priv->mutex);
 			pr_err("video_port_init  failed\n");
 			goto error2;
 		}
+		mutex_unlock(&priv->mutex);
 	}
 
 	if ((port->type & PORT_TYPE_SUB) && (port->flag & PORT_FLAG_SID)) {
@@ -1597,6 +1600,8 @@ static int amstream_open(struct inode *inode, struct file *file)
 		return -ENOMEM;
 	}
 
+	mutex_init(&priv->mutex);
+
 	priv->port = port;
 
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
@@ -1774,6 +1779,8 @@ static int amstream_release(struct inode *inode, struct file *file)
 		/* switch_mod_gate_by_name("demux", 0); */
 		amports_switch_gate("demux", 0);
 	}
+
+	mutex_destroy(&priv->mutex);
 
 	kfree(priv);
 
@@ -2317,8 +2324,15 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 			struct vdec_info vstatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
-			if (vdec_status(priv->vdec, &vstatus) == -1)
+			memset(&vstatus, 0, sizeof(vstatus));
+
+			mutex_lock(&priv->mutex);
+			if (vdec_status(priv->vdec, &vstatus) == -1) {
+				mutex_unlock(&priv->mutex);
 				return -ENODEV;
+			}
+			mutex_unlock(&priv->mutex);
+
 			p->vstatus.width = vstatus.frame_width;
 			p->vstatus.height = vstatus.frame_height;
 			p->vstatus.fps = vstatus.frame_rate;
@@ -2790,13 +2804,21 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct am_io_param para;
 			struct am_io_param *p = &para;
 
-			if (vdec_status(priv->vdec, &vstatus) == -1)
+			memset(&vstatus, 0, sizeof(vstatus));
+
+			mutex_lock(&priv->mutex);
+			if (vdec_status(priv->vdec, &vstatus) == -1) {
+				mutex_unlock(&priv->mutex);
 				return -ENODEV;
+			}
+			mutex_unlock(&priv->mutex);
+
 			p->vstatus.width = vstatus.frame_width;
 			p->vstatus.height = vstatus.frame_height;
 			p->vstatus.fps = vstatus.frame_rate;
 			p->vstatus.error_count = vstatus.error_count;
 			p->vstatus.status = vstatus.status;
+
 			if (copy_to_user((void *)arg, p, sizeof(para)))
 				r = -EFAULT;
 			return r;
@@ -2810,8 +2832,14 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct am_io_info para;
 
 			memset(&para, 0x0, sizeof(struct am_io_info));
-			if (vdec_status(priv->vdec, &vinfo) == -1)
+
+			mutex_lock(&priv->mutex);
+			if (vdec_status(priv->vdec, &vinfo) == -1) {
+				mutex_unlock(&priv->mutex);
 				return -ENODEV;
+			}
+			mutex_unlock(&priv->mutex);
+
 			memcpy(&para.vinfo, &vinfo, sizeof(struct vdec_info));
 			if (copy_to_user((void *)arg, &para, sizeof(para)))
 				r = -EFAULT;

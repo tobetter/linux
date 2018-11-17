@@ -26,6 +26,7 @@
 struct port_priv_s {
 	struct vdec_s *vdec;
 	struct stream_port_s *port;
+	struct mutex mutex;
 };
 
 struct stream_buf_s *get_buf_by_type(u32 type);

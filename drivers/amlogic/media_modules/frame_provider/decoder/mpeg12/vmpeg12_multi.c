@@ -1085,7 +1085,7 @@ static int vmmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	struct vdec_mpeg12_hw_s *hw =
 	(struct vdec_mpeg12_hw_s *)vdec->private;
 
-	if (!hw || !(hw->stat & STAT_VDEC_RUN))
+	if (!hw)
 		return -1;
 
 	vstatus->frame_width = hw->frame_width;
@@ -1785,6 +1785,7 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 	if (vmpeg12_init(hw) < 0) {
 		pr_info("ammvdec_mpeg12 init failed.\n");
 		devm_kfree(&pdev->dev, (void *)hw);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

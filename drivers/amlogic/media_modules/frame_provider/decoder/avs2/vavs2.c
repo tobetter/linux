@@ -5444,7 +5444,7 @@ int vavs2_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	struct AVS2Decoder_s *dec =
 		(struct AVS2Decoder_s *)vdec->private;
 
-	if (!dec || !(dec->stat & STAT_VDEC_RUN))
+	if (!dec)
 		return -1;
 
 	vstatus->frame_width = dec->frame_width;
@@ -5888,6 +5888,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 		pr_info("\namvdec_avs2 init failed.\n");
 		avs2_local_uninit(dec);
 		uninit_mmu_buffers(dec);
+		pdata->dec_status = NULL;
 		mutex_unlock(&vavs2_mutex);
 		return -ENODEV;
 	}
@@ -6688,6 +6689,7 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 		uninit_mmu_buffers(dec);
 		/* devm_kfree(&pdev->dev, (void *)dec); */
 		vfree((void *)dec);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	vdec_set_prepare_level(pdata, start_decode_buf_level);

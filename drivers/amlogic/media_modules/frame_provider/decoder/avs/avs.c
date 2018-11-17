@@ -780,7 +780,7 @@ static void vavs_vf_put(struct vframe_s *vf, void *op_arg)
 int vavs_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	if (!(stat & STAT_VDEC_RUN))
-		return 0;
+		return -1;
 
 	vstatus->frame_width = frame_width;
 	vstatus->frame_height = frame_height;
@@ -1661,7 +1661,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		pr_info("amvdec_avs init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
-
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	vdec = pdata;

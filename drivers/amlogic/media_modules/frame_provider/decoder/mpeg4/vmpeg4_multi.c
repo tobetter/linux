@@ -1040,7 +1040,7 @@ static int dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
 
-	if (!hw || !(hw->stat & STAT_VDEC_RUN))
+	if (!hw)
 		return -1;
 
 	vstatus->frame_width = hw->vmpeg4_amstream_dec_info.width;
@@ -1855,6 +1855,7 @@ static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 			vfree((void *)hw);
 			hw = NULL;
 		}
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

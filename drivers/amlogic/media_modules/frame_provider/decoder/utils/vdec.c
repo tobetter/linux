@@ -227,10 +227,12 @@ static int get_canvas(unsigned int index, unsigned int base)
 
 int vdec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
-	if (vdec && vdec->dec_status)
+	if (vdec && vdec->dec_status &&
+		((vdec->status == VDEC_STATUS_CONNECTED ||
+		vdec->status == VDEC_STATUS_ACTIVE)))
 		return vdec->dec_status(vdec, vstatus);
 
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL(vdec_status);
 
@@ -3617,7 +3619,8 @@ static ssize_t vdec_status_show(struct class *class,
 	}
 
 	list_for_each_entry(vdec, &core->connected_vdec_list, list) {
-		if (VDEC_STATUS_CONNECTED == vdec->status) {
+		if ((vdec->status == VDEC_STATUS_CONNECTED
+			|| vdec->status == VDEC_STATUS_ACTIVE)) {
 			memset(&vs, 0, sizeof(vs));
 			if (vdec_status(vdec, &vs)) {
 				pbuf += sprintf(pbuf, "err.\n");

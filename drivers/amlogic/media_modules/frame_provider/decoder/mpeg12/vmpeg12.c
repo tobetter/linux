@@ -2057,7 +2057,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 		amlog_level(LOG_LEVEL_ERROR, "amvdec_mpeg12 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
-
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	vdec = pdata;

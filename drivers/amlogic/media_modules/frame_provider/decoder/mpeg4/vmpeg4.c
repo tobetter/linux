@@ -1142,6 +1142,7 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		amlog_level(LOG_LEVEL_ERROR, "amvdec_mpeg4 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 
