@@ -3059,6 +3059,7 @@ static int amvdec_h264_probe(struct platform_device *pdev)
 		pr_info("\namvdec_h264 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		mutex_unlock(&vh264_mutex);
 		return -ENODEV;
 	}

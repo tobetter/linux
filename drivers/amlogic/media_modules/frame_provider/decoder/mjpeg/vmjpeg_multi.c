@@ -385,7 +385,7 @@ static int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_mjpeg_hw_s *hw = (struct vdec_mjpeg_hw_s *)vdec->private;
 
-	if (!hw || !(hw->stat & STAT_VDEC_RUN))
+	if (!hw)
 		return -1;
 
 	vstatus->frame_width = hw->frame_width;
@@ -1148,6 +1148,7 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 	if (vmjpeg_init(pdata) < 0) {
 		pr_info("ammvdec_mjpeg init failed.\n");
 		devm_kfree(&pdev->dev, (void *)hw);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

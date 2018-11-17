@@ -9078,7 +9078,7 @@ int vh265_dec_status(struct vdec_info *vstatus)
 #else
 	struct hevc_state_s *hevc = gHevc;
 #endif
-	if (!hevc || !(hevc->stat & STAT_VDEC_RUN))
+	if (!hevc)
 		return -1;
 
 	vstatus->frame_width = hevc->frame_width;
@@ -10488,6 +10488,7 @@ static int amvdec_h265_probe(struct platform_device *pdev)
 		hevc_local_uninit(hevc);
 		uninit_mmu_buffers(hevc);
 		vfree(hevc);
+		pdata->dec_status = NULL;
 		mutex_unlock(&vh265_mutex);
 		return -ENODEV;
 	}
@@ -10830,6 +10831,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		/* devm_kfree(&pdev->dev, (void *)hevc);*/
 		if (hevc)
 			vfree((void *)hevc);
+		pdata->dec_status = NULL;
 		return -EFAULT;
 	}
 #if 0
@@ -10845,6 +10847,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		/* devm_kfree(&pdev->dev, (void *)hevc); */
 		if (hevc)
 			vfree((void *)hevc);
+		pdata->dec_status = NULL;
 		mutex_unlock(&vh265_mutex);
 		return ret;
 	}
@@ -10887,6 +10890,7 @@ static int ammvdec_h265_probe(struct platform_device *pdev)
 		/* devm_kfree(&pdev->dev, (void *)hevc); */
 		if (hevc)
 			vfree((void *)hevc);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

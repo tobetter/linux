@@ -7743,7 +7743,7 @@ int vvp9_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	struct VP9Decoder_s *vp9 =
 		(struct VP9Decoder_s *)vdec->private;
 
-	if (!vp9 || !(vp9->stat & STAT_VDEC_RUN))
+	if (!vp9)
 		return -1;
 
 	vstatus->frame_width = frame_width;
@@ -8366,6 +8366,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 		vp9_local_uninit(pbi);
 		uninit_mmu_buffers(pbi);
 		vfree(pbi);
+		pdata->dec_status = NULL;
 		mutex_unlock(&vvp9_mutex);
 		return -ENODEV;
 	}
@@ -9364,6 +9365,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		pr_err("vp9 alloc bmmu box failed!!\n");
 		/* devm_kfree(&pdev->dev, (void *)pbi); */
 		vfree((void *)pbi);
+		pdata->dec_status = NULL;
 		return -1;
 	}
 
@@ -9375,6 +9377,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		uninit_mmu_buffers(pbi);
 		/* devm_kfree(&pdev->dev, (void *)pbi); */
 		vfree((void *)pbi);
+		pdata->dec_status = NULL;
 		return ret;
 	}
 	pbi->buf_start = pbi->cma_alloc_addr;
@@ -9406,6 +9409,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 		uninit_mmu_buffers(pbi);
 		/* devm_kfree(&pdev->dev, (void *)pbi); */
 		vfree((void *)pbi);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	vdec_set_prepare_level(pdata, start_decode_buf_level);

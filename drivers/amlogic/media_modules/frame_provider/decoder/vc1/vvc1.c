@@ -1150,6 +1150,7 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 		pr_info("amvdec_vc1 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	INIT_WORK(&set_clk_work, vvc1_set_clk);

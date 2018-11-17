@@ -844,6 +844,7 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 		mutex_unlock(&vmjpeg_mutex);
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

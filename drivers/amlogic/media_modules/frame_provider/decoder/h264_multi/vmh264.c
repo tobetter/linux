@@ -5238,7 +5238,7 @@ static int dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
 
-	if (!hw || !(hw->stat & STAT_VDEC_RUN))
+	if (!hw)
 		return -1;
 
 	vstatus->frame_width = hw->frame_width;
@@ -7381,6 +7381,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 	if (decoder_bmmu_box_alloc_buf_phy(hw->bmmu_box, BMMU_DPB_IDX,
 		V_BUF_ADDR_OFFSET, DRIVER_NAME, &hw->cma_alloc_addr) < 0) {
 		h264_free_hw_stru(&pdev->dev, (void *)hw);
+		pdata->dec_status = NULL;
 		return -ENOMEM;
 	}
 
@@ -7393,6 +7394,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 		if (decoder_bmmu_box_alloc_buf_phy(hw->bmmu_box, BMMU_EXTIF_IDX,
 			extif_size, DRIVER_NAME, &hw->extif_addr) < 0) {
 			h264_free_hw_stru(&pdev->dev, (void *)hw);
+			pdata->dec_status = NULL;
 			return -ENOMEM;
 		}
 	}
@@ -7464,6 +7466,7 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 		pr_info("\nammvdec_h264 init failed.\n");
 		ammvdec_h264_mmu_release(hw);
 		h264_free_hw_stru(&pdev->dev, (void *)hw);
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 #ifdef MH264_USERDATA_ENABLE
