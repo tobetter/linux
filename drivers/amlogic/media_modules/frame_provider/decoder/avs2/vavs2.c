@@ -2089,9 +2089,15 @@ static int config_pic(struct AVS2Decoder_s *dec,
 			}
 #ifdef MV_USE_FIXED_BUF
 #ifdef G12A_BRINGUP_DEBUG
-			pic->mpred_mv_wr_start_addr =
-			dec->work_space_buf->mpred_mv.buf_start +
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+				pic->mpred_mv_wr_start_addr =
+				dec->work_space_buf->mpred_mv.buf_start +
+					(pic->index * 0x120000 * 4);
+			} else {
+				pic->mpred_mv_wr_start_addr =
+				dec->work_space_buf->mpred_mv.buf_start +
 					(pic->index * 0x120000);
+			}
 #else
 			pic->mpred_mv_wr_start_addr =
 			dec->work_space_buf->mpred_mv.buf_start +
@@ -2498,13 +2504,15 @@ static void mcrcc_get_hitrate(void)
 
 	if (raw_mcr_cnt != 0) {
 		hitrate = (hit_mcr_cnt / raw_mcr_cnt) * 100;
-		pr_info("MCRCC_HIT_RATE : %d\n", hitrate);
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("MCRCC_HIT_RATE : %d\n", hitrate);
 		hitrate = ((byp_mcr_cnt_nchoutwin + byp_mcr_cnt_nchcanv)
 			/raw_mcr_cnt) * 100;
-		pr_info("MCRCC_BYP_RATE : %d\n", hitrate);
-	} else {
-		pr_info("MCRCC_HIT_RATE : na\n");
-		pr_info("MCRCC_BYP_RATE : na\n");
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("MCRCC_BYP_RATE : %d\n", hitrate);
+	} else if (debug & AVS2_DBG_CACHE) {
+			pr_info("MCRCC_HIT_RATE : na\n");
+			pr_info("MCRCC_BYP_RATE : na\n");
 	}
 	return;
 }
@@ -2529,9 +2537,11 @@ static void  decomp_get_hitrate(void)
 	}
 	if (raw_mcr_cnt != 0) {
 		hitrate = (hit_mcr_cnt / raw_mcr_cnt) * 100;
-	    pr_info("DECOMP_HCACHE_HIT_RATE : %d\n", hitrate);
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("DECOMP_HCACHE_HIT_RATE : %d\n", hitrate);
 	} else {
-	    pr_info("DECOMP_HCACHE_HIT_RATE : na\n");
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("DECOMP_HCACHE_HIT_RATE : na\n");
 	}
 	WRITE_VREG(HEVCD_MPP_DECOMP_PERFMON_CTL, (unsigned int)(0x2<<1));
 	raw_mcr_cnt = READ_VREG(HEVCD_MPP_DECOMP_PERFMON_DATA);
@@ -2575,14 +2585,14 @@ static void decomp_get_comprate(void)
 	if (raw_ucomp_cnt != 0) {
 		comprate = ((fast_comp_cnt + slow_comp_cnt)
 			/ raw_ucomp_cnt) * 100;
-		pr_info("DECOMP_COMP_RATIO : %d\n", comprate);
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("DECOMP_COMP_RATIO : %d\n", comprate);
 	} else {
-		pr_info("DECOMP_COMP_RATIO : na\n");
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("DECOMP_COMP_RATIO : na\n");
 	}
 	return;
 }
-
-
 
 static void config_mcrcc_axi_hw(struct AVS2Decoder_s *dec)
 {
@@ -6812,8 +6822,11 @@ static int __init amvdec_avs2_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXLX2
-		/*&& get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX*/) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		amvdec_avs2_profile.profile =
+				"8k, 10bit, dwrite, compressed";
+		vcodec_profile_register(&amvdec_avs2_profile);
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
 		if (vdec_is_support_4k())
 			amvdec_avs2_profile.profile =
 				"4k, 10bit, dwrite, compressed";

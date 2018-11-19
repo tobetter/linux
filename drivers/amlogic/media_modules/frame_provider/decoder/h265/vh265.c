@@ -7128,7 +7128,8 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		if (pic->double_write_mode) {
 			vf->type = VIDTYPE_PROGRESSIVE | VIDTYPE_VIU_FIELD;
 			vf->type |= VIDTYPE_VIU_NV21;
-			if (pic->double_write_mode == 3) {
+			if ((pic->double_write_mode == 3) &&
+				(!(IS_8K_SIZE(pic->width, pic->height)))) {
 				vf->type |= VIDTYPE_COMPRESS;
 				if (hevc->mmu_enable)
 					vf->type |= VIDTYPE_SCATTER;
@@ -11072,9 +11073,12 @@ static int __init amvdec_h265_driver_init_module(void)
 		if (is_meson_m8m2_cpu()) {
 			/* m8m2 support 4k */
 			amvdec_h265_profile.profile = "4k";
-		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB) {
+		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
 			amvdec_h265_profile.profile =
-				"4k, 9bit, 10bit, dwrite, compressed";
+				"8k, 8bit, 10bit, dwrite, compressed";
+		}else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB) {
+			amvdec_h265_profile.profile =
+				"4k, 8bit, 10bit, dwrite, compressed";
 		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_MG9TV)
 			amvdec_h265_profile.profile = "4k";
 	}
