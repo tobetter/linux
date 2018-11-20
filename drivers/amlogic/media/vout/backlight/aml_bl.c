@@ -1526,7 +1526,8 @@ static int aml_bl_config_load_from_dts(struct bl_config_s *bconf,
 		bconf->power_on_delay = bl_para[3];
 		bconf->power_off_delay = bl_para[4];
 	}
-	ret = of_property_read_u32(child, "bl_ldim_mode", &bl_para[0]);
+	ret = of_property_read_u32(child, "bl_ldim_region_row_col",
+		&bl_para[0]);
 	if (ret == 0)
 		bconf->ldim_flag = 1;
 
@@ -1594,10 +1595,11 @@ static int aml_bl_config_load_from_dts(struct bl_config_s *bconf,
 		ret = of_property_read_u32(child,
 			"bl_pwm_en_sequence_reverse", &val);
 		if (ret) {
-			BLPR("don't find bl_pwm_en_sequence_reverse\n");
 			bconf->en_sequence_reverse = 0;
-		} else
+		} else {
 			bconf->en_sequence_reverse = val;
+			BLPR("find bl_pwm_en_sequence_reverse: %d\n", val);
+		}
 
 		bl_pwm->pwm_duty = bl_pwm->pwm_duty_min;
 		/* init pwm config */
@@ -2038,6 +2040,9 @@ static int aml_bl_pwm_channel_register(struct bl_config_s *bconf,
 	struct device_node *child;
 	struct bl_pwm_config_s *bl_pwm = NULL;
 
+	if (bl_debug_print_flag)
+		BLPR("%s\n", __func__);
+
 	ret = of_property_read_u32(blnode, "bl_pwm_config", &pwm_phandle);
 	if (ret) {
 		BLERR("not match bl_pwm_config node\n");
@@ -2100,8 +2105,6 @@ static int aml_bl_pwm_channel_register(struct bl_config_s *bconf,
 		BLPR("register pwm_ch(%d) 0x%p\n",
 			bl_pwm->pwm_data.port_index, bl_pwm->pwm_data.pwm);
 	}
-
-	BLPR("%s ok\n", __func__);
 
 	return ret;
 
