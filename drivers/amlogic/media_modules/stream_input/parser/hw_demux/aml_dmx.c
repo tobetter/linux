@@ -43,7 +43,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/pinctrl/pinmux.h>
 #include <linux/vmalloc.h>
-
+#include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include "../streambuf.h"
 #include "c_stb_define.h"
 #include "c_stb_regs_define.h"
@@ -1130,9 +1130,10 @@ static void process_sub(struct aml_dmx *dmx)
 	}
 
 	if (buffer1)
-		buffer1_virt = phys_to_virt(buffer1);
+		buffer1_virt = codec_mm_phys_to_virt(buffer1);
+
 	if (buffer2)
-		buffer2_virt = phys_to_virt(buffer2);
+		buffer2_virt = codec_mm_phys_to_virt(buffer2);
 
 	if (len1)
 		dma_sync_single_for_cpu(dmx_get_dev(dmx),
