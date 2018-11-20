@@ -330,11 +330,6 @@ void calc_lmv_base_mcinfo(unsigned int vf_height, unsigned long mcinfo_adr,
 	if (!lmv_lock_win_en)
 		return;
 
-    if (!cpu_after_eq(MESON_CPU_MAJOR_ID_G12A)) {
-		pr_debug("%s: only support G12A and after chips.\n", __func__);
-		return;
-	}
-
 	tmp = di_vmap(mcinfo_adr, mcinfo_size, &bflg_vmap);
 	if (tmp == NULL) {
 		di_print("err:di_vmap failed\n");
