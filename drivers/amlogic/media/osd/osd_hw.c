@@ -8412,7 +8412,7 @@ void osd_init_hw(u32 logo_loaded, u32 osd_probe,
 		/* init vpu fifo control register */
 		data32 = osd_reg_read(VPP_OFIFO_SIZE);
 		if (osd_hw.osd_meson_dev.osd_ver >= OSD_HIGH_ONE) {
-			data32 = 0; /* reset value 0xfff0fff */
+			data32 &= ~((0xfff << 20) | 0x3fff);
 			data32 |= (osd_hw.osd_meson_dev.vpp_fifo_len) << 20;
 			data32 |= osd_hw.osd_meson_dev.vpp_fifo_len + 1;
 		} else
