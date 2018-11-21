@@ -762,6 +762,9 @@ static void avc_buffspec_init(struct encode_wq_s *wq)
 		wq->mem.buf_start + wq->mem.bufspec.cbr_info.buf_start;
 	wq->mem.cbr_info_ddr_size =
 		wq->mem.bufspec.cbr_info.buf_size;
+	wq->mem.cbr_info_ddr_virt_addr =
+		codec_mm_vmap(wq->mem.cbr_info_ddr_start_addr,
+		            wq->mem.bufspec.cbr_info.buf_size);
 
 	wq->mem.dblk_buf_canvas =
 		((ENC_CANVAS_OFFSET + 2) << 16) |
@@ -3250,11 +3253,10 @@ static s32 encode_process_request(struct encode_manager_s *manager,
 	if (request->cmd == ENCODER_IDR || request->cmd == ENCODER_NON_IDR) {
 		if (request->flush_flag & AMVENC_FLUSH_FLAG_CBR
 			&& get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
-			void *vaddr =
-				phys_to_virt(wq->mem.cbr_info_ddr_start_addr);
+			void *vaddr = wq->mem.cbr_info_ddr_virt_addr;
 			ConvertTable2Risc(vaddr, 0xa00);
 			buf_start = getbuffer(wq, ENCODER_BUFFER_CBR);
-			dma_flush(buf_start, wq->mem.cbr_info_ddr_size);
+			codec_mm_dma_flush(vaddr, wq->mem.cbr_info_ddr_size, DMA_TO_DEVICE);
 		}
 	}
 #endif
@@ -3540,6 +3542,10 @@ s32 destroy_encode_work_queue(struct encode_wq_s *encode_work_queue)
 		spin_unlock(&encode_manager.event.sem_lock);
 #ifdef CONFIG_CMA
 		if (encode_work_queue->mem.buf_start) {
+			if (wq->mem.cbr_info_ddr_virt_addr != NULL) {
+				codec_mm_unmap_phyaddr(wq->mem.cbr_info_ddr_virt_addr);
+				wq->mem.cbr_info_ddr_virt_addr = NULL;
+			}
 			codec_mm_free_for_dma(
 				ENCODE_NAME,
 				encode_work_queue->mem.buf_start);
