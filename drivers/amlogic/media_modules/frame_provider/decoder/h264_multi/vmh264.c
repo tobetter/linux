@@ -783,6 +783,7 @@ struct vdec_h264_hw_s {
 	bool is_used_v4l;
 	void *v4l2_ctx;
 	wait_queue_head_t wait_q;
+	u32 reg_g_status;
 };
 
 static u32 again_threshold = 0x40;
@@ -6929,6 +6930,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			  and not changes to another.
 			  ignore reload.
 			*/
+		WRITE_VREG(AV_SCRATCH_G, hw->reg_g_status);
 	} else {
 
 		ret = amvdec_vdec_loadmc_ex(VFORMAT_H264, "mh264", vdec, hw->fw->data);
@@ -6944,6 +6946,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 			return;
 		}
 		vdec->mc_type  = VFORMAT_H264;
+		hw->reg_g_status = READ_VREG(AV_SCRATCH_G);
 		if (hw->mmu_enable) {
 			ret = amhevc_loadmc_ex(VFORMAT_H264, "mh264_mmu",
 				hw->fw_mmu->data);

@@ -2099,7 +2099,7 @@ void vdec_prepare_run(struct vdec_s *vdec, unsigned long mask)
 static int vdec_core_thread(void *data)
 {
 	struct vdec_core_s *core = (struct vdec_core_s *)data;
-	struct vdec_s *lastvdec;
+	struct vdec_s *lastvdec = (struct vdec_s *) core->last_vdec;
 	struct sched_param param = {.sched_priority = MAX_RT_PRIO/2};
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
