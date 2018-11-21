@@ -607,7 +607,7 @@ static void ao_cecb_init(void)
 		hdmirx_set_bits_top(TOP_EDID_GEN_CNTL, EDID_AUTO_CEC_EN, 11, 1);
 
 		/* enable all cec irq */
-		cec_irq_enable(true);
+		/*cec_irq_enable(true);*/
 		/* clear all wake up source */
 		hdmirx_cec_write(DWC_CEC_WKUPCTRL, 0);
 		/* cec enable */
@@ -660,7 +660,7 @@ static void ao_cecb_init(void)
 		}
 
 		/* Enable all AO_CECB interrupt sources */
-		cec_irq_enable(true);
+		/*cec_irq_enable(true);*/
 		hdmirx_cec_write(DWC_CEC_WKUPCTRL, WAKEUP_EN_MASK);
 	}
 }
@@ -1046,7 +1046,7 @@ void ceca_hw_reset(void)
 	cec_set_reg_bits(AO_CEC_GEN_CNTL, 0, 0, 1);
 
 	/* Enable all AO_CEC interrupt sources */
-	cec_irq_enable(true);
+	/*cec_irq_enable(true);*/
 
 	/* cec_logicaddr_set(cec_dev->cec_info.log_addr); */
 
@@ -1590,7 +1590,7 @@ static void ao_ceca_init(void)
 	cec_set_reg_bits(AO_CEC_GEN_CNTL, 0, 0, 1);
 
 	/* Enable all AO_CEC interrupt sources */
-	cec_irq_enable(true);
+	/*cec_irq_enable(true);*/
 
 	cec_arbit_bit_time_set(3, 0x118, 0);
 	cec_arbit_bit_time_set(5, 0x000, 0);
@@ -3282,7 +3282,6 @@ static int aml_cec_probe(struct platform_device *pdev)
 		input_free_device(cec_dev->cec_info.remote_cec_dev);
 	}
 
-#ifdef CONFIG_OF
 	/* config: read from dts */
 	r = of_property_read_u32(node, "cec_sel", &(cec_dev->cec_num));
 	if (r) {
@@ -3492,15 +3491,12 @@ static int aml_cec_probe(struct platform_device *pdev)
 		}
 	}
 
-	/* if (ee_cec == CEC_A) */
-	{
-		last_cec_msg = devm_kzalloc(&pdev->dev,
-			sizeof(*last_cec_msg), GFP_KERNEL);
-		if (!last_cec_msg) {
-			CEC_ERR("allocate last_cec_msg failed\n");
-			ret = -ENOMEM;
-			goto tag_cec_msg_alloc_err;
-		}
+	last_cec_msg = devm_kzalloc(&pdev->dev,
+		sizeof(*last_cec_msg), GFP_KERNEL);
+	if (!last_cec_msg) {
+		CEC_ERR("allocate last_cec_msg failed\n");
+		ret = -ENOMEM;
+		goto tag_cec_msg_alloc_err;
 	}
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
