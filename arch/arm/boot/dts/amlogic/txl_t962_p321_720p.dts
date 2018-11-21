@@ -80,7 +80,7 @@
 			reusable;
 			size = <0x400000>;
 			alignment = <0x400000>;
-			alloc-ranges = <0x0 0x30000000>;
+			alloc-ranges = <0x2FC00000 0x400000>;
 		};
 		codec_mm_cma:linux,codec_mm_cma {
 			compatible = "shared-dma-pool";
@@ -233,7 +233,7 @@
 		/*1280*720*4*3 = 0xA8C000*/
 		display_size_default = <1280 720 1280 2160 32>;
 		pxp_mode = <0>; /** 0:normal mode 1:pxp mode */
-		logo_addr = "0x3fc00000";
+		logo_addr = "0x2FC00000";
 	};
 
 	picdec {
