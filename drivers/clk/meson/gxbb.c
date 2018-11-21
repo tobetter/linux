@@ -219,7 +219,7 @@ static struct clk_regmap gxl_hdmi_pll_dco = {
 		.frac = {
 			.reg_off = HHI_HDMI_PLL_CNTL2,
 			.shift   = 0,
-			.width   = 12,
+			.width   = 10,
 		},
 		.l = {
 			.reg_off = HHI_HDMI_PLL_CNTL,
