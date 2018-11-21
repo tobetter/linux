@@ -4052,7 +4052,7 @@ static bool is_buffer_available(struct vdec_s *vdec)
 	if ((kfifo_len(&hw->newframe_q) <= 0) ||
 	    ((hw->config_bufmgr_done) && (!have_free_buf_spec(vdec))) ||
 	    ((p_H264_Dpb->mDPB.init_done) &&
-	     (p_H264_Dpb->mDPB.used_size == p_H264_Dpb->mDPB.size) &&
+	     (p_H264_Dpb->mDPB.used_size >= (p_H264_Dpb->mDPB.size -1)) &&
 	     (is_there_unused_frame_from_dpb(&p_H264_Dpb->mDPB) == 0))) {
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_DETAIL,
 		"%s, empty, newq(%d), free_spec(%d), initdon(%d), used_size(%d/%d), unused_fr_dpb(%d)\n",
