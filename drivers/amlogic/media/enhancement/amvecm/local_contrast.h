@@ -37,6 +37,7 @@ enum lc_mtx_csc_e {
 
 extern int amlc_debug;
 extern int lc_en;
+extern int lc_demo_mode;
 extern void lc_init(void);
 extern void lc_process(struct vframe_s *vf,
 	unsigned int sps_h_en,

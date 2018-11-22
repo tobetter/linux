@@ -4903,7 +4903,7 @@ static ssize_t amvecm_debug_store(struct class *cla,
 			amvecm_sharpness_enable(13);
 			pr_info("SR disable\n");
 		}
-	} else if (!strncmp(parm[0], "cm", 2)) {
+	} else if (!strcmp(parm[0], "cm")) {
 		if (!strncmp(parm[1], "enable", 6)) {
 			amcm_enable();
 			pr_info("enable cm\n");
@@ -5080,42 +5080,42 @@ static ssize_t amvecm_debug_store(struct class *cla,
 			color_mode = 0;
 		vpp_clip_config(mode_sel, color, color_mode);
 		pr_info("vpp_clip_config done!\n");
-		} else if (!strcmp(parm[0], "3dlut_set")) {
-			int *PLut3D;
-			unsigned int bitdepth;
+	} else if (!strcmp(parm[0], "3dlut_set")) {
+		int *PLut3D;
+		unsigned int bitdepth;
 
-			PLut3D = kmalloc(14739 * sizeof(int), GFP_KERNEL);
-			if (PLut3D == NULL) {
-				kfree(PLut3D);
-				goto free_buf;
-			}
-			if (parm[1]) {
-				if (kstrtoul(parm[1], 10, &val) < 0) {
-					kfree(PLut3D);
-					goto free_buf;
-				}
-				bitdepth = val;
-			} else {
-				pr_info("unsupport cmd\n");
-				kfree(PLut3D);
-				goto free_buf;
-			}
-
-			vpp_lut3d_table_init(PLut3D, bitdepth);
-			if (!strcmp(parm[2], "enable"))
-				vpp_set_lut3d(1, 1, PLut3D, 1);
-			else if (!strcmp(parm[2], "disable"))
-				vpp_set_lut3d(0, 0, PLut3D, 0);
-			else
-				pr_info("unsupprt cmd!\n");
+		PLut3D = kmalloc(14739 * sizeof(int), GFP_KERNEL);
+		if (PLut3D == NULL) {
 			kfree(PLut3D);
-		} else if (!strcmp(parm[0], "3dlut_dump")) {
-			if (!strcmp(parm[1], "init_tab"))
-				dump_plut3d_table();
-			else if (!strcmp(parm[1], "reg_tab"))
-				dump_plut3d_reg_table();
-			else
-				pr_info("unsupprt cmd!\n");
+			goto free_buf;
+		}
+		if (parm[1]) {
+			if (kstrtoul(parm[1], 10, &val) < 0) {
+				kfree(PLut3D);
+				goto free_buf;
+			}
+			bitdepth = val;
+		} else {
+			pr_info("unsupport cmd\n");
+			kfree(PLut3D);
+			goto free_buf;
+		}
+
+		vpp_lut3d_table_init(PLut3D, bitdepth);
+		if (!strcmp(parm[2], "enable"))
+			vpp_set_lut3d(1, 1, PLut3D, 1);
+		else if (!strcmp(parm[2], "disable"))
+			vpp_set_lut3d(0, 0, PLut3D, 0);
+		else
+			pr_info("unsupprt cmd!\n");
+		kfree(PLut3D);
+	} else if (!strcmp(parm[0], "3dlut_dump")) {
+		if (!strcmp(parm[1], "init_tab"))
+			dump_plut3d_table();
+		else if (!strcmp(parm[1], "reg_tab"))
+			dump_plut3d_reg_table();
+		else
+			pr_info("unsupprt cmd!\n");
 	} else if (!strcmp(parm[0], "cm_hist")) {
 		if (!parm[1]) {
 			pr_info("miss param1\n");
@@ -5399,6 +5399,13 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			return -EINVAL;
 		}
 		amlc_debug = val;
+	} else if (!strcmp(parm[0], "lc_demo_mode")) {
+		if (!strcmp(parm[1], "enable"))
+			lc_demo_mode = 1;
+		else if (!strcmp(parm[1], "disable"))
+			lc_demo_mode = 0;
+		else
+			pr_info("unsupprt cmd!\n");
 	} else
 		pr_info("unsupprt cmd!\n");
 
