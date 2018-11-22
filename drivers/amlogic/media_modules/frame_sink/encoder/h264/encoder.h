@@ -260,7 +260,7 @@ struct encode_meminfo_s {
 	u32 cbr_info_ddr_start_addr;
 	u32 cbr_info_ddr_size;
 
-	u32 cbr_info_ddr_virt_addr;
+	u8 * cbr_info_ddr_virt_addr;
 
 	s32 dblk_buf_canvas;
 	s32 ref_buf_canvas;
