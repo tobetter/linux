@@ -118,6 +118,8 @@ extern void lcd_venc_change(struct lcd_config_s *pconf);
 extern void lcd_if_enable_retry(struct lcd_config_s *pconf);
 
 /* lcd tcon */
+extern unsigned int lcd_tcon_reg_read(unsigned int addr);
+extern void lcd_tcon_reg_write(unsigned int addr, unsigned int val);
 extern void lcd_tcon_reg_table_print(void);
 extern void lcd_tcon_reg_readback_print(void);
 extern int lcd_tcon_info_print(char *buf, int offset);

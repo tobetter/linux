@@ -3539,13 +3539,16 @@ static int aml_bl_probe(struct platform_device *pdev)
 err:
 	kfree(bl_drv);
 	bl_drv = NULL;
-	return ret;
+	return 0;
 }
 
 static int __exit aml_bl_remove(struct platform_device *pdev)
 {
 	int ret;
 	/*struct aml_bl *bl_drv = platform_get_drvdata(pdev);*/
+
+	if (bl_drv == NULL)
+		return 0;
 
 	aml_bl_remove_class();
 

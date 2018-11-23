@@ -14754,6 +14754,11 @@ F:	drivers/amlogic/media/common/canvas/canvas_mgr.c
 F:	drivers/amlogic/media/common/vfm/vfm.c
 F:	include/linux/amlogic/media/camera/*
 
+AMLOGIC MESON TL1 PANEL DTS
+M:	Evoke Zhang <evoke.zhang@amlogic.com>
+F:	arch/arm/boot/dts/amlogic/mesontl1_skt-panel.dtsi
+F:	arch/arm/boot/dts/amlogic/mesontl1_x301-panel.dtsi
+
 AMLOGIC multimedia
 M:	Pengcheng Chen <pengcheng.chen@amlogic.com>
 F:	drivers/amlogic/media/common/ge2d/ge2d_dmabuf.c

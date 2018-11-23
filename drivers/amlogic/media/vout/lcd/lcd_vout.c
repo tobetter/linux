@@ -115,6 +115,36 @@ static struct vbyone_config_s lcd_vbyone_config = {
 	.cdr_training_hold = VX1_CDR_TRAINING_HOLD_DFT,
 };
 
+static struct mlvds_config_s lcd_mlvds_config = {
+	.channel_num = 12,
+	.channel_sel0 = 0x76543210,
+	.channel_sel1 = 0xba98,
+	.clk_phase = 0,
+	.pn_swap = 0,
+	.bit_swap = 0,
+	.phy_vswing = 0,
+	.phy_preem = 0,
+
+	.pi_clk_sel = 0,
+	.bit_rate = 0,
+};
+
+static struct p2p_config_s lcd_p2p_config = {
+	.p2p_type = P2P_MAX,
+	.port_num = 6,
+	.lane_num = 12,
+	.channel_sel0 = 0x76543210,
+	.channel_sel1 = 0xba98,
+	.clk_phase = 0,
+	.pn_swap = 0,
+	.bit_swap = 0,
+	.phy_vswing = 0,
+	.phy_preem = 0,
+
+	.pi_clk_sel = 0,
+	.bit_rate = 0,
+};
+
 static unsigned char dsi_init_on_table[DSI_INIT_ON_MAX] = {0xff, 0xff};
 static unsigned char dsi_init_off_table[DSI_INIT_OFF_MAX] = {0xff, 0xff};
 
@@ -197,6 +227,8 @@ static struct lcd_config_s lcd_config_dft = {
 		.ttl_config = &lcd_ttl_config,
 		.lvds_config = &lcd_lvds_config,
 		.vbyone_config = &lcd_vbyone_config,
+		.mlvds_config = &lcd_mlvds_config,
+		.p2p_config = &lcd_p2p_config,
 		.mipi_config = &lcd_mipi_config,
 		.vlock_param = vlock_param,
 	},
@@ -965,6 +997,8 @@ static int lcd_mode_probe(struct device *dev)
 		LCDERR("invalid lcd mode: %d\n", lcd_driver->lcd_mode);
 		break;
 	}
+	if (lcd_driver->data->chip_type == LCD_CHIP_TL1)
+		lcd_tcon_probe(lcd_driver);
 
 	lcd_debug_probe();
 	lcd_fops_create();

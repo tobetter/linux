@@ -1001,6 +1001,8 @@ static int lcd_config_load_from_dts(struct lcd_config_s *pconf,
 			}
 		}
 		break;
+	case LCD_P2P:
+		break;
 	default:
 		LCDERR("invalid lcd type\n");
 		break;

@@ -41,7 +41,7 @@
 static struct lcd_debug_info_reg_s *lcd_debug_info_reg;
 static struct lcd_debug_info_if_s *lcd_debug_info_if;
 
-#define PR_BUF_MAX          2048
+#define PR_BUF_MAX          4096
 
 static void lcd_debug_parse_param(char *buf_orig, char **parm)
 {
@@ -464,7 +464,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
-		"channel_num       %d\n"
+		"lane_num          %d\n"
 		"channel_sel1      0x%08x\n"
 		"channel_sel1      0x%08x\n"
 		"clk_phase         0x%04x\n"
@@ -474,7 +474,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 		"phy_preem         0x%x\n"
 		"bit_rate          %dHz\n"
 		"pi_clk_sel        0x%03x\n\n",
-		pconf->lcd_control.p2p_config->channel_num,
+		pconf->lcd_control.p2p_config->lane_num,
 		pconf->lcd_control.p2p_config->channel_sel0,
 		pconf->lcd_control.p2p_config->channel_sel1,
 		pconf->lcd_control.p2p_config->clk_phase,
@@ -962,27 +962,12 @@ static int lcd_reg_print_p2p(char *buf, int offset)
 	int n, len = 0;
 
 	n = lcd_debug_info_len(len + offset);
-	len += snprintf((buf+len), n, "\nmlvds regs:\n");
+	len += snprintf((buf+len), n, "\np2p regs:\n");
 
 	n = lcd_debug_info_len(len + offset);
-	reg = HHI_TCON_CLK_CNTL;
+	reg = HHI_TCON_CLK_CNTL_TL1;
 	len += snprintf((buf+len), n,
 		"HHI_TCON_CLK_CNTL   [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_DIF_TCON_CNTL0;
-	len += snprintf((buf+len), n,
-		"HHI_DIF_TCON_CNTL0  [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_DIF_TCON_CNTL1;
-	len += snprintf((buf+len), n,
-		"HHI_DIF_TCON_CNTL1  [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_DIF_TCON_CNTL2;
-	len += snprintf((buf+len), n,
-		"HHI_DIF_TCON_CNTL2  [0x%04x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 
 	n = lcd_debug_info_len(len + offset);
@@ -1077,17 +1062,103 @@ static int lcd_reg_print_phy_analog(char *buf, int offset)
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_DIF_CSI_PHY_CNTL1;
 	len += snprintf((buf+len), n,
-		"HHI_DIF_CSI_PHY_CNTL1  [0x%04x] = 0x%08x\n",
+		"HHI_DIF_CSI_PHY_CNTL1  [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_DIF_CSI_PHY_CNTL2;
 	len += snprintf((buf+len), n,
-		"HHI_DIF_CSI_PHY_CNTL2  [0x%04x] = 0x%08x\n",
+		"HHI_DIF_CSI_PHY_CNTL2  [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_DIF_CSI_PHY_CNTL3;
 	len += snprintf((buf+len), n,
-		"HHI_DIF_CSI_PHY_CNTL3  [0x%04x] = 0x%08x\n",
+		"HHI_DIF_CSI_PHY_CNTL3  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+
+	return len;
+}
+
+static int lcd_reg_print_phy_analog_tl1(char *buf, int offset)
+{
+	unsigned int reg;
+	int n, len = 0;
+
+	n = lcd_debug_info_len(len + offset);
+	len += snprintf((buf+len), n, "\nphy analog regs:\n");
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL1;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL1  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL2;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL2  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL3;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL3  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL4;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL4  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL6;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL6  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL7;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL7  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL8;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL8  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL9;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL9  [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL10;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL10 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL11;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL11 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL12;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL12 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL13;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL13 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL14;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL14 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL15;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL15 [0x%02x] = 0x%08x\n",
+		reg, lcd_hiu_read(reg));
+	n = lcd_debug_info_len(len + offset);
+	reg = HHI_DIF_CSI_PHY_CNTL16;
+	len += snprintf((buf+len), n,
+		"HHI_DIF_CSI_PHY_CNTL16 [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 
 	return len;
@@ -1103,17 +1174,17 @@ static int lcd_reg_print_mipi_phy_analog(char *buf, int offset)
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_MIPI_CNTL0;
 	len += snprintf((buf+len), n,
-		"HHI_MIPI_CNTL0   [0x%04x] = 0x%08x\n",
+		"HHI_MIPI_CNTL0   [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_MIPI_CNTL1;
 	len += snprintf((buf+len), n,
-		"HHI_MIPI_CNTL1   [0x%04x] = 0x%08x\n",
+		"HHI_MIPI_CNTL1   [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 	n = lcd_debug_info_len(len + offset);
 	reg = HHI_MIPI_CNTL2;
 	len += snprintf((buf+len), n,
-		"HHI_MIPI_CNTL2   [0x%04x] = 0x%08x\n",
+		"HHI_MIPI_CNTL2   [0x%02x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
 
 	return len;
@@ -1139,7 +1210,7 @@ static int lcd_reg_print(char *buf, int offset)
 					break;
 				n = lcd_debug_info_len(len + offset);
 				len += snprintf((buf+len), n,
-					"hiu     [0x%08x] = 0x%08x\n",
+					"hiu     [0x%02x] = 0x%08x\n",
 					table[i], lcd_hiu_read(table[i]));
 				i++;
 			}
@@ -1174,7 +1245,7 @@ static int lcd_reg_print(char *buf, int offset)
 				if (table[i] == LCD_DEBUG_REG_END)
 					break;
 				len += snprintf((buf+len), n,
-					"PERIPHS_PIN_MUX  [0x%08x] = 0x%08x\n",
+					"PERIPHS_PIN_MUX  [0x%02x] = 0x%08x\n",
 					table[i], lcd_periphs_read(table[i]));
 				i++;
 			}
@@ -1967,18 +2038,18 @@ static ssize_t lcd_debug_change_store(struct class *class,
 		ret = sscanf(buf, "p2p %d %x %x %x %d %d",
 			&val[0], &val[1], &val[2], &val[3], &val[4], &val[5]);
 		if (ret == 6) {
-			p2p_conf->channel_num = val[0];
+			p2p_conf->lane_num = val[0];
 			p2p_conf->channel_sel0 = val[1];
 			p2p_conf->channel_sel1 = val[2];
 			p2p_conf->clk_phase = val[3];
 			p2p_conf->pn_swap = val[4];
 			p2p_conf->bit_swap = val[5];
-			pr_info("change mlvds config:\n"
-				"channel_num=%d,\n"
+			pr_info("change p2p config:\n"
+				"lane_num=%d,\n"
 				"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 				"clk_phase=0x%04x,\n"
 				"pn_swap=%d, bit_swap=%d\n",
-				p2p_conf->channel_num,
+				p2p_conf->lane_num,
 				p2p_conf->channel_sel0,
 				p2p_conf->channel_sel1,
 				p2p_conf->clk_phase,
@@ -2433,6 +2504,16 @@ static void lcd_debug_reg_write(unsigned int reg, unsigned int data,
 		pr_info("write mipi_dsi_phy [0x%04x] = 0x%08x, readback 0x%08x\n",
 			reg, data, dsi_phy_read(reg));
 		break;
+	case 6: /* tcon */
+		lcd_tcon_reg_write(reg, data);
+		if (reg < TCON_TOP_BASE) {
+			pr_info("write tcon [0x%04x] = 0x%02x, readback 0x%02x\n",
+				reg, data, lcd_tcon_reg_read(reg));
+		} else {
+			pr_info("write tcon [0x%04x] = 0x%08x, readback 0x%08x\n",
+			reg, data, lcd_tcon_reg_read(reg));
+		}
+		break;
 	default:
 		break;
 	}
@@ -2464,6 +2545,15 @@ static void lcd_debug_reg_read(unsigned int reg, unsigned int bus)
 	case 5: /* mipi_dsi_phy */
 		pr_info("read mipi_dsi_phy [0x%04x] = 0x%08x\n",
 			reg, dsi_phy_read(reg));
+		break;
+	case 6:
+		if (reg < TCON_TOP_BASE) {
+			pr_info("read tcon [0x%04x] = 0x%02x\n",
+				reg, lcd_tcon_reg_read(reg));
+		} else {
+			pr_info("read tcon [0x%04x] = 0x%08x\n",
+			reg, lcd_tcon_reg_read(reg));
+		}
 		break;
 	default:
 		break;
@@ -2518,6 +2608,20 @@ static void lcd_debug_reg_dump(unsigned int reg, unsigned int num,
 				(reg + i), dsi_phy_read(reg + i));
 		}
 		break;
+	case 6:
+		pr_info("dump tcon regs:\n");
+		if (reg < TCON_TOP_BASE) {
+			for (i = 0; i < num; i++) {
+				pr_info("[0x%04x] = 0x%02x\n",
+					(reg + i), lcd_tcon_reg_read(reg + i));
+			}
+		} else {
+			for (i = 0; i < num; i++) {
+				pr_info("[0x%04x] = 0x%08x\n",
+					(reg + i), lcd_tcon_reg_read(reg + i));
+			}
+		}
+		break;
 	default:
 		break;
 	}
@@ -2552,6 +2656,9 @@ static ssize_t lcd_debug_reg_store(struct class *class,
 				ret = sscanf(buf, "wmp %x %x", &reg32, &data32);
 				bus = 5;
 			}
+		} else if (buf[1] == 't') {
+			ret = sscanf(buf, "wt %x %x", &reg32, &data32);
+			bus = 6;
 		}
 		if (ret == 2) {
 			lcd_debug_reg_write(reg32, data32, bus);
@@ -2581,6 +2688,9 @@ static ssize_t lcd_debug_reg_store(struct class *class,
 				ret = sscanf(buf, "rmp %x", &reg32);
 				bus = 5;
 			}
+		} else if (buf[1] == 't') {
+			ret = sscanf(buf, "rt %x", &reg32);
+			bus = 6;
 		}
 		if (ret == 1) {
 			lcd_debug_reg_read(reg32, bus);
@@ -2610,6 +2720,9 @@ static ssize_t lcd_debug_reg_store(struct class *class,
 				ret = sscanf(buf, "dmp %x %d", &reg32, &data32);
 				bus = 5;
 			}
+		} else if (buf[1] == 't') {
+			ret = sscanf(buf, "dt %x %d", &reg32, &data32);
+			bus = 6;
 		}
 		if (ret == 2) {
 			lcd_debug_reg_dump(reg32, data32, bus);
@@ -2978,7 +3091,7 @@ static const char *lcd_mlvds_debug_usage_str = {
 
 static const char *lcd_p2p_debug_usage_str = {
 "Usage:\n"
-"    echo <channel_num> <channel_sel0> <channel_sel1> <clk_phase> <pn_swap> <bit_swap> > minilvds ; set minilvds config\n"
+"    echo <lane_num> <channel_sel0> <channel_sel1> <clk_phase> <pn_swap> <bit_swap> > minilvds ; set minilvds config\n"
 "data format:\n"
 "    <channel_sel> : minilvds 8 channels mapping in tx 10 channels\n"
 "    <clk_phase>   : bit[13:12]=clk01_pi_sel, bit[11:8]=pi2, bit[7:4]=pi1, bit[3:0]=pi0\n"
@@ -3287,17 +3400,17 @@ static ssize_t lcd_p2p_debug_store(struct class *class,
 
 	p2p_conf = lcd_drv->lcd_config->lcd_control.p2p_config;
 	ret = sscanf(buf, "%d %x %x %x %d %d",
-		&p2p_conf->channel_num,
+		&p2p_conf->lane_num,
 		&p2p_conf->channel_sel0, &p2p_conf->channel_sel1,
 		&p2p_conf->clk_phase,
 		&p2p_conf->pn_swap, &p2p_conf->bit_swap);
 	if (ret == 6) {
 		pr_info("set minilvds config:\n"
-			"channel_num=%d,\n"
+			"lane_num=%d,\n"
 			"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 			"clk_phase=0x%04x,\n"
 			"pn_swap=%d, bit_swap=%d\n",
-			p2p_conf->channel_num,
+			p2p_conf->lane_num,
 			p2p_conf->channel_sel0, p2p_conf->channel_sel1,
 			p2p_conf->clk_phase,
 			p2p_conf->pn_swap, p2p_conf->bit_swap);
@@ -4236,6 +4349,14 @@ int lcd_debug_probe(void)
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
 		lcd_debug_info_reg = &lcd_debug_info_reg_tl1;
+		lcd_debug_info_if_lvds.reg_dump_phy =
+			lcd_reg_print_phy_analog_tl1;
+		lcd_debug_info_if_vbyone.reg_dump_phy =
+			lcd_reg_print_phy_analog_tl1;
+		lcd_debug_info_if_mlvds.reg_dump_phy =
+			lcd_reg_print_phy_analog_tl1;
+		lcd_debug_info_if_p2p.reg_dump_phy =
+			lcd_reg_print_phy_analog_tl1;
 		break;
 	case LCD_CHIP_G12A:
 	case LCD_CHIP_G12B:

@@ -449,7 +449,7 @@
 		compatible = "amlogic, unifykey";
 		status = "okay";
 
-		unifykey-num = <19>;
+		unifykey-num = <20>;
 		unifykey-index-0 = <&keysn_0>;
 		unifykey-index-1 = <&keysn_1>;
 		unifykey-index-2 = <&keysn_2>;
@@ -469,6 +469,7 @@
 		unifykey-index-16 = <&keysn_16>;
 		unifykey-index-17 = <&keysn_17>;
 		unifykey-index-18 = <&keysn_18>;
+		unifykey-index-19 = <&keysn_19>;
 
 		keysn_0: key_0{
 			key-name = "usid";
@@ -567,6 +568,11 @@
 		};
 		keysn_18:key_18{
 			key-name = "backlight";
+			key-device = "normal";
+			key-permit = "read","write","del";
+		};
+		keysn_19:key_19{
+			key-name = "lcd_tcon";
 			key-device = "normal";
 			key-permit = "read","write","del";
 		};
@@ -1459,6 +1465,34 @@
 
 &saradc {
 	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <300000>;
+	pinctrl-names="default";
+	pinctrl-0=<&i2c1_h_pins>;
+
+	lcd_extern_i2c0: lcd_extern_i2c@0 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_T5800Q";
+		reg = <0x1c>;
+		status = "okay";
+	};
+
+	lcd_extern_i2c1: lcd_extern_i2c@1 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_ANX6862";
+		reg = <0x20>;
+		status = "okay";
+	};
+
+	lcd_extern_i2c2: lcd_extern_i2c@2 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_ANX7911";
+		reg = <0x74>;
+		status = "okay";
+	};
 };
 
 &pwm_ab {

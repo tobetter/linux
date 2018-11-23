@@ -232,7 +232,7 @@
 /* video */
 #define CLK_DIV_IN_MAX_TL1          (3100 * 1000)
 #define CRT_VID_CLK_IN_MAX_TL1      (3100 * 1000)
-#define ENCL_CLK_IN_MAX_TL1         (400 * 1000)
+#define ENCL_CLK_IN_MAX_TL1         (750 * 1000)
 
 
 /* **********************************

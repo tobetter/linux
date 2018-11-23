@@ -33,6 +33,7 @@
 #include "lcd_common.h"
 #include "lcd_reg.h"
 #include "lcd_tcon.h"
+#include "tcon_ceds.h"
 
 #define TCON_INTR_MASKN_VAL    0x0  /* default mask all */
 
@@ -52,6 +53,48 @@ static int lcd_tcon_valid_check(void)
 	}
 
 	return 0;
+}
+
+unsigned int lcd_tcon_reg_read(unsigned int addr)
+{
+	unsigned int val;
+	int ret;
+
+	ret = lcd_tcon_valid_check();
+	if (ret)
+		return 0;
+
+	if (addr < TCON_TOP_BASE) {
+		if (lcd_tcon_data->core_reg_width == 8)
+			val = lcd_tcon_read_byte(addr);
+		else
+			val = lcd_tcon_read(addr);
+	} else {
+		val = lcd_tcon_read(addr);
+	}
+
+	return val;
+}
+
+void lcd_tcon_reg_write(unsigned int addr, unsigned int val)
+{
+	unsigned char temp;
+	int ret;
+
+	ret = lcd_tcon_valid_check();
+	if (ret)
+		return;
+
+	if (addr < TCON_TOP_BASE) {
+		if (lcd_tcon_data->core_reg_width == 8) {
+			temp = (unsigned char)val;
+			lcd_tcon_write_byte(addr, temp);
+		} else {
+			lcd_tcon_write(addr, val);
+		}
+	} else {
+		lcd_tcon_write(addr, val);
+	}
 }
 
 static void lcd_tcon_od_check(unsigned char *table)
@@ -227,6 +270,7 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 	LCDPR("tcon axi_offset_addr = 0x%08x\n",
 		lcd_tcon_data->axi_offset_addr);
 
+#if 0
 	/* get reg table from unifykey */
 	reg_len = lcd_tcon_data->reg_table_len;
 	if (lcd_tcon_data->reg_table == NULL) {
@@ -254,6 +298,17 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 			__func__);
 		return -1;
 	}
+#else
+	reg_len = lcd_tcon_data->reg_table_len;
+	lcd_tcon_data->reg_table = uhd_tcon_setting_ceds_h10;
+	key_len = sizeof(uhd_tcon_setting_ceds_h10)/sizeof(unsigned char);
+	if (key_len != reg_len) {
+		lcd_tcon_data->reg_table = NULL;
+		LCDERR("%s: !!!!!!!!tcon unifykey load length error!!!!!!!!\n",
+			__func__);
+		return -1;
+	}
+#endif
 	LCDPR("tcon: load key len: %d\n", key_len);
 
 	lcd_tcon_intr_init(lcd_drv);

@@ -69,6 +69,7 @@ extern unsigned char lcd_debug_print_flag;
  * **********************************
  */
 #define TTL_DELAY                   13
+#define PRE_DE_DELAY                8
 
 
 /* **********************************
@@ -338,8 +339,15 @@ struct mlvds_config_s {
 	unsigned int bit_rate; /* Hz */
 };
 
+enum p2p_type_e {
+	P2P_CEDS = 0,
+	P2P_MAX,
+};
+
 struct p2p_config_s {
-	unsigned int channel_num;
+	unsigned int p2p_type;
+	unsigned int port_num;
+	unsigned int lane_num;
 	unsigned int channel_sel0;
 	unsigned int channel_sel1;
 	unsigned int clk_phase; /* [13:12]=clk01_pi_sel,

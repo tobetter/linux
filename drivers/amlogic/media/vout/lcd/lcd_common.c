@@ -363,35 +363,42 @@ void lcd_vbyone_pinmux_set(int status)
 	pconf->pinmux_flag = index;
 }
 
+static char *lcd_tcon_pinmux_str[] = {
+	"tcon",
+	"tcon_off",
+	"none",
+};
+
 void lcd_tcon_pinmux_set(int status)
 {
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	struct lcd_config_s *pconf;
+	unsigned int index;
 
 	if (lcd_debug_print_flag)
 		LCDPR("%s: %d\n", __func__, status);
 
 	pconf = lcd_drv->lcd_config;
-	if (status) {
-		if (pconf->pinmux_flag == 0) {
-			pconf->pinmux_flag = 1;
-			/* request pinmux */
-			pconf->pin = devm_pinctrl_get_select(lcd_drv->dev,
-				"tcon");
-			if (IS_ERR(pconf->pin))
-				LCDERR("set tcon pinmux error\n");
-		} else {
-			LCDPR("tcon pinmux is already selected\n");
-		}
+	index = (status) ? 0 : 1;
+
+	if (pconf->pinmux_flag == index) {
+		LCDPR("pinmux %s is already selected\n",
+			lcd_tcon_pinmux_str[index]);
+		return;
+	}
+
+	pconf->pin = devm_pinctrl_get_select(lcd_drv->dev,
+		lcd_tcon_pinmux_str[index]);
+	if (IS_ERR(pconf->pin)) {
+		LCDERR("set vbyone pinmux %s error\n",
+			lcd_tcon_pinmux_str[index]);
 	} else {
-		if (pconf->pinmux_flag) {
-			pconf->pinmux_flag = 0;
-			/* release pinmux */
-			devm_pinctrl_put(pconf->pin);
-		} else {
-			LCDPR("tcon pinmux is already released\n");
+		if (lcd_debug_print_flag) {
+			LCDPR("set vbyone pinmux %s: %p\n",
+				lcd_tcon_pinmux_str[index], pconf->pin);
 		}
 	}
+	pconf->pinmux_flag = index;
 }
 
 unsigned int lcd_lvds_channel_on_value(struct lcd_config_s *pconf)
