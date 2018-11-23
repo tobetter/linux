@@ -390,11 +390,11 @@ void lcd_tcon_pinmux_set(int status)
 	pconf->pin = devm_pinctrl_get_select(lcd_drv->dev,
 		lcd_tcon_pinmux_str[index]);
 	if (IS_ERR(pconf->pin)) {
-		LCDERR("set vbyone pinmux %s error\n",
+		LCDERR("set tcon pinmux %s error\n",
 			lcd_tcon_pinmux_str[index]);
 	} else {
 		if (lcd_debug_print_flag) {
-			LCDPR("set vbyone pinmux %s: %p\n",
+			LCDPR("set tcon pinmux %s: %p\n",
 				lcd_tcon_pinmux_str[index], pconf->pin);
 		}
 	}

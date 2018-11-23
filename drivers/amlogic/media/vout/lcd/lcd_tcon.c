@@ -36,13 +36,19 @@
 #include "lcd_common.h"
 #include "lcd_reg.h"
 #include "lcd_tcon.h"
-#include "tcon_ceds.h"
+/*#include "tcon_ceds.h"*/
 
 #define TCON_INTR_MASKN_VAL    0x0  /* default mask all */
 
-static struct reserved_mem tcon_fb_rmem = {.base = 0, .size = 0};
+static struct tcon_rmem_s tcon_rmem = {
+	.flag = 0,
+	.mem_vaddr = NULL,
+	.mem_paddr = 0,
+	.mem_size = 0,
+};
 
 static struct lcd_tcon_data_s *lcd_tcon_data;
+static struct delayed_work lcd_tcon_delayed_work;
 
 static int lcd_tcon_valid_check(void)
 {
@@ -112,7 +118,7 @@ static void lcd_tcon_od_check(unsigned char *table)
 	if (((table[reg] >> bit) & 1) == 0)
 		return;
 
-	if (lcd_tcon_data->axi_offset_addr == 0) {
+	if (tcon_rmem.flag == 0) {
 		table[reg] &= ~(1 << bit);
 		LCDPR("%s: invalid fb, disable od function\n", __func__);
 	}
@@ -163,22 +169,22 @@ static int lcd_tcon_top_set_tl1(void)
 		TCON_AXI_OFST0, TCON_AXI_OFST1, TCON_AXI_OFST2
 	};
 	unsigned int addr[3] = {0, 0, 0};
-	unsigned int size[3] = {0, 0, 0};
+	unsigned int size[3] = {4162560, 4162560, 1960440};
 	int i;
 
 	LCDPR("lcd tcon top set\n");
 
-	if (lcd_tcon_data->axi_offset_addr == 0) {
-		LCDERR("%s: invalid axi_offset_addr\n", __func__);
-	} else {
-		addr[0] = lcd_tcon_data->axi_offset_addr;
+	if (tcon_rmem.flag) {
+		addr[0] = tcon_rmem.mem_paddr;
 		addr[1] = addr[0] + size[0];
 		addr[2] = addr[1] + size[1];
 		for (i = 0; i < 3; i++) {
 			lcd_tcon_write(axi_reg[i], addr[i]);
-			LCDPR("set tcon axi_offset_addr[%d]: 0x%08x\n",
+			LCDPR("set tcon axi_mem_paddr[%d]: 0x%08x\n",
 				i, addr[i]);
 		}
+	} else {
+		LCDERR("%s: invalid axi_mem\n", __func__);
 	}
 
 	lcd_tcon_write(TCON_CLK_CTRL, 0x001f);
@@ -246,13 +252,15 @@ static void lcd_tcon_intr_init(struct aml_lcd_drv_s *lcd_drv)
 		return;
 	}
 	tcon_irq = lcd_drv->res_tcon_irq->start;
-	LCDPR("tcon_irq: %d\n", tcon_irq);
+	if (lcd_debug_print_flag)
+		LCDPR("tcon_irq: %d\n", tcon_irq);
 
 	if (request_irq(tcon_irq, lcd_tcon_isr, IRQF_SHARED,
 		"lcd_tcon", (void *)"lcd_tcon"))
 		LCDERR("can't request lcd_tcon irq\n");
 	else {
-		LCDPR("request lcd_tcon successful\n");
+		if (lcd_debug_print_flag)
+			LCDPR("request lcd_tcon irq successful\n");
 	}
 
 	lcd_tcon_write(TCON_INTR_MASKN, TCON_INTR_MASKN_VAL);
@@ -262,18 +270,7 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 {
 	int key_len, reg_len, ret;
 
-	/* init reserved memory */
-	ret = of_reserved_mem_device_init(lcd_drv->dev);
-	if ((ret != 0) && ((void *)tcon_fb_rmem.base == NULL)) {
-		LCDERR("failed to init tcon axi reserved memory\n");
-	} else {
-		lcd_tcon_data->axi_offset_addr =
-			virt_to_phys((void *)tcon_fb_rmem.base);
-	}
-	LCDPR("tcon axi_offset_addr = 0x%08x\n",
-		lcd_tcon_data->axi_offset_addr);
-
-#if 0
+#if 1
 	/* get reg table from unifykey */
 	reg_len = lcd_tcon_data->reg_table_len;
 	if (lcd_tcon_data->reg_table == NULL) {
@@ -301,6 +298,7 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 			__func__);
 		return -1;
 	}
+	LCDPR("tcon: load unifykey len: %d\n", key_len);
 #else
 	reg_len = lcd_tcon_data->reg_table_len;
 	lcd_tcon_data->reg_table = uhd_tcon_setting_ceds_h10;
@@ -311,8 +309,8 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 			__func__);
 		return -1;
 	}
+	LCDPR("tcon: load default table len: %d\n", key_len);
 #endif
-	LCDPR("tcon: load key len: %d\n", key_len);
 
 	lcd_tcon_intr_init(lcd_drv);
 
@@ -329,7 +327,7 @@ static void lcd_tcon_config_delayed(struct work_struct *work)
 	while (key_init_flag == 0) {
 		if (i++ >= LCD_UNIFYKEY_WAIT_TIMEOUT)
 			break;
-		msleep(LCD_UNIFYKEY_RETRY_INTERVAL);
+		msleep(20);
 		key_init_flag = key_unify_get_init_flag();
 	}
 	LCDPR("tcon: key_init_flag=%d, i=%d\n", key_init_flag, i);
@@ -429,10 +427,12 @@ int lcd_tcon_info_print(char *buf, int offset)
 		"tcon info:\n"
 		"core_reg_width:    %d\n"
 		"reg_table_len:     %d\n"
-		"axi_offset_addr:   0x%08x\n\n",
+		"axi_mem paddr:     0x%lx\n"
+		"axi_mem size:      0x%x\n\n",
 		lcd_tcon_data->core_reg_width,
 		lcd_tcon_data->reg_table_len,
-		lcd_tcon_data->axi_offset_addr);
+		(unsigned long)tcon_rmem.mem_paddr,
+		tcon_rmem.mem_size);
 
 	return len;
 }
@@ -498,8 +498,8 @@ int lcd_tcon_od_set(int flag)
 	}
 
 	if (flag) {
-		if (lcd_tcon_data->axi_offset_addr == 0) {
-			LCDERR("%s: invalid fb, disable od function\n",
+		if (tcon_rmem.flag == 0) {
+			LCDERR("%s: invalid memory, disable od function\n",
 				__func__);
 			return -1;
 		}
@@ -534,11 +534,11 @@ int lcd_tcon_od_get(void)
 
 	ret = lcd_tcon_valid_check();
 	if (ret)
-		return -1;
+		return 0;
 
 	if (lcd_tcon_data->reg_core_od == REG_LCD_TCON_MAX) {
 		LCDERR("%s: invalid od reg\n", __func__);
-		return -1;
+		return 0;
 	}
 
 	reg = lcd_tcon_data->reg_core_od;
@@ -627,14 +627,14 @@ static struct lcd_tcon_data_s tcon_data_tl1 = {
 	.reg_top_ctrl = TCON_TOP_CTRL,
 	.bit_en = BIT_TOP_EN_TL1,
 
-	.reg_core_od = REG_LCD_TCON_MAX,
+	.reg_core_od = REG_CORE_OD_TL1,
 	.bit_od_en = BIT_OD_EN_TL1,
 
-	.reg_core_ctrl_timing_base = REG_CORE_CTRL_TIMING_BASE_TL1,
+	.reg_core_ctrl_timing_base = REG_LCD_TCON_MAX,
 	.ctrl_timing_offset = CTRL_TIMING_OFFSET_TL1,
 	.ctrl_timing_cnt = CTRL_TIMING_CNT_TL1,
 
-	.axi_offset_addr = 0,
+	.axi_mem_size = 0xc00000,
 	.reg_table = NULL,
 
 	.tcon_enable = lcd_tcon_enable_tl1,
@@ -642,17 +642,16 @@ static struct lcd_tcon_data_s tcon_data_tl1 = {
 
 int lcd_tcon_probe(struct aml_lcd_drv_s *lcd_drv)
 {
-	struct cma *cma;
-	unsigned int mem_size;
 	int key_init_flag = 0;
 	int ret = 0;
 
+	lcd_tcon_data = NULL;
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-	case LCD_CHIP_TM2:
 		switch (lcd_drv->lcd_config->lcd_basic.lcd_type) {
 		case LCD_MLVDS:
 		case LCD_P2P:
+			lcd_tcon_data = &tcon_data_tl1;
 			lcd_tcon_data->tcon_valid = 1;
 			break;
 		default:
@@ -660,7 +659,6 @@ int lcd_tcon_probe(struct aml_lcd_drv_s *lcd_drv)
 		}
 		break;
 	default:
-		lcd_tcon_data = NULL;
 		break;
 	}
 	if (lcd_tcon_data == NULL)
@@ -671,59 +669,64 @@ int lcd_tcon_probe(struct aml_lcd_drv_s *lcd_drv)
 	if (ret) {
 		LCDERR("tcon: init reserved memory failed\n");
 	} else {
-		if ((void *)tcon_rmem.mem_paddr == NULL) {
 #ifdef CONFIG_CMA
-			cma = dev_get_cma_area(lcd_drv->dev);
-			if (cma) {
-				tcon_rmem.mem_paddr = cma_get_base(cma);
-				LCDPR("tcon axi_mem base:0x%lx, size:0x%lx\n",
-					(unsigned long)tcon_rmem.mem_paddr,
-					cma_get_size(cma));
-
-				mem_size = lcd_tcon_data->axi_mem_size;
-				tcon_rmem.mem_vaddr = dma_alloc_from_contiguous(
-					lcd_drv->dev,
-					(mem_size >> PAGE_SHIFT),
-					0);
-				if (tcon_rmem.mem_vaddr == NULL) {
-					LCDERR("tcon axi_mem alloc failed\n");
-				} else {
-					LCDPR("tcon axi_mem dma_alloc=0x%x\n",
-						mem_size);
-					tcon_rmem.mem_size = mem_size;
-					tcon_rmem.flag = 2; /* cma memory */
-				}
-			} else {
-				LCDERR("tcon: NO CMA\n");
-			}
-#else
+		tcon_rmem.mem_vaddr = dma_alloc_coherent(lcd_drv->dev,
+			lcd_tcon_data->axi_mem_size,
+			&tcon_rmem.mem_paddr,
+			GFP_KERNEL);
+		if (tcon_rmem.mem_vaddr == NULL) {
 			LCDERR("tcon axi_mem alloc failed\n");
-#endif
+			tcon_rmem.mem_paddr = 0;
 		} else {
-			tcon_rmem.flag = 1; /* reserved memory */
-			mem_size = tcon_rmem.mem_size;
-			LCDPR("tcon axi_mem base:0x%lx, size:0x%x\n",
-				(unsigned long)tcon_rmem.mem_paddr, mem_size);
+			tcon_rmem.mem_size = lcd_tcon_data->axi_mem_size;
+			tcon_rmem.flag = 1;
+			LCDPR("tcon: axi_mem base:0x%lx, size:0x%x\n",
+				(unsigned long)tcon_rmem.mem_paddr,
+				tcon_rmem.mem_size);
 		}
+#else
+		if ((void *)tcon_rmem.mem_paddr == NULL) {
+			LCDERR("tcon axi_mem alloc failed\n");
+		} else {
+			tcon_rmem.flag = 1;
+			LCDPR("tcon: axi_mem base:0x%lx, size:0x%x\n",
+				(unsigned long)tcon_rmem.mem_paddr,
+				tcon_rmem.mem_size);
+		}
+#endif
 	}
 
 	INIT_DELAYED_WORK(&lcd_tcon_delayed_work, lcd_tcon_config_delayed);
 
-	ret = lcd_tcon_config(lcd_drv);
+	key_init_flag = key_unify_get_init_flag();
+	if (key_init_flag) {
+		ret = lcd_tcon_config(lcd_drv);
+	} else {
+		if (lcd_drv->workqueue) {
+			queue_delayed_work(lcd_drv->workqueue,
+				&lcd_tcon_delayed_work,
+				msecs_to_jiffies(2000));
+		} else {
+			schedule_delayed_work(&lcd_tcon_delayed_work,
+				msecs_to_jiffies(2000));
+		}
+	}
 
 	return ret;
 }
 
 int lcd_tcon_remove(struct aml_lcd_drv_s *lcd_drv)
 {
-	if (tcon_rmem.flag == 2) {
+	if (tcon_rmem.flag) {
 		LCDPR("tcon free memory: base:0x%lx, size:0x%x\n",
 			(unsigned long)tcon_rmem.mem_paddr,
 			tcon_rmem.mem_size);
 #ifdef CONFIG_CMA
-		dma_release_from_contiguous(lcd_drv->dev,
+		dma_free_coherent(lcd_drv->dev, tcon_rmem.mem_size,
 			tcon_rmem.mem_vaddr,
-			tcon_rmem.mem_size >> PAGE_SHIFT);
+			(dma_addr_t)&tcon_rmem.mem_paddr);
+#else
+		/* to do */
 #endif
 	}
 
@@ -741,26 +744,18 @@ static int __init tcon_fb_device_init(struct reserved_mem *rmem,
 	return 0;
 }
 
-static const struct reserved_mem_ops rmem_tcon_fb_ops = {
-	.device_init = rmem_tcon_fb_device_init,
+static const struct reserved_mem_ops tcon_fb_ops = {
+	.device_init = tcon_fb_device_init,
 };
 
-static int __init rmem_tcon_fb_setup(struct reserved_mem *rmem)
+static int __init tcon_fb_setup(struct reserved_mem *rmem)
 {
-	/*
-	 * phys_addr_t align = PAGE_SIZE;
-	 * phys_addr_t mask = align - 1;
-	 * if ((rmem->base & mask) || (rmem->size & mask)) {
-	 *	LCDERR("Reserved memory: incorrect alignment of region\n");
-	 *	return -EINVAL;
-	 * }
-	 */
-	tcon_fb_rmem.base = rmem->base;
-	tcon_fb_rmem.size = rmem->size;
-	rmem->ops = &rmem_tcon_fb_ops;
-	LCDPR("tcon: Reserved memory: created fb at 0x%p, size %ld MiB\n",
-		(void *)rmem->base, (unsigned long)rmem->size / SZ_1M);
+	tcon_rmem.mem_paddr = rmem->base;
+	tcon_rmem.mem_size = rmem->size;
+	rmem->ops = &tcon_fb_ops;
+	LCDPR("tcon: Reserved memory: created fb at 0x%lx, size %ld MiB\n",
+		(unsigned long)rmem->base, (unsigned long)rmem->size / SZ_1M);
 	return 0;
 }
-RESERVEDMEM_OF_DECLARE(fb, "amlogic, lcd_tcon-memory", rmem_tcon_fb_setup);
+RESERVEDMEM_OF_DECLARE(fb, "amlogic, lcd_tcon-memory", tcon_fb_setup);
 

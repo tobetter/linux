@@ -44,6 +44,8 @@
 		pinctrl-2 = <&lcd_tcon_pins>;
 		pinctrl-3 = <&lcd_tcon_off_pins>;
 		pinctrl_version = <2>; /* for uboot */
+		memory-region = <&lcd_tcon_reserved>;
+		tcon_mem_addr = <0x71000000>;
 
 		/* power type:(0=cpu_gpio, 2=signal, 3=extern, 0xff=ending) */
 		/* power index:(gpios_index, or extern_index, 0xff=invalid) */

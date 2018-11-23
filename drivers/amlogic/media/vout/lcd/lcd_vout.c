@@ -1008,7 +1008,8 @@ static int lcd_fops_create(void)
 		return -1;
 	}
 
-	LCDPR("%s OK\n", __func__);
+	if (lcd_debug_print_flag)
+		LCDPR("%s OK\n", __func__);
 	return 0;
 }
 
@@ -1313,6 +1314,57 @@ static int lcd_config_probe(struct platform_device *pdev)
 	}
 
 	return 0;
+}
+
+static int lcd_vsync_irq_init(void)
+{
+	if (lcd_driver->res_vsync_irq) {
+		if (request_irq(lcd_driver->res_vsync_irq->start,
+			lcd_vsync_isr, IRQF_SHARED,
+			"lcd_vsync", (void *)"lcd_vsync")) {
+			LCDERR("can't request lcd_vsync_irq\n");
+		} else {
+			if (lcd_debug_print_flag)
+				LCDPR("request lcd_vsync_irq successful\n");
+		}
+	}
+
+	if (lcd_driver->res_vsync2_irq) {
+		if (request_irq(lcd_driver->res_vsync2_irq->start,
+			lcd_vsync2_isr, IRQF_SHARED,
+			"lcd_vsync2", (void *)"lcd_vsync2")) {
+			LCDERR("can't request lcd_vsync2_irq\n");
+		} else {
+			if (lcd_debug_print_flag)
+				LCDPR("request lcd_vsync2_irq successful\n");
+		}
+	}
+
+	/* add timer to monitor hpll frequency */
+	init_timer(&lcd_vsync_none_timer);
+	/* lcd_vsync_none_timer.data = NULL; */
+	lcd_vsync_none_timer.function = lcd_vsync_none_timer_handler;
+	lcd_vsync_none_timer.expires = jiffies + LCD_VSYNC_NONE_INTERVAL;
+	/*add_timer(&lcd_vsync_none_timer);*/
+	/*LCDPR("add lcd_vsync_none_timer handler\n"); */
+
+	return 0;
+}
+
+static void lcd_vsync_irq_remove(void)
+{
+	if (lcd_driver->res_vsync_irq)
+		free_irq(lcd_driver->res_vsync_irq->start, (void *)"lcd_vsync");
+
+	if (lcd_driver->res_vsync2_irq) {
+		free_irq(lcd_driver->res_vsync2_irq->start,
+			(void *)"lcd_vsync");
+	}
+
+	if (lcd_driver->vsync_none_timer_flag) {
+		del_timer_sync(&lcd_vsync_none_timer);
+		lcd_driver->vsync_none_timer_flag = 0;
+	}
 }
 
 #ifdef CONFIG_OF

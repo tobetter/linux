@@ -776,13 +776,17 @@ static int lcd_init_load_from_dts(struct lcd_config_s *pconf,
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 
 	/* lock pinmux if lcd in on */
-	switch (pconf->lcd_basic.lcd_type) {
-	case LCD_VBYONE:
-		if (lcd_drv->lcd_status & LCD_STATUS_IF_ON)
+	if (lcd_drv->lcd_status & LCD_STATUS_IF_ON) {
+		switch (pconf->lcd_basic.lcd_type) {
+		case LCD_VBYONE:
 			lcd_vbyone_pinmux_set(1);
-		break;
-	default:
-		break;
+			break;
+		case LCD_P2P:
+			lcd_tcon_pinmux_set(1);
+			break;
+		default:
+			break;
+		}
 	}
 
 	return ret;
