@@ -9584,7 +9584,8 @@ static int __init amvdec_vp9_driver_init_module(void)
 		amvdec_vp9_profile.profile =
 				"8k, 10bit, dwrite, compressed";
 	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL
-		/*&& get_cpu_major_id() != MESON_CPU_MAJOR_ID_GXLX*/) {
+		/*&& get_cpu_major_id() != MESON_CPU_MAJOR_ID_GXLX*/
+		&& get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_TXL) {
 		if (vdec_is_support_4k())
 			amvdec_vp9_profile.profile =
 				"4k, 10bit, dwrite, compressed";
