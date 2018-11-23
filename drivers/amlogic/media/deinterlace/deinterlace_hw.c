@@ -1007,7 +1007,7 @@ bool afbc_is_supported(void)
 
 	/*currently support txlx and g12a*/
 	if (is_meson_txlx_cpu()
-		|| cpu_after_eq(MESON_CPU_MAJOR_ID_G12A))
+		|| is_meson_g12a_cpu())
 		ret = true;
 
 	return ret;
