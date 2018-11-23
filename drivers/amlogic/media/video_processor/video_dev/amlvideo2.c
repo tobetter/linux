@@ -77,7 +77,8 @@
 /* #define USE_SEMA_QBUF */
 /* #define USE_VDIN_PTS */
 
-/* #define MULTI_NODE */
+#define MULTI_NODE
+
 #ifdef MULTI_NODE
 #define MAX_SUB_DEV_NODE 2
 #else
@@ -4653,8 +4654,8 @@ static int vidiocgmbuf(struct file *file, void *priv, struct video_mbuf *mbuf)
 #ifdef PREVIOUS_VOUT_MODE
 static enum tvin_scan_mode_e vmode2scan_mode(enum vmode_e mode)
 {
-	enum tvin_scan_mode_e scan_mode =
-		TVIN_SCAN_MODE_NULL;/* 1: progressive 2:interlaced */
+	enum tvin_scan_mode_e scan_mode = TVIN_SCAN_MODE_PROGRESSIVE;
+		//TVIN_SCAN_MODE_NULL;/* 1: progressive 2:interlaced */
 
 	switch (mode) {
 	case VMODE_480I:
@@ -5358,7 +5359,7 @@ int amlvideo2_cma_buf_init(struct amlvideo2_device *vid_dev,  int node_id)
 				return -1;
 			}
 		} else {
-			flags = CODEC_MM_FLAGS_DMA |
+			flags = CODEC_MM_FLAGS_DMA_CPU|
 				CODEC_MM_FLAGS_CMA_CLEAR;
 			if (node_id == 0) {
 				if (vid_dev->node[node_id]->
