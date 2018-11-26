@@ -599,7 +599,6 @@
 			f_min = <400000>;
 			f_max = <200000000>;
 			max_req_size = <0x20000>; /**128KB*/
-			no_sduart = <1>;
 			gpio_dat3 = <&gpio GPIOC_3 GPIO_ACTIVE_HIGH>;
 			jtag_pin = <&gpio GPIOC_0 GPIO_ACTIVE_HIGH>;
 			gpio_cd = <&gpio GPIOC_10 GPIO_ACTIVE_HIGH>;
@@ -609,7 +608,6 @@
 			 */
 		};
 	};
-
 }; /* end of / */
 
 &audiobus {

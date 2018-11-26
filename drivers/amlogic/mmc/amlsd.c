@@ -861,7 +861,8 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			return 1;
 		pdata->is_in = true;
 		pdata->gpio_cd_sta = true;
-		if (aml_is_sduart(pdata)) {
+		if ((host->data->chip_type < MMC_CHIP_TL1)
+				&& aml_is_sduart(pdata)) {
 			aml_uart_switch(pdata, 1);
 			pr_info("Uart in\n");
 			mmc->caps &= ~MMC_CAP_4_BIT_DATA;
@@ -876,7 +877,7 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			}
 		} else {
 			pr_info("normal card in\n");
-			if (!pdata->no_sduart) {
+			if (host->data->chip_type < MMC_CHIP_TL1) {
 				aml_uart_switch(pdata, 0);
 				aml_jtag_switch_ao(pdata);
 			}
@@ -901,7 +902,7 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			host->is_sduart = 0;
 		if (mmc && mmc->card)
 			mmc_card_set_removed(mmc->card);
-		if (!pdata->no_sduart) {
+		if (host->data->chip_type < MMC_CHIP_TL1) {
 			aml_uart_switch(pdata, 0);
 			aml_jtag_switch_ao(pdata);
 		}
