@@ -1443,34 +1443,6 @@
 	};
 };  /* end of pinctrl_aobus */
 
-&audio_data{
-	status = "okay";
-};
-
-&i2c2 {
-	status = "okay";
-	pinctrl-names="default";
-	pinctrl-0=<&i2c2_z_pins>;
-	clock-frequency = <400000>;
-
-	tas5805: tas5805@36 {
-		compatible = "ti,tas5805";
-		#sound-dai-cells = <0>;
-		codec_name = "tas5805";
-		reg = <0x2d>;
-		status = "disable";
-	};
-
-	ad82584f: ad82584f@62 {
-		compatible = "ESMT, ad82584f";
-		#sound-dai-cells = <0>;
-		reg = <0x31>;
-		status = "okay";
-		reset_pin = <&gpio_ao GPIOAO_6 0>;
-	};
-
-};
-
 &sd_emmc_c {
 	status = "okay";
 	emmc {
