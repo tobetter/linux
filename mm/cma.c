@@ -509,6 +509,10 @@ struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align)
 	pr_debug("%s(cma %p, count %zu, align %d)\n", __func__, (void *)cma,
 		 count, align);
 
+#ifdef CONFIG_AMLOGIC_CMA
+	cma_debug(0, NULL, "(cma %p, count %zu, align %d)\n",
+		  (void *)cma, count, align);
+#endif
 	if (!count)
 		return NULL;
 
@@ -570,6 +574,7 @@ struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align)
 
 #ifdef CONFIG_AMLOGIC_CMA
 	aml_cma_alloc_post_hook(&dummy, count, page);
+	cma_debug(0, NULL, "return %p\n", page);
 #endif /* CONFIG_AMLOGIC_CMA */
 	pr_debug("%s(): returned %p\n", __func__, page);
 	return page;
