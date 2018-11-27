@@ -666,12 +666,13 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 		}
 
 		curr_pcr_id = pcrid;
+		pcrscr_valid = reset_pcr_regs();
+
 		if ((pcrid < 0x1FFF) && (pcrid != vid) && (pcrid != aid)
 			&& (pcrid != sid))
 			tsdemux_set_pcrid(pcrid);
 	}
 
-	pcrscr_valid = reset_pcr_regs();
 	first_pcr = 0;
 
 	return 0;
@@ -1164,8 +1165,8 @@ u8 tsdemux_pcrvideo_valid(void)
 void tsdemux_pcr_set(unsigned int pcr)
 {
 	if (pcr_init_flag == 0) {
-		timestamp_pcrscr_set(pcr);
-		timestamp_pcrscr_enable(1);
+		/*timestamp_pcrscr_set(pcr);
+		timestamp_pcrscr_enable(1);*/
 		pcr_init_flag = 1;
 	}
 }
