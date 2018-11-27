@@ -2119,10 +2119,10 @@ static int dolby_core2_set(
 	if (stb_core_setting_update_flag & FLAG_CHANGE_TC2)
 		set_lut = true;
 
-	VSYNC_WR_DV_REG(DOLBY_CORE2A_CLKGATE_CTRL, 0);
-	VSYNC_WR_DV_REG(DOLBY_CORE2A_SWAP_CTRL0, 0);
-	if (is_meson_box() || is_meson_tm2_stbmode()  || reset) {
-		VSYNC_WR_DV_REG(DOLBY_CORE2A_SWAP_CTRL1,
+	VSYNC_WR_MPEG_REG(DOLBY_CORE2A_CLKGATE_CTRL, 0);
+	VSYNC_WR_MPEG_REG(DOLBY_CORE2A_SWAP_CTRL0, 0);
+	if (is_meson_gxm() || is_meson_g12() || reset) {
+		VSYNC_WR_MPEG_REG(DOLBY_CORE2A_SWAP_CTRL1,
 			((hsize + g_htotal_add) << 16)
 			| (vsize + g_vtotal_add + g_vsize_add));
 		VSYNC_WR_DV_REG(DOLBY_CORE2A_SWAP_CTRL2,
@@ -2435,6 +2435,7 @@ static void apply_stb_core_settings(
 #endif
 	u32 graphics_w = osd_graphic_width;
 	u32 graphics_h = osd_graphic_height;
+
 	if (is_dolby_vision_stb_mode()
 		&& (dolby_vision_flags & FLAG_CERTIFICAION)) {
 		graphics_w = dv_cert_graphic_width;
