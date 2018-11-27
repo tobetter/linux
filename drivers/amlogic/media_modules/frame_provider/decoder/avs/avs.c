@@ -1201,8 +1201,7 @@ static void vavs_local_reset(void)
 	recover_flag = 1;
 	pr_info("error, local reset\n");
 	amvdec_stop();
-	msleep(20);
-	vdec_reset_core(NULL);
+	msleep(100);
 	vf_notify_receiver(PROVIDER_NAME, VFRAME_EVENT_PROVIDER_RESET, NULL);
 	vavs_local_init();
 	vavs_recover();
