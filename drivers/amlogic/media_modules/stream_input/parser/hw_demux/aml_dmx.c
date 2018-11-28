@@ -1129,11 +1129,14 @@ static void process_sub(struct aml_dmx *dmx)
 		pr_dbg("sub no data\n");
 	}
 
-	if (buffer1)
+	if (buffer1 && len1)
 		buffer1_virt = codec_mm_phys_to_virt(buffer1);
 
-	if (buffer2)
+	if (buffer2 && len2)
 		buffer2_virt = codec_mm_phys_to_virt(buffer2);
+
+//	printk("rd_ptr %p buffer1 %p len1 %d buffer2 %p len2 %d buffer1_virt %p buffer2_virt %p\n",
+//		(void*)rd_ptr, (void*)buffer1, len1, (void*)buffer2, len2, buffer1_virt, buffer2_virt);
 
 	if (len1)
 		dma_sync_single_for_cpu(dmx_get_dev(dmx),
@@ -1145,7 +1148,9 @@ static void process_sub(struct aml_dmx *dmx)
 					DMA_FROM_DEVICE);
 
 	if (dmx->channel[2].used) {
-		if (dmx->channel[2].feed && dmx->channel[2].feed->cb.ts) {
+		if (dmx->channel[2].feed && dmx->channel[2].feed->cb.ts &&
+			((buffer1_virt != NULL && len1 !=0 ) | (buffer2_virt != NULL && len2 != 0)))
+		{
 			dmx->channel[2].feed->cb.ts(buffer1_virt, len1,
 						buffer2_virt, len2,
 						&dmx->channel[2].feed->feed.ts);
@@ -3789,6 +3794,7 @@ void dmx_reset_dmx_hw(struct aml_dvb *dvb, int id)
 }
 
 /*Allocate subtitle pes buffer*/
+#if 0
 static int alloc_subtitle_pes_buffer(struct aml_dmx *dmx)
 {
 	int start_ptr = 0;
@@ -3818,6 +3824,7 @@ static int alloc_subtitle_pes_buffer(struct aml_dmx *dmx)
 exit:
 	return 0;
 }
+#endif
 
 /*Allocate a new channel*/
 int dmx_alloc_chan(struct aml_dmx *dmx, int type, int pes_type, int pid)
@@ -3839,7 +3846,7 @@ int dmx_alloc_chan(struct aml_dmx *dmx, int type, int pes_type, int pid)
 		case DMX_PES_TELETEXT:
 			if (!dmx->channel[2].used)
 				id = 2;
-			alloc_subtitle_pes_buffer(dmx);
+			//alloc_subtitle_pes_buffer(dmx);
 			break;
 		case DMX_PES_PCR:
 			if (!dmx->channel[3].used)
