@@ -35,12 +35,31 @@ enum lc_mtx_csc_e {
 	LC_MTX_MAX
 };
 
+enum lc_reg_lut_e {
+	SATUR_LUT = 0x1,
+	YMINVAL_LMT = 0x2,
+	YPKBV_YMAXVAL_LMT = 0x4,
+	YPKBV_RAT = 0x8,
+	YPKBV_SLP_LMT = 0x10,
+	CNTST_LMT = 0x20,
+	MAX_REG_LUT
+};
+
 extern int amlc_debug;
 extern int lc_en;
 extern int lc_demo_mode;
+extern unsigned int lc_hist_vs;
+extern unsigned int lc_hist_ve;
+extern unsigned int lc_hist_hs;
+extern unsigned int lc_hist_he;
+extern unsigned int lc_hist_prcnt;
+extern unsigned int lc_curve_prcnt;
+
+
 extern void lc_init(void);
 extern void lc_process(struct vframe_s *vf,
 	unsigned int sps_h_en,
 	unsigned int sps_v_en);
+extern void lc_free(void);
 #endif
 

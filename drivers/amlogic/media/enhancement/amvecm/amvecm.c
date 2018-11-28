@@ -5359,6 +5359,131 @@ static ssize_t amvecm_get_hdr_type_store(struct class *cls,
 	return count;
 }
 
+static void lc_rd_reg(enum lc_reg_lut_e reg_sel)
+{
+	int i, tmp, tmp1, tmp2;
+
+	switch (reg_sel) {
+	case SATUR_LUT:
+		for (i = 0; i < 31 ; i++) {
+			tmp = READ_VPP_REG(SRSHARP1_LC_SAT_LUT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0xfff;
+			tmp2 = tmp & 0xfff;
+			pr_info("reg_lc_satur_lut[%d] =%4d.\n",
+				2*i, tmp1);
+			pr_info("reg_lc_satur_lut[%d] =%4d.\n",
+				2*i + 1, tmp2);
+		}
+		tmp = READ_VPP_REG(SRSHARP1_LC_SAT_LUT_62);
+		pr_info("reg_lc_satur_lut[62] =%4d.\n",
+				tmp & 0xfff);
+		break;
+	case YMINVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp = READ_VPP_REG(LC_CURVE_YMINVAL_LMT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0x3ff;
+			tmp2 = tmp & 0x3ff;
+			pr_info("reg_yminVal_lmt[%d] =%4d.\n",
+				2*i, tmp1);
+			pr_info("reg_yminVal_lmt[%d] =%4d.\n",
+				2*i + 1, tmp2);
+		}
+		break;
+	case YPKBV_YMAXVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp = READ_VPP_REG(LC_CURVE_YPKBV_YMAXVAL_LMT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0x3ff;
+			tmp2 = tmp & 0x3ff;
+			pr_info("reg_lc_ypkBV_ymaxVal_lmt[%d] =%4d.\n",
+				2*i, tmp1);
+			pr_info("reg_lc_ypkBV_ymaxVal_lmt[%d] =%4d.\n",
+				2*i + 1, tmp2);
+		}
+		break;
+	case YPKBV_RAT:
+		tmp = READ_VPP_REG(LC_CURVE_YPKBV_RAT);
+		pr_info("reg_lc_ypkBV_ratio[0] =%4d.\n",
+			(tmp>>24) & 0xff);
+		pr_info("reg_lc_ypkBV_ratio[1] =%4d.\n",
+			(tmp>>16) & 0xff);
+		pr_info("reg_lc_ypkBV_ratio[2] =%4d.\n",
+			(tmp>>8) & 0xff);
+		pr_info("reg_lc_ypkBV_ratio[3] =%4d.\n",
+			tmp & 0xff);
+		break;
+	case YPKBV_SLP_LMT:
+		tmp = READ_VPP_REG(LC_CURVE_YPKBV_SLP_LMT);
+		pr_info("reg_lc_ypkBV_slope_lmt[0] =%4d.\n",
+			(tmp>>8) & 0xff);
+		pr_info("reg_lc_ypkBV_slope_lmt[1] =%4d.\n",
+			tmp & 0xff);
+		break;
+	case CNTST_LMT:
+		tmp = READ_VPP_REG(LC_CURVE_CONTRAST__LMT_LH);
+		pr_info("reg_lc_cntstlmt_low[0] =%4d.\n",
+			(tmp>>24) & 0xff);
+		pr_info("reg_lc_cntstlmt_high[0] =%4d.\n",
+			(tmp>>16) & 0xff);
+		pr_info("reg_lc_cntstlmt_low[1] =%4d.\n",
+			(tmp>>8) & 0xff);
+		pr_info("reg_lc_cntstlmt_high[1] =%4d.\n",
+			tmp & 0xff);
+		break;
+	default:
+		break;
+	}
+}
+
+static void lc_wr_reg(int *p, enum lc_reg_lut_e reg_sel)
+{
+	int i, tmp, tmp1, tmp2;
+
+	switch (reg_sel) {
+	case SATUR_LUT:
+		for (i = 0; i < 31 ; i++) {
+			tmp1 = *(p + 2*i);
+			tmp2 = *(p + 2*i + 1);
+			tmp = ((tmp1 & 0xfff)<<16) | (tmp2 & 0xfff);
+			WRITE_VPP_REG(SRSHARP1_LC_SAT_LUT_0_1 + i, tmp);
+		}
+		tmp = (*(p+62)) & 0xfff;
+		WRITE_VPP_REG(SRSHARP1_LC_SAT_LUT_62, tmp);
+		break;
+	case YMINVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp1 = *(p + 2*i);
+			tmp2 = *(p + 2*i + 1);
+			tmp = ((tmp1&0x3ff) << 16) | (tmp2 & 0x3ff);
+			WRITE_VPP_REG(LC_CURVE_YMINVAL_LMT_0_1 + i, tmp);
+		}
+		break;
+	case YPKBV_YMAXVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp1 = *(p + 2*i);
+			tmp2 = *(p + 2*i + 1);
+			tmp = ((tmp1&0x3ff) << 16) | (tmp2 & 0x3ff);
+			WRITE_VPP_REG(LC_CURVE_YPKBV_YMAXVAL_LMT_0_1 + i, tmp);
+		}
+		break;
+	case YPKBV_RAT:
+		tmp = (*p & 0xff) << 24 | (*(p+1) & 0xff) << 16 |
+			(*(p+2) & 0xff) << 8 | (*(p+3) & 0xff);
+		WRITE_VPP_REG(LC_CURVE_YPKBV_RAT, tmp);
+		break;
+	case YPKBV_SLP_LMT:
+		tmp = (*p & 0xff) << 8 | (*(p+1) & 0xff);
+		WRITE_VPP_REG(LC_CURVE_YPKBV_SLP_LMT, tmp);
+		break;
+	case CNTST_LMT:
+		tmp = (*p & 0xff) << 24 | (*(p+1) & 0xff) << 16 |
+			(*(p+2) & 0xff) << 8 | (*(p+3) & 0xff);
+		WRITE_VPP_REG(LC_CURVE_CONTRAST__LMT_LH, tmp);
+		break;
+	default:
+		break;
+	}
+}
+
 static ssize_t amvecm_lc_show(struct class *cla,
 		struct class_attribute *attr, char *buf)
 {
@@ -5370,6 +5495,22 @@ static ssize_t amvecm_lc_show(struct class *cla,
 		"echo lc disable > /sys/class/amvecm/lc\n");
 	len += sprintf(buf+len,
 		"echo lc_dbg value > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo lc_demo_mode enable/disable > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo lc_dump_reg parm1 > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo lc_rd_reg parm1 parm2 > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"parm1: 0x1,0x2,0x4,0x8,0x10,0x20...\n");
+	len += sprintf(buf+len,
+		"parm2: decimal strings, each data width is 4.\n");
+	len += sprintf(buf+len,
+		"echo dump_hist all > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo dump_hist chosen hs he vs ve cnt > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo dump_curve cnt > /sys/class/amvecm/lc\n");
 	return len;
 }
 
@@ -5378,6 +5519,8 @@ static ssize_t amvecm_lc_store(struct class *cls,
 		 const char *buf, size_t count)
 {
 	char *buf_orig, *parm[8] = {NULL};
+	int reg_lut[63] = {0};
+	enum lc_reg_lut_e reg_sel;
 	long val = 0;
 
 	if (!buf)
@@ -5394,10 +5537,8 @@ static ssize_t amvecm_lc_store(struct class *cls,
 		else
 			pr_info("unsupprt cmd!\n");
 	} else if (!strcmp(parm[0], "lc_dbg")) {
-		if (kstrtoul(parm[1], 16, &val) < 0) {
-			kfree(buf_orig);
-			return -EINVAL;
-		}
+		if (kstrtoul(parm[1], 16, &val) < 0)
+			goto free_buf;
 		amlc_debug = val;
 	} else if (!strcmp(parm[0], "lc_demo_mode")) {
 		if (!strcmp(parm[1], "enable"))
@@ -5406,11 +5547,85 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			lc_demo_mode = 0;
 		else
 			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "lc_dump_reg")) {
+		if (kstrtoul(parm[1], 16, &val) < 0)
+			goto free_buf;
+		reg_sel = val;
+		if (reg_sel == SATUR_LUT)
+			lc_rd_reg(SATUR_LUT);
+		else if (reg_sel == YMINVAL_LMT)
+			lc_rd_reg(YMINVAL_LMT);
+		else if (reg_sel == YPKBV_YMAXVAL_LMT)
+			lc_rd_reg(YPKBV_YMAXVAL_LMT);
+		else if (reg_sel == YPKBV_RAT)
+			lc_rd_reg(YPKBV_RAT);
+		else if (reg_sel == YPKBV_SLP_LMT)
+			lc_rd_reg(YPKBV_SLP_LMT);
+		else if (reg_sel == CNTST_LMT)
+			lc_rd_reg(CNTST_LMT);
+		else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "lc_wr_reg")) {
+		if (kstrtoul(parm[1], 16, &val) < 0)
+			goto free_buf;
+		reg_sel = val;
+		if (parm[2] == NULL)
+			goto free_buf;
+		str_sapr_to_d(parm[2], reg_lut, 5);
+		if (reg_sel == SATUR_LUT)
+			lc_wr_reg(reg_lut, SATUR_LUT);
+		else if (reg_sel == YMINVAL_LMT)
+			lc_wr_reg(reg_lut, YMINVAL_LMT);
+		else if (reg_sel == YPKBV_YMAXVAL_LMT)
+			lc_wr_reg(reg_lut, YPKBV_YMAXVAL_LMT);
+		else if (reg_sel == YPKBV_RAT)
+			lc_wr_reg(reg_lut, YPKBV_RAT);
+		else if (reg_sel == YPKBV_SLP_LMT)
+			lc_wr_reg(reg_lut, YPKBV_SLP_LMT);
+		else if (reg_sel == CNTST_LMT)
+			lc_wr_reg(reg_lut, CNTST_LMT);
+		else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "dump_hist")) {
+		if (!strcmp(parm[1], "all")) {
+			/*dump all hist in one frame*/
+			lc_hist_prcnt = 1;
+			amlc_debug = 0x2;
+		} else if (!strcmp(parm[1], "chosen")) {
+			/*dump multiple frames in selected area*/
+			if (parm[6] == NULL)
+				goto free_buf;
+			if (kstrtoul(parm[2], 10, &val) < 0)
+				goto free_buf;
+			lc_hist_hs = val;
+			if (kstrtoul(parm[3], 10, &val) < 0)
+				goto free_buf;
+			lc_hist_he = val;
+			if (kstrtoul(parm[4], 10, &val) < 0)
+				goto free_buf;
+			lc_hist_vs = val;
+			if (kstrtoul(parm[5], 10, &val) < 0)
+				goto free_buf;
+			lc_hist_ve = val;
+			if (kstrtoul(parm[6], 10, &val) < 0)
+				goto free_buf;
+			lc_hist_prcnt = val;
+			amlc_debug = 0x4;
+		} else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "dump_curve")) {
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		lc_curve_prcnt = val;
 	} else
 		pr_info("unsupprt cmd!\n");
 
 	kfree(buf_orig);
 	return count;
+
+free_buf:
+	kfree(buf_orig);
+	return -EINVAL;
 }
 
 
@@ -5916,6 +6131,7 @@ static int __exit aml_vecm_remove(struct platform_device *pdev)
 	cancel_work_sync(&aml_lcd_vlock_param_work);
 #endif
 	probe_ok = 0;
+	lc_free();
 	pr_info("[amvecm.] : amvecm_exit.\n");
 	return 0;
 }
@@ -5961,6 +6177,7 @@ static void amvecm_shutdown(struct platform_device *pdev)
 #ifdef CONFIG_AML_LCD
 	aml_lcd_notifier_unregister(&aml_lcd_gamma_nb);
 #endif
+	lc_free();
 }
 
 static const struct of_device_id aml_vecm_dt_match[] = {

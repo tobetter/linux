@@ -36,7 +36,7 @@ int lc_en;
 int lc_demo_mode;
 int lc_en_chflg = 0xff;
 static int lc_flag = 0xff;
-static int lc_szcurve[192];
+static int *lc_szcurve;
 
 /*local contrast begin*/
 static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
@@ -418,31 +418,54 @@ static void read_lc_curve(void)
 {
 	int blk_hnum;
 	int blk_vnum;
-	int i;
+	int i, j;
 	unsigned int dwTemp;
+	unsigned int temp1, temp2;
 
+	if (!lc_szcurve) {
+		pr_amlc_dbg("%s: lc_szcurve not init!", __func__);
+		return;
+	}
 	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
 	blk_hnum = (dwTemp >> 8) & 0x1f;
 	blk_vnum = (dwTemp) & 0x1f;
 	WRITE_VPP_REG(LC_CURVE_RAM_CTRL, 1);
 	WRITE_VPP_REG(LC_CURVE_RAM_ADDR, 0);
-	for (i = 0; i < blk_hnum * blk_vnum; i++) {
-		lc_szcurve[i*2+0] = READ_VPP_REG(LC_CURVE_RAM_DATA);
-		lc_szcurve[i*2+1] = READ_VPP_REG(LC_CURVE_RAM_DATA);
+	for (i = 0; i < blk_vnum; i++) {
+		for (j = 0; j < blk_hnum; j++) {
+			temp1 = READ_VPP_REG(LC_CURVE_RAM_DATA);
+			temp2 = READ_VPP_REG(LC_CURVE_RAM_DATA);
+			lc_szcurve[(i*blk_hnum + j)*6+0] =
+				temp1 & 0x3ff;/*bit0:9*/
+			lc_szcurve[(i*blk_hnum + j)*6+1] =
+				(temp1>>10) & 0x3ff;/*bit10:19*/
+			lc_szcurve[(i*blk_hnum + j)*6+2] =
+				(temp1>>20) & 0x3ff;/*bit20:29*/
+			lc_szcurve[(i*blk_hnum + j)*6+3] =
+				temp2 & 0x3ff;/*bit0:9*/
+			lc_szcurve[(i*blk_hnum + j)*6+4] =
+				(temp2>>10) & 0x3ff;/*bit10:19*/
+			lc_szcurve[(i*blk_hnum + j)*6+5] =
+				(temp2>>20) & 0x3ff;/*bit20:29*/
+		}
 	}
 	WRITE_VPP_REG(LC_CURVE_RAM_CTRL, 0);
 }
 
 static void lc_demo_wr_curve(int h_num, int v_num)
 {
-	int i, j;
+	int i, j, temp1, temp2;
 
 	for (i = 0; i < v_num; i++) {
 		for (j = 0; j < h_num / 2; j++) {
-			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA,
-				lc_szcurve[2 * (i * h_num + j) + 0]);
-			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA,
-				lc_szcurve[2 * (i * h_num + j) + 1]);
+			temp1 = lc_szcurve[6 * (i * h_num + j) + 0] |
+				(lc_szcurve[6 * (i * h_num + j) + 1] << 10) |
+				(lc_szcurve[6 * (i * h_num + j) + 2] << 20);
+			temp2 = lc_szcurve[6 * (i * h_num + j) + 3] |
+				(lc_szcurve[6 * (i * h_num + j) + 4] << 10) |
+				(lc_szcurve[6 * (i * h_num + j) + 5] << 20);
+			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA, temp1);
+			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA, temp2);
 		}
 		for (j = h_num / 2; j < h_num; j++) {
 			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA,
@@ -455,16 +478,23 @@ static void lc_demo_wr_curve(int h_num, int v_num)
 
 static int lc_demo_check_curve(int h_num, int v_num)
 {
-	int i, j, temp, flag;
+	int i, j, temp, temp1, flag;
 
 	flag = 0;
 	for (i = 0; i < v_num; i++) {
 		for (j = 0; j < h_num / 2; j++) {
 			temp = READ_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA);
-			if (temp != lc_szcurve[2 * (i * h_num + j) + 0])
+			temp1 = lc_szcurve[6 * (i * h_num + j) + 0] |
+				(lc_szcurve[6 * (i * h_num + j) + 1] << 10) |
+				(lc_szcurve[6 * (i * h_num + j) + 2] << 20);
+			if (temp != temp1)
 				flag = (2 * (i * h_num + j) + 0) | (1 << 31);
+
 			temp = READ_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA);
-			if (temp != lc_szcurve[2 * (i * h_num + j) + 1])
+			temp1 = lc_szcurve[6 * (i * h_num + j) + 3] |
+				(lc_szcurve[6 * (i * h_num + j) + 4] << 10) |
+				(lc_szcurve[6 * (i * h_num + j) + 5] << 20);
+			if (temp != temp1)
 				flag = (2 * (i * h_num + j) + 1) | (1 << 31);
 		}
 		for (j = h_num / 2; j < h_num; j++) {
@@ -483,8 +513,12 @@ static int set_lc_curve(int binit, int bcheck)
 	int i, h_num, v_num;
 	unsigned int hvTemp;
 	int rflag;
-	int temp;
+	int temp, temp1;
 
+	if (!lc_szcurve) {
+		pr_amlc_dbg("%s: lc_szcurve not init!", __func__);
+		return -EINVAL;
+	}
 	rflag = 0;
 	hvTemp = READ_VPP_REG(SRSHARP1_LC_HV_NUM);
 	h_num = (hvTemp >> 8) & 0x1f;
@@ -506,9 +540,13 @@ static int set_lc_curve(int binit, int bcheck)
 		else
 			for (i = 0; i < h_num * v_num; i++) {
 				WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA,
-					lc_szcurve[2 * i + 0]);
+					lc_szcurve[6 * i + 0]|
+					(lc_szcurve[6 * i + 1]<<10)|
+					(lc_szcurve[6 * i + 2]<<20));
 				WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA,
-					lc_szcurve[2 * i + 1]);
+					lc_szcurve[6 * i + 3]|
+					(lc_szcurve[6 * i + 4]<<10)|
+					(lc_szcurve[6 * i + 5]<<20));
 			}
 	}
 	WRITE_VPP_REG_BITS(SRSHARP1_LC_MAP_RAM_CTRL, 0, 0, 1);
@@ -521,10 +559,16 @@ static int set_lc_curve(int binit, int bcheck)
 		else
 			for (i = 0; i < h_num * v_num; i++) {
 				temp = READ_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA);
-				if (temp != lc_szcurve[2 * i + 0])
+				temp1 = lc_szcurve[6 * i + 0]|
+					(lc_szcurve[6 * i + 1]<<10)|
+					(lc_szcurve[6 * i + 2]<<20);
+				if (temp != temp1)
 					rflag = (2 * i + 0) | (1 << 31);
 				temp = READ_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA);
-				if (temp != lc_szcurve[2 * i + 1])
+				temp1 = lc_szcurve[6 * i + 3]|
+					(lc_szcurve[6 * i + 4]<<10)|
+					(lc_szcurve[6 * i + 5]<<20);
+				if (temp != temp1)
 					rflag = (2 * i + 1) | (1 << 31);
 			}
 		WRITE_VPP_REG_BITS(SRSHARP1_LC_MAP_RAM_CTRL, 0, 0, 1);
@@ -537,6 +581,81 @@ static void lc_fw_curve_iir(struct vframe_s *vf)
 {
 	if (!vf)
 		return;
+}
+
+/*print statistics hist and curve, vlsi suggest add*/
+unsigned int lc_hist_vs = 4;
+unsigned int lc_hist_ve = 6;
+unsigned int lc_hist_hs;
+unsigned int lc_hist_he = 11;
+unsigned int lc_hist_prcnt;
+unsigned int lc_curve_prcnt;
+static int *lc_hist;
+
+static void lc_read_region(void)
+{
+	int i, j, k;
+	int data32;
+	int rgb_min, rgb_max;
+	int dwTemp, blk_hnum, blk_vnum;
+
+	if (!lc_hist) {
+		pr_amlc_dbg("%s: lc_hist not init!", __func__);
+		return;
+	}
+	WRITE_VPP_REG_BITS(0x4037, 1, 14, 1);
+	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
+	blk_hnum = (dwTemp >> 8) & 0x1f;
+	blk_vnum = (dwTemp) & 0x1f;
+	data32 = READ_VPP_REG(LC_STTS_HIST_START_RD_REGION);
+
+	for (i = 0; i < blk_vnum; i++)
+		for (j = 0; j < blk_hnum; j++) {
+			data32 = READ_VPP_REG(LC_STTS_HIST_START_RD_REGION);
+			if ((i >= lc_hist_vs) && (i <= lc_hist_ve) &&
+				(j >= lc_hist_hs) && (j <= lc_hist_he) &&
+				(amlc_debug == 0x4))
+				pr_info("========[r,c](%2d,%2d)======\n", i, j);
+
+			for (k = 0; k < 17; k++) {
+				data32 = READ_VPP_REG(LC_STTS_HIST_READ_REGION);
+				lc_hist[(i*blk_hnum+j)*17 + k] = data32;
+				if ((i >= lc_hist_vs) && (i <= lc_hist_ve) &&
+					(j >= lc_hist_hs) && (j <= lc_hist_he)
+					&& (amlc_debug == 0x4)) {
+					/*print chosen hist*/
+					if (k == 16) {/*last bin*/
+						rgb_min =
+							(data32 >> 10) & 0x3ff;
+						rgb_max = (data32) & 0x3ff;
+						pr_info("[%2d]:%d,%d\n",
+							k, rgb_min, rgb_max);
+					} else
+						pr_info("[%2d]:%d\n",
+							k, data32);
+				}
+			}
+		}
+
+	if (amlc_debug == 0x2)/*print all hist data*/
+		for (i = 0; i < 8*12*17; i++)
+			pr_info("%x\n", lc_hist[i]);
+}
+
+static void lc_prt_curve(void)
+{/*print curve node*/
+	int i, j;
+	int dwTemp, blk_hnum, blk_vnum;
+
+	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
+	blk_hnum = (dwTemp >> 8) & 0x1f;
+	blk_vnum = (dwTemp) & 0x1f;
+	pr_amlc_dbg("======lc_prt curve node=======\n");
+	for (i = 0; i < blk_hnum*blk_vnum; i++) {
+		for (j = 0; j < 6 ; j++)
+			pr_amlc_dbg("%d\n", lc_szcurve[i*6 + j]);
+		pr_amlc_dbg("\n");
+	}
 }
 
 void lc_init(void)
@@ -552,6 +671,14 @@ void lc_init(void)
 
 	if (!lc_en)
 		return;
+	lc_szcurve = kzalloc(580 * sizeof(int), GFP_KERNEL);
+	if (!lc_szcurve)
+		return;
+	lc_hist = kzalloc(1632 * sizeof(int), GFP_KERNEL);
+	if (!lc_hist) {
+		kfree(lc_szcurve);
+		return;
+	}
 
 	lc_top_config(0, h_num, v_num, height, width);
 	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
@@ -585,11 +712,24 @@ void lc_process(struct vframe_s *vf,
 	lc_config(lc_en, vf, sps_h_en, sps_v_en);
 
 	read_lc_curve();
-
 	lc_fw_curve_iir(vf);
+
+	if (lc_curve_prcnt > 0) { /*debug lc curve node*/
+		lc_prt_curve();
+		lc_curve_prcnt--;
+	}
+	if (lc_hist_prcnt > 0) { /*debug hist*/
+		lc_read_region();
+		lc_hist_prcnt--;
+	}
 	if (set_lc_curve(0, 1))
 		pr_amlc_dbg("%s: set lc curve fail", __func__);
 
 	lc_flag = 0xff;
 }
 
+void lc_free(void)
+{
+	kfree(lc_szcurve);
+	kfree(lc_hist);
+}
