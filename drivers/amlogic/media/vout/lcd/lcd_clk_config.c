@@ -517,6 +517,8 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 
 	switch (lcd_drv->lcd_config->lcd_basic.lcd_type) {
 	case LCD_LVDS:
+		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x000704ad);
+		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x200704ad);
 		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x300704ad);
@@ -525,7 +527,8 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL2, 0x00001108);
 		mdelay(10);
-		lcd_hiu_write(HHI_TCON_PLL_CNTL3, 0x10058f30);
+		//lcd_hiu_write(HHI_TCON_PLL_CNTL3, 0x10058f30);
+		lcd_hiu_write(HHI_TCON_PLL_CNTL3, 0x10051400);
 		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL4, 0x010100c0);
 		mdelay(10);
@@ -541,6 +544,8 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 		mdelay(10);
 		break;
 	case LCD_VBYONE:
+		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x000f04f7);
+		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x200f04f7);
 		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x300f04f7);
@@ -563,6 +568,8 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 		mdelay(10);
 		break;
 	case LCD_P2P:
+		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x000f04e1);
+		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x200604e1);
 		mdelay(10);
 		lcd_hiu_write(HHI_TCON_PLL_CNTL0, 0x300604e1);
