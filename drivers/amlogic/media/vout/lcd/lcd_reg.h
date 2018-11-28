@@ -854,7 +854,9 @@
 #define VBO_TMCHK_VDE_STATE_H                      0x14f7
 #define VBO_INTR_STATE                             0x14f8
 #define VBO_INFILTER_CTRL                          0x14f9
+#define VBO_INFILTER_TICK_PERIOD_L                 0x14f9
 #define VBO_INSGN_CTRL                             0x14fa
+#define VBO_INFILTER_TICK_PERIOD_H                 0x1477
 
 /* ********************************
  * Video Interface:  VENC_VCBUS_BASE = 0x1b
