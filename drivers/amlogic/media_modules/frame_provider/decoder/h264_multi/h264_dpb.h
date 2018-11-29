@@ -436,6 +436,13 @@ enum ProfileIDC {
 	STEREO_HIGH    = 128   /*!< YUV 4:2:0/8  "Stereo High"*/
 };
 
+enum FirstInsertFrm_State {
+	FirstInsertFrm_IDLE = 0,
+	FirstInsertFrm_OUT = 1,
+	FirstInsertFrm_SKIPDONE = 2,
+};
+
+
 struct SPSParameters {
 	unsigned int profile_idc;
 	int pic_order_cnt_type;
@@ -837,6 +844,8 @@ struct h264_dpb_stru {
 	unsigned int dec_dpb_status;
 	unsigned char buf_alloc_fail;
 	unsigned int dpb_error_flag;
+	unsigned int first_insert_frame;
+	int first_output_poc;
 };
 
 
