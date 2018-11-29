@@ -2365,11 +2365,16 @@ int async_fifo_init(struct aml_asyncfifo *afifo, int initirq,
 
 int async_fifo_deinit(struct aml_asyncfifo *afifo, int freeirq)
 {
+	struct aml_dvb *dvb = afifo->dvb;
+	unsigned long flags;
+
 	if (!afifo->init)
 		return 0;
 
+	spin_lock_irqsave(&dvb->slock, flags);
 	CLEAR_ASYNC_FIFO_REG_MASK(afifo->id, REG1, 1 << ASYNC_FIFO_FLUSH_EN);
 	CLEAR_ASYNC_FIFO_REG_MASK(afifo->id, REG2, 1 << ASYNC_FIFO_FILL_EN);
+	spin_unlock_irqrestore(&dvb->slock, flags);
 
 	asyncfifo_put_buffer(afifo);
 
@@ -4548,11 +4553,12 @@ int aml_asyncfifo_hw_reset(struct aml_asyncfifo *afifo)
 	if (!buf)
 		return -1;
 
-	spin_lock_irqsave(&dvb->slock, flags);
 	if (afifo->init) {
 		src = afifo->source;
 		async_fifo_deinit(afifo, 0);
 	}
+
+	spin_lock_irqsave(&dvb->slock, flags);
 	ret = async_fifo_init(afifo, 0, len, buf);
 	/* restore the source */
 	if (src != -1)
