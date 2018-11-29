@@ -24,6 +24,7 @@
 #include <linux/interrupt.h>
 #include <linux/uaccess.h>
 #include <linux/io.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 /* Local Headers */
@@ -273,7 +274,11 @@ static void vdin_dump_one_buf_mem(char *path, struct vdin_dev_s *devp,
 	struct file *filp = NULL;
 	loff_t pos = 0;
 	void *buf = NULL;
-	unsigned int i;
+	unsigned int i, j;
+	unsigned int span = 0, count = 0;
+	int highmem_flag;
+	unsigned long highaddr;
+	unsigned long phys;
 	mm_segment_t old_fs = get_fs();
 
 	set_fs(KERNEL_DS);
@@ -288,7 +293,22 @@ static void vdin_dump_one_buf_mem(char *path, struct vdin_dev_s *devp,
 		pr_info("%s:no cma alloc mem!!!\n", __func__);
 		return;
 	}
-	if (buf_num < devp->canvas_max_num) {
+
+	if (buf_num >= devp->canvas_max_num) {
+		vfs_fsync(filp, 0);
+		filp_close(filp, NULL);
+		set_fs(old_fs);
+		pr_info("buf_num > canvas_max_num, vdin exit dump\n");
+		return;
+	}
+
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	if (highmem_flag == 0) {
+		pr_info("low mem area\n");
 		if (devp->cma_config_flag == 0x1)
 			buf = codec_mm_phys_to_virt(devp->mem_start +
 				devp->canvas_max_size*buf_num);
@@ -307,6 +327,33 @@ static void vdin_dump_one_buf_mem(char *path, struct vdin_dev_s *devp,
 		/*vfs_write(filp, buf, devp->canvas_max_size, &pos);*/
 		pr_info("write buffer %2d of %2u  to %s.\n",
 				buf_num, devp->canvas_max_num, path);
+	} else {
+		pr_info("high mem area\n");
+		count = devp->canvas_h;
+		span = devp->canvas_active_w;
+
+		if (devp->cma_config_flag == 0x1)
+			phys = devp->mem_start + devp->canvas_max_size*buf_num;
+		else if (devp->cma_config_flag == 0x101)
+			phys = devp->vfmem_start[buf_num];
+		else if (devp->cma_config_flag == 0x100)
+			phys = devp->vfmem_start[buf_num];
+		else
+			phys = devp->mem_start + devp->canvas_max_size*buf_num;
+
+		for (j = 0; j < count; j++) {
+			highaddr = phys + j * devp->canvas_w;
+			buf = codec_mm_vmap(highaddr, span);
+			if (!buf) {
+				pr_info("codec_mm_vmap error\n");
+				return;
+			}
+
+			vfs_write(filp, buf, span, &pos);
+			codec_mm_unmap_phyaddr(buf);
+		}
+		pr_info("high-mem write buffer %2d of %2u to %s.\n",
+				buf_num, devp->canvas_max_num, path);
 	}
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
@@ -317,15 +364,20 @@ static void vdin_dump_mem(char *path, struct vdin_dev_s *devp)
 {
 	struct file *filp = NULL;
 	loff_t pos = 0;
-	loff_t i = 0, j = 0;
-	unsigned int mem_size = 0;
+	loff_t mem_size = 0;
+	unsigned int i = 0, j = 0;
+	unsigned int span = 0;
+	unsigned int count = 0;
+	unsigned long highaddr;
+	unsigned long phys;
+	int highmem_flag;
 	void *buf = NULL;
 	void *vfbuf[VDIN_CANVAS_MAX_CNT];
 	mm_segment_t old_fs = get_fs();
 	set_fs(KERNEL_DS);
 	filp = filp_open(path, O_RDWR|O_CREAT, 0666);
 
-	mem_size = devp->canvas_active_w * devp->canvas_h;
+	mem_size = (loff_t)devp->canvas_active_w * devp->canvas_h;
 	for (i = 0; i < VDIN_CANVAS_MAX_CNT; i++)
 		vfbuf[i] = NULL;
 	if (IS_ERR(filp)) {
@@ -337,33 +389,77 @@ static void vdin_dump_mem(char *path, struct vdin_dev_s *devp)
 		pr_info("%s:no cma alloc mem!!!\n", __func__);
 		return;
 	}
-	for (i = 0; i < devp->canvas_max_num; i++) {
-		pos = mem_size * i;
-		if (devp->cma_config_flag == 0x1)
-			buf = codec_mm_phys_to_virt(devp->mem_start +
-				devp->canvas_max_size*i);
-		else if (devp->cma_config_flag == 0x101)
-			vfbuf[i] = codec_mm_phys_to_virt(
-				devp->vfmem_start[i]);
-		else if (devp->cma_config_flag == 0x100)
-			vfbuf[i] = phys_to_virt(devp->vfmem_start[i]);
-		else
-			buf = phys_to_virt(devp->mem_start +
-				devp->canvas_max_size*i);
-		/*only write active data*/
-		for (j = 0; j < devp->canvas_h; j++) {
-			if (devp->cma_config_flag & 0x100) {
-				vfs_write(filp, vfbuf[i],
-					devp->canvas_active_w, &pos);
-				vfbuf[i] += devp->canvas_w;
-			} else {
-				vfs_write(filp, buf,
-					devp->canvas_active_w, &pos);
-				buf += devp->canvas_w;
+
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	if (highmem_flag == 0) {
+		/*low mem area*/
+		pr_info("low mem area\n");
+		for (i = 0; i < devp->canvas_max_num; i++) {
+			pos = mem_size * i;
+			if (devp->cma_config_flag == 0x1)
+				buf = codec_mm_phys_to_virt(devp->mem_start +
+					devp->canvas_max_size*i);
+			else if (devp->cma_config_flag == 0x101)
+				vfbuf[i] = codec_mm_phys_to_virt(
+					devp->vfmem_start[i]);
+			else if (devp->cma_config_flag == 0x100)
+				vfbuf[i] = phys_to_virt(devp->vfmem_start[i]);
+			else
+				buf = phys_to_virt(devp->mem_start +
+					devp->canvas_max_size*i);
+			/*only write active data*/
+			for (j = 0; j < devp->canvas_h; j++) {
+				if (devp->cma_config_flag & 0x100) {
+					vfs_write(filp, vfbuf[i],
+						devp->canvas_active_w, &pos);
+					vfbuf[i] += devp->canvas_w;
+				} else {
+					vfs_write(filp, buf,
+						devp->canvas_active_w, &pos);
+					buf += devp->canvas_w;
+				}
 			}
+			pr_info("write buffer %2d of %2u to %s.\n",
+					i, devp->canvas_max_num, path);
 		}
-		pr_info("write buffer %lld of %2u  to %s.\n",
-				i, devp->canvas_max_num, path);
+	} else {
+		/*high mem area*/
+		pr_info("high mem area\n");
+		count = devp->canvas_h;
+		span = devp->canvas_active_w;
+
+		for (i = 0; i < devp->canvas_max_num; i++) {
+			pos = mem_size * i;
+			if (devp->cma_config_flag == 0x1) {
+				phys = devp->mem_start +
+					devp->canvas_max_size*i;
+			} else if (devp->cma_config_flag == 0x101)
+				phys = devp->vfmem_start[i];
+			else if (devp->cma_config_flag == 0x100)
+				phys = devp->vfmem_start[i];
+			else {
+				phys = devp->mem_start +
+					devp->canvas_max_size*i;
+			}
+
+			for (j = 0; j < count; j++) {
+				highaddr = phys + j * devp->canvas_w;
+				buf = codec_mm_vmap(highaddr, span);
+				if (!buf) {
+					pr_info("codec_mm_vmap error\n");
+					return;
+				}
+
+				vfs_write(filp, buf, span, &pos);
+				codec_mm_unmap_phyaddr(buf);
+			}
+			pr_info("high-mem write buffer %2d of %2u to %s.\n",
+					i, devp->canvas_max_num, path);
+		}
 	}
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
@@ -378,6 +474,14 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 	void *buf_head = NULL;
 	void *buf_table = NULL;
 	void *buf_body = NULL;
+	unsigned long highaddr;
+	unsigned long phys;
+	int highmem_flag = 0;
+	unsigned int span = 0;
+	unsigned int remain = 0;
+	unsigned int count = 0;
+	unsigned int j = 0;
+	void *vbuf = NULL;
 	unsigned char buff[100];
 	mm_segment_t old_fs = get_fs();
 
@@ -392,27 +496,51 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		return;
 	}
 
-	if (devp->cma_config_flag == 0x101) {
-		buf_head = codec_mm_phys_to_virt(
-			devp->afbce_info->fm_head_paddr[buf_num]);
-		buf_table = codec_mm_phys_to_virt(
-			devp->afbce_info->fm_table_paddr[buf_num]);
-		buf_body = codec_mm_phys_to_virt(
-			devp->afbce_info->fm_body_paddr[buf_num]);
+	if (devp->cma_config_flag == 0x101)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	if (highmem_flag == 0) {
+		/*low mem area*/
+		pr_info("low mem area\n");
+		if (devp->cma_config_flag == 0x101) {
+			buf_head = codec_mm_phys_to_virt(
+				devp->afbce_info->fm_head_paddr[buf_num]);
+			buf_table = codec_mm_phys_to_virt(
+				devp->afbce_info->fm_table_paddr[buf_num]);
+			buf_body = codec_mm_phys_to_virt(
+				devp->afbce_info->fm_body_paddr[buf_num]);
+
+			pr_info(".head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
+				devp->afbce_info->fm_head_paddr[buf_num],
+				(devp->afbce_info->fm_table_paddr[buf_num]),
+				devp->afbce_info->fm_body_paddr[buf_num]);
+		} else if (devp->cma_config_flag == 0) {
+			buf_head = phys_to_virt(
+				devp->afbce_info->fm_head_paddr[buf_num]);
+			buf_table = phys_to_virt(
+				devp->afbce_info->fm_table_paddr[buf_num]);
+			buf_body = phys_to_virt(
+				devp->afbce_info->fm_body_paddr[buf_num]);
+
+			pr_info("head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
+				devp->afbce_info->fm_head_paddr[buf_num],
+				(devp->afbce_info->fm_table_paddr[buf_num]),
+				devp->afbce_info->fm_body_paddr[buf_num]);
+		}
+	} else {
+		/*high mem area*/
+		pr_info("high mem area\n");
+		buf_head = codec_mm_vmap(
+			devp->afbce_info->fm_head_paddr[buf_num],
+			devp->afbce_info->frame_head_size);
+
+		buf_table = codec_mm_vmap(
+			devp->afbce_info->fm_table_paddr[buf_num],
+			devp->afbce_info->frame_table_size);
 
 		pr_info(".head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
-			devp->afbce_info->fm_head_paddr[buf_num],
-			(devp->afbce_info->fm_table_paddr[buf_num]),
-			devp->afbce_info->fm_body_paddr[buf_num]);
-	} else if (devp->cma_config_flag == 0) {
-		buf_head = phys_to_virt(
-			devp->afbce_info->fm_head_paddr[buf_num]);
-		buf_table = phys_to_virt(
-			devp->afbce_info->fm_table_paddr[buf_num]);
-		buf_body = phys_to_virt(
-			devp->afbce_info->fm_body_paddr[buf_num]);
-
-		pr_info("head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
 			devp->afbce_info->fm_head_paddr[buf_num],
 			(devp->afbce_info->fm_table_paddr[buf_num]),
 			devp->afbce_info->fm_body_paddr[buf_num]);
@@ -459,7 +587,40 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		pr_info("create %s body error.\n", buff);
 		return;
 	}
-	vfs_write(filp, buf_body, devp->afbce_info->frame_body_size, &pos);
+	if (highmem_flag == 0) {
+		vfs_write(filp, buf_body,
+			devp->afbce_info->frame_body_size, &pos);
+	} else {
+		span = SZ_1M;
+		count = devp->afbce_info->frame_body_size/PAGE_ALIGN(span);
+		remain = devp->afbce_info->frame_body_size%PAGE_ALIGN(span);
+		phys = devp->afbce_info->fm_body_paddr[buf_num];
+
+		for (j = 0; j < count; j++) {
+			highaddr = phys + j * span;
+			vbuf = codec_mm_vmap(highaddr, span);
+			if (!vbuf) {
+				pr_info("codec_mm_vmap error\n");
+				return;
+			}
+
+			vfs_write(filp, vbuf, span, &pos);
+			codec_mm_unmap_phyaddr(vbuf);
+		}
+
+		if (remain) {
+			span = devp->afbce_info->frame_body_size - remain;
+			highaddr = phys + span;
+			vbuf = codec_mm_vmap(highaddr, remain);
+			if (!vbuf) {
+				pr_info("codec_mm_vmap1 error\n");
+				return;
+			}
+
+			vfs_write(filp, vbuf, span, &pos);
+			codec_mm_unmap_phyaddr(vbuf);
+		}
+	}
 	pr_info("write buffer %2d of %2u body to %s.\n",
 		buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);
@@ -946,8 +1107,10 @@ static void vdin_write_mem(
 	mm_segment_t old_fs;
 	void *dts = NULL;
 	long val;
-	int index;
+	int index, j, span;
+	int highmem_flag, count;
 	unsigned long addr;
+	unsigned long highaddr;
 	struct vf_pool *p = devp->vfp;
 	/* vtype = simple_strtol(type, NULL, 10); */
 
@@ -996,15 +1159,42 @@ static void vdin_write_mem(
 	addr = canvas_get_addr(devp->curr_wr_vfe->vf.canvas0Addr);
 	/* dts = ioremap(canvas_get_addr(devp->curr_wr_vfe->vf.canvas0Addr), */
 	/* real_size); */
-	dts = phys_to_virt(addr);
-	size = vfs_read(filp, dts, devp->canvas_max_size, &pos);
-	pr_info("warning: %s read %u < %u\n",
-			__func__, size, devp->canvas_max_size);
 
-	vfs_fsync(filp, 0);
-	iounmap(dts);
-	filp_close(filp, NULL);
-	set_fs(old_fs);
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	if (highmem_flag == 0) {
+		pr_info("low mem area\n");
+		dts = phys_to_virt(addr);
+		for (j = 0; j < devp->canvas_h; j++) {
+			vfs_read(filp, dts+(devp->canvas_w*j),
+				devp->canvas_active_w, &pos);
+		}
+		vfs_fsync(filp, 0);
+		iounmap(dts);
+		filp_close(filp, NULL);
+		set_fs(old_fs);
+	} else {
+		pr_info("high mem area\n");
+		count = devp->canvas_h;
+		span = devp->canvas_active_w;
+		for (j = 0; j < count; j++) {
+			highaddr = addr + j * devp->canvas_w;
+			dts = codec_mm_vmap(highaddr, span);
+			if (!dts) {
+				pr_info("codec_mm_vmap error\n");
+				return;
+			}
+			vfs_read(filp, dts, span, &pos);
+			codec_mm_unmap_phyaddr(dts);
+		}
+		vfs_fsync(filp, 0);
+		filp_close(filp, NULL);
+		set_fs(old_fs);
+	}
+
 	if (vtype == 8) {
 		old_fs = get_fs();
 		set_fs(KERNEL_DS);
@@ -1020,7 +1210,7 @@ static void vdin_write_mem(
 			u8 *c = devp->vfp->dv_buf_ori[index];
 
 			pos = 0;
-			size = vfs_read(md_flip,
+			size = (unsigned int)vfs_read(md_flip,
 				devp->vfp->dv_buf_ori[index],
 				4096, &pos);
 			p->dv_buf_size[index] = size;
