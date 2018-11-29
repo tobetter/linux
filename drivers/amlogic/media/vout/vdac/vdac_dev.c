@@ -712,12 +712,17 @@ static int amvdac_drv_suspend(struct platform_device *pdev,
 	if (s_vdac_data->cpu_id == VDAC_CPU_TXL ||
 		s_vdac_data->cpu_id == VDAC_CPU_TXLX)
 		vdac_hiu_reg_write(HHI_VDAC_CNTL0, 0);
+	else if (s_vdac_data->cpu_id == VDAC_CPU_TL1)
+		vdac_hiu_reg_setb(HHI_VDAC_CNTL1_G12A, 1, 7, 1);
 	pr_info("%s: suspend module\n", __func__);
 	return 0;
 }
 
 static int amvdac_drv_resume(struct platform_device *pdev)
 {
+	/*0xbc[7] for bandgap enable: 0:enable,1:disable*/
+	if (s_vdac_data->cpu_id == VDAC_CPU_TL1)
+		vdac_hiu_reg_setb(HHI_VDAC_CNTL1_G12A, 0, 7, 1);
 	pr_info("%s: resume module\n", __func__);
 	return 0;
 }
