@@ -280,7 +280,10 @@ static void dnr_config(struct DNR_PARM_s *dnr_parm_p,
 	DI_Wr(DNR_DM_CTRL, Rd(DNR_DM_CTRL)|(1 << 11));
 	DI_Wr_reg_bits(DNR_CTRL, dnr_en?1:0, 16, 1);
 	/* dm for sd, hd will slower */
-	DI_Wr(DNR_CTRL, 0x1df00);
+	if (is_meson_tl1_cpu())
+		DI_Wr(DNR_CTRL, 0x1df00 | (0x03 << 18)); //5 line
+	else
+		DI_Wr(DNR_CTRL, 0x1df00);
 	if (is_meson_gxlx_cpu()) {
 		/* disable chroma dm according to baozheng */
 		DI_Wr_reg_bits(DNR_DM_CTRL, 0, 8, 1);
@@ -1187,7 +1190,10 @@ void nr_hw_init(void)
 {
 
 	nr_gate_control(true);
-	DI_Wr(DNR_CTRL, 0x1df00);
+	if (is_meson_tl1_cpu())
+		DI_Wr(DNR_CTRL, 0x1df00|(0x03<<18));//5 line
+	else
+		DI_Wr(DNR_CTRL, 0x1df00);
 	DI_Wr(NR3_MODE, 0x3);
 	DI_Wr(NR3_COOP_PARA, 0x28ff00);
 	DI_Wr(NR3_CNOOP_GAIN, 0x881900);
