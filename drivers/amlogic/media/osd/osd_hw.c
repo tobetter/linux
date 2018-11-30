@@ -2442,7 +2442,10 @@ static void osd_set_free_scale_enable_mode1(u32 index, u32 enable)
 
 void osd_set_free_scale_enable_hw(u32 index, u32 enable)
 {
-	if (osd_hw.free_scale_mode[index] && (index != OSD4)) {
+	if (osd_hw.free_scale_mode[index]
+		&& (osd_hw.osd_meson_dev.has_viu2 ?
+			((index != osd_hw.osd_meson_dev.viu2_index) ?
+				1 : 0) : 1)) {
 		osd_set_free_scale_enable_mode1(index, enable);
 		if (osd_hw.osd_meson_dev.osd_ver == OSD_NORMAL) {
 			u32 height_dst, height_src;
