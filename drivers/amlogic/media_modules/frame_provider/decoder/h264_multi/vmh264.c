@@ -63,7 +63,7 @@
 
 #undef pr_info
 #define pr_info printk
-
+#define VDEC_DW
 #define DEBUG_UCODE
 #define MEM_NAME "codec_m264"
 #define MULTI_INSTANCE_FRAMEWORK
@@ -138,6 +138,9 @@ static unsigned int reorder_dpb_size_margin_dv = 16;
 #endif
 static unsigned int reorder_dpb_size_margin = 6;
 static unsigned int reference_buf_margin = 4;
+
+#define VDEC_ASSIST_CANVAS_BLK32		0x5
+
 
 static unsigned int max_alloc_buf_count;
 static unsigned int decode_timeout_val = 100;
@@ -288,8 +291,12 @@ static unsigned int frmbase_cont_bitlevel2 = 0x1;
 	3, (1/4):(1/4) ratio, with both compressed frame included
 	4, (1/2):(1/2) ratio
 	0x10, double write only
+	0x10000: vdec dw horizotal 1/2
+	0x20000: vdec dw horizotal/vertical  1/2
 */
 static u32 double_write_mode;
+
+#define IS_VDEC_DW(hw)  (hw->double_write_mode >> 16 & 0xf)
 
 static void vmh264_dump_state(struct vdec_s *vdec);
 
@@ -340,7 +347,6 @@ u32 V_BUF_ADDR_OFFSET = 0x200000;
 #define PIC_INVALID              7
 
 #define EXTEND_SAR                      0xff
-
 #define BUFSPEC_POOL_SIZE		64
 #define VF_POOL_SIZE        64
 #define VF_POOL_NUM			2
@@ -396,6 +402,21 @@ struct buffer_spec_s {
 	int u_canvas_index;
 	int v_canvas_index;
 
+#ifdef VDEC_DW
+	unsigned int vdec_dw_y_addr;
+	unsigned int vdec_dw_u_addr;
+	unsigned int vdec_dw_v_addr;
+
+	int vdec_dw_y_canvas_index;
+	int vdec_dw_u_canvas_index;
+	int vdec_dw_v_canvas_index;
+#ifdef NV21
+	struct canvas_config_s vdec_dw_canvas_config[2];
+#else
+	struct canvas_config_s vdec_dw_canvas_config[3];
+#endif
+#endif
+
 #ifdef NV21
 	struct canvas_config_s canvas_config[2];
 #else
@@ -421,6 +442,13 @@ struct buffer_spec_s {
 #define AUX_DATA_SIZE(pic) (hw->buffer_spec[pic->buf_spec_num].aux_data_size)
 #define AUX_DATA_BUF(pic) (hw->buffer_spec[pic->buf_spec_num].aux_data_buf)
 #define DEL_EXIST(h, p) (h->buffer_spec[p->buf_spec_num].dv_enhance_exist)
+
+
+#define vdec_dw_spec2canvas(x)  \
+	(((x)->vdec_dw_v_canvas_index << 16) | \
+	 ((x)->vdec_dw_u_canvas_index << 8)  | \
+	 ((x)->vdec_dw_y_canvas_index << 0))
+
 
 #define spec2canvas(x)  \
 	(((x)->v_canvas_index << 16) | \
@@ -844,8 +872,6 @@ static int  compute_losless_comp_body_size(int width,
 				int height, int bit_depth_10);
 static int  compute_losless_comp_header_size(int width, int height);
 
-
-
 static int hevc_alloc_mmu(struct vdec_h264_hw_s *hw, int pic_idx,
 		int pic_width, int pic_height, u16 bit_depth,
 		unsigned int *mmu_index_adr) {
@@ -916,14 +942,10 @@ static int  compute_losless_comp_header_size(int width, int height)
 	return  hsize;
 }
 
-
-
 static int get_double_write_ratio(struct vdec_h264_hw_s *hw)
 {
 	int ratio = 1;
-	int dw_mode;
-
-	dw_mode = hw->double_write_mode;
+	int dw_mode = hw->double_write_mode;
 	if ((dw_mode == 2) ||
 			(dw_mode == 3))
 		ratio = 4;
@@ -940,11 +962,12 @@ static int get_dw_size(struct vdec_h264_hw_s *hw, u32 *pdw_buffer_size_u_v_h)
 	int dw_buf_size;
 	u32 dw_buffer_size_u_v;
 	u32 dw_buffer_size_u_v_h;
+	int dw_mode =  hw->double_write_mode;
 
 	pic_width = hw->frame_width;
 	pic_height = hw->frame_height;
 
-	if (hw->double_write_mode) {
+	if (dw_mode) {
 		int pic_width_dw = pic_width /
 			get_double_write_ratio(hw);
 		int pic_height_dw = pic_height /
@@ -982,6 +1005,7 @@ static void hevc_mcr_config_canv2axitbl(struct vdec_h264_hw_s *hw, int restore)
 	int dw_size = 0;
 	u32 dw_buffer_size_u_v_h;
 	u32 blkmode = mem_map_mode;
+	int dw_mode =  hw->double_write_mode;
 
 	canvas_addr = ANC0_CANVAS_ADDR;
 	for (i = 0; i < num_buff; i++)
@@ -1024,7 +1048,7 @@ static void hevc_mcr_config_canv2axitbl(struct vdec_h264_hw_s *hw, int restore)
 			"%s : canvas: %d  axiaddr:%x size 0x%x\n",
 			__func__, i, (u32)maddr, size);
 
-		if (hw->double_write_mode) {
+		if (dw_mode) {
 			u32 addr;
 			int canvas_w;
 			int canvas_h;
@@ -1183,6 +1207,7 @@ static void  hevc_mcr_sao_global_hw_init(struct vdec_h264_hw_s *hw,
 	u32 lcu_total;
 	u32 mc_buffer_size_u_v;
 	u32 mc_buffer_size_u_v_h;
+	int  dw_mode = hw->double_write_mode;
 
 	lcu_x_num = (width + 15) >> 4;
 	lcu_y_num = (height + 15) >> 4;
@@ -1236,7 +1261,7 @@ static void  hevc_mcr_sao_global_hw_init(struct vdec_h264_hw_s *hw,
 	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_G12A) {
 		  WRITE_VREG(HEVC_DBLK_CFG1, 0x2); // set ctusize==16
 		  WRITE_VREG(HEVC_DBLK_CFG2, ((height & 0xffff)<<16) | (width & 0xffff));
-		  if (hw->double_write_mode)
+		  if (dw_mode)
 			WRITE_VREG(HEVC_DBLK_CFGB, 0x40405703);
 		  else
 			WRITE_VREG(HEVC_DBLK_CFGB, 0x40405503);
@@ -1263,7 +1288,7 @@ static void  hevc_mcr_sao_global_hw_init(struct vdec_h264_hw_s *hw,
 	data32 &= (~0xff0);
 	data32 |= endian;	/* Big-Endian per 64-bit */
 
-	if (hw->mmu_enable && hw->double_write_mode)
+	if (hw->mmu_enable && dw_mode)
 		data32 |= ((mem_map_mode << 12));
 	else
 		data32 |= ((mem_map_mode << 12)|2);
@@ -1272,13 +1297,13 @@ static void  hevc_mcr_sao_global_hw_init(struct vdec_h264_hw_s *hw,
 
 #ifdef	H265_DW_NO_SCALE
 	WRITE_VREG(HEVC_SAO_CTRL5, READ_VREG(HEVC_SAO_CTRL5) & ~(0xff << 16));
-	if (hw->mmu_enable && hw->double_write_mode) {
+	if (hw->mmu_enable && dw_mode) {
 		data32 =	READ_VREG(HEVC_SAO_CTRL5);
 		data32 &= (~(0xff << 16));
-		if (hw->double_write_mode == 2 ||
-			hw->double_write_mode == 3)
+		if (dw_mode == 2 ||
+			dw_mode == 3)
 			data32 |= (0xff<<16);
-		else if (hw->double_write_mode == 4)
+		else if (dw_mode == 4)
 			data32 |= (0x33<<16);
 		WRITE_VREG(HEVC_SAO_CTRL5, data32);
 	}
@@ -1327,6 +1352,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 	u32 dw_u_v_adr;
 	u32 canvas_addr;
 	int ret;
+	int  dw_mode = hw->double_write_mode;
 	if (hw->is_new_pic != 1)
 		return;
 
@@ -1346,7 +1372,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 	WRITE_VREG(HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR, 0x1);
 
 
-	if (hw->double_write_mode) {
+	if (dw_mode) {
 		dw_y_adr = hw->buffer_spec[pic->buf_spec_num].dw_y_adr;
 		dw_u_v_adr = hw->buffer_spec[pic->buf_spec_num].dw_u_v_adr;
 	} else {
@@ -1354,7 +1380,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 		dw_u_v_adr = 0;
 	}
 #ifdef	H265_LOSLESS_COMPRESS_MODE
-	if (hw->double_write_mode)
+	if (dw_mode)
 		WRITE_VREG(HEVC_SAO_Y_START_ADDR, dw_y_adr);
 	WRITE_VREG(HEVC_CM_BODY_START_ADDR, mc_y_adr);
 #ifdef	H264_MMU
@@ -1370,12 +1396,12 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 #ifndef H265_LOSLESS_COMPRESS_MODE
 	WRITE_VREG(HEVC_SAO_C_START_ADDR, mc_u_v_adr);
 #else
-	if (hw->double_write_mode)
+	if (dw_mode)
 		WRITE_VREG(HEVC_SAO_C_START_ADDR, dw_u_v_adr);
 #endif
 
 #ifndef LOSLESS_COMPRESS_MODE
-	if (hw->double_write_mode) {
+	if (dw_mode) {
 		WRITE_VREG(HEVC_SAO_Y_WPTR, mc_y_adr);
 		WRITE_VREG(HEVC_SAO_C_WPTR, mc_u_v_adr);
 	}
@@ -1549,8 +1575,16 @@ static int alloc_one_buf_spec(struct vdec_h264_hw_s *hw, int i)
 			return -1;
 	} else {
 
-		int	buf_size = (hw->mb_total << 8) + (hw->mb_total << 7);
+		int buf_size = (hw->mb_total << 8) + (hw->mb_total << 7);
 		int addr;
+#ifdef VDEC_DW
+		int orig_buf_size;
+		orig_buf_size = buf_size;
+		if (IS_VDEC_DW(hw) == 1)
+			buf_size += (hw->mb_total << 7) + (hw->mb_total << 6);
+		else if (IS_VDEC_DW(hw) == 2)
+			buf_size += (hw->mb_total << 6) + (hw->mb_total << 6);
+#endif
 		if (hw->buffer_spec[i].cma_alloc_addr)
 			return 0;
 
@@ -1579,32 +1613,91 @@ static int alloc_one_buf_spec(struct vdec_h264_hw_s *hw, int i)
 
 	hw->buffer_spec[i].y_addr = addr;
 	addr += hw->mb_total << 8;
-
 	hw->buffer_spec[i].u_addr = addr;
 	hw->buffer_spec[i].v_addr = addr;
 	addr += hw->mb_total << 7;
 
 	hw->buffer_spec[i].canvas_config[0].phy_addr =
-			hw->buffer_spec[i].y_addr;
+		hw->buffer_spec[i].y_addr;
 	hw->buffer_spec[i].canvas_config[0].width =
-			hw->mb_width << 4;
+		hw->mb_width << 4;
 	hw->buffer_spec[i].canvas_config[0].height =
-			hw->mb_height << 4;
+		hw->mb_height << 4;
 	hw->buffer_spec[i].canvas_config[0].block_mode =
+		CANVAS_BLKMODE_32X32;
+
+	hw->buffer_spec[i].canvas_config[1].phy_addr =
+			hw->buffer_spec[i].u_addr;
+	hw->buffer_spec[i].canvas_config[1].width =
+			hw->mb_width << 4;
+	hw->buffer_spec[i].canvas_config[1].height =
+			hw->mb_height << 3;
+	hw->buffer_spec[i].canvas_config[1].block_mode =
+			CANVAS_BLKMODE_32X32;
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
+	"%s, alloc buf for bufspec%d\n",
+			__func__, i
+	);
+#ifdef  VDEC_DW
+
+	if (!IS_VDEC_DW(hw))
+		return 0;
+	else if (IS_VDEC_DW(hw) == 1) {
+		addr = hw->buffer_spec[i].cma_alloc_addr + orig_buf_size;
+		hw->buffer_spec[i].vdec_dw_y_addr = addr;
+		addr += hw->mb_total << 7;
+		hw->buffer_spec[i].vdec_dw_u_addr = addr;
+		hw->buffer_spec[i].vdec_dw_v_addr = addr;
+		addr += hw->mb_total << 6;
+
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].phy_addr =
+			hw->buffer_spec[i].vdec_dw_y_addr;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].width =
+			hw->mb_width << 3;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].height =
+			hw->mb_height << 4;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].block_mode =
 			CANVAS_BLKMODE_32X32;
 
-		hw->buffer_spec[i].canvas_config[1].phy_addr =
-				hw->buffer_spec[i].u_addr;
-		hw->buffer_spec[i].canvas_config[1].width =
-				hw->mb_width << 4;
-		hw->buffer_spec[i].canvas_config[1].height =
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].phy_addr =
+				hw->buffer_spec[i].vdec_dw_u_addr;
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].width =
+				hw->mb_width << 3;
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].height =
 				hw->mb_height << 3;
-		hw->buffer_spec[i].canvas_config[1].block_mode =
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].block_mode =
 				CANVAS_BLKMODE_32X32;
-		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
-		"%s, alloc buf for bufspec%d\n",
-				__func__, i
-		);
+	}else {
+		addr = hw->buffer_spec[i].cma_alloc_addr + orig_buf_size;
+		hw->buffer_spec[i].vdec_dw_y_addr = addr;
+		addr += hw->mb_total << 6;
+		hw->buffer_spec[i].vdec_dw_u_addr = addr;
+		hw->buffer_spec[i].vdec_dw_v_addr = addr;
+		addr += hw->mb_total << 5;
+
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].phy_addr =
+			hw->buffer_spec[i].vdec_dw_y_addr;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].width =
+			hw->mb_width << 3;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].height =
+			hw->mb_height << 3;
+		hw->buffer_spec[i].vdec_dw_canvas_config[0].block_mode =
+			CANVAS_BLKMODE_32X32;
+
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].phy_addr =
+				hw->buffer_spec[i].vdec_dw_u_addr;
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].width =
+				hw->mb_width << 3;
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].height =
+				hw->mb_height << 2;
+		hw->buffer_spec[i].vdec_dw_canvas_config[1].block_mode =
+				CANVAS_BLKMODE_32X32;
+	}
+	dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,
+	"%s, vdec_dw: alloc buf for bufspec%d\n",
+			__func__, i
+	);
+#endif
 	}
 	return 0;
 }
@@ -1698,15 +1791,24 @@ static int alloc_one_buf_spec_from_queue(struct vdec_h264_hw_s *hw, int idx)
 
 static void config_decode_canvas(struct vdec_h264_hw_s *hw, int i)
 {
+	int blkmode =  hw->is_used_v4l ? CANVAS_BLKMODE_LINEAR :
+			CANVAS_BLKMODE_32X32;
 	canvas_config_ex(hw->buffer_spec[i].
 		y_canvas_index,
 		hw->buffer_spec[i].y_addr,
 		hw->mb_width << 4,
 		hw->mb_height << 4,
 		CANVAS_ADDR_NOWRAP,
-		hw->is_used_v4l ? CANVAS_BLKMODE_LINEAR :
-			CANVAS_BLKMODE_32X32,
+		blkmode,
 		hw->is_used_v4l ? 7 : 0);
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+		WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) | /* canvas_blk32_wr */
+				(blkmode << 10) | /* canvas_blk32*/
+				 (1 << 8) | /* canvas_index_wr*/
+				(hw->buffer_spec[i].y_canvas_index << 0) /* canvas index*/
+				);
+	}
 
 	canvas_config_ex(hw->buffer_spec[i].
 		u_canvas_index,
@@ -1714,12 +1816,87 @@ static void config_decode_canvas(struct vdec_h264_hw_s *hw, int i)
 		hw->mb_width << 4,
 		hw->mb_height << 3,
 		CANVAS_ADDR_NOWRAP,
-		hw->is_used_v4l ? CANVAS_BLKMODE_LINEAR :
-			CANVAS_BLKMODE_32X32,
+		blkmode,
 		hw->is_used_v4l ? 7 : 0);
-
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+		WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) |
+				(blkmode << 10) |
+				 (1 << 8) |
+				(hw->buffer_spec[i].u_canvas_index << 0));
+	}
 	WRITE_VREG(ANC0_CANVAS_ADDR + hw->buffer_spec[i].canvas_pos,
 		spec2canvas(&hw->buffer_spec[i]));
+
+
+#ifdef  VDEC_DW
+	if (!IS_VDEC_DW(hw))
+		return;
+	else if (IS_VDEC_DW(hw) == 1) {
+		canvas_config_ex(hw->buffer_spec[i].
+			vdec_dw_y_canvas_index,
+			hw->buffer_spec[i].vdec_dw_y_addr,
+			hw->mb_width << 3,
+			hw->mb_height << 4,
+			CANVAS_ADDR_NOWRAP,
+			blkmode,
+			hw->is_used_v4l ? 7 : 0);
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+			WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) |
+				(blkmode << 10) |
+				(1 << 8) |
+				(hw->buffer_spec[i].vdec_dw_y_canvas_index << 0));
+		}
+		canvas_config_ex(hw->buffer_spec[i].
+			vdec_dw_u_canvas_index,
+			hw->buffer_spec[i].vdec_dw_u_addr,
+			hw->mb_width << 3,
+			hw->mb_height << 3,
+			CANVAS_ADDR_NOWRAP,
+			blkmode,
+			hw->is_used_v4l ? 7 : 0);
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+			WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) |
+				(blkmode << 10) |
+				(1 << 8) |
+				(hw->buffer_spec[i].vdec_dw_u_canvas_index << 0));
+		}
+	} else {
+		canvas_config_ex(hw->buffer_spec[i].
+			vdec_dw_y_canvas_index,
+			hw->buffer_spec[i].vdec_dw_y_addr,
+			hw->mb_width << 3,
+			hw->mb_height << 3,
+			CANVAS_ADDR_NOWRAP,
+			blkmode,
+			hw->is_used_v4l ? 7 : 0);
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+			WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) |
+				(blkmode << 10) |
+				(1 << 8) |
+				(hw->buffer_spec[i].vdec_dw_y_canvas_index << 0));
+		}
+
+		canvas_config_ex(hw->buffer_spec[i].
+			vdec_dw_u_canvas_index,
+			hw->buffer_spec[i].vdec_dw_u_addr,
+			hw->mb_width << 3,
+			hw->mb_height << 2,
+			CANVAS_ADDR_NOWRAP,
+			blkmode,
+			hw->is_used_v4l ? 7 : 0);
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
+			WRITE_VREG(VDEC_ASSIST_CANVAS_BLK32,
+				(1 << 11) |
+				(blkmode << 10) |
+				(1 << 8) |
+				(hw->buffer_spec[i].vdec_dw_u_canvas_index << 0));
+		}
+	}
+#endif
 }
 
 static void config_decode_canvas_ex(struct vdec_h264_hw_s *hw, int i)
@@ -1846,6 +2023,8 @@ static void config_buf_specs(struct vdec_s *vdec)
 	int i, j;
 	unsigned long flags;
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
+	int mode = IS_VDEC_DW(hw) ? 2 : 1;
+
 	spin_lock_irqsave(&hw->bufspec_lock, flags);
 	for (i = 0, j = 0;
 		j < hw->dpb.mDPB.size
@@ -1854,16 +2033,31 @@ static void config_buf_specs(struct vdec_s *vdec)
 		int canvas;
 		if (hw->buffer_spec[i].used != -1)
 			continue;
-		canvas = vdec->get_canvas(j, 2);
+		canvas = vdec->get_canvas(j * mode, 2);
 		hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
 		hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
 		hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+		dpb_print(DECODE_ID(hw),
+				PRINT_FLAG_DPB_DETAIL,
+				"config canvas (%d) %x for bufspec %d\r\n",
+			j, canvas, i);
+#ifdef VDEC_DW
+		  if (IS_VDEC_DW(hw)) {
+			canvas = vdec->get_canvas(j * mode + 1, 2);
+			hw->buffer_spec[i].vdec_dw_y_canvas_index = canvas_y(canvas);
+			hw->buffer_spec[i].vdec_dw_u_canvas_index = canvas_u(canvas);
+			hw->buffer_spec[i].vdec_dw_v_canvas_index = canvas_v(canvas);
+			dpb_print(DECODE_ID(hw),
+				PRINT_FLAG_DPB_DETAIL,
+				"vdec_dw: config canvas (%d) %x for bufspec %d\r\n",
+				j, canvas, i);
+		  }
+#endif
 		hw->buffer_spec[i].used = 0;
 
 		hw->buffer_spec[i].canvas_pos = j;
 
-		/*pr_info("config canvas (%d) %x for bufspec %d\r\n",
-			j, canvas, i);*/
+
 		j++;
 	}
 	spin_unlock_irqrestore(&hw->bufspec_lock, flags);
@@ -1874,6 +2068,8 @@ static void config_buf_specs_ex(struct vdec_s *vdec)
 	int i, j;
 	unsigned long flags;
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
+	int mode = IS_VDEC_DW(hw) ? 2 : 1;
+
 	spin_lock_irqsave(&hw->bufspec_lock, flags);
 	for (i = 0, j = 0;
 		j < hw->dpb.mDPB.size
@@ -1882,17 +2078,31 @@ static void config_buf_specs_ex(struct vdec_s *vdec)
 		int canvas;
 		if (hw->buffer_spec[i].used != -1)
 			continue;
-		canvas = vdec->get_canvas(j, 2);
+		canvas = vdec->get_canvas(j* mode, 2);
 		hw->buffer_spec[i].y_canvas_index = canvas_y(canvas);
 		hw->buffer_spec[i].u_canvas_index = canvas_u(canvas);
 		hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
+
+		dpb_print(DECODE_ID(hw),
+				PRINT_FLAG_DPB_DETAIL,
+				"config canvas (%d) %x for bufspec %d\r\n",
+			j, canvas, i);
+#ifdef VDEC_DW
+		if (IS_VDEC_DW(hw)) {
+			canvas = vdec->get_canvas(j*mode + 1, 2);
+			hw->buffer_spec[i].vdec_dw_y_canvas_index = canvas_y(canvas);
+			hw->buffer_spec[i].vdec_dw_u_canvas_index = canvas_u(canvas);
+			hw->buffer_spec[i].vdec_dw_v_canvas_index = canvas_v(canvas);
+			dpb_print(DECODE_ID(hw),
+				PRINT_FLAG_DPB_DETAIL,
+				"vdec_dw: config canvas (%d) %x for bufspec %d\r\n",
+				j, canvas, i);
+		}
+#endif
 		hw->buffer_spec[i].used = 0;
 		hw->buffer_spec[i].alloc_header_addr = 0;
-
 		hw->buffer_spec[i].canvas_pos = j;
 
-		pr_info("config canvas (%d) %x for bufspec %d\r\n",
-			j, canvas, i);
 		j++;
 	}
 	spin_unlock_irqrestore(&hw->bufspec_lock, flags);
@@ -2215,8 +2425,15 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 		} else {
 			vf->type = VIDTYPE_PROGRESSIVE | VIDTYPE_VIU_FIELD |
 				VIDTYPE_VIU_NV21;
+
 			vf->canvas0Addr = vf->canvas1Addr =
 			spec2canvas(&hw->buffer_spec[buffer_index]);
+#ifdef VDEC_DW
+			if (IS_VDEC_DW(hw))
+				vf->canvas0Addr = vf->canvas1Addr =
+					vdec_dw_spec2canvas(&hw->buffer_spec[buffer_index]);
+#endif
+
 		}
 		set_frame_info(hw, vf, buffer_index);
 
@@ -2262,6 +2479,7 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 		}
 
 		kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
+
 		hw->vf_pre_count++;
 		vf_notify_receiver(vdec->vf_provider_name,
 			VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
@@ -2622,6 +2840,7 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 	struct Slice *pSlice = &(p_H264_Dpb->mSlice);
 	unsigned int colocate_adr_offset;
 	unsigned int val;
+
 #ifdef ONE_COLOCATE_BUF_PER_DECODE_BUF
 	int colocate_buf_index;
 #endif
@@ -2672,6 +2891,11 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 		canvas_pos);
 	print_pic_info(DECODE_ID(hw), "cur", pic, pSlice->slice_type);
 
+#ifdef VDEC_DW
+	if (IS_VDEC_DW(hw) && pic->mb_aff_frame_flag)
+		WRITE_VREG(MDEC_DOUBLEW_CFG0,
+			( READ_VREG(MDEC_DOUBLEW_CFG0) & (~(1 << 30))));
+#endif
 	WRITE_VREG(CURR_CANVAS_CTRL, canvas_pos << 24);
 	canvas_adr = READ_VREG(CURR_CANVAS_CTRL) & 0xffffff;
 
@@ -2679,6 +2903,11 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 		WRITE_VREG(REC_CANVAS_ADDR, canvas_adr);
 		WRITE_VREG(DBKR_CANVAS_ADDR, canvas_adr);
 		WRITE_VREG(DBKW_CANVAS_ADDR, canvas_adr);
+#ifdef VDEC_DW
+		WRITE_VREG(MDEC_DOUBLEW_CFG1,
+			(hw->buffer_spec[canvas_pos].vdec_dw_y_canvas_index
+			| (hw->buffer_spec[canvas_pos].vdec_dw_u_canvas_index << 8)));
+#endif
 	} else
 		hevc_sao_set_pic_buffer(hw, pic);
 
@@ -2770,6 +2999,7 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 			cfg = 0x2;
 		else /* FRAME */
 			cfg = 0x3;
+
 		one_ref_cfg = (canvas_pos & 0x1f) | (cfg << 5);
 		ref_reg_val <<= 8;
 		ref_reg_val |= one_ref_cfg;
@@ -3377,6 +3607,7 @@ static int vh264_event_cb(int type, void *data, void *op_arg)
 static void set_frame_info(struct vdec_h264_hw_s *hw, struct vframe_s *vf,
 				u32 index)
 {
+	struct canvas_config_s *p_canvas_config;
 	int force_rate = input_frame_based(hw_to_vdec(hw)) ?
 		force_rate_framebase : force_rate_streambase;
 	dpb_print(DECODE_ID(hw), PRINT_FLAG_DPB_DETAIL,
@@ -3404,15 +3635,24 @@ static void set_frame_info(struct vdec_h264_hw_s *hw, struct vframe_s *vf,
 #else
 	vf->plane_num = 3;
 #endif
-	vf->canvas0_config[0] = hw->buffer_spec[index].canvas_config[0];
-	vf->canvas0_config[1] = hw->buffer_spec[index].canvas_config[1];
+
+	if (IS_VDEC_DW(hw)) {
+		vf->width = (hw->frame_width /2);
+		 if (IS_VDEC_DW(hw) == 2)
+			vf->height = (hw->frame_height /2);
+		p_canvas_config = &hw->buffer_spec[index].vdec_dw_canvas_config[0];
+	} else
+		p_canvas_config = &hw->buffer_spec[index].canvas_config[0];
+
+	vf->canvas0_config[0] = p_canvas_config[0];
+	vf->canvas0_config[1] = p_canvas_config[1];
 #ifndef NV21
-	vf->canvas0_config[2] = hw->buffer_spec[index].canvas_config[2];
+	vf->canvas0_config[2] = p_canvas_config[2];
 #endif
-	vf->canvas1_config[0] = hw->buffer_spec[index].canvas_config[0];
-	vf->canvas1_config[1] = hw->buffer_spec[index].canvas_config[1];
+	vf->canvas1_config[0] = p_canvas_config[0];
+	vf->canvas1_config[1] = p_canvas_config[1];
 #ifndef NV21
-	vf->canvas1_config[2] = hw->buffer_spec[index].canvas_config[2];
+	vf->canvas1_config[2] = p_canvas_config[2];
 #endif
 	/* signal_type */
 	if (hw->video_signal_from_vui & VIDEO_SIGNAL_TYPE_AVAILABLE_MASK)
@@ -5343,6 +5583,16 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 	/* pr_info("vh264 meson8 prot init\n"); */
 	WRITE_VREG(MDEC_PIC_DC_THRESH, 0x404038aa);
 #endif
+
+#ifdef VDEC_DW
+	if (IS_VDEC_DW(hw)) {
+		u32 data = ((1   << 30) |(1   <<  0) |(1   <<  8));
+
+		if (IS_VDEC_DW(hw) == 2)
+			data |= (1   <<  9);
+		WRITE_VREG(MDEC_DOUBLEW_CFG0, data); /* Double Write Enable*/
+	}
+#endif
 	if (hw->dpb.mDPB.size > 0) {
 		WRITE_VREG(AV_SCRATCH_7, (hw->max_reference_size << 24) |
 			(hw->dpb.mDPB.size << 16) |
@@ -5714,7 +5964,9 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 		amvdec_stop();
 		hw->stat &= ~STAT_VDEC_RUN;
 	}
-
+#ifdef VDEC_DW
+	WRITE_VREG(MDEC_DOUBLEW_CFG0, 0);
+#endif
 	cancel_work_sync(&hw->work);
 	cancel_work_sync(&hw->notify_work);
 	cancel_work_sync(&hw->user_data_work);
@@ -7315,21 +7567,21 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	if (hw->mmu_enable) {
-		if (pdata->config_len) {
-			/*use ptr config for doubel_write_mode, etc*/
-			if (get_config_int(pdata->config,
-				"mh264_double_write_mode", &config_val) == 0)
-				hw->double_write_mode = config_val;
-			else
-				hw->double_write_mode = double_write_mode;
-		} else
+	if (pdata->config_len) {
+		/*use ptr config for doubel_write_mode, etc*/
+		if (get_config_int(pdata->config,
+			"mh264_double_write_mode", &config_val) == 0)
+			hw->double_write_mode = config_val;
+		else
 			hw->double_write_mode = double_write_mode;
 	} else
-		hw->double_write_mode = 0;
+		hw->double_write_mode = double_write_mode;
+
+	if (hw->mmu_enable)
+			hw->double_write_mode &= 0xffff;
 
 	dpb_print(DECODE_ID(hw), 0,
-		"%s mmu_enable %d double_write_mode %d\n",
+		"%s mmu_enable %d double_write_mode 0x%x\n",
 		__func__, hw->mmu_enable, hw->double_write_mode);
 
 	pdata->private = hw;
