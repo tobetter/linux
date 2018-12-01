@@ -304,12 +304,6 @@ struct MVBUF_s {
 /*#define ENABLE_SWAP_TEST*/
 #define   MCRCC_ENABLE
 
-#ifdef VP9_10B_NV21
-#define MEM_MAP_MODE 2  /* 0:linear 1:32x32 2:64x32*/
-#else
-#define MEM_MAP_MODE 0  /* 0:linear 1:32x32 2:64x32*/
-#endif
-
 #define VP9_LPF_LVL_UPDATE
 /*#define DBG_LF_PRINT*/
 
@@ -2668,8 +2662,11 @@ union param_u vp9_param;
 #define LOSLESS_COMPRESS_MODE
 
 /*#define DECOMP_HEADR_SURGENT*/
-
+#ifdef VP9_10B_NV21
+static u32 mem_map_mode = 2  /* 0:linear 1:32x32 2:64x32*/
+#else
 static u32 mem_map_mode; /* 0:linear 1:32x32 2:64x32 ; m8baby test1902 */
+#endif
 static u32 enable_mem_saving = 1;
 static u32 force_w_h;
 
@@ -5059,7 +5056,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 = READ_VREG(HEVC_SAO_CTRL1);
 	data32 &= (~0x3000);
 	/*[13:12] axi_aformat, 0-Linear, 1-32x32, 2-64x32*/
-	data32 |= (MEM_MAP_MODE << 12);
+	data32 |= (mem_map_mode << 12);
 	data32 &= (~0x3);
 	data32 |= 0x1; /* [1]:dw_disable [0]:cm_disable*/
 	WRITE_VREG(HEVC_SAO_CTRL1, data32);
@@ -5073,14 +5070,14 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 = READ_VREG(HEVCD_IPP_AXIIF_CONFIG);
 	data32 &= (~0x30);
 	/*[5:4] address_format 00:linear 01:32x32 10:64x32*/
-	data32 |= (MEM_MAP_MODE << 4);
+	data32 |= (mem_map_mode << 4);
 	WRITE_VREG(HEVCD_IPP_AXIIF_CONFIG, data32);
 #else
 	/*m8baby test1902*/
 	data32 = READ_VREG(HEVC_SAO_CTRL1);
 	data32 &= (~0x3000);
 	/*[13:12] axi_aformat, 0-Linear, 1-32x32, 2-64x32*/
-	data32 |= (MEM_MAP_MODE << 12);
+	data32 |= (mem_map_mode << 12);
 	data32 &= (~0xff0);
 	/*data32 |= 0x670;*/ /*Big-Endian per 64-bit*/
 	data32 |= 0x880;  /*.Big-Endian per 64-bit */
@@ -5098,7 +5095,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 	data32 = READ_VREG(HEVCD_IPP_AXIIF_CONFIG);
 	data32 &= (~0x30);
 	/*[5:4] address_format 00:linear 01:32x32 10:64x32*/
-	data32 |= (MEM_MAP_MODE << 4);
+	data32 |= (mem_map_mode << 4);
 	data32 &= (~0xF);
 	data32 |= 0x8; /*Big-Endian per 64-bit*/
 	WRITE_VREG(HEVCD_IPP_AXIIF_CONFIG, data32);
@@ -5106,7 +5103,7 @@ static void config_sao_hw(struct VP9Decoder_s *pbi, union param_u *params)
 #else
 	data32 = READ_VREG(HEVC_SAO_CTRL1);
 	data32 &= (~0x3000);
-	data32 |= (MEM_MAP_MODE <<
+	data32 |= (mem_map_mode <<
 			   12);
 
 /*  [13:12] axi_aformat, 0-Linear,
@@ -6111,7 +6108,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 
 	if (vdec_is_support_4k()) {
 		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
-			memcpy(cur_buf_info, &amvvp9_workbuff_spec[2],	/* 4k */
+			memcpy(cur_buf_info, &amvvp9_workbuff_spec[2],	/* 8k */
 			sizeof(struct BuffInfo_s));
 		} else
 			memcpy(cur_buf_info, &amvvp9_workbuff_spec[1],	/* 4k */
@@ -6161,6 +6158,13 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 		(pbi->vvp9_amstream_dec_info.height ?
 		pbi->vvp9_amstream_dec_info.height :
 		pbi->work_space_buf->max_height));
+
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+		(pbi->double_write_mode != 0) &&
+		(((pbi->max_pic_w % 64) != 0) ||
+		(pbi->vvp9_amstream_dec_info.width % 64) != 0))
+		mem_map_mode = 2;
+
 #ifndef MV_USE_FIXED_BUF
 	if (init_mv_buf_list(pbi) < 0) {
 		pr_err("%s: init_mv_buf_list fail\n", __func__);

@@ -152,7 +152,6 @@ int decoder_mmu_box_alloc_idx(
 
 	for (i = 0; i < num_pages; i++)
 		mmu_index_adr[i] = PAGE_INDEX(sc->pages_list[i]);
-	mmu_index_adr[num_pages] = 0;
 
 	mutex_unlock(&box->mutex);
 
