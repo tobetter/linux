@@ -326,20 +326,6 @@ static const char * const video_format_names[] = {
 	"MAC", "unspecified", "Reserved", "Reserved"
 };
 
-#define PROB_SIZE    (496 * 2 * 4)
-#define PROB_BUF_SIZE    (0x5000)
-#define COUNT_BUF_SIZE   (0x300 * 4 * 4)
-/*compute_losless_comp_body_size(4096, 2304, 1) = 18874368(0x1200000)*/
-#define MAX_FRAME_4K_NUM 0x1200
-#define MAX_FRAME_8K_NUM 0x4800
-//#define FRAME_MMU_MAP_SIZE  (MAX_FRAME_4K_NUM * 4)
-static int get_frame_mmu_map_size(void)
-{
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
-		return (MAX_FRAME_8K_NUM * 4);
-	return (MAX_FRAME_4K_NUM * 4);
-}
-
 static inline int div_r32(int64_t m, int n)
 {
 /*
@@ -802,12 +788,31 @@ static int avs2_print_cont(struct AVS2Decoder_s *dec,
 	return 0;
 }
 
-static int get_compress_header_size(void)
+#define PROB_SIZE    (496 * 2 * 4)
+#define PROB_BUF_SIZE    (0x5000)
+#define COUNT_BUF_SIZE   (0x300 * 4 * 4)
+/*compute_losless_comp_body_size(4096, 2304, 1) = 18874368(0x1200000)*/
+#define MAX_FRAME_4K_NUM 0x1200
+#define MAX_FRAME_8K_NUM 0x4800
+#define MAX_SIZE_4K (4096 * 2304)
+#define IS_8K_SIZE(w, h)	(((w) * (h)) > MAX_SIZE_4K)
+
+static int get_frame_mmu_map_size(struct AVS2Decoder_s *dec)
 {
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+		(IS_8K_SIZE(dec->init_pic_w, dec->init_pic_h)))
+		return (MAX_FRAME_8K_NUM * 4);
+	return (MAX_FRAME_4K_NUM * 4);
+}
+
+static int get_compress_header_size(struct AVS2Decoder_s *dec)
+{
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+		(IS_8K_SIZE(dec->init_pic_w, dec->init_pic_h)))
 		return MMU_COMPRESS_8K_HEADER_SIZE;
 	return MMU_COMPRESS_HEADER_SIZE;
 }
+
 static void reset_process_time(struct AVS2Decoder_s *dec)
 {
 	if (dec->start_process_time) {
@@ -1580,10 +1585,12 @@ static struct BuffInfo_s amvavs2_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 		.mmu_vbh = {
 		  .buf_size = 0x5000 * 2, /*2*16*2304/4, 4K*/
 		},
+#if 0
 		.cm_header = {
 			/*0x44000 = ((1088*2*1024*4)/32/4)*(32/8)*/
 			.buf_size = MMU_COMPRESS_8K_HEADER_SIZE * 17,
 		},
+#endif
 #endif
 		.mpred_above = {
 			.buf_size = 0x8000 * 2,
@@ -1591,7 +1598,7 @@ static struct BuffInfo_s amvavs2_workbuff_spec[WORK_BUF_SPEC_NUM] = {
 #ifdef MV_USE_FIXED_BUF
 		.mpred_mv = {
 			/*4k2k , 0x100000 per buffer*/
-			.buf_size = 0x100000 * 16 * 4,
+			.buf_size = 0x120000 * FRAME_BUFFERS * 4,
 		},
 #endif
 		.rpm = {
@@ -2148,7 +2155,7 @@ static void init_pic_list(struct AVS2Decoder_s *dec,
 	/*alloc AVS2 compress header first*/
 		if (decoder_bmmu_box_alloc_buf_phy
 				(dec->bmmu_box,
-				HEADER_BUFFER_IDX(-1), get_compress_header_size(),
+				HEADER_BUFFER_IDX(-1), get_compress_header_size(dec),
 				DRIVER_HEADER_NAME,
 				&buf_addr1) < 0){
 			avs2_print(dec, 0,
@@ -2162,7 +2169,7 @@ static void init_pic_list(struct AVS2Decoder_s *dec,
 		unsigned long buf_addr;
 		if (decoder_bmmu_box_alloc_buf_phy
 				(dec->bmmu_box,
-				HEADER_BUFFER_IDX(i), get_compress_header_size(),
+				HEADER_BUFFER_IDX(i), get_compress_header_size(dec),
 				DRIVER_HEADER_NAME,
 				&buf_addr) < 0){
 			avs2_print(dec, 0,
@@ -2455,7 +2462,7 @@ static int config_mc_buffer(struct AVS2Decoder_s *dec)
 	}
 	return 0;
 }
-
+#if 0
 static void mcrcc_get_hitrate(void)
 {
 	u32 tmp;
@@ -2554,8 +2561,9 @@ static void  decomp_get_hitrate(void)
 	}
 	if (raw_mcr_cnt != 0) {
 		hitrate = (hit_mcr_cnt / raw_mcr_cnt) * 100;
-		pr_info("DECOMP_DCACHE_HIT_RATE : %d\n", hitrate);
-	} else {
+		if (debug & AVS2_DBG_CACHE)
+			pr_info("DECOMP_DCACHE_HIT_RATE : %d\n", hitrate);
+	} else if (debug & AVS2_DBG_CACHE) {
 		pr_info("DECOMP_DCACHE_HIT_RATE : na\n");
 	}
 return;
@@ -2587,12 +2595,12 @@ static void decomp_get_comprate(void)
 			/ raw_ucomp_cnt) * 100;
 		if (debug & AVS2_DBG_CACHE)
 			pr_info("DECOMP_COMP_RATIO : %d\n", comprate);
-	} else {
-		if (debug & AVS2_DBG_CACHE)
+	} else if (debug & AVS2_DBG_CACHE) {
 			pr_info("DECOMP_COMP_RATIO : na\n");
 	}
 	return;
 }
+#endif
 
 static void config_mcrcc_axi_hw(struct AVS2Decoder_s *dec)
 {
@@ -2607,13 +2615,13 @@ static void config_mcrcc_axi_hw(struct AVS2Decoder_s *dec)
 		WRITE_VREG(HEVCD_MCRCC_CTL1, 0x0);
 		return;
 	}
-
+/*
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
 		mcrcc_get_hitrate();
 		decomp_get_hitrate();
 		decomp_get_comprate();
 	}
-
+*/
 	if ((avs2_dec->img.type == B_IMG) ||
 		(avs2_dec->img.type == F_IMG)) { /*B-PIC or F_PIC*/
 		/*Programme canvas0 */
@@ -3679,7 +3687,7 @@ static void avs2_local_uninit(struct AVS2Decoder_s *dec)
 	if (dec->frame_mmu_map_addr) {
 		if (dec->frame_mmu_map_phy_addr)
 			dma_free_coherent(amports_get_dma_device(),
-				get_frame_mmu_map_size(), dec->frame_mmu_map_addr,
+				get_frame_mmu_map_size(dec), dec->frame_mmu_map_addr,
 					dec->frame_mmu_map_phy_addr);
 		dec->frame_mmu_map_addr = NULL;
 	}
@@ -3738,11 +3746,9 @@ static int avs2_local_init(struct AVS2Decoder_s *dec)
 		&& (buf_alloc_width > 1920 &&  buf_alloc_height > 1088)) {
 		buf_alloc_width = 1920;
 		buf_alloc_height = 1088;
-	} else {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
-				buf_alloc_width = 8192;
-				buf_alloc_height = 4608;
-		}
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		buf_alloc_width = 8192;
+		buf_alloc_height = 4608;
 	}
 	dec->init_pic_w = buf_alloc_width ? buf_alloc_width :
 		(dec->vavs2_amstream_dec_info.width ?
@@ -3823,13 +3829,13 @@ static int avs2_local_init(struct AVS2Decoder_s *dec)
 
 #ifdef AVS2_10B_MMU
 	dec->frame_mmu_map_addr = dma_alloc_coherent(amports_get_dma_device(),
-				get_frame_mmu_map_size(),
+				get_frame_mmu_map_size(dec),
 				&dec->frame_mmu_map_phy_addr, GFP_KERNEL);
 	if (dec->frame_mmu_map_addr == NULL) {
 		pr_err("%s: failed to alloc count_buffer\n", __func__);
 		return -1;
 	}
-	memset(dec->frame_mmu_map_addr, 0, COUNT_BUF_SIZE);
+	memset(dec->frame_mmu_map_addr, 0, get_frame_mmu_map_size(dec));
 /*	dec->frame_mmu_map_phy_addr = dma_map_single(amports_get_dma_device(),
 	dec->frame_mmu_map_addr, FRAME_MMU_MAP_SIZE, DMA_BIDIRECTIONAL);
 	if (dma_mapping_error(amports_get_dma_device(),
