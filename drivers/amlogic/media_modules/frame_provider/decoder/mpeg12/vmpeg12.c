@@ -1487,17 +1487,12 @@ static int vmpeg12_user_data_read(struct vdec_s *vdec,
 	u8 *rec_data_start;
 	u8 *pdest_buf;
 	struct mpeg12_userdata_recored_t *p_userdata_rec;
+	unsigned long addr;
+
+
 	u32 data_size;
 	u32 res;
 	int copy_ok = 1;
-
-#ifdef CONFIG_ARM64_A32
-	u32 addr;
-	addr = puserdata_para->pbuf_addr;
-	pdest_buf = (u8 *)addr;
-#else
-	pdest_buf = (u8 *)(puserdata_para->pbuf_addr);
-#endif
 
 	addr = puserdata_para->pbuf_addr;
 	pdest_buf = (void *)addr;
