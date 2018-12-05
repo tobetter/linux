@@ -82,9 +82,9 @@ int atvaudiodem_reg_read(unsigned int reg, unsigned int *val)
 			return 0;
 		}
 	}
-
-	if (amlatvdemod_devp->audio_reg_base)
-		*val = readl(amlatvdemod_devp->audio_reg_base + reg);
+#endif
+	if (amlatvdemod_devp->audiodemod_reg_base)
+		*val = readl(amlatvdemod_devp->audiodemod_reg_base + reg);
 
 	return 0;
 }
@@ -101,8 +101,32 @@ int atvaudiodem_reg_write(unsigned int reg, unsigned int val)
 		}
 	}
 
+	if (amlatvdemod_devp->audiodemod_reg_base)
+		writel(val, (amlatvdemod_devp->audiodemod_reg_base + reg));
+
+	return 0;
+}
+
+int atvaudio_reg_read(unsigned int *val)
+{
+	/* only 0xffd0d340 read */
+	/* bit0: I2s select in_src, 0 = atv_demod, 1 = adec */
+	/* bit1: Din5, 0 = atv_demod, 1 = adec */
+	/* bit2: L/R swap for adec audio data */
 	if (amlatvdemod_devp->audio_reg_base)
-		writel(val, (amlatvdemod_devp->audio_reg_base + reg));
+		*val = readl(amlatvdemod_devp->audio_reg_base);
+
+	return 0;
+}
+
+int atvaudio_reg_write(unsigned int val)
+{
+	/* only 0xffd0d340 write */
+	/* bit0: I2s select in_src, 0 = atv_demod, 1 = adec */
+	/* bit1: Din5, 0 = atv_demod, 1 = adec */
+	/* bit2: L/R swap for adec audio data */
+	if (amlatvdemod_devp->audio_reg_base)
+		writel(val, amlatvdemod_devp->audio_reg_base);
 
 	return 0;
 }
@@ -152,10 +176,10 @@ void atv_dmd_wr_reg(unsigned char block, unsigned char reg, unsigned long data)
 
 unsigned long atv_dmd_rd_reg(unsigned char block, unsigned char reg)
 {
-	unsigned long data = 0;
+	unsigned int data = 0;
 	unsigned int reg_addr = (block << 8) + reg * 4;
 
-	amlatvdemod_reg_read(reg_addr, (unsigned int *)&data);
+	amlatvdemod_reg_read(reg_addr, &data);
 	return data;
 }
 

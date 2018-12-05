@@ -587,7 +587,7 @@ static int v4l2_property_process_get(struct v4l2_frontend *v4l2_fe,
 	return 0;
 }
 
-static int v4l2_frontend_ioctl_properties(struct file *filp,
+static long v4l2_frontend_ioctl_properties(struct file *filp,
 			unsigned int cmd, void *parg)
 {
 	struct v4l2_frontend *v4l2_fe = video_get_drvdata(video_devdata(filp));

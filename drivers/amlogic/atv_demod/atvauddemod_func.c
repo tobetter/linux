@@ -1355,14 +1355,10 @@ void set_output_left_right_exchange(unsigned int ch)
 {
 	unsigned int read = 0;
 
-	if (amlatvdemod_devp->audio_demod_reg_base == NULL)
-		return;
-
-	read = readl(amlatvdemod_devp->audio_demod_reg_base);
+	atvaudio_reg_read(&read);
 
 	if ((read & (1 << 2)) != ((ch & 0x01) << 2))
-		writel((read & ~(1 << 2)) | ((ch & 0x01) << 2),
-				amlatvdemod_devp->audio_demod_reg_base);
+		atvaudio_reg_write((read & ~(1 << 2)) | ((ch & 0x01) << 2));
 }
 
 #endif /* __ATVAUDDEMOD_FUN_H */

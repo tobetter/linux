@@ -64,6 +64,7 @@ extern void read_version_register(void);
 extern void check_communication_interface(void);
 extern void power_on_receiver(void);
 extern void atv_dmd_misc(void);
+extern void atv_dmd_ring_filter(bool on);
 extern void configure_receiver(int Broadcast_Standard,
 			       unsigned int Tuner_IF_Frequency,
 			       int Tuner_Input_IF_inverted, int GDE_Curve,

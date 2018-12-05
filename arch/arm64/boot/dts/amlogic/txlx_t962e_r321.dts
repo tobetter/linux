@@ -617,6 +617,7 @@
 	};
 
 	tuner: tuner {
+		compatible = "amlogic, tuner";
 		status = "okay";
 		tuner_name = "si2151_tuner";
 		tuner_i2c_adap = <&i2c1>;

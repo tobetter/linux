@@ -539,6 +539,7 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 	int i = 0;
 	int try_vfmt_cnt = 300;
 	int varify_cnt = 0;
+	int cvbs_std = 0;
 	v4l2_std_id std_bk = 0;
 	unsigned int broad_std = 0;
 	unsigned int audio = 0;
@@ -550,12 +551,12 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 						__func__);
 				break;
 			}
-			std_bk = aml_fe_hook_get_fmt();
-			if (std_bk) {
+			cvbs_std = aml_fe_hook_get_fmt();
+			if (cvbs_std) {
 				varify_cnt++;
-				pr_dbg("get varify_cnt:%d, cnt:%d, std_bk:0x%x\n",
+				pr_dbg("get cvbs_std varify_cnt:%d, cnt:%d, cvbs_std:0x%x\n",
 						varify_cnt, i,
-						(unsigned int) std_bk);
+						(unsigned int) cvbs_std);
 				if (((v4l2_fe->tuner_id == AM_TUNER_R840
 					|| v4l2_fe->tuner_id == AM_TUNER_R842)
 					&& varify_cnt > 0)
@@ -592,13 +593,13 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 			usleep_range(30 * 1000, 30 * 1000 + 100);
 		}
 
-		pr_dbg("get std_bk cnt:%d, std_bk: 0x%x\n",
-				i, (unsigned int) std_bk);
+		pr_dbg("get cvbs_std cnt:%d, cvbs_std: 0x%x\n",
+				i, (unsigned int) cvbs_std);
 
-		if (std_bk == 0) {
+		if (cvbs_std == 0) {
 			pr_err("%s: failed to get video fmt, assume PAL.\n",
 					__func__);
-			std_bk = TVIN_SIG_FMT_CVBS_PAL_I;
+			cvbs_std = TVIN_SIG_FMT_CVBS_PAL_I;
 			p->std = V4L2_COLOR_STD_PAL | V4L2_STD_PAL_DK;
 			p->frequency += 1;
 			p->audmode = V4L2_STD_PAL_DK;
@@ -613,7 +614,7 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 			usleep_range(20 * 1000, 20 * 1000 + 100);
 		}
 
-		std_bk = atvdemod_fe_tvin_fmt_to_v4l2_std(std_bk);
+		std_bk = atvdemod_fe_tvin_fmt_to_v4l2_std(cvbs_std);
 	} else {
 		/* Only search std by user setting,
 		 * so no need tvafe identify signal.
@@ -630,9 +631,14 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 
 	if (std_bk & V4L2_COLOR_STD_NTSC) {
 #if 1 /* For TV Signal Generator(TG39) test, NTSC need support other audio.*/
-		amlatvdemod_set_std(AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK);
-		broad_std = aml_audiomode_autodet(v4l2_fe);
-		audio = atvdemod_fmt_2_v4l2_std(broad_std);
+		if (cvbs_std == TVIN_SIG_FMT_CVBS_NTSC_M) {
+			broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M;
+			audio = V4L2_STD_NTSC_M;
+		} else {
+			amlatvdemod_set_std(AML_ATV_DEMOD_VIDEO_MODE_PROP_NTSC);
+			broad_std = aml_audiomode_autodet(v4l2_fe);
+			audio = atvdemod_fmt_2_v4l2_std(broad_std);
+		}
 #if 0 /* I don't know what's going on here */
 		if (audio == V4L2_STD_PAL_M)
 			audio = V4L2_STD_NTSC_M;
@@ -652,8 +658,7 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 #endif
 	} else {
 		/* V4L2_COLOR_STD_PAL */
-		if (cvbs_std == TVIN_SIG_FMT_CVBS_PAL_M ||
-			cvbs_std == TVIN_SIG_FMT_CVBS_PAL_CN) {
+		if (cvbs_std == TVIN_SIG_FMT_CVBS_PAL_M) {
 			broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M;
 			audio = V4L2_STD_PAL_M;
 		} else {

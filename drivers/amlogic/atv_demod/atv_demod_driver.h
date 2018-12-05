@@ -66,10 +66,10 @@ struct aml_atvdemod_device {
 	bool tuner_attached;
 
 	void __iomem *demod_reg_base;
-	void __iomem *audio_reg_base;
+	void __iomem *audiodemod_reg_base;
 	void __iomem *hiu_reg_base;
 	void __iomem *periphs_reg_base;
-	void __iomem *audio_demod_reg_base;
+	void __iomem *audio_reg_base;
 
 	unsigned int reg_23cf; /* IIR filter */
 	int btsc_sap_mode; /*0: off 1:monitor 2:auto */

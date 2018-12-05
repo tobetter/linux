@@ -96,6 +96,8 @@
 	DEBUGFS_CREATE_NODE(audio_a2_power_threshold, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_gain_shift, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_gain_lpr, 0640, dentry, u32)\
+	DEBUGFS_CREATE_NODE(audio_atv_ov, 0640, dentry, u32)\
+	DEBUGFS_CREATE_NODE(audio_atv_ov_flag, 0640, dentry, u32)\
 }
 
 
@@ -178,11 +180,10 @@ static ssize_t debugfs_write(struct file *file, const char __user *userbuf,
 	char buf[20] = { 0 };
 	int len = ARRAY_SIZE(debugfs_dentry);
 
+	memset(buf, 0, sizeof(buf));
 	count = min_t(size_t, count, (sizeof(buf) - 1));
 	if (copy_from_user(buf, userbuf, count))
 		return -EFAULT;
-
-	buf[count] = 0;
 
 	/*i = sscanf(buf, "%d", &val);*/
 	i = kstrtoint(buf, 0, &val);

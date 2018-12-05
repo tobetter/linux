@@ -548,7 +548,7 @@ static int aml_atvdemod_probe(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
-		pr_err("get demod memory resource fail.\n");
+		pr_err("no demod memory resource.\n");
 		goto fail_get_resource;
 	}
 
@@ -566,7 +566,7 @@ static int aml_atvdemod_probe(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 	if (!res) {
-		pr_err("no hiu demod memory resource.\n");
+		pr_err("no hiu memory resource.\n");
 		dev->hiu_reg_base = NULL;
 	} else {
 		size_io_reg = resource_size(res);
@@ -584,7 +584,7 @@ static int aml_atvdemod_probe(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
 	if (!res) {
-		pr_err("no periphs demod memory resource.\n");
+		pr_err("no periphs memory resource.\n");
 		dev->periphs_reg_base = NULL;
 	} else {
 		size_io_reg = resource_size(res);
@@ -602,29 +602,31 @@ static int aml_atvdemod_probe(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 3);
 	if (!res) {
-		pr_err("no audio demod memory resource.\n");
-		dev->audio_reg_base = NULL;
+		pr_err("no audiodemod memory resource.\n");
+		dev->audiodemod_reg_base = NULL;
 	} else {
 		size_io_reg = resource_size(res);
-		dev->audio_reg_base = devm_ioremap_nocache(
+		dev->audiodemod_reg_base = devm_ioremap_nocache(
 				&pdev->dev, res->start, size_io_reg);
-		if (!dev->audio_reg_base) {
-			pr_err("audio ioremap failed.\n");
+		if (!dev->audiodemod_reg_base) {
+			pr_err("audiodemod ioremap failed.\n");
 			goto fail_get_resource;
 		}
 
-		pr_info("audio start = 0x%p, size = 0x%x, base = 0x%p.\n",
+		pr_info("audiodemod start = 0x%p, size = 0x%x, base = 0x%p.\n",
 					(void *) res->start, size_io_reg,
-					dev->audio_reg_base);
+					dev->audiodemod_reg_base);
 	}
 
+	/* add for audio system control */
 	if (is_meson_txlx_cpu() || is_meson_txhd_cpu()) {
-		/* add for audio system control */
-		dev->audio_demod_reg_base = ioremap(
-				round_down(0xffd0d340, 0x3), 4);
+		dev->audio_reg_base = ioremap(round_down(0xffd0d340, 0x3), 4);
 
-		pr_info("audio_demod_reg_base = 0x%p.\n",
-				dev->audio_demod_reg_base);
+		pr_info("audio_reg_base = 0x%p.\n", dev->audio_reg_base);
+	} else if (is_meson_tl1_cpu()) {
+		dev->audio_reg_base = ioremap(round_down(0xff600340, 0x3), 4);
+
+		pr_info("audio_reg_base = 0x%p.\n", dev->audio_reg_base);
 	}
 
 	aml_atvdemod_dt_parse(dev);
