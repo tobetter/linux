@@ -66,7 +66,7 @@
 #include <linux/platform_device.h>
 #include <linux/pwm.h>
 #include <linux/slab.h>
-#include <linux/spinlock.h>
+#include <linux/mutex.h>
 
 #define REG_PWM_A		0x0
 #define REG_PWM_B		0x4
@@ -111,7 +111,7 @@ struct meson_pwm {
 	const struct meson_pwm_data *data;
 	void __iomem *base;
 	u8 inverter_mask;
-	spinlock_t lock;
+	struct mutex lock;
 };
 
 static inline struct meson_pwm *to_meson_pwm(struct pwm_chip *chip)
@@ -296,13 +296,12 @@ static int meson_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 {
 	struct meson_pwm_channel *channel = pwm_get_chip_data(pwm);
 	struct meson_pwm *meson = to_meson_pwm(chip);
-	unsigned long flags;
 	int err = 0;
 
 	if (!state)
 		return -EINVAL;
 
-	spin_lock_irqsave(&meson->lock, flags);
+	mutex_lock(&meson->lock);
 
 	if (!state->enabled) {
 		meson_pwm_disable(meson, pwm->hwpwm);
@@ -342,7 +341,7 @@ static int meson_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	}
 
 unlock:
-	spin_unlock_irqrestore(&meson->lock, flags);
+	mutex_unlock(&meson->lock);
 	return err;
 }
 
@@ -478,7 +477,6 @@ static int meson_pwm_init_channels(struct meson_pwm *meson,
 		channel->mux.shift = mux_reg_shifts[i];
 		channel->mux.mask = BIT(MISC_CLK_SEL_WIDTH) - 1;
 		channel->mux.flags = 0;
-		channel->mux.lock = &meson->lock;
 		channel->mux.table = NULL;
 		channel->mux.hw.init = &init;
 
@@ -529,7 +527,7 @@ static int meson_pwm_probe(struct platform_device *pdev)
 	if (IS_ERR(meson->base))
 		return PTR_ERR(meson->base);
 
-	spin_lock_init(&meson->lock);
+	mutex_init(&meson->lock);
 	meson->chip.dev = &pdev->dev;
 	meson->chip.ops = &meson_pwm_ops;
 	meson->chip.base = -1;
