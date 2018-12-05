@@ -565,6 +565,9 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 			break;
 		}
 
+		aml_tdm_enable(p_tdm->actrl,
+			substream->stream, p_tdm->id, false);
+
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "tdm playback stop\n");
 			memset(substream->runtime->dma_area,
