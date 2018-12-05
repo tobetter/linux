@@ -814,6 +814,7 @@ union param_u {
 		unsigned short aspect_ratio_idc;
 		unsigned short sar_width;
 		unsigned short sar_height;
+		unsigned short sps_max_dec_pic_buffering_minus1_0;
 	} p;
 };
 
@@ -2556,8 +2557,15 @@ static int get_work_pic_num(struct hevc_state_s *hevc)
 {
 	int used_buf_num = 0;
 	if (get_dynamic_buf_num_margin(hevc) > 0) {
-		used_buf_num = hevc->sps_num_reorder_pics_0
-			+ get_dynamic_buf_num_margin(hevc);
+		if ((!hevc->sps_num_reorder_pics_0) &&
+			(hevc->param.p.sps_max_dec_pic_buffering_minus1_0)) {
+			/* the range of sps_num_reorder_pics_0 is in
+			  [0, sps_max_dec_pic_buffering_minus1_0] */
+			used_buf_num = get_dynamic_buf_num_margin(hevc) +
+				hevc->param.p.sps_max_dec_pic_buffering_minus1_0;
+		} else
+			used_buf_num = hevc->sps_num_reorder_pics_0
+				+ get_dynamic_buf_num_margin(hevc);
 #ifdef MULTI_INSTANCE_SUPPORT
 		/*
 		need one more for multi instance, as
@@ -8413,8 +8421,6 @@ pic_done:
 							- ii];
 					}
 				}
-				if (hevc->param.p.sps_num_reorder_pics_0 == 0)
-					hevc->param.p.sps_num_reorder_pics_0 = 7;
 #ifdef SEND_LMEM_WITH_RPM
 				dma_sync_single_for_cpu(
 					amports_get_dma_device(),
