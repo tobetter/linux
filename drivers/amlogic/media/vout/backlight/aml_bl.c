@@ -2550,7 +2550,7 @@ static ssize_t bl_status_read(struct class *class,
 	return len;
 }
 
-static ssize_t bl_debug_pwm_show(struct class *class,
+static ssize_t bl_debug_pwm_info_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
 	struct bl_config_s *bconf = bl_drv->bconf;
@@ -2559,7 +2559,7 @@ static ssize_t bl_debug_pwm_show(struct class *class,
 	unsigned int value;
 	ssize_t len = 0;
 
-	len = sprintf(buf, "read backlight pwm state:\n");
+	len = sprintf(buf, "read backlight pwm info:\n");
 	switch (bconf->method) {
 	case BL_CTRL_PWM:
 		len += sprintf(buf+len,
@@ -2789,6 +2789,76 @@ static ssize_t bl_debug_pwm_show(struct class *class,
 		break;
 	default:
 		len += sprintf(buf+len, "not pwm control method\n");
+		break;
+	}
+	return len;
+}
+
+static ssize_t bl_debug_pwm_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	struct bl_config_s *bconf = bl_drv->bconf;
+	struct bl_pwm_config_s *bl_pwm;
+	ssize_t len = 0;
+
+	switch (bconf->method) {
+	case BL_CTRL_PWM:
+		if (bconf->bl_pwm) {
+			bl_pwm = bconf->bl_pwm;
+			len += sprintf(buf+len,
+				"pwm: freq=%d, pol=%d, duty_max=%d, duty_min=%d, ",
+				bl_pwm->pwm_freq, bl_pwm->pwm_method,
+				bl_pwm->pwm_duty_max, bl_pwm->pwm_duty_min);
+			if (bl_pwm->pwm_duty_max > 100) {
+				len += sprintf(buf+len,
+					"duty_value=%d(%d%%)\n",
+					bl_pwm->pwm_duty,
+					bl_pwm->pwm_duty*100/255);
+			} else {
+				len += sprintf(buf+len,
+					"duty_value=%d%%\n",
+					bl_pwm->pwm_duty);
+			}
+		}
+		break;
+	case BL_CTRL_PWM_COMBO:
+		if (bconf->bl_pwm_combo0) {
+			bl_pwm = bconf->bl_pwm_combo0;
+			len += sprintf(buf+len,
+				"pwm_0: freq=%d, pol=%d, duty_max=%d, duty_min=%d, ",
+				bl_pwm->pwm_freq, bl_pwm->pwm_method,
+				bl_pwm->pwm_duty_max, bl_pwm->pwm_duty_min);
+			if (bl_pwm->pwm_duty_max > 100) {
+				len += sprintf(buf+len,
+					"duty_value=%d(%d%%)\n",
+					bl_pwm->pwm_duty,
+					bl_pwm->pwm_duty*100/255);
+			} else {
+				len += sprintf(buf+len,
+					"duty_value=%d%%\n",
+					bl_pwm->pwm_duty);
+			}
+		}
+
+		if (bconf->bl_pwm_combo1) {
+			bl_pwm = bconf->bl_pwm_combo1;
+			len += sprintf(buf+len,
+				"pwm_1: freq=%d, pol=%d, duty_max=%d, duty_min=%d, ",
+				bl_pwm->pwm_freq, bl_pwm->pwm_method,
+				bl_pwm->pwm_duty_max, bl_pwm->pwm_duty_min);
+			if (bl_pwm->pwm_duty_max > 100) {
+				len += sprintf(buf+len,
+					"duty_value=%d(%d%%)\n",
+					bl_pwm->pwm_duty,
+					bl_pwm->pwm_duty*100/255);
+			} else {
+				len += sprintf(buf+len,
+					"duty_value=%d%%\n",
+					bl_pwm->pwm_duty);
+			}
+		}
+		break;
+	default:
 		break;
 	}
 	return len;
@@ -3179,6 +3249,7 @@ static ssize_t bl_debug_brightness_store(struct class *class,
 static struct class_attribute bl_debug_class_attrs[] = {
 	__ATTR(help, 0444, bl_debug_help, NULL),
 	__ATTR(status, 0444, bl_status_read, NULL),
+	__ATTR(pwm_info, 0644, bl_debug_pwm_info_show, NULL),
 	__ATTR(pwm, 0644, bl_debug_pwm_show, bl_debug_pwm_store),
 	__ATTR(power, 0644, bl_debug_power_show, bl_debug_power_store),
 	__ATTR(step_on, 0644, bl_debug_step_on_show, bl_debug_step_on_store),
