@@ -26,6 +26,7 @@
 #include <linux/io.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/amlogic/media/vout/lcd/aml_bl.h>
 #include <linux/amlogic/media/vout/lcd/lcd_vout.h>
 #include <linux/amlogic/media/vout/lcd/lcd_notify.h>
 #include <linux/amlogic/media/vout/lcd/lcd_unifykey.h>
@@ -116,7 +117,8 @@ static const char *lcd_common_usage_str = {
 "    echo <cmd> ... > debug ; lcd common debug, use 'cat debug' for help\n"
 "    cat debug ; print help information for debug command\n"
 "\n"
-"    echo <on|off> <step_num> <delay> > power ; set power on/off step delay(unit: ms)\n"
+"    echo <0|1> > power; lcd power control: 0=lcd power off, 1=lcd power on\n"
+"    echo <on|off> <step_num> <delay> > power_step ; set power on/off step delay(unit: ms)\n"
 "    cat power ; print lcd power on/off step\n"
 "\n"
 "    cat key_valid ; print lcd_key_valid setting\n"
@@ -252,7 +254,7 @@ static int lcd_power_step_print(struct lcd_config_s *pconf, int status,
 	return len;
 }
 
-static int lcd_power_info_print(char *buf, int offset)
+static int lcd_power_step_info_print(char *buf, int offset)
 {
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	int len = 0;
@@ -1564,7 +1566,7 @@ static ssize_t lcd_debug_store(struct class *class,
 		lcd_info_print(print_buf, 0);
 		lcd_debug_info_print(print_buf);
 		memset(print_buf, 0, PR_BUF_MAX);
-		lcd_power_info_print(print_buf, 0);
+		lcd_power_step_info_print(print_buf, 0);
 		lcd_debug_info_print(print_buf);
 		kfree(print_buf);
 		break;
@@ -1616,7 +1618,7 @@ static ssize_t lcd_debug_store(struct class *class,
 		lcd_info_print(print_buf, 0);
 		lcd_debug_info_print(print_buf);
 		memset(print_buf, 0, PR_BUF_MAX);
-		lcd_power_info_print(print_buf, 0);
+		lcd_power_step_info_print(print_buf, 0);
 		lcd_debug_info_print(print_buf);
 		memset(print_buf, 0, PR_BUF_MAX);
 		lcd_reg_print(print_buf, 0);
@@ -2067,6 +2069,49 @@ static ssize_t lcd_debug_resume_store(struct class *class,
 static ssize_t lcd_debug_power_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	int state;
+
+	if ((lcd_drv->lcd_status & BL_STATE_LCD_ON) == 0) {
+		state = 0;
+	} else {
+		if (lcd_drv->lcd_status & BL_STATE_BL_POWER_ON)
+			state = 1;
+		else
+			state = 0;
+	}
+	return sprintf(buf, "backlight power state: %d\n", state);
+}
+
+static ssize_t lcd_debug_power_store(struct class *class,
+		struct class_attribute *attr, const char *buf, size_t count)
+{
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	int ret = 0;
+	unsigned int temp = 1;
+
+	ret = kstrtouint(buf, 10, &temp);
+	if (ret) {
+		LCDERR("invalid data\n");
+		return -EINVAL;
+	}
+	if (temp) {
+		mutex_lock(&lcd_drv->power_mutex);
+		aml_lcd_notifier_call_chain(LCD_EVENT_IF_POWER_ON, NULL);
+		lcd_if_enable_retry(lcd_drv->lcd_config);
+		mutex_unlock(&lcd_drv->power_mutex);
+	} else {
+		mutex_lock(&lcd_drv->power_mutex);
+		aml_lcd_notifier_call_chain(LCD_EVENT_IF_POWER_OFF, NULL);
+		mutex_unlock(&lcd_drv->power_mutex);
+	}
+
+	return count;
+}
+
+static ssize_t lcd_debug_power_step_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
 	char *print_buf;
 	int n = 0;
 
@@ -2074,7 +2119,7 @@ static ssize_t lcd_debug_power_show(struct class *class,
 	if (print_buf == NULL)
 		return sprintf(buf, "%s: buf malloc error\n", __func__);
 
-	lcd_power_info_print(print_buf, 0);
+	lcd_power_step_info_print(print_buf, 0);
 
 	n = sprintf(buf, "%s\n", print_buf);
 	kfree(print_buf);
@@ -2082,24 +2127,24 @@ static ssize_t lcd_debug_power_show(struct class *class,
 	return n;
 }
 
-static ssize_t lcd_debug_power_store(struct class *class,
+static ssize_t lcd_debug_power_step_store(struct class *class,
 		struct class_attribute *attr, const char *buf, size_t count)
 {
 	int ret = 0;
 	unsigned int i, delay;
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
-	struct lcd_power_ctrl_s *lcd_power;
+	struct lcd_power_ctrl_s *lcd_power_step;
 
-	lcd_power = lcd_drv->lcd_config->lcd_power;
+	lcd_power_step = lcd_drv->lcd_config->lcd_power;
 	switch (buf[1]) {
 	case 'n': /* on */
 		ret = sscanf(buf, "on %d %d", &i, &delay);
 		if (ret == 2) {
-			if (i >= lcd_power->power_on_step_max) {
+			if (i >= lcd_power_step->power_on_step_max) {
 				pr_info("invalid power_on step: %d\n", i);
 				return -EINVAL;
 			}
-			lcd_power->power_on_step[i].delay = delay;
+			lcd_power_step->power_on_step[i].delay = delay;
 			pr_info("set power_on step %d delay: %dms\n",
 				i, delay);
 		} else {
@@ -2110,11 +2155,11 @@ static ssize_t lcd_debug_power_store(struct class *class,
 	case 'f': /* off */
 		ret = sscanf(buf, "off %d %d", &i, &delay);
 		if (ret == 1) {
-			if (i >= lcd_power->power_off_step_max) {
+			if (i >= lcd_power_step->power_off_step_max) {
 				pr_info("invalid power_off step: %d\n", i);
 				return -EINVAL;
 			}
-			lcd_power->power_off_step[i].delay = delay;
+			lcd_power_step->power_off_step[i].delay = delay;
 			pr_info("set power_off step %d delay: %dms\n",
 				i, delay);
 		} else {
@@ -2725,7 +2770,7 @@ static ssize_t lcd_debug_dump_show(struct class *class,
 	switch (lcd_debug_dump_state) {
 	case LCD_DEBUG_DUMP_INFO:
 		len = lcd_info_print(print_buf, 0);
-		lcd_power_info_print((print_buf+len), len);
+		lcd_power_step_info_print((print_buf+len), len);
 		break;
 	case LCD_DEBUG_DUMP_REG:
 		lcd_reg_print(print_buf, 0);
@@ -2806,7 +2851,10 @@ static struct class_attribute lcd_debug_class_attrs[] = {
 		lcd_debug_enable_show, lcd_debug_enable_store),
 	__ATTR(resume_type, 0644,
 		lcd_debug_resume_show, lcd_debug_resume_store),
-	__ATTR(power,       0644, lcd_debug_power_show, lcd_debug_power_store),
+	__ATTR(power,       0644,  lcd_debug_power_show,
+		lcd_debug_power_store),
+	__ATTR(power_step,       0644, lcd_debug_power_step_show,
+		 lcd_debug_power_step_store),
 	__ATTR(frame_rate,  0644,
 		lcd_debug_frame_rate_show, lcd_debug_frame_rate_store),
 	__ATTR(fr_policy,   0644,
