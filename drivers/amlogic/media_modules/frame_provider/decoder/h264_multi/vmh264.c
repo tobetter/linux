@@ -812,6 +812,7 @@ struct vdec_h264_hw_s {
 	void *v4l2_ctx;
 	wait_queue_head_t wait_q;
 	u32 reg_g_status;
+	struct mutex chunks_mutex;
 };
 
 static u32 again_threshold = 0x40;
@@ -4783,6 +4784,7 @@ pic_done_proc:
 						= 1;
 			}
 #endif
+			mutex_lock(&hw->chunks_mutex);
 			if (hw->chunk) {
 				p_H264_Dpb->mVideo.dec_picture->pts =
 					hw->chunk->pts;
@@ -4827,6 +4829,7 @@ pic_done_proc:
 #endif
 				}
 			}
+			mutex_unlock(&hw->chunks_mutex);
 			check_decoded_pic_error(hw);
 #ifdef ERROR_HANDLE_TEST
 			if ((hw->data_flag & ERROR_FLAG)
@@ -5783,6 +5786,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	hw->stat |= STAT_TIMER_ARM;
 	hw->stat |= STAT_ISR_REG;
 
+	mutex_init(&hw->chunks_mutex);
 	vh264_local_init(hw);
 	INIT_WORK(&hw->work, vh264_work);
 	INIT_WORK(&hw->notify_work, vh264_notify_work);
@@ -6774,7 +6778,10 @@ static void vh264_work(struct work_struct *work)
 				READ_VREG(VLD_MEM_VIFIFO_LEVEL),
 				READ_VREG(VLD_MEM_VIFIFO_WP),
 				READ_VREG(VLD_MEM_VIFIFO_RP));
+			mutex_lock(&hw->chunks_mutex);
 			vdec_vframe_dirty(vdec, hw->chunk);
+			hw->chunk = NULL;
+			mutex_unlock(&hw->chunks_mutex);
 			vdec_clean_input(vdec);
 		}
 		if ((hw->dec_result == DEC_RESULT_GET_DATA_RETRY) &&
@@ -6893,7 +6900,10 @@ result_done:
 			READ_VREG(VLD_MEM_VIFIFO_LEVEL),
 			READ_VREG(VLD_MEM_VIFIFO_WP),
 			READ_VREG(VLD_MEM_VIFIFO_RP));
+		mutex_lock(&hw->chunks_mutex);
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
+		mutex_unlock(&hw->chunks_mutex);
 	} else if (hw->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
@@ -6917,7 +6927,10 @@ result_done:
 		flush_dpb(p_H264_Dpb);
 		if (hw->is_used_v4l)
 			notify_v4l_eos(hw_to_vdec(hw));
+		mutex_lock(&hw->chunks_mutex);
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
+		mutex_unlock(&hw->chunks_mutex);
 		vdec_clean_input(vdec);
 	} else if (hw->dec_result == DEC_RESULT_FORCE_EXIT) {
 		dpb_print(DECODE_ID(hw), PRINT_FLAG_VDEC_STATUS,

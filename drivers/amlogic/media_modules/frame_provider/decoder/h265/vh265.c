@@ -1642,6 +1642,7 @@ struct hevc_state_s {
 #endif
 	u32 first_pic_flag;
 	u32 decode_size;
+	struct mutex chunks_mutex;
 } /*hevc_stru_t */;
 
 #ifdef AGAIN_HAS_THRESHOLD
@@ -7940,6 +7941,7 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 		hevc->shift_byte_count_lo = i;
 	}
 #ifdef MULTI_INSTANCE_SUPPORT
+	mutex_lock(&hevc->chunks_mutex);
 	if ((dec_status == HEVC_DECPIC_DATA_DONE ||
 		dec_status == HEVC_FIND_NEXT_PIC_NAL ||
 		dec_status == HEVC_FIND_NEXT_DVEL_NAL)
@@ -7947,6 +7949,7 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 		hevc->cur_pic->pts = hevc->chunk->pts;
 		hevc->cur_pic->pts64 = hevc->chunk->pts64;
 	}
+	mutex_unlock(&hevc->chunks_mutex);
 
 	if (dec_status == HEVC_DECODE_BUFEMPTY ||
 		dec_status == HEVC_DECODE_BUFEMPTY2) {
@@ -9388,6 +9391,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 	if (vh265_local_init(hevc) < 0)
 		return -EBUSY;
 
+	mutex_init(&hevc->chunks_mutex);
 	INIT_WORK(&hevc->notify_work, vh265_notify_work);
 	INIT_WORK(&hevc->set_clk_work, vh265_set_clk);
 
@@ -9905,7 +9909,10 @@ static void vh265_work(struct work_struct *work)
 				READ_VREG(HEVC_STREAM_WR_PTR),
 				READ_VREG(HEVC_STREAM_RD_PTR),
 				READ_VREG(HEVC_MPC_E));
+			mutex_lock(&hevc->chunks_mutex);
 			vdec_vframe_dirty(vdec, hevc->chunk);
+			hevc->chunk = NULL;
+			mutex_unlock(&hevc->chunks_mutex);
 			vdec_clean_input(vdec);
 		}
 
@@ -10099,7 +10106,10 @@ static void vh265_work(struct work_struct *work)
 				hevc->shift_byte_count_lo;
 		}
 #endif
+		mutex_lock(&hevc->chunks_mutex);
 		vdec_vframe_dirty(hw_to_vdec(hevc), hevc->chunk);
+		hevc->chunk = NULL;
+		mutex_unlock(&hevc->chunks_mutex);
 	} else if (hevc->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
@@ -10149,7 +10159,10 @@ static void vh265_work(struct work_struct *work)
 				hevc->shift_byte_count_lo;
 		}
 #endif
+		mutex_lock(&hevc->chunks_mutex);
 		vdec_vframe_dirty(hw_to_vdec(hevc), hevc->chunk);
+		hevc->chunk = NULL;
+		mutex_unlock(&hevc->chunks_mutex);
 	} else if (hevc->dec_result == DEC_RESULT_FORCE_EXIT) {
 		hevc_print(hevc, PRINT_FLAG_VDEC_STATUS,
 			"%s: force exit\n",
