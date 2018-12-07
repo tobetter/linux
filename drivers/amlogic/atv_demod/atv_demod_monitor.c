@@ -43,10 +43,16 @@ bool atvdemod_timer_en = true;
 
 static void atv_demod_monitor_do_work(struct work_struct *work)
 {
+	int vpll_lock = 0, line_lock = 0;
 	struct atv_demod_monitor *monitor =
 			container_of(work, struct atv_demod_monitor, work);
 
 	if (!monitor->state)
+		return;
+
+	retrieve_vpll_carrier_lock(&vpll_lock);
+	retrieve_vpll_carrier_line_lock(&line_lock);
+	if ((vpll_lock != 0) || (line_lock != 0))
 		return;
 
 	if (atvdemod_mixer_tune_en)
@@ -61,8 +67,7 @@ static void atv_demod_monitor_do_work(struct work_struct *work)
 	if (audio_thd_en)
 		audio_thd_det();
 
-	if (atvaudio_det_outputmode_en &&
-		(is_meson_txlx_cpu() || is_meson_txhd_cpu()))
+	if (atvaudio_det_outputmode_en)
 		atvauddemod_set_outputmode();
 
 	if (atvdemod_det_nonstd_en)

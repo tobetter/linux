@@ -158,7 +158,8 @@ void atv_demod_afc_do_work(struct work_struct *work)
 		return;
 	}
 
-	if (!afc->lock || (afc->lock && !field_lock)) {
+	/* add "(lock && !field_lock)", horizontal synchronization test NG */
+	if (!afc->lock/* || (afc->lock && !field_lock)*/) {
 		afc->status = AFC_LOCK_STATUS_POST_UNLOCK;
 		afc->pre_lock_cnt = 0;
 		param->frequency -= afc->offset * 1000;

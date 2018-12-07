@@ -49,6 +49,13 @@ unsigned int audio_thd_threshold2 = 0xf00;
 unsigned int audio_a2_auto = 1;
 unsigned int audio_a2_power_threshold = 0x1800;
 
+static int last_nicam_lock = -1;
+static int last_nicam_mono_flag = -1;
+static int last_stereo_flag = -1;
+static int last_dual_flag = -1;
+static int last_sap_flag = -1;
+static int last_mode = -1;
+
 #undef pr_info
 #define pr_info(args...)\
 	do {\
@@ -885,7 +892,7 @@ void set_btsc_outputmode(uint32_t outmode)
 	uint32_t reg_value = 0;
 	uint32_t tmp_value = 0, tmp_value1 = 0;
 	int stereo_flag = 0, sap_flag = 0;
-	static int last_stereo_flag = -1, last_sap_flag = -1, last_mode = -1;
+	/*static int last_stereo_flag = -1,last_sap_flag = -1,last_mode = -1;*/
 
 	update_btsc_mode(1, &stereo_flag, &sap_flag);
 
@@ -996,7 +1003,7 @@ void set_a2_eiaj_outputmode(uint32_t outmode)
 	uint32_t reg_value = 0;
 	uint32_t tmp_value = 0;
 	int stereo_flag = 0, dual_flag = 0;
-	static int last_stereo_flag = -1, last_dual_flag = -1, last_mode = -1;
+	/*static int last_stereo_flag = -1,last_dual_flag = -1, last_mode=-1;*/
 
 	update_a2_eiaj_mode(audio_a2_auto, &stereo_flag, &dual_flag);
 
@@ -1089,8 +1096,8 @@ void set_nicam_outputmode(uint32_t outmode)
 	uint32_t tmp_value = 0;
 	int nicam_mono_flag = 0, nicam_stereo_flag = 0, nicam_dual_flag = 0;
 	int nicam_lock = 0;
-	static int last_nicam_lock = -1, last_nicam_mono_flag = -1;
-	static int last_stereo_flag = -1, last_dual_flag = -1, last_mode = -1;
+	/*static int last_nicam_lock = -1, last_nicam_mono_flag = -1;*/
+	/*static int last_stereo_flag = -1,last_dual_flag = -1, last_mode=-1;*/
 
 	update_nicam_mode(&nicam_lock, &nicam_mono_flag,
 			&nicam_stereo_flag, &nicam_dual_flag);
@@ -1105,11 +1112,6 @@ void set_nicam_outputmode(uint32_t outmode)
 	 * bits[3:0]: Std_sel.
 	 */
 	reg_value = adec_rd_reg(ADDR_ADEC_CTRL);
-
-	pr_info("# pll lock: 0x%lx.\n",
-			atv_dmd_rd_byte(APB_BLOCK_ADDR_CARR_RCVY, 0x43)&0x01);
-	pr_info("# line lock: 0x%lx.\n",
-			atv_dmd_rd_byte(APB_BLOCK_ADDR_VDAGC, 0x4f)&0x10);
 
 	pr_info("%s nicam_lock:%d, regval:0x%x, signal_mode:%d, outmode:%d\n",
 			__func__, nicam_lock, reg_value,
@@ -1351,14 +1353,24 @@ void audio_thd_det(void)
 	}
 }
 
+void set_outputmode_status_init(void)
+{
+	last_nicam_lock = -1;
+	last_nicam_mono_flag = -1;
+	last_stereo_flag = -1;
+	last_dual_flag = -1;
+	last_sap_flag = -1;
+	last_mode = -1;
+}
+
 void set_output_left_right_exchange(unsigned int ch)
 {
 	unsigned int read = 0;
 
-	atvaudio_reg_read(&read);
+	atvaudio_ctrl_read(&read);
 
 	if ((read & (1 << 2)) != ((ch & 0x01) << 2))
-		atvaudio_reg_write((read & ~(1 << 2)) | ((ch & 0x01) << 2));
+		atvaudio_ctrl_write((read & ~(1 << 2)) | ((ch & 0x01) << 2));
 }
 
 #endif /* __ATVAUDDEMOD_FUN_H */

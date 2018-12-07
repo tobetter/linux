@@ -39,6 +39,7 @@ void update_nicam_mode(int *nicam_flag, int *nicam_mono_flag,
 		int *nicam_stereo_flag, int *nicam_dual_flag);
 void update_btsc_mode(int auto_en, int *stereo_flag, int *sap_flag);
 void update_a2_eiaj_mode(int auto_en, int *stereo_flag, int *dual_flag);
+void set_outputmode_status_init(void);
 
 void set_output_left_right_exchange(unsigned int ch);
 

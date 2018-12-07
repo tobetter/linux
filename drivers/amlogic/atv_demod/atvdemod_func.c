@@ -40,6 +40,7 @@ unsigned int broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_NTSC;
 unsigned int aud_std = AUDIO_STANDARD_NICAM_DK;
 unsigned int aud_mode = AUDIO_OUTMODE_STEREO;
 bool aud_auto = true;
+bool aud_reinit;
 unsigned long over_threshold = 0xffff;
 unsigned long input_amplitude = 0xffff;
 
@@ -185,6 +186,8 @@ void power_on_receiver(void)
 
 void atv_dmd_misc(void)
 {
+	unsigned int reg = 0;
+
 	if (broad_std == AML_ATV_DEMOD_VIDEO_MODE_PROP_SECAM_L) {
 		pr_info("broad_std is SECAM_L, no need config misc\n");
 		return;
@@ -271,7 +274,8 @@ void atv_dmd_misc(void)
 				0x18, 0x7ffff);
 		atv_dmd_wr_long(APB_BLOCK_ADDR_SIF_STG_2,
 				0x1c, 0x0f000);
-		atvaudio_reg_write(0x0);
+		atvaudio_ctrl_read(&reg);
+		atvaudio_ctrl_write(reg & (~0x3));
 		audio_atv_ov_flag = 1;
 	} else {
 		atv_dmd_wr_long(APB_BLOCK_ADDR_SIF_STG_2,
@@ -280,7 +284,8 @@ void atv_dmd_misc(void)
 				0x18, 0xc000);
 		atv_dmd_wr_long(APB_BLOCK_ADDR_SIF_STG_2,
 				0x1c, 0x1f000);
-		atvaudio_reg_write(0x7);
+		atvaudio_ctrl_read(&reg);
+		atvaudio_ctrl_write(reg | 0x3);
 		audio_atv_ov_flag = 0;
 	}
 }
@@ -1648,6 +1653,7 @@ int amlfmt_aud_standard(int broad_std)
 	int std = 0;
 	int nicam_lock = 0;
 	uint32_t reg_value = 0;
+	int vpll_lock = 0, line_lock = 0;
 
 	switch (broad_std) {
 	case AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M:
@@ -1656,6 +1662,9 @@ int amlfmt_aud_standard(int broad_std)
 		configure_adec(std);
 		adec_soft_reset();
 		msleep(audio_a2_delay);
+
+		retrieve_vpll_carrier_lock(&vpll_lock);
+		retrieve_vpll_carrier_line_lock(&line_lock);
 
 		/* maybe need wait */
 		reg_value = adec_rd_reg(CARRIER_MAG_REPORT);
@@ -1687,10 +1696,10 @@ int amlfmt_aud_standard(int broad_std)
 		adec_soft_reset();
 		msleep(audio_nicam_delay);
 		/* need wait */
-		pr_info("pll lock: 0x%lx.\n",
-				atv_dmd_rd_byte(0x06, 0x43) & 0x01);
-		pr_info("line lock: 0x%lx.\n",
-				atv_dmd_rd_byte(0x0f, 0x4f) & 0x10);
+
+		retrieve_vpll_carrier_lock(&vpll_lock);
+		retrieve_vpll_carrier_line_lock(&line_lock);
+
 		reg_value = adec_rd_reg(NICAM_LEVEL_REPORT);
 		nicam_lock = (reg_value>>28)&1;
 		pr_info("\n%s 0x%x\n", __func__, reg_value);
@@ -1716,10 +1725,10 @@ int amlfmt_aud_standard(int broad_std)
 		adec_soft_reset();
 		mdelay(audio_nicam_delay);
 		/* need wait */
-		pr_info("pll lock: 0x%lx.\n",
-				atv_dmd_rd_byte(0x06, 0x43) & 0x01);
-		pr_info("line lock: 0x%lx.\n",
-				atv_dmd_rd_byte(0x0f, 0x4f) & 0x10);
+
+		retrieve_vpll_carrier_lock(&vpll_lock);
+		retrieve_vpll_carrier_line_lock(&line_lock);
+
 		reg_value = adec_rd_reg(NICAM_LEVEL_REPORT);
 		nicam_lock = (reg_value>>28)&1;
 		pr_info("\n%s 0x%x\n", __func__, reg_value);
@@ -1750,7 +1759,17 @@ int amlfmt_aud_standard(int broad_std)
 		adec_soft_reset();
 		break;
 	}
-	pr_err("%s detect aud std:%d\n", __func__, std);
+
+	if ((vpll_lock == 0) && (line_lock == 0)) {
+		aud_reinit = false;
+	} else {
+		aud_reinit = true;
+		pr_err("pll lock: 0x%x, line lock: 0x%x.\n",
+				vpll_lock, line_lock);
+	}
+
+	pr_err("%s detect aud std:%d, aud_reinit:%d.\n", __func__,
+			std, aud_reinit);
 	return std;
 }
 
@@ -1762,8 +1781,11 @@ int atvauddemod_init(void)
 
 		if (aud_auto)
 			aud_std = amlfmt_aud_standard(broad_std);
-		/* configure_adec(aud_std); */
-		/* adec_soft_reset(); */
+		else {
+			configure_adec(aud_std);
+			adec_soft_reset();
+		}
+		set_outputmode_status_init();
 		set_outputmode(aud_std, aud_mode);
 	} else {
 		/* for non support adec */
@@ -1776,7 +1798,13 @@ int atvauddemod_init(void)
 
 void atvauddemod_set_outputmode(void)
 {
-	set_outputmode(aud_std, aud_mode);
+	if (is_meson_txlx_cpu() || is_meson_txhd_cpu() || is_meson_tl1_cpu()) {
+		if (aud_reinit) {
+			/* before maybe need check afc status */
+			atvauddemod_init();
+		} else
+			set_outputmode(aud_std, aud_mode);
+	}
 }
 
 int atvdemod_init(void)
@@ -1950,6 +1978,7 @@ int aml_audiomode_autodet(struct v4l2_frontend *v4l2_fe)
 	int cur_std = ID_PAL_DK;
 	bool secam_signal = false;
 	bool ntsc_signal = false;
+	bool pal_signal = false;
 	bool has_audio = false;
 #if 0
 	temp_data = atv_dmd_rd_reg(APB_BLOCK_ADDR_SIF_STG_2, 0x02);
@@ -1963,6 +1992,7 @@ int aml_audiomode_autodet(struct v4l2_frontend *v4l2_fe)
 	case AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_BG:
 	case AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M:
 		broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M;
+		pal_signal = true;
 		break;
 	case AML_ATV_DEMOD_VIDEO_MODE_PROP_NTSC_DK:
 	case AML_ATV_DEMOD_VIDEO_MODE_PROP_NTSC_I:
@@ -2065,7 +2095,8 @@ int aml_audiomode_autodet(struct v4l2_frontend *v4l2_fe)
 				}
 			}
 
-			if (broad_std == AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M) {
+			if (broad_std == AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M
+					&& pal_signal) {
 				/*the max except palm*/
 				carrier_power_average[final_id] = 0;
 				final_id = 0;
@@ -2093,6 +2124,12 @@ int aml_audiomode_autodet(struct v4l2_frontend *v4l2_fe)
 					AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK;
 					break;
 				}
+				/* pal signal and pal-m power max,
+				 * so set to second max std.
+				 */
+				broad_std = broad_std_except_pal_m;
+				pr_err("%s:pal signal and pal-m power max, set broad_std:%d\n",
+							__func__, broad_std);
 			}
 
 			p->std = V4L2_COLOR_STD_PAL;
@@ -2280,6 +2317,7 @@ void aml_audio_overmodulation(int enable)
 {
 	unsigned long tmp_v = 0;
 	unsigned long tmp_v1 = 0;
+	unsigned int reg = 0;
 	u32 Broadcast_Standard = broad_std;
 
 	if (enable && Broadcast_Standard ==
@@ -2297,8 +2335,11 @@ void aml_audio_overmodulation(int enable)
 					0x18, 0x7ffff);
 			atv_dmd_wr_long(APB_BLOCK_ADDR_SIF_STG_2,
 					0x1c, 0x0f000);
-			atvaudio_reg_write(0x0);
+			atvaudio_ctrl_read(&reg);
+			atvaudio_ctrl_write(reg & (~0x3));
 			audio_atv_ov_flag = 1;
+			pr_info("tmp_v[0x%lx] > 0x10 && audio_atv_ov_flag == 0.\n",
+					tmp_v);
 		} else if (tmp_v <= 0x10 && audio_atv_ov_flag == 1) {
 			tmp_v1 = atv_dmd_rd_long(APB_BLOCK_ADDR_SIF_STG_2, 0);
 			tmp_v1 = (tmp_v1&0xffffff)|(0<<24);
@@ -2309,8 +2350,11 @@ void aml_audio_overmodulation(int enable)
 					0x18, 0xc000);
 			atv_dmd_wr_long(APB_BLOCK_ADDR_SIF_STG_2,
 					0x1c, 0x1f000);
-			atvaudio_reg_write(0x7);
+			atvaudio_ctrl_read(&reg);
+			atvaudio_ctrl_write(reg | 0x3);
 			audio_atv_ov_flag = 0;
+			pr_info("tmp_v[0x%lx] <= 0x10 && audio_atv_ov_flag == 1.\n",
+					tmp_v);
 		}
 	}
 }
