@@ -743,6 +743,16 @@ module_param_named(glb_fieldck_en, glb_fieldck_en, bool, 0644);
 void adaptive_cue_adjust(unsigned int frame_diff, unsigned int field_diff)
 {
 	struct CUE_PARM_s *pcue_parm = nr_param.pcue_parm;
+	unsigned int mask1, mask2;
+
+	if (is_meson_tl1_cpu()) {
+		/*value from VLSI(yanling.liu) 2018-12-07: */
+		mask1 = 0x50332;
+		mask2 = 0x00054357;
+	} else { /*ori value*/
+		mask1 = 0x50323;
+		mask2 = 0x00054375;
+	}
 
 	if (frame_diff > pcue_parm->glb_mot_framethr) {
 		pcue_parm->frame_count = pcue_parm->frame_count > 0 ?
@@ -767,10 +777,10 @@ void adaptive_cue_adjust(unsigned int frame_diff, unsigned int field_diff)
 		/* for clockfuliness clip */
 		if (pcue_parm->field_count >
 				(pcue_parm->glb_mot_fieldnum - 6)) {
-			Wr(NR2_CUE_MODE, 0x50323|(Rd(NR2_CUE_MODE)&0xc00));
+			Wr(NR2_CUE_MODE, mask1|(Rd(NR2_CUE_MODE)&0xc00));
 			Wr(NR2_CUE_CON_MOT_TH, 0x03010e01);
 		} else {
-			Wr(NR2_CUE_MODE, 0x00054375|(Rd(NR2_CUE_MODE)&0xc00));
+			Wr(NR2_CUE_MODE, mask2|(Rd(NR2_CUE_MODE)&0xc00));
 			Wr(NR2_CUE_CON_MOT_TH, 0xa03c8c3c);
 		}
 	}
