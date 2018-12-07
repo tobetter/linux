@@ -20,7 +20,6 @@
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/amlogic/media/utils/amstream.h>
-#include "amports_priv.h"
 
 static const struct codec_profile_t *vcodec_profile[SUPPORT_VDEC_NUM] = { 0 };
 
@@ -32,12 +31,13 @@ ssize_t vcodec_profile_read(char *buf)
 	int i = 0;
 
 	for (i = 0; i < vcodec_profile_idx; i++) {
-		pbuf += sprintf(pbuf, "%s:%s;\n", vcodec_profile[i]->name,
+		pbuf += snprintf(pbuf, PAGE_SIZE - (pbuf - buf), "%s:%s;\n", vcodec_profile[i]->name,
 						vcodec_profile[i]->profile);
 	}
 
 	return pbuf - buf;
 }
+EXPORT_SYMBOL(vcodec_profile_read);
 
 int vcodec_profile_register(const struct codec_profile_t *vdec_profile)
 {

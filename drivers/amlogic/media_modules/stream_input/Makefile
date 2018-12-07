@@ -1,7 +1,6 @@
 obj-m	+=	 stream_input.o
 
 stream_input-objs	+=	amports/amstream.o
-stream_input-objs	+=	amports/amstream_profile.o
 stream_input-objs	+=	amports/adec.o
 stream_input-objs	+=	parser/thread_rw.o
 stream_input-objs	+=	parser/streambuf.o
