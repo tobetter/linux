@@ -377,6 +377,8 @@ bit 0, fast output first I picture
 */
 static u32 fast_output_enable = 1;
 
+static u32 frmbase_cont_bitlevel = 0x60;
+
 /*
 use_cma: 1, use both reserver memory and cma for buffers
 2, only use cma for buffers
@@ -1639,6 +1641,7 @@ struct hevc_state_s {
 	u32 pre_parser_wr_ptr;
 #endif
 	u32 first_pic_flag;
+	u32 decode_size;
 } /*hevc_stru_t */;
 
 #ifdef AGAIN_HAS_THRESHOLD
@@ -7993,6 +7996,22 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 			struct PIC_s *pic_display;
 			int decoded_poc;
 pic_done:
+			if (input_frame_based(hw_to_vdec(hevc)) &&
+				frmbase_cont_bitlevel != 0 &&
+				(hevc->decode_size > READ_VREG(HEVC_SHIFT_BYTE_COUNT)) &&
+				(hevc->decode_size - (READ_VREG(HEVC_SHIFT_BYTE_COUNT))
+				 >	frmbase_cont_bitlevel)) {
+				/*handle the case: multi pictures in one packet*/
+				hevc_print(hevc, 0,
+				"%s  has more data index= %d, size=0x%x shiftcnt=0x%x)\n",
+				__func__,
+				hevc->decode_idx, hevc->decode_size,
+				READ_VREG(HEVC_SHIFT_BYTE_COUNT));
+				WRITE_VREG(HEVC_DEC_STATUS_REG, HEVC_ACTION_DONE);
+				start_process_time(hevc);
+				return IRQ_HANDLED;
+			}
+
 			read_decode_info(hevc);
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			hevc->start_parser_type = 0;
@@ -10258,7 +10277,6 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	if (r < 0) {
 		input_empty[hevc->index]++;
 		hevc->dec_result = DEC_RESULT_AGAIN;
-
 		hevc_print(hevc, PRINT_FLAG_VDEC_DETAIL,
 			"ammvdec_vh265: Insufficient data\n");
 
@@ -10355,6 +10373,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		WRITE_VREG(HEVC_SHIFT_BYTE_COUNT, 0);
 		r = hevc->chunk->size +
 			(hevc->chunk->offset & (VDEC_FIFO_ALIGN - 1));
+		hevc->decode_size = r;
 	}
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	else {
@@ -11328,6 +11347,9 @@ MODULE_PARM_DESC(again_threshold, "\n again_threshold\n");
 module_param(force_disp_pic_index, int, 0664);
 MODULE_PARM_DESC(force_disp_pic_index,
 	"\n amvdec_h265 force_disp_pic_index\n");
+
+module_param(frmbase_cont_bitlevel, uint, 0664);
+MODULE_PARM_DESC(frmbase_cont_bitlevel,	"\n frmbase_cont_bitlevel\n");
 
 module_param(udebug_flag, uint, 0664);
 MODULE_PARM_DESC(udebug_flag, "\n amvdec_h265 udebug_flag\n");
