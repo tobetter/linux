@@ -303,7 +303,7 @@ static int atv_demod_has_signal(struct dvb_frontend *fe, u16 *signal)
 				__func__, vpll_lock, line_lock);
 	} else {
 		*signal = V4L2_TIMEDOUT;
-		pr_info("%s unlocked [vpll_lock: 0x%x, line_lock:0x%x]\n",
+		pr_dbg("%s unlocked [vpll_lock: 0x%x, line_lock:0x%x]\n",
 				__func__, vpll_lock, line_lock);
 	}
 
