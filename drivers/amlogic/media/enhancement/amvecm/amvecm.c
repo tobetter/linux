@@ -5519,6 +5519,20 @@ static ssize_t amvecm_lc_show(struct class *cla,
 		"echo dump_hist chosen hs he vs ve cnt > /sys/class/amvecm/lc\n");
 	len += sprintf(buf+len,
 		"echo dump_curve cnt > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo lc_osd_setting show > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo lc_osd_setting set xxx ... xxx > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo osd_iir_en val > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo iir_refresh show > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo iir_refresh set xxx ... xxx > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo scene_change_th val > /sys/class/amvecm/lc\n");
+	len += sprintf(buf+len,
+		"echo irr_dbg_en val > /sys/class/amvecm/lc\n");
 	return len;
 }
 
@@ -5596,9 +5610,9 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			pr_info("unsupprt cmd!\n");
 	} else if (!strcmp(parm[0], "dump_hist")) {
 		if (!strcmp(parm[1], "all")) {
-			/*dump all hist in one frame*/
+			/*dump all hist of one frame*/
 			lc_hist_prcnt = 1;
-			amlc_debug = 0x2;
+			amlc_debug = 0x8;
 		} else if (!strcmp(parm[1], "chosen")) {
 			/*dump multiple frames in selected area*/
 			if (parm[6] == NULL)
@@ -5618,13 +5632,83 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			if (kstrtoul(parm[6], 10, &val) < 0)
 				goto free_buf;
 			lc_hist_prcnt = val;
-			amlc_debug = 0x4;
+			amlc_debug = 0x6;
 		} else
 			pr_info("unsupprt cmd!\n");
 	} else if (!strcmp(parm[0], "dump_curve")) {
 		if (kstrtoul(parm[1], 10, &val) < 0)
 			goto free_buf;
 		lc_curve_prcnt = val;
+	} else if (!strcmp(parm[0], "lc_osd_setting")) {
+		if (!strcmp(parm[1], "show")) {
+			pr_info("VNUM_STRT_BELOW: %d, VNUM_END_BELOW: %d\n",
+				vnum_start_below, vnum_end_below);
+			pr_info("VNUM_STRT_ABOVE: %d, VNUM_END_ABOVE: %d\n",
+				vnum_start_above, vnum_end_above);
+			pr_info("INVALID_BLK: %d, MIN_BV_PERCENT_TH: %d\n",
+				invalid_blk, min_bv_percent_th);
+		} else if (!strcmp(parm[1], "set")) {
+			if (parm[7] == NULL)
+				goto free_buf;
+			if (kstrtoul(parm[2], 10, &val) < 0)
+				goto free_buf;
+			vnum_start_below = val;
+			if (kstrtoul(parm[3], 10, &val) < 0)
+				goto free_buf;
+			vnum_end_below = val;
+			if (kstrtoul(parm[4], 10, &val) < 0)
+				goto free_buf;
+			vnum_start_above = val;
+			if (kstrtoul(parm[5], 10, &val) < 0)
+				goto free_buf;
+			vnum_end_above = val;
+			if (kstrtoul(parm[6], 10, &val) < 0)
+				goto free_buf;
+			invalid_blk = val;
+			if (kstrtoul(parm[7], 10, &val) < 0)
+				goto free_buf;
+			min_bv_percent_th = val;
+		} else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "osd_iir_en")) {
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		osd_iir_en = val;
+	} else if (!strcmp(parm[0], "iir_refresh")) {
+		if (!strcmp(parm[1], "show")) {
+			pr_info("current state: alpha1: %d, alpha2: %d, refresh_bit: %d, ts: %d\n",
+				alpha1, alpha2, refresh_bit, ts);
+		} else if (!strcmp(parm[1], "set")) {
+			if (parm[5] == NULL)
+				goto free_buf;
+			if (kstrtoul(parm[2], 10, &val) < 0)
+				goto free_buf;
+			alpha1 = val;
+			if (kstrtoul(parm[3], 10, &val) < 0)
+				goto free_buf;
+			alpha2 = val;
+			if (kstrtoul(parm[4], 10, &val) < 0)
+				goto free_buf;
+			refresh_bit = val;
+			if (kstrtoul(parm[5], 10, &val) < 0)
+				goto free_buf;
+			ts = val;
+			pr_info("after setting: alpha1: %d, alpha2: %d, refresh_bit: %d, ts: %d\n",
+				alpha1, alpha2, refresh_bit, ts);
+		}  else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "scene_change_th")) {
+		pr_info("current value: %d\n", scene_change_th);
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		scene_change_th = val;
+		pr_info("setting value: %d\n", scene_change_th);
+	} else if (!strcmp(parm[0], "irr_dbg_en")) {
+		pr_info("current value: %d\n", amlc_iir_debug_en);
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		amlc_iir_debug_en = val;
+		pr_info("setting value: %d\n", amlc_iir_debug_en);
 	} else
 		pr_info("unsupprt cmd!\n");
 
@@ -5632,6 +5716,7 @@ static ssize_t amvecm_lc_store(struct class *cls,
 	return count;
 
 free_buf:
+	pr_info("Missing parameters !\n");
 	kfree(buf_orig);
 	return -EINVAL;
 }

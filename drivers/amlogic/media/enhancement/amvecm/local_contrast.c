@@ -25,6 +25,12 @@
 #include "arch/vpp_regs.h"
 #include "local_contrast.h"
 
+/*may define in other module*/
+#define CURV_NODES 6
+/*history message delay*/
+#define N 4
+/*hist bin num*/
+#define HIST_BIN 16
 int amlc_debug;
 #define pr_amlc_dbg(fmt, args...)\
 	do {\
@@ -36,7 +42,39 @@ int lc_en;
 int lc_demo_mode;
 int lc_en_chflg = 0xff;
 static int lc_flag = 0xff;
-static int *lc_szcurve;
+int osd_iir_en = 1;
+int amlc_iir_debug_en;
+/*osd related setting */
+int vnum_start_below = 5;
+int vnum_end_below = 6;
+int vnum_start_above = 1;
+int vnum_end_above = 2;
+int invalid_blk = 2;
+/*u10,7000/21600=0.324*1024=331 */
+int min_bv_percent_th = 331;
+/*control the refresh speed*/
+int alpha1 = 32;
+int alpha2 = 2;
+int refresh_bit = 12;
+int ts = 6;
+/*need tuning according to real situation ! (0~512)*/
+int scene_change_th = 50;
+
+/*chose block to get hist*/
+unsigned int lc_hist_vs;
+unsigned int lc_hist_ve;
+unsigned int lc_hist_hs;
+unsigned int lc_hist_he;
+/*lc curve data and hist data*/
+static int *lc_szcurve;/*12*8*6+4*/
+static int *curve_nodes_cur;
+static int *curve_nodes_pre;
+static int *lc_hist;/*12*8*17*/
+static bool lc_malloc_ok;
+/*print one or more frame data*/
+unsigned int lc_hist_prcnt;
+unsigned int lc_curve_prcnt;
+
 
 /*local contrast begin*/
 static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
@@ -414,21 +452,11 @@ static void lc_config(int enable,
 	lc_stts_en(enable, height, width, 0, 0, 1, 1, 4);
 }
 
-static void read_lc_curve(void)
+static void read_lc_curve(int blk_vnum, int blk_hnum)
 {
-	int blk_hnum;
-	int blk_vnum;
 	int i, j;
-	unsigned int dwTemp;
 	unsigned int temp1, temp2;
 
-	if (!lc_szcurve) {
-		pr_amlc_dbg("%s: lc_szcurve not init!", __func__);
-		return;
-	}
-	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
-	blk_hnum = (dwTemp >> 8) & 0x1f;
-	blk_vnum = (dwTemp) & 0x1f;
 	WRITE_VPP_REG(LC_CURVE_RAM_CTRL, 1);
 	WRITE_VPP_REG(LC_CURVE_RAM_ADDR, 0);
 	for (i = 0; i < blk_vnum; i++) {
@@ -459,11 +487,15 @@ static void lc_demo_wr_curve(int h_num, int v_num)
 	for (i = 0; i < v_num; i++) {
 		for (j = 0; j < h_num / 2; j++) {
 			temp1 = lc_szcurve[6 * (i * h_num + j) + 0] |
-				(lc_szcurve[6 * (i * h_num + j) + 1] << 10) |
-				(lc_szcurve[6 * (i * h_num + j) + 2] << 20);
+				(lc_szcurve[6 *
+					(i * h_num + j) + 1] << 10) |
+				(lc_szcurve[6 *
+					(i * h_num + j) + 2] << 20);
 			temp2 = lc_szcurve[6 * (i * h_num + j) + 3] |
-				(lc_szcurve[6 * (i * h_num + j) + 4] << 10) |
-				(lc_szcurve[6 * (i * h_num + j) + 5] << 20);
+				(lc_szcurve[6 *
+					(i * h_num + j) + 4] << 10) |
+				(lc_szcurve[6 *
+					(i * h_num + j) + 5] << 20);
 			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA, temp1);
 			WRITE_VPP_REG(SRSHARP1_LC_MAP_RAM_DATA, temp2);
 		}
@@ -515,10 +547,6 @@ static int set_lc_curve(int binit, int bcheck)
 	int rflag;
 	int temp, temp1;
 
-	if (!lc_szcurve) {
-		pr_amlc_dbg("%s: lc_szcurve not init!", __func__);
-		return -EINVAL;
-	}
 	rflag = 0;
 	hvTemp = READ_VPP_REG(SRSHARP1_LC_HV_NUM);
 	h_num = (hvTemp >> 8) & 0x1f;
@@ -576,37 +604,449 @@ static int set_lc_curve(int binit, int bcheck)
 
 	return rflag;
 }
-
-static void lc_fw_curve_iir(struct vframe_s *vf)
+/*
+ *function: detect osd and provide osd signal status
+ *output:
+ *	osd_flag_cnt: signal indicate osd exist (process)
+ *	frm_cnt: signal that record the sudden
+ *		moment osd appear or disappear
+ */
+static int osd_det_func(int *osd_flag_cnt,
+						int *frm_cnt,
+						int blk_hist_sum,
+						int *lc_hist,
+						int blk_hnum,
+						int osd_vnum_strt,
+						int osd_vnum_end)
 {
-	if (!vf)
-		return;
+	int i, j;
+	int min_bin_value, min_bin_percent;
+	int osd_flag;
+	int valid_blk;
+	int percent_norm = (1<<10) - 1;
+	static int osd_hist_cnt;
+
+	osd_flag = 0;
+	min_bin_value = 0;
+
+	/*1.1, case 1: osd below,e.g. vnum=5,6(0~7)*/
+	osd_hist_cnt = 0;
+	for (i = osd_vnum_strt; i <= osd_vnum_end; i++) {/*two line*/
+		for (j = 0; j < blk_hnum; j++) {
+			min_bin_value =
+				lc_hist[(i*blk_hnum + j) *
+				(HIST_BIN + 1) + 0];/*first bin*/
+			/*black osd means first bin value very large*/
+			min_bin_percent =
+				(min_bin_value * percent_norm) /
+				(blk_hist_sum + 1);
+			if (min_bin_percent > min_bv_percent_th)
+				osd_hist_cnt++;/*black bin count*/
+			if (amlc_debug == 0x2)
+			pr_info("v2-1:osd_hist_cnt:%d, min_bin_percent:%d, (th:%d)\n",
+					osd_hist_cnt,
+					min_bin_percent,
+					min_bv_percent_th);
+		}
+	}
+	/*how many block osd occupy*/
+	valid_blk = (osd_vnum_end - osd_vnum_strt + 1) * blk_hnum -
+		invalid_blk;
+	/*we suppose when osd appear,
+	 * 1)it came in certain area,
+	 * 2)and almost all those area are black
+	 */
+	if (osd_hist_cnt > valid_blk)
+		osd_flag_cnt[1] = 1;
+	else
+		osd_flag_cnt[1] = 0;
+	/*detect the moment osd appear and disappear:*/
+	osd_flag = ((osd_flag_cnt[1]&(~(osd_flag_cnt[0]))) +
+		((~(osd_flag_cnt[1])) & osd_flag_cnt[0]));/*a^b*/
+	/*set osd appear and disappear heavy iir time*/
+	if (osd_flag && osd_iir_en)
+		*frm_cnt = 60 * ts;
+
+	/*debug*/
+	if ((amlc_iir_debug_en == 10) || (amlc_debug == 0x2)) {
+		pr_info("osd_log v2:osd_flag_cnt[0]:%d,osd_flag_cnt[1]:%d,osd_flag:%d,frm_cnt:%d\n",
+			osd_flag_cnt[0],
+			osd_flag_cnt[1],
+			osd_flag,
+			*frm_cnt);
+			if (*frm_cnt <= 0)
+				amlc_iir_debug_en = 0;
+	}
+
+	return 0;
 }
 
-/*print statistics hist and curve, vlsi suggest add*/
-unsigned int lc_hist_vs = 4;
-unsigned int lc_hist_ve = 6;
-unsigned int lc_hist_hs;
-unsigned int lc_hist_he = 11;
-unsigned int lc_hist_prcnt;
-unsigned int lc_curve_prcnt;
-static int *lc_hist;
+/*
+ *note 1: osd appear in 5,6(0,1,2,...7) line in Vnum = 8 situation
+ *		if Vnum changed, debug osd location, find
+ * vnum_start_below, vnum_end_below(osd below situation,above situation is same)
+ *
+ * note 2: here just consider 2 situation: osd appear below or appear above
+ *
+ * function: 2 situation osd detect and provide
+ *		osd status signal(osd_flag_cnt&frm_cnt)
+ */
+static int osd_detect(int *osd_flag_cnt_above,
+						int *osd_flag_cnt_below,
+						int *frm_cnt_above,
+						int *frm_cnt_below,
+						int *lc_hist,
+						int blk_hnum)
+{
+	int k;
+	unsigned long blk_hist_sum = 0;
 
-static void lc_read_region(void)
+	for (k = 0; k < HIST_BIN; k++)
+		blk_hist_sum +=
+		lc_hist[(0*blk_hnum + 0) *
+			(HIST_BIN+1) + k];/*use blk[0,0],16bin*/
+	/*above situation*/
+	osd_det_func(osd_flag_cnt_above,/*out*/
+				frm_cnt_above,/*out*/
+				blk_hist_sum,
+				lc_hist,
+				blk_hnum,
+				vnum_start_above,
+				vnum_end_above);
+	/*below situation*/
+	osd_det_func(osd_flag_cnt_below,/*out*/
+				frm_cnt_below,/*out*/
+				blk_hist_sum,
+				lc_hist,
+				blk_hnum,
+				vnum_start_below,
+				vnum_end_below);
+
+	return 0;
+}
+
+/*just temporarily define here to avoid grammar error*/
+static int video_scene_change_flag_en;
+static int video_scene_change_flag;
+/*function: detect global scene change signal
+ *output: scene_change_flag
+ */
+int global_scene_change(int *curve_nodes_cur,
+						int *curve_nodes_pre,
+						int blk_vnum,
+						int blk_hnum,
+						int *osd_flag_cnt_above,
+						int *osd_flag_cnt_below)
+{
+	int scene_change_flag;
+	static int scene_dif[N];
+	static int frm_dif[N];
+	/*store frame valid block for frm diff calc*/
+	static int valid_blk_num[N];
+	int frm_dif_osd, vnum_osd;
+	int addr_curv1;
+	int apl_cur, apl_pre;
+	int i, j;
+
+	/*history message delay*/
+	for (i = 0; i < N-1; i++) {
+		scene_dif[i] = scene_dif[i + 1];
+		frm_dif[i] = frm_dif[i + 1];
+		valid_blk_num[i] = valid_blk_num[i+1];
+	}
+
+	if (video_scene_change_flag_en)
+		scene_change_flag =
+			video_scene_change_flag;/*2.1 flag from front module*/
+	else {
+		/* 2.2.1 use block APL to calculate frame dif:
+		 * omap[5]: (yminV), minBV, pkBV, maxBV, (ymaxV),ypkBV
+		 */
+		frm_dif[N-1] = 0;/*update current result*/
+		scene_dif[N-1] = 0;
+		valid_blk_num[N-1] = 0;
+		frm_dif_osd = 0;
+		vnum_osd = 0;
+		for (i = 0; i < blk_vnum; i++) {
+			for (j = 0; j < blk_hnum; j++) {
+				addr_curv1 = (i * blk_hnum + j);
+				apl_cur = curve_nodes_cur[addr_curv1 *
+					CURV_NODES + 2];/*apl value*/
+				apl_pre = curve_nodes_pre[addr_curv1 *
+					CURV_NODES + 2];
+				frm_dif[N-1] +=
+					abs(apl_cur - apl_pre);/*frame motion*/
+
+				/*when have osd,
+				 *	remove them to calc frame motion
+				 */
+				if ((osd_flag_cnt_below[1]) &&
+					(i >= vnum_start_below) &&
+					(i <= vnum_end_below)) {
+					frm_dif_osd += abs(apl_cur - apl_pre);
+					vnum_osd =
+						vnum_end_below -
+						vnum_start_below + 1;
+
+				}
+
+				if ((osd_flag_cnt_above[1]) &&
+					(i >= vnum_start_above) &&
+					(i <= vnum_end_above)) {
+					frm_dif_osd += abs(apl_cur - apl_pre);
+					vnum_osd =
+						vnum_end_above -
+						vnum_start_above + 1;
+				}
+			}
+		}
+		/*remove osd to calc frame motion */
+		frm_dif[N - 1] = frm_dif[N - 1] - frm_dif_osd;
+		valid_blk_num[N-1] = (blk_vnum - vnum_osd) * blk_hnum;
+		/*debug*/
+		if ((amlc_debug == 0x4)) {
+			pr_info("#vnum_osd = %d;\n", vnum_osd);
+			pr_info("#valid_blk_num[%d] =  %d\n",
+				N-1, valid_blk_num[N-1]);
+			pr_info("#valid_blk_num[%d] =  %d\n",
+				N-2, valid_blk_num[N-2]);
+		}
+
+		/*2.2.2motion dif.if motion dif too large,
+		 *	we think scene changed
+		 */
+		scene_dif[N-1] = abs((frm_dif[N - 1] / (valid_blk_num[N-1]+1)) -
+			(frm_dif[N - 2] / (valid_blk_num[N-2]+1)));
+
+		if (scene_dif[N-1] > scene_change_th)
+			scene_change_flag = 1;
+		else
+			scene_change_flag = 0;
+
+		/*debug*/
+		if ((scene_dif[N-1] > scene_change_th) && amlc_iir_debug_en) {
+			for (i = 0; i < N; i++)
+				pr_info("			valid_blk_num[%d] = %d,\n",
+					i, valid_blk_num[i]);
+			for (i = 0; i < N; i++)
+				pr_info("			frm_dif[%d] = %d,\n",
+					i, frm_dif[i]);
+			pr_info("\n\n");
+			for (i = 0; i < N; i++)
+				pr_info("			scene_dif[%d] = %d,\n",
+					i, scene_dif[i]);
+			pr_info("			scene_change_flag =%d\n\n",
+				scene_change_flag);
+		}
+	}
+	return scene_change_flag;
+}
+/*
+ *function: set tiir alpha based on different situation
+ *input: scene_change_flag, frm_cnt(frm_cnt_above,frm_cnt_below)
+ *out:refresh_alpha[96]
+ */
+int cal_iir_alpha(int *refresh_alpha,
+					int blk_vnum,
+					int blk_hnum,
+					int refresh,
+					int scene_change_flag,
+					int frm_cnt_above,
+					int frm_cnt_below)
+{
+	int addr_curv1;
+	int osd_local_p, osd_local_m;
+	int i, j, k;
+
+	/* 3.1 global scene change,highest priority */
+	if (scene_change_flag) {/*only use current curve*/
+		for (i = 0; i < blk_vnum; i++) {
+			for (j = 0; j < blk_hnum; j++) {
+				for (k = 0; k < CURV_NODES; k++) {
+					addr_curv1 = (i * blk_hnum + j);
+					refresh_alpha[addr_curv1] = refresh;
+				}
+			}
+		}
+	} else {/*time domain alpha blend, may need optimize*/
+		for (i = 0; i < blk_vnum; i++) {
+			for (j = 0; j < blk_hnum; j++) {
+				addr_curv1 = (i * blk_hnum + j);
+				refresh_alpha[addr_curv1] =
+					alpha1;/*normal iir*/
+			}
+		}
+	}
+
+	/*3.2 osd situation-1, osd below */
+	if ((frm_cnt_below > 0)) {
+		osd_local_p = max(vnum_start_below - 1, 0);
+		osd_local_m = min(vnum_end_below + 1, blk_vnum);
+
+		for (i = osd_local_p; i <= osd_local_m; i++) {
+			for (j = 0; j < blk_hnum; j++) {
+				addr_curv1 = (i * blk_hnum + j);
+				/*osd around(-1,osd,+1) use heavy iir*/
+				refresh_alpha[addr_curv1] = alpha2;
+			}
+		}
+	}
+	/*3.2 osd situation-2, osd above */
+	if ((frm_cnt_above > 0)) {
+		osd_local_p = max(vnum_start_below - 1, 0);
+		osd_local_m = min(vnum_end_below + 1, blk_vnum);
+
+		for (i = osd_local_p; i <= osd_local_m; i++) {
+			for (j = 0; j < blk_hnum; j++) {
+				addr_curv1 = (i * blk_hnum + j);
+				/*osd around use heavy iir*/
+				refresh_alpha[addr_curv1] = alpha2;
+			}
+		}
+	}
+
+	return 0;
+}
+/*function: curve iir process
+ *	out: curve_nodes_cur(after iir)
+ */
+int cal_curv_iir(int *curve_nodes_cur,
+				int *curve_nodes_pre,
+				int *refresh_alpha,
+				int blk_vnum,
+				int blk_hnum,
+				int refresh)
+{
+	int i, j, k;
+	int tmap[CURV_NODES];
+	int addr_curv1, addr_curv2;
+	int node_cur, node_pre;
+
+	for (i = 0; i < blk_vnum; i++) {
+		for (j = 0; j < blk_hnum; j++) {
+			addr_curv1 = (i * blk_hnum + j);
+			for (k = 0; k < CURV_NODES; k++) {
+				addr_curv2 =
+					(i * blk_hnum + j) * CURV_NODES + k;
+				node_cur =/*u12 calc*/
+					(curve_nodes_cur[addr_curv2] << 2);
+				node_pre = (curve_nodes_pre[addr_curv2] << 2);
+				tmap[k] =
+					(node_cur * refresh_alpha[addr_curv1]
+					+ node_pre *
+					(refresh - refresh_alpha[addr_curv1]) +
+					(1 << (refresh_bit - 1))) >>
+					refresh_bit;
+				/*output the iir result*/
+				curve_nodes_cur[addr_curv2] =
+					(tmap[k] >> 2);/*back to u10*/
+				/*delay for next iir*/
+				curve_nodes_pre[addr_curv2] =
+					(tmap[k] >> 2);
+			}
+		}
+	}
+	return 0;
+}
+
+/*
+ * attention !
+ * note 1:
+ *		video_scene_change_flag_en
+ *		video_scene_change_flag
+ *should from front module,indicate scene changed;
+ *
+ * Note 2: OSD appear location
+ *      vnum_start_below
+ *      vnum_end_below (case1)
+ *      vnum_start_above
+ *      vnum_end_above (case2)
+ */
+
+ /* iir algorithm top level path */
+static void lc_fw_curve_iir(struct vframe_s *vf,
+							int *lc_hist,
+							int *lc_szcurve,
+							int blk_vnum,
+							int blk_hnum)
+{
+	int i;
+	int scene_change_flag;
+	/* osd detect */
+	static int frm_cnt_below, frm_cnt_above;
+	static int osd_flag_cnt_below[2];
+	static int osd_flag_cnt_above[2];
+	/* alpha blend init */
+	int refresh_alpha[96] = {0};/*96=vnum*hnum*/
+	int refresh = 1 << refresh_bit;
+
+	if (!vf)
+		return;
+
+	/* pre: get curve nodes from szCurveInfo and save to curve_nodes_cur*/
+	for (i = 0; i < 580; i++)/*12*8*6+4*/
+		curve_nodes_cur[i] = lc_szcurve[i];
+
+	/* pre: osd flag delay*/
+	osd_flag_cnt_below[0] = osd_flag_cnt_below[1];
+	osd_flag_cnt_above[0] = osd_flag_cnt_above[1];
+
+	/* step 1: osd detect*/
+	osd_detect(
+			osd_flag_cnt_above,/*out*/
+			osd_flag_cnt_below,/*out*/
+			&frm_cnt_above,/*out*/
+			&frm_cnt_below,/*out: osd case heavy iir time */
+			lc_hist,
+			blk_hnum);
+
+	/*step 2: scene change signal get: two method*/
+	scene_change_flag = global_scene_change(
+						curve_nodes_cur,
+						curve_nodes_pre,
+						blk_vnum,
+						blk_hnum,
+						osd_flag_cnt_above,
+						osd_flag_cnt_below);
+
+	/* step 3: set tiir alpha based on different situation */
+	cal_iir_alpha(refresh_alpha,/*out*/
+					blk_vnum,
+					blk_hnum,
+					refresh,
+					scene_change_flag,
+					frm_cnt_above,
+					frm_cnt_below);
+
+	/* step 4: iir filter */
+	cal_curv_iir(curve_nodes_cur,/*out: iir-ed curve*/
+				/*out: store previous frame curve */
+				curve_nodes_pre,
+				refresh_alpha,
+				blk_vnum,
+				blk_hnum,
+				refresh);
+
+	for (i = 0; i < 580; i++)
+		lc_szcurve[i] = curve_nodes_cur[i];/*output*/
+
+	frm_cnt_below--;
+	if (frm_cnt_below < 0)
+		frm_cnt_below = 0;
+
+	frm_cnt_above--;
+	if (frm_cnt_above < 0)
+		frm_cnt_above = 0;
+
+}
+
+static void lc_read_region(int blk_vnum, int blk_hnum)
 {
 	int i, j, k;
 	int data32;
 	int rgb_min, rgb_max;
-	int dwTemp, blk_hnum, blk_vnum;
 
-	if (!lc_hist) {
-		pr_amlc_dbg("%s: lc_hist not init!", __func__);
-		return;
-	}
 	WRITE_VPP_REG_BITS(0x4037, 1, 14, 1);
-	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
-	blk_hnum = (dwTemp >> 8) & 0x1f;
-	blk_vnum = (dwTemp) & 0x1f;
 	data32 = READ_VPP_REG(LC_STTS_HIST_START_RD_REGION);
 
 	for (i = 0; i < blk_vnum; i++)
@@ -614,15 +1054,17 @@ static void lc_read_region(void)
 			data32 = READ_VPP_REG(LC_STTS_HIST_START_RD_REGION);
 			if ((i >= lc_hist_vs) && (i <= lc_hist_ve) &&
 				(j >= lc_hist_hs) && (j <= lc_hist_he) &&
-				(amlc_debug == 0x4))
+				(amlc_debug == 0x6) && lc_hist_prcnt)
 				pr_info("========[r,c](%2d,%2d)======\n", i, j);
 
 			for (k = 0; k < 17; k++) {
 				data32 = READ_VPP_REG(LC_STTS_HIST_READ_REGION);
-				lc_hist[(i*blk_hnum+j)*17 + k] = data32;
+				lc_hist[(i*blk_hnum+j)*17 + k]
+					= data32;
 				if ((i >= lc_hist_vs) && (i <= lc_hist_ve) &&
 					(j >= lc_hist_hs) && (j <= lc_hist_he)
-					&& (amlc_debug == 0x4)) {
+					&& (amlc_debug == 0x6) &&
+					lc_hist_prcnt) {
 					/*print chosen hist*/
 					if (k == 16) {/*last bin*/
 						rgb_min =
@@ -637,9 +1079,11 @@ static void lc_read_region(void)
 			}
 		}
 
-	if (amlc_debug == 0x2)/*print all hist data*/
+	if ((amlc_debug == 0x8) && lc_hist_prcnt)/*print all hist data*/
 		for (i = 0; i < 8*12*17; i++)
 			pr_info("%x\n", lc_hist[i]);
+	if (lc_hist_prcnt > 0)
+		lc_hist_prcnt--;
 }
 
 static void lc_prt_curve(void)
@@ -671,15 +1115,29 @@ void lc_init(void)
 
 	if (!lc_en)
 		return;
+
 	lc_szcurve = kzalloc(580 * sizeof(int), GFP_KERNEL);
 	if (!lc_szcurve)
 		return;
-	lc_hist = kzalloc(1632 * sizeof(int), GFP_KERNEL);
-	if (!lc_hist) {
+	curve_nodes_cur = kzalloc(580 * sizeof(int), GFP_KERNEL);
+	if (!curve_nodes_cur) {
 		kfree(lc_szcurve);
 		return;
 	}
-
+	curve_nodes_pre = kzalloc(580 * sizeof(int), GFP_KERNEL);
+	if (!curve_nodes_pre) {
+		kfree(lc_szcurve);
+		kfree(curve_nodes_cur);
+		return;
+	}
+	lc_hist = kzalloc(1632 * sizeof(int), GFP_KERNEL);
+	if (!lc_hist) {
+		kfree(lc_szcurve);
+		kfree(curve_nodes_cur);
+		kfree(curve_nodes_pre);
+		return;
+	}
+	lc_malloc_ok = 1;
 	lc_top_config(0, h_num, v_num, height, width);
 	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
 	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
@@ -693,14 +1151,21 @@ void lc_process(struct vframe_s *vf,
 	unsigned int sps_h_en,
 	unsigned int sps_v_en)
 {
+	int blk_hnum, blk_vnum, dwTemp;
+
+	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
+	blk_hnum = (dwTemp >> 8) & 0x1f;
+	blk_vnum = (dwTemp) & 0x1f;
 	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TL1)
 		return;
-
 	if (!lc_en) {
 		lc_disable();
 		return;
 	}
-
+	if (!lc_malloc_ok) {
+		pr_amlc_dbg("%s: lc malloc fail", __func__);
+		return;
+	}
 	if (vf == NULL) {
 		if (lc_flag == 0xff) {
 			lc_disable();
@@ -710,18 +1175,16 @@ void lc_process(struct vframe_s *vf,
 	}
 
 	lc_config(lc_en, vf, sps_h_en, sps_v_en);
-
-	read_lc_curve();
-	lc_fw_curve_iir(vf);
-
+	/*get each block curve*/
+	read_lc_curve(blk_vnum, blk_hnum);
+	/*do time domain iir*/
+	lc_fw_curve_iir(vf, lc_hist,
+		lc_szcurve, blk_vnum, blk_hnum);
 	if (lc_curve_prcnt > 0) { /*debug lc curve node*/
 		lc_prt_curve();
 		lc_curve_prcnt--;
 	}
-	if (lc_hist_prcnt > 0) { /*debug hist*/
-		lc_read_region();
-		lc_hist_prcnt--;
-	}
+	lc_read_region(blk_vnum, blk_hnum);
 	if (set_lc_curve(0, 1))
 		pr_amlc_dbg("%s: set lc curve fail", __func__);
 
@@ -731,5 +1194,7 @@ void lc_process(struct vframe_s *vf,
 void lc_free(void)
 {
 	kfree(lc_szcurve);
+	kfree(curve_nodes_cur);
+	kfree(curve_nodes_pre);
 	kfree(lc_hist);
 }

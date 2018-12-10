@@ -54,7 +54,22 @@ extern unsigned int lc_hist_hs;
 extern unsigned int lc_hist_he;
 extern unsigned int lc_hist_prcnt;
 extern unsigned int lc_curve_prcnt;
-
+extern int osd_iir_en;
+extern int amlc_iir_debug_en;
+/*osd related setting */
+extern int vnum_start_below;
+extern int vnum_end_below;
+extern int vnum_start_above;
+extern int vnum_end_above;
+extern int invalid_blk;
+/*u10,7000/21600=0.324*1024=331 */
+extern int min_bv_percent_th;
+/*control the refresh speed*/
+extern int alpha1;
+extern int alpha2;
+extern int refresh_bit;
+extern int ts;
+extern int scene_change_th;
 
 extern void lc_init(void);
 extern void lc_process(struct vframe_s *vf,
