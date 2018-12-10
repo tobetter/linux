@@ -922,6 +922,7 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 	int ret = 0;
 	struct drm_info drm;
 	struct vdec_s *vdec = input->vdec;
+	unsigned long phy_buf;
 
 	if (vdec_secure(vdec)) {
 		while (count > 0) {
@@ -931,7 +932,8 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 				return -EAGAIN;
 			if (!(drm.drm_flag & TYPE_DRMINFO_V2))
 				return -EIO; /*must drm info v2 version*/
-			vdec_input_add_chunk(input, (char *)drm.drm_phy,
+			phy_buf = (unsigned long) drm.drm_phy;
+			vdec_input_add_chunk(input, (char *)phy_buf,
 				(size_t)drm.drm_pktsize, drm.handle);
 			count -= sizeof(struct drm_info);
 			ret += sizeof(struct drm_info);
