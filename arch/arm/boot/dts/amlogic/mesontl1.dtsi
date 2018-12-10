@@ -1386,6 +1386,15 @@
 		status = "okay";
 	};
 
+	ddr_bandwidth {
+		compatible = "amlogic, ddr-bandwidth";
+		status = "okay";
+		reg = <0xff638000 0x100
+		       0xff638c00 0x100>;
+		interrupts = <0 52 1>;
+		interrupt-names = "ddr_bandwidth";
+	};
+
 	dmc_monitor {
 		compatible = "amlogic, dmc_monitor";
 		status = "okay";
