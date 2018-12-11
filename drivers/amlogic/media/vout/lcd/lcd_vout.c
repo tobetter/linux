@@ -289,7 +289,7 @@ static void lcd_power_ctrl(int status)
 			break;
 		case LCD_POWER_TYPE_SIGNAL:
 			if (status)
-				ret = lcd_driver->driver_init();
+				lcd_driver->driver_init();
 			else
 				lcd_driver->driver_disable();
 			break;

@@ -20,8 +20,8 @@
 		compatible = "amlogic, lcd-tl1";
 		status = "okay";
 		mode = "tv";
-		fr_auto_policy = <0>; /* 0=disable, 1=60/50hz, 2=60/50/48hz */
-		key_valid = <0>;
+		fr_auto_policy = <1>; /* 0=disable, 1=60/50hz, 2=60/50/48hz */
+		key_valid = <1>;
 		clocks = <&clkc CLKID_VCLK2_ENCL
 			&clkc CLKID_VCLK2_VENCL
 			&clkc CLKID_TCON
@@ -82,7 +82,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				6 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -171,7 +171,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				6 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -215,7 +215,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -257,7 +257,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -345,7 +345,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -612,7 +612,7 @@
 	lcd_extern{
 		compatible = "amlogic, lcd_extern";
 		status = "okay";
-		key_valid = <0>;
+		key_valid = <1>;
 		i2c_bus = "i2c_bus_1";
 
 		extern_0{
@@ -712,7 +712,7 @@
 	backlight{
 		compatible = "amlogic, backlight-tl1";
 		status = "okay";
-		key_valid = <0>;
+		key_valid = <1>;
 		pinctrl-names = "pwm_on","pwm_vs_on",
 				"pwm_combo_0_1_on",
 				"pwm_combo_0_vs_1_on",

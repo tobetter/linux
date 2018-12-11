@@ -78,7 +78,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				15 /*clk_ss_level*/
+				6 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -163,7 +163,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				15 /*clk_ss_level*/
+				6 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -205,7 +205,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -247,7 +247,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -335,7 +335,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				1 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -769,29 +769,6 @@
 		backlight_2{
 			index = <2>;
 			bl_name = "backlight_pwm_combo";
-			bl_level_default_uboot_kernel = <31 100>;
-			bl_level_attr = <255 10 /*max, min*/
-				128 128>; /*mid, mid_mapping*/
-			bl_ctrl_method = <2>; /*1=pwm,2=pwm_combo,3=ldim*/
-			bl_power_attr = <0 /*en_gpio_index*/
-				1 0  /*on_value, off_value*/
-				410 110>; /*on_delay(ms), off_delay(ms)*/
-			bl_pwm_combo_level_mapping = <255 10 /*pwm_0 range*/
-				0 0>; /*pwm_1 range*/
-			bl_pwm_combo_port = "PWM_C","PWM_D";
-			bl_pwm_combo_attr = <1 /*pwm0 method*/
-				180 /*pwm0 freq(pwm:Hz, pwm_vs:multiple of vs)*/
-				100 25 /*pwm0 duty_max(%), duty_min(%)*/
-				1 /*pwm1 method*/
-				18000 /*pwm1 freq(pwm:Hz, pwm_vs:multi of vs)*/
-				80 80>; /*pwm1 duty_max(%), duty_min(%)*/
-			bl_pwm_combo_power = <1 0 /*pwm0 gpio_index, gpio_off*/
-				2 0 /*pwm1 gpio_index, gpio_off*/
-				10 10>; /*pwm_on_delay(ms), pwm_off_delay(ms)*/
-		};
-		backlight_3{
-			index = <3>;
-			bl_name = "pwm_combo_ldim_test";
 			bl_level_default_uboot_kernel = <31 100>;
 			bl_level_attr = <255 10 /*max, min*/
 				128 128>; /*mid, mid_mapping*/
