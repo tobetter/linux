@@ -986,8 +986,9 @@ static enum eAFBC_DEC afbc_get_decnub(void)
 		sel_dec = eAFBC_DEC1;
 	else if (is_meson_g12a_cpu())
 		sel_dec = AFBC_DEC_SEL;
-
-
+	/* TL1 only have AFBC0 */
+	else if (is_meson_tl1_cpu())
+		sel_dec = eAFBC_DEC0;
 	return sel_dec;
 }
 
@@ -1002,9 +1003,9 @@ bool afbc_is_supported(void)
 
 	/*currently support txlx and g12a*/
 	if (is_meson_txlx_cpu()
-		|| is_meson_g12a_cpu())
+		|| is_meson_g12a_cpu()
+		|| is_meson_tl1_cpu())
 		ret = true;
-
 	return ret;
 
 }
@@ -1052,7 +1053,19 @@ void enable_afbc_input(struct vframe_s *vf)
 		out_height = h_aligned>>1;
 	}
 	RDMA_WR(reg[eAFBC_MODE], r);
-	RDMA_WR(reg[eAFBC_CONV_CTRL], 0x100);
+	r = 0x100;
+	/* TL1 add bit[13:12]: fmt_mode; 0:yuv444; 1:yuv422; 2:yuv420
+	 * di does not support yuv444, so for fmt yuv444 di will bypass+
+	 */
+	if (is_meson_tl1_cpu()) {
+		if (vf->type & VIDTYPE_VIU_444)
+			r |= (0 << 12);
+		else if (vf->type & VIDTYPE_VIU_422)
+			r |= (1 << 12);
+		else
+			r |= (2 << 12);
+	}
+	RDMA_WR(reg[eAFBC_CONV_CTRL], r);
 	u = (vf->bitdepth >> (BITDEPTH_U_SHIFT)) & 0x3;
 	v = (vf->bitdepth >> (BITDEPTH_V_SHIFT)) & 0x3;
 	RDMA_WR(reg[eAFBC_DEC_DEF_COLOR],
@@ -1131,10 +1144,15 @@ static void afbcx_sw(bool on)	/*g12a*/
 			(reg_ctrl == VD1_AFBCD0_MISC_CTRL)?0:1, 8, 1);
 		RDMA_WR(reg_en, 0x1600);
 		RDMA_WR_BITS(VIUB_MISC_CTRL0, 1, 16, 1);
+		/*TL1 add mem control bit */
+		if (is_meson_tl1_cpu())
+			RDMA_WR_BITS(VD1_AFBCD0_MISC_CTRL, 1, 22, 1);
 	} else {
 		RDMA_WR(reg_ctrl, tmp);
 		RDMA_WR(reg_en, 0x1600);
 		RDMA_WR_BITS(VIUB_MISC_CTRL0, 0, 16, 1);
+		if (is_meson_tl1_cpu())
+			RDMA_WR_BITS(VD1_AFBCD0_MISC_CTRL, 0, 22, 1);
 	}
 //	printk("%s,on[%d],CTRL[0x%x],en[0x%x]\n", __func__, on,
 //			RDMA_RD(VD1_AFBCD0_MISC_CTRL),
