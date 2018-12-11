@@ -1305,6 +1305,7 @@ static long amvecm_ioctl(struct file *file,
 	struct ve_pq_load_s vpp_pq_load;
 	struct ve_pq_table_s *vpp_pq_load_table = NULL;
 	int i = 0;
+	enum color_primary_e color_pri;
 
 	if (debug_amvecm & 2)
 		pr_info("[amvecm..] %s: cmd_nr = 0x%x\n",
@@ -1553,6 +1554,13 @@ static long amvecm_ioctl(struct file *file,
 		argp = (void __user *)arg;
 		if (copy_to_user(argp,
 				&cur_csc_type, sizeof(enum vpp_matrix_csc_e)))
+			ret = -EFAULT;
+		break;
+	case AMVECM_IOC_G_COLOR_PRI:
+		argp = (void __user *)arg;
+		color_pri = get_color_primary();
+		if (copy_to_user(argp,
+				&color_pri, sizeof(enum color_primary_e)))
 			ret = -EFAULT;
 		break;
 	case AMVECM_IOC_S_CSCTYPE:

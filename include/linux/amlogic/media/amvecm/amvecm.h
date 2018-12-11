@@ -146,11 +146,11 @@ enum pq_table_name_e {
 #define AMVECM_IOC_VE_NEW_DNLP  _IOW(_VE_CM, 0x25, struct ve_dnlp_curve_param_s)
 #define AMVECM_IOC_G_HIST_BIN   _IOW(_VE_CM, 0x26, struct vpp_hist_param_s)
 #define AMVECM_IOC_G_HDR_METADATA _IOW(_VE_CM, 0x27, struct hdr_metadata_info_s)
-
+/*vpp get color primary*/
+#define AMVECM_IOC_G_COLOR_PRI _IOR(_VE_CM, 0x28, enum color_primary_e)
 
 /* VPP.CM IOCTL command list */
 #define AMVECM_IOC_LOAD_REG  _IOW(_VE_CM, 0x30, struct am_regs_s)
-
 
 /* VPP.GAMMA IOCTL command list */
 #define AMVECM_IOC_GAMMA_TABLE_EN  _IO(_VE_CM, 0x40)
@@ -222,6 +222,14 @@ struct am_vdj_mode_s {
 	int saturation_hue_post;
 	int contrast;
 	int contrast2;
+};
+
+enum color_primary_e {
+	VPP_COLOR_PRI_NULL = 0,
+	VPP_COLOR_PRI_BT601,
+	VPP_COLOR_PRI_BT709,
+	VPP_COLOR_PRI_BT2020,
+	VPP_COLOR_PRI_MAX,
 };
 
 enum vpp_matrix_csc_e {
@@ -353,7 +361,6 @@ struct am_pq_parm_s {
 /* #define READ_VPP_REG_BITS(x,start,length)*/
 /* READ_CBUS_REG_BITS(x,start,length) */
 /* #endif */
-
 
 static inline void WRITE_VPP_REG(uint32_t reg,
 		const uint32_t value)

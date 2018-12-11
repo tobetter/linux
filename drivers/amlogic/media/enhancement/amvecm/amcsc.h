@@ -106,7 +106,7 @@ extern int amvecm_hdr_dbg(u32 sel);
 
 extern u32 get_video_enabled(void);
 extern void get_hdr_source_type(void);
-
+extern enum color_primary_e get_color_primary(void);
 /*hdr*/
 /*#define DBG_BUF_SIZE (1024)*/
 

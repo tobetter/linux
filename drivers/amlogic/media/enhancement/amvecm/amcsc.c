@@ -3736,6 +3736,21 @@ void get_hdr_source_type(void)
 		hdr_source_type = SDR_SOURCE;
 }
 
+enum color_primary_e get_color_primary(void)
+{
+	enum color_primary_e color_pri;
+
+	if (signal_color_primaries == 1)
+		color_pri = VPP_COLOR_PRI_BT709;
+	else if (signal_color_primaries == 3)
+		color_pri = VPP_COLOR_PRI_BT601;
+	else if (signal_color_primaries == 9)
+		color_pri = VPP_COLOR_PRI_BT2020;
+	else
+		color_pri = VPP_COLOR_PRI_NULL;
+	return color_pri;
+}
+
 static void cal_out_curve(uint panel_luma)
 {
 	int index;
