@@ -79,7 +79,7 @@
 		CPU3:cpu@3 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53","arm,armv8";
-			reg = <0x0 0x3>;
+			reg = <0x3>;
 			enable-method = "psci";
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
