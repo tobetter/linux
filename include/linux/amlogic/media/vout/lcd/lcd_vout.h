@@ -138,18 +138,19 @@ struct lcd_basic_s {
 #define LCD_CLK_PLL_CHANGE      (1 << 1)
 struct lcd_timing_s {
 	unsigned char clk_auto; /* clk parameters auto generation */
+	unsigned char fr_adjust_type; /* 0=clock, 1=htotal, 2=vtotal */
+	unsigned char clk_change; /* internal used */
 	unsigned int lcd_clk;   /* pixel clock(unit: Hz) */
 	unsigned int lcd_clk_dft; /* internal used */
 	unsigned int bit_rate; /* Hz */
 	unsigned int h_period_dft; /* internal used */
 	unsigned int v_period_dft; /* internal used */
-	unsigned char clk_change; /* internal used */
 	unsigned int pll_ctrl;  /* pll settings */
 	unsigned int div_ctrl;  /* divider settings */
 	unsigned int clk_ctrl;  /* clock settings */
-
-	unsigned char fr_adjust_type; /* 0=clock, 1=htotal, 2=vtotal */
-	unsigned char ss_level;
+	unsigned int ss_level; /* [15:12]: ss_freq, [11:8]: ss_mode,
+				* [7:0]: ss_level
+				*/
 
 	unsigned int sync_duration_num;
 	unsigned int sync_duration_den;
@@ -340,28 +341,24 @@ struct mlvds_config_s {
 
 enum p2p_type_e {
 	P2P_CEDS = 0,
+	P2P_CSPI,
 	P2P_CMPI,
 	P2P_ISP,
-	P2P_EPI,
-	P2P_CHPI = 0x10, /* low common mode */
-	P2P_CSPI,
-	P2P_USIT,
+	P2P_CHPI,
 	P2P_MAX,
 };
 
 struct p2p_config_s {
 	unsigned int p2p_type;
-	unsigned int port_num;
 	unsigned int lane_num;
 	unsigned int channel_sel0;
 	unsigned int channel_sel1;
-	unsigned int clk_phase; /* [13:12]=clk01_pi_sel,
-				 * [11:8]=pi2, [7:4]=pi1, [3:0]=pi0
-				 */
 	unsigned int pn_swap;
 	unsigned int bit_swap; /* MSB/LSB reverse */
 	unsigned int phy_vswing;
 	unsigned int phy_preem;
+	/* internal used */
+	unsigned int bit_rate; /* Hz */
 };
 
 struct lcd_control_config_s {
@@ -383,6 +380,8 @@ enum lcd_power_type_e {
 	LCD_POWER_TYPE_PMU,
 	LCD_POWER_TYPE_SIGNAL,
 	LCD_POWER_TYPE_EXTERN,
+	LCD_POWER_TYPE_WAIT_GPIO,
+	LCD_POWER_TYPE_CLK_SS,
 	LCD_POWER_TYPE_MAX,
 };
 
@@ -394,6 +393,9 @@ enum lcd_pmu_gpio_e {
 	LCD_PMU_GPIO4,
 	LCD_PMU_GPIO_MAX,
 };
+
+#define LCD_CLK_SS_BIT_FREQ             0
+#define LCD_CLK_SS_BIT_MODE             4
 
 #define LCD_GPIO_MAX                    0xff
 #define LCD_GPIO_OUTPUT_LOW             0

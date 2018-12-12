@@ -314,7 +314,15 @@ static void lcd_p2p_phy_set(struct lcd_config_s *pconf, int status)
 		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL11, 0);
 		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL4, 0x06020602);
 		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL12, 0);
-		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL6, 0x06020602);
+		switch (pconf->lcd_control.p2p_config->p2p_type) {
+		case P2P_CHPI:
+			lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL6, 0x06020602);
+			lcd_hiu_setb(HHI_DIF_CSI_PHY_CNTL6, 1, 30, 1);
+			break;
+		default:
+			lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL6, 0x06020602);
+			break;
+		}
 		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL13, 0);
 		lcd_hiu_write(HHI_DIF_CSI_PHY_CNTL7, 0x06020602);
 	} else {
@@ -338,11 +346,22 @@ static void lcd_p2p_phy_set(struct lcd_config_s *pconf, int status)
 
 static void lcd_encl_tcon_set(struct lcd_config_s *pconf)
 {
+	unsigned int lcd_bits;
+
 	lcd_vcbus_write(L_RGB_BASE_ADDR, 0);
 	lcd_vcbus_write(L_RGB_COEFF_ADDR, 0x400);
 	aml_lcd_notifier_call_chain(LCD_EVENT_GAMMA_UPDATE, NULL);
 
-	switch (pconf->lcd_basic.lcd_bits) {
+	switch (pconf->lcd_basic.lcd_type) {
+	case LCD_MLVDS:
+	case LCD_P2P:
+		lcd_bits = 10;
+		break;
+	default:
+		lcd_bits = pconf->lcd_basic.lcd_bits;
+		break;
+	}
+	switch (lcd_bits) {
 	case 8:
 		lcd_vcbus_write(L_DITH_CNTL_ADDR,  0x400);
 		break;
@@ -1512,9 +1531,21 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 {
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	unsigned int reg_cntl0, reg_cntl1;
+	unsigned int phy_div;
+	unsigned int channel_sel0, channel_sel1;
 
 	if (lcd_debug_print_flag)
 		LCDPR("%s\n", __func__);
+
+	/* phy_div: 0=div6, 1=div 7, 2=div8, 3=div10 */
+	switch (pconf->lcd_control.p2p_config->p2p_type) {
+	case P2P_CHPI: /* 8/10 coding */
+		phy_div = 3;
+		break;
+	default:
+		phy_div = 2;
+		break;
+	}
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
@@ -1529,7 +1560,7 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 	}
 
 	/* fifo_clk_sel[7:6]: 0=div6, 1=div 7, 2=div8, 3=div10 */
-	lcd_hiu_write(reg_cntl0, (2 << 6));
+	lcd_hiu_write(reg_cntl0, (phy_div << 6));
 	/* serializer_en[27:16] */
 	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
 	/* pn swap[2] */
@@ -1541,9 +1572,11 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 	lcd_hiu_setb(reg_cntl1, 1, 31, 1);
 
 	/* channel swap default no swap */
-	lcd_vcbus_write(LVDS_CH_SWAP0, 0x3210);
-	lcd_vcbus_write(LVDS_CH_SWAP1, 0x7654);
-	lcd_vcbus_write(LVDS_CH_SWAP2, 0xba98);
+	channel_sel0 = pconf->lcd_control.p2p_config->channel_sel0;
+	channel_sel1 = pconf->lcd_control.p2p_config->channel_sel1;
+	lcd_vcbus_write(LVDS_CH_SWAP0, (channel_sel0 & 0xff));
+	lcd_vcbus_write(LVDS_CH_SWAP1, ((channel_sel0 >> 8) & 0xff));
+	lcd_vcbus_write(LVDS_CH_SWAP2, (channel_sel1 & 0xff));
 
 	lcd_tcon_enable(pconf);
 }
@@ -1697,7 +1730,7 @@ static void lcd_p2p_config_set(struct lcd_config_s *pconf)
 		break;
 	}
 
-	pconf->lcd_timing.bit_rate = bit_rate * 1000;
+	pconf->lcd_control.p2p_config->bit_rate = bit_rate * 1000;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("lane_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",
@@ -1717,6 +1750,9 @@ void lcd_tv_clk_config_change(struct lcd_config_s *pconf)
 		break;
 	case LCD_MLVDS:
 		lcd_mlvds_config_set(pconf);
+		break;
+	case LCD_P2P:
+		lcd_p2p_config_set(pconf);
 		break;
 	default:
 		break;
@@ -1757,6 +1793,9 @@ void lcd_tv_config_update(struct lcd_config_s *pconf)
 		break;
 	case LCD_MLVDS:
 		lcd_mlvds_config_set(pconf);
+		break;
+	case LCD_P2P:
+		lcd_p2p_config_set(pconf);
 		break;
 	default:
 		break;
@@ -1855,8 +1894,8 @@ int lcd_tv_driver_init(void)
 		break;
 	case LCD_P2P:
 		lcd_tcon_pinmux_set(1);
-		lcd_p2p_control_set(pconf);
 		lcd_p2p_phy_set(pconf, 1);
+		lcd_p2p_control_set(pconf);
 		break;
 	default:
 		break;

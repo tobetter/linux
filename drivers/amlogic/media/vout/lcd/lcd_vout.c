@@ -48,6 +48,7 @@
 #endif
 #include "lcd_reg.h"
 #include "lcd_common.h"
+#include "lcd_clk_config.h"
 
 #define LCD_CDEV_NAME  "lcd"
 
@@ -129,15 +130,14 @@ static struct mlvds_config_s lcd_mlvds_config = {
 
 static struct p2p_config_s lcd_p2p_config = {
 	.p2p_type = P2P_MAX,
-	.port_num = 6,
 	.lane_num = 12,
 	.channel_sel0 = 0x76543210,
 	.channel_sel1 = 0xba98,
-	.clk_phase = 0,
 	.pn_swap = 0,
 	.bit_swap = 0,
 	.phy_vswing = 0,
 	.phy_preem = 0,
+	.bit_rate = 0,
 };
 
 static unsigned char dsi_init_on_table[DSI_INIT_ON_MAX] = {0xff, 0xff};
@@ -260,8 +260,7 @@ static void lcd_power_ctrl(int status)
 #ifdef CONFIG_AMLOGIC_LCD_EXTERN
 	struct aml_lcd_extern_driver_s *ext_drv;
 #endif
-	unsigned int i, index, wait, temp;
-	int value = -1;
+	unsigned int i, index, value, temp;
 	int ret = 0;
 
 	LCDPR("%s: %d\n", __func__, status);
@@ -314,19 +313,6 @@ static void lcd_power_ctrl(int status)
 			break;
 #endif
 		case LCD_POWER_TYPE_WAIT_GPIO:
-			index = power_step->index;
-			lcd_cpu_gpio_set(index, LCD_GPIO_INPUT);
-			LCDPR("lcd_power_type_wait_gpio wait\n");
-			for (wait = 0; wait < power_step->delay; wait++) {
-				value = lcd_cpu_gpio_get(index);
-				if (value == power_step->value) {
-					LCDPR("wait_gpio %d ok\n", value);
-					break;
-				}
-				mdelay(1);
-			}
-			if (wait == power_step->delay)
-				LCDERR("wait_gpio %d timeout!\n", value);
 			break;
 		case LCD_POWER_TYPE_CLK_SS:
 			temp = lcd_driver->lcd_config->lcd_timing.ss_level;

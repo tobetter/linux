@@ -102,9 +102,14 @@ static const char *lcd_common_usage_str = {
 "\n"
 "    echo <num> > test ; show lcd bist pattern(1~7), 0=disable bist\n"
 "\n"
-"    echo w<v|h|c|p|mh|mp> <reg> <data> > reg ; write data to vcbus|hiu|cbus|periphs|mipi host|mipi phy reg\n"
-"    echo r<v|h|c|p|mh|mp> <reg> > reg ; read vcbus|hiu|cbus|periphs|mipi host|mipi phy reg\n"
-"    echo d<v|h|c|p|mh|mp> <reg> <num> > reg ; dump vcbus|hiu|cbus|periphs|mipi host|mipi phy regs\n"
+"    echo level <val> > ss ; set lcd clk spread spectrum level\n"
+"    echo freq <val> > ss ; set lcd clk spread spectrum freq\n"
+"    echo mode <val> > ss ; set lcd clk spread spectrum mode\n"
+"    cat ss ; show lcd clk spread spectrum information\n"
+"\n"
+"    echo w<v|h|c|p|mh|mp|t> <reg> <data> > reg ; write data to vcbus|hiu|cbus|periphs|mipi host|mipi phy reg\n"
+"    echo r<v|h|c|p|mh|mp|t> <reg> > reg ; read vcbus|hiu|cbus|periphs|mipi host|mipi phy reg\n"
+"    echo d<v|h|c|p|mh|mp|t> <reg> <num> > reg ; dump vcbus|hiu|cbus|periphs|mipi host|mipi phy regs\n"
 "\n"
 "    echo <0|1> > print ; 0=disable debug print; 1=enable debug print\n"
 "    cat print ; read current debug print flag\n"
@@ -465,28 +470,24 @@ static int lcd_info_print_p2p(char *buf, int offset)
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
-		"p2p_type          0x%x\n"
+		"p2p_type          %d\n"
 		"lane_num          %d\n"
 		"channel_sel1      0x%08x\n"
 		"channel_sel1      0x%08x\n"
-		"clk_phase         0x%04x\n"
 		"pn_swap           %u\n"
 		"bit_swap          %u\n"
-		"phy_vswing        0x%x\n"
-		"phy_preem         0x%x\n"
 		"bit_rate          %dHz\n"
-		"pi_clk_sel        0x%03x\n\n",
+		"phy_vswing        0x%x\n"
+		"phy_preem         0x%x\n\n",
+		pconf->lcd_control.p2p_config->p2p_type,
 		pconf->lcd_control.p2p_config->lane_num,
 		pconf->lcd_control.p2p_config->channel_sel0,
 		pconf->lcd_control.p2p_config->channel_sel1,
-		pconf->lcd_control.p2p_config->clk_phase,
 		pconf->lcd_control.p2p_config->pn_swap,
 		pconf->lcd_control.p2p_config->bit_swap,
-		pconf->lcd_timing.bit_rate,
-		pconf->lcd_control.p2p_config->phy_vswing,
-		pconf->lcd_control.p2p_config->phy_preem,
 		pconf->lcd_control.p2p_config->bit_rate,
-		pconf->lcd_control.p2p_config->pi_clk_sel);
+		pconf->lcd_control.p2p_config->phy_vswing,
+		pconf->lcd_control.p2p_config->phy_preem);
 
 	len += lcd_tcon_info_print((buf+len), (len+offset));
 
@@ -2067,24 +2068,21 @@ static ssize_t lcd_debug_change_store(struct class *class,
 		break;
 	case 'p':
 		p2p_conf = pconf->lcd_control.p2p_config;
-		ret = sscanf(buf, "p2p %x %d %x %x %d %d",
+		ret = sscanf(buf, "p2p %d %d %x %x %d %d",
 			&val[0], &val[1], &val[2], &val[3], &val[4], &val[5]);
 		if (ret == 6) {
-			p2p_conf->lane_num = val[0];
-			p2p_conf->channel_sel0 = val[1];
-			p2p_conf->channel_sel1 = val[2];
-			p2p_conf->clk_phase = val[3];
+			p2p_conf->p2p_type = val[0];
+			p2p_conf->lane_num = val[1];
+			p2p_conf->channel_sel0 = val[2];
+			p2p_conf->channel_sel1 = val[3];
 			p2p_conf->pn_swap = val[4];
 			p2p_conf->bit_swap = val[5];
 			pr_info("change p2p config:\n"
-				"p2p_type=0x%x, lane_num=%d,\n"
+				"p2p_type=%d, lane_num=%d,\n"
 				"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
-				"clk_phase=0x%04x,\n"
 				"pn_swap=%d, bit_swap=%d\n",
-				p2p_conf->lane_num,
-				p2p_conf->channel_sel0,
-				p2p_conf->channel_sel1,
-				p2p_conf->clk_phase,
+				p2p_conf->p2p_type, p2p_conf->lane_num,
+				p2p_conf->channel_sel0, p2p_conf->channel_sel1,
 				p2p_conf->pn_swap, p2p_conf->bit_swap);
 			lcd_debug_change_clk_change(pconf->lcd_timing.lcd_clk);
 			pconf->change_flag = 1;
@@ -2385,24 +2383,81 @@ static ssize_t lcd_debug_fr_policy_store(struct class *class,
 static ssize_t lcd_debug_ss_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "get lcd pll spread spectrum: %s\n",
-			lcd_get_spread_spectrum());
+	int len;
+
+	len = lcd_get_ss(buf);
+	return len;
 }
 
 static ssize_t lcd_debug_ss_store(struct class *class,
 		struct class_attribute *attr, const char *buf, size_t count)
 {
 	int ret = 0;
-	unsigned int temp = 0;
+	unsigned int value = 0, temp;
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 
-	ret = kstrtouint(buf, 10, &temp);
-	if (ret) {
-		pr_info("invalid data\n");
-		return -EINVAL;
+	temp = lcd_drv->lcd_config->lcd_timing.ss_level;
+	switch (buf[0]) {
+	case 'l':
+		ret = sscanf(buf, "level %x", &value);
+		if (ret == 1) {
+			value &= 0xff;
+			ret = lcd_set_ss(value, 0xff, 0xff);
+			if (ret == 0) {
+				temp &= ~(0xff);
+				temp |= value;
+				lcd_drv->lcd_config->lcd_timing.ss_level = temp;
+			}
+		} else {
+			pr_info("invalid data\n");
+			return -EINVAL;
+		}
+		break;
+	case 'f':
+		ret = sscanf(buf, "freq %x", &value);
+		if (ret == 1) {
+			value &= 0xf;
+			ret = lcd_set_ss(0xff, value, 0xff);
+			if (ret == 0) {
+				temp &= ~((0xf << LCD_CLK_SS_BIT_FREQ) << 8);
+				temp |= ((value << LCD_CLK_SS_BIT_FREQ) << 8);
+				lcd_drv->lcd_config->lcd_timing.ss_level = temp;
+			}
+		} else {
+			pr_info("invalid data\n");
+			return -EINVAL;
+		}
+		break;
+	case 'm':
+		ret = sscanf(buf, "mode %x", &value);
+		if (ret == 1) {
+			value &= 0xf;
+			ret = lcd_set_ss(0xff, 0xff, value);
+			if (ret == 0) {
+				temp &= ~((0xf << LCD_CLK_SS_BIT_MODE) << 8);
+				temp |= ((value << LCD_CLK_SS_BIT_MODE) << 8);
+				lcd_drv->lcd_config->lcd_timing.ss_level = temp;
+			}
+		} else {
+			pr_info("invalid data\n");
+			return -EINVAL;
+		}
+		break;
+	default:
+		ret = kstrtouint(buf, 16, &value);
+		if (ret) {
+			pr_info("invalid data\n");
+			return -EINVAL;
+		}
+		value &= 0xffff;
+		temp = value >> 8;
+		ret = lcd_set_ss((value & 0xff),
+			((temp >> LCD_CLK_SS_BIT_FREQ) & 0xf),
+			((temp >> LCD_CLK_SS_BIT_MODE) & 0xf));
+		if (ret == 0)
+			lcd_drv->lcd_config->lcd_timing.ss_level = value;
+		break;
 	}
-	lcd_drv->lcd_config->lcd_timing.ss_level = temp;
-	lcd_set_spread_spectrum(temp);
 
 	return count;
 }
@@ -2525,9 +2580,9 @@ static ssize_t lcd_debug_mute_store(struct class *class,
 }
 
 static void lcd_debug_reg_write(unsigned int reg, unsigned int data,
-		unsigned int type)
+		unsigned int bus)
 {
-	switch (type) {
+	switch (bus) {
 	case 0: /* vcbus */
 		lcd_vcbus_write(reg, data);
 		pr_info("write vcbus [0x%04x] = 0x%08x, readback 0x%08x\n",
@@ -3545,19 +3600,17 @@ static ssize_t lcd_p2p_debug_store(struct class *class,
 	struct p2p_config_s *p2p_conf;
 
 	p2p_conf = lcd_drv->lcd_config->lcd_control.p2p_config;
-	ret = sscanf(buf, "%x %d %x %x %d %d",
+	ret = sscanf(buf, "%d %d %x %x %d %d",
 		&p2p_conf->p2p_type, &p2p_conf->lane_num,
 		&p2p_conf->channel_sel0, &p2p_conf->channel_sel1,
 		&p2p_conf->pn_swap, &p2p_conf->bit_swap);
 	if (ret == 6) {
 		pr_info("set p2p config:\n"
-			"p2p_type=0x%x, lane_num=%d,\n"
+			"p2p_type=%d, lane_num=%d,\n"
 			"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
-			"clk_phase=0x%04x,\n"
 			"pn_swap=%d, bit_swap=%d\n",
-			p2p_conf->lane_num,
+			p2p_conf->p2p_type, p2p_conf->lane_num,
 			p2p_conf->channel_sel0, p2p_conf->channel_sel1,
-			p2p_conf->clk_phase,
 			p2p_conf->pn_swap, p2p_conf->bit_swap);
 		lcd_debug_config_update();
 	} else {

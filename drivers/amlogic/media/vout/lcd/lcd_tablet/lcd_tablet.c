@@ -719,7 +719,7 @@ static int lcd_config_load_from_dts(struct lcd_config_s *pconf,
 		pconf->lcd_timing.lcd_clk = 60;
 	} else {
 		pconf->lcd_timing.fr_adjust_type = (unsigned char)(para[0]);
-		pconf->lcd_timing.ss_level = (unsigned char)(para[1]);
+		pconf->lcd_timing.ss_level = para[1];
 		pconf->lcd_timing.clk_auto = (unsigned char)(para[2]);
 		if (para[3] > 0) {
 			pconf->lcd_timing.lcd_clk = para[3];
@@ -1162,18 +1162,17 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 static void lcd_config_init(struct lcd_config_s *pconf)
 {
 	struct lcd_clk_config_s *cconf = get_lcd_clk_config();
-	unsigned int ss_level;
-	unsigned int clk;
+	unsigned int temp;
 	unsigned int sync_duration, h_period, v_period;
 
-	clk = pconf->lcd_timing.lcd_clk;
+	temp = pconf->lcd_timing.lcd_clk;
 	h_period = pconf->lcd_basic.h_period;
 	v_period = pconf->lcd_basic.v_period;
-	if (clk < 200) { /* regard as frame_rate */
-		sync_duration = clk * 100;
-		pconf->lcd_timing.lcd_clk = clk * h_period * v_period;
+	if (temp < 200) { /* regard as frame_rate */
+		sync_duration = temp * 100;
+		pconf->lcd_timing.lcd_clk = temp * h_period * v_period;
 	} else { /* regard as pixel clock */
-		sync_duration = ((clk / h_period) * 100) / v_period;
+		sync_duration = ((temp / h_period) * 100) / v_period;
 	}
 	pconf->lcd_timing.sync_duration_num = sync_duration;
 	pconf->lcd_timing.sync_duration_den = 100;
@@ -1186,13 +1185,23 @@ static void lcd_config_init(struct lcd_config_s *pconf)
 
 	lcd_tablet_config_update(pconf);
 	lcd_clk_generate_parameter(pconf);
-	ss_level = pconf->lcd_timing.ss_level;
 	if (cconf->data) {
-		cconf->ss_level = (ss_level >= cconf->data->ss_level_max) ?
-					0 : ss_level;
+		temp = pconf->lcd_timing.ss_level & 0xff;
+		cconf->ss_level = (temp >= cconf->data->ss_level_max) ?
+					0 : temp;
+		temp = (pconf->lcd_timing.ss_level >> 8) & 0xff;
+		temp = (temp >> LCD_CLK_SS_BIT_FREQ) & 0xf;
+		cconf->ss_freq = (temp >= cconf->data->ss_freq_max) ?
+					0 : temp;
+		temp = (pconf->lcd_timing.ss_level >> 8) & 0xff;
+		temp = (temp >> LCD_CLK_SS_BIT_MODE) & 0xf;
+		cconf->ss_mode = (temp >= cconf->data->ss_mode_max) ?
+					0 : temp;
 	} else {
 		LCDERR("%s: clk config data is null\n", __func__);
 		cconf->ss_level = 0;
+		cconf->ss_freq = 0;
+		cconf->ss_mode = 0;
 	}
 
 	lcd_tablet_config_post_update(pconf);

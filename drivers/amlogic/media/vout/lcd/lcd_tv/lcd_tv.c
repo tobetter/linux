@@ -801,6 +801,7 @@ static int lcd_config_load_from_dts(struct lcd_config_s *pconf,
 	struct device_node *child;
 	struct lvds_config_s *lvdsconf;
 	struct vbyone_config_s *vx1_conf;
+	struct p2p_config_s *p2p_conf;
 
 	child = of_get_child_by_name(dev->of_node, pconf->lcd_propname);
 	if (child == NULL) {
@@ -877,9 +878,9 @@ static int lcd_config_load_from_dts(struct lcd_config_s *pconf,
 		pconf->lcd_timing.lcd_clk = 60;
 	} else {
 		pconf->lcd_timing.fr_adjust_type = (unsigned char)(para[0]);
-		pconf->lcd_timing.ss_level = (unsigned char)(para[1]);
+		pconf->lcd_timing.ss_level = para[1];
 		pconf->lcd_timing.clk_auto = (unsigned char)(para[2]);
-		pconf->lcd_timing.lcd_clk = (unsigned char)(para[3]);
+		pconf->lcd_timing.lcd_clk = para[3];
 	}
 
 	switch (pconf->lcd_basic.lcd_type) {
@@ -1006,6 +1007,33 @@ static int lcd_config_load_from_dts(struct lcd_config_s *pconf,
 		}
 		break;
 	case LCD_P2P:
+		p2p_conf = pconf->lcd_control.p2p_config;
+		ret = of_property_read_u32_array(child, "p2p_attr",
+			&para[0], 6);
+		if (ret) {
+			LCDERR("failed to get p2p_attr\n");
+		} else {
+			p2p_conf->p2p_type = para[0];
+			p2p_conf->lane_num = para[1];
+			p2p_conf->channel_sel0 = para[2];
+			p2p_conf->channel_sel1 = para[3];
+			p2p_conf->pn_swap = para[4];
+			p2p_conf->bit_swap = para[5];
+		}
+		ret = of_property_read_u32_array(child, "phy_attr",
+			&para[0], 2);
+		if (ret) {
+			if (lcd_debug_print_flag)
+				LCDPR("failed to get phy_attr\n");
+		} else {
+			p2p_conf->phy_vswing = para[0];
+			p2p_conf->phy_preem = para[1];
+			if (lcd_debug_print_flag) {
+				LCDPR("phy vswing=0x%x, preem=0x%x\n",
+					p2p_conf->phy_vswing,
+					p2p_conf->phy_preem);
+			}
+		}
 		break;
 	default:
 		LCDERR("invalid lcd type\n");
@@ -1027,6 +1055,7 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 	struct aml_lcd_unifykey_header_s lcd_header;
 	struct lvds_config_s *lvdsconf = pconf->lcd_control.lvds_config;
 	struct vbyone_config_s *vx1_conf = pconf->lcd_control.vbyone_config;
+	struct p2p_config_s *p2p_conf = pconf->lcd_control.p2p_config;
 	int ret;
 
 	para = kmalloc((sizeof(unsigned char) * LCD_UKEY_LCD_SIZE), GFP_KERNEL);
@@ -1201,6 +1230,27 @@ static int lcd_config_load_from_unifykey(struct lcd_config_s *pconf)
 				((*(p + LCD_UKEY_IF_ATTR_7 + 1)) << 8)) & 0xff;
 			lvdsconf->lane_reverse = 0;
 		}
+	} else if (pconf->lcd_basic.lcd_type == LCD_P2P) {
+		p2p_conf->p2p_type = (*(p + LCD_UKEY_IF_ATTR_0) |
+			((*(p + LCD_UKEY_IF_ATTR_0 + 1)) << 8));
+		p2p_conf->lane_num = (*(p + LCD_UKEY_IF_ATTR_1) |
+			((*(p + LCD_UKEY_IF_ATTR_1 + 1)) << 8));
+		p2p_conf->channel_sel0 = (*(p + LCD_UKEY_IF_ATTR_2) |
+			((*(p + LCD_UKEY_IF_ATTR_2 + 1)) << 8) |
+			(*(p + LCD_UKEY_IF_ATTR_3) << 16) |
+			((*(p + LCD_UKEY_IF_ATTR_3 + 1)) << 24));
+		p2p_conf->channel_sel1 = (*(p + LCD_UKEY_IF_ATTR_4) |
+			((*(p + LCD_UKEY_IF_ATTR_4 + 1)) << 8) |
+			(*(p + LCD_UKEY_IF_ATTR_5) << 16) |
+			((*(p + LCD_UKEY_IF_ATTR_5 + 1)) << 24));
+		p2p_conf->pn_swap = (*(p + LCD_UKEY_IF_ATTR_6) |
+			((*(p + LCD_UKEY_IF_ATTR_6 + 1)) << 8));
+		p2p_conf->bit_swap = (*(p + LCD_UKEY_IF_ATTR_7) |
+			((*(p + LCD_UKEY_IF_ATTR_7 + 1)) << 8));
+		p2p_conf->phy_vswing = (*(p + LCD_UKEY_IF_ATTR_8) |
+			((*(p + LCD_UKEY_IF_ATTR_8 + 1)) << 8));
+		p2p_conf->phy_preem = (*(p + LCD_UKEY_IF_ATTR_9) |
+			((*(p + LCD_UKEY_IF_ATTR_9 + 1)) << 8));
 	} else
 		LCDERR("unsupport lcd_type: %d\n", pconf->lcd_basic.lcd_type);
 
@@ -1265,19 +1315,19 @@ static void lcd_vmode_init(struct lcd_config_s *pconf)
 static void lcd_config_init(struct lcd_config_s *pconf)
 {
 	struct lcd_clk_config_s *cconf = get_lcd_clk_config();
-	unsigned int ss_level;
-	unsigned int clk;
+	unsigned int temp;
 
 	if (pconf->lcd_timing.lcd_clk == 0) /* default 0 for 60hz */
 		pconf->lcd_timing.lcd_clk = 60;
 	else
 		LCDPR("custome clk: %d\n", pconf->lcd_timing.lcd_clk);
-	clk = pconf->lcd_timing.lcd_clk;
-	if (clk < 200) { /* regard as frame_rate */
-		pconf->lcd_timing.lcd_clk = clk * pconf->lcd_basic.h_period *
+	temp = pconf->lcd_timing.lcd_clk;
+	if (temp < 200) { /* regard as frame_rate */
+		pconf->lcd_timing.lcd_clk = temp * pconf->lcd_basic.h_period *
 			pconf->lcd_basic.v_period;
-	} else /* regard as pixel clock */
-		pconf->lcd_timing.lcd_clk = clk;
+	} else { /* regard as pixel clock */
+		pconf->lcd_timing.lcd_clk = temp;
+	}
 
 	pconf->lcd_timing.lcd_clk_dft = pconf->lcd_timing.lcd_clk;
 	pconf->lcd_timing.h_period_dft = pconf->lcd_basic.h_period;
@@ -1287,13 +1337,23 @@ static void lcd_config_init(struct lcd_config_s *pconf)
 	lcd_vmode_init(pconf);
 	lcd_tv_config_update(pconf);
 	lcd_clk_generate_parameter(pconf);
-	ss_level = pconf->lcd_timing.ss_level;
 	if (cconf->data) {
-		cconf->ss_level = (ss_level >= cconf->data->ss_level_max) ?
-					0 : ss_level;
+		temp = pconf->lcd_timing.ss_level & 0xff;
+		cconf->ss_level = (temp >= cconf->data->ss_level_max) ?
+					0 : temp;
+		temp = (pconf->lcd_timing.ss_level >> 8) & 0xff;
+		temp = (temp >> LCD_CLK_SS_BIT_FREQ) & 0xf;
+		cconf->ss_freq = (temp >= cconf->data->ss_freq_max) ?
+					0 : temp;
+		temp = (pconf->lcd_timing.ss_level >> 8) & 0xff;
+		temp = (temp >> LCD_CLK_SS_BIT_MODE) & 0xf;
+		cconf->ss_mode = (temp >= cconf->data->ss_mode_max) ?
+					0 : temp;
 	} else {
 		LCDERR("%s: clk config data is null\n", __func__);
 		cconf->ss_level = 0;
+		cconf->ss_freq = 0;
+		cconf->ss_mode = 0;
 	}
 }
 
