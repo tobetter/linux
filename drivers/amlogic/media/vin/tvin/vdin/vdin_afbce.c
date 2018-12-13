@@ -72,8 +72,8 @@ unsigned int vdin_afbce_cma_alloc(struct vdin_dev_s *devp)
 		CODEC_MM_FLAGS_DMA;
 	unsigned int max_buffer_num = min_buf_num;
 	unsigned int i;
-	/*afbce head need 1036800 byte at most*/
-	unsigned int afbce_head_size_byte = PAGE_SIZE * 300;/*1.2M*/
+	/*head_size:3840*2160*3*9/32*/
+	unsigned int afbce_head_size_byte = PAGE_SIZE * 1712;
 	/*afbce map_table need 218700 byte at most*/
 	unsigned int afbce_table_size_byte = PAGE_SIZE * 60;/*0.3M*/
 	unsigned int afbce_mem_used;
@@ -283,7 +283,7 @@ unsigned int vdin_afbce_cma_alloc(struct vdin_dev_s *devp)
 	/* 1 block = 32 * 4 pixle = 128 pixel */
 	/* there is a header in one block, a header has 4 bytes */
 	/* set fm_head_paddr start */
-	frame_head_size = roundup(devp->h_active * devp->v_active, 128);
+	frame_head_size = (int)roundup(devp->vfmem_size, 128);
 	/*h_active * v_active / 128 * 4 = frame_head_size*/
 	frame_head_size = devp->h_active * devp->v_active / 32;
 	frame_head_size = PAGE_ALIGN(frame_head_size);
