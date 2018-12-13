@@ -1097,6 +1097,93 @@ static void vdin_dump_histgram(struct vdin_dev_s *devp)
 	}
 }
 
+/*type: 1:nv21 2:yuv422 3:yuv444*/
+static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
+{
+	char *md_path_head = "/storage/B8F7-DBD0/afbce/a0_1header.bin";
+	char *md_path_body = "/storage/B8F7-DBD0/afbce/a0_1body.bin";
+	unsigned int i;
+	unsigned int size = 0;
+	long val;
+	struct file *filp = NULL;
+	loff_t pos = 0;
+	mm_segment_t old_fs;
+	void *head_dts = NULL;
+	void *body_dts = NULL;
+
+	if (kstrtol(type, 10, &val) < 0)
+		return;
+
+	if (!devp->curr_wr_vfe) {
+		devp->curr_wr_vfe = provider_vf_get(devp->vfp);
+		if (!devp->curr_wr_vfe) {
+			pr_info("no buffer to write.\n");
+			return;
+		}
+	}
+
+	i = devp->curr_wr_vfe->af_num;
+	devp->curr_wr_vfe->vf.type = VIDTYPE_VIU_SINGLE_PLANE |
+			VIDTYPE_VIU_FIELD | VIDTYPE_COMPRESS | VIDTYPE_SCATTER;
+	switch (val) {
+	case 1:
+		devp->curr_wr_vfe->vf.type |= VIDTYPE_VIU_NV21;
+		break;
+	case 2:
+		devp->curr_wr_vfe->vf.type |= VIDTYPE_VIU_422;
+		break;
+	case 3:
+		devp->curr_wr_vfe->vf.type |= VIDTYPE_VIU_444;
+		break;
+	default:
+		devp->curr_wr_vfe->vf.type |= VIDTYPE_VIU_422;
+		break;
+	}
+
+	devp->curr_wr_vfe->vf.compHeadAddr = devp->afbce_info->fm_head_paddr[i];
+	devp->curr_wr_vfe->vf.compBodyAddr = devp->afbce_info->fm_body_paddr[i];
+
+	head_dts = codec_mm_phys_to_virt(devp->afbce_info->fm_head_paddr[i]);
+	body_dts = codec_mm_phys_to_virt(devp->afbce_info->fm_body_paddr[i]);
+
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	pr_info("head bin file path = %s\n", md_path_head);
+	filp = filp_open(md_path_head, O_RDONLY, 0);
+	if (IS_ERR(filp)) {
+		pr_info("read %s error.\n", md_path_head);
+		return;
+	}
+
+	size = vfs_read(filp, head_dts,
+		devp->afbce_info->frame_head_size, &pos);
+
+	vfs_fsync(filp, 0);
+	filp_close(filp, NULL);
+	set_fs(old_fs);
+
+	pos = 0;
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	pr_info("body bin file path = %s\n", md_path_body);
+	filp = filp_open(md_path_body, O_RDONLY, 0);
+	if (IS_ERR(filp)) {
+		pr_info("read %s error.\n", md_path_body);
+		return;
+	}
+
+	size = vfs_read(filp, body_dts,
+		devp->afbce_info->frame_body_size, &pos);
+
+	vfs_fsync(filp, 0);
+	filp_close(filp, NULL);
+	set_fs(old_fs);
+
+	provider_vf_put(devp->curr_wr_vfe, devp->vfp);
+	devp->curr_wr_vfe = NULL;
+	vf_notify_receiver(devp->name, VFRAME_EVENT_PROVIDER_VFRAME_READY,
+			NULL);
+}
 static void vdin_write_mem(
 	struct vdin_dev_s *devp, char *type,
 	char *path, char *md_path)
@@ -1699,6 +1786,11 @@ start_chk:
 #endif
 	} else if (!strcmp(parm[0], "force_recycle")) {
 		devp->flags |= VDIN_FLAG_FORCE_RECYCLE;
+	} else if (!strcmp(parm[0], "read_pic_afbce")) {
+		if (parm[1])
+			vdin_write_afbce_mem(devp, parm[1]);
+		else
+			pr_err("miss parameters.\n");
 	} else if (!strcmp(parm[0], "read_pic")) {
 		if (parm[1] && parm[2])
 			vdin_write_mem(devp, parm[1], parm[2], parm[3]);
