@@ -360,6 +360,25 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	if (suspend_test(TEST_PLATFORM))
 		goto Platform_wake;
 
+#ifdef CONFIG_AMLOGIC_MODIFY
+	error = disable_nonboot_cpus();
+	if (error || suspend_test(TEST_CPUS)) {
+		log_suspend_abort_reason("Disabling non-boot cpus failed");
+		goto Enable_cpus;
+	}
+	/*
+	 * PM_SUSPEND_FREEZE equals
+	 * frozen processes + suspended devices + idle processors.
+	 * Thus we should invoke freeze_enter() soon after
+	 * all the devices are suspended.
+	 */
+	if (state == PM_SUSPEND_FREEZE) {
+		trace_suspend_resume(TPS("machine_suspend"), state, true);
+		freeze_enter();
+		trace_suspend_resume(TPS("machine_suspend"), state, false);
+		goto Enable_cpus;
+	}
+#else
 	/*
 	 * PM_SUSPEND_FREEZE equals
 	 * frozen processes + suspended devices + idle processors.
@@ -378,6 +397,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 		log_suspend_abort_reason("Disabling non-boot cpus failed");
 		goto Enable_cpus;
 	}
+#endif
 
 	arch_suspend_disable_irqs();
 	BUG_ON(!irqs_disabled());
