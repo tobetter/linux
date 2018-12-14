@@ -2619,7 +2619,7 @@ static irqreturn_t meson_mmc_irq(int irq, void *dev_id)
 					mmc_hostname(host->mmc),
 					vstat, virqc);
 		host->status = HOST_RSP_CRC_ERR;
-		mrq->cmd->error = -EILSEQ;
+		mrq->cmd->error = -EBADMSG;
 	} else if (ista->resp_timeout) {
 		if (host->is_tunning == 0)
 			pr_err("%s: resp_timeout,vstat:0x%x,virqc:%x\n",
@@ -3651,7 +3651,8 @@ static struct meson_mmc_data mmc_data_tl1 = {
 	.sdmmc.hs.core_phase = 3,
 	.sdmmc.ddr.core_phase = 2,
 	.sdmmc.hs2.core_phase = 2,
-	.sdmmc.hs4.tx_delay = 0,
+	.sdmmc.hs4.core_phase = 0,
+	.sdmmc.hs4.tx_delay = 16,
 	.sdmmc.sd_hs.core_phase = 2,
 	.sdmmc.sdr104.core_phase = 2,
 };
