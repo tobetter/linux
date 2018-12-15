@@ -1153,9 +1153,6 @@ void lc_process(struct vframe_s *vf,
 {
 	int blk_hnum, blk_vnum, dwTemp;
 
-	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
-	blk_hnum = (dwTemp >> 8) & 0x1f;
-	blk_vnum = (dwTemp) & 0x1f;
 	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TL1)
 		return;
 	if (!lc_en) {
@@ -1173,7 +1170,9 @@ void lc_process(struct vframe_s *vf,
 		}
 		return;
 	}
-
+	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
+	blk_hnum = (dwTemp >> 8) & 0x1f;
+	blk_vnum = (dwTemp) & 0x1f;
 	lc_config(lc_en, vf, sps_h_en, sps_v_en);
 	/*get each block curve*/
 	read_lc_curve(blk_vnum, blk_hnum);
