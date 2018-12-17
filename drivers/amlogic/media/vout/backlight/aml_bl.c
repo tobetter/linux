@@ -68,8 +68,6 @@ MODULE_PARM_DESC(bl_level, "bl_level");
 
 static unsigned int bl_level_uboot;
 static unsigned int brightness_bypass;
-module_param(brightness_bypass, uint, 0664);
-MODULE_PARM_DESC(brightness_bypass, "bl_brightness_bypass");
 
 static unsigned char bl_pwm_bypass; /* debug flag */
 static unsigned char bl_pwm_duty_free; /* debug flag */
@@ -1213,6 +1211,30 @@ static unsigned int aml_bl_get_level(void)
 	return bl_drv->level;
 }
 
+static unsigned int aml_bl_update_brightness_level(unsigned int bl_level)
+{
+	mutex_lock(&bl_level_mutex);
+	if (bl_level > 255) {
+		BLPR("0-255 is the valid data\n");
+		bl_level = 255;
+	}
+
+	if (((bl_drv->state & BL_STATE_LCD_ON) == 0) ||
+		((bl_drv->state & BL_STATE_BL_POWER_ON) == 0))
+		bl_level = 0;
+
+	if (bl_level == 0) {
+		if (bl_drv->state & BL_STATE_BL_ON)
+			bl_power_off();
+	} else {
+		aml_bl_set_level(bl_level);
+		if ((bl_drv->state & BL_STATE_BL_ON) == 0)
+			bl_power_on();
+	}
+	mutex_unlock(&bl_level_mutex);
+	return 0;
+}
+
 static int aml_bl_update_status(struct backlight_device *bd)
 {
 	int brightness = bd->props.brightness;
@@ -1220,30 +1242,12 @@ static int aml_bl_update_status(struct backlight_device *bd)
 	if (brightness_bypass)
 		return 0;
 
-	mutex_lock(&bl_level_mutex);
-	if (brightness < 0)
-		brightness = 0;
-	else if (brightness > 255)
-		brightness = 255;
-
-	if (((bl_drv->state & BL_STATE_LCD_ON) == 0) ||
-		((bl_drv->state & BL_STATE_BL_POWER_ON) == 0))
-		brightness = 0;
-
+	aml_bl_update_brightness_level(brightness);
 	if (bl_debug_print_flag) {
 		BLPR("%s: %u, real brightness: %u, state: 0x%x\n",
 			__func__, bd->props.brightness,
 			brightness, bl_drv->state);
 	}
-	if (brightness == 0) {
-		if (bl_drv->state & BL_STATE_BL_ON)
-			bl_power_off();
-	} else {
-		aml_bl_set_level(brightness);
-		if ((bl_drv->state & BL_STATE_BL_ON) == 0)
-			bl_power_on();
-	}
-	mutex_unlock(&bl_level_mutex);
 	return 0;
 }
 
@@ -3124,6 +3128,54 @@ static ssize_t bl_debug_print_store(struct class *class,
 	return count;
 }
 
+static ssize_t bl_debug_brightness_bypass_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", brightness_bypass);
+}
+
+static ssize_t bl_debug_brightness_bypass_store(struct class *class,
+		struct class_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int ret;
+
+	ret = kstrtouint(buf, 10, &brightness_bypass);
+	if (ret != 0) {
+		BLERR("invalid data\n");
+		return -EINVAL;
+	}
+	return count;
+}
+
+static ssize_t bl_debug_brightness_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", bl_drv->level);
+}
+
+static ssize_t bl_debug_brightness_store(struct class *class,
+		struct class_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int ret;
+	unsigned int brightness_level = 0;
+
+	ret = kstrtouint(buf, 10, &brightness_level);
+	if (ret != 0) {
+		BLERR("invalid data\n");
+		return -EINVAL;
+	}
+
+	if (!brightness_bypass)
+		brightness_bypass = 1;
+
+	ret = aml_bl_update_brightness_level(brightness_level);
+	if (ret == 0)
+		BLPR("brightness %d update ok\n", brightness_level);
+	else
+		BLERR("update fail\n");
+	return count;
+}
+
 static struct class_attribute bl_debug_class_attrs[] = {
 	__ATTR(help, 0444, bl_debug_help, NULL),
 	__ATTR(status, 0444, bl_status_read, NULL),
@@ -3134,6 +3186,10 @@ static struct class_attribute bl_debug_class_attrs[] = {
 	__ATTR(key_valid,   0444, bl_debug_key_valid_show, NULL),
 	__ATTR(config_load, 0444, bl_debug_config_load_show, NULL),
 	__ATTR(print, 0644, bl_debug_print_show, bl_debug_print_store),
+	__ATTR(brightness_bypass, 0644, bl_debug_brightness_bypass_show,
+		bl_debug_brightness_bypass_store),
+	__ATTR(brightness_level, 0644, bl_debug_brightness_show,
+		bl_debug_brightness_store),
 };
 
 static int aml_bl_creat_class(void)
