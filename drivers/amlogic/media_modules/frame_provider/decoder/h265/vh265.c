@@ -440,6 +440,8 @@ static u32 mmu_enable_force;
 static u32 work_buf_size;
 static unsigned int force_disp_pic_index;
 static unsigned int disp_vframe_valve_level;
+static int pre_decode_buf_level = 0x1000;
+
 
 #ifdef MULTI_INSTANCE_SUPPORT
 static unsigned int max_decode_instance_num
@@ -10228,6 +10230,23 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 
 	if (hevc->eos)
 		return 0;
+
+	if (vdec_stream_based(vdec) && (hevc->init_flag == 0)
+			&& pre_decode_buf_level != 0) {
+			u32 rp, wp, level;
+
+			rp = READ_PARSER_REG(PARSER_VIDEO_RP);
+			wp = READ_PARSER_REG(PARSER_VIDEO_WP);
+			if (wp < rp)
+				level = vdec->input.size + wp - rp;
+			else
+				level = wp - rp;
+
+			if (level < pre_decode_buf_level)
+				return 0;
+		}
+
+
 #ifdef AGAIN_HAS_THRESHOLD
 	if (hevc->next_again_flag &&
 		(!vdec_frame_based(vdec))) {
@@ -11372,6 +11391,9 @@ MODULE_PARM_DESC(udebug_pause_pos, "\n udebug_pause_pos\n");
 
 module_param(udebug_pause_val, uint, 0664);
 MODULE_PARM_DESC(udebug_pause_val, "\n udebug_pause_val\n");
+
+module_param(pre_decode_buf_level, int, 0664);
+MODULE_PARM_DESC(pre_decode_buf_level, "\n ammvdec_h264 pre_decode_buf_level\n");
 
 module_param(udebug_pause_decode_idx, uint, 0664);
 MODULE_PARM_DESC(udebug_pause_decode_idx, "\n udebug_pause_decode_idx\n");
