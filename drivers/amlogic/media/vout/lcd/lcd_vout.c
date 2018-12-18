@@ -36,6 +36,7 @@
 #ifdef CONFIG_OF
 #include <linux/of.h>
 #endif
+#include <linux/amlogic/pm.h>
 #include <linux/amlogic/cpu_version.h>
 #include <linux/amlogic/media/vout/vinfo.h>
 #include <linux/amlogic/media/vout/vout_notify.h>
@@ -1419,6 +1420,10 @@ static int lcd_remove(struct platform_device *pdev)
 
 static int lcd_resume(struct platform_device *pdev)
 {
+	if ((get_resume_method() == RTC_WAKEUP) ||
+		(get_resume_method() == AUTO_WAKEUP))
+		return 0;
+
 	if ((lcd_driver->lcd_status & LCD_STATUS_VMODE_ACTIVE) == 0)
 		return 0;
 
