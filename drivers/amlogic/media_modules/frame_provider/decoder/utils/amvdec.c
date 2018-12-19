@@ -381,6 +381,7 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 	unsigned int format = FIRMWARE_MAX;
 	unsigned int vdec = OPTEE_VDEC_LEGENCY;
 	char *name = __getname();
+	bool is_swap = false;
 
 	sprintf(name, "%s", fw_name ? fw_name : "null");
 
@@ -425,7 +426,11 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 	case VFORMAT_HEVC:
 		if (!strcmp(name, "h265_mmu"))
 			format = VIDEO_DEC_HEVC_MMU;
-		else
+		else if (!strcmp(name, "hevc_mmu_swap")) {
+			format = VIDEO_DEC_HEVC_MMU_SWAP;
+			vdec = OPTEE_VDEC_HEVC;
+			is_swap = true;
+		} else
 			format = VIDEO_DEC_HEVC;
 		break;
 
@@ -478,8 +483,12 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 	}
 
-	if (format < FIRMWARE_MAX)
-		ret = tee_load_video_fw(format, vdec);
+	if (format < FIRMWARE_MAX) {
+		if (is_swap)
+			ret = tee_load_video_fw_swap(format, vdec, is_swap);
+		else
+			ret = tee_load_video_fw(format, vdec);
+	}
 
 	__putname(name);
 

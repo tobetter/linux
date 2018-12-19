@@ -63,7 +63,7 @@
 #define VIDEO_DEC_MPEG4_4_MULTI		TAG('M', '4', '4', 'M')
 #define VIDEO_DEC_MPEG4_5_MULTI		TAG('M', '4', '5', 'M')
 #define VIDEO_DEC_H263_MULTI		TAG('2', '6', '3', 'M')
-
+#define VIDEO_DEC_HEVC_MMU_SWAP		TAG('2', '6', '5', 'S')
 /* ... */
 #define FIRMWARE_MAX			(UINT_MAX)
 
