@@ -1378,7 +1378,7 @@ static ssize_t vbi_store(struct device *dev,
 	struct vbi_dev_s *devp = dev_get_drvdata(dev);
 	struct vbi_slicer_s *vbi_slicer;
 	struct vbi_ringbuffer_s *vbi_buffer;
-	long val;
+	unsigned int val;
 	int ret = 0;
 
 	if (!buff || !devp)
@@ -1420,13 +1420,13 @@ static ssize_t vbi_store(struct device *dev,
 		tvafe_pr_info("dump satus done!!\n");
 	} else if (!strncmp(parm[0], "enable_tasklet",
 		strlen("enable_tasklet"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		devp->tasklet_enable = val;
 		tvafe_pr_info("tasklet_enable:%d\n", devp->tasklet_enable);
 	} else if (!strncmp(parm[0], "data_wmode",
 		strlen("data_wmode"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		vbi_buffer->data_wmode = val;
 		tvafe_pr_info("data_wmode:%d\n", vbi_buffer->data_wmode);
@@ -1450,13 +1450,13 @@ static ssize_t vbi_store(struct device *dev,
 		tvafe_pr_info(" disable vbi function\n");
 		tvafe_pr_info("stop done!!!\n");
 	} else if (!strncmp(parm[0], "set_size", strlen("set_size"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
-		vbi_set_buffer_size(devp, (unsigned int)val);
+		vbi_set_buffer_size(devp, val);
 		tvafe_pr_info(" set buf size to %d\n",
 			vbi_slicer->buffer.size);
 	} else if (!strncmp(parm[0], "set_type", strlen("set_type"))) {
-		if (kstrtol(parm[1], 16, &val) < 0)
+		if (kstrtouint(parm[1], 16, &val) < 0)
 			return -EINVAL;
 		vbi_slicer->type = val;
 		vbi_slicer_set(devp, vbi_slicer);

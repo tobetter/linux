@@ -450,10 +450,9 @@ static ssize_t tvafereg_store(struct device *dev,
 		struct device_attribute *attr, const char *buff, size_t count)
 {
 	struct tvafe_dev_s *devp;
-	unsigned int argn = 0, addr = 0, value = 0, end = 0;
+	unsigned int argn = 0, addr = 0, value = 0, end = 0, tmp = 0;
 	char *p, *para, *buf_work, cmd = 0;
 	char *argv[3];
-	long tmp = 0;
 
 	devp = dev_get_drvdata(dev);
 
@@ -485,7 +484,7 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 2) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
@@ -499,11 +498,11 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 3) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					value = tmp;
 				else
 					break;
-				if (kstrtol(argv[2], 16, &tmp) == 0)
+				if (kstrtouint(argv[2], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
@@ -517,11 +516,11 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 3) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
-				if (kstrtol(argv[2], 16, &tmp) == 0)
+				if (kstrtouint(argv[2], 16, &tmp) == 0)
 					end = tmp;
 				else
 					break;

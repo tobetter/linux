@@ -254,14 +254,16 @@ static enum tvafe_adc_ch_e tvafe_adc_pin_muxing(
 
 			W_APB_BIT(TVFE_VAFE_CTRL1, 1,
 				VAFE_IN_SEL_BIT, VAFE_IN_SEL_WID);
-			W_APB_BIT(TVFE_VAFE_CTRL2, 3, 4, 3);
+			if (tvafe_cpu_type() != CPU_TYPE_TL1)
+				W_APB_BIT(TVFE_VAFE_CTRL2, 3, 4, 3);
 			ret = TVAFE_ADC_CH_0;
 
 		} else if (pin == TVAFE_CVBS_IN1) {
 
 			W_APB_BIT(TVFE_VAFE_CTRL1, 2,
 				VAFE_IN_SEL_BIT, VAFE_IN_SEL_WID);
-			W_APB_BIT(TVFE_VAFE_CTRL2, 5, 4, 3);
+			if (tvafe_cpu_type() != CPU_TYPE_TL1)
+				W_APB_BIT(TVFE_VAFE_CTRL2, 5, 4, 3);
 			ret = TVAFE_ADC_CH_1;
 
 		} else if (pin == TVAFE_CVBS_IN2) {
@@ -450,7 +452,7 @@ static void tvafe_set_cvbs_default(struct tvafe_cvd2_s *cvd2,
 					(port == TVIN_PORT_CVBS2)) {
 				W_APB_REG(TVFE_VAFE_CTRL0, 0x00490710);
 				W_APB_REG(TVFE_VAFE_CTRL1, 0x0000110e);
-				W_APB_REG(TVFE_VAFE_CTRL2, 0x1fe09fd3);
+				W_APB_REG(TVFE_VAFE_CTRL2, 0x1fe09f83);
 			}
 		} else {
 			W_APB_REG(TVFE_VAFE_CTRL0, 0x00090b00);
@@ -706,19 +708,19 @@ int adc_set_pll_cntl(bool on, unsigned int module_sel, void *pDtvPara)
 				adc_pll_lock_cnt++;
 			} while (!R_HIU_BIT(HHI_ADC_PLL_CNTL0_TL1, 31, 1) &&
 				(adc_pll_lock_cnt < 10));
-			tvafe_pr_info("b0=0x%x",
+			tvafe_pr_info("b0=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL0_TL1));
-			tvafe_pr_info("b1=0x%x",
+			tvafe_pr_info("b1=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL1_TL1));
-			tvafe_pr_info("b2=0x%x",
+			tvafe_pr_info("b2=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL2_TL1));
-			tvafe_pr_info("b3=0x%x",
+			tvafe_pr_info("b3=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL3_TL1));
-			tvafe_pr_info("b4=0x%x",
+			tvafe_pr_info("b4=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL4_TL1));
-			tvafe_pr_info("b5=0x%x",
+			tvafe_pr_info("b5=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL5_TL1));
-			tvafe_pr_info("b6=0x%x",
+			tvafe_pr_info("b6=0x%x\n",
 				R_HIU_REG(HHI_ADC_PLL_CNTL6_TL1));
 
 		} else {
