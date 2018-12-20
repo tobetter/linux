@@ -323,11 +323,10 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		s_video_memory.size = VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE;
 		s_video_memory.phys_addr =
 			(ulong)codec_mm_alloc_for_dma(VPU_DEV_NAME,
-			VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE >> PAGE_SHIFT, 0,
-			CODEC_MM_FLAGS_CPU);
+			VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE >> PAGE_SHIFT, 0, 0);
 		if (s_video_memory.phys_addr)
 			s_video_memory.base =
-				(ulong)phys_to_virt(s_video_memory.phys_addr);
+				(ulong)codec_mm_vmap(s_video_memory.phys_addr,s_video_memory.size);
 		else
 			s_video_memory.base = 0;
 		if (s_video_memory.base) {
@@ -341,6 +340,8 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 				s_video_memory.size) < 0) {
 				enc_pr(LOG_ERROR, "fail to init vmem system\n");
 				r = -ENOMEM;
+				codec_mm_unmap_phyaddr((u8 *)s_video_memory.base);
+				s_video_memory.base = 0;
 				codec_mm_free_for_dma(
 					VPU_DEV_NAME,
 					(u32)s_video_memory.phys_addr);
@@ -1365,6 +1366,8 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 			}
 
 			if (s_video_memory.base && !use_reserve) {
+				codec_mm_unmap_phyaddr((u8 *)s_video_memory.base);
+				s_video_memory.base = 0;
 				codec_mm_free_for_dma(
 					VPU_DEV_NAME,
 					(u32)s_video_memory.phys_addr);
@@ -1576,7 +1579,7 @@ static s32 hevc_mem_device_init(
 	s_video_memory.size = rmem->size;
 	s_video_memory.phys_addr = (ulong)rmem->base;
 	s_video_memory.base =
-		(ulong)phys_to_virt(s_video_memory.phys_addr);
+		(ulong)codec_mm_vmap(s_video_memory.phys_addr,s_video_memory.size);
 	if (!s_video_memory.base) {
 		enc_pr(LOG_ERROR, "fail to remap video memory ");
 		enc_pr(LOG_ERROR,
@@ -1787,10 +1790,13 @@ static s32 vpu_remove(struct platform_device *pdev)
 	}
 
 	if (s_video_memory.base) {
-		if (!use_reserve)
+		if (!use_reserve) {
+			codec_mm_unmap_phyaddr((u8 *)s_video_memory.base);
+			s_video_memory.base = 0;
 			codec_mm_free_for_dma(
 			VPU_DEV_NAME,
 			(u32)s_video_memory.phys_addr);
+		}
 		vmem_exit(&s_vmem);
 		memset(&s_video_memory,
 			0, sizeof(struct vpudrv_buffer_t));
