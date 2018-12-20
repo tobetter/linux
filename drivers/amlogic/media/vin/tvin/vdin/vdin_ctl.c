@@ -4022,9 +4022,11 @@ u32 vdin_get_curr_field_type(struct vdin_dev_s *devp)
 	}
 	format_convert = devp->format_convert;
 	if ((format_convert == VDIN_FORMAT_CONVERT_YUV_YUV444) ||
-			(format_convert == VDIN_FORMAT_CONVERT_RGB_YUV444))
+			(format_convert == VDIN_FORMAT_CONVERT_RGB_YUV444)) {
 		type |= VIDTYPE_VIU_444;
-	else if ((format_convert == VDIN_FORMAT_CONVERT_YUV_YUV422) ||
+		if (devp->afbce_mode == 1)
+			type |= VIDTYPE_COMB_MODE;
+	} else if ((format_convert == VDIN_FORMAT_CONVERT_YUV_YUV422) ||
 			(format_convert == VDIN_FORMAT_CONVERT_RGB_YUV422))
 		type |= VIDTYPE_VIU_422;
 	else if (devp->prop.dest_cfmt == TVIN_NV21) {
