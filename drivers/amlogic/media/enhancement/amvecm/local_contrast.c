@@ -1113,9 +1113,6 @@ void lc_init(void)
 	h_num = 12;
 	v_num = 8;
 
-	if (!lc_en)
-		return;
-
 	lc_szcurve = kzalloc(580 * sizeof(int), GFP_KERNEL);
 	if (!lc_szcurve)
 		return;
@@ -1138,6 +1135,8 @@ void lc_init(void)
 		return;
 	}
 	lc_malloc_ok = 1;
+	if (!lc_en)
+		return;
 	lc_top_config(0, h_num, v_num, height, width);
 	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
 	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
