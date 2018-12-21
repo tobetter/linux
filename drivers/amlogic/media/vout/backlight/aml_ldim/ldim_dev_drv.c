@@ -1163,7 +1163,7 @@ static int ldim_dev_add_driver(struct aml_ldim_driver_s *ldim_drv)
 {
 	struct ldim_dev_config_s *ldev_conf = ldim_drv->ldev_conf;
 	int index = ldim_drv->dev_index;
-	int ret = -1;
+	int ret = 0;
 
 	switch (ldim_dev_config.type) {
 	case LDIM_DEV_TYPE_SPI:
