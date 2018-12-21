@@ -984,6 +984,7 @@ struct VP9Decoder_s {
 	u32 frame_ar;
 	int fatal_error;
 	uint8_t init_flag;
+	uint8_t first_sc_checked;
 	uint8_t process_busy;
 #define PROC_STATE_INIT			0
 #define PROC_STATE_DECODESLICE	1
@@ -1135,6 +1136,8 @@ struct VP9Decoder_s {
 	union param_u s1_param;
 	u8 back_not_run_ready;
 #endif
+	int need_cache_size;
+	u64 sc_start_time;
 };
 
 static void resize_context_buffers(struct VP9Decoder_s *pbi,
@@ -8131,16 +8134,13 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 	pbi->timer.function = vvp9_put_timer_func;
 	pbi->timer.expires = jiffies + PUT_INTERVAL;
 
+	pbi->stat |= STAT_VDEC_RUN;
 
 	add_timer(&pbi->timer);
 
 	pbi->stat |= STAT_TIMER_ARM;
 
-	/* pbi->stat |= STAT_KTHREAD; */
-
 	amhevc_start();
-
-	pbi->stat |= STAT_VDEC_RUN;
 
 	pbi->init_flag = 1;
 	pbi->process_busy = 0;
@@ -8194,7 +8194,7 @@ static int vvp9_stop(struct VP9Decoder_s *pbi)
 {
 
 	pbi->init_flag = 0;
-
+	pbi->first_sc_checked = 0;
 	if (pbi->stat & STAT_VDEC_RUN) {
 		amhevc_stop();
 		pbi->stat &= ~STAT_VDEC_RUN;
@@ -8244,12 +8244,12 @@ static int vvp9_stop(struct VP9Decoder_s *pbi)
 	pbi->fw = NULL;
 	return 0;
 }
-
 static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 {
 	int tvp_flag = vdec_secure(hw_to_vdec(pbi)) ?
 		CODEC_MM_FLAGS_TVP : 0;
 	int buf_size = 48;
+
 	if ((pbi->max_pic_w * pbi->max_pic_h > 1280*736) &&
 		(pbi->max_pic_w * pbi->max_pic_h <= 1920*1088)) {
 		buf_size = 12;
@@ -8257,10 +8257,12 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 		(pbi->max_pic_w * pbi->max_pic_h <= 1280*736)) {
 		buf_size = 4;
 	}
+	pbi->need_cache_size = buf_size * SZ_1M;
+	pbi->sc_start_time = get_jiffies_64();
 	if (pbi->mmu_enable && ((pbi->double_write_mode & 0x10) == 0)) {
 		pbi->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 			pbi->index, FRAME_BUFFERS,
-			buf_size * SZ_1M,
+			pbi->need_cache_size,
 			tvp_flag
 			);
 		if (!pbi->mmu_box) {
@@ -8268,7 +8270,6 @@ static int amvdec_vp9_mmu_init(struct VP9Decoder_s *pbi)
 			return -1;
 		}
 	}
-
 	pbi->bmmu_box = decoder_bmmu_box_alloc_box(
 			DRIVER_NAME,
 			pbi->index,
@@ -8311,7 +8312,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 	memcpy(&pbi->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	pbi->init_flag = 0;
-
+	pbi->first_sc_checked= 0;
 	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
 		vp9_max_pic_w = 8192;
 		vp9_max_pic_h = 4608;
@@ -8717,15 +8718,23 @@ static int vp9_hw_ctx_restore(struct VP9Decoder_s *pbi)
 #endif
 	return 0;
 }
-
 static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 {
 	struct VP9Decoder_s *pbi =
 		(struct VP9Decoder_s *)vdec->private;
+	int tvp = vdec_secure(hw_to_vdec(pbi)) ?
+		CODEC_MM_FLAGS_TVP : 0;
 	unsigned long ret = 0;
 
 	if (pbi->eos)
 		return ret;
+	if (!pbi->first_sc_checked && pbi->mmu_enable) {
+		int size = decoder_mmu_box_sc_check(pbi->mmu_box, tvp);
+		pbi->first_sc_checked = 1;
+		vp9_print(pbi, 0, "vp9 cached=%d  need_size=%d speed= %d ms\n",
+			size, (pbi->need_cache_size >> PAGE_SHIFT),
+			(int)(get_jiffies_64() - pbi->sc_start_time) * 1000/HZ);
+	}
 #ifdef SUPPORT_FB_DECODING
 	if (pbi->used_stage_buf_num > 0) {
 		if (mask & CORE_MASK_HEVC_FRONT) {
@@ -9421,6 +9430,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 #endif
 
 	pbi->init_flag = 0;
+	pbi->first_sc_checked = 0;
 	pbi->fatal_error = 0;
 	pbi->show_frame_num = 0;
 

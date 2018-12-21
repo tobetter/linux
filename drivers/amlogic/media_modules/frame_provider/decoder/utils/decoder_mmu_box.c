@@ -74,6 +74,16 @@ static int decoder_mmu_box_mgr_del_box(struct decoder_mmu_box *box)
 	return 0;
 }
 
+int decoder_mmu_box_sc_check(void *handle, int is_tvp)
+{
+	struct decoder_mmu_box *box = handle;
+	if (!box) {
+			pr_err("mmu box NULL !!!\n");
+			return 0;
+	}
+	return codec_mm_scatter_size(is_tvp);
+}
+EXPORT_SYMBOL(decoder_mmu_box_sc_check);
 
 
 void *decoder_mmu_box_alloc_box(const char *name,
