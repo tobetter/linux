@@ -412,9 +412,9 @@ void vdin_afbce_config(struct vdin_dev_s *devp)
 	int sblk_num;
 	int uncmp_bits;
 	int uncmp_size;
-	int def_color_0 = 0;
-	int def_color_1 = 0;
-	int def_color_2 = 0;
+	int def_color_0 = 4095;
+	int def_color_1 = 2048;
+	int def_color_2 = 2048;
 	int def_color_3 = 0;
 	int hblksize_out = (devp->h_active + 31) >> 5;
 	int vblksize_out = (devp->v_active + 3)  >> 2;
