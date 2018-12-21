@@ -94,6 +94,7 @@
 	DEBUGFS_CREATE_NODE(audio_nicam_delay, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_a2_auto, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_a2_power_threshold, 0640, dentry, u32)\
+	DEBUGFS_CREATE_NODE(audio_a2_carrier_report, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_gain_shift, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_gain_lpr, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_atv_ov, 0640, dentry, u32)\

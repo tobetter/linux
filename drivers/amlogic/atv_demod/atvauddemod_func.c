@@ -48,6 +48,7 @@ unsigned int audio_thd_threshold2 = 0xf00;
 
 unsigned int audio_a2_auto = 1;
 unsigned int audio_a2_power_threshold = 0x1800;
+unsigned int audio_a2_carrier_report = 0x600;
 
 static int last_nicam_lock = -1;
 static int last_nicam_mono_flag = -1;
@@ -717,6 +718,101 @@ void set_nicam_l(void)
 	aa = (int)((FCLK-5.85e6)/FCLK*1024.0*1024.0*16.0);
 	adec_wr_reg(0x110, aa);
 }
+
+void set_mono_m(void)
+{
+	int aa;
+
+	adec_wr_reg(ADDR_ADEC_CTRL, 0x2);
+
+	set_filter(filter_50k, ADDR_DDC_FIR0_COEF, 65);
+	set_filter(filter_50k, ADDR_DDC_FIR1_COEF, 65);
+
+	aa = (int)(4.5e6/FCLK*1024.0*1024.0*8.0);
+	adec_wr_reg(ADDR_DDC_FREQ0, aa);
+
+	set_lpf15k();
+	set_deem(0);
+
+	adec_wr_reg(ADDR_DEMOD_GAIN, 0x12);
+
+	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x200);
+
+	adec_wr_reg((ADDR_SEL_CTRL), 0x1000);
+
+	set_lpf15k();
+	set_deem(0);
+}
+
+void set_mono_dk(void)
+{
+	int aa;
+
+	adec_wr_reg(ADDR_ADEC_CTRL, 0xa);
+
+	set_filter(filter_100k, ADDR_DDC_FIR0_COEF, 65);
+	set_filter(filter_100k, ADDR_DDC_FIR1_COEF, 65);
+
+	aa = (int)(6.5e6/FCLK*1024.0*1024.0*8.0);
+	adec_wr_reg(ADDR_DDC_FREQ0, aa);
+
+	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x200);
+
+	set_deem(1);
+	set_lpf15k();
+}
+
+void set_mono_i(void)
+{
+	int aa;
+
+	adec_wr_reg(ADDR_ADEC_CTRL, 0x7);
+
+	set_filter(filter_100k, ADDR_DDC_FIR0_COEF, 65);
+	set_filter(filter_100k, ADDR_DDC_FIR1_COEF, 65);
+
+	aa = (int)(6.0e6/FCLK*1024.0*1024.0*8.0);
+	adec_wr_reg(ADDR_DDC_FREQ0, aa);
+	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x200);
+
+	set_deem(1);
+	set_lpf15k();
+}
+
+void set_mono_bg(void)
+{
+	int aa;
+
+	adec_wr_reg(ADDR_ADEC_CTRL, 0x8);
+
+	set_filter(filter_100k, ADDR_DDC_FIR0_COEF, 65);
+	set_filter(filter_100k, ADDR_DDC_FIR1_COEF, 65);
+
+	aa = (int)(5.5e6/FCLK*1024.0*1024.0*8.0);
+	adec_wr_reg(ADDR_DDC_FREQ0, aa);
+	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x200);
+
+	set_deem(1);
+	set_lpf15k();
+}
+
+void set_mono_l(void)
+{
+	int aa;
+
+	adec_wr_reg(ADDR_ADEC_CTRL, 0x9);
+
+	set_filter(filter_100k, ADDR_DDC_FIR0_COEF, 65);
+	set_filter(filter_100k, ADDR_DDC_FIR1_COEF, 65);
+
+	aa = (int)(6.5e6/FCLK*1024.0*1024.0*8.0);
+	adec_wr_reg(ADDR_DDC_FREQ0, aa);
+	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x200);
+
+	set_deem(1);
+	set_lpf15k();
+}
+
 static void set_standard(uint32_t standard)
 {
 	pr_info("\n<<<<<<<<<<<<<<< start configure register\n");
@@ -766,6 +862,26 @@ static void set_standard(uint32_t standard)
 		pr_info("<<<<<<<<<<<<<<< Set NICAM L and Test\n");
 		set_nicam_l();
 		break;
+	case AUDIO_STANDARD_MONO_M:
+		pr_info("<<<<<<<<<<<<<<< Set mono M and Test\n");
+		set_mono_m();
+		break;
+	case AUDIO_STANDARD_MONO_DK:
+		pr_info("<<<<<<<<<<<<<<< Set mono DK and Test\n");
+		set_mono_dk();
+		break;
+	case AUDIO_STANDARD_MONO_I:
+		pr_info("<<<<<<<<<<<<<<< Set mono I and Test\n");
+		set_mono_i();
+		break;
+	case AUDIO_STANDARD_MONO_BG:
+		pr_info("<<<<<<<<<<<<<<< Set mono BG and Test\n");
+		set_mono_bg();
+		break;
+	case AUDIO_STANDARD_MONO_L:
+		pr_info("<<<<<<<<<<<<<<< Set mono L and Test\n");
+		set_mono_l();
+		break;
 	}
 
 	pr_info("\n<<<<<<<<<<<<<<< configure register finished\n");
@@ -789,7 +905,7 @@ void update_a2_eiaj_mode(int auto_en, int *stereo_flag, int *dual_flag)
 
 	if (auto_en) {
 		reg_value = adec_rd_reg(CARRIER_MAG_REPORT);
-		if (((reg_value >> 16) & 0xffff) < 0x400) {
+		if (((reg_value >> 16) & 0xffff) < audio_a2_carrier_report) {
 			*stereo_flag = 0;
 			*dual_flag = 0;
 		} else {

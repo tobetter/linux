@@ -241,7 +241,7 @@ static void atv_demod_set_params(struct dvb_frontend *fe,
 		(p->tuner_id == AM_TUNER_SI2151) ||
 		(p->tuner_id == AM_TUNER_SI2159) ||
 		(p->tuner_id == AM_TUNER_MXL661))
-		reconfig = true;
+		reconfig = false;
 
 	/* In general, demod does not need to be reconfigured
 	 * if parameters such as STD remain unchanged,
@@ -262,7 +262,7 @@ static void atv_demod_set_params(struct dvb_frontend *fe,
 		amlatvdemod_devp->tuner_id = p->tuner_id;
 
 		atv_dmd_set_std();
-
+		atvdemod_init(!priv->scanning);
 	} else
 		atv_dmd_soft_reset();
 
@@ -531,7 +531,7 @@ static v4l2_std_id atvdemod_fe_tvin_fmt_to_v4l2_std(int fmt)
 
 static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 		int auto_search_std, v4l2_std_id *video_fmt,
-		unsigned int *audio_fmt)
+		unsigned int *audio_fmt, unsigned int *soundsys)
 {
 	struct dvb_frontend *fe = &v4l2_fe->fe;
 	struct v4l2_analog_parameters *p = &v4l2_fe->params;
@@ -675,10 +675,17 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 #endif
 	}
 
-	pr_info("autodet audio mode %d, [%s][0x%x]\n",
-			broad_std, v4l2_std_to_str(audio), audio);
-
 	*audio_fmt = audio;
+
+	/* for audio standard detection */
+	if (is_meson_txlx_cpu() || is_meson_txhd_cpu() || is_meson_tl1_cpu()) {
+		*soundsys = amlfmt_aud_standard(broad_std);
+		*soundsys = (*soundsys << 16) | 0x00FFFF;
+	} else
+		*soundsys = 0xFFFFFF;
+
+	pr_info("autodet audio broad_std %d, [%s][0x%x] soundsys[0x%x]\n",
+			broad_std, v4l2_std_to_str(audio), audio, *soundsys);
 }
 
 static int atvdemod_fe_afc_closer(struct v4l2_frontend *v4l2_fe, int minafcfreq,
@@ -820,8 +827,9 @@ static int atvdemod_fe_afc_closer(struct v4l2_frontend *v4l2_fe, int minafcfreq,
 static int atvdemod_fe_set_property(struct v4l2_frontend *v4l2_fe,
 		struct v4l2_property *tvp)
 {
-	struct dvb_frontend *fe = &amlatvdemod_devp->v4l2_fe.fe;
+	struct dvb_frontend *fe = &v4l2_fe->fe;
 	struct atv_demod_priv *priv = fe->analog_demod_priv;
+	struct v4l2_analog_parameters *params = &v4l2_fe->params;
 
 	pr_dbg("%s: cmd = 0x%x.\n", __func__, tvp->cmd);
 
@@ -829,8 +837,10 @@ static int atvdemod_fe_set_property(struct v4l2_frontend *v4l2_fe,
 	case V4L2_SOUND_SYS:
 		/* aud_mode = tvp->data & 0xFF; */
 		amlatvdemod_devp->soundsys = tvp->data & 0xFF;
-		if (amlatvdemod_devp->soundsys != 0xFF)
+		if (amlatvdemod_devp->soundsys != 0xFF) {
 			aud_mode = amlatvdemod_devp->soundsys;
+			params->soundsys = aud_mode;
+		}
 		priv->sound_sys.output_mode = tvp->data & 0xFF;
 		break;
 
@@ -888,6 +898,7 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 	int tuner_status_cnt_local = tuner_status_cnt;
 	v4l2_std_id std_bk = 0;
 	unsigned int audio = 0;
+	unsigned int soundsys = 0;
 	int double_check_cnt = 1;
 	int auto_search_std = 0;
 	int search_count = 0;
@@ -929,6 +940,7 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 	 */
 	if (p->std == 0) {
 		p->std = V4L2_COLOR_STD_NTSC | V4L2_STD_NTSC_M;
+		/* p->std = V4L2_COLOR_STD_PAL | V4L2_STD_DK; */
 		auto_search_std = 0x01;
 		pr_dbg("[%s] user std is 0, so set it to NTSC | M.\n",
 				__func__);
@@ -1072,21 +1084,13 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 
 			pr_dbg("[%s] freq: [%d] pll lock success\n",
 					__func__, p->frequency);
-#if 0 /* In get_pll_status has line_lock check.*/
-			if (fee->tuner->drv->id == AM_TUNER_MXL661) {
-				fe->ops.analog_ops.get_atv_status(fe,
-						&atv_status);
-				if (atv_status.atv_lock)
-					usleep_range(30 * 1000,
-						30 * 1000 + 100);
-			}
-#endif
+
 			ret = atvdemod_fe_afc_closer(v4l2_fe, minafcfreq,
 					maxafcfreq + ATV_AFC_500KHZ, 1);
 			if (ret == 0) {
 				atvdemod_fe_try_analog_format(v4l2_fe,
 						auto_search_std,
-						&std_bk, &audio);
+						&std_bk, &audio, &soundsys);
 
 				pr_info("[%s] freq:%d, std_bk:0x%x, audmode:0x%x, search OK.\n",
 						__func__, p->frequency,
@@ -1097,6 +1101,7 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 					p->std = std_bk;
 					/*avoid std unenable */
 					p->frequency -= 1;
+					p->soundsys = soundsys;
 					std_bk = 0;
 					audio = 0;
 				}

@@ -92,7 +92,8 @@
 #define V4L2_TUNE                1
 #define V4L2_SOUND_SYS           2
 #define V4L2_SLOW_SEARCH_MODE    3
-
+#define V4L2_FREQUENCY           4
+#define V4L2_STD                 5
 
 struct v4l2_frontend;
 

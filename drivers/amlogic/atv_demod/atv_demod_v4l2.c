@@ -494,7 +494,7 @@ static unsigned int v4l2_frontend_poll(struct file *filp,
 	poll_wait(filp, &fepriv->events.wait_queue, pts);
 
 	if (fepriv->events.eventw != fepriv->events.eventr) {
-		pr_dbg("%s： POLLIN | POLLRDNORM | POLLPRI.\n", __func__);
+		pr_dbg("%s: POLLIN | POLLRDNORM | POLLPRI.\n", __func__);
 		return (POLLIN | POLLRDNORM | POLLPRI);
 	}
 
@@ -538,11 +538,13 @@ static int v4l2_property_process_set(struct v4l2_frontend *v4l2_fe,
 		struct v4l2_property *tvp, struct file *file)
 {
 	int r = 0;
+	struct v4l2_analog_parameters *params = &v4l2_fe->params;
 
 	v4l2_property_dump(v4l2_fe, true, tvp);
 
 	switch (tvp->cmd) {
 	case V4L2_TUNE:
+		v4l2_set_frontend(v4l2_fe, params);
 		break;
 	case V4L2_SOUND_SYS:
 	case V4L2_SLOW_SEARCH_MODE:
@@ -551,6 +553,20 @@ static int v4l2_property_process_set(struct v4l2_frontend *v4l2_fe,
 			r = v4l2_fe->ops.set_property(v4l2_fe, tvp);
 			if (r < 0)
 				return r;
+		}
+		break;
+	case V4L2_FREQUENCY:
+		params->frequency = tvp->data;
+		break;
+	case V4L2_STD:
+		/* std & 0xFF000000: color std */
+		/* std & 0x00FFFFFF: audio std */
+		if (tvp->data & 0xFF000000)
+			params->std = (tvp->data & 0xFF000000);
+		if (tvp->data & 0x00FFFFFF) {
+			params->audmode = params->std & 0xFFFFFF;
+			params->std = (tvp->data & 0xFF000000)
+					| (params->audmode);
 		}
 		break;
 	default:
@@ -564,6 +580,7 @@ static int v4l2_property_process_get(struct v4l2_frontend *v4l2_fe,
 		struct v4l2_property *tvp, struct file *file)
 {
 	int r = 0;
+	struct v4l2_analog_parameters *params = &v4l2_fe->params;
 
 	switch (tvp->cmd) {
 	case V4L2_SOUND_SYS:
@@ -575,7 +592,14 @@ static int v4l2_property_process_get(struct v4l2_frontend *v4l2_fe,
 				return r;
 		}
 		break;
-
+	case V4L2_FREQUENCY:
+		tvp->data = params->frequency;
+		break;
+	case V4L2_STD:
+		/* std & 0xFF000000: color std */
+		/* std & 0x00FFFFFF: audio std */
+		tvp->data = params->std;
+		break;
 	default:
 		pr_dbg("%s: V4L2 property %d doesn't exist\n",
 				__func__, tvp->cmd);

@@ -70,7 +70,7 @@ extern void configure_receiver(int Broadcast_Standard,
 			       int Tuner_Input_IF_inverted, int GDE_Curve,
 			       int sound_format);
 extern int atvdemod_clk_init(void);
-extern int atvdemod_init(void);
+extern int atvdemod_init(bool on);
 extern void atvdemod_uninit(void);
 extern void atv_dmd_set_std(void);
 extern void retrieve_adc_power(int *adc_level);
@@ -204,6 +204,7 @@ extern void retrieve_frequency_offset(int *freq_offset);
 extern void retrieve_field_lock(int *lock);
 extern void set_atvdemod_scan_mode(int val);
 extern int atvauddemod_init(void);
+extern int amlfmt_aud_standard(int broad_std);
 extern void atvauddemod_set_outputmode(void);
 
 /*from amldemod/amlfrontend.c*/
