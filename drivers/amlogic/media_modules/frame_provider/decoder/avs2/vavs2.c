@@ -625,6 +625,7 @@ struct AVS2Decoder_s {
 	u32 frame_ar;
 	int fatal_error;
 	uint8_t init_flag;
+	uint8_t first_sc_checked;
 	uint8_t process_busy;
 #define PROC_STATE_INIT			0
 #define PROC_STATE_HEAD_DONE	1
@@ -744,7 +745,8 @@ struct AVS2Decoder_s {
 	uint32_t mpred_abv_start_addr_bak;
 	u8 next_again_flag;
 	u32 pre_parser_wr_ptr;
-
+	int need_cache_size;
+	u64 sc_start_time;
 };
 
 static int  compute_losless_comp_body_size(
@@ -5714,12 +5716,6 @@ static s32 vavs2_init(struct vdec_s *vdec)
 	dec->stat |= STAT_TIMER_ARM;
 
 	/* dec->stat |= STAT_KTHREAD; */
-
-	amhevc_start();
-
-	dec->stat |= STAT_VDEC_RUN;
-
-	dec->init_flag = 1;
 	dec->process_busy = 0;
 	avs2_print(dec, AVS2_DBG_BUFMGR_MORE,
 		"%d, vavs2_init, RP=0x%x\n",
@@ -5730,7 +5726,7 @@ static s32 vavs2_init(struct vdec_s *vdec)
 static int vmavs2_stop(struct AVS2Decoder_s *dec)
 {
 	dec->init_flag = 0;
-
+	dec->first_sc_checked = 0;
 	if (dec->stat & STAT_TIMER_ARM) {
 		del_timer_sync(&dec->timer);
 		dec->stat &= ~STAT_TIMER_ARM;
@@ -5762,7 +5758,7 @@ static int vavs2_stop(struct AVS2Decoder_s *dec)
 {
 
 	dec->init_flag = 0;
-
+	dec->first_sc_checked = 0;
 	if (dec->stat & STAT_VDEC_RUN) {
 		amhevc_stop();
 		dec->stat &= ~STAT_VDEC_RUN;
@@ -5804,11 +5800,14 @@ static int amvdec_avs2_mmu_init(struct AVS2Decoder_s *dec)
 {
 	int tvp_flag = vdec_secure(hw_to_vdec(dec)) ?
 		CODEC_MM_FLAGS_TVP : 0;
+	int buf_size = 48;
 
 #ifdef AVS2_10B_MMU
+	dec->need_cache_size = buf_size * SZ_1M;
+	dec->sc_start_time = get_jiffies_64();
 	dec->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 		dec->index, FRAME_BUFFERS,
-		48 * SZ_1M,
+		dec->need_cache_size,
 		tvp_flag
 		);
 	if (!dec->mmu_box) {
@@ -5845,7 +5844,7 @@ static int amvdec_avs2_probe(struct platform_device *pdev)
 	memcpy(&dec->m_BUF[0], &BUF[0], sizeof(struct BUF_s) * MAX_BUF_NUM);
 
 	dec->init_flag = 0;
-
+	dec->first_sc_checked = 0;
 	dec->eos = 0;
 	dec->start_process_time = 0;
 	dec->timeout_num = 0;
@@ -6190,6 +6189,8 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 {
 	struct AVS2Decoder_s *dec =
 		(struct AVS2Decoder_s *)vdec->private;
+	int tvp = vdec_secure(hw_to_vdec(dec)) ?
+		CODEC_MM_FLAGS_TVP : 0;
 	unsigned long ret = 0;
 	avs2_print(dec,
 		PRINT_FLAG_VDEC_DETAIL, "%s\r\n", __func__);
@@ -6198,6 +6199,13 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 
 	if (dec->eos)
 		return ret;
+	if (!dec->first_sc_checked) {
+		int size = decoder_mmu_box_sc_check(dec->mmu_box, tvp);
+		dec->first_sc_checked = 1;
+		avs2_print(dec, 0, "vavs2 cached=%d  need_size=%d speed= %d ms\n",
+			size, (dec->need_cache_size >> PAGE_SHIFT),
+					(int)(get_jiffies_64() - dec->sc_start_time) * 1000/HZ);
+	}
 
 	if (dec->next_again_flag &&
 		(!vdec_frame_based(vdec))) {
@@ -6669,6 +6677,7 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	dec->buf_size = work_buf_size;
 #endif
 	dec->init_flag = 0;
+	dec->first_sc_checked = 0;
 	dec->fatal_error = 0;
 	dec->show_frame_num = 0;
 	if (pdata == NULL) {

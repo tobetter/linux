@@ -643,6 +643,7 @@ struct vdec_h264_hw_s {
 	struct vframe_s switching_fense_vf;
 	struct h264_dpb_stru dpb;
 	u8 init_flag;
+	u8 first_sc_checked;
 	u8 has_i_frame;
 	u8 config_bufmgr_done;
 	u32 max_reference_size;
@@ -813,6 +814,8 @@ struct vdec_h264_hw_s {
 	wait_queue_head_t wait_q;
 	u32 reg_g_status;
 	struct mutex chunks_mutex;
+	int need_cache_size;
+	u64 sc_start_time;
 };
 
 static u32 again_threshold = 0x40;
@@ -5675,6 +5678,7 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 {
 	int i;
 	hw->init_flag = 0;
+	hw->first_sc_checked= 0;
 	hw->eos = 0;
 	hw->valve_count = 0;
 	hw->config_bufmgr_done = 0;
@@ -6973,16 +6977,17 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 	bool ret = 0;
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
+	int tvp = vdec_secure(hw_to_vdec(hw)) ?
+		CODEC_MM_FLAGS_TVP : 0;
 
-	/*
-	if (hw->mmu_enable && vdec_stream_based(vdec)) {
-		if( (pts_get_rec_num(PTS_TYPE_VIDEO,
-			vdec->input.total_rd_count) < stream_mode_start_num)) {
-			vdec->need_more_data |= VDEC_NEED_MORE_DATA;
-			return false;
-		}
-		vdec->need_more_data &= ~VDEC_NEED_MORE_DATA;
-	}*/
+	if (!hw->first_sc_checked && hw->mmu_enable) {
+		int size = decoder_mmu_box_sc_check(hw->mmu_box, tvp);
+		hw->first_sc_checked =1;
+		dpb_print(DECODE_ID(hw), 0,
+			"vmh264 cached=%d  need_size=%d speed= %d ms\n",
+			size, (hw->need_cache_size >> PAGE_SHIFT),
+			(int)(get_jiffies_64() - hw->sc_start_time) * 1000/HZ);
+	}
 
 	if (vdec_stream_based(vdec) && (hw->init_flag == 0)
 		&& pre_decode_buf_level != 0) {
@@ -7499,14 +7504,17 @@ int ammvdec_h264_mmu_init(struct vdec_h264_hw_s *hw)
 	int ret = -1;
 	int tvp_flag = vdec_secure(hw_to_vdec(hw)) ?
 		CODEC_MM_FLAGS_TVP : 0;
+	int buf_size = 64;
 
 	pr_debug("ammvdec_h264_mmu_init tvp = 0x%x mmu_enable %d\n",
 			tvp_flag, hw->mmu_enable);
+	hw->need_cache_size = buf_size * SZ_1M;
+	hw->sc_start_time = get_jiffies_64();
 	if (hw->mmu_enable && !hw->mmu_box) {
 		hw->mmu_box = decoder_mmu_box_alloc_box(DRIVER_NAME,
 				hw->id,
 				MMU_MAX_BUFFERS,
-				64 * SZ_1M,
+				hw->need_cache_size,
 				tvp_flag);
 		if (!hw->mmu_box) {
 			pr_err("h264 4k alloc mmu box failed!!\n");
