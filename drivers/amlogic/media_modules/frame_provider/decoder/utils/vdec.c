@@ -2050,20 +2050,6 @@ static void vdec_route_interrupt(struct vdec_s *vdec, unsigned long mask,
 	}
 }
 
-static void vdec_remove_reset(struct vdec_s *vdec)
-{
-	struct vdec_input_s *input = &vdec->input;
-
-	if (input->target == VDEC_INPUT_TARGET_VLD) {
-		amvdec_stop();
-		vdec_reset_core(vdec);
-	} else if (input->target == VDEC_INPUT_TARGET_HEVC) {
-		amhevc_stop();
-		hevc_reset_core(vdec);
-	}
-	pr_info(" %s  vdec %p\n", __func__, vdec);
-}
-
 /*
  * Set up secure protection for each decoder instance running.
  * Note: The operation from REE side only resets memory access
@@ -2180,10 +2166,8 @@ static int vdec_core_thread(void *data)
 			&core->connected_vdec_list, list) {
 			if ((vdec->status == VDEC_STATUS_CONNECTED) &&
 			    (vdec->next_status == VDEC_STATUS_DISCONNECTED)) {
-				if (core->active_vdec == vdec) {
-					vdec_remove_reset(vdec);
+				if (core->active_vdec == vdec)
 					core->active_vdec = NULL;
-				}
 				list_move(&vdec->list, &disconnecting_list);
 			}
 		}
