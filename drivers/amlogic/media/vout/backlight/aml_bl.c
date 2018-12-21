@@ -330,11 +330,12 @@ static void bl_gpio_set(int index, int value)
 	}
 }
 
-static inline unsigned int bl_do_div(unsigned long num, unsigned int den)
+static inline unsigned int bl_do_div(unsigned long long num, unsigned int den)
 {
 	unsigned long long ret = num;
 
 	do_div(ret, den);
+
 	return (unsigned int)ret;
 }
 
@@ -970,7 +971,7 @@ static unsigned int bl_level_mapping(unsigned int level)
 
 static void bl_set_duty_pwm(struct bl_pwm_config_s *bl_pwm)
 {
-	unsigned long temp;
+	unsigned long long temp;
 
 	if (bl_pwm_bypass)
 		return;
@@ -1038,7 +1039,7 @@ static void bl_set_level_pwm(struct bl_pwm_config_s *bl_pwm, unsigned int level)
 	unsigned int max = bl_pwm->level_max;
 	unsigned int pwm_max = bl_pwm->pwm_max;
 	unsigned int pwm_min = bl_pwm->pwm_min;
-	unsigned long temp;
+	unsigned long long temp;
 
 	if (bl_pwm_bypass)
 		return;
@@ -1129,7 +1130,6 @@ static void bl_set_level_ldim(unsigned int level)
 
 static void aml_bl_set_level(unsigned int level)
 {
-	unsigned int temp;
 	struct bl_pwm_config_s *pwm0, *pwm1;
 
 	if (aml_bl_check_driver())
@@ -1163,26 +1163,27 @@ static void aml_bl_set_level(unsigned int level)
 	case BL_CTRL_PWM_COMBO:
 		pwm0 = bl_drv->bconf->bl_pwm_combo0;
 		pwm1 = bl_drv->bconf->bl_pwm_combo1;
-		if ((level >= pwm0->level_min) &&
-			(level <= pwm0->level_max)) {
-			temp = (pwm0->level_min > pwm1->level_min) ?
-				pwm1->level_max : pwm1->level_min;
-			if (bl_debug_print_flag) {
-				BLPR("pwm0 region, level=%u, pwm1_level=%u\n",
-					level, temp);
-			}
+
+		if (level >= pwm0->level_max) {
+			bl_set_level_pwm(pwm0, pwm0->level_max);
+		} else if ((level > pwm0->level_min) &&
+			(level < pwm0->level_max)) {
+			if (bl_debug_print_flag)
+				BLPR("pwm0 region, level=%u\n", level);
 			bl_set_level_pwm(pwm0, level);
-			bl_set_level_pwm(pwm1, temp);
-		} else if ((level >= pwm1->level_min) &&
-			(level <= pwm1->level_max)) {
-			temp = (pwm1->level_min > pwm0->level_min) ?
-				pwm0->level_max : pwm0->level_min;
-			if (bl_debug_print_flag) {
-				BLPR("pwm1 region, level=%u, pwm0_level=%u\n",
-					level, temp);
-			}
-			bl_set_level_pwm(pwm0, temp);
+		} else {
+			bl_set_level_pwm(pwm0, pwm0->level_min);
+		}
+
+		if (level >= pwm1->level_max) {
+			bl_set_level_pwm(pwm1, pwm1->level_max);
+		} else if ((level > pwm1->level_min) &&
+			(level < pwm1->level_max)) {
+			if (bl_debug_print_flag)
+				BLPR("pwm1 region, level=%u,\n", level);
 			bl_set_level_pwm(pwm1, level);
+		} else {
+			bl_set_level_pwm(pwm1, pwm1->level_min);
 		}
 		break;
 #ifdef CONFIG_AMLOGIC_LOCAL_DIMMING
@@ -1291,7 +1292,7 @@ enum bl_pwm_port_e bl_pwm_str_to_pwm(const char *str)
 void bl_pwm_config_init(struct bl_pwm_config_s *bl_pwm)
 {
 	unsigned int cnt;
-	unsigned long temp;
+	unsigned long long temp;
 
 	if (bl_debug_print_flag) {
 		BLPR("%s pwm_port %d: freq = %u\n",
@@ -2873,7 +2874,7 @@ static void bl_debug_pwm_set(unsigned int index, unsigned int value, int state)
 {
 	struct bl_config_s *bconf = bl_drv->bconf;
 	struct bl_pwm_config_s *bl_pwm = NULL;
-	unsigned long temp;
+	unsigned long long temp;
 	unsigned int pwm_range, temp_duty;
 
 	if (aml_bl_check_driver())
