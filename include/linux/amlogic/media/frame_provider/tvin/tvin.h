@@ -441,6 +441,7 @@ struct tvafe_pin_mux_s {
 #define TVIN_IOC_S_AFE_CVBS_STD     _IOW(_TM_T, 0x1b, enum tvin_sig_fmt_e)
 #define TVIN_IOC_CALLMASTER_SET     _IOW(_TM_T, 0x1c, enum tvin_port_e)
 #define TVIN_IOC_CALLMASTER_GET	    _IO(_TM_T, 0x1d)
+#define TVIN_IOC_G_AFE_CVBS_STD     _IOW(_TM_T, 0x1e, enum tvin_sig_fmt_e)
 #define TVIN_IOC_LOAD_REG          _IOW(_TM_T, 0x20, struct am_regs_s)
 #define TVIN_IOC_S_AFE_SONWON     _IO(_TM_T, 0x22)
 #define TVIN_IOC_S_AFE_SONWOFF     _IO(_TM_T, 0x23)

@@ -976,6 +976,19 @@ static long tvafe_ioctl(struct file *file,
 				__func__, tvin_sig_fmt_str(fmt));
 			break;
 		}
+	case TVIN_IOC_G_AFE_CVBS_STD:
+		{
+			enum tvin_sig_fmt_e fmt = TVIN_SIG_FMT_NULL;
+
+			if (tvafe->cvd2.info.state == TVAFE_CVD2_STATE_FIND)
+				fmt = tvafe->cvd2.config_fmt;
+			if (copy_to_user(argp, &fmt,
+					sizeof(enum tvin_sig_fmt_e)))
+				ret = -EFAULT;
+			tvafe_pr_info("%s: ioctl get fmt:%s.\n",
+				__func__, tvin_sig_fmt_str(fmt));
+			break;
+		}
 	default:
 		ret = -ENOIOCTLCMD;
 		break;
