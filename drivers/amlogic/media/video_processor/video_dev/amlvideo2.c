@@ -3592,7 +3592,7 @@ static int amlvideo2_thread_tick(struct amlvideo2_fh *fh)
 
 	if ((node->video_blocking) && (node->amlvideo2_pool_ready != NULL)) {
 		vfq_init(&node->q_ready,
-		node->amlvideo2_pool_size + 1,
+		node->amlvideo2_pool_size,
 		(struct vframe_s **)&(node->amlvideo2_pool_ready[0]));
 		node->video_blocking = false;
 		node->tmp_vf = NULL;
@@ -5747,7 +5747,7 @@ static int amlvideo2_receiver_event_fun(int type, void *data,
 	case VFRAME_EVENT_PROVIDER_REG:
 		node->video_blocking = false;
 		vfq_init(&node->q_ready,
-		node->amlvideo2_pool_size + 1,
+		node->amlvideo2_pool_size,
 		(struct vframe_s **)&(node->amlvideo2_pool_ready[0]));
 		break;
 	case VFRAME_EVENT_PROVIDER_UNREG:
@@ -5883,7 +5883,7 @@ static int amlvideo2_create_node(struct platform_device *pdev, int node_id)
 	}
 	if (vid_node->amlvideo2_pool_ready != NULL) {
 		vfq_init(&vid_node->q_ready,
-		vid_node->amlvideo2_pool_size + 1,
+		vid_node->amlvideo2_pool_size,
 		(struct vframe_s **)&(vid_node->amlvideo2_pool_ready[0]));
 	}
 	vid_node->context = create_ge2d_work_queue();
