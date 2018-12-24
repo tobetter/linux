@@ -649,7 +649,6 @@ static ssize_t aml_demod_dbg_store(struct file *file,
 	case 1://cmd
 		switch (dbg_md) {
 		case AML_DBG_DVBC_INIT:
-			Gxtv_Demod_Dvbc_v4_Init();
 			break;
 		case AML_DBG_ATSC_INIT:
 			demod_set_sys_atsc_v4();
