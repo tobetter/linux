@@ -67,7 +67,7 @@
 			size = <0x13400000>;
 			alignment = <0x400000>;
 			linux,contiguous-region;
-			alloc-ranges = <0x12000000 0x13400000>;
+			alloc-ranges = <0x30000000 0x50000000>;
 		};
 
 		/* codec shared reserved */
