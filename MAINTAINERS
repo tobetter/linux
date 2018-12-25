@@ -14577,6 +14577,10 @@ AMLOGIC G12B w400 buildroot dts
 M: 	liangzhuo xie <liangzhuo.xie@amlogic.com>
 F:      arch/arm64/boot/dts/amlogic/g12b_a311d_w400_buildroot.dts
 
+AMLOGIC G12B w411 buildroot dts
+M: 	dianzhong.huo <dianzhong.huo@amlogic.com>
+F:      arch/arm64/boot/dts/amlogic/g12b_a311d_w411_buildroot.dts
+
 AMLOGIC P PARTITION DTSI
 M: Xindong Xu <xindong.xu@amlogic.com>
 F: arch/arm64/boot/dts/amlogic/firmware_avb.dtsi
