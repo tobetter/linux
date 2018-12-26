@@ -831,7 +831,7 @@ static int ad82584f_init(struct snd_soc_codec *codec)
 	udelay(100);
 
 	/* unmute, default power-on is mute. */
-	snd_soc_write(codec, 0x02, 0x00);
+	snd_soc_write(codec, MUTE, 0x00);
 
 	return 0;
 }
