@@ -872,6 +872,23 @@ static void h264_clear_dpb(struct vdec_h264_hw_s *hw);
 /* 0:linear 1:32x32 2:64x32 ; m8baby test1902 */
 static u32 mem_map_mode = H265_MEM_MAP_MODE;
 
+#define MAX_SIZE_8K (8192 * 4608)
+#define MAX_SIZE_4K (4096 * 2304)
+
+static int is_oversize(int w, int h)
+{
+	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)?
+		MAX_SIZE_8K : MAX_SIZE_4K;
+
+	if (w < 0 || h < 0)
+		return true;
+
+	if (h != 0 && (w > max / h))
+		return true;
+
+	return false;
+}
+
 static int  compute_losless_comp_body_size(int width,
 				int height, int bit_depth_10);
 static int  compute_losless_comp_header_size(int width, int height);
@@ -3786,10 +3803,8 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		mb_width = 256;
 	if (mb_width)
 		mb_height = mb_total/mb_width;
-	if (mb_width > 0x110 ||
-		mb_height > 0xa0 ||
-		mb_width <= 0 ||
-		mb_height <= 0) {
+	if (mb_width <= 0 || mb_height <= 0 ||
+		is_oversize(mb_width << 4, mb_height << 4)) {
 		dpb_print(DECODE_ID(hw), 0,
 			"!!!wrong seq_info2 0x%x mb_width/mb_height (0x%x/0x%x) %x\r\n",
 			seq_info2,
