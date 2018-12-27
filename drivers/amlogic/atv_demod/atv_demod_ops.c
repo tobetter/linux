@@ -175,6 +175,8 @@ int atv_demod_leave_mode(struct dvb_frontend *fe)
 	priv->state = ATVDEMOD_STATE_IDEL;
 	priv->standby = true;
 
+	usleep_range(30 * 1000, 30 * 1000 + 100);
+
 	if (priv->afc.disable)
 		priv->afc.disable(&priv->afc);
 
