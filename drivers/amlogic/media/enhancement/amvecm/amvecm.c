@@ -6054,7 +6054,7 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 	}
 	/* init module status */
 	amvecm_wb_init(wb_en);
-	amvecm_gamma_init(gamma_en);
+	amvecm_gamma_init(0);
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (!is_dolby_vision_enable())
 #endif
