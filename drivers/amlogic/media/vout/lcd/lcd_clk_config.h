@@ -70,6 +70,8 @@ struct lcd_clk_data_s {
 	void (*set_spread_spectrum)(unsigned int ss_level);
 	void (*clk_set)(struct lcd_config_s *pconf);
 	void (*clk_gate_switch)(struct aml_lcd_drv_s *lcd_drv, int status);
+	void (*clk_gate_optional_switch)(struct aml_lcd_drv_s *lcd_drv,
+			int status);
 	void (*clktree_probe)(void);
 	void (*clktree_remove)(void);
 	void (*clk_config_init_print)(void);
@@ -106,6 +108,7 @@ struct lcd_clk_config_s { /* unit: kHz */
 
 struct lcd_clktree_s {
 	unsigned char clk_gate_state;
+	unsigned char clk_gate_optional_state;
 
 	struct clk *encl_top_gate;
 	struct clk *encl_int_gate;

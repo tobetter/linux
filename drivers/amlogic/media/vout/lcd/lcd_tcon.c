@@ -563,10 +563,11 @@ void lcd_tcon_disable(void)
 	/* disable over_drive */
 	if (lcd_tcon_data->reg_core_od != REG_LCD_TCON_MAX) {
 		reg = lcd_tcon_data->reg_core_od + TCON_CORE_REG_START;
+		bit = lcd_tcon_data->bit_od_en;
 		if (lcd_tcon_data->core_reg_width == 8)
-			lcd_tcon_write_byte(reg, 0);
+			lcd_tcon_setb_byte(reg, 0, bit, 1);
 		else
-			lcd_tcon_write(reg, 0);
+			lcd_tcon_setb(reg, 0, bit, 1);
 		msleep(100);
 	}
 

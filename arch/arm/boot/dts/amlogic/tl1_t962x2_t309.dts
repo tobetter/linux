@@ -60,6 +60,22 @@
 			alloc-ranges = <0x05000000 0x400000>;
 		};
 
+		logo_reserved:linux,meson-fb {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x800000>;
+			alignment = <0x400000>;
+			alloc-ranges = <0x7f800000 0x800000>;
+		};
+
+		lcd_tcon_reserved:linux,lcd_tcon {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0xc00000>;
+			alignment = <0x400000>;
+			alloc-ranges = <0x7ec00000 0xc00000>;
+		};
+
 		codec_mm_cma:linux,codec_mm_cma {
 			compatible = "shared-dma-pool";
 			reusable;
@@ -76,22 +92,6 @@
 			size = <0x0>;
 			alignment = <0x100000>;
 			//no-map;
-		};
-
-		logo_reserved:linux,meson-fb {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0x800000>;
-			alignment = <0x400000>;
-			alloc-ranges = <0x7f800000 0x800000>;
-		};
-
-		lcd_tcon_reserved:linux,lcd_tcon {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0xc00000>;
-			alignment = <0x400000>;
-			alloc-ranges = <0x71000000 0xc00000>;
 		};
 
 		ion_cma_reserved:linux,ion-dev {

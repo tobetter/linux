@@ -993,8 +993,9 @@ static int lcd_mode_probe(struct device *dev)
 		LCDERR("invalid lcd mode: %d\n", lcd_driver->lcd_mode);
 		break;
 	}
-	if (lcd_driver->data->chip_type == LCD_CHIP_TL1)
-		lcd_tcon_probe(lcd_driver);
+	lcd_tcon_probe(lcd_driver);
+	if (lcd_driver->lcd_status & LCD_STATUS_ENCL_ON)
+		lcd_clk_gate_switch(1);
 
 	lcd_debug_probe();
 	lcd_fops_create();
