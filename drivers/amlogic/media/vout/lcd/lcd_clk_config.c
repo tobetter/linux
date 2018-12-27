@@ -513,12 +513,13 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 {
 #if 1
 	unsigned int pll_ctrl, pll_ctrl1;
-	unsigned int tcon_div_table[5][3] = {
-		{1, 0, 1},
-		{0, 0, 1},
-		{0, 1, 1},
-		{0, 0, 0},
-		{0, 1, 0},
+	unsigned int tcon_div[5][3] = {
+		/* div_mux, div2/4_sel, div4_bypass */
+		{1, 0, 1},  /* div1 */
+		{0, 0, 1},  /* div2 */
+		{0, 1, 1},  /* div4 */
+		{0, 0, 0},  /* div8 */
+		{0, 1, 0},  /* div16 */
 	};
 	unsigned int tcon_div_sel = cConf->pll_tcon_div_sel;
 	int ret;
@@ -526,15 +527,15 @@ static void lcd_set_pll_tl1(struct lcd_clk_config_s *cConf)
 	if (lcd_debug_print_flag == 2)
 		LCDPR("%s\n", __func__);
 	pll_ctrl = ((0x3 << 17) | /* gate ctrl */
-		(tcon_div_table[tcon_div_sel][2] << 16) |
+		(tcon_div[tcon_div_sel][2] << 16) |
 		(cConf->pll_n << LCD_PLL_N_TL1) |
 		(cConf->pll_m << LCD_PLL_M_TL1) |
 		(cConf->pll_od3_sel << LCD_PLL_OD3_TL1) |
 		(cConf->pll_od2_sel << LCD_PLL_OD2_TL1) |
 		(cConf->pll_od1_sel << LCD_PLL_OD1_TL1));
 	pll_ctrl1 = (1 << 28) |
-		(tcon_div_table[tcon_div_sel][0] << 22) |
-		(tcon_div_table[tcon_div_sel][1] << 21) |
+		(tcon_div[tcon_div_sel][0] << 22) |
+		(tcon_div[tcon_div_sel][1] << 21) |
 		((1 << 20) | /* sdm_en */
 		(cConf->pll_frac << 0));
 
@@ -1192,32 +1193,8 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 		break;
 	case LCD_MLVDS:
 		bit_rate = pconf->lcd_control.mlvds_config->bit_rate / 1000;
-		for (tcon_div_sel = 1; tcon_div_sel < 3; tcon_div_sel++) {
-			pll_fvco = bit_rate * tcon_div_table[tcon_div_sel] * 4;
-			done = check_pll_vco(cConf, pll_fvco);
-			if (done) {
-				clk_div_sel = CLK_DIV_SEL_1;
-				cConf->xd_max = CRT_VID_DIV_MAX;
-				for (xd = 1; xd <= cConf->xd_max; xd++) {
-					clk_div_out = cConf->fout * xd;
-					if (clk_div_out >
-						cConf->data->div_out_fmax)
-						continue;
-					if (lcd_debug_print_flag == 2) {
-						LCDPR("fout=%d, xd=%d\n",
-							cConf->fout, xd);
-						LCDPR("clk_div_out=%d\n",
-							clk_div_out);
-					}
-					done = check_pll_od(cConf, pll_fout);
-					if (done)
-						goto generate_clk_done_txl;
-				}
-			}
-		}
-		break;
-	case LCD_P2P:
-		for (tcon_div_sel = 0; tcon_div_sel < 5; tcon_div_sel++) {
+		/* must go through div4 for clk phase */
+		for (tcon_div_sel = 3; tcon_div_sel < 5; tcon_div_sel++) {
 			pll_fvco = bit_rate * tcon_div_table[tcon_div_sel];
 			done = check_pll_vco(cConf, pll_fvco);
 			if (done == 0)
@@ -1236,8 +1213,8 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 					clk_div_sel < CLK_DIV_SEL_MAX;
 					clk_div_sel++) {
 					clk_div_in = clk_vid_pll_div_calc(
-						clk_div_out,
-						clk_div_sel, CLK_DIV_O2I);
+						clk_div_out, clk_div_sel,
+						CLK_DIV_O2I);
 					if (clk_div_in >
 						cConf->data->div_in_fmax)
 						continue;
@@ -1247,13 +1224,11 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 					pll_fout = clk_div_in;
 					if (lcd_debug_print_flag == 2) {
 						LCDPR("clk_div_sel=%s(%d)\n",
-							lcd_clk_div_sel_table[
-								clk_div_sel],
+					lcd_clk_div_sel_table[clk_div_sel],
 							clk_div_sel);
-						LCDPR("pll_fout=%d\n",
-							pll_fout);
-						LCDPR("tcon_div_sel=%d\n",
-							tcon_div_sel);
+						LCDPR(
+					"pll_fout=%d, tcon_div_sel=%d\n",
+							pll_fout, tcon_div_sel);
 					}
 					done = check_pll_od(cConf, pll_fout);
 					if (done)

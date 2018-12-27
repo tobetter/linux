@@ -116,9 +116,9 @@ static struct vbyone_config_s lcd_vbyone_config = {
 };
 
 static struct mlvds_config_s lcd_mlvds_config = {
-	.channel_num = 12,
+	.channel_num = 6,
 	.channel_sel0 = 0x76543210,
-	.channel_sel1 = 0xba98,
+	.channel_sel1 = 0,
 	.clk_phase = 0,
 	.pn_swap = 0,
 	.bit_swap = 0,

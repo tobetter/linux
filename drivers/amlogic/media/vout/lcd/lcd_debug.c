@@ -606,7 +606,6 @@ static void lcd_reg_print_serializer(char *buf, int offset)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-	case LCD_CHIP_TM2:
 		reg0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
 		reg1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
 		break;
@@ -708,6 +707,8 @@ static int lcd_reg_print_lvds(char *buf, int offset)
 	unsigned int reg;
 	int n, len = 0;
 
+	lcd_reg_print_serializer((buf+len), (len+offset));
+
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n, "\nlvds regs:\n");
 	n = lcd_debug_info_len(len + offset);
@@ -725,16 +726,6 @@ static int lcd_reg_print_lvds(char *buf, int offset)
 	len += snprintf((buf+len), n,
 		"LCD_PORT_SWAP   [0x%04x] = 0x%08x\n",
 		reg, lcd_vcbus_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_LVDS_TX_PHY_CNTL0;
-	len += snprintf((buf+len), n,
-		"LVDS_PHY_CNTL0  [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_LVDS_TX_PHY_CNTL1;
-	len += snprintf((buf+len), n,
-		"LVDS_PHY_CNTL1  [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
 
 	return len;
 }
@@ -743,6 +734,8 @@ static int lcd_reg_print_vbyone(char *buf, int offset)
 {
 	unsigned int reg;
 	int n, len = 0;
+
+	lcd_reg_print_serializer((buf+len), (len+offset));
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n, "\nvbyone regs:\n");
@@ -788,11 +781,6 @@ static int lcd_reg_print_vbyone(char *buf, int offset)
 	len += snprintf((buf+len), n,
 		"VX1_INTR_STATE      [0x%04x] = 0x%08x\n",
 		reg, lcd_vcbus_read(reg));
-	n = lcd_debug_info_len(len + offset);
-	reg = HHI_LVDS_TX_PHY_CNTL0;
-	len += snprintf((buf+len), n,
-		"VX1_PHY_CNTL0       [0x%04x] = 0x%08x\n",
-		reg, lcd_hiu_read(reg));
 
 	return len;
 }
@@ -882,6 +870,8 @@ static int lcd_reg_print_mlvds(char *buf, int offset)
 {
 	unsigned int reg;
 	int n, len = 0;
+
+	lcd_reg_print_serializer((buf+len), (len+offset));
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n, "\nmlvds regs:\n");
@@ -993,6 +983,8 @@ static int lcd_reg_print_p2p(char *buf, int offset)
 {
 	unsigned int reg;
 	int n, len = 0;
+
+	lcd_reg_print_serializer((buf+len), (len+offset));
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n, "\np2p regs:\n");
@@ -3630,6 +3622,11 @@ static void lcd_phy_config_update(unsigned int *para, int cnt)
 	unsigned int data32, vswing, preem, ext_pullup;
 	unsigned int rinner_table[] = {0xa, 0xa, 0x6, 0x4};
 
+	if (lcd_drv->data->chip_type == LCD_CHIP_TL1) {
+		LCDPR("%s: not support yet\n", __func__);
+		return;
+	}
+
 	pconf = lcd_drv->lcd_config;
 	type = pconf->lcd_basic.lcd_type;
 	switch (type) {
@@ -3824,31 +3821,30 @@ static ssize_t lcd_phy_debug_show(struct class *class,
 		preem = pconf->lcd_control.lvds_config->phy_preem;
 		clk_vswing = pconf->lcd_control.lvds_config->phy_clk_vswing;
 		clk_preem = pconf->lcd_control.lvds_config->phy_clk_preem;
-		len += sprintf(buf+len, "%s:\n", __func__);
+
 		len += sprintf(buf+len, "vswing=0x%x, preemphasis=0x%x\n",
 			vswing, preem);
-		len += sprintf(buf+len,
-			"clk_vswing=0x%x, clk_preemphasis=0x%x\n",
-			clk_vswing, clk_preem);
+		if (lcd_drv->data->chip_type <= LCD_CHIP_TXLX) {
+			len += sprintf(buf+len,
+				"clk_vswing=0x%x, clk_preemphasis=0x%x\n",
+				clk_vswing, clk_preem);
+		}
 		break;
 	case LCD_VBYONE:
 		vswing = pconf->lcd_control.vbyone_config->phy_vswing;
 		preem = pconf->lcd_control.vbyone_config->phy_preem;
-		len += sprintf(buf+len, "%s:\n", __func__);
 		len += sprintf(buf+len, "vswing=0x%x, preemphasis=0x%x\n",
 			vswing, preem);
 		break;
 	case LCD_MLVDS:
 		vswing = pconf->lcd_control.mlvds_config->phy_vswing;
 		preem = pconf->lcd_control.mlvds_config->phy_preem;
-		len += sprintf(buf+len, "%s:\n", __func__);
 		len += sprintf(buf+len, "vswing=0x%x, preemphasis=0x%x\n",
 			vswing, preem);
 		break;
 	case LCD_P2P:
 		vswing = pconf->lcd_control.p2p_config->phy_vswing;
 		preem = pconf->lcd_control.p2p_config->phy_preem;
-		len += sprintf(buf+len, "%s:\n", __func__);
 		len += sprintf(buf+len, "vswing=0x%x, preemphasis=0x%x\n",
 			vswing, preem);
 		break;
