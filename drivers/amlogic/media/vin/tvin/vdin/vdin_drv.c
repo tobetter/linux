@@ -78,6 +78,8 @@ static unsigned int vdin_addr_offset[VDIN_MAX_DEVS] = {0, 0x80};
 static struct vdin_dev_s *vdin_devp[VDIN_MAX_DEVS];
 static unsigned long mem_start, mem_end;
 static unsigned int use_reserved_mem;
+static int afbc_init_flag;
+static int afbc_write_down_flag;
 /*
  * canvas_config_mode
  * 0: canvas_config in driver probe
@@ -421,10 +423,10 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 		pr_info("[vdin]%s null error.\n", __func__);
 		return;
 	}
+
 	if (devp->frontend && devp->frontend->sm_ops) {
 		sm_ops = devp->frontend->sm_ops;
 		sm_ops->get_sig_property(devp->frontend, &devp->prop);
-
 		if (!(devp->flags & VDIN_FLAG_V4L2_DEBUG))
 			devp->parm.info.cfmt = devp->prop.color_format;
 		if ((devp->parm.dest_width != 0) ||
@@ -447,7 +449,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 			devp->prop.ve = devp->debug.cutwin.ve;
 		}
 	}
-
 	/*gxbb/gxl/gxm use clkb as vdin clk,
 	 *for clkb is low speed,wich is enough for 1080p process,
 	 *gxtvbb/txl use vpu clk for process 4k
@@ -488,7 +489,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXL)
 		vdin_fix_nonstd_vsync(devp);
 
-
     /*reverse / disable reverse write buffer*/
 	vdin_wr_reverse(devp->addr_offset,
 				devp->parm.h_reverse,
@@ -509,6 +509,8 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 		}
 	}
 #endif
+
+	afbc_write_down_flag = 0;
 	/* h_active/v_active will be used by bellow calling */
 	if (devp->afbce_mode == 0) {
 		if (canvas_config_mode == 1)
@@ -519,6 +521,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 		vdin_afbce_maptable_init(devp);
 		vdin_afbce_config(devp);
 	}
+
 #if 0
 	if ((devp->prop.dest_cfmt == TVIN_NV12) ||
 		(devp->prop.dest_cfmt == TVIN_NV21))
@@ -629,6 +632,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	devp->irq_cnt = 0;
 	devp->rdma_irq_cnt = 0;
 	devp->frame_cnt = 0;
+
 	if (time_en)
 		pr_info("vdin.%d start time: %ums, run time:%ums.\n",
 				devp->index, jiffies_to_msecs(jiffies),
@@ -645,6 +649,8 @@ void vdin_start_dec(struct vdin_dev_s *devp)
  */
 void vdin_stop_dec(struct vdin_dev_s *devp)
 {
+	int afbc_write_down_test_times = 7;
+
 	/* avoid null pointer oops */
 	if (!devp || !devp->frontend)
 		return;
@@ -655,13 +661,23 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	}
 #endif
 	disable_irq_nosync(devp->irq);
-	vdin_hw_disable(devp->addr_offset);
+	afbc_init_flag = 0;
+
+	while (++afbc_write_down_flag < afbc_write_down_test_times) {
+		if (vdin_afbce_read_writedown_flag() == 0)
+			usleep_range(5000, 5001);
+		else
+			break;
+	}
+
 	if (!(devp->parm.flag & TVIN_PARM_FLAG_CAP) &&
 		devp->frontend->dec_ops &&
 		devp->frontend->dec_ops->stop &&
 		((devp->parm.port != TVIN_PORT_CVBS3) ||
 		((devp->flags & VDIN_FLAG_SNOW_FLAG) == 0)))
 		devp->frontend->dec_ops->stop(devp->frontend, devp->parm.port);
+
+	vdin_hw_disable(devp->addr_offset);
 
 	vdin_set_default_regmap(devp->addr_offset);
 	/*only for vdin0*/
@@ -679,6 +695,10 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 #endif
 		vf_unreg_provider(&devp->vprov);
 	devp->dv.dv_config = 0;
+
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+		vdin_afbce_hw_disable();
+
 #ifdef CONFIG_CMA
 	if (devp->afbce_mode == 1)
 		vdin_afbce_cma_release(devp);
@@ -686,7 +706,6 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		vdin_cma_release(devp);
 #endif
 	vdin_dolby_addr_release(devp, devp->vfp->size);
-
 
 	switch_vpu_mem_pd_vmod(devp->addr_offset?VPU_VIU_VDIN1:VPU_VIU_VDIN0,
 			VPU_MEM_POWER_DOWN);
@@ -1201,6 +1220,8 @@ static u64 func_div(u64 cur, u32 divid)
 	return cur;
 }
 
+
+
 /*
  *VDIN_FLAG_RDMA_ENABLE=1
  *	provider_vf_put(devp->last_wr_vfe, devp->vfp);
@@ -1250,6 +1271,19 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 	vf_drop_cnt = vdin_drop_cnt;
 
 	offset = devp->addr_offset;
+
+	if (afbc_init_flag == 0) {
+		afbc_init_flag = 1;
+		/*set mem power on*/
+		if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+			vdin_afbce_hw_enable(devp);
+			return IRQ_HANDLED;
+		}
+	} else if (afbc_init_flag == 1) {
+		afbc_init_flag = 2;
+		if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+			return IRQ_HANDLED;
+	}
 
 	isr_log(devp->vfp);
 	devp->irq_cnt++;
@@ -1872,6 +1906,9 @@ static int vdin_open(struct inode *inode, struct file *file)
 		return 0;
 	}
 
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_ON);
+
 	devp->flags |= VDIN_FLAG_FS_OPENED;
 
 	/* request irq */
@@ -1916,6 +1953,9 @@ static int vdin_release(struct inode *inode, struct file *file)
 					__func__, dev_name(devp->dev));
 		return 0;
 	}
+
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_DOWN);
 
 	devp->flags &= (~VDIN_FLAG_FS_OPENED);
 	if (devp->flags & VDIN_FLAG_DEC_STARTED) {

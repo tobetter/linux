@@ -558,6 +558,7 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 	}
 
 	vfs_write(filp, buf_head, devp->afbce_info->frame_head_size, &pos);
+	codec_mm_unmap_phyaddr(buf_head);
 	pr_info("write buffer %2d of %2u head to %s.\n",
 			buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);
@@ -573,6 +574,7 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		return;
 	}
 	vfs_write(filp, buf_table, devp->afbce_info->frame_table_size, &pos);
+	codec_mm_unmap_phyaddr(buf_table);
 	pr_info("write buffer %2d of %2u table to %s.\n",
 		buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);

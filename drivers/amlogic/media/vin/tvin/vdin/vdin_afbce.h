@@ -307,7 +307,10 @@ extern void vdin_afbce_cma_release(struct vdin_dev_s *devp);
 extern void vdin_afbce_config(struct vdin_dev_s *devp);
 extern void vdin_afbce_maptable_init(struct vdin_dev_s *devp);
 extern void vdin_afbce_set_next_frame(struct vdin_dev_s *devp,
-unsigned int rdma_enable, struct vf_entry *vfe);
-
+	unsigned int rdma_enable, struct vf_entry *vfe);
+extern void vdin_afbce_clear_writedown_flag(struct vdin_dev_s *devp);
+extern int vdin_afbce_read_writedown_flag(void);
+extern void vdin_afbce_hw_disable(void);
+extern void vdin_afbce_hw_enable(struct vdin_dev_s *devp);
 #endif
 
