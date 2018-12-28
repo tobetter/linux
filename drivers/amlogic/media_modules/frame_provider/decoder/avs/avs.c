@@ -1620,7 +1620,8 @@ static s32 vavs_init(void)
 	if (firmware_sel == 0)
 		INIT_WORK(&long_cabac_wd_work, long_cabac_do_work);
 #endif
-
+	vdec_source_changed(VFORMAT_AVS,
+					1920, 1080, 30);
 	amvdec_start();
 
 	stat |= STAT_VDEC_RUN;
