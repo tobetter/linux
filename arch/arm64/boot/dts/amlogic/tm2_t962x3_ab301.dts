@@ -1321,7 +1321,7 @@
 
 &audiobus {
 	tdma:tdm@0 {
-		compatible = "amlogic, tl1-snd-tdma";
+		compatible = "amlogic, tm2-snd-tdma";
 		#sound-dai-cells = <0>;
 
 		dai-tdm-lane-slot-mask-in = <1 0>;
