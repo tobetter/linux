@@ -47,9 +47,6 @@
 #define VM_IOC_CONFIG_FRAME  _IOW(VM_IOC_MAGIC, 0X02, unsigned int)
 #define MAX_CANVAS_INDEX 12
 
-#define VM_MAP_NAME_SIZE 100
-#define VM_PROVIDER_NAME_SIZE 10
-
 struct vm_device_s {
 	unsigned int  index;
 	char name[20];
@@ -76,9 +73,6 @@ struct vm_device_s {
 	struct vm_output_para output_para;
 	struct completion vb_start_sema;
 	struct completion vb_done_sema;
-	char vf_provider_name[VM_PROVIDER_NAME_SIZE];
-	char vfm_map_id[VM_MAP_NAME_SIZE];
-	char vfm_map_chain[VM_MAP_NAME_SIZE];
 	int vm_canvas[MAX_CANVAS_INDEX];
 };
 
@@ -95,7 +89,6 @@ struct display_frame_s {
 
 int start_vm_task(struct vm_device_s *vdevp);
 int start_simulate_task(void);
-int alloc_vm_canvas(struct vm_device_s *vdevp);
 
 extern int get_vm_status(void);
 extern void set_vm_status(int flag);

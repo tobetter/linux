@@ -29,7 +29,6 @@
 #include <linux/amlogic/media/vfm/vframe.h>
 #include <linux/amlogic/media/vfm/vframe_provider.h>
 #include <linux/amlogic/media/vfm/vframe_receiver.h>
-#include <linux/amlogic/media/vfm/vfm_ext.h>
 #include <linux/amlogic/media/ge2d/ge2d_cmd.h>
 #include <linux/amlogic/media/ge2d/ge2d.h>
 #include <linux/kthread.h>
@@ -1635,9 +1634,22 @@ static int simulate_task(void *data)
  ***********************************************
  */
 
-int alloc_vm_canvas(struct vm_device_s *vdevp)
+int vm_buffer_init(struct vm_device_s *vdevp)
 {
-	int j;
+	int i, j;
+	u32 canvas_width, canvas_height;
+	u32 decbuf_size;
+	resource_size_t buf_start;
+	unsigned int buf_size;
+	int buf_num = 0;
+	int local_pool_size = 0;
+
+	init_completion(&vdevp->vb_start_sema);
+	init_completion(&vdevp->vb_done_sema);
+
+	buf_start = vdevp->buffer_start;
+	buf_size = vdevp->buffer_size;
+
 	if (vdevp->index == 0) {
 		for (j = 0; j < MAX_CANVAS_INDEX; j++) {
 			memset(&(vdevp->vm_canvas[j]), -1, sizeof(int));
@@ -1659,25 +1671,6 @@ int alloc_vm_canvas(struct vm_device_s *vdevp)
 			}
 		}
 	}
-
-	return 0;
-}
-
-int vm_buffer_init(struct vm_device_s *vdevp)
-{
-	int i;
-	u32 canvas_width, canvas_height;
-	u32 decbuf_size;
-	resource_size_t buf_start;
-	unsigned int buf_size;
-	int buf_num = 0;
-	int local_pool_size = 0;
-
-	init_completion(&vdevp->vb_start_sema);
-	init_completion(&vdevp->vb_done_sema);
-
-	buf_start = vdevp->buffer_start;
-	buf_size = vdevp->buffer_size;
 
 	if (!buf_start || !buf_size)
 		goto exit;
@@ -2016,20 +2009,6 @@ int init_vm_device(struct vm_device_s *vdevp, struct platform_device *pdev)
 	vdevp->task_running = 0;
 	memset(&vdevp->output_para, 0, sizeof(struct vm_output_para));
 	sprintf(vdevp->name, "%s%d", RECEIVER_NAME, vdevp->index);
-	sprintf(vdevp->vf_provider_name, "%s%d", "vdin", vdevp->index);
-
-	snprintf(vdevp->vfm_map_chain, VM_MAP_NAME_SIZE,
-				"%s %s", vdevp->vf_provider_name,
-				vdevp->name);
-	snprintf(vdevp->vfm_map_id, VM_MAP_NAME_SIZE,
-				"vm-map-%d", vdevp->index);
-	if (vfm_map_add(vdevp->vfm_map_id,
-		vdevp->vfm_map_chain) < 0) {
-		pr_err("vm pipeline map creation failed %s.\n",
-			vdevp->vfm_map_id);
-		goto fail_create_dev_file;
-	}
-
 	vf_receiver_init(&vdevp->vm_vf_recv, vdevp->name,
 			&vm_vf_receiver, vdevp);
 
@@ -2204,12 +2183,7 @@ static int vm_driver_probe(struct platform_device *pdev)
 	}
 	vm_device[vdevp->index] = vdevp;
 	vdevp->pdev = pdev;
-	platform_set_drvdata(pdev, vdevp);
-	ret = alloc_vm_canvas(vdevp);
-	if (ret != 0) {
-		pr_err("alloc vm canvas failed\n");
-		return ret;
-	}
+
 	vm_buffer_init(vdevp);
 	ret = init_vm_device(vdevp, pdev);
 	if (ret != 0)
@@ -2227,23 +2201,22 @@ static int vm_driver_probe(struct platform_device *pdev)
 static int vm_drv_remove(struct platform_device *plat_dev)
 {
 	int i;
-	struct vm_device_s *vdevp;
-
-	vdevp = platform_get_drvdata(plat_dev);
 
 	for (i = 0; i < MAX_CANVAS_INDEX; i++) {
-		if ((vdevp != NULL) &&
-			(vdevp->vm_canvas[i] >= 0)) {
+		if ((vm_device[0] != NULL) &&
+			(vm_device[0]->vm_canvas[i] >= 0)) {
 			canvas_pool_map_free_canvas(
-			   vdevp->vm_canvas[i]);
-			memset(&(vdevp->vm_canvas[i]),
+			   vm_device[0]->vm_canvas[i]);
+			memset(&(vm_device[0]->vm_canvas[i]),
 				-1, sizeof(int));
 		}
-	}
-
-	if (vdevp->vfm_map_id[0]) {
-		vfm_map_remove(vdevp->vfm_map_id);
-		vdevp->vfm_map_id[0] = 0;
+		if ((vm_device[1] != NULL) &&
+			(vm_device[1]->vm_canvas[i] >= 0)) {
+			canvas_pool_map_free_canvas(
+			   vm_device[1]->vm_canvas[i]);
+			memset(&(vm_device[1]->vm_canvas[i]),
+				-1, sizeof(int));
+		}
 	}
 
 	uninit_vm_device(plat_dev);
