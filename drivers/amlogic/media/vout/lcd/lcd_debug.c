@@ -2072,15 +2072,15 @@ static ssize_t lcd_debug_power_show(struct class *class,
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	int state;
 
-	if ((lcd_drv->lcd_status & BL_STATE_LCD_ON) == 0) {
+	if ((lcd_drv->lcd_status & LCD_STATUS_ON) == 0) {
 		state = 0;
 	} else {
-		if (lcd_drv->lcd_status & BL_STATE_BL_POWER_ON)
+		if (lcd_drv->lcd_status & LCD_STATUS_IF_ON)
 			state = 1;
 		else
 			state = 0;
 	}
-	return sprintf(buf, "backlight power state: %d\n", state);
+	return sprintf(buf, "lcd power state: %d\n", state);
 }
 
 static ssize_t lcd_debug_power_store(struct class *class,
