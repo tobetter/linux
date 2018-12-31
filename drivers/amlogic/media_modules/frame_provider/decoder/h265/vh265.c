@@ -1648,6 +1648,7 @@ struct hevc_state_s {
 	struct mutex chunks_mutex;
 	int need_cache_size;
 	u64 sc_start_time;
+	u32 skip_first_nal;
 } /*hevc_stru_t */;
 
 #ifdef AGAIN_HAS_THRESHOLD
@@ -8631,10 +8632,15 @@ pic_done:
 		hevc->lcu_size_log2 = log2i(hevc->lcu_size);
 		if (hevc->pic_w == 0 || hevc->pic_h == 0
 						|| hevc->lcu_size == 0
-						|| is_oversize(hevc->pic_w, hevc->pic_h)) {
+						|| is_oversize(hevc->pic_w, hevc->pic_h)
+						||  (!hevc->skip_first_nal &&
+						(hevc->pic_h == 96) && (hevc->pic_w  == 160))) {
 			/* skip search next start code */
 			WRITE_VREG(HEVC_WAIT_FLAG, READ_VREG(HEVC_WAIT_FLAG)
 						& (~0x2));
+			if  ( !hevc->skip_first_nal &&
+				(hevc->pic_h == 96) && (hevc->pic_w  == 160))
+				hevc->skip_first_nal = 1;
 			hevc->skip_flag = 1;
 			WRITE_VREG(HEVC_DEC_STATUS_REG,	HEVC_ACTION_DONE);
 			/* Interrupt Amrisc to excute */
