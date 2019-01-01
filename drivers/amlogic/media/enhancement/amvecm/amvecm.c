@@ -734,6 +734,14 @@ static ssize_t amvecm_vlock_store(struct class *cla,
 		vlock_log_stop();
 	} else if (!strncmp(parm[0], "log_print", 9)) {
 		vlock_log_print();
+	} else if (!strncmp(parm[0], "phase", 5)) {
+		if (kstrtol(parm[1], 10, &val) < 0)
+			return -EINVAL;
+		vlock_set_phase(val);
+	} else if (!strncmp(parm[0], "phaseen", 7)) {
+		if (kstrtol(parm[1], 10, &val) < 0)
+			return -EINVAL;
+		vlock_set_phase_en(val);
 	} else {
 		pr_info("unsupport cmd!!\n");
 	}
@@ -6503,6 +6511,44 @@ static const struct file_operations amvecm_fops = {
 #endif
 	.poll = amvecm_poll,
 };
+
+static const struct vecm_match_data_s vecm_dt_xxx = {
+	.vlk_support = true,
+	.vlk_new_fsm = 0,
+	.vlk_hwver = vlock_hw_org,
+	.vlk_phlock_en = false,
+};
+
+static const struct vecm_match_data_s vecm_dt_tl1 = {
+	.vlk_support = true,
+	.vlk_new_fsm = 1,
+	.vlk_hwver = vlock_hw_ver2,
+	.vlk_phlock_en = true,
+};
+
+static const struct vecm_match_data_s vecm_dt_tm2 = {
+	.vlk_support = true,
+	.vlk_new_fsm = 1,
+	.vlk_hwver = vlock_hw_ver2,
+	.vlk_phlock_en = false,
+};
+
+static const struct of_device_id aml_vecm_dt_match[] = {
+	{
+		.compatible = "amlogic, vecm",
+		.data = &vecm_dt_xxx,
+	},
+	{
+		.compatible = "amlogic, vecm-tl1",
+		.data = &vecm_dt_tl1,
+	},
+	{
+		.compatible = "amlogic, vecm-tm2",
+		.data = &vecm_dt_tm2,
+	},
+	{},
+};
+
 static void aml_vecm_dt_parse(struct platform_device *pdev)
 {
 	struct device_node *node;
@@ -6757,13 +6803,6 @@ static void amvecm_shutdown(struct platform_device *pdev)
 #endif
 	lc_free();
 }
-
-static const struct of_device_id aml_vecm_dt_match[] = {
-	{
-		.compatible = "amlogic, vecm",
-	},
-	{},
-};
 
 static struct platform_driver aml_vecm_driver = {
 	.driver = {
