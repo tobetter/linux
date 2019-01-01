@@ -1017,13 +1017,6 @@
 	};
 };
 
-&i2c2 {
-	status = "disabled";
-	pinctrl-names="default";
-	pinctrl-0=<&i2c2_master_pins2>;
-	clock-frequency = <100000>;
-};
-
 &i2c3 {
 	status = "okay";
 	pinctrl-names="default";
@@ -1360,32 +1353,6 @@
 			pins = "GPIOH_5";
 			function = "gpio_periphs";
 			output-high;
-		};
-	};
-
-	clk12_24_z_pins:clk12_24_z_pins {
-		mux {
-			groups = "clk12_24_z";
-			function = "clk12_24_ee";
-			drive-strength = <3>;
-		};
-	};
-
-	gen_clk_ee_z: gen_clk_ee_z {
-		mux {
-			groups="gen_clk_ee_z";
-			function="gen_clk_ee";
-			drive-strength = <3>;
-		};
-	};
-
-	cam_dvp_pins:cam_dvp_pins {
-		mux {
-			groups = "bt656_a_vs", "bt656_a_hs", "bt656_a_clk",
-				"bt656_a_din0", "bt656_a_din1", "bt656_a_din2",
-				"bt656_a_din3", "bt656_a_din4", "bt656_a_din5",
-				"bt656_a_din6", "bt656_a_din7";
-			function = "bt656";
 		};
 	};
 

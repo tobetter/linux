@@ -14771,19 +14771,6 @@ M:	Yeping Miao <yeping.miao@amlogic.com>
 F:	arch/arm64/boot/dts/amlogic/axg_rsr.dts
 F:	arch/arm64/boot/dts/amlogic/axg_rsr_v03.dts
 
-AMLOGIC CAMERA DRIVER
-M:	Guosong Zhou <guosong.zhou@amlogic.com>
-F:	arch/arm64/boot/dts/amlogic/g12a_s905d2_u200.dts
-F:	arch/arm/boot/dts/amlogic/g12a_s905d2_u200.dts
-F:	arch/arm64/configs/meson64_defconfig
-F:	arch/arm/configs/meson64_a32_defconfig
-F:	drivers/amlogic/media/Kconfig
-F:	drivers/amlogic/media/Makefile
-F:	drivers/amlogic/media/camera/*
-F:	drivers/amlogic/media/common/canvas/canvas_mgr.c
-F:	drivers/amlogic/media/common/vfm/vfm.c
-F:	include/linux/amlogic/media/camera/*
-
 AMLOGIC multimedia
 M:	Pengcheng Chen <pengcheng.chen@amlogic.com>
 F:	drivers/amlogic/media/common/ge2d/ge2d_dmabuf.c

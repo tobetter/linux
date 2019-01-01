@@ -12,4 +12,3 @@ obj-$(CONFIG_AMLOGIC_DTV_DEMOD) += dtv_demod/
 obj-$(CONFIG_AMLOGIC_MEDIA_GDC) += gdc/
 
 obj-$(CONFIG_AMLOGIC_MEDIA_ALGORITHM) += algorithm/
-obj-$(CONFIG_AMLOGIC_VIDEO_CAPTURE) += camera/
