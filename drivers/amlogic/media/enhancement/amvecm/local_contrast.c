@@ -53,8 +53,8 @@ int invalid_blk = 2;
 /*u10,7000/21600=0.324*1024=331 */
 int min_bv_percent_th = 331;
 /*control the refresh speed*/
-int alpha1 = 32;
-int alpha2 = 2;
+int alpha1 = 512;
+int alpha2 = 512;
 int refresh_bit = 12;
 int ts = 6;
 /*need tuning according to real situation ! (0~512)*/
@@ -75,6 +75,31 @@ static bool lc_malloc_ok;
 unsigned int lc_hist_prcnt;
 unsigned int lc_curve_prcnt;
 
+/*lc saturation gain, low parameters*/
+static unsigned int lc_satur_gain[63] = {
+	51, 104, 158, 213, 269, 325, 382, 440, 498,
+	556, 615, 674, 734, 794, 854, 915, 976, 1037,
+	1099, 1161, 1223, 1286, 1348, 1411, 1475, 1538,
+	1602, 1666, 1730, 1795, 1859, 1924, 1989, 2054,
+	2120, 2186, 2251, 2318, 2384, 2450, 2517, 2584,
+	2651, 2718, 2785, 2853, 2921, 2988, 3057, 3125,
+	3193, 3262, 3330, 3399, 3468, 3537, 3607, 3676,
+	3746, 3815, 3885, 3955, 4026
+};
+
+/*lc saturation gain, low parameters*/
+/*
+ *static unsigned int lc_satur_off[63] = {
+ *	64, 128, 192, 256, 320, 384, 448, 512, 576, 640,
+ *	704, 768, 832, 896, 960, 1024, 1088, 1152, 1216,
+ *	1280, 1344, 1408, 1472, 1536, 1600, 1664, 1728,
+ *	1792, 1856, 1920, 1984, 2048, 2112, 2176, 2240,
+ *	2304, 2368, 2432, 2496, 2560, 2624, 2688, 2752,
+ *	2816, 2880, 2944, 3008, 3072, 3136, 3200, 3264,
+ *	3328, 3392, 3456, 3520, 3584, 3648, 3712, 3776,
+ *	3840, 3904, 3968, 4032
+ *};
+ */
 
 /*local contrast begin*/
 static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
@@ -1107,6 +1132,7 @@ void lc_init(void)
 	int h_num, v_num;
 	unsigned int height, width;
 	const struct vinfo_s *vinfo = get_current_vinfo();
+	int i, tmp, tmp1, tmp2;
 
 	height = vinfo->height;
 	width = vinfo->width;
@@ -1142,6 +1168,25 @@ void lc_init(void)
 	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
 	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
 	WRITE_VPP_REG_BITS(LC_CURVE_RAM_CTRL, 0, 0, 1);
+
+	/*default LC low parameters*/
+	WRITE_VPP_REG(LC_CURVE_CONTRAST_LH, 0x000b000b);
+	WRITE_VPP_REG(LC_CURVE_CONTRAST_SCL_LH, 0x000b000b);
+	WRITE_VPP_REG(LC_CURVE_MISC0, 0x00023028);
+	WRITE_VPP_REG(LC_CURVE_YPKBV_RAT, 0x3e69443c);
+	WRITE_VPP_REG(LC_CURVE_YPKBV_SLP_LMT, 0x00000b33);
+	WRITE_VPP_REG(LC_CURVE_YPKBV_YMAXVAL_LMT_0_1, 0x00440088);
+	WRITE_VPP_REG(LC_CURVE_YPKBV_YMAXVAL_LMT_10_11, 0x02d70310);
+
+	for (i = 0; i < 31 ; i++) {
+		tmp1 = *(lc_satur_gain + 2 * i);
+		tmp2 = *(lc_satur_gain + 2 * i + 1);
+		tmp = ((tmp1 & 0xfff)<<16) | (tmp2 & 0xfff);
+		WRITE_VPP_REG(SRSHARP1_LC_SAT_LUT_0_1 + i, tmp);
+	}
+	tmp = (*(lc_satur_gain + 62)) & 0xfff;
+	WRITE_VPP_REG(SRSHARP1_LC_SAT_LUT_62, tmp);
+	/*end*/
 
 	if (set_lc_curve(1, 0))
 		pr_amlc_dbg("%s: init fail", __func__);
