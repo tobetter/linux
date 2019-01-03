@@ -26,7 +26,8 @@
 /*20181101: fix ldim_op_func null mistake, add new spi api support */
 /*20181203: add 50/60hz change & iw7027 error handle support */
 /*20181220: add tl1 support*/
-#define LDIM_DRV_VER    "20181220"
+/*20190103: add analog pwm support*/
+#define LDIM_DRV_VER    "20190103"
 
 extern unsigned char ldim_debug_print;
 

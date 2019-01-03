@@ -979,7 +979,7 @@
 			bl_level_attr = <255 10 /*max, min*/
 				128 128>; /*mid, mid_mapping*/
 			bl_ctrl_method = <3>; /*1=pwm,2=pwm_combo,3=ldim*/
-			bl_power_attr = <0 /*en_gpio_index*/
+			bl_power_attr = <0xff /*en_gpio_index*/
 				1 0  /*on_value, off_value*/
 				200 200>; /*on_delay(ms), off_delay(ms)*/
 			bl_ldim_region_row_col = <1 1>;
@@ -988,6 +988,23 @@
 					     *2=direct
 					     */
 			ldim_dev_index = <1>;
+		};
+		backlight_5{
+			index = <5>;
+			bl_name = "ldim_iw7027";
+			bl_level_default_uboot_kernel = <100 100>;
+			bl_level_attr = <255 10 /*max, min*/
+				128 128>; /*mid, mid_mapping*/
+			bl_ctrl_method = <3>; /*1=pwm,2=pwm_combo,3=ldim*/
+			bl_power_attr = <0 /*en_gpio_index*/
+				1 0  /*on_value, off_value*/
+				200 200>; /*on_delay(ms), off_delay(ms)*/
+			bl_ldim_region_row_col = <1 10>;
+			bl_ldim_mode = <1>; /*0=left/right side
+					     *1=top/bottom side
+					     *2=direct
+					     */
+			ldim_dev_index = <2>;
 		};
 	};
 
