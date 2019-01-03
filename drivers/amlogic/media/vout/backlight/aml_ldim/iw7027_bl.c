@@ -304,7 +304,8 @@ static int iw7027_hw_init_on(void)
 	iw7027_power_on_init();
 
 	/* step 5: supply stable vsync */
-	ldim_set_duty_pwm(&(ldim_drv->ldev_conf->pwm_config));
+	ldim_set_duty_pwm(&(ldim_drv->ldev_conf->ldim_pwm_config));
+	ldim_set_duty_pwm(&(ldim_drv->ldev_conf->analog_pwm_config));
 	ldim_drv->pinmux_ctrl(1);
 
 	/* step 6: delay for system clock and light bar PSU stable */
@@ -336,7 +337,8 @@ static int iw7027_hw_init_off(void)
 	ldim_gpio_set(ldim_drv->ldev_conf->en_gpio,
 		ldim_drv->ldev_conf->en_gpio_off);
 	ldim_drv->pinmux_ctrl(0);
-	ldim_pwm_off(&(ldim_drv->ldev_conf->pwm_config));
+	ldim_pwm_off(&(ldim_drv->ldev_conf->ldim_pwm_config));
+	ldim_pwm_off(&(ldim_drv->ldev_conf->analog_pwm_config));
 
 	return 0;
 }
@@ -648,7 +650,7 @@ static ssize_t iw7027_store(struct class *class,
 	struct aml_ldim_driver_s *ldim_drv = aml_ldim_get_driver();
 	struct iw7027_s *bl = container_of(class, struct iw7027_s, cls);
 	unsigned int val, val2;
-	unsigned char reg_addr, reg_val;
+	unsigned char reg_addr, reg_val, temp;
 	int i;
 
 	if (!strcmp(attr->attr.name, "init")) {
@@ -663,6 +665,10 @@ static ssize_t iw7027_store(struct class *class,
 				reg_addr = (unsigned char)val;
 				reg_val = (unsigned char)val2;
 				iw7027_wreg(bl->spi, reg_addr, reg_val);
+				iw7027_rreg(bl->spi, reg_addr, &temp);
+				pr_info(
+				"reg 0x%02x = 0x%02x, readback 0x%02x\n",
+					reg_addr, reg_val, temp);
 				mutex_unlock(&iw7027_spi_mutex);
 			} else {
 				LDIMERR("%s: invalid args\n", __func__);

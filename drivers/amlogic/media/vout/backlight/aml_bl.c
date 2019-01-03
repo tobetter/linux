@@ -330,15 +330,6 @@ static void bl_gpio_set(int index, int value)
 	}
 }
 
-static inline unsigned int bl_do_div(unsigned long long num, unsigned int den)
-{
-	unsigned long long ret = num;
-
-	do_div(ret, den);
-
-	return (unsigned int)ret;
-}
-
 /* ****************************************************** */
 #define BL_PINMUX_MAX    8
 static char *bl_pinmux_str[BL_PINMUX_MAX] = {
@@ -2865,11 +2856,11 @@ static ssize_t bl_debug_pwm_show(struct class *class,
 	return len;
 }
 
-#define BL_DEBUG_PWM_FREQ    0
-#define BL_DEBUG_PWM_DUTY    1
-#define BL_DEBUG_PWM_POL     2
-#define BL_DEBUG_PWM_DUTY_MAX 3
-#define BL_DEBUG_PWM_DUTY_MIN 4
+#define BL_DEBUG_PWM_FREQ       0
+#define BL_DEBUG_PWM_DUTY       1
+#define BL_DEBUG_PWM_POL        2
+#define BL_DEBUG_PWM_DUTY_MAX   3
+#define BL_DEBUG_PWM_DUTY_MIN   4
 static void bl_debug_pwm_set(unsigned int index, unsigned int value, int state)
 {
 	struct bl_config_s *bconf = bl_drv->bconf;

@@ -25,7 +25,9 @@
 /*20180820: pq tooling support, espically optimize some alg parameters */
 /*20181101: fix ldim_op_func null mistake, add new spi api support */
 /*20181203: add 50/60hz change & iw7027 error handle support */
-#define LDIM_DRV_VER    "20181203"
+/*20181220: add tl1 support*/
+/*20190103: add analog pwm support*/
+#define LDIM_DRV_VER    "20190103"
 
 extern unsigned char ldim_debug_print;
 

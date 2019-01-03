@@ -197,5 +197,14 @@ extern void bl_pwm_ctrl(struct bl_pwm_config_s *bl_pwm, int status);
 #define BL_GPIO_OUTPUT_HIGH		1
 #define BL_GPIO_INPUT			2
 
+static inline unsigned int bl_do_div(unsigned long long num, unsigned int den)
+{
+	unsigned long long ret = num;
+
+	do_div(ret, den);
+
+	return (unsigned int)ret;
+}
+
 #endif
 
