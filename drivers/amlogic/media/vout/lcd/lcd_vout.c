@@ -1420,8 +1420,12 @@ static int lcd_remove(struct platform_device *pdev)
 
 static int lcd_resume(struct platform_device *pdev)
 {
+	if (lcd_debug_print_flag)
+		LCDPR("resume method: %d\n", get_resume_method());
+
 	if ((get_resume_method() == RTC_WAKEUP) ||
-		(get_resume_method() == AUTO_WAKEUP))
+		(get_resume_method() == AUTO_WAKEUP) ||
+		(get_resume_method() == UDEFINED_WAKEUP))
 		return 0;
 
 	if ((lcd_driver->lcd_status & LCD_STATUS_VMODE_ACTIVE) == 0)
