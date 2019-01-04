@@ -3391,8 +3391,7 @@ static void avs2_config_work_space_hw(struct AVS2Decoder_s *dec)
 #if 1
 /*MULTI_INSTANCE_SUPPORT*/
 	/*new added in simulation???*/
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXLX2)
-		WRITE_VREG(HEVC_MPRED_ABV_START_ADDR, buf_spec->mpred_above.buf_start);
+	WRITE_VREG(HEVC_MPRED_ABV_START_ADDR, buf_spec->mpred_above.buf_start);
 #endif
 }
 
