@@ -135,9 +135,6 @@ enum pq_table_name_e {
 	TABLE_NAME_MAX,
 };
 
-/*check pq_table length copy_from_user*/
-#define PQ_TABLE_MAX_LENGTH		10000
-
 #define _VE_CM  'C'
 
 #define AMVECM_IOC_G_HIST_AVG   _IOW(_VE_CM, 0x22, struct ve_hist_s)
@@ -296,11 +293,23 @@ enum ve_source_input_e {
 	SOURCE_MAX,
 };
 
+/*pq_timing:
+ *SD/HD/FHD/UHD for DTV/MEPG,
+ *NTST_M/NTST_443/PAL_I/PAL_M/PAL_60/PAL_CN/SECAM/NTST_50 for AV/ATV
+ */
 enum ve_pq_timing_e {
 	TIMING_SD = 0,
 	TIMING_HD,
 	TIMING_FHD,
 	TIMING_UHD,
+	TIMING_NTST_M,
+	TIMING_NTST_443,
+	TIMING_PAL_I,
+	TIMING_PAL_M,
+	TIMING_PAL_60,
+	TIMING_PAL_CN,
+	TIMING_SECAM,
+	TIMING_NTSC_50,
 	TIMING_MAX,
 };
 
@@ -401,6 +410,8 @@ static inline uint32_t READ_VPP_REG_BITS(uint32_t reg,
 extern signed int vd1_brightness, vd1_contrast;
 extern bool gamma_en;
 extern unsigned int hdr_source_type;
+extern unsigned int atv_source_flg;
+
 
 #define CSC_FLAG_TOGGLE_FRAME	1
 #define CSC_FLAG_CHECK_OUTPUT	2

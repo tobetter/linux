@@ -117,7 +117,7 @@ static unsigned int pre_hist_height, pre_hist_width;
 static unsigned int pc_mode = 0xff;
 static unsigned int pc_mode_last = 0xff;
 static struct hdr_metadata_info_s vpp_hdr_metadata_s;
-
+unsigned int atv_source_flg;
 /*bit0: brightness
  *bit1: brightness2
  *bit2: saturation_hue
@@ -1303,6 +1303,41 @@ static int gamma_table_compare(struct tcon_gamma_table_s *table1,
 	return flag;
 }
 
+static void parse_overscan_table(unsigned int length,
+	struct ve_pq_table_s *amvecm_pq_load_table)
+{
+	unsigned int i;
+	unsigned int offset = TIMING_UHD + 1;
+
+	memset(overscan_table, 0, sizeof(overscan_table));
+	for (i = 0; i < length; i++) {
+		overscan_table[i].load_flag =
+			(amvecm_pq_load_table[i].src_timing >> 31) & 0x1;
+		overscan_table[i].afd_enable =
+			(amvecm_pq_load_table[i].src_timing >> 30) & 0x1;
+		overscan_table[i].screen_mode =
+			(amvecm_pq_load_table[i].src_timing >> 24) & 0x3f;
+		overscan_table[i].source =
+			(amvecm_pq_load_table[i].src_timing >> 16) & 0xff;
+		overscan_table[i].timing =
+			amvecm_pq_load_table[i].src_timing & 0xffff;
+		overscan_table[i].hs =
+			amvecm_pq_load_table[i].value1 & 0xffff;
+		overscan_table[i].he =
+			(amvecm_pq_load_table[i].value1 >> 16) & 0xffff;
+		overscan_table[i].vs =
+			amvecm_pq_load_table[i].value2 & 0xffff;
+		overscan_table[i].ve =
+				(amvecm_pq_load_table[i].value2 >> 16) & 0xffff;
+	}
+	/*because SOURCE_TV is 0,so need to add a flg to check ATV*/
+	if ((overscan_table[offset].load_flag == 1) &&
+		(overscan_table[offset].source == SOURCE_TV))
+		atv_source_flg = 1;
+	else
+		atv_source_flg = 0;
+}
+
 static long amvecm_ioctl(struct file *file,
 		unsigned int cmd, unsigned long arg)
 {
@@ -1311,7 +1346,6 @@ static long amvecm_ioctl(struct file *file,
 	unsigned int mem_size;
 	struct ve_pq_load_s vpp_pq_load;
 	struct ve_pq_table_s *vpp_pq_load_table = NULL;
-	int i = 0;
 	enum color_primary_e color_pri;
 
 	if (debug_amvecm & 2)
@@ -1494,7 +1528,8 @@ static long amvecm_ioctl(struct file *file,
 			break;
 		}
 		/*check pq_table length copy_from_user*/
-		if (vpp_pq_load.length > PQ_TABLE_MAX_LENGTH) {
+		if ((vpp_pq_load.length > TIMING_MAX) ||
+			(vpp_pq_load.length <= 0))  {
 			ret = -EFAULT;
 			pr_amvecm_dbg("[amvecm..] pq ioctl length check fail!!\n");
 			break;
@@ -1511,28 +1546,7 @@ static long amvecm_ioctl(struct file *file,
 			pr_amvecm_dbg("[amvecm..] ovescan copy fail!!\n");
 			break;
 		}
-		for (i = 0; i < vpp_pq_load.length; i++) {
-			if (i >= TIMING_MAX)
-				break;
-			overscan_table[i].load_flag =
-				(vpp_pq_load_table[i].src_timing >> 31) & 0x1;
-			overscan_table[i].afd_enable =
-				(vpp_pq_load_table[i].src_timing >> 30) & 0x1;
-			overscan_table[i].screen_mode =
-				(vpp_pq_load_table[i].src_timing >> 24) & 0x3f;
-			overscan_table[i].source =
-				(vpp_pq_load_table[i].src_timing >> 16) & 0xff;
-			overscan_table[i].timing =
-				vpp_pq_load_table[i].src_timing & 0xffff;
-			overscan_table[i].hs =
-				vpp_pq_load_table[i].value1 & 0xffff;
-			overscan_table[i].he =
-				(vpp_pq_load_table[i].value1 >> 16) & 0xffff;
-			overscan_table[i].vs =
-				vpp_pq_load_table[i].value2 & 0xffff;
-			overscan_table[i].ve =
-				(vpp_pq_load_table[i].value2 >> 16) & 0xffff;
-		}
+		parse_overscan_table(vpp_pq_load.length, vpp_pq_load_table);
 		break;
 	case AMVECM_IOC_G_DNLP_STATE:
 		if (copy_to_user((void __user *)arg,
@@ -4855,7 +4869,7 @@ static ssize_t amvecm_debug_store(struct class *cla,
 {
 	char *buf_orig, *parm[8] = {NULL};
 	long val = 0;
-	unsigned int mode_sel, color, color_mode;
+	unsigned int mode_sel, color, color_mode, i;
 
 	if (!buf)
 		return count;
@@ -5255,9 +5269,18 @@ static ssize_t amvecm_debug_store(struct class *cla,
 			cm_luma_bri_con(rd, bri, con, blk_lel);
 			pr_info("cm hist bri_con set success\n");
 		}
-	} else {
+	} else if (!strcmp(parm[0], "dump_overscan_table")) {
+		for (i = 0; i < TIMING_MAX; i++) {
+			pr_info("*****dump overscan_tab[%d]*****\n", i);
+			pr_info("hs:%d, he:%d, vs:%d, ve:%d, screen_mode:%d, afd:%d, flag:%d.\n",
+				overscan_table[i].hs, overscan_table[i].he,
+				overscan_table[i].vs, overscan_table[i].ve,
+				overscan_table[i].screen_mode,
+				overscan_table[i].afd_enable,
+				overscan_table[i].load_flag);
+		}
+	} else
 		pr_info("unsupport cmd\n");
-	}
 
 	kfree(buf_orig);
 	return count;
