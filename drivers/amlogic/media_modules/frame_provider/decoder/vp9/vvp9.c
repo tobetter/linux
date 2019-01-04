@@ -5232,10 +5232,9 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 			WRITE_VREG(HEVC_DBLK_CFGE, buf_spec->dblk_para.buf_start);
 			if (debug & VP9_DEBUG_BUFMGR_MORE)
 				pr_info("Write HEVC_DBLK_CFGE\n");
-		} else {
-			/* cfg_p_addr */
-			WRITE_VREG(HEVC_DBLK_CFG4, buf_spec->dblk_para.buf_start);
 		}
+		/* cfg_p_addr */
+		WRITE_VREG(HEVC_DBLK_CFG4, buf_spec->dblk_para.buf_start);
 		/* cfg_d_addr */
 		WRITE_VREG(HEVC_DBLK_CFG5, buf_spec->dblk_data.buf_start);
 
