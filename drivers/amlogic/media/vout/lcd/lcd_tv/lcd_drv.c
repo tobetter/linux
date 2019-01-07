@@ -345,16 +345,16 @@ static void lcd_mlvds_control_set(struct lcd_config_s *pconf)
 	}
 
 	/* fifo_clk_sel[7:6]: 0=div6, 1=div 7, 2=div8, 3=div10 */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0, (div_sel << 6));
+	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL0_TL1, (div_sel << 6));
 	/* serializer_en[27:16] */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0, 0xfff, 16, 12);
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0_TL1, 0xfff, 16, 12);
 	/* pn swap[2] */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0, 1, 2, 1);
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL0_TL1, 1, 2, 1);
 
 	/* fifo enable[30], phy_clock gating[24] */
-	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1, (1 << 30) | (1 << 24));
+	lcd_hiu_write(HHI_LVDS_TX_PHY_CNTL1_TL1, (1 << 30) | (1 << 24));
 	/* fifo write enable[31] */
-	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1, 1, 31, 1);
+	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1_TL1, 1, 31, 1);
 
 	/* channel swap default no swap */
 	channel_sel0 = pconf->lcd_control.mlvds_config->channel_sel0;
