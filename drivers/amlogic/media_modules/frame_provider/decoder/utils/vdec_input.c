@@ -937,6 +937,11 @@ int vdec_input_add_frame(struct vdec_input_s *input, const char *buf,
 				(size_t)drm.drm_pktsize, drm.handle);
 			count -= sizeof(struct drm_info);
 			ret += sizeof(struct drm_info);
+
+			/* the drm frame data might include head infos and raw */
+			/* data thus the next drm unit still need a valid pts.*/
+			if (count >= sizeof(struct drm_info))
+				vdec->pts_valid = true;
 		}
 	} else {
 		ret = vdec_input_add_chunk(input, buf, count, 0);
