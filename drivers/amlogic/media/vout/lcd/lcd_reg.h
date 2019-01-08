@@ -211,8 +211,7 @@
 #define HHI_DIF_TCON_CNTL0                         0x3c
 #define HHI_DIF_TCON_CNTL1                         0x3d
 #define HHI_DIF_TCON_CNTL2                         0x3e
-#define HHI_TCON_CLK_CNTL                          0xf0
-#define HHI_TCON_CLK_CNTL_TL1                      0x9c
+#define HHI_TCON_CLK_CNTL                          0x9c
 
 /*  Global control:  RESET_CBUS_BASE = 0x11 */
 #define VERSION_CTRL                               0x1100

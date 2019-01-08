@@ -280,13 +280,13 @@ static int lcd_info_print_ttl(char *buf, int offset)
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
 		"clk_pol         %u\n"
-		"hvsync_valid    %u\n"
 		"de_valid        %u\n"
+		"hvsync_valid    %u\n"
 		"rb_swap         %u\n"
 		"bit_swap        %u\n\n",
 		pconf->lcd_control.ttl_config->clk_pol,
-		((pconf->lcd_control.ttl_config->sync_valid >> 0) & 1),
 		((pconf->lcd_control.ttl_config->sync_valid >> 1) & 1),
+		((pconf->lcd_control.ttl_config->sync_valid >> 0) & 1),
 		((pconf->lcd_control.ttl_config->swap_ctrl >> 1) & 1),
 		((pconf->lcd_control.ttl_config->swap_ctrl >> 0) & 1));
 
@@ -464,6 +464,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
+		"p2p_type          0x%x\n"
 		"lane_num          %d\n"
 		"channel_sel1      0x%08x\n"
 		"channel_sel1      0x%08x\n"
@@ -966,7 +967,7 @@ static int lcd_reg_print_p2p(char *buf, int offset)
 	len += snprintf((buf+len), n, "\np2p regs:\n");
 
 	n = lcd_debug_info_len(len + offset);
-	reg = HHI_TCON_CLK_CNTL_TL1;
+	reg = HHI_TCON_CLK_CNTL;
 	len += snprintf((buf+len), n,
 		"HHI_TCON_CLK_CNTL   [0x%04x] = 0x%08x\n",
 		reg, lcd_hiu_read(reg));
@@ -2036,7 +2037,7 @@ static ssize_t lcd_debug_change_store(struct class *class,
 		break;
 	case 'p':
 		p2p_conf = pconf->lcd_control.p2p_config;
-		ret = sscanf(buf, "p2p %d %x %x %x %d %d",
+		ret = sscanf(buf, "p2p %x %d %x %x %d %d",
 			&val[0], &val[1], &val[2], &val[3], &val[4], &val[5]);
 		if (ret == 6) {
 			p2p_conf->lane_num = val[0];
@@ -2046,7 +2047,7 @@ static ssize_t lcd_debug_change_store(struct class *class,
 			p2p_conf->pn_swap = val[4];
 			p2p_conf->bit_swap = val[5];
 			pr_info("change p2p config:\n"
-				"lane_num=%d,\n"
+				"p2p_type=0x%x, lane_num=%d,\n"
 				"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 				"clk_phase=0x%04x,\n"
 				"pn_swap=%d, bit_swap=%d\n",
@@ -3092,10 +3093,11 @@ static const char *lcd_mlvds_debug_usage_str = {
 
 static const char *lcd_p2p_debug_usage_str = {
 "Usage:\n"
-"    echo <lane_num> <channel_sel0> <channel_sel1> <clk_phase> <pn_swap> <bit_swap> > minilvds ; set minilvds config\n"
+"    echo <p2p_type> <lane_num> <channel_sel0> <channel_sel1> <pn_swap> <bit_swap> > p2p ; set p2p config\n"
 "data format:\n"
-"    <channel_sel> : minilvds 8 channels mapping in tx 10 channels\n"
-"    <clk_phase>   : bit[13:12]=clk01_pi_sel, bit[11:8]=pi2, bit[7:4]=pi1, bit[3:0]=pi0\n"
+"    <p2p_type>    : 0x0=ceds, 0x1=cmpi, 0x2=isp, 0x3=epi,\n"
+"                    0x10=chpi, 0x11=cspi, 0x12=usit\n"
+"    <channel_sel> : 12 channels mapping\n"
 "    <pn_swap>     : 0=normal, 1=swap p/n channels\n"
 "    <bit_swap>    : 0=normal, 1=swap bit LSB/MSB\n"
 "\n"
@@ -3126,37 +3128,128 @@ static const char *lcd_debug_tcon_usage_str = {
 static ssize_t lcd_ttl_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_ttl_debug_usage_str);
+	int len = 0;
+
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct ttl_config_s *ttl_conf;
+
+	ttl_conf = lcd_drv->lcd_config->lcd_control.ttl_config;
+
+	len += sprintf(buf+len,
+		"ttl config: clk_pol=%d, de_valid=%d, hvsync_valid=%d,",
+		ttl_conf->clk_pol,
+		(ttl_conf->sync_valid >> 1) & 0x1,
+		(ttl_conf->sync_valid >> 0) & 0x1);
+	len += sprintf(buf+len, "rb_swap=%d, bit_swap=%d\n\n",
+		(ttl_conf->swap_ctrl >> 1) & 0x1,
+		(ttl_conf->swap_ctrl >> 0) & 0x1);
+	len += sprintf(buf+len, "%s\n", lcd_ttl_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_lvds_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_lvds_debug_usage_str);
+	int len = 0;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct lvds_config_s *lvds_conf;
+
+	lvds_conf = lcd_drv->lcd_config->lcd_control.lvds_config;
+
+	len += sprintf(buf+len, "lvds config: repack=%d, dual_port=%d,",
+		lvds_conf->lvds_repack, lvds_conf->dual_port);
+	len += sprintf(buf+len, "pn_swap=%d, port_swap=%d, lane_reverse=%d\n\n",
+		lvds_conf->pn_swap, lvds_conf->port_swap,
+		lvds_conf->lane_reverse);
+	len += sprintf(buf+len, "%s\n", lcd_lvds_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_vx1_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_vbyone_debug_usage_str);
+	int len = 0;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct vbyone_config_s *vx1_conf;
+
+	vx1_conf = lcd_drv->lcd_config->lcd_control.vbyone_config;
+
+	len += sprintf(buf+len, "vbyone config: lane_count=%d,",
+		vx1_conf->lane_count);
+	len += sprintf(buf+len, "region_num=%d, byte_mode=%d\n\n",
+		vx1_conf->region_num, vx1_conf->byte_mode);
+	len += sprintf(buf+len, "%s\n", lcd_vbyone_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_mipi_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_mipi_debug_usage_str);
+	int len = 0;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct dsi_config_s *dsi_conf;
+
+	dsi_conf = lcd_drv->lcd_config->lcd_control.mipi_config;
+
+	len += sprintf(buf+len, "mipi_dsi config: lane_num=%d, ",
+		dsi_conf->lane_num);
+	len += sprintf(buf+len, "bit_rate_max=%dMhz, factor_numerator=%d, ",
+		dsi_conf->bit_rate_max, dsi_conf->factor_numerator);
+	len += sprintf(buf+len,
+		"operation_mode_init=%d, operation_mode_display=%d, ",
+		dsi_conf->operation_mode_init,
+		dsi_conf->operation_mode_display);
+	len += sprintf(buf+len,
+		"video_mode_type=%d, clk_always_hs=%d, phy_switch=%d\n\n",
+		dsi_conf->video_mode_type, dsi_conf->clk_always_hs,
+		dsi_conf->phy_switch);
+	len += sprintf(buf+len, "%s\n", lcd_mipi_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_mlvds_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_mlvds_debug_usage_str);
+	int len = 0;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct mlvds_config_s *mlvds_conf;
+
+	mlvds_conf = lcd_drv->lcd_config->lcd_control.mlvds_config;
+
+	len += sprintf(buf+len, "minilvds config: channel_num=%d, ",
+		mlvds_conf->channel_num);
+	len += sprintf(buf+len, "channel_sel0=0x%08x, channel_sel1=0x%08x, ",
+		mlvds_conf->channel_sel0, mlvds_conf->channel_sel1);
+	len += sprintf(buf+len, "clk_phase=0x%04x, pn_swap=%d, bit_swap=%d\n\n",
+		mlvds_conf->clk_phase,
+		mlvds_conf->pn_swap, mlvds_conf->bit_swap);
+	len += sprintf(buf+len, "%s\n", lcd_mlvds_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_p2p_debug_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", lcd_p2p_debug_usage_str);
+	int len = 0;
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	struct p2p_config_s *p2p_conf;
+
+	p2p_conf = lcd_drv->lcd_config->lcd_control.p2p_config;
+
+	len += sprintf(buf+len, "p2p config: p2p_type=0x%x, lane_num=%d, ",
+		p2p_conf->p2p_type, p2p_conf->lane_num);
+	len += sprintf(buf+len, "channel_sel0=0x%08x, channel_sel1=0x%08x, ",
+		p2p_conf->channel_sel0, p2p_conf->channel_sel1);
+	len += sprintf(buf+len, "pn_swap=%d, bit_swap=%d\n\n",
+		p2p_conf->pn_swap, p2p_conf->bit_swap);
+	len += sprintf(buf+len, "%s\n", lcd_p2p_debug_usage_str);
+
+	return len;
 }
 
 static ssize_t lcd_tcon_debug_show(struct class *class,
@@ -3178,7 +3271,7 @@ static ssize_t lcd_ttl_debug_store(struct class *class,
 		&temp[0], &temp[1], &temp[2], &temp[3], &temp[4]);
 	if (ret == 5) {
 		pr_info("set ttl config:\n"
-			"clk_pol=%d, de_valid=%d, de_valid=%d\n"
+			"clk_pol=%d, de_valid=%d, hvsync_valid=%d\n"
 			"rb_swap=%d, bit_swap=%d\n",
 			temp[0], temp[1], temp[2], temp[3], temp[4]);
 		ttl_conf->clk_pol = temp[0];
@@ -3400,14 +3493,13 @@ static ssize_t lcd_p2p_debug_store(struct class *class,
 	struct p2p_config_s *p2p_conf;
 
 	p2p_conf = lcd_drv->lcd_config->lcd_control.p2p_config;
-	ret = sscanf(buf, "%d %x %x %x %d %d",
-		&p2p_conf->lane_num,
+	ret = sscanf(buf, "%x %d %x %x %d %d",
+		&p2p_conf->p2p_type, &p2p_conf->lane_num,
 		&p2p_conf->channel_sel0, &p2p_conf->channel_sel1,
-		&p2p_conf->clk_phase,
 		&p2p_conf->pn_swap, &p2p_conf->bit_swap);
 	if (ret == 6) {
-		pr_info("set minilvds config:\n"
-			"lane_num=%d,\n"
+		pr_info("set p2p config:\n"
+			"p2p_type=0x%x, lane_num=%d,\n"
 			"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 			"clk_phase=0x%04x,\n"
 			"pn_swap=%d, bit_swap=%d\n",

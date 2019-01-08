@@ -690,10 +690,6 @@ static void lcd_set_tcon_clk(struct lcd_config_s *pconf)
 	switch (pconf->lcd_basic.lcd_type) {
 	case LCD_MLVDS:
 	case LCD_P2P:
-		/* tcon_clk 50M */
-		/*lcd_hiu_write(HHI_TCON_CLK_CNTL,
-		 *	(1 << 7) | (1 << 6) | (7 << 0));
-		 */
 		if (!IS_ERR_OR_NULL(lcd_clktree.tcon_clk)) {
 			clk_set_rate(lcd_clktree.tcon_clk, 50000000);
 			clk_prepare_enable(lcd_clktree.tcon_clk);
