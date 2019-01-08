@@ -68,6 +68,7 @@
 #include <linux/amlogic/media/frame_sync/ptsserv.h>
 #include "secprot.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
+#include "frame_check.h"
 
 static DEFINE_MUTEX(vdec_mutex);
 
@@ -88,7 +89,6 @@ static unsigned int clk_config;
 static unsigned int debug;
 
 static int hevc_max_reset_count;
-#define MAX_INSTANCE_MUN  9
 
 static int no_powerdown;
 static int parallel_decode = 1;
@@ -1608,6 +1608,52 @@ static const char *get_dev_name(bool use_legacy_vdec, int format)
 #endif
 }
 
+struct vdec_s *vdec_get_with_id(unsigned id)
+{
+	struct vdec_s *vdec, *ret_vdec = NULL;
+	struct vdec_core_s *core = vdec_core;
+	unsigned long flags;
+
+	if (id >= MAX_INSTANCE_MUN)
+		return NULL;
+
+	flags = vdec_core_lock(vdec_core);
+	if (!list_empty(&core->connected_vdec_list)) {
+		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
+			if (vdec->id == id) {
+				pr_info("searched avaliable vdec connected, id = %d\n", id);
+				ret_vdec = vdec;
+				break;
+			}
+		}
+	}
+	vdec_core_unlock(vdec_core, flags);
+
+	return ret_vdec;
+}
+
+void *vdec_get_active_vfc(int core_mask)
+{
+	void *p = NULL;
+	struct vdec_s *vdec = vdec_core->last_vdec;
+
+	if (vdec_core->parallel_dec == 1) {
+		if (core_mask & CORE_MASK_VDEC_1)
+			vdec = vdec_core->active_vdec;
+		else if (core_mask & CORE_MASK_HEVC)
+			vdec = vdec_core->active_hevc;
+		else
+			vdec = vdec_core->last_vdec;
+	}
+
+	if (vdec == NULL)
+		return NULL;
+
+	p = &vdec->vfc;
+
+	return p;
+}
+
 /*
  *register vdec_device
  * create output, vfm or create ionvideo output
@@ -1666,6 +1712,12 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		id = vdec->id;
 	p->parallel_dec = parallel_decode;
 	vdec_core->parallel_dec = parallel_decode;
+	vdec->canvas_mode = CANVAS_BLKMODE_32X32;
+#ifdef FRAME_CHECK
+	if (vdec_single(vdec))
+		vdec_core->last_vdec = vdec;
+	vdec_frame_check_init(vdec);
+#endif
 	p->dev = platform_device_register_data(
 				&vdec_core->vdec_core_platform_device->dev,
 				dev_name,
@@ -1903,6 +1955,11 @@ void vdec_release(struct vdec_s *vdec)
 		|| (atomic_read(&vdec->inirq_thread_flag) > 0))
 		schedule();
 
+#ifdef FRAME_CHECK
+	vdec_frame_check_exit(vdec);
+	if (vdec_single(vdec))
+		vdec_core->active_vdec = NULL;
+#endif
 	platform_device_unregister(vdec->dev);
 	pr_debug("vdec_release instance %p, total %d\n", vdec,
 		atomic_read(&vdec_core->vdec_nr));
@@ -4018,6 +4075,12 @@ static struct class_attribute vdec_class_attrs[] = {
 #ifdef VDEC_DEBUG_SUPPORT
 	__ATTR(debug, S_IRUGO | S_IWUSR | S_IWGRP,
 	show_debug, store_debug),
+#endif
+#ifdef FRAME_CHECK
+	__ATTR(dump_yuv, S_IRUGO | S_IWUSR | S_IWGRP,
+	dump_yuv_show, dump_yuv_store),
+	__ATTR(frame_check, S_IRUGO | S_IWUSR | S_IWGRP,
+	frame_check_show, frame_check_store),
 #endif
 	__ATTR_NULL
 };

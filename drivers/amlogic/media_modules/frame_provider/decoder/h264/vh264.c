@@ -242,6 +242,8 @@ static u32 max_refer_buf = 1;
 static u32 decoder_force_reset;
 static unsigned int no_idr_error_count;
 static unsigned int no_idr_error_max = 60;
+static unsigned int canvas_mode;
+
 #ifdef SUPPORT_BAD_MACRO_BLOCK_REDUNDANCY
 /* 0~128*/
 static u32 bad_block_scale;
@@ -327,6 +329,7 @@ static DEFINE_SPINLOCK(recycle_lock);
 static bool block_display_q;
 static int vh264_stop(int mode);
 static s32 vh264_init(void);
+
 
 #define DFS_HIGH_THEASHOLD 3
 
@@ -426,16 +429,19 @@ static inline int fifo_level(void)
 void spec_set_canvas(struct buffer_spec_s *spec,
 		unsigned int width, unsigned int height)
 {
-	canvas_config(spec->y_canvas_index,
+	int endian;
+
+	endian = (canvas_mode == CANVAS_BLKMODE_LINEAR)?7:0;
+	canvas_config_ex(spec->y_canvas_index,
 			spec->y_addr,
 			width, height,
-			CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
+			CANVAS_ADDR_NOWRAP, canvas_mode, endian);
 
-	canvas_config(spec->u_canvas_index,
-				  spec->u_addr,
-				  width, height / 2,
-				  CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_32X32);
-	return;
+	canvas_config_ex(spec->u_canvas_index,
+			spec->u_addr,
+			width, height / 2,
+			CANVAS_ADDR_NOWRAP, canvas_mode, endian);
+
 }
 
 static void vh264_notify_work(struct work_struct *work)
@@ -900,7 +906,7 @@ static void vh264_set_params(struct work_struct *work)
 	int max_dpb_size, actual_dpb_size, max_reference_size;
 	int i, mb_mv_byte, ret;
 	unsigned long addr;
-	unsigned int post_canvas, buf_size;
+	unsigned int post_canvas, buf_size, endian;
 	unsigned int frame_mbs_only_flag;
 	unsigned int chroma_format_idc, chroma444, video_signal;
 	unsigned int crop_infor, crop_bottom, crop_right, level_idc;
@@ -1120,16 +1126,17 @@ static void vh264_set_params(struct work_struct *work)
 				buffer_spec[i].v_canvas_width = mb_width << 4;
 				buffer_spec[i].v_canvas_height = mb_height << 4;
 
-				canvas_config(128 + i * 2,
+				endian = (canvas_mode == CANVAS_BLKMODE_LINEAR)?7:0;
+				canvas_config_ex(128 + i * 2,
 						buffer_spec[i].y_addr,
 						mb_width << 4, mb_height << 4,
 						CANVAS_ADDR_NOWRAP,
-						CANVAS_BLKMODE_32X32);
-				canvas_config(128 + i * 2 + 1,
+						canvas_mode, endian);
+				canvas_config_ex(128 + i * 2 + 1,
 						buffer_spec[i].u_addr,
 						mb_width << 4, mb_height << 3,
 						CANVAS_ADDR_NOWRAP,
-						CANVAS_BLKMODE_32X32);
+						canvas_mode, endian);
 				WRITE_VREG(ANC0_CANVAS_ADDR + i,
 						spec2canvas(&buffer_spec[i]));
 				} else {
@@ -1906,6 +1913,7 @@ static void vh264_isr(void)
 					decoder_bmmu_box_get_mem_handle(
 						mm_blk_handle,
 						VF_BUFFER_IDX(buffer_index));
+				decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
 				if ((error_recovery_mode_use & 2) && error) {
 					kfifo_put(&recycle_q,
 						(const struct vframe_s *)vf);
@@ -1956,6 +1964,7 @@ static void vh264_isr(void)
 					decoder_bmmu_box_get_mem_handle(
 						mm_blk_handle,
 						VF_BUFFER_IDX(buffer_index));
+				decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
 				if ((error_recovery_mode_use & 2) && error) {
 					kfifo_put(&recycle_q,
 						(const struct vframe_s *)vf);
@@ -2096,6 +2105,7 @@ static void vh264_isr(void)
 		p_last_vf = vf;
 		pts_discontinue = false;
 		iponly_early_mode = 1;
+		decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
 		kfifo_put(&delay_display_q,
 			(const struct vframe_s *)vf);
 		WRITE_VREG(AV_SCRATCH_0, 0);
@@ -3031,6 +3041,7 @@ static int amvdec_h264_probe(struct platform_device *pdev)
 		mutex_unlock(&vh264_mutex);
 		return -EFAULT;
 	}
+	canvas_mode = pdata->canvas_mode;
 	tvp_flag = vdec_secure(pdata) ? CODEC_MM_FLAGS_TVP : 0;
 	if (pdata->sys_info)
 		vh264_amstream_dec_info = *pdata->sys_info;
