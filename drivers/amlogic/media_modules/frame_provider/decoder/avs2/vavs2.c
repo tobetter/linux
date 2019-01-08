@@ -4425,7 +4425,7 @@ static int avs2_prepare_display_buf(struct AVS2Decoder_s *dec)
 
 		if (vf) {
 			set_vframe(dec, vf, pic, 0);
-
+			decoder_do_frame_check(vf, CORE_MASK_HEVC);
 			kfifo_put(&dec->display_q, (const struct vframe_s *)vf);
 
 	#ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
