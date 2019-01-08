@@ -663,11 +663,13 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	disable_irq_nosync(devp->irq);
 	afbc_init_flag = 0;
 
-	while (++afbc_write_down_flag < afbc_write_down_test_times) {
-		if (vdin_afbce_read_writedown_flag() == 0)
-			usleep_range(5000, 5001);
-		else
-			break;
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+		while (++afbc_write_down_flag < afbc_write_down_test_times) {
+			if (vdin_afbce_read_writedown_flag() == 0)
+				usleep_range(5000, 5001);
+			else
+				break;
+		}
 	}
 
 	if (!(devp->parm.flag & TVIN_PARM_FLAG_CAP) &&
