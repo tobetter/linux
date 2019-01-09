@@ -1511,7 +1511,7 @@ static void lcd_vbyone_config_set(struct lcd_config_s *pconf)
 	bit_rate = bit_rate * 1000; /* Hz */
 
 	pconf->lcd_control.vbyone_config->phy_div = phy_div;
-	pconf->lcd_control.vbyone_config->bit_rate = bit_rate;
+	pconf->lcd_timing.bit_rate = bit_rate;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("lane_count=%u, bit_rate = %uMHz, pclk=%u.%03uMhz\n",
@@ -1535,7 +1535,7 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 	pclk = pconf->lcd_timing.lcd_clk / 1000;
 	bit_rate = lcd_bits * 3 * pclk / channel_num;
 
-	pconf->lcd_control.mlvds_config->bit_rate = bit_rate * 1000;
+	pconf->lcd_timing.bit_rate = bit_rate * 1000;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("channel_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",
@@ -1572,6 +1572,35 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 		LCDPR(
 		"channel_sel0=0x%08x, channel_sel1=0x%08x, pi_clk_sel=0x%03x\n",
 			channel_sel0, channel_sel1, pi_clk_sel);
+	}
+}
+
+static void lcd_p2p_config_set(struct lcd_config_s *pconf)
+{
+	unsigned int bit_rate, pclk;
+	unsigned int lcd_bits, lane_num;
+
+	if (lcd_debug_print_flag)
+		LCDPR("%s\n", __func__);
+
+	lcd_bits = pconf->lcd_basic.lcd_bits;
+	lane_num = pconf->lcd_control.p2p_config->lane_num;
+	pclk = pconf->lcd_timing.lcd_clk / 1000;
+	switch (pconf->lcd_control.p2p_config->p2p_type) {
+	case P2P_CHPI: /* 8/10 coding */
+		bit_rate = (pclk * 3 * lcd_bits * 10 / 8) / lane_num;
+		break;
+	default:
+		bit_rate = pclk * 3 * lcd_bits / lane_num;
+		break;
+	}
+
+	pconf->lcd_timing.bit_rate = bit_rate * 1000;
+
+	if (lcd_debug_print_flag) {
+		LCDPR("lane_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",
+			lane_num, (bit_rate / 1000), (bit_rate % 1000),
+			(pclk / 1000), (pclk % 1000));
 	}
 }
 

@@ -103,7 +103,6 @@ static struct vbyone_config_s lcd_vbyone_config = {
 	.byte_mode = 4,
 	.color_fmt = 4,
 	.phy_div = 1,
-	.bit_rate = 0,
 	.phy_vswing = VX1_PHY_VSWING_DFT,
 	.phy_preem = VX1_PHY_PREEM_DFT,
 	.intr_en = 1,
@@ -126,7 +125,6 @@ static struct mlvds_config_s lcd_mlvds_config = {
 	.phy_preem = 0,
 
 	.pi_clk_sel = 0,
-	.bit_rate = 0,
 };
 
 static struct p2p_config_s lcd_p2p_config = {
@@ -140,9 +138,6 @@ static struct p2p_config_s lcd_p2p_config = {
 	.bit_swap = 0,
 	.phy_vswing = 0,
 	.phy_preem = 0,
-
-	.pi_clk_sel = 0,
-	.bit_rate = 0,
 };
 
 static unsigned char dsi_init_on_table[DSI_INIT_ON_MAX] = {0xff, 0xff};
@@ -207,6 +202,7 @@ static struct lcd_config_s lcd_config_dft = {
 		.clk_auto = 1,
 		.ss_level = 0,
 		.fr_adjust_type = 0,
+		.bit_rate = 0,
 	},
 	.optical_info = {
 		.hdr_support = 0,
