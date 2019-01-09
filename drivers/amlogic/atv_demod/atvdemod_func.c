@@ -201,8 +201,10 @@ void atv_dmd_misc(void)
 	atv_dmd_wr_byte(APB_BLOCK_ADDR_VDAGC, 0x45, 0x90);	/*zhuangwei*/
 
 	atv_dmd_wr_long(APB_BLOCK_ADDR_VDAGC, 0x44, 0x5c8808c1);/*zhuangwei*/
-	if (amlatvdemod_devp->tuner_id == AM_TUNER_R840 ||
-		amlatvdemod_devp->tuner_id == AM_TUNER_R842) {
+	if (amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R840 ||
+		amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R842) {
 		/*zhuangwei*/
 		atv_dmd_wr_long(APB_BLOCK_ADDR_VDAGC, 0x3c, reg_23cf);
 		/*guanzhong@20150804a*/
@@ -230,7 +232,8 @@ void atv_dmd_misc(void)
 		atv_dmd_wr_long(APB_BLOCK_ADDR_AGC_PWM, 0x08, 0x46170200);
 	}
 
-	if (amlatvdemod_devp->tuner_id == AM_TUNER_MXL661) {
+	if (amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_MXL661) {
 		/*test in sky*/
 		atv_dmd_wr_long(APB_BLOCK_ADDR_DAC_UPS, 0x04, 0xbffa0000);
 		atv_dmd_wr_long(APB_BLOCK_ADDR_DAC_UPS, 0x00, 0x6f4000);
@@ -1005,8 +1008,10 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 		atv_dmd_wr_long(APB_BLOCK_ADDR_ADC_SE, 0x0, 0x03180e0f);
 	else
 		atv_dmd_wr_long(APB_BLOCK_ADDR_ADC_SE, 0x0, 0x03150e0f);
-	if (amlatvdemod_devp->tuner_id == AM_TUNER_R840 ||
-		amlatvdemod_devp->tuner_id == AM_TUNER_R842) {
+	if (amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R840 ||
+		amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R842) {
 		/*config pwm for tuner r840*/
 		atv_dmd_wr_byte(APB_BLOCK_ADDR_ADC_SE, 1, 0xf);
 	}
@@ -1283,8 +1288,10 @@ void configure_receiver(int Broadcast_Standard, unsigned int Tuner_IF_Frequency,
 	atv_dmd_wr_long(APB_BLOCK_ADDR_AGC_PWM, 0x04, 0xc8);
 	/*26 dB dynamic range*/
 	atv_dmd_wr_byte(APB_BLOCK_ADDR_AGC_PWM, 0x09, 0xa);
-	if (amlatvdemod_devp->tuner_id == AM_TUNER_R840 ||
-		amlatvdemod_devp->tuner_id == AM_TUNER_R842) {
+	if (amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R840 ||
+		amlatvdemod_devp->tuners[amlatvdemod_devp->tuner_cur].cfg.id
+			== AM_TUNER_R842) {
 		/*config pwm for tuner r840*/
 		atv_dmd_wr_long(APB_BLOCK_ADDR_AGC_PWM, 0, 0xc80);
 		/* guanzhong for Tuner AGC shock */
@@ -1972,6 +1979,8 @@ void atvdemod_uninit(void)
 void atv_dmd_set_std(void)
 {
 	v4l2_std_id ptstd = amlatvdemod_devp->std;
+	int tuner_index = amlatvdemod_devp->tuner_cur;
+	int tuner_id = amlatvdemod_devp->tuners[tuner_index].cfg.id;
 
 	/* set broad standard of tuner*/
 	if (((ptstd & V4L2_COLOR_STD_PAL)
@@ -2049,11 +2058,11 @@ void atv_dmd_set_std(void)
 	}
 
 	/* Tuner returns the if and signal inverted states */
-	if ((amlatvdemod_devp->tuner_id == AM_TUNER_R840) ||
-		(amlatvdemod_devp->tuner_id == AM_TUNER_R842) ||
-		(amlatvdemod_devp->tuner_id == AM_TUNER_SI2151) ||
-		(amlatvdemod_devp->tuner_id == AM_TUNER_SI2159) ||
-		(amlatvdemod_devp->tuner_id == AM_TUNER_MXL661)) {
+	if ((tuner_id == AM_TUNER_R840) ||
+		(tuner_id == AM_TUNER_R842) ||
+		(tuner_id == AM_TUNER_SI2151) ||
+		(tuner_id == AM_TUNER_SI2159) ||
+		(tuner_id == AM_TUNER_MXL661)) {
 		if_freq = amlatvdemod_devp->if_freq;
 		if_inv = amlatvdemod_devp->if_inv;
 	}

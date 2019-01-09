@@ -252,14 +252,12 @@ static void atv_demod_set_params(struct dvb_frontend *fe,
 		amlatvdemod_devp->std != p->param.std ||
 		amlatvdemod_devp->audmode != p->param.audmode ||
 		amlatvdemod_devp->if_freq != p->if_freq ||
-		amlatvdemod_devp->if_inv != p->if_inv ||
-		amlatvdemod_devp->tuner_id != p->tuner_id) {
+		amlatvdemod_devp->if_inv != p->if_inv) {
 
 		amlatvdemod_devp->std = p->param.std;
 		amlatvdemod_devp->audmode = p->param.audmode;
 		amlatvdemod_devp->if_freq = p->if_freq;
 		amlatvdemod_devp->if_inv = p->if_inv;
-		amlatvdemod_devp->tuner_id = p->tuner_id;
 
 		atv_dmd_set_std();
 		atvdemod_init(!priv->scanning);
@@ -865,7 +863,11 @@ static int atvdemod_fe_set_property(struct v4l2_frontend *v4l2_fe,
 		break;
 
 	case V4L2_SLOW_SEARCH_MODE:
-		tvp->data = slow_mode;
+		slow_mode = tvp->data;
+		break;
+
+	case V4L2_SIF_OVER_MODULATION:
+		priv->sound_sys.sif_over_modulation = tvp->data;
 		break;
 
 	default:
@@ -890,7 +892,7 @@ static int atvdemod_fe_get_property(struct v4l2_frontend *v4l2_fe,
 		break;
 
 	case V4L2_SLOW_SEARCH_MODE:
-		slow_mode = tvp->data;
+		tvp->data = slow_mode;
 		break;
 
 	default:

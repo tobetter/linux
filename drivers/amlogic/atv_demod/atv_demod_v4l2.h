@@ -94,6 +94,10 @@
 #define V4L2_SLOW_SEARCH_MODE    3
 #define V4L2_FREQUENCY           4
 #define V4L2_STD                 5
+#define V4L2_FINE_TUNE           6
+#define V4L2_SIF_OVER_MODULATION 7
+#define V4L2_TUNER_TYPE          8
+#define V4L2_TUNER_IF_FREQ       9
 
 struct v4l2_frontend;
 

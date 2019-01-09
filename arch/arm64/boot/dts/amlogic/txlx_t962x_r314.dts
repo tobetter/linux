@@ -620,12 +620,14 @@
 
 	tuner: tuner {
 		compatible = "amlogic, tuner";
-		status = "okay";
-		tuner_name = "mxl661_tuner";
-		tuner_i2c_adap = <&i2c1>;
-		tuner_i2c_addr = <0x60>;
-		tuner_xtal = <0>; /* 0: 16MHz, 1: 24MHz */
-		tuner_xtal_mode = <0>;
+		status = "disabled";
+		tuner_cur = <0>; /* default use tuner */
+		tuner_num = <1>; /* tuner number, multi tuner support */
+		tuner_name_0 = "mxl661_tuner";
+		tuner_i2c_adap_0 = <&i2c1>;
+		tuner_i2c_addr_0 = <0x60>;
+		tuner_xtal_0 = <0>; /* 0: 16MHz, 1: 24MHz */
+		tuner_xtal_mode_0 = <0>;
 					/* NO_SHARE_XTAL(0)
 					 * SLAVE_XTAL_SHARE(1)
 					 */

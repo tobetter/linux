@@ -124,6 +124,7 @@ extern void aml_fe_get_atvaudio_state(int *state);
 
 /* For attach tuner driver start*/
 enum tuner_type {
+	AM_TUNER_NONE = 0,
 	AM_TUNER_SI2176 = 1,
 	AM_TUNER_SI2196 = 2,
 	AM_TUNER_FQ1216 = 3,

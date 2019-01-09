@@ -456,12 +456,11 @@ static int v4l2_frontend_read_status(struct v4l2_frontend *v4l2_fe,
 
 	if (!status)
 		return -1;
-#if 0
-	if (analog_ops->tuner_status)
-		analog_ops->tuner_status(&v4l2_fe->fe, status);
+
+	if (analog_ops->has_signal)
+		analog_ops->has_signal(&v4l2_fe->fe, (u16 *) status);
 	else if (tuner_ops->get_status)
-		tuner_ops->get_status(&v4l2_fe->fe, status);
-#endif
+		tuner_ops->get_status(&v4l2_fe->fe, (u32 *) status);
 
 	return ret;
 }
@@ -538,6 +537,10 @@ static int v4l2_property_process_set(struct v4l2_frontend *v4l2_fe,
 		struct v4l2_property *tvp, struct file *file)
 {
 	int r = 0;
+#if 0
+	int i = 0;
+	int id = 0;
+#endif
 	struct v4l2_analog_parameters *params = &v4l2_fe->params;
 
 	v4l2_property_dump(v4l2_fe, true, tvp);
@@ -548,6 +551,7 @@ static int v4l2_property_process_set(struct v4l2_frontend *v4l2_fe,
 		break;
 	case V4L2_SOUND_SYS:
 	case V4L2_SLOW_SEARCH_MODE:
+	case V4L2_SIF_OVER_MODULATION:
 		/* Allow the frontend to override outgoing properties */
 		if (v4l2_fe->ops.set_property) {
 			r = v4l2_fe->ops.set_property(v4l2_fe, tvp);
@@ -569,6 +573,45 @@ static int v4l2_property_process_set(struct v4l2_frontend *v4l2_fe,
 					| (params->audmode);
 		}
 		break;
+	case V4L2_FINE_TUNE:
+		params->frequency += tvp->data;
+		break;
+	case V4L2_TUNER_TYPE:
+#if 0 /* This supports dynamically setting the tuner type */
+		for (i = 0; i < amlatvdemod_devp->tuner_num; ++i) {
+			if (amlatvdemod_devp->tuners[i].cfg.id == tvp->data) {
+				id = amlatvdemod_devp->tuners[i].cfg.id;
+				break;
+			}
+		}
+
+		if (id == 0) {
+			pr_err("%s: nonsupport tuner %d.\n",
+					__func__, tvp->data);
+			return -EINVAL;
+		}
+
+		if (amlatvdemod_devp->tuner_cur == i) {
+			pr_err("%s: the same tuner %d.\n",
+					__func__, i);
+			break;
+		}
+
+		if (amlatvdemod_devp->tuner_attached) {
+			if (v4l2_fe->fe.ops.tuner_ops.release)
+				v4l2_fe->fe.ops.tuner_ops.release(&v4l2_fe->fe);
+		}
+
+		v4l2_fe->tuner_id = id;
+		if (aml_attach_tuner(amlatvdemod_devp) < 0) {
+			pr_err("%s: attach tuner %d error.\n",
+					__func__, id);
+			return -EINVAL;
+		}
+#endif
+		break;
+	case V4L2_TUNER_IF_FREQ:
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -580,6 +623,7 @@ static int v4l2_property_process_get(struct v4l2_frontend *v4l2_fe,
 		struct v4l2_property *tvp, struct file *file)
 {
 	int r = 0;
+	int i = 0;
 	struct v4l2_analog_parameters *params = &v4l2_fe->params;
 
 	switch (tvp->cmd) {
@@ -599,6 +643,18 @@ static int v4l2_property_process_get(struct v4l2_frontend *v4l2_fe,
 		/* std & 0xFF000000: color std */
 		/* std & 0x00FFFFFF: audio std */
 		tvp->data = params->std;
+		break;
+	case V4L2_TUNER_TYPE:
+		i = amlatvdemod_devp->tuner_cur;
+		if (i < 0) {
+			pr_err("%s: Has not been set tuner type.\n", __func__);
+			tvp->data = 0;
+			return -EINVAL;
+		}
+		tvp->data = amlatvdemod_devp->tuners[i].cfg.id;
+		break;
+	case V4L2_TUNER_IF_FREQ:
+		tvp->data = amlatvdemod_devp->if_freq;
 		break;
 	default:
 		pr_dbg("%s: V4L2 property %d doesn't exist\n",
@@ -764,11 +820,19 @@ static int v4l2_frontend_open(struct file *filp)
 	struct v4l2_frontend_private *fepriv = v4l2_fe->frontend_priv;
 
 	/* Because tuner ko insmod after demod, so need check */
-	if (!amlatvdemod_devp->tuner_attached
-			|| !amlatvdemod_devp->analog_attached) {
-		ret = aml_attach_demod_tuner(amlatvdemod_devp);
+	if (!amlatvdemod_devp->analog_attached) {
+		ret = aml_attach_demod(amlatvdemod_devp);
 		if (ret < 0) {
-			pr_err("%s: attach demod or tuner %d error.\n",
+			pr_err("%s: attach demod %d error.\n",
+					__func__, v4l2_fe->tuner_id);
+			return -EBUSY;
+		}
+	}
+
+	if (!amlatvdemod_devp->tuner_attached) {
+		ret = aml_attach_tuner(amlatvdemod_devp);
+		if (ret < 0) {
+			pr_err("%s: attach tuner %d error.\n",
 					__func__, v4l2_fe->tuner_id);
 			return -EBUSY;
 		}

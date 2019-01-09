@@ -49,6 +49,7 @@ struct atv_demod_sound_system {
 	unsigned int audio_std;
 	unsigned int input_mode;
 	unsigned int output_mode;
+	int sif_over_modulation;
 };
 
 struct atv_demod_priv {

@@ -438,17 +438,19 @@
 	tuner: tuner {
 		compatible = "amlogic, tuner";
 		status = "okay";
-		tuner_name = "r842_tuner";
-		tuner_i2c_adap = <&i2c1>;
-		tuner_i2c_addr = <0xf6>;
-		tuner_xtal = <1>; /* 0: 16MHz, 1: 24MHz, 3: 27MHz */
-		tuner_xtal_mode = <3>;
+		tuner_cur = <0>; /* default use tuner */
+		tuner_num = <1>; /* tuner number, multi tuner support */
+		tuner_name_0 = "r842_tuner";
+		tuner_i2c_adap_0 = <&i2c1>;
+		tuner_i2c_addr_0 = <0xf6>;
+		tuner_xtal_0 = <1>; /* 0: 16MHz, 1: 24MHz, 3: 27MHz */
+		tuner_xtal_mode_0 = <3>;
 					/* NO_SHARE_XTAL(0)
 					 * MASTER_TO_SLAVE_XTAL_IN(1)
 					 * MASTER_TO_SLAVE_XTAL_OUT(2)
 					 * SLAVE_XTAL_OUT(3)
 					 */
-		tuner_xtal_cap = <0>; /* 0 ~ 41 (pf) */
+		tuner_xtal_cap_0 = <0>; /* 0 ~ 41 (pf) */
 	};
 
 	atv-demod {
