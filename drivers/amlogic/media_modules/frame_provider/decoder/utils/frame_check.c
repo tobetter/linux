@@ -651,11 +651,11 @@ static int fbc_check_prepare(struct pic_check_t *check,
 		(!check->fbc_planes[1]) ||
 		(!check->fbc_planes[2]) ||
 		(!check->fbc_planes[3])) {
-		dbg_print(0, "vmalloc staicplanes failed %x %x %x %x\n",
-			(u32)check->fbc_planes[0],
-			(u32)check->fbc_planes[1],
-			(u32)check->fbc_planes[2],
-			(u32)check->fbc_planes[3]);
+		dbg_print(0, "vmalloc staicplanes failed %lx %lx %lx %lx\n",
+			(ulong)check->fbc_planes[0],
+			(ulong)check->fbc_planes[1],
+			(ulong)check->fbc_planes[2],
+			(ulong)check->fbc_planes[3]);
 		for (i = 0; i < ARRAY_SIZE(check->fbc_planes); i++) {
 			if (check->fbc_planes[i]) {
 				vfree(check->fbc_planes[i]);
