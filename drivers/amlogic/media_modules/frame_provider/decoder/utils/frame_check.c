@@ -669,14 +669,22 @@ static int fbc_check_prepare(struct pic_check_t *check,
 	return 0;
 }
 
-int decoder_do_frame_check(struct vframe_s *vf, int core_mask)
+static struct vdec_s *single_mode_vdec = NULL;
+
+int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 {
 	int ret = 0;
 	int resize = 0;
 	void *planes[4];
 	struct pic_check_t *check = NULL;
-	struct pic_check_mgr_t *mgr =
-		(struct pic_check_mgr_t *)vdec_get_active_vfc(core_mask);
+	struct pic_check_mgr_t *mgr = NULL;
+
+	if (vdec == NULL) {
+		if (single_mode_vdec == NULL)
+			return 0;
+		mgr = &single_mode_vdec->vfc;
+	} else
+		mgr = &vdec->vfc;
 
 	if ((mgr == NULL) ||
 		(vf == NULL) ||
@@ -896,6 +904,7 @@ static unsigned int yuv_enable, check_enable;
 static unsigned int yuv_start[MAX_INSTANCE_MUN];
 static unsigned int yuv_num[MAX_INSTANCE_MUN];
 
+
 int vdec_frame_check_init(struct vdec_s *vdec)
 {
 	int ret = 0, id = 0;
@@ -906,6 +915,9 @@ int vdec_frame_check_init(struct vdec_s *vdec)
 
 	if (!check_enable && !yuv_enable)
 		return 0;
+
+	if (vdec_single(vdec))
+		single_mode_vdec = vdec;
 
 	vdec->canvas_mode = CANVAS_BLKMODE_LINEAR;
 	id = vdec->id;
@@ -938,6 +950,8 @@ void vdec_frame_check_exit(struct vdec_s *vdec)
 	if (vdec == NULL)
 		return;
 	frame_check_exit(&vdec->vfc);
+
+	single_mode_vdec = NULL;
 }
 
 ssize_t dump_yuv_store(struct class *class,

@@ -7520,7 +7520,7 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		vf->type_original = vf->type;
 		pic->vf_ref = 1;
 		hevc->vf_pre_count++;
-		decoder_do_frame_check(vf, CORE_MASK_HEVC);
+		decoder_do_frame_check(hw_to_vdec(hevc), vf);
 		kfifo_put(&hevc->display_q, (const struct vframe_s *)vf);
 
 		if (get_dbg_flag(hevc) & H265_DEBUG_PIC_STRUCT)

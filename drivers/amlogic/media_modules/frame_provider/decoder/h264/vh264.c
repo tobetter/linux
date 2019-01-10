@@ -1913,7 +1913,7 @@ static void vh264_isr(void)
 					decoder_bmmu_box_get_mem_handle(
 						mm_blk_handle,
 						VF_BUFFER_IDX(buffer_index));
-				decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
+				decoder_do_frame_check(NULL, vf);
 				if ((error_recovery_mode_use & 2) && error) {
 					kfifo_put(&recycle_q,
 						(const struct vframe_s *)vf);
@@ -1964,7 +1964,7 @@ static void vh264_isr(void)
 					decoder_bmmu_box_get_mem_handle(
 						mm_blk_handle,
 						VF_BUFFER_IDX(buffer_index));
-				decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
+				decoder_do_frame_check(NULL, vf);
 				if ((error_recovery_mode_use & 2) && error) {
 					kfifo_put(&recycle_q,
 						(const struct vframe_s *)vf);
@@ -2105,7 +2105,7 @@ static void vh264_isr(void)
 		p_last_vf = vf;
 		pts_discontinue = false;
 		iponly_early_mode = 1;
-		decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
+		decoder_do_frame_check(NULL, vf);
 		kfifo_put(&delay_display_q,
 			(const struct vframe_s *)vf);
 		WRITE_VREG(AV_SCRATCH_0, 0);
