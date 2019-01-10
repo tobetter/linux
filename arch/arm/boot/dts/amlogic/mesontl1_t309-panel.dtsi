@@ -623,9 +623,9 @@
 				0>; /*pixel_clk(unit in Hz)*/
 			minilvds_attr = <
 				6 /* channel_num */
-				0x12304567 /* channel_sel0 */
-				0x0   /* channel_sel1 */
-				0xaa0 /* clk_phase */
+				0x76543210 /* channel_sel0 */
+				0xba98     /* channel_sel1 */
+				0x660 /* clk_phase */
 				0   /* pn_swap */
 				0>; /* bit_swap */
 			phy_attr=<0xf 0>; /* vswing_level, preem_level */
@@ -668,9 +668,9 @@
 				0>; /*pixel_clk(unit in Hz)*/
 			minilvds_attr = <
 				6 /* channel_num */
-				0x45603012 /* channel_sel0 */
-				0x0 /* channel_sel1 */
-				0xaa0 /* clk_phase */
+				0x76543210 /* channel_sel0 */
+				0xba98     /* channel_sel1 */
+				0x660 /* clk_phase */
 				0   /* pn_swap */
 				0>; /* bit_swap */
 			phy_attr=<0xf 0>; /* vswing_level, preem_level */

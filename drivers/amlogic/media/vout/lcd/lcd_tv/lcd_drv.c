@@ -252,7 +252,6 @@ static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 	unsigned int pn_swap, port_swap, lane_reverse;
 	unsigned int dual_port, fifo_mode;
 	unsigned int lvds_repack = 1;
-	unsigned int ch_swap0, ch_swap1, ch_swap2;
 
 	if (lcd_debug_print_flag)
 		LCDPR("%s\n", __func__);
@@ -301,7 +300,6 @@ static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-	case LCD_CHIP_TM2:
 		lcd_vcbus_write(P2P_CH_SWAP0, 0x76543210);
 		lcd_vcbus_write(P2P_CH_SWAP1, 0xba98);
 		break;
@@ -356,12 +354,10 @@ static void lcd_mlvds_control_set(struct lcd_config_s *pconf)
 	/* fifo write enable[31] */
 	lcd_hiu_setb(HHI_LVDS_TX_PHY_CNTL1_TL1, 1, 31, 1);
 
-	/* channel swap default no swap */
 	channel_sel0 = pconf->lcd_control.mlvds_config->channel_sel0;
 	channel_sel1 = pconf->lcd_control.mlvds_config->channel_sel1;
-	lcd_vcbus_write(LVDS_CH_SWAP0, (channel_sel0 & 0xff));
-	lcd_vcbus_write(LVDS_CH_SWAP1, ((channel_sel0 >> 8) & 0xff));
-	lcd_vcbus_write(LVDS_CH_SWAP2, (channel_sel1 & 0xff));
+	lcd_vcbus_write(P2P_CH_SWAP0, channel_sel0);
+	lcd_vcbus_write(P2P_CH_SWAP1, channel_sel1);
 
 	lcd_tcon_enable(pconf);
 }
@@ -452,7 +448,6 @@ static void lcd_vbyone_clk_util_set(struct lcd_config_s *pconf)
 static int lcd_vbyone_lanes_set(int lane_num, int byte_mode, int region_num,
 		int hsize, int vsize)
 {
-	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	int sublane_num;
 	int region_size[4];
 	int tmp;
@@ -515,16 +510,6 @@ static int lcd_vbyone_lanes_set(int lane_num, int byte_mode, int region_num,
 	lcd_vcbus_setb(VBO_CTRL_H, 0x0, 0, 4);
 	lcd_vcbus_setb(VBO_CTRL_H, 0x1, 9, 1);
 	/* lcd_vcbus_setb(VBO_CTRL_L,enable,0,1); */
-
-	switch (lcd_drv->data->chip_type) { /* pn swap */
-	case LCD_CHIP_TL1:
-		lcd_vcbus_write(LVDS_CH_SWAP0, 0x3210);
-		lcd_vcbus_write(LVDS_CH_SWAP1, 0x7654);
-		lcd_vcbus_write(LVDS_CH_SWAP2, 0xba98);
-		break;
-	default:
-		break;
-	}
 
 	return 0;
 }
@@ -1265,12 +1250,10 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 	/* fifo write enable[31] */
 	lcd_hiu_setb(reg_cntl1, 1, 31, 1);
 
-	/* channel swap default no swap */
 	channel_sel0 = pconf->lcd_control.p2p_config->channel_sel0;
 	channel_sel1 = pconf->lcd_control.p2p_config->channel_sel1;
-	lcd_vcbus_write(LVDS_CH_SWAP0, (channel_sel0 & 0xff));
-	lcd_vcbus_write(LVDS_CH_SWAP1, ((channel_sel0 >> 8) & 0xff));
-	lcd_vcbus_write(LVDS_CH_SWAP2, (channel_sel1 & 0xff));
+	lcd_vcbus_write(P2P_CH_SWAP0, channel_sel0);
+	lcd_vcbus_write(P2P_CH_SWAP1, channel_sel1);
 
 	lcd_tcon_enable(pconf);
 }
@@ -1353,7 +1336,7 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 {
 	unsigned int bit_rate, pclk;
 	unsigned int lcd_bits, channel_num;
-	unsigned int channel_sel0, channel_sel1, pi_clk_sel;
+	unsigned int channel_sel0, channel_sel1, pi_clk_sel = 0;
 	unsigned int i, temp;
 
 	if (lcd_debug_print_flag)
@@ -1373,27 +1356,30 @@ static void lcd_mlvds_config_set(struct lcd_config_s *pconf)
 	}
 
 	/* pi_clk select */
-	/* mlvds channel:    //tx 10 channels
-	 *    0: d0_a
-	 *    1: d1_a
-	 *    2: d2_a
-	 *    3: clk_a
-	 *    4: d0_b
-	 *    5: d1_b
-	 *    6: d2_b
-	 *    7: clk_b
-	 */
 	channel_sel0 = pconf->lcd_control.mlvds_config->channel_sel0;
 	channel_sel1 = pconf->lcd_control.mlvds_config->channel_sel1;
-	pi_clk_sel = 0;
+	/* mlvds channel:    //tx 12 channels
+	 *    0: clk_a
+	 *    1: d0_a
+	 *    2: d1_a
+	 *    3: d2_a
+	 *    4: d3_a
+	 *    5: d4_a
+	 *    6: clk_b
+	 *    7: d0_b
+	 *    8: d1_b
+	 *    9: d2_b
+	 *   10: d3_b
+	 *   11: d4_b
+	 */
 	for (i = 0; i < 8; i++) {
 		temp = (channel_sel0 >> (i*4)) & 0xf;
-		if ((temp == 3) || (temp == 7))
+		if ((temp == 0) || (temp == 6))
 			pi_clk_sel |= (1 << i);
 	}
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 4; i++) {
 		temp = (channel_sel1 >> (i*4)) & 0xf;
-		if ((temp == 3) || (temp == 7))
+		if ((temp == 0) || (temp == 6))
 			pi_clk_sel |= (1 << (i + 8));
 	}
 	pconf->lcd_control.mlvds_config->pi_clk_sel = pi_clk_sel;
@@ -1416,6 +1402,12 @@ static void lcd_p2p_config_set(struct lcd_config_s *pconf)
 	lane_num = pconf->lcd_control.p2p_config->lane_num;
 	pclk = pconf->lcd_timing.lcd_clk / 1000;
 	switch (pconf->lcd_control.p2p_config->p2p_type) {
+	case P2P_CEDS:
+		if (pclk >= 600000)
+			bit_rate = pclk * 3 * lcd_bits / lane_num;
+		else
+			bit_rate = pclk * (3 * lcd_bits + 4) / lane_num;
+		break;
 	case P2P_CHPI: /* 8/10 coding */
 		bit_rate = (pclk * 3 * lcd_bits * 10 / 8) / lane_num;
 		break;

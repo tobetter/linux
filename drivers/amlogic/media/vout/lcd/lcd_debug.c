@@ -428,7 +428,7 @@ static int lcd_info_print_mlvds(char *buf, int offset)
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
 		"channel_num       %d\n"
-		"channel_sel1      0x%08x\n"
+		"channel_sel0      0x%08x\n"
 		"channel_sel1      0x%08x\n"
 		"clk_phase         0x%04x\n"
 		"pn_swap           %u\n"
@@ -472,7 +472,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 	len += snprintf((buf+len), n,
 		"p2p_type          %d\n"
 		"lane_num          %d\n"
-		"channel_sel1      0x%08x\n"
+		"channel_sel0      0x%08x\n"
 		"channel_sel1      0x%08x\n"
 		"pn_swap           %u\n"
 		"bit_swap          %u\n"
@@ -971,9 +971,9 @@ static int lcd_reg_print_mlvds(char *buf, int offset)
 	len += snprintf((buf+len), n,
 		"TCON_INTR_MASKN     [0x%04x] = 0x%08x\n",
 		reg, lcd_tcon_read(reg));
-	reg = TCON_INTR;
+	reg = TCON_INTR_RO;
 	len += snprintf((buf+len), n,
-		"TCON_INTR           [0x%04x] = 0x%08x\n",
+		"TCON_INTR_RO        [0x%04x] = 0x%08x\n",
 		reg, lcd_tcon_read(reg));
 
 	return len;
@@ -1069,9 +1069,9 @@ static int lcd_reg_print_p2p(char *buf, int offset)
 	len += snprintf((buf+len), n,
 		"TCON_INTR_MASKN     [0x%04x] = 0x%08x\n",
 		reg, lcd_tcon_read(reg));
-	reg = TCON_INTR;
+	reg = TCON_INTR_RO;
 	len += snprintf((buf+len), n,
-		"TCON_INTR           [0x%04x] = 0x%08x\n",
+		"TCON_INTR_RO        [0x%04x] = 0x%08x\n",
 		reg, lcd_tcon_read(reg));
 
 	return len;
@@ -3619,11 +3619,6 @@ static void lcd_phy_config_update(unsigned int *para, int cnt)
 	struct lcd_config_s *pconf;
 	struct lvds_config_s *lvds_conf;
 
-	if (lcd_drv->data->chip_type == LCD_CHIP_TL1) {
-		LCDPR("%s: not support yet\n", __func__);
-		return;
-	}
-
 	pconf = lcd_drv->lcd_config;
 	switch (pconf->lcd_basic.lcd_type) {
 	case LCD_LVDS:
@@ -3891,6 +3886,61 @@ static ssize_t lcd_tcon_debug_store(struct class *class,
 				lcd_tcon_reg_save(parm[2], size);
 			else
 				pr_info("invalid save path\n");
+		} else if (strcmp(parm[1], "rb") == 0) {
+			if (parm[2] != NULL) {
+				ret = kstrtouint(parm[2], 16, &temp);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				pr_info("read tcon byte [0x%04x] = 0x%02x\n",
+					temp, lcd_tcon_read_byte(temp));
+			}
+		} else if (strcmp(parm[1], "wb") == 0) {
+			if (parm[3] != NULL) {
+				ret = kstrtouint(parm[2], 16, &temp);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				ret = kstrtouint(parm[3], 16, &val);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				data = (unsigned char)val;
+				lcd_tcon_write_byte(temp, data);
+				pr_info(
+			"write tcon byte [0x%04x] = 0x%02x, readback 0x%02x\n",
+					temp, data, lcd_tcon_read_byte(temp));
+			}
+		} else if (strcmp(parm[1], "r") == 0) {
+			if (parm[2] != NULL) {
+				ret = kstrtouint(parm[2], 16, &temp);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				pr_info("read tcon [0x%04x] = 0x%08x\n",
+					temp, lcd_tcon_read(temp));
+			}
+		} else if (strcmp(parm[1], "w") == 0) {
+			if (parm[3] != NULL) {
+				ret = kstrtouint(parm[2], 16, &temp);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				ret = kstrtouint(parm[3], 16, &val);
+				if (ret) {
+					pr_info("invalid parameters\n");
+					goto lcd_tcon_debug_store_err;
+				}
+				lcd_tcon_write(temp, val);
+				pr_info(
+			"write tcon [0x%04x] = 0x%08x, readback 0x%08x\n",
+					temp, val, lcd_tcon_read(temp));
+			}
 		}
 	} else if (strcmp(parm[0], "table") == 0) {
 		if (parm[1] == NULL) {

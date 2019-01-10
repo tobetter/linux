@@ -981,8 +981,13 @@
 #define TCON_GPO_CTRL0                             0x2015
 #define TCON_GPO_CTRL1                             0x2016
 #define TCON_GPO_CTRL2                             0x2017
+#define TCON_INTR_WR                               0x2020
+#define TCON_INTR_CLR                              0x2021
 #define TCON_INTR_MASKN                            0x2022
-#define TCON_INTR                                  0x2023 /* read only */
+#define TCON_INTR_RO                               0x2023 /* read only */
+
+#define P2P_CH_SWAP0                               0x4200
+#define P2P_CH_SWAP1                               0x4201
 
 /* ********************************
  * Video post-processing:  VPP_VCBUS_BASE = 0x1d
