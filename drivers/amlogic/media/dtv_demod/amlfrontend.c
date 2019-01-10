@@ -2752,6 +2752,7 @@ static bool enter_mode(enum aml_fe_n_mode_t mode)
 		timer_set_max(D_TIMER_DETECT, 2000);
 		/*reset is 4s*/
 		timer_set_max(D_TIMER_SET, 4000);
+
 		if (devn->cma_flag == 1) {
 			PR_DBG("CMA MODE, cma flag is %d,mem size is %d",
 				devn->cma_flag,
@@ -2761,11 +2762,11 @@ static bool enter_mode(enum aml_fe_n_mode_t mode)
 			} else {
 				ret = false;
 				return ret;
-
 			}
 		} else {
 			memstart_dtmb = devn->mem_start;/*??*/
 		}
+
 		PR_DBG("[im]memstart is %x\n", memstart_dtmb);
 		dvbt_write_reg((0x10 << 2), memstart_dtmb);
 	}
@@ -2792,16 +2793,7 @@ static int leave_mode(enum aml_fe_n_mode_t mode)
 	/*dvbc_timer_exit();*/
 	if (cci_thread)
 		dvbc_kill_cci_task();
-	#if 0
-	if (mode == AM_FE_DTMB_N) {
-		dtmb_poll_stop();	/*polling mode*/
-		/* close arbit */
 
-		demod_write_reg(DEMOD_TOP_REGC, 0x0);
-		if (devn->cma_flag == 1)
-			dtmb_cma_release(devn);
-	}
-	#else
 	if (mode == AM_FE_DTMB_N) {
 		if (dtvdd_devp->act_dtmb) {
 			dtmb_poll_stop();	/*polling mode*/
@@ -2814,8 +2806,12 @@ static int leave_mode(enum aml_fe_n_mode_t mode)
 			dtmb_cma_release(devn);
 			dtvdd_devp->flg_cma_allc = false;
 		}
+	} else if (mode == AM_FE_OFDM_N || mode == AM_FE_ISDBT_N) {
+		if ((devn->cma_flag == 1) && dtvdd_devp->flg_cma_allc) {
+			dtmb_cma_release(devn);
+			dtvdd_devp->flg_cma_allc = false;
+		}
 	}
-	#endif
 
 	adc_set_pll_cntl(0, 0x04, NULL);
 	demod_mode_para = UNKNOWN;
