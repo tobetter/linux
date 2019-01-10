@@ -6878,7 +6878,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 				&& (debug & VP9_DEBUG_NO_TRIGGER_FRAME) == 0
 				)) {
 		inc_vf_ref(pbi, pic_config->index);
-		decoder_do_frame_check(vf, CORE_MASK_HEVC);
+		decoder_do_frame_check(hw_to_vdec(pbi), vf);
 		kfifo_put(&pbi->display_q, (const struct vframe_s *)vf);
 		pbi->vf_pre_count++;
 #ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC

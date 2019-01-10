@@ -1632,28 +1632,6 @@ struct vdec_s *vdec_get_with_id(unsigned id)
 	return ret_vdec;
 }
 
-void *vdec_get_active_vfc(int core_mask)
-{
-	void *p = NULL;
-	struct vdec_s *vdec = vdec_core->last_vdec;
-
-	if (vdec_core->parallel_dec == 1) {
-		if (core_mask & CORE_MASK_VDEC_1)
-			vdec = vdec_core->active_vdec;
-		else if (core_mask & CORE_MASK_HEVC)
-			vdec = vdec_core->active_hevc;
-		else
-			vdec = vdec_core->last_vdec;
-	}
-
-	if (vdec == NULL)
-		return NULL;
-
-	p = &vdec->vfc;
-
-	return p;
-}
-
 /*
  *register vdec_device
  * create output, vfm or create ionvideo output
@@ -1714,8 +1692,6 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 	vdec_core->parallel_dec = parallel_decode;
 	vdec->canvas_mode = CANVAS_BLKMODE_32X32;
 #ifdef FRAME_CHECK
-	if (vdec_single(vdec))
-		vdec_core->last_vdec = vdec;
 	vdec_frame_check_init(vdec);
 #endif
 	p->dev = platform_device_register_data(
@@ -1957,9 +1933,8 @@ void vdec_release(struct vdec_s *vdec)
 
 #ifdef FRAME_CHECK
 	vdec_frame_check_exit(vdec);
-	if (vdec_single(vdec))
-		vdec_core->active_vdec = NULL;
 #endif
+
 	platform_device_unregister(vdec->dev);
 	pr_debug("vdec_release instance %p, total %d\n", vdec,
 		atomic_read(&vdec_core->vdec_nr));

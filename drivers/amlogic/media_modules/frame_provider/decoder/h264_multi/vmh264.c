@@ -2566,9 +2566,9 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 
 		if (i == 0) {
 			if (hw->mmu_enable)
-				decoder_do_frame_check(vf, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
+				decoder_do_frame_check(hw_to_vdec(hw), vf);
 			else
-				decoder_do_frame_check(vf, CORE_MASK_VDEC_1);
+				decoder_do_frame_check(hw_to_vdec(hw), vf);
 		}
 
 		kfifo_put(&hw->display_q, (const struct vframe_s *)vf);

@@ -83,7 +83,7 @@ struct pic_check_mgr_t{
 int dump_yuv_trig(struct pic_check_mgr_t *mgr,
 	int id, int start, int num);
 
-int decoder_do_frame_check(struct vframe_s *vf, int core_mask);
+int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf);
 
 int frame_check_init(struct pic_check_mgr_t *mgr, int id);
 
