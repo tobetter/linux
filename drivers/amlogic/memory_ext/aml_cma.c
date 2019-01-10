@@ -577,6 +577,7 @@ int aml_cma_alloc_range(unsigned long start, unsigned long end)
 		.mode = MIGRATE_SYNC,
 		.page_type = COMPACT_CMA,
 		.ignore_skip_hint = true,
+		.contended = false,
 	};
 	INIT_LIST_HEAD(&cc.migratepages);
 
@@ -611,11 +612,8 @@ try_again:
 	outer_start = start;
 	while (!PageBuddy(pfn_to_page(outer_start))) {
 		if (++order >= MAX_ORDER) {
-			ret = -EBUSY;
-			try_times++;
-			if (try_times < 10)
-				goto try_again;
-			goto done;
+			outer_start = start;
+			break;
 		}
 		outer_start &= ~0UL << order;
 	}
@@ -647,7 +645,11 @@ try_again:
 	/* Grab isolated pages from freelists. */
 	outer_end = isolate_freepages_range(&cc, outer_start, end);
 	if (!outer_end) {
-		ret = -EBUSY;
+		if (cc.contended) {
+			ret = -EINTR;
+			pr_info("cma_alloc [%lx-%lx] aborted\n", start, end);
+		} else
+			ret = -EBUSY;
 		goto done;
 	}
 
