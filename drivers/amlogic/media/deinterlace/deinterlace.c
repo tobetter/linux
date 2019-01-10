@@ -3937,6 +3937,18 @@ jiffies_to_msecs(jiffies_64 - vframe->ready_jiffies64));
 				}
 			}
 		} else {
+		/*********************************/
+		if ((di_buf->vframe->width >= 1920) &&
+			(di_buf->vframe->height >= 1080) &&
+			is_meson_tl1_cpu()) {
+			if (combing_fix_en) {
+				combing_fix_en = false;
+				fix_tl1_1080i_sawtooth_patch();
+			}
+		} else
+			combing_fix_en = true;
+
+		/*********************************/
 			if (
 				di_pre_stru.di_chan2_buf_dup_p == NULL) {
 				di_pre_stru.field_count_for_cont = 0;
