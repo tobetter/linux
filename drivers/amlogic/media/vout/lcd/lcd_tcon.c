@@ -319,6 +319,24 @@ static int lcd_tcon_config(struct aml_lcd_drv_s *lcd_drv)
 	return 0;
 }
 
+static void lcd_tcon_config_delayed(struct work_struct *work)
+{
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	int key_init_flag = 0;
+	int i = 0;
+
+	key_init_flag = key_unify_get_init_flag();
+	while (key_init_flag == 0) {
+		if (i++ >= LCD_UNIFYKEY_WAIT_TIMEOUT)
+			break;
+		msleep(LCD_UNIFYKEY_RETRY_INTERVAL);
+		key_init_flag = key_unify_get_init_flag();
+	}
+	LCDPR("tcon: key_init_flag=%d, i=%d\n", key_init_flag, i);
+	if (key_init_flag)
+		lcd_tcon_config(lcd_drv);
+}
+
 /* **********************************
  * tcon function api
  * **********************************

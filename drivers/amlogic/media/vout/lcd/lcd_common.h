@@ -33,7 +33,12 @@
 /* 20180827: add pinmux off support */
 /* 20180928: tl1 support, optimize clk config */
 /* 20181012: tl1 support tcon */
-#define LCD_DRV_VERSION    "20181012"
+/* 20181212: tl1 update p2p config and pll setting */
+/* 20181225: update phy config */
+/* 20190108: tl1 support tablet mode */
+/* 20190115: tl1 tcon all interface support */
+/* 20190225: optimize unifykey read flow to avoid crash */
+#define LCD_DRV_VERSION    "20190225"
 
 #define VPP_OUT_SATURATE            (1 << 0)
 
