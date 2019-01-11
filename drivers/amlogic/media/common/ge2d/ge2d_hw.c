@@ -894,9 +894,7 @@ void ge2d_set_cmd(struct ge2d_cmd_s *cfg)
 		cfg->hsc_div_length = (124 << 24) / cfg->hsc_phase_step;
 
 		multo = cfg->hsc_phase_step * cfg->hsc_div_length;
-#ifndef CONFIG_GE2D_ADV_NUM
 		cfg->hsc_adv_num   = multo >> 24;
-#endif
 		cfg->hsc_adv_phase = multo & 0xffffff;
 	}
 
@@ -974,6 +972,8 @@ void ge2d_set_cmd(struct ge2d_cmd_s *cfg)
 		       );
 	if (cfg->hsc_adv_num > 255)
 		cfg->hsc_adv_num = cfg->hsc_adv_num >> 8;
+	else
+		cfg->hsc_adv_num = 0;
 	ge2d_reg_write(GE2D_HSC_INI_CTRL,
 			(cfg->hsc_rpt_p0_num << 29) |
 			(cfg->hsc_adv_num << 24) |
