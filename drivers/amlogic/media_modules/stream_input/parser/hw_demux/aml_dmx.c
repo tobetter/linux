@@ -2774,10 +2774,16 @@ static int dmx_enable(struct aml_dmx *dmx)
 		break;
 	}
 
-	if (dmx->channel[0].used || dmx->channel[1].used)
+
+	hi_bsf = 0;
+	if (dmx->id == 0 && dvb->stb_source == AM_TS_SRC_DMX0)
 		hi_bsf = 1;
-	else
-		hi_bsf = 0;
+
+	if (dmx->id == 1 && dvb->stb_source == AM_TS_SRC_DMX1)
+		hi_bsf = 1;
+
+	if (dmx->id == 2 && dvb->stb_source == AM_TS_SRC_DMX2)
+		hi_bsf = 1;
 
 	if ((dvb->dsc[0].dst != -1)
 	    && ((dvb->dsc[0].dst - AM_TS_SRC_DMX0) == dmx->id))
