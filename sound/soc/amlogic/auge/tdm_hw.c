@@ -698,6 +698,7 @@ void i2s_to_hdmitx_disable(void)
 {
 	audiobus_write(EE_AUDIO_TOHDMITX_CTRL0, 0);
 }
+
 void aml_tdm_mute_playback(
 		struct aml_audio_controller *actrl,
 		int tdm_index,
