@@ -91,14 +91,6 @@ struct ldim_dev_config_s ldim_dev_config = {
 		.pwm_duty_max = 100,
 		.pwm_duty_min = 10,
 	},
-	.analog_pwm_config = {
-		.pwm_method = BL_PWM_POSITIVE,
-		.pwm_port = BL_PWM_MAX,
-		.pwm_freq = 1000,
-		.pwm_duty_max = 100,
-		.pwm_duty_min = 10,
-	},
-	.dim_range_update = NULL,
 
 	.bl_regnum = 0,
 
