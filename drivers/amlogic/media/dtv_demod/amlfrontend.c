@@ -1952,6 +1952,9 @@ void atsc_polling(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 
+	if (!demod_thread)
+		return;
+
 	if (c->modulation == QPSK) {
 		PR_DBG("mode is qpsk, return;\n");
 		/*return;*/
@@ -2514,6 +2517,9 @@ static int gxtv_demod_dvbc_tune(struct dvb_frontend *fe, bool re_tune,
 	/*unsigned int firstdetet;*/
 
 	*delay = HZ / 4;
+
+	if (!demod_thread)
+		return 0;
 
 	if (re_tune) {
 		/*first*/
