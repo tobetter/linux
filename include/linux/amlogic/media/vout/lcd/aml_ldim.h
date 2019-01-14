@@ -81,10 +81,15 @@ struct ldim_dev_config_s {
 	unsigned int init_on_cnt;
 	unsigned int init_off_cnt;
 
-	struct bl_pwm_config_s pwm_config;
+	struct bl_pwm_config_s ldim_pwm_config;
+	struct bl_pwm_config_s analog_pwm_config;
 
 	unsigned short bl_regnum;
 	unsigned short bl_mapping[LD_BLKREGNUM];
+
+	void (*dim_range_update)(void);
+	int (*dev_reg_write)(unsigned char *buf, unsigned int len);
+	int (*dev_reg_read)(unsigned char *buf, unsigned int len);
 };
 
 /*******global API******/
