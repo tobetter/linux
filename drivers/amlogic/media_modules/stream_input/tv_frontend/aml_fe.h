@@ -61,6 +61,7 @@
 #include "../parser/hw_demux/aml_dvb.h"
 
 enum aml_tuner_type_t {
+	AM_TUNER_NONE = 0,
 	AM_TUNER_SI2176 = 1,
 	AM_TUNER_SI2196 = 2,
 	AM_TUNER_FQ1216 = 3,
