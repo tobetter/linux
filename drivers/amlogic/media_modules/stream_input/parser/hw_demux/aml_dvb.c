@@ -142,6 +142,65 @@ static struct tsdemux_ops aml_tsdemux_ops = {
 	.set_demux = aml_tsdemux_set_demux
 };
 
+static int dvb_attach_tuner(struct dvb_frontend *fe, struct aml_tuner *tuner, tuner_type *type)
+{
+	struct tuner_config *cfg = &tuner->cfg;
+	struct i2c_adapter *i2c_adap = tuner->i2c_adp;
+
+	switch (cfg->id) {
+	case AM_TUNER_R840:
+		if (!dvb_attach(r840_attach, fe, i2c_adap, cfg)) {
+			pr_error("dvb attach r840_attach tuner error\n");
+			return -1;
+		} else {
+			pr_inf("r840_attach  attach sucess\n");
+			*type = TUNER_R840;
+		}
+		break;
+	case AM_TUNER_R842:
+		if (!dvb_attach(r842_attach, fe, i2c_adap, cfg)) {
+			pr_error("dvb attach r842_attach tuner error\n");
+			return -1;
+		} else {
+			pr_inf("r842_attach  attach sucess\n");
+			*type = TUNER_R842;
+		}
+		break;
+	case AM_TUNER_SI2151:
+		if (!dvb_attach(si2151_attach, fe, i2c_adap, cfg)) {
+			pr_error("dvb attach tuner error\n");
+			return -1;
+		} else {
+			pr_inf("si2151 attach sucess\n");
+			*type = TUNER_SI2151;
+		}
+		break;
+	case AM_TUNER_SI2159:
+		if (!dvb_attach(si2159_attach, fe, i2c_adap, cfg)) {
+			pr_error("dvb attach si2159_attach tuner error\n");
+			return -1;
+		} else {
+			pr_inf("si2159_attach  attach sucess\n");
+			*type = TUNER_SI2159;
+		}
+		break;
+	case AM_TUNER_MXL661:
+		if (!dvb_attach(mxl661_attach, fe, i2c_adap, cfg)) {
+			pr_error("dvb attach mxl661_attach tuner error\n");
+			return -1;
+		} else {
+			pr_inf("mxl661_attach  attach sucess\n");
+			*type = TUNER_MXL661;
+		}
+		break;
+	default:
+		pr_error("can't support tuner type: %d\n", cfg->id);
+		break;
+	}
+
+	return 0;
+}
+
 long aml_stb_get_base(int id)
 {
 	int newbase = 0;
@@ -1635,6 +1694,82 @@ static ssize_t stb_store_hw_setting(struct class *class,
 	return count;
 }
 
+static ssize_t stb_show_tuner_setting(struct class *class,
+				   struct class_attribute *attr, char *buf)
+{
+	struct aml_dvb *dvb = &aml_dvb_device;
+
+	if (dvb->tuner_cur >= 0)
+		pr_inf("dvb current attatch tuner %d, id: %d\n",
+				dvb->tuner_cur, dvb->tuners[dvb->tuner_cur].cfg.id);
+	else
+		pr_inf("dvb has no attatch tuner.\n");
+
+	return 0;
+}
+
+static ssize_t stb_store_tuner_setting(struct class *class,
+				    struct class_attribute *attr,
+				    const char *buf, size_t count)
+{
+	int n = 0, i = 0, val = 0;
+	unsigned long tmp = 0;
+	char *buf_orig = NULL, *ps = NULL, *token = NULL;
+	char *parm[4] = { NULL };
+	struct aml_dvb *dvb = &aml_dvb_device;
+	int tuner_id = 0;
+	struct aml_tuner *tuner = NULL;
+
+	buf_orig = kstrdup(buf, GFP_KERNEL);
+	ps = buf_orig;
+
+	while (1) {
+		token = strsep(&ps, "\n ");
+		if (token == NULL)
+			break;
+		if (*token == '\0')
+			continue;
+		parm[n++] = token;
+	}
+
+	if (parm[0] && kstrtoul(parm[0], 10, &tmp) == 0) {
+		val = tmp;
+
+		for (i = 0; i < dvb->tuner_num; ++i) {
+			if (dvb->tuners[i].cfg.id == val) {
+				tuner_id = dvb->tuners[i].cfg.id;
+				break;
+			}
+		}
+
+		if (tuner_id == 0 || dvb->tuner_cur == i) {
+			pr_error("%s: set nonsupport or the same tuner %d.\n",
+					__func__, val);
+			goto EXIT;
+		}
+
+		dvb->tuner_cur = i;
+
+		for (i = 0; i < FE_DEV_COUNT; i++) {
+			tuner = &dvb->tuners[dvb->tuner_cur];
+
+			if (frontend[i] == NULL)
+				continue;
+
+			if (dvb_attach_tuner(frontend[i], tuner, &s_tuner_type[i]) < 0) {
+				pr_error("attach tuner %d failed\n", dvb->tuner_cur);
+				goto EXIT;
+			}
+		}
+
+		pr_error("%s: attach tuner %d done.\n", __func__, dvb->tuners[dvb->tuner_cur].cfg.id);
+	}
+
+EXIT:
+
+	return count;
+}
+
 static struct class_attribute aml_stb_class_attrs[] = {
 	__ATTR(hw_setting, 0664, stb_show_hw_setting,
 	       stb_store_hw_setting),
@@ -1761,6 +1896,8 @@ static struct class_attribute aml_stb_class_attrs[] = {
 	DSC_SOURCE_ATTR_DECL(1),
 	DSC_FREE_ATTR_DECL(1),
 #endif
+
+	__ATTR(tuner_setting, 0664, stb_show_tuner_setting, stb_store_tuner_setting),
 
 	__ATTR_NULL
 };
@@ -2034,14 +2171,14 @@ static int aml_dvb_probe(struct platform_device *pdev)
 	//pengcc add for dvb using linux TV frontend api init
 	{
 		struct amlfe_exp_config config;
-		struct i2c_adapter *i2c_adapter = NULL;
 		char buf[32];
 		const char *str = NULL;
 		struct device_node *node_tuner = NULL;
 		struct device_node *node_i2c = NULL;
 		u32 i2c_addr = 0xFFFFFFFF;
-		struct tuner_config cfg = { 0 };
+		struct tuner_config *cfg = NULL;
 		u32 value = 0;
+		int j = 0;
 
 		for (i=0; i<FE_DEV_COUNT; i++) {
 			memset(buf, 0, 32);
@@ -2066,107 +2203,111 @@ static int aml_dvb_probe(struct platform_device *pdev)
 				memset(buf, 0, 32);
 				snprintf(buf, sizeof(buf), "fe%d_tuner",i);
 				node_tuner = of_parse_phandle(pdev->dev.of_node, buf, 0);
-				if (!node_tuner)
-					continue;
-
-				ret = of_property_read_string(node_tuner, "tuner_name", &str);
-				if (ret) {
-					//pr_error("tuner%d type error\n",i);
-					ret = 0;
-					continue;
+				if (!node_tuner) {
+					pr_err("can't find tuner.\n");
+					goto error_fe;
 				}
 
-				node_i2c = of_parse_phandle(node_tuner, "tuner_i2c_adap", 0);
-				if (!node_i2c) {
-					pr_error("tuner_i2c_adap_id error\n");
-				} else {
-					i2c_adapter = of_find_i2c_adapter_by_node(node_i2c);
-					of_node_put(node_i2c);
-					if (i2c_adapter == NULL) {
-						pr_error("i2c_get_adapter error\n");
-						of_node_put(node_tuner);
-						goto error_fe;
+				ret = of_property_read_u32(node_tuner, "tuner_num", &value);
+				if (ret) {
+					pr_err("can't find tuner_num.\n");
+					goto error_fe;
+				} else
+					advb->tuner_num = value;
+
+				advb->tuners = kzalloc(sizeof(struct aml_tuner) * advb->tuner_num, GFP_KERNEL);
+				if (!advb->tuners) {
+					pr_err("can't kzalloc for tuners.\n");
+					goto error_fe;
+				}
+
+				ret = of_property_read_u32(node_tuner, "tuner_cur", &value);
+				if (ret) {
+					pr_err("can't find tuner_cur, use default 0.\n");
+					advb->tuner_cur = -1;
+				} else
+					advb->tuner_cur = value;
+
+				for (j = 0; j < advb->tuner_num; ++j) {
+					snprintf(buf, sizeof(buf), "tuner_name_%d", j);
+					ret = of_property_read_string(node_tuner, buf, &str);
+					if (ret) {
+						//pr_error("tuner%d type error\n",i);
+						ret = 0;
+						continue;
+					} else {
+						if (!strncmp(str, "mxl661_tuner", 12))
+							advb->tuners[j].cfg.id = AM_TUNER_MXL661;
+						else if (!strncmp(str, "si2151_tuner", 12))
+							advb->tuners[j].cfg.id = AM_TUNER_SI2151;
+						else if (!strncmp(str, "si2159_tuner", 12))
+							advb->tuners[j].cfg.id = AM_TUNER_SI2159;
+						else if (!strncmp(str, "r840_tuner", 10))
+							advb->tuners[j].cfg.id = AM_TUNER_R840;
+						else if (!strncmp(str, "r842_tuner", 10))
+							advb->tuners[j].cfg.id = AM_TUNER_R842;
+						else {
+							pr_err("nonsupport tuner: %s.\n", str);
+							advb->tuners[j].cfg.id = AM_TUNER_NONE;
+						}
 					}
+
+					snprintf(buf, sizeof(buf), "tuner_i2c_adap_%d", j);
+					node_i2c = of_parse_phandle(node_tuner, buf, 0);
+					if (!node_i2c) {
+						pr_error("tuner_i2c_adap_id error\n");
+					} else {
+						advb->tuners[j].i2c_adp = of_find_i2c_adapter_by_node(node_i2c);
+						of_node_put(node_i2c);
+						if (advb->tuners[j].i2c_adp == NULL) {
+							pr_error("i2c_get_adapter error\n");
+							of_node_put(node_tuner);
+							goto error_fe;
+						}
+					}
+
+					snprintf(buf, sizeof(buf), "tuner_i2c_addr_%d", j);
+					ret = of_property_read_u32(node_tuner, buf, &i2c_addr);
+					if (ret) {
+						pr_error("i2c_addr error\n");
+					}
+					else
+						advb->tuners[j].cfg.i2c_addr = i2c_addr;
+
+					snprintf(buf, sizeof(buf), "tuner_xtal_%d", j);
+					ret = of_property_read_u32(node_tuner, buf, &value);
+					if (ret)
+						pr_err("tuner_xtal error.\n");
+					else
+						advb->tuners[j].cfg.xtal = value;
+
+					snprintf(buf, sizeof(buf), "tuner_xtal_mode_%d", j);
+					ret = of_property_read_u32(node_tuner, buf, &value);
+					if (ret)
+						pr_err("tuner_xtal_mode error.\n");
+					else
+						advb->tuners[j].cfg.xtal_mode = value;
+
+					snprintf(buf, sizeof(buf), "tuner_xtal_cap_%d", j);
+					ret = of_property_read_u32(node_tuner, buf, &value);
+					if (ret)
+						pr_err("tuner_xtal_cap error.\n");
+					else
+						advb->tuners[j].cfg.xtal_cap = value;
 				}
-
-				ret = of_property_read_u32(node_tuner, "tuner_i2c_addr", &i2c_addr);
-				if (ret) {
-					pr_error("i2c_addr error\n");
-				}
-				else
-					cfg.i2c_addr = i2c_addr;
-
-				ret = of_property_read_u32(node_tuner, "tuner_xtal", &value);
-				if (ret)
-					pr_err("tuner_xtal error.\n");
-				else
-					cfg.xtal = value;
-
-				ret = of_property_read_u32(node_tuner, "tuner_xtal_mode", &value);
-				if (ret)
-					pr_err("tuner_xtal_mode error.\n");
-				else
-					cfg.xtal_mode = value;
-
-				ret = of_property_read_u32(node_tuner, "tuner_xtal_cap", &value);
-				if (ret)
-					pr_err("tuner_xtal_cap error.\n");
-				else
-					cfg.xtal_cap = value;
 
 				of_node_put(node_tuner);
 
 				/* define general-purpose callback pointer */
 				frontend[i]->callback = NULL;
 
-				if (!strcmp(str,"si2151_tuner")) {
-					cfg.id = AM_TUNER_SI2151;
-					if (!dvb_attach(si2151_attach, frontend[i],i2c_adapter,&cfg)) {
-						pr_error("dvb attach tuner error\n");
+				if (advb->tuner_cur >= 0) {
+					if (dvb_attach_tuner(frontend[i], &advb->tuners[advb->tuner_cur], &s_tuner_type[i]) < 0) {
+						pr_error("attach tuner failed\n");
 						goto error_fe;
-					} else {
-						pr_inf("si2151 attach sucess\n");
-						s_tuner_type[i] = TUNER_SI2151;
 					}
-				}else if(!strcmp(str,"mxl661_tuner")) {
-					cfg.id = AM_TUNER_MXL661;
-					if (!dvb_attach(mxl661_attach, frontend[i],i2c_adapter,&cfg)) {
-						pr_error("dvb attach mxl661_attach tuner error\n");
-						goto error_fe;
-					} else {
-						pr_inf("mxl661_attach  attach sucess\n");
-						s_tuner_type[i] = TUNER_MXL661;
-					}
-				}else if(!strcmp(str,"si2159_tuner")) {
-					cfg.id = AM_TUNER_SI2159;
-					if (!dvb_attach(si2159_attach, frontend[i],i2c_adapter,&cfg)) {
-						pr_error("dvb attach si2159_attach tuner error\n");
-						goto error_fe;
-					} else {
-						pr_inf("si2159_attach  attach sucess\n");
-						s_tuner_type[i] = TUNER_SI2159;
-					}
-				}else if(!strcmp(str,"r842_tuner")) {
-					cfg.id = AM_TUNER_R842;
-					if (!dvb_attach(r842_attach, frontend[i],i2c_adapter,&cfg)) {
-						pr_error("dvb attach r842_attach tuner error\n");
-						goto error_fe;
-					} else {
-						pr_inf("r842_attach  attach sucess\n");
-						s_tuner_type[i] = TUNER_R842;
-					}
-				}else if(!strcmp(str,"r840_tuner")) {
-					cfg.id = AM_TUNER_R840;
-					if (!dvb_attach(r840_attach, frontend[i],i2c_adapter,&cfg)) {
-						pr_error("dvb attach r840_attach tuner error\n");
-						goto error_fe;
-					} else {
-						pr_inf("r840_attach  attach sucess\n");
-						s_tuner_type[i] = TUNER_R840;
-					}
-				}else {
-					pr_error("can't support tuner type: %s\n",str);
 				}
+
 				ret = dvb_register_frontend(&advb->dvb_adapter, frontend[i]);
 				if (ret) {
 					pr_error("register dvb frontend failed\n");
@@ -2301,6 +2442,10 @@ error_fe:
 		}
 		return 0;
 	}
+
+	if (advb->tuners)
+		kfree(advb->tuners);
+
 	return 0;
 error:
 	for (i = 0; i < advb->async_fifo_total_count; i++) {
@@ -2413,6 +2558,10 @@ static int aml_dvb_remove(struct platform_device *pdev)
 	}
 #endif
 #endif
+
+	if (advb->tuners)
+		kfree(advb->tuners);
+
 	return 0;
 }
 

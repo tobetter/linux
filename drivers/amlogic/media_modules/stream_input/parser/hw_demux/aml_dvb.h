@@ -54,6 +54,8 @@
 #include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
 
+#include "aml_demod_gt.h"
+
 #define TS_IN_COUNT       4
 #define S2P_COUNT         3
 #define ASYNCFIFO_COUNT   3
@@ -294,6 +296,12 @@ struct aml_swfilter {
 	int    track_dmx;
 };
 
+struct aml_tuner {
+	struct tuner_config cfg;
+	unsigned int i2c_adapter_id;
+	struct i2c_adapter *i2c_adp;
+};
+
 struct aml_dvb {
 	struct dvb_device    dvb_dev;
 	int ts_in_total_count;
@@ -316,6 +324,11 @@ struct aml_dvb {
 	int                  dmx_watchdog_disable[DMX_DEV_COUNT];
 	struct aml_swfilter  swfilter;
 	int	ts_out_invert;
+
+	unsigned int tuner_num;
+	unsigned int tuner_cur;
+	struct aml_tuner *tuners;
+	bool tuner_attached;
 };
 
 
