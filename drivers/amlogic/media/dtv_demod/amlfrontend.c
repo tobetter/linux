@@ -1845,6 +1845,8 @@ static int atsc_j83b_detect_first(struct dvb_frontend *fe, enum fe_status *s)
 	int cnt;
 	int check_ok;
 
+	j83b_status = 0;
+
 	/*tuner:*/
 	if (dvb_tuner_delay > 9)
 		msleep(dvb_tuner_delay);
@@ -1911,7 +1913,7 @@ static int atsc_j83b_polling(struct dvb_frontend *fe, enum fe_status *s)
 
 	PR_DBG("+7+");
 
-
+	j83b_status = 0;
 	strenth = tuner_get_ch_power(fe);
 	if (strenth < THRD_TUNER_STRENTH_J83) {
 		*s = FE_TIMEDOUT;
