@@ -2282,6 +2282,28 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		mutex_unlock(&devp->fe_lock);
 		break;
 	}
+	case TVIN_IOC_G_FRONTEND_INFO: {
+		struct tvin_frontend_info_s info;
+
+		if ((!devp) || (!devp->fmt_info_p) || (!devp->curr_wr_vfe)) {
+			ret = -EFAULT;
+			break;
+		}
+
+		memset(&info, 0, sizeof(struct tvin_frontend_info_s));
+		mutex_lock(&devp->fe_lock);
+		info.cfmt = devp->parm.info.cfmt;
+		info.fps = devp->parm.info.fps;
+		info.colordepth = devp->prop.colordepth;
+		info.scan_mode = devp->fmt_info_p->scan_mode;
+		info.height = devp->curr_wr_vfe->vf.height;
+		info.width = devp->curr_wr_vfe->vf.width;
+		if (copy_to_user(argp, &info,
+			sizeof(struct tvin_frontend_info_s)))
+			ret = -EFAULT;
+		mutex_unlock(&devp->fe_lock);
+		break;
+	}
 	case TVIN_IOC_G_BUF_INFO: {
 		struct tvin_buf_info_s buf_info;
 		memset(&buf_info, 0, sizeof(buf_info));

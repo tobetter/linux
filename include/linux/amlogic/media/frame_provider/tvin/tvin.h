@@ -312,6 +312,15 @@ struct tvin_info_s {
 	unsigned int is_dvi;
 };
 
+struct tvin_frontend_info_s {
+	enum tvin_scan_mode_e scan_mode;
+	enum tvin_color_fmt_e cfmt;
+	unsigned int fps;
+	unsigned int width;
+	unsigned int height;
+	unsigned int colordepth;
+};
+
 struct tvin_buf_info_s {
 	unsigned int vf_size;
 	unsigned int buf_count;
@@ -432,6 +441,10 @@ struct tvafe_pin_mux_s {
 	enum tvin_force_color_range_e)
 #define TVIN_IOC_GAME_MODE          _IOW(_TM_T, 0x4b, unsigned int)
 #define TVIN_IOC_SET_AUTO_RATIO_EN  _IOW(_TM_T, 0x4c, unsigned int)
+#define TVIN_IOC_GET_LATENCY_MODE		_IOR(_TM_T, 0x4d,\
+	struct tvin_latency_s)
+#define TVIN_IOC_G_FRONTEND_INFO    _IOR(_TM_T, 0x4e,\
+	struct tvin_frontend_info_s)
 
 /* TVAFE */
 #define TVIN_IOC_S_AFE_VGA_PARM     _IOW(_TM_T, 0x16, struct tvafe_vga_parm_s)
