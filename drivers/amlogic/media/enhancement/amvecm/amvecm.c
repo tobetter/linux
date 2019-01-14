@@ -2775,6 +2775,8 @@ static ssize_t set_gamma_pattern_show(struct class *cla,
 	pr_info("8bit: echo r g b > /sys/class/amvecm/gamma_pattern\n");
 	pr_info("10bit: echo r g b 0xa > /sys/class/amvecm/gamma_pattern\n");
 	pr_info("	r g b should be hex\n");
+	pr_info("disable gamma pattern:\n");
+	pr_info("echo disable > /sys/class/amvecm/gamma_pattern\n");
 	return 0;
 }
 
@@ -2802,6 +2804,14 @@ static ssize_t set_gamma_pattern_store(struct class *cls,
 		if (*token == '\0')
 			continue;
 		parm[n++] = token;
+	}
+
+	if (!strcmp(parm[0], "disable")) {
+		vecm_latch_flag |= FLAG_GAMMA_TABLE_R;
+		vecm_latch_flag |= FLAG_GAMMA_TABLE_G;
+		vecm_latch_flag |= FLAG_GAMMA_TABLE_B;
+		kfree(buf_orig);
+		return count;
 	}
 
 	if (*(parm + 3) != NULL) {
