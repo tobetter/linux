@@ -1695,9 +1695,11 @@ static void d_convert_str(int num,
 
 	if (bit_chose == 10)
 		snprintf(buf, sizeof(buf), "%d", num);
-	if (bit_chose == 16)
+	else if (bit_chose == 16)
 		snprintf(buf, sizeof(buf), "%x", num);
 	count = strlen(buf);
+	if (count > 4)
+		count = 4;
 	for (i = 0; i < count; i++)
 		buf[i + char_bit] = buf[i];
 	for (i = 0; i < char_bit; i++)
@@ -1730,6 +1732,8 @@ static ssize_t amvecm_dnlp_debug_store(struct class *cla,
 	stemp = kmalloc(400, GFP_KERNEL);
 	if (!stemp)
 		return 0;
+	memset(stemp, 0, 400);
+
 	buf_orig = kstrdup(buf, GFP_KERNEL);
 	parse_param_amvecm(buf_orig, (char **)&parm);
 
