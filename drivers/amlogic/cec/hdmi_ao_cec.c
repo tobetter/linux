@@ -224,10 +224,15 @@ unsigned int waiting_aocec_free(unsigned int r)
 {
 	unsigned int cnt = 0;
 	int ret = true;
+	char *s;
 
 	while (readl(cec_dev->cec_reg + r) & (1<<23)) {
 		if (cnt++ >= 3500) {
 			pr_info("waiting aocec %x free time out %d\n", r, cnt);
+			s = kmalloc(2048, GFP_KERNEL);
+			dump_cecrx_reg(s);
+			CEC_ERR("%s\n", s);
+			kfree(s);
 			if (cec_dev->proble_finish)
 				cec_hw_reset(CEC_A);
 			ret = false;
@@ -244,7 +249,8 @@ unsigned int waiting_aocec_free(unsigned int r)
 		while (readl(cec_dev->cec_reg + r) & (1<<23)) {\
 			if (cnt++ == 3500) { \
 				pr_info("waiting aocec %x free time out\n", r);\
-				cec_hw_reset(CEC_A);\
+				if (cec_dev->proble_finish) \
+					cec_hw_reset(CEC_A);\
 				break;\
 			} \
 		} \
@@ -728,7 +734,8 @@ int cecrx_hw_init(void)
 	return 0;
 }
 */
-static int dump_cecrx_reg(char *b)
+
+int dump_cecrx_reg(char *b)
 {
 	int i = 0, s = 0;
 	unsigned char reg;
@@ -2178,37 +2185,7 @@ static ssize_t port_num_show(struct class *cla,
 static ssize_t dump_reg_show(struct class *cla,
 	struct class_attribute *attr, char *b)
 {
-	int i, s = 0;
-
-	if (ee_cec == CEC_B)
-		return dump_cecrx_reg(b);
-
-	s += sprintf(b + s, "TX buffer:\n");
-	for (i = 0; i <= CEC_TX_MSG_F_OP14; i++)
-		s += sprintf(b + s, "%2d:%2x\n", i, aocec_rd_reg(i));
-
-	for (i = 0; i < ARRAY_SIZE(cec_reg_name1); i++) {
-		s += sprintf(b + s, "%s:%2x\n",
-			     cec_reg_name1[i], aocec_rd_reg(i + 0x10));
-	}
-
-	s += sprintf(b + s, "RX buffer:\n");
-	for (i = 0; i <= CEC_TX_MSG_F_OP14; i++)
-		s += sprintf(b + s, "%2d:%2x\n", i, aocec_rd_reg(i + 0x80));
-
-	for (i = 0; i < ARRAY_SIZE(cec_reg_name2); i++) {
-		s += sprintf(b + s, "%s:%2x\n",
-			     cec_reg_name2[i], aocec_rd_reg(i + 0x90));
-	}
-
-	if (cec_dev->plat_data->chip_id >= CEC_CHIP_ID_TL1) {
-		for (i = 0; i < ARRAY_SIZE(ceca_reg_name3); i++) {
-			s += sprintf(b + s, "%s:%2x\n",
-			 ceca_reg_name3[i], aocec_rd_reg(i + 0xA0));
-		}
-	}
-
-	return s;
+	return dump_cecrx_reg(b);
 }
 
 static ssize_t arc_port_show(struct class *cla,
@@ -2746,6 +2723,8 @@ void cec_dump_info(void)
 	struct hdmi_port_info *port;
 
 	CEC_ERR("driver date:%s\n", CEC_DRIVER_VERSION);
+	CEC_ERR("chip type:0x%x\n",
+		get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR));
 	CEC_ERR("cec sel:%d\n", ee_cec);
 	CEC_ERR("cec_num:%d\n", cec_dev->cec_num);
 	CEC_ERR("dev_type:%d\n", (unsigned int)cec_dev->dev_type);
