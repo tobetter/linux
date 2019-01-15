@@ -51,9 +51,6 @@
 
 /*#define __SPDIFIN_AUDIO_TYPE_HW__*/
 
-static int aml_dai_set_spdif_sysclk(struct snd_soc_dai *cpu_dai,
-				int clk_id, unsigned int freq, int dir);
-
 struct spdif_chipinfo {
 	enum SPDIF_ID id;
 
@@ -709,6 +706,7 @@ static void spdifin_status_event(struct aml_spdif *p_spdif)
 				resample_set(p_spdif->asrc_id, RATE_OFF);
 #endif
 #endif
+#endif
 		}
 		if (intrpt_status & 0x10)
 			pr_info("Pd changed\n");
@@ -1131,7 +1129,7 @@ static void aml_dai_spdif_shutdown(
 #ifdef __SPDIFIN_AUDIO_TYPE_HW__
 		/* resample disabled, by hw */
 		if (!spdifin_check_audiotype_by_sw(p_spdif))
-			resample_set(p_spdif->asrc_id, RATE_OFF);
+			resample_set(p_spdif->asrc_id, 0);
 #endif
 		clk_disable_unprepare(p_spdif->clk_spdifin);
 		clk_disable_unprepare(p_spdif->fixed_clk);

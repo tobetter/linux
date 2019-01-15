@@ -494,9 +494,8 @@ unsigned int aml_toddr_read1(struct toddr *to)
 	unsigned int reg_base = to->reg_base;
 	unsigned int reg;
 
-	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL1, reg_base);
-
-	return aml_audiobus_read(actrl, reg);
+	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL0, reg_base);
+	aml_audiobus_update_bits(actrl,	reg, 1<<30, enable<<30);
 }
 
 void aml_toddr_write1(struct toddr *to, unsigned int val)
@@ -578,7 +577,7 @@ static void aml_resample_enable(
 	pr_info("toddr %d selects data to %s resample_%c for module:%s\n",
 		to->fifo_id,
 		enable ? "enable" : "disable",
-		(p_attach_resample->id == RESAMPLE_A) ? 'a' : 'b',
+		(p_attach_resample->id == 0) ? 'a' : 'b',
 		toddr_src_get_str(p_attach_resample->attach_module)
 		);
 
