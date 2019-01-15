@@ -114,7 +114,7 @@
 #define H264_MMU
 #define VIDEO_SIGNAL_TYPE_AVAILABLE_MASK	0x20000000
 static int mmu_enable;
-static int force_enable_mmu;
+static int force_enable_mmu = 1;
 unsigned int h264_debug_flag; /* 0xa0000000; */
 unsigned int h264_debug_mask = 0xff;
 	/*
@@ -5665,7 +5665,9 @@ static int vh264_hw_ctx_restore(struct vdec_h264_hw_s *hw)
 	CLEAR_VREG_MASK(MDEC_PIC_DC_CTRL, 1 << 31);
 	if (hw->mmu_enable) {
 		SET_VREG_MASK(MDEC_PIC_DC_MUX_CTRL, 1<<31);
-		WRITE_VREG(MDEC_EXTIF_CFG1, 0x80000000);
+		/* sw reset to extif hardware */
+		SET_VREG_MASK(MDEC_EXTIF_CFG1, 1<<30);
+		CLEAR_VREG_MASK(MDEC_EXTIF_CFG1, 1<<30);
 	} else {
 		CLEAR_VREG_MASK(MDEC_PIC_DC_MUX_CTRL, 1 << 31);
 		WRITE_VREG(MDEC_EXTIF_CFG1, 0);
