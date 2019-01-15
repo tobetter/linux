@@ -66,14 +66,15 @@ unsigned int lc_hist_ve;
 unsigned int lc_hist_hs;
 unsigned int lc_hist_he;
 /*lc curve data and hist data*/
-static int *lc_szcurve;/*12*8*6+4*/
-static int *curve_nodes_cur;
+int *lc_szcurve;/*12*8*6+4*/
+int *curve_nodes_cur;
 static int *curve_nodes_pre;
-static int *lc_hist;/*12*8*17*/
+int *lc_hist;/*12*8*17*/
 static bool lc_malloc_ok;
 /*print one or more frame data*/
 unsigned int lc_hist_prcnt;
 unsigned int lc_curve_prcnt;
+bool lc_curve_fresh = true;
 
 /*lc saturation gain, low parameters*/
 static unsigned int lc_satur_gain[63] = {
@@ -1008,10 +1009,11 @@ static void lc_fw_curve_iir(struct vframe_s *vf,
 	if (!vf)
 		return;
 
+	if (!lc_curve_fresh)
+		goto stop_curvefresh;
 	/* pre: get curve nodes from szCurveInfo and save to curve_nodes_cur*/
 	for (i = 0; i < 580; i++)/*12*8*6+4*/
 		curve_nodes_cur[i] = lc_szcurve[i];
-
 	/* pre: osd flag delay*/
 	osd_flag_cnt_below[0] = osd_flag_cnt_below[1];
 	osd_flag_cnt_above[0] = osd_flag_cnt_above[1];
@@ -1062,7 +1064,11 @@ static void lc_fw_curve_iir(struct vframe_s *vf,
 	frm_cnt_above--;
 	if (frm_cnt_above < 0)
 		frm_cnt_above = 0;
+	return;
 
+stop_curvefresh:
+	for (i = 0; i < 580; i++)
+		lc_szcurve[i] = curve_nodes_cur[i];/*output*/
 }
 
 static void lc_read_region(int blk_vnum, int blk_hnum)
@@ -1171,7 +1177,7 @@ void lc_init(void)
 
 	/*default LC low parameters*/
 	WRITE_VPP_REG(LC_CURVE_CONTRAST_LH, 0x000b000b);
-	WRITE_VPP_REG(LC_CURVE_CONTRAST_SCL_LH, 0x000b000b);
+	WRITE_VPP_REG(LC_CURVE_CONTRAST_SCL_LH, 0x00000b0b);
 	WRITE_VPP_REG(LC_CURVE_MISC0, 0x00023028);
 	WRITE_VPP_REG(LC_CURVE_YPKBV_RAT, 0x3e69443c);
 	WRITE_VPP_REG(LC_CURVE_YPKBV_SLP_LMT, 0x00000b33);
@@ -1226,6 +1232,7 @@ void lc_process(struct vframe_s *vf,
 	lc_config(lc_en, vf, sps_h_en, sps_v_en);
 	/*get each block curve*/
 	read_lc_curve(blk_vnum, blk_hnum);
+	lc_read_region(blk_vnum, blk_hnum);
 	/*do time domain iir*/
 	lc_fw_curve_iir(vf, lc_hist,
 		lc_szcurve, blk_vnum, blk_hnum);
@@ -1233,7 +1240,6 @@ void lc_process(struct vframe_s *vf,
 		lc_prt_curve();
 		lc_curve_prcnt--;
 	}
-	lc_read_region(blk_vnum, blk_hnum);
 	if (set_lc_curve(0, 1))
 		pr_amlc_dbg("%s: set lc curve fail", __func__);
 

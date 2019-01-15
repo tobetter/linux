@@ -21,6 +21,9 @@
 
 #include <linux/amlogic/media/vfm/vframe.h>
 
+/*V1.0: Local_contrast Basic function, iir algorithm, debug interface for tool*/
+#define LC_VER		"Ref.2019/02/27-V1.0"
+
 enum lc_mtx_sel_e {
 	INP_MTX = 0x1,
 	OUTP_MTX = 0x2,
@@ -70,6 +73,11 @@ extern int alpha2;
 extern int refresh_bit;
 extern int ts;
 extern int scene_change_th;
+extern bool lc_curve_fresh;
+extern int *lc_szcurve;/*12*8*6+4*/
+extern int *curve_nodes_cur;
+extern int *lc_hist;/*12*8*17*/
+
 
 extern void lc_init(void);
 extern void lc_process(struct vframe_s *vf,

@@ -5387,9 +5387,14 @@ static ssize_t amvecm_get_hdr_type_store(struct class *cls,
 	return count;
 }
 
-static void lc_rd_reg(enum lc_reg_lut_e reg_sel)
+static void lc_rd_reg(enum lc_reg_lut_e reg_sel, int data_type)
 {
 	int i, tmp, tmp1, tmp2;
+	int lut_data[63] = {0};
+	char *stemp = NULL;
+
+	if (data_type == 1)
+		goto dump_as_string;
 
 	switch (reg_sel) {
 	case SATUR_LUT:
@@ -5460,6 +5465,70 @@ static void lc_rd_reg(enum lc_reg_lut_e reg_sel)
 	default:
 		break;
 	}
+	return;
+
+dump_as_string:
+	stemp = kzalloc(300, GFP_KERNEL);
+	if (!stemp)
+		return;
+	switch (reg_sel) {
+	case SATUR_LUT:
+		for (i = 0; i < 31 ; i++) {
+			tmp = READ_VPP_REG(SRSHARP1_LC_SAT_LUT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0xfff;
+			tmp2 = tmp & 0xfff;
+			lut_data[2*i] = tmp1;
+			lut_data[2*i + 1] = tmp2;
+		}
+		tmp = READ_VPP_REG(SRSHARP1_LC_SAT_LUT_62);
+		lut_data[62] = tmp & 0xfff;
+		for (i = 0; i < 63 ; i++)
+			d_convert_str(lut_data[i],
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+		break;
+	case YMINVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp = READ_VPP_REG(LC_CURVE_YMINVAL_LMT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0x3ff;
+			tmp2 = tmp & 0x3ff;
+			lut_data[2*i] = tmp1;
+			lut_data[2*i + 1] = tmp2;
+		}
+		for (i = 0; i < 12 ; i++)
+			d_convert_str(lut_data[i],
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+		break;
+	case YPKBV_YMAXVAL_LMT:
+		for (i = 0; i < 6 ; i++) {
+			tmp = READ_VPP_REG(LC_CURVE_YPKBV_YMAXVAL_LMT_0_1 + i);
+			tmp1 = (tmp >> 16) & 0x3ff;
+			tmp2 = tmp & 0x3ff;
+			lut_data[2*i] = tmp1;
+			lut_data[2*i + 1] = tmp2;
+		}
+		for (i = 0; i < 12 ; i++)
+			d_convert_str(lut_data[i],
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+		break;
+	case YPKBV_RAT:
+		tmp = READ_VPP_REG(LC_CURVE_YPKBV_RAT);
+		lut_data[0] = (tmp>>24) & 0xff;
+		lut_data[1] = (tmp>>16) & 0xff;
+		lut_data[2] = (tmp>>8) & 0xff;
+		lut_data[3] = tmp & 0xff;
+		for (i = 0; i < 4 ; i++)
+			d_convert_str(lut_data[i],
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+		break;
+	default:
+		break;
+	}
+	kfree(stemp);
+	return;
 }
 
 static void lc_wr_reg(int *p, enum lc_reg_lut_e reg_sel)
@@ -5563,10 +5632,16 @@ static ssize_t amvecm_lc_store(struct class *cls,
 	char *buf_orig, *parm[8] = {NULL};
 	int reg_lut[63] = {0};
 	enum lc_reg_lut_e reg_sel;
+	int h, v, i, start_point;
 	long val = 0;
+	char *stemp = NULL;
+	int curve_val[6] = {0};
 
 	if (!buf)
 		return count;
+	stemp = kzalloc(100, GFP_KERNEL);
+	if (!stemp)
+		return 0;
 
 	buf_orig = kstrdup(buf, GFP_KERNEL);
 	parse_param_amvecm(buf_orig, (char **)&parm);
@@ -5578,6 +5653,8 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			lc_en = 0;
 		else
 			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "lc_version")) {
+		pr_info("lc driver version :  %s\n", LC_VER);
 	} else if (!strcmp(parm[0], "lc_dbg")) {
 		if (kstrtoul(parm[1], 16, &val) < 0)
 			goto free_buf;
@@ -5589,25 +5666,39 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			lc_demo_mode = 0;
 		else
 			pr_info("unsupprt cmd!\n");
-	} else if (!strcmp(parm[0], "lc_dump_reg")) {
+	} else if (!strcmp(parm[0], "dump_lut_data")) {
 		if (kstrtoul(parm[1], 16, &val) < 0)
 			goto free_buf;
 		reg_sel = val;
 		if (reg_sel == SATUR_LUT)
-			lc_rd_reg(SATUR_LUT);
+			lc_rd_reg(SATUR_LUT, 0);
 		else if (reg_sel == YMINVAL_LMT)
-			lc_rd_reg(YMINVAL_LMT);
+			lc_rd_reg(YMINVAL_LMT, 0);
 		else if (reg_sel == YPKBV_YMAXVAL_LMT)
-			lc_rd_reg(YPKBV_YMAXVAL_LMT);
+			lc_rd_reg(YPKBV_YMAXVAL_LMT, 0);
 		else if (reg_sel == YPKBV_RAT)
-			lc_rd_reg(YPKBV_RAT);
+			lc_rd_reg(YPKBV_RAT, 0);
 		else if (reg_sel == YPKBV_SLP_LMT)
-			lc_rd_reg(YPKBV_SLP_LMT);
+			lc_rd_reg(YPKBV_SLP_LMT, 0);
 		else if (reg_sel == CNTST_LMT)
-			lc_rd_reg(CNTST_LMT);
+			lc_rd_reg(CNTST_LMT, 0);
 		else
 			pr_info("unsupprt cmd!\n");
-	} else if (!strcmp(parm[0], "lc_wr_reg")) {
+	} else if (!strcmp(parm[0], "dump_lut_str")) {
+		if (kstrtoul(parm[1], 16, &val) < 0)
+			goto free_buf;
+		reg_sel = val;
+		if (reg_sel == SATUR_LUT)
+			lc_rd_reg(SATUR_LUT, 1);
+		else if (reg_sel == YMINVAL_LMT)
+			lc_rd_reg(YMINVAL_LMT, 1);
+		else if (reg_sel == YPKBV_YMAXVAL_LMT)
+			lc_rd_reg(YPKBV_YMAXVAL_LMT, 1);
+		else if (reg_sel == YPKBV_RAT)
+			lc_rd_reg(YPKBV_RAT, 1);
+		else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "lc_wr_lut")) {
 		if (kstrtoul(parm[1], 16, &val) < 0)
 			goto free_buf;
 		reg_sel = val;
@@ -5729,15 +5820,75 @@ static ssize_t amvecm_lc_store(struct class *cls,
 			goto free_buf;
 		amlc_iir_debug_en = val;
 		pr_info("setting value: %d\n", amlc_iir_debug_en);
-	} else
+	} else if (!strcmp(parm[0], "get_blk_region")) {
+		val = READ_VPP_REG(LC_CURVE_HV_NUM);
+		h = (val >> 8) & 0x1f;
+		v = (val) & 0x1f;
+		if (!strcmp(parm[1], "htotal"))
+			pr_info("%d\n", h);
+		else if (!strcmp(parm[1], "vtotal"))
+			pr_info("%d\n", v);
+		else
+			pr_info("unsupprt cmd!\n");
+	} else if (!strcmp(parm[0], "get_hist")) {
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		h = val;
+		if (kstrtoul(parm[2], 10, &val) < 0)
+			goto free_buf;
+		v = val;
+		if ((h > 11) || (v > 7))
+			goto free_buf;
+		start_point = (12*v+h)*17;
+		for (i = 0; i < 17; i++)
+			d_convert_str(lc_hist[start_point + i] >> 4,
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+	} else if (!strcmp(parm[0], "get_curve")) {
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		h = val;
+		if (kstrtoul(parm[2], 10, &val) < 0)
+			goto free_buf;
+		v = val;
+		if ((h > 11) || (v > 7))
+			goto free_buf;
+		start_point = (12*v+h)*6;
+		for (i = 0; i < 6; i++)
+			d_convert_str(curve_nodes_cur[start_point + i],
+						i, stemp, 4, 10);
+		pr_info("%s\n", stemp);
+	} else if (!strcmp(parm[0], "set_curve")) {
+		if (parm[3] == NULL)
+			goto free_buf;
+		if (kstrtoul(parm[1], 10, &val) < 0)
+			goto free_buf;
+		h = val;
+		if (kstrtoul(parm[2], 10, &val) < 0)
+			goto free_buf;
+		v = val;
+		if ((h > 11) || (v > 7))
+			goto free_buf;
+		start_point = (12*v+h)*6;
+		str_sapr_to_d(parm[3], curve_val, 5);
+		for (i = 0; i < 6; i++)
+			curve_nodes_cur[start_point + i]
+			= curve_val[i];
+	} else if (!strcmp(parm[0], "stop_refresh"))
+		lc_curve_fresh = false;
+	else if (!strcmp(parm[0], "refresh_curve"))
+		lc_curve_fresh = true;
+	else
 		pr_info("unsupprt cmd!\n");
 
 	kfree(buf_orig);
+	kfree(stemp);
 	return count;
 
 free_buf:
 	pr_info("Missing parameters !\n");
 	kfree(buf_orig);
+	kfree(stemp);
 	return -EINVAL;
 }
 
