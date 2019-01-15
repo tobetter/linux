@@ -85,6 +85,7 @@ static unsigned int clk_config;
 /*
    &1: sched_priority to MAX_RT_PRIO -1.
    &2: always reload firmware.
+   &4: vdec canvas debug enable
   */
 static unsigned int debug;
 
@@ -271,7 +272,8 @@ static int get_canvas_ex(int type, int id)
 			(canvas_stat[i].id & (1 << id)) == 0) {
 			canvas_stat[i].canvas_used_flag++;
 			canvas_stat[i].id |= (1 << id);
-			pr_debug("get used canvas %d\n", i);
+			if (debug & 4)
+				pr_debug("get used canvas %d\n", i);
 			vdec_canvas_unlock(vdec_core, flags);
 			if (i < AMVDEC_CANVAS_MAX2 + 1)
 				return i;
@@ -288,11 +290,13 @@ static int get_canvas_ex(int type, int id)
 			canvas_stat[i].type = type;
 			canvas_stat[i].canvas_used_flag = 1;
 			canvas_stat[i].id = (1 << id);
-			pr_debug("get canvas %d\n", i);
-			pr_debug("canvas_used_flag %d\n",
-				canvas_stat[i].canvas_used_flag);
-			pr_debug("canvas_stat[i].id %d\n",
-				canvas_stat[i].id);
+			if (debug & 4) {
+				pr_debug("get canvas %d\n", i);
+				pr_debug("canvas_used_flag %d\n",
+					canvas_stat[i].canvas_used_flag);
+				pr_debug("canvas_stat[i].id %d\n",
+					canvas_stat[i].id);
+			}
 			vdec_canvas_unlock(vdec_core, flags);
 			if (i < AMVDEC_CANVAS_MAX2 + 1)
 				return i;
@@ -332,11 +336,13 @@ static void free_canvas_ex(int index, int id)
 			canvas_stat[offset].type = 0;
 			canvas_stat[offset].id = 0;
 		}
-		pr_debug("free index %d used_flag %d, type = %d, id = %d\n",
-			offset,
-			canvas_stat[offset].canvas_used_flag,
-			canvas_stat[offset].type,
-			canvas_stat[offset].id);
+		if (debug & 4) {
+			pr_debug("free index %d used_flag %d, type = %d, id = %d\n",
+				offset,
+				canvas_stat[offset].canvas_used_flag,
+				canvas_stat[offset].type,
+				canvas_stat[offset].id);
+		}
 	}
 	vdec_canvas_unlock(vdec_core, flags);
 
