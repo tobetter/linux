@@ -4051,7 +4051,7 @@ static void vsync_toggle_frame(struct vframe_s *vf, int line)
 
 	/* if el is unnecessary, afbc2 need to be closed */
 	if ((last_el_status == 1) && (vf_with_el == 0))
-		need_disable_vd2 = true;
+		need_disable_vd2 = 1;
 
 	if (((vf->type & VIDTYPE_MVC) == 0)
 		&& last_mvc_status)
