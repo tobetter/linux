@@ -4029,6 +4029,9 @@ static void vsync_toggle_frame(struct vframe_s *vf, int line)
 		memcpy(&gPic_info[0], &vf->pic_mode,
 			sizeof(struct vframe_pic_mode_s));
 
+		if (iret == VppFilter_Success_and_Changed)
+			video_property_changed = 1;
+
 		/* apply new vpp settings */
 		frame_par_ready_to_set = 1;
 
@@ -7866,33 +7869,6 @@ SET_FILTER:
 			vpp_misc_set |=
 				DNLP_SR1_CM;
 
-		/* for sr core0, put it between prebld & pps as default */
-		if (cur_frame_par &&
-			(cur_frame_par->sr_core_support &
-			SUPER_CORE0_SUPPORT))
-			if (cur_frame_par->sr0_position)
-				vpp_misc_set |=
-					PREBLD_SR0_VD1_SCALER;
-			else
-				vpp_misc_set &=
-					~SR0_AFTER_DNLP;
-		else
-			vpp_misc_set |=
-				PREBLD_SR0_VD1_SCALER;
-		/* for sr core1, put it before post blend as default */
-		if (cur_frame_par &&
-			(cur_frame_par->sr_core_support &
-			SUPER_CORE1_SUPPORT))
-			if (cur_frame_par->sr1_position)
-				vpp_misc_set |=
-					DNLP_SR1_CM;
-			else
-				vpp_misc_set &=
-					~SR1_AFTER_POSTBLEN;
-		else
-			vpp_misc_set |=
-				DNLP_SR1_CM;
-
 		vpp_misc_set &=
 			((1 << 29) | VPP_CM_ENABLE |
 			(0x1ff << VPP_VD2_ALPHA_BIT) |
@@ -9181,7 +9157,12 @@ static long amvideo_ioctl(struct file *file, unsigned int cmd, ulong arg)
 		put_user(disable_videopip, (u32 __user *)argp);
 		break;
 	case AMSTREAM_IOC_GET_VIDEO_DISABLE:
-		put_user(disable_video, (u32 __user *)argp);
+		if (layer->layer_id == 0)
+			put_user(disable_video, (u32 __user *)argp);
+#ifdef VIDEO_PIP
+		else if (layer->layer_id == 1)
+			put_user(disable_videopip, (u32 __user *)argp);
+#endif
 		break;
 
 	case AMSTREAM_IOC_SET_VIDEOPIP_DISABLE:
@@ -13119,9 +13100,6 @@ MODULE_PARM_DESC(underflow, "\n Underflow count\n");
 
 module_param(next_peek_underflow, uint, 0664);
 MODULE_PARM_DESC(skip, "\n Underflow count\n");
-
-module_param(hdmiin_frame_check, uint, 0664);
-MODULE_PARM_DESC(hdmiin_frame_check, "\n hdmiin_frame_check\n");
 
 module_param(step_enable, uint, 0664);
 MODULE_PARM_DESC(step_enable, "\n step_enable\n");

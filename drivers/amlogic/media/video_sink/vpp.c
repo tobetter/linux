@@ -2976,7 +2976,10 @@ int vpp_set_filters(
 	if (!input)
 		return ret;
 
-	WARN_ON(vinfo == NULL);
+	if (vpp_flags & VPP_FLAG_INTERLACE_IN)
+		vskip_step = 2;
+	else
+		vskip_step = 1;
 
 	/* use local var to avoid the input data be overwriten */
 	memcpy(&local_input, input, sizeof(struct disp_info_s));
@@ -3063,6 +3066,20 @@ int vpp_set_filters(
 
 	if (vf->type & VIDTYPE_VSCALE_DISABLE)
 		vpp_flags |= VPP_FLAG_VSCALE_DISABLE;
+#ifndef TV_3D_FUNCTION_OPEN
+	if (vf->type & VIDTYPE_COMPRESS) {
+		src_width = vf->compWidth;
+		src_height = vf->compHeight;
+	} else {
+		src_width = vf->width;
+		src_height = vf->height;
+	}
+#endif
+
+	if ((vf->ratio_control & DISP_RATIO_ADAPTED_PICMODE)
+		&& !disable_adapted) {
+		if (vf->pic_mode.screen_mode != 0xff)
+			wide_mode = vf->pic_mode.screen_mode;
 
 	if ((vf->ratio_control & DISP_RATIO_ADAPTED_PICMODE)
 		&& !disable_adapted) {
