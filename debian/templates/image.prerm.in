@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-version=@abiname@@localversion@
+version=@kernelversion@@localversion@
 image_path=/boot/@image-stem@-$version
 
 if [ "$1" != remove ]; then

@@ -1,4 +1,4 @@
-Package: linux-image-@abiname@@localversion@
+Package: linux-image-@kernelversion@@localversion@
 Build-Profiles: <!stage1>
 Depends: kmod, linux-base (>= 4.3~), ${misc:Depends}
 Recommends: firmware-linux-free, ${kernel:Recommends}

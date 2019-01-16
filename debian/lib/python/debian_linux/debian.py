@@ -86,6 +86,7 @@ $
             self.epoch = int(match.group("epoch"))
         self.upstream = match.group("upstream")
         self.revision = match.group("revision")
+        self.kernelversion = self.upstream
 
     def __str__(self):
         return self.complete
