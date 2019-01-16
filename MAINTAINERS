@@ -14803,6 +14803,11 @@ AMLOGIC SM1 CLOCK DRIVERS
 M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
 F:	drivers/amlogic/clk/sm1/*
 
+AMLOGIC SM1 DTS
+M:	shaochan.liu <shaochan.liu@amlogic.com>
+F:	arch/arm64/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
+F:	arch/arm/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
+
 AMLOGIC SM1 POWER CTRL DRIVERS
 M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
 F:	drivers/amlogic/power/power_ctrl.c
