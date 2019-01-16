@@ -8099,7 +8099,7 @@ static s32 vvp9_init(struct VP9Decoder_s *pbi)
 		return 0;
 	}
 #endif
-
+	hevc_enable_DMC(hw_to_vdec(pbi));
 	amhevc_enable();
 
 	ret = amhevc_loadmc_ex(VFORMAT_VP9, NULL, fw->data);
