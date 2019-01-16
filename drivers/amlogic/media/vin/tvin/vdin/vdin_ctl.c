@@ -22,6 +22,7 @@
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
+#include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
 #include <linux/amlogic/media/video_sink/video.h>
@@ -3481,6 +3482,7 @@ void vdin_force_gofiled(struct vdin_dev_s *devp)
 void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 {
 	unsigned int index, alloc_size;
+	int highmem_flag;
 
 	alloc_size = dolby_size_byte*size;
 	devp->dv.dv_dma_vaddr = dma_alloc_coherent(&devp->this_pdev->dev,
@@ -3490,21 +3492,45 @@ void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 		return;
 	}
 	memset(devp->dv.dv_dma_vaddr, 0, alloc_size);
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
 	for (index = 0; index < size; index++) {
 		devp->vfp->dv_buf_mem[index] = devp->dv.dv_dma_paddr +
 			dolby_size_byte * index;
 		devp->vfp->dv_buf_vmem[index] = devp->dv.dv_dma_vaddr +
 			dolby_size_byte * index;
-		if ((devp->cma_config_flag & 0x100) && devp->cma_config_en)
-			devp->vfp->dv_buf_ori[index] =
-				phys_to_virt(devp->vfmem_start[index] +
-				devp->vfmem_size -
-				dolby_size_byte);
-		else
-			devp->vfp->dv_buf_ori[index] =
-				phys_to_virt(devp->mem_start + devp->mem_size -
-				dolby_size_byte *
-				(devp->canvas_max_num - index));
+
+		if (highmem_flag == 0) {
+			if ((devp->cma_config_flag & 0x100)
+				&& devp->cma_config_en)
+				devp->vfp->dv_buf_ori[index] =
+					phys_to_virt(devp->vfmem_start[index] +
+					devp->vfmem_size -
+					dolby_size_byte);
+			else
+				devp->vfp->dv_buf_ori[index] =
+					phys_to_virt(devp->mem_start +
+					devp->mem_size -
+					dolby_size_byte *
+					(devp->canvas_max_num - index));
+		} else {
+			if ((devp->cma_config_flag & 0x100)
+				&& devp->cma_config_en)
+				devp->vfp->dv_buf_ori[index] =
+					codec_mm_vmap(devp->vfmem_start[index] +
+					devp->vfmem_size-dolby_size_byte,
+					dolby_size_byte);
+			else
+				devp->vfp->dv_buf_ori[index] =
+					codec_mm_vmap(devp->mem_start +
+					devp->mem_size -
+					dolby_size_byte *
+					(devp->canvas_max_num - index),
+					dolby_size_byte);
+		}
 		pr_info("%s:dv_buf[%d]=0x%p(0x%x,0x%p)\n", __func__, index,
 			devp->vfp->dv_buf_ori[index],
 			devp->vfp->dv_buf_mem[index],
@@ -3516,6 +3542,17 @@ void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 void vdin_dolby_addr_release(struct vdin_dev_s *devp, unsigned int size)
 {
 	unsigned int alloc_size;
+	int highmem_flag, index;
+
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	for (index = 0; index < size; index++) {
+		if (highmem_flag == 1)
+			codec_mm_unmap_phyaddr(devp->vfp->dv_buf_ori[index]);
+	}
 
 	alloc_size = dolby_size_byte*size;
 	if (devp->dv.dv_dma_vaddr)
