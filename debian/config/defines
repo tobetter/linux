@@ -1,32 +1,33 @@
 [abi]
-abiname: 8
+abiname: 1
 ignore-changes:
  __cpuhp_*
+ __xive_vm_h_*
  bpf_analyzer
  cxl_*
- inet_frag_*
- inet_frags_*
- ip6_expire_frag_queue
- ip6_frag_*
+ dax_flush
+ ieee80211_nullfunc_get
+ inet_add_protocol
+ inet_del_protocol
+ iommu_device_*
+ kvm_async_pf_task_wait
+ kvmppc_*
  mm_iommu_*
  mv_mbus_*
+ perf_*
  register_cxl_calls
  register_key_type
- tpm_*
- tpmm_chip_alloc
  unregister_cxl_calls
- module:drivers/block/loop
+ *_hw_breakpoint
+ module:arch/x86/kvm/*
  module:drivers/crypto/ccp/*
  module:drivers/hv/*
  module:drivers/iio/common/hid-sensors/*
  module:drivers/iio/common/st_sensors/**
+ module:drivers/mtd/nand/*
  module:drivers/net/wireless/**
- module:drivers/nfc/**
  module:drivers/nvdimm/*
- module:drivers/nvme/**
  module:drivers/power/supply/bq27xxx_battery
- module:drivers/s390/net/qeth
- module:drivers/s390/net/qeth*
  module:drivers/scsi/cxgbi/*
  module:drivers/scsi/libiscs*
  module:drivers/scsi/qla2xxx/qla2xxx
@@ -36,11 +37,11 @@ ignore-changes:
  module:drivers/usb/gadget/**
  module:drivers/usb/host/**
  module:drivers/usb/musb/**
- module:fs/nfs/nfs
+ module:fs/nfs/**
  module:net/ceph/libceph
- module:net/nfc/hci/hci
  module:net/l2tp/**
- module:net/vmw_vsock/*
+ module:net/rxrpc/rxrpc
+ module:sound/core/seq/**
  module:sound/firewire/snd-firewire-lib
 # btree library is only selected by few drivers so not useful OOT
  btree_*
@@ -62,71 +63,20 @@ ignore-changes:
  first_ec
 # Exported for tracefs only
  debugfs_create_automount
-# Exported for KVM drivers only
- __gfn_*
- __kvm_*
- gfn_*
- kvm_*
- mark_page_dirty
- vcpu_*
- module:arch/powerpc/kvm/*
- module:arch/s390/kvm/*
- module:arch/x86/kvm/*
-# Exported for Xen drivers only
- *_xen_*
- *_xenballooned_*
- *_xenbus_*
- *_xenstore_*
- gnttab_*
- HYPERVISOR_*
- x86_hyper_xen
- xen_*
- xenbus_*
-# modules will use their own inline copy (cf. #911421)
- return_address
+# ignore changes to inv_mpu6050/*
+ module:drivers/iio/imu/inv_mpu6050/*
 
 [base]
 arches:
- alpha
- amd64
  arm64
- armel
  armhf
- hppa
- i386
- m68k
- mips
- mipsel
- mipsn32
- mipsn32el
- mips64
- mips64el
-# Disabled until dak accepts them in the control file
-# mipsr6
-# mipsr6el
-# mipsn32r6
-# mipsn32r6el
-# mips64r6
-# mips64r6el
- powerpc
- powerpcspe
- ppc64
- ppc64el
- s390
- s390x
- sh3
- sh4
- sparc
- sparc64
- tilegx
- x32
 compiler: gcc-6
 featuresets:
  none
  rt
 
 [build]
-debug-info: true
+debug-info: false
 # Disable module signing for now
 signed-modules: false
 
@@ -134,16 +84,15 @@ signed-modules: false
 enabled: false
 
 [featureset-rt_base]
-enabled: true
+enabled: false
 
 [description]
 part-long-up: This kernel is not suitable for SMP (multi-processor,
  multi-core or hyper-threaded) systems.
-part-long-xen: This kernel also runs on a Xen hypervisor.
- It supports both privileged (dom0) and unprivileged (domU) operation.
 
 [image]
 initramfs-generators: initramfs-tools initramfs-fallback
+recommends: apparmor
 
 [relations]
 # compilers

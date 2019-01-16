@@ -4,7 +4,7 @@ featuresets:
  none
 
 [build]
-debug-info: true
+debug-info: false
 image-file: arch/arm64/boot/Image
 vdso: true
 
@@ -14,5 +14,8 @@ breaks: libmozjs185-1.0, libmozjs-24-0 (<< 24.2.0-5.1~)
 
 [arm64_description]
 hardware: 64-bit ARMv8 machines
+
+[odroidn2-arm64_description]
+hardware: ODROID (64-bit ARMv8 machines)
 
 [arm64_image]
