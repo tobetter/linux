@@ -6338,7 +6338,7 @@ static s32 vavs2_init(struct vdec_s *vdec)
 
 		return 0;
 	}
-
+	hevc_enable_DMC(hw_to_vdec(dec));
 	amhevc_enable();
 
 	ret = amhevc_loadmc_ex(VFORMAT_AVS2, NULL, fw->data);

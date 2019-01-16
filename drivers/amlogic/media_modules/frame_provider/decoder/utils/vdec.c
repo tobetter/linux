@@ -3563,6 +3563,17 @@ void vdec_reset_core(struct vdec_s *vdec)
 }
 EXPORT_SYMBOL(vdec_reset_core);
 
+void hevc_enable_DMC(struct vdec_s *vdec)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&vdec_spin_lock, flags);
+	codec_dmcbus_write(DMC_REQ_CTRL,
+	codec_dmcbus_read(DMC_REQ_CTRL) | (1 << 4));
+	spin_unlock_irqrestore(&vdec_spin_lock, flags);
+}
+
+EXPORT_SYMBOL(hevc_enable_DMC);
+
 void hevc_reset_core(struct vdec_s *vdec)
 {
 	unsigned long flags;

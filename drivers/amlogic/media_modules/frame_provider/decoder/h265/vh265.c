@@ -10590,6 +10590,7 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 		return 0;
 	}
 #endif
+	hevc_enable_DMC(hw_to_vdec(hevc));
 	amhevc_enable();
 
 	if (hevc->mmu_enable)
