@@ -6666,21 +6666,9 @@ static int aml_vecm_probe(struct platform_device *pdev)
 	else
 		hdr_flag = (1 << 0) | (1 << 1) | (0 << 2) | (0 << 3);
 
-	if (is_meson_g12a_cpu() || is_meson_g12b_cpu())
-		sdr_mode = 2;
-
-	/*config vlock mode*/
-	/*todo:txlx & g9tv support auto pll,*/
-	/*but support not good,need vlsi support optimize*/
-	vlock_mode = VLOCK_MODE_MANUAL_PLL;
-	if (is_meson_gxtvbb_cpu() ||
-		is_meson_txl_cpu() || is_meson_txlx_cpu()
-		|| is_meson_txhd_cpu())
-		vlock_en = 1;
-	else
-		vlock_en = 0;
 	hdr_init(&amvecm_dev.hdr_d);
 	aml_vecm_dt_parse(pdev);
+	vlock_status_init();
 
 	probe_ok = 1;
 	pr_info("%s: ok\n", __func__);
