@@ -702,6 +702,9 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				ret = -ETIME;
 				break;
 			}
+			enc_pr(LOG_INFO,
+			       "s_interrupt_flag(%d), reason(0x%08lx)\n",
+			       s_interrupt_flag, dev->interrupt_reason);
 			if (dev->interrupt_reason & (1 << W4_INT_ENC_PIC)) {
 				u32 start, end, size, core = 0;
 
@@ -1332,6 +1335,11 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 		vpu_free_instances(filp);
 		s_vpu_drv_context.open_count--;
 		if (s_vpu_drv_context.open_count == 0) {
+			enc_pr(LOG_INFO,
+			       "vpu_release: s_interrupt_flag(%d), reason(0x%08lx)\n",
+			       s_interrupt_flag, s_vpu_drv_context.interrupt_reason);
+			s_vpu_drv_context.interrupt_reason = 0;
+			s_interrupt_flag = 0;
 			if (s_instance_pool.base) {
 				enc_pr(LOG_DEBUG, "free instance pool\n");
 				vfree((const void *)s_instance_pool.base);
@@ -1993,8 +2001,15 @@ static s32 __init vpu_init(void)
 static void __exit vpu_exit(void)
 {
 	enc_pr(LOG_DEBUG, "vpu_exit\n");
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_GXM)
-		platform_driver_unregister(&vpu_driver);
+	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12A) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)) {
+		enc_pr(LOG_INFO,
+			"The chip is not support hevc encoder\n");
+		return;
+	}
+	platform_driver_unregister(&vpu_driver);
 }
 
 static const struct reserved_mem_ops rmem_hevc_ops = {
