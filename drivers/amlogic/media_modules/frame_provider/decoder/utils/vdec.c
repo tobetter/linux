@@ -1800,7 +1800,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				FRAME_BASE_PATH_AMLVIDEO1_AMVIDEO2) {
 			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
 				"%s %s", vdec->vf_provider_name,
-				"ppmgr amlvideo.1 amvide2");
+				"aml_video.1 videosync.0 videopip");
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
 		} else if (p->frame_base_video_path == FRAME_BASE_PATH_V4L_VIDEO) {
