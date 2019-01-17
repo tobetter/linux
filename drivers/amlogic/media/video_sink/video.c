@@ -456,6 +456,8 @@ static u32 reference_zorder = 128;
 static s32 black_threshold_width = 20;
 static s32 black_threshold_height = 30;
 
+static u32 reference_zorder = 128;
+
 #define MAX_ZOOM_RATIO 300
 
 #define VPP_PREBLEND_VD_V_END_LIMIT 2304
