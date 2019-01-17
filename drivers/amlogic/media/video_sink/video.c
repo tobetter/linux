@@ -156,6 +156,11 @@ static bool video_start_post;
 static bool videopeek;
 static bool nopostvideostart;
 static struct video_frame_detect_s video_frame_detect;
+static struct timeval time_setomxpts = {
+	.tv_sec = 0,
+	.tv_usec = 0,
+};
+
 
 /*----omx_info  bit0: keep_last_frame, bit1~31: unused----*/
 static u32 omx_info = 0x1;
@@ -4051,7 +4056,7 @@ static void vsync_toggle_frame(struct vframe_s *vf, int line)
 
 	/* if el is unnecessary, afbc2 need to be closed */
 	if ((last_el_status == 1) && (vf_with_el == 0))
-		need_disable_vd2 = 1;
+		need_disable_vd2 = true;
 
 	if (((vf->type & VIDTYPE_MVC) == 0)
 		&& last_mvc_status)
