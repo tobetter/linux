@@ -282,6 +282,15 @@
 		status = "okay";
 	};
 
+	jtag {
+		compatible = "amlogic, jtag";
+		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
+	};
+
 	pinctrl_aobus: pinctrl@ff800014{
 		compatible = "amlogic,meson-axg-aobus-pinctrl";
 		#address-cells = <2>;
@@ -880,6 +889,15 @@
 		};
 	};
 
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "jtag_ao_tdi",
+			"jtag_ao_tdo",
+			"jtag_ao_clk",
+			"jtag_ao_tms";
+			function = "jtag_ao";
+		};
+	};
 }; /* end of pinctrl_aobus */
 
 &pinctrl_periphs {
@@ -1141,5 +1159,14 @@
 		};
 	};
 
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "jtag_tdo_x",
+			"jtag_tdi_x",
+			"jtag_clk_x",
+			"jtag_tms_x";
+			function = "jtag_ee";
+		};
+	};
 }; /* end of pinctrl_periphs */
 

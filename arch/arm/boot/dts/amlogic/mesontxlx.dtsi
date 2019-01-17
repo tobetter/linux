@@ -285,9 +285,13 @@
 		status = "okay";
 	};
 
-	amlogic-jtag {
+	jtag {
 		compatible = "amlogic, jtag";
 		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
 	};
 
 	vpu {
@@ -1047,6 +1051,16 @@
 		    function = "i2c_ao";
 		};
 	};
+
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "GPIOAO_3",
+			"GPIOAO_4",
+			"GPIOAO_5",
+			"GPIOAO_7";
+			function = "gpio_aobus";
+		};
+	};
 };
 
 &pinctrl_periphs {
@@ -1385,6 +1399,16 @@
 		mux {
 			groups ="pwm_d_dv";
 			function = "pwm_d";
+		};
+	};
+
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "GPIOC_0",
+			"GPIOC_1",
+			"GPIOC_2",
+			"GPIOC_3";
+			function = "gpio_periphs";
 		};
 	};
 };
