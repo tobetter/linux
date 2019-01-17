@@ -38,6 +38,9 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include <linux/amlogic/tee.h>
 
+#include <trace/events/meson_atrace.h>
+
+
 #ifdef CONFIG_AM_VDEC_MJPEG_LOG
 #define AMLOG
 #define LOG_LEVEL_VAR       amlog_level_vmjpeg
@@ -219,6 +222,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vdec_count_info(gvs, 0, offset);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -276,6 +280,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vfbuf_use[index]++;
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 #else
 			/* send whole frame by weaving top & bottom field */
 #ifdef NV21
@@ -304,6 +309,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vdec_count_info(gvs, 0, offset);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,

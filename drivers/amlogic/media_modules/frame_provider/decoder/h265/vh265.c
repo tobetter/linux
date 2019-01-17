@@ -46,6 +46,7 @@
 #include "../utils/config_parser.h"
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
+#include <trace/events/meson_atrace.h>
 
 #define CONSTRAIN_MAX_BUF_NUM
 
@@ -7407,6 +7408,7 @@ static int process_pending_vframe(struct hevc_state_s *hevc,
 				__func__, vf->index);
 		hevc->vf_pre_count++;
 		kfifo_put(&hevc->display_q, (const struct vframe_s *)vf);
+		ATRACE_COUNTER(MODULE_NAME, vf->pts);
 	}
 
 	if (kfifo_peek(&hevc->pending_q, &vf)) {
@@ -7428,6 +7430,7 @@ static int process_pending_vframe(struct hevc_state_s *hevc,
 				hevc->vf_pre_count++;
 				kfifo_put(&hevc->display_q,
 				(const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 			}
 		} else if ((!pair_frame_top_flag) &&
 			(((vf->index >> 8) & 0xff) == 0xff)) {
@@ -7445,6 +7448,7 @@ static int process_pending_vframe(struct hevc_state_s *hevc,
 				pair_pic->vf_ref++;
 				kfifo_put(&hevc->display_q,
 				(const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 				hevc->vf_pre_count++;
 				if (get_dbg_flag(hevc) & H265_DEBUG_PIC_STRUCT)
 					hevc_print(hevc, 0,
@@ -7467,6 +7471,7 @@ static int process_pending_vframe(struct hevc_state_s *hevc,
 				pair_pic->vf_ref++;
 				kfifo_put(&hevc->display_q,
 				(const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 				hevc->vf_pre_count++;
 				if (get_dbg_flag(hevc) & H265_DEBUG_PIC_STRUCT)
 					hevc_print(hevc, 0,
@@ -7831,9 +7836,11 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf2);
+			ATRACE_COUNTER(MODULE_NAME, vf2->pts);
 		} else if (pic->pic_struct == 5
 			|| pic->pic_struct == 6) {
 			struct vframe_s *vf2, *vf3;
@@ -7877,12 +7884,15 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf2);
+			ATRACE_COUNTER(MODULE_NAME, vf2->pts);
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf3);
+			ATRACE_COUNTER(MODULE_NAME, vf3->pts);
 
 		} else if (pic->pic_struct == 9
 			|| pic->pic_struct == 10) {
@@ -7986,6 +7996,7 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 			hevc->vf_pre_count++;
 			kfifo_put(&hevc->display_q,
 			(const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 		}
 #else
 		vf->type_original = vf->type;
@@ -7993,6 +8004,7 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		hevc->vf_pre_count++;
 		decoder_do_frame_check(hw_to_vdec(hevc), vf);
 		kfifo_put(&hevc->display_q, (const struct vframe_s *)vf);
+		ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 		if (get_dbg_flag(hevc) & H265_DEBUG_PIC_STRUCT)
 			hevc_print(hevc, 0,

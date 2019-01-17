@@ -42,6 +42,9 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include <linux/amlogic/tee.h>
 
+#include <trace/events/meson_atrace.h>
+
+
 /* #define CONFIG_AM_VDEC_MPEG4_LOG */
 #ifdef CONFIG_AM_VDEC_MPEG4_LOG
 #define AMLOG
@@ -490,6 +493,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -536,6 +540,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 				vmpeg4_amstream_dec_info.rate, picture_type);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -583,6 +588,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY,
