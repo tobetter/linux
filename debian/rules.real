@@ -70,8 +70,12 @@ ifneq ($(DO_DOCS),False)
   binary-indep: install-manual
   build-indep: $(STAMPS_DIR)/build-doc
 endif
+ifneq ($(DO_SOURCE),False)
 binary-indep: install-source
+endif
+ifneq ($(DO_SUPPORT),False)
 binary-indep: install-support
+endif
 
 ifneq ($(DO_TOOLS),False)
   build-arch-arch: $(STAMPS_DIR)/build-tools
@@ -134,10 +138,14 @@ define patch_cmd
 cd '$(DIR)' && QUILT_PATCHES='$(CURDIR)/debian/patches' QUILT_SERIES=series-$(1) QUILT_PC=.pc quilt push --quiltrc - -a -q --fuzz=0
 endef
 
+ifneq ($(DO_VERIFY_FATURE_PATCHES),False)
 $(STAMPS_DIR)/source:
 	test -d .pc
 	set +e; QUILT_PC=.pc quilt unapplied --quiltrc - >/dev/null && echo 'Patch series not fully applied'; test $$? -eq 1
 	@$(stamp)
+else
+$(STAMPS_DIR)/source:
+endif
 
 $(STAMPS_DIR)/source_%: SOURCE_DIR=$(BUILD_DIR)/source
 $(STAMPS_DIR)/source_%: DIR=$(BUILD_DIR)/source_$*
@@ -188,7 +196,9 @@ $(STAMPS_DIR)/build_$(ARCH)_$(FEATURESET)_$(FLAVOUR): $(STAMPS_DIR)/setup_$(ARCH
 
 $(STAMPS_DIR)/build_$(ARCH)_$(FEATURESET)_$(FLAVOUR):
 	+$(MAKE_CLEAN) -C '$(DIR)' $(BUILD_TARGET)
+ifneq ($(DO_BUILDCHECK),False)
 	debian/bin/buildcheck.py $(DIR) $(ARCH) $(FEATURESET) $(FLAVOUR)
+endif
 	@$(stamp)
 
 $(STAMPS_DIR)/build-doc: DIR=$(BUILD_DIR)/build-doc
