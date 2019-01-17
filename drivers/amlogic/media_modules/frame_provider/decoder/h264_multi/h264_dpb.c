@@ -4966,7 +4966,8 @@ static struct StorablePicture *get_long_term_pic(struct Slice *currSlice,
 	for (i = 0; i < p_Dpb->ltref_frames_in_buffer; i++) {
 		if (currSlice->structure == FRAME) {
 			if (p_Dpb->fs_ltref[i]->is_reference == 3)
-				if ((p_Dpb->fs_ltref[i]->frame->
+				if ((p_Dpb->fs_ltref[i]->frame) &&
+					(p_Dpb->fs_ltref[i]->frame->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->frame->
 					long_term_pic_num ==
@@ -4974,13 +4975,16 @@ static struct StorablePicture *get_long_term_pic(struct Slice *currSlice,
 					return p_Dpb->fs_ltref[i]->frame;
 		} else {
 			if (p_Dpb->fs_ltref[i]->is_reference & 1)
-				if ((p_Dpb->fs_ltref[i]->top_field->
+				if ((p_Dpb->fs_ltref[i]->top_field) &&
+					(p_Dpb->fs_ltref[i]->top_field->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->top_field->
 					long_term_pic_num == LongtermPicNum))
 					return p_Dpb->fs_ltref[i]->top_field;
+
 			if (p_Dpb->fs_ltref[i]->is_reference & 2)
-				if ((p_Dpb->fs_ltref[i]->bottom_field->
+				if ((p_Dpb->fs_ltref[i]->bottom_field) &&
+					(p_Dpb->fs_ltref[i]->bottom_field->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->bottom_field->
 					long_term_pic_num ==
