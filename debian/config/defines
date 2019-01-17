@@ -130,6 +130,9 @@ debug-info: true
 # Disable module signing for now
 signed-modules: false
 
+[featureset_base]
+enabled: false
+
 [featureset-rt_base]
 enabled: true
 
