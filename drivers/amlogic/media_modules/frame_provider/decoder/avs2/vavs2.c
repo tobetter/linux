@@ -56,6 +56,7 @@
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
 #include <linux/amlogic/tee.h>
+#include <trace/events/meson_atrace.h>
 
 #define I_ONLY_SUPPORT
 #define MIX_STREAM_SUPPORT
@@ -4518,6 +4519,7 @@ static int avs2_prepare_display_buf(struct AVS2Decoder_s *dec)
 			set_vframe(dec, vf, pic, 0);
 			decoder_do_frame_check(hw_to_vdec(dec), vf);
 			kfifo_put(&dec->display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 	#ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 			/*count info*/

@@ -43,6 +43,9 @@
 #include "../utils/firmware.h"
 #include <linux/amlogic/tee.h>
 
+#include <trace/events/meson_atrace.h>
+
+
 #define DRIVER_NAME "amvdec_vc1"
 #define MODULE_NAME "amvdec_vc1"
 
@@ -490,6 +493,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(
 				PROVIDER_NAME,
@@ -549,6 +553,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(
 					PROVIDER_NAME,
@@ -633,6 +638,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 					mm_blk_handle,
 					buffer_index);
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,

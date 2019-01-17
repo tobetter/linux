@@ -23,6 +23,7 @@
 
 
 #include <linux/amlogic/media/utils/vdec_reg.h>
+#include <trace/events/meson_atrace.h>
 #include "vdec_profile.h"
 #include "vdec.h"
 
@@ -223,6 +224,7 @@ EXPORT_SYMBOL(vdec_profile_more);
 
 void vdec_profile(struct vdec_s *vdec, int event)
 {
+	ATRACE_COUNTER(vdec_device_name_str(vdec), event);
 	vdec_profile_more(vdec, event, 0 , 0);
 	if (dec_time_stat_flag == 1)
 		vdec_profile_statistics(vdec, event);

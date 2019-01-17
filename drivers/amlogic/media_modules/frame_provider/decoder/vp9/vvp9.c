@@ -55,6 +55,9 @@
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
 
+#include <trace/events/meson_atrace.h>
+
+
 #define MIX_STREAM_SUPPORT
 
 #include "vvp9.h"
@@ -6880,6 +6883,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		inc_vf_ref(pbi, pic_config->index);
 		decoder_do_frame_check(hw_to_vdec(pbi), vf);
 		kfifo_put(&pbi->display_q, (const struct vframe_s *)vf);
+		ATRACE_COUNTER(MODULE_NAME, vf->pts);
 		pbi->vf_pre_count++;
 #ifndef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 		/*count info*/

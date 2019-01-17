@@ -44,6 +44,9 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
 
+#include <trace/events/meson_atrace.h>
+
+
 #define MEM_NAME "codec_mmjpeg"
 
 #define DRIVER_NAME "ammvdec_mjpeg"
@@ -300,7 +303,7 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 	hw->vfbuf_use[index]++;
 
 	kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
-
+	ATRACE_COUNTER(MODULE_NAME, vf->pts);
 	hw->frame_num++;
 	mmjpeg_debug_print(DECODE_ID(hw), PRINT_FRAME_NUM,
 		"%s:frame num:%d,pts=%d,pts64=%lld. dur=%d\n",
