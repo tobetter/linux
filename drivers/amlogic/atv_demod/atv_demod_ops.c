@@ -435,7 +435,7 @@ static struct analog_demod_ops atvdemod_ops = {
 };
 
 
-unsigned int tuner_status_cnt = 8; /* 4-->16 test on sky mxl661 */
+unsigned int tuner_status_cnt = 4; /* 4-->16 test on sky mxl661 */
 
 bool slow_mode;
 
@@ -956,7 +956,7 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 		pr_dbg("[%s] slow mode to search the channel\n", __func__);
 		afc_step = ATV_AFC_1_0MHZ;
 	} else if (!slow_mode) {
-		afc_step = ATV_AFC_2_0MHZ;
+		afc_step = p->afc_range/* ATV_AFC_2_0MHZ */;
 	} else {
 		pr_dbg("[%s] slow mode to search the channel\n", __func__);
 		afc_step = ATV_AFC_1_0MHZ;
@@ -1077,7 +1077,7 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 						auto_search_std,
 						&std_bk, &audio);
 
-				pr_dbg("[%s] freq:%d, std_bk:0x%x, audmode:0x%x, search OK.\n",
+				pr_info("[%s] freq:%d, std_bk:0x%x, audmode:0x%x, search OK.\n",
 						__func__, p->frequency,
 						(unsigned int) std_bk, audio);
 
@@ -1096,21 +1096,6 @@ static enum v4l2_search atvdemod_fe_search(struct v4l2_frontend *v4l2_fe)
 				fe->ops.analog_ops.set_config(fe, &priv_cfg);
 				return V4L2_SEARCH_SUCCESS;
 			}
-		}
-
-		/*avoid sound format is not match after search over */
-		if (std_bk != 0 && audio != 0) {
-			p->std = std_bk;
-			p->audmode = audio;
-
-			params.frequency = p->frequency;
-			params.mode = p->afc_range;
-			params.audmode = p->audmode;
-			params.std = p->std;
-
-			fe->ops.analog_ops.set_params(fe, &params);
-			std_bk = 0;
-			audio = 0;
 		}
 
 		pr_dbg("[%s] freq[analog.std:0x%08x] is[%d] unlock\n",

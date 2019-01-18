@@ -52,6 +52,8 @@
 	DEBUGFS_CREATE_NODE(aud_std, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(aud_mode, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(aud_auto, 0640, dentry, u32)\
+	DEBUGFS_CREATE_NODE(aud_reinit, 0640, dentry, u32)\
+	DEBUGFS_CREATE_NODE(aud_mono_only, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(over_threshold, 0640, dentry, u64)\
 	DEBUGFS_CREATE_NODE(input_amplitude, 0640, dentry, u64)\
 	DEBUGFS_CREATE_NODE(atvaudio_det_outputmode_en, 0640, dentry, bool)\
