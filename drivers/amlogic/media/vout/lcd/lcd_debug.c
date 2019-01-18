@@ -226,6 +226,7 @@ static int lcd_power_step_print(struct lcd_config_s *pconf, int status,
 		switch (power_step->type) {
 		case LCD_POWER_TYPE_CPU:
 		case LCD_POWER_TYPE_PMU:
+		case LCD_POWER_TYPE_WAIT_GPIO:
 			n = lcd_debug_info_len(len + offset);
 			len += snprintf((buf+len), n,
 				"%d: type=%d, index=%d, value=%d, delay=%d\n",
@@ -2207,37 +2208,59 @@ static ssize_t lcd_debug_power_step_store(struct class *class,
 		struct class_attribute *attr, const char *buf, size_t count)
 {
 	int ret = 0;
-	unsigned int i, delay;
+	unsigned int i;
+	unsigned int tmp[2];
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	struct lcd_power_ctrl_s *lcd_power_step;
 
 	lcd_power_step = lcd_drv->lcd_config->lcd_power;
 	switch (buf[1]) {
 	case 'n': /* on */
-		ret = sscanf(buf, "on %d %d", &i, &delay);
-		if (ret == 2) {
+		ret = sscanf(buf, "on %d %d %d", &i, &tmp[0], &tmp[1]);
+		if (ret == 3) {
+			if (i >= lcd_power_step->power_on_step_max) {
+				pr_info("invalid power_on step: %d, step_max: %d\n",
+				i, lcd_power_step->power_on_step_max);
+				return -EINVAL;
+			}
+			lcd_power_step->power_on_step[i].value = tmp[0];
+			lcd_power_step->power_on_step[i].delay = tmp[1];
+			pr_info(
+				"set power_on step %d value %d delay: %dms\n",
+				i, tmp[0], tmp[1]);
+		} else if (ret == 2) {
 			if (i >= lcd_power_step->power_on_step_max) {
 				pr_info("invalid power_on step: %d\n", i);
 				return -EINVAL;
 			}
-			lcd_power_step->power_on_step[i].delay = delay;
+			lcd_power_step->power_on_step[i].delay = tmp[0];
 			pr_info("set power_on step %d delay: %dms\n",
-				i, delay);
+				i, tmp[0]);
 		} else {
 			pr_info("invalid data\n");
 			return -EINVAL;
 		}
 		break;
 	case 'f': /* off */
-		ret = sscanf(buf, "off %d %d", &i, &delay);
-		if (ret == 1) {
+		ret = sscanf(buf, "off %d %d %d\n", &i, &tmp[0], &tmp[1]);
+		if (ret == 3) {
 			if (i >= lcd_power_step->power_off_step_max) {
 				pr_info("invalid power_off step: %d\n", i);
 				return -EINVAL;
 			}
-			lcd_power_step->power_off_step[i].delay = delay;
+			lcd_power_step->power_off_step[i].value = tmp[0];
+			lcd_power_step->power_off_step[i].delay = tmp[1];
+			pr_info(
+				"set power_off step %d value %d delay: %dms\n",
+				i, tmp[0], tmp[1]);
+		} else if (ret == 2) {
+			if (i >= lcd_power_step->power_off_step_max) {
+				pr_info("invalid power_off step: %d\n", i);
+				return -EINVAL;
+			}
+			lcd_power_step->power_off_step[i].delay = tmp[0];
 			pr_info("set power_off step %d delay: %dms\n",
-				i, delay);
+				i, tmp[0]);
 		} else {
 			pr_info("invalid data\n");
 			return -EINVAL;

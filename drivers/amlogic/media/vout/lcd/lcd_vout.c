@@ -260,7 +260,8 @@ static void lcd_power_ctrl(int status)
 #ifdef CONFIG_AMLOGIC_LCD_EXTERN
 	struct aml_lcd_extern_driver_s *ext_drv;
 #endif
-	int i, index;
+	unsigned int i, index, wait, temp;
+	int value = -1;
 	int ret = 0;
 
 	LCDPR("%s: %d\n", __func__, status);
@@ -275,8 +276,8 @@ static void lcd_power_ctrl(int status)
 			break;
 		if (lcd_debug_print_flag) {
 			LCDPR("power_ctrl: %d, step %d\n", status, i);
-			LCDPR("type=%d, index=%d, value=%d, delay=%d\n",
-				power_step->type, power_step->index,
+			LCDPR("%s: type=%d, index=%d, value=%d, delay=%d\n",
+				__func__, power_step->type, power_step->index,
 				power_step->value, power_step->delay);
 		}
 		switch (power_step->type) {
@@ -312,14 +313,42 @@ static void lcd_power_ctrl(int status)
 			}
 			break;
 #endif
+		case LCD_POWER_TYPE_WAIT_GPIO:
+			index = power_step->index;
+			lcd_cpu_gpio_set(index, LCD_GPIO_INPUT);
+			LCDPR("lcd_power_type_wait_gpio wait\n");
+			for (wait = 0; wait < power_step->delay; wait++) {
+				value = lcd_cpu_gpio_get(index);
+				if (value == power_step->value) {
+					LCDPR("wait_gpio %d ok\n", value);
+					break;
+				}
+				mdelay(1);
+			}
+			if (wait == power_step->delay)
+				LCDERR("wait_gpio %d timeout!\n", value);
+			break;
+		case LCD_POWER_TYPE_CLK_SS:
+			temp = lcd_driver->lcd_config->lcd_timing.ss_level;
+			value = (power_step->value) & 0xff;
+			ret = lcd_set_ss(0xff,
+				(value >> LCD_CLK_SS_BIT_FREQ) & 0xf,
+				(value >> LCD_CLK_SS_BIT_MODE) & 0xf);
+			if (ret == 0) {
+				temp &= ~(0xff << 8);
+				temp |= (value << 8);
+				lcd_driver->lcd_config->lcd_timing.ss_level =
+					temp;
+			}
+			break;
 		default:
 			break;
 		}
-		if (power_step->delay)
+		if ((power_step->type != LCD_POWER_TYPE_WAIT_GPIO) &&
+			(power_step->delay > 0))
 			mdelay(power_step->delay);
 		i++;
 	}
-
 	if (lcd_debug_print_flag)
 		LCDPR("%s: %d finished\n", __func__, status);
 }
