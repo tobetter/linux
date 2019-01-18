@@ -43,9 +43,50 @@
 #include <linux/pm_wakeirq.h>
 
 static void amlremote_tasklet(unsigned long data);
-
+static void learning_done_workqueue(struct work_struct *work);
+static void get_fifo_data_work(struct work_struct *work);
 
 DECLARE_TASKLET_DISABLED(tasklet, amlremote_tasklet, 0);
+
+static void learning_done_workqueue(struct work_struct *work)
+{
+	struct delayed_work *w = container_of(work, struct delayed_work, work);
+	struct remote_chip *chip =
+		container_of(w, struct remote_chip, ir_workqueue);
+	char *envp[2] = { "LEARN_DONE", NULL};
+
+	kobject_uevent_env(&chip->dev->kobj, KOBJ_CHANGE, envp);
+}
+
+int remote_pulses_malloc(struct remote_chip *chip)
+{
+	struct remote_dev *r_dev = chip->r_dev;
+	int len = r_dev->max_learned_pulse;
+	int ret = 0;
+
+	if (r_dev->pulses) {
+		dev_info(chip->dev, "ir learning pulse already exists\n");
+		return -EEXIST;
+	}
+
+	r_dev->pulses = kzalloc(sizeof(struct pulse_group) +
+			len * sizeof(unsigned int), GFP_KERNEL);
+
+	if (!r_dev->pulses) {
+		dev_err(chip->dev, "ir learning pulse alloc err\n");
+		ret = -ENOMEM;
+	}
+
+	return ret;
+}
+
+void remote_pulses_free(struct remote_chip *chip)
+{
+	struct remote_dev *r_dev = chip->r_dev;
+
+	kfree(r_dev->pulses);
+	r_dev->pulses = NULL;
+}
 
 int remote_reg_read(struct remote_chip *chip, unsigned char id,
 	unsigned int reg, unsigned int *val)
@@ -69,6 +110,19 @@ int remote_reg_write(struct remote_chip *chip, unsigned char id,
 	}
 
 	writel(val, (chip->ir_contr[id].remote_regs+reg));
+
+	return 0;
+}
+
+int remote_reg_update_bits(struct remote_chip *chip, unsigned char id,
+	unsigned int reg, unsigned int mask, unsigned int val)
+{
+	int orig = 0;
+
+	remote_reg_read(chip, id, reg, &orig);
+	orig &= ~mask;
+	orig |= val & mask;
+	remote_reg_write(chip, id, reg, orig);
 
 	return 0;
 }
@@ -300,9 +354,64 @@ static void amlremote_tasklet(unsigned long data)
 
 }
 
+static void get_fifo_data_work(struct work_struct *work)
+{
+	struct remote_chip *chip =
+		container_of(work, struct remote_chip, fifo_work);
+	struct remote_dev *r_dev = chip->r_dev;
+	int val = 0;
+	int is_fifo_pending = 0;
+	int is_fifo_timeout = 0;
+	int is_fifo_empty = 0;
+	u32 duration = 0;
+
+	remote_reg_read(chip, MULTI_IR_ID, REG_FIFO, &val);
+	is_fifo_pending = (val >> 30) & 0x01;
+	is_fifo_timeout = (val >> 29) & 0x01;
+	is_fifo_empty = (val >> 27) & 0x01;
+
+	/*disable  interrupt*/
+	remote_reg_update_bits(chip, MULTI_IR_ID, REG_FIFO, GENMASK(22, 23), 0);
+
+	if (is_fifo_pending || is_fifo_timeout) {
+		/*clear state*/
+		remote_reg_update_bits(chip, MULTI_IR_ID, REG_FIFO,
+				       GENMASK(29, 30), GENMASK(29, 30));
+
+		for (; !is_fifo_empty; ) {
+
+			remote_reg_read(chip, MULTI_IR_ID, REG_WITH, &val);
+			val = val & GENMASK(12, 0);
+
+			duration = val;
+			r_dev->pulses->pulse[r_dev->pulses->len] = duration;
+
+			if (r_dev->pulses->len % 2 == 1)
+				r_dev->pulses->pulse[r_dev->pulses->len]
+					|= BIT(31);
+
+			r_dev->pulses->len++;
+
+			remote_reg_read(chip, MULTI_IR_ID, REG_FIFO, &val);
+			is_fifo_empty = (val >> 27) & 0x01;
+
+		}
+	}
+
+	/*enable interrupt*/
+	remote_reg_update_bits(chip, MULTI_IR_ID, REG_FIFO, GENMASK(22, 23),
+			       GENMASK(22, 23));
+
+	if (r_dev->auto_report)
+		mod_timer(&r_dev->learning_done,
+			  jiffies + msecs_to_jiffies(50));
+}
+
 static irqreturn_t ir_interrupt(int irq, void *dev_id)
 {
 	struct remote_chip *rc = (struct remote_chip *)dev_id;
+	struct remote_dev *r_dev = rc->r_dev;
+	struct pulse_group *pgs;
 	int contr_status = 0;
 	int val = 0;
 	u32 duration;
@@ -312,12 +421,40 @@ static irqreturn_t ir_interrupt(int irq, void *dev_id)
 
 	remote_reg_read(rc, MULTI_IR_ID, REG_REG1, &val);
 	val = (val & 0x1FFF0000) >> 16;
-	sprintf(buf, "d:%d\n", val);
+	sprintf(buf, "duration:%d\n", val);
 	debug_log_printk(rc->r_dev, buf);
 	/**
 	 *software decode multiple protocols by using Time Measurement of
 	 *multif-format IR controller
 	 */
+
+	if (r_dev->ir_learning_on && !r_dev->ir_learning_done) {
+		pgs = r_dev->pulses;
+		if (pgs->len >= r_dev->max_learned_pulse) {
+			remote_reg_update_bits(rc, MULTI_IR_ID, REG_REG1,
+					       BIT(15), 0);
+			return IRQ_HANDLED;
+		}
+		if (!r_dev->use_fifo) {
+			if (r_dev->auto_report)
+				mod_timer(&r_dev->learning_done,
+					  jiffies + msecs_to_jiffies(50));
+			/*get pulse durations unit:10us*/
+			pgs->pulse[pgs->len] = val & GENMASK(30, 0);
+			/*get pulse level*/
+			remote_reg_read(rc, MULTI_IR_ID, REG_STATUS, &val);
+			val = !!((val >> 8) & 0x01);
+			pgs->pulse[pgs->len] &= ~BIT(31);
+			if (val)
+				pgs->pulse[pgs->len] |= BIT(31);
+
+			r_dev->pulses->len++;
+		} else {
+			schedule_work(&rc->fifo_work);
+		}
+		return IRQ_HANDLED;
+	}
+
 	if (MULTI_IR_SOFTWARE_DECODE(rc->protocol)) {
 		rc->ir_work = MULTI_IR_ID;
 		duration = val*10*1000;
@@ -508,6 +645,18 @@ static int ir_get_devtree_pdata(struct platform_device *pdev)
 	}
 	dev_info(chip->dev, "led_blink_frq  = %ld\n", chip->r_dev->delay_on);
 
+	ret = of_property_read_bool(pdev->dev.of_node, "demod_enable");
+	if (ret)
+		chip->r_dev->demod_enable = 1;
+
+	ret = of_property_read_bool(pdev->dev.of_node, "use_fifo");
+	if (ret)
+		chip->r_dev->use_fifo = 1;
+
+	ret = of_property_read_bool(pdev->dev.of_node, "auto_report");
+	if (ret)
+		chip->r_dev->auto_report = 1;
+
 	p = devm_pinctrl_get_select_default(&pdev->dev);
 	if (IS_ERR(p)) {
 		dev_err(chip->dev, "pinctrl error, %ld\n", PTR_ERR(p));
@@ -552,6 +701,47 @@ static int ir_get_devtree_pdata(struct platform_device *pdev)
 		return -1;
 
 	return 0;
+}
+
+void demod_init(struct remote_chip *chip)
+{
+	int val;
+	unsigned int  mask;
+
+	mask = GENMASK(29, 16) | BIT(31);
+	val = BIT(31) | (0x1FF << 16);
+
+	remote_reg_update_bits(chip, MULTI_IR_ID, REG_DEMOD_CNTL1, mask, val);
+}
+
+void demod_reset(struct remote_chip *chip)
+{
+	unsigned int mask;
+
+	mask = BIT(30);
+	remote_reg_update_bits(chip, MULTI_IR_ID, REG_DEMOD_CNTL0, mask, mask);
+}
+
+static void ir_learning_done(unsigned long cookie)
+{
+
+	struct remote_dev *dev = (struct remote_dev *)cookie;
+	struct remote_chip *chip = (struct remote_chip *) dev->platform_data;
+	unsigned long flags;
+
+	if (dev->pulses->len < 3) {
+		dev->pulses->len = 0;
+		return;
+	}
+
+	spin_lock_irqsave(&chip->slock, flags);
+	dev->ir_learning_done = true;
+	spin_unlock_irqrestore(&chip->slock, flags);
+
+	/*data recive done*/
+	remote_reg_update_bits(chip, MULTI_IR_ID, REG_REG1, BIT(15), 0);
+	schedule_delayed_work(&chip->ir_workqueue, msecs_to_jiffies(100));
+
 }
 
 static int ir_hardware_init(struct platform_device *pdev)
@@ -646,6 +836,7 @@ static int remote_probe(struct platform_device *pdev)
 	chip->r_dev->set_custom_code = set_custom_code;
 	chip->r_dev->is_valid_custom = is_valid_custom;
 	chip->r_dev->is_next_repeat  = is_next_repeat;
+	chip->r_dev->max_learned_pulse = MAX_LEARNED_PULSE;
 	chip->set_register_config = ir_register_default_config;
 	platform_set_drvdata(pdev, chip);
 
@@ -669,6 +860,11 @@ static int remote_probe(struct platform_device *pdev)
 
 	led_trigger_register_simple("rc_feedback", &dev->led_feedback);
 
+	setup_timer(&dev->learning_done, ir_learning_done, (unsigned long)dev);
+	if (dev->demod_enable)
+		demod_init(chip);
+	INIT_DELAYED_WORK(&chip->ir_workqueue, learning_done_workqueue);
+	INIT_WORK(&chip->fifo_work, get_fifo_data_work);
 	return 0;
 
 error_register_remote:
@@ -747,6 +943,12 @@ static int remote_resume(struct device *dev)
 static int remote_suspend(struct device *dev)
 {
 	struct remote_chip *chip = dev_get_drvdata(dev);
+
+	if (chip->r_dev->ir_learning_on) {
+		cancel_work_sync(&chip->fifo_work);
+		del_timer_sync(&chip->r_dev->learning_done);
+		cancel_delayed_work_sync(&chip->ir_workqueue);
+	}
 
 	if (is_pm_freeze_mode())
 		return 0;

@@ -48,6 +48,7 @@ static long remote_ioctl(struct file *file, unsigned int cmd,
 	void __user *parg = (void __user *)arg;
 	unsigned long flags;
 	u32 value;
+	u8 val;
 	int retval = 0;
 
 	if (!parg) {
@@ -125,6 +126,93 @@ static long remote_ioctl(struct file *file, unsigned int cmd,
 			goto err;
 		}
 		chip->r_dev->max_frame_time = sw_data.max_frame_time;
+		break;
+	case REMOTE_IOC_GET_IR_LEARNING:
+		if (copy_to_user(parg, &chip->r_dev->ir_learning_on,
+				 sizeof(u8))) {
+			retval = -EFAULT;
+			goto err;
+		}
+		break;
+
+	case REMOTE_IOC_SET_IR_LEARNING:
+		/*reset demudolation and carrier detect*/
+		if (chip->r_dev->demod_enable)
+			demod_reset(chip);
+
+		if (copy_from_user(&val, parg, sizeof(u8))) {
+			retval = -EFAULT;
+			goto err;
+		}
+
+		chip->r_dev->ir_learning_on = !!val;
+		if (!!val) {
+			if (remote_pulses_malloc(chip) < 0) {
+				retval = -ENOMEM;
+				goto err;
+			}
+			chip->set_register_config(chip, REMOTE_TYPE_RAW_NEC);
+			/*backup protocol*/
+			chip->r_dev->protocol = chip->protocol;
+			chip->protocol = REMOTE_TYPE_RAW_NEC;
+		} else {
+			chip->protocol = chip->r_dev->protocol;
+			chip->set_register_config(chip, chip->protocol);
+			remote_pulses_free(chip);
+			chip->r_dev->ir_learning_done = false;
+		}
+		break;
+
+	case REMOTE_IOC_GET_RAW_DATA:
+		if (copy_to_user(parg, chip->r_dev->pulses,
+			sizeof(struct pulse_group) +
+			chip->r_dev->max_learned_pulse *
+			sizeof(unsigned int))) {
+			retval = -EFAULT;
+			goto err;
+		}
+		/*clear to prepear next frame*/
+		memset(chip->r_dev->pulses, 0, sizeof(struct pulse_group) +
+			chip->r_dev->max_learned_pulse *
+			sizeof(unsigned int));
+
+		if (chip->r_dev->demod_enable)
+			demod_reset(chip);
+
+		/*finish reading data ,enable state machine */
+		remote_reg_update_bits(chip, MULTI_IR_ID, REG_REG1, BIT(15),
+				       BIT(15));
+
+		chip->r_dev->ir_learning_done = false;
+
+		break;
+
+	case REMOTE_IOC_GET_SUM_CNT0:
+		if (chip->r_dev->demod_enable) {
+			remote_reg_read(chip, MULTI_IR_ID, REG_DEMOD_SUM_CNT0,
+					&value);
+			if (copy_to_user(parg, &value, sizeof(u32))) {
+				retval = -EFAULT;
+				goto err;
+			}
+		} else {
+			retval = -EFAULT;
+			goto err;
+		}
+		break;
+
+	case REMOTE_IOC_GET_SUM_CNT1:
+		if (chip->r_dev->demod_enable) {
+			remote_reg_read(chip, MULTI_IR_ID, REG_DEMOD_SUM_CNT1,
+					&value);
+			if (copy_to_user(parg, &value, sizeof(u32))) {
+				retval = -EFAULT;
+				goto err;
+			}
+		} else {
+			retval = -EFAULT;
+			goto err;
+		}
 		break;
 
 	default:

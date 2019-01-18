@@ -88,7 +88,7 @@ static struct remote_reg_map regs_default_nec_sw[] = {
 	{ REG_LDR_IDLE,     0},
 	{ REG_LDR_REPEAT,   0},
 	{ REG_BIT_0,        0},
-	{ REG_REG0,        ((3 << 28) | (0xFA0 << 12) | (9))},
+	{ REG_REG0,        ((7 << 28) | (0xFA0 << 12) | (9))},
 	{ REG_STATUS,       0},
 	{ REG_REG1,         0x8574},
 	{ REG_REG2,         0x02},
@@ -569,6 +569,11 @@ const struct aml_remote_reg_proto *remote_reg_proto[] = {
 	NULL
 };
 
+const struct aml_remote_reg_proto **ir_get_proto_reg(void)
+{
+	return remote_reg_proto;
+}
+
 static int ir_contr_init(struct remote_chip *chip, int type, unsigned char id)
 {
 	const struct aml_remote_reg_proto **reg_proto = remote_reg_proto;
@@ -622,6 +627,11 @@ static int ir_contr_init(struct remote_chip *chip, int type, unsigned char id)
 	chip->ir_contr[id].proto_name        = (*reg_proto)->name;
 	chip->ir_contr[id].get_custom_code   = (*reg_proto)->get_custom_code;
 	chip->ir_contr[id].set_custom_code   = (*reg_proto)->set_custom_code;
+
+	if (chip->r_dev->ir_learning_on && chip->r_dev->use_fifo)
+		remote_reg_write(chip, id, REG_FIFO, FIFO_REG_VAL);
+	else
+		remote_reg_write(chip, id, REG_FIFO, 0);
 
 	return 0;
 }
