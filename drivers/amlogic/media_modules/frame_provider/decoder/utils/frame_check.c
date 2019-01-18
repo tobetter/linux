@@ -39,6 +39,9 @@
 #include "vdec.h"
 #include "frame_check.h"
 #include "amlogic_fbc_hook.h"
+#include <linux/highmem.h>
+#include <linux/page-flags.h>
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 
 #define FC_ERROR	0x0
@@ -46,6 +49,8 @@
 #define FC_YUV_DEBUG	0x01
 #define FC_CRC_DEBUG	0x02
 #define FC_TST_DEBUG	0x80
+#define FC_ERR_CRC_BLOCK_MODE	0x10
+#define FC_CHECK_CRC_LOOP_MODE	0x20
 
 #define YUV_MASK	0x01
 #define CRC_MASK	0x02
@@ -71,24 +76,27 @@ static unsigned int size_yuv_buf = (YUV_DEF_SIZE * YUV_DEF_NUM);
 #define YUV_PATH  "/data/tmp/"
 static char comp_crc[128] = "name";
 
+static struct vdec_s *single_mode_vdec = NULL;
 
-module_param_string(comp_crc, comp_crc, 128, 0664);
-MODULE_PARM_DESC(comp_crc, "\n crc_filename\n");
+static unsigned int yuv_enable, check_enable;
+static unsigned int yuv_start[MAX_INSTANCE_MUN];
+static unsigned int yuv_num[MAX_INSTANCE_MUN];
 
-module_param(fc_debug, uint, 0664);
-MODULE_PARM_DESC(fc_debug, "\n frame check debug\n");
 
-module_param(size_yuv_buf, uint, 0664);
-MODULE_PARM_DESC(size_yuv_buf, "\n size_yuv_buf\n");
-
-static __inline void set_enable(struct pic_check_mgr_t *p, int mask)
+static inline void set_enable(struct pic_check_mgr_t *p, int mask)
 {
 	p->enable |= mask;
 }
 
-static __inline void set_disable(struct pic_check_mgr_t *p, int mask)
+static inline void set_disable(struct pic_check_mgr_t *p, int mask)
 {
 	p->enable &= (~mask);
+}
+
+static inline void check_schedule(struct pic_check_mgr_t *mgr)
+{
+	if (atomic_read(&mgr->work_inited))
+		vdec_schedule_work(&mgr->frame_check_work);
 }
 
 static int get_frame_size(struct pic_check_mgr_t *pic,
@@ -199,8 +207,10 @@ static char *fget_crc_str(char *buf,
 				break;
 		}
 		*cs = '\0';
-		if ((c == 0) && (cs == buf))
+		if ((c == 0) && (cs == buf)) {
+			set_fs(old_fs);
 			return NULL;
+		}
 		ret = sscanf(buf, "%08u: %8x %8x", &index, &crc1, &crc2);
 		dbg_print(FC_CRC_DEBUG, "%s, index = %d, cmp = %d\n",
 			__func__, index, fc->cmp_crc_cnt);
@@ -221,7 +231,7 @@ static struct file* file_open(int mode, const char *str, ...)
 	va_start(args, str);
 	vsnprintf(file, sizeof(file), str, args);
 
-	fp = filp_open(file, mode, 0);
+	fp = filp_open(file, mode, (mode&O_CREAT)?0666:0);
 	if (IS_ERR(fp)) {
 		fp = NULL;
 		dbg_print(FC_ERROR, "open %s failed\n", file);
@@ -327,38 +337,65 @@ static void do_check_work(struct work_struct *work)
 	write_crc_work(mgr);
 }
 
-static void check_schedule(struct pic_check_mgr_t *mgr)
-{
-	if (atomic_read(&mgr->work_inited))
-		vdec_schedule_work(&mgr->frame_check_work);
-}
-
 static int memcpy_phy_to_virt(char *to_virt,
 	ulong phy_from, unsigned int size)
 {
 	void *vaddr = NULL;
 	unsigned int tmp_size = 0;
 
-	while (size > 0) {
-		if (size >= VMAP_STRIDE_SIZE) {
-			vaddr = (void *)codec_mm_vmap(phy_from, VMAP_STRIDE_SIZE);
-			tmp_size = VMAP_STRIDE_SIZE;
-			phy_from += VMAP_STRIDE_SIZE;
-			size -= VMAP_STRIDE_SIZE;
-		} else {
-			vaddr = (void *)codec_mm_vmap(phy_from, size);
-			tmp_size = size;
-			size = 0;
-		}
-		if (vaddr == NULL) {
-			dbg_print(FC_YUV_DEBUG, "%s: codec_mm_vmap failed phy: 0x%x\n",
-				__func__, (unsigned int)phy_from);
-			return -1;
-		}
-		memcpy(to_virt, vaddr, tmp_size);
-		to_virt += tmp_size;
+	if (single_mode_vdec != NULL) {
+		unsigned int offset = phy_from & (~PAGE_MASK);
+		while (size > 0) {
+			if (offset + size >= PAGE_SIZE) {
+				vaddr = kmap_atomic(phys_to_page(phy_from));
+				tmp_size = (PAGE_SIZE - offset);
+				phy_from += tmp_size;
+				size -= tmp_size;
+				vaddr += offset;
+			} else {
+				vaddr = kmap_atomic(phys_to_page(phy_from));
+				vaddr += offset;
+				tmp_size = size;
+				size = 0;
+			}
+			if (vaddr == NULL) {
+				dbg_print(FC_CRC_DEBUG, "%s: kmap_atomic failed phy: 0x%x\n",
+					__func__, (unsigned int)phy_from);
+				return -1;
+			}
+			/*
+			codec_mm_dma_flush(vaddr,
+				tmp_size, DMA_FROM_DEVICE);
+			*/
+			memcpy(to_virt, vaddr, tmp_size);
 
-		codec_mm_unmap_phyaddr(vaddr);
+			kunmap_atomic(vaddr - offset);
+			offset = 0;
+		}
+	} else {
+		while (size > 0) {
+			if (size >= VMAP_STRIDE_SIZE) {
+				vaddr = codec_mm_vmap(phy_from, VMAP_STRIDE_SIZE);
+				tmp_size = VMAP_STRIDE_SIZE;
+				phy_from += VMAP_STRIDE_SIZE;
+				size -= VMAP_STRIDE_SIZE;
+			} else {
+				vaddr = codec_mm_vmap(phy_from, size);
+				tmp_size = size;
+				size = 0;
+			}
+			if (vaddr == NULL) {
+				dbg_print(FC_YUV_DEBUG, "%s: codec_mm_vmap failed phy: 0x%x\n",
+					__func__, (unsigned int)phy_from);
+				return -1;
+			}
+			codec_mm_dma_flush(vaddr,
+				tmp_size, DMA_FROM_DEVICE);
+			memcpy(to_virt, vaddr, tmp_size);
+			to_virt += tmp_size;
+
+			codec_mm_unmap_phyaddr(vaddr);
+		}
 	}
 	return 0;
 }
@@ -439,8 +476,7 @@ static int do_yuv_dump(struct pic_check_mgr_t *mgr, struct vframe_s *vf)
 		}
 	}
 	dump->dump_cnt++;
-	dbg_print(0,
-		"----->>dump frame num: %d, dump %dst, size %x\n",
+	dbg_print(0, "----->dump frame num: %d, dump %dst, size %x\n",
 		mgr->frame_cnt, dump->dump_cnt, mgr->size_pic);
 
 	if (dump->dump_cnt >= dump->num)
@@ -453,13 +489,18 @@ static int crc_store(struct pic_check_mgr_t *mgr, struct vframe_s *vf,
 	int crc_y, int crc_uv)
 {
 	int ret = 0;
-	char *crc_addr;
+	char *crc_addr = NULL;
 	int comp_frame = 0, comp_crc_y, comp_crc_uv;
 	struct pic_check_t *check = &mgr->pic_check;
 
 	if (kfifo_get(&check->new_chk_q, &crc_addr) == 0) {
 		dbg_print(0, "%08d: %08x %08x\n",
 			mgr->frame_cnt, crc_y, crc_uv);
+		if (check->check_fp) {
+			dbg_print(0, "crc32 dropped\n");
+		} else {
+			dbg_print(0, "no opened file to write crc32\n");
+		}
 		return -1;
 	}
 	if (check->cmp_crc_cnt > mgr->frame_cnt) {
@@ -469,22 +510,26 @@ static int crc_store(struct pic_check_mgr_t *mgr, struct vframe_s *vf,
 		dbg_print(0, "%08d: %08x %08x <--> %08d: %08x %08x\n",
 			mgr->frame_cnt, crc_y, crc_uv,
 			comp_frame, comp_crc_y, comp_crc_uv);
-		/*
-		if ((mgr->frame_cnt % 100) == 0)
-			comp_crc_uv = mgr->frame_cnt;
-		*/
+
 		if (comp_frame == mgr->frame_cnt) {
 			if ((comp_crc_y != crc_y) || (crc_uv != comp_crc_uv)) {
 					mgr->pic_dump.start = 0;
 					mgr->pic_dump.num++;
-					dbg_print(0, "\n\nError: %08d, %08x %08x != %08x %08x\n\n",
+					dbg_print(0, "\n\nError: %08d: %08x %08x != %08x %08x\n\n",
 						mgr->frame_cnt, crc_y, crc_uv, comp_crc_y, comp_crc_uv);
 					do_yuv_dump(mgr, vf);
+					if (fc_debug & FC_ERR_CRC_BLOCK_MODE)
+						mgr->err_crc_block = 1;
 			}
+		} else {
+			dbg_print(0, "frame num error: frame_cnt(%d) frame_comp(%d)\n",
+				mgr->frame_cnt, comp_frame);
 		}
-    }
+	} else {
+		dbg_print(0, "%08d: %08x %08x\n", mgr->frame_cnt, crc_y, crc_uv);
+	}
 
-	if (check->check_fp) {
+	if ((check->check_fp) && (crc_addr != NULL)) {
 		ret = snprintf(crc_addr, SIZE_CRC,
 			"%08d: %08x %08x\n", mgr->frame_cnt, crc_y, crc_uv);
 
@@ -495,6 +540,7 @@ static int crc_store(struct pic_check_mgr_t *mgr, struct vframe_s *vf,
 	return ret;
 }
 
+
 static int crc32_vmap_le(unsigned int *crc32,
 	ulong phyaddr, unsigned int size)
 {
@@ -502,25 +548,60 @@ static int crc32_vmap_le(unsigned int *crc32,
 	unsigned int crc = 0;
 	unsigned int tmp_size = 0;
 
-	while (size > 0) {
-		if (size >= VMAP_STRIDE_SIZE) {
-			vaddr = (void *)codec_mm_vmap(phyaddr, VMAP_STRIDE_SIZE);
-			tmp_size = VMAP_STRIDE_SIZE;
-			phyaddr += VMAP_STRIDE_SIZE;
-			size -= VMAP_STRIDE_SIZE;
-		} else {
-			vaddr = (void *)codec_mm_vmap(phyaddr, size);
-			tmp_size = size;
-			size = 0;
-		}
-		if (vaddr == NULL) {
-			dbg_print(FC_CRC_DEBUG, "%s: codec_mm_vmap failed phy: 0x%x\n",
-				__func__, (unsigned int)phyaddr);
-			return -1;
-		}
-		crc = crc32_le(crc, vaddr, tmp_size);
+	/*single mode cannot use codec_mm_vmap*/
+	if (single_mode_vdec != NULL) {
+		unsigned int offset = phyaddr & (~PAGE_MASK);
+		while (size > 0) {
+			if (offset + size >= PAGE_SIZE) {
+				vaddr = kmap_atomic(phys_to_page(phyaddr));
+				tmp_size = (PAGE_SIZE - offset);
+				phyaddr += tmp_size;
+				size -= tmp_size;
+				vaddr += offset;
+			} else {
+				vaddr = kmap_atomic(phys_to_page(phyaddr));
+				tmp_size = size;
+				vaddr += offset;
+				size = 0;
+			}
+			if (vaddr == NULL) {
+				dbg_print(FC_CRC_DEBUG, "%s: kmap_atomic failed phy: 0x%x\n",
+					__func__, (unsigned int)phyaddr);
+				return -1;
+			}
+			/*
+			codec_mm_dma_flush(vaddr,
+				tmp_size, DMA_FROM_DEVICE);
+			*/
+			crc = crc32_le(crc, vaddr, tmp_size);
 
-		codec_mm_unmap_phyaddr(vaddr);
+			kunmap_atomic(vaddr - offset);
+			offset = 0;
+		}
+	} else {
+		while (size > 0) {
+			if (size >= VMAP_STRIDE_SIZE) {
+				vaddr = codec_mm_vmap(phyaddr, VMAP_STRIDE_SIZE);
+				tmp_size = VMAP_STRIDE_SIZE;
+				phyaddr += VMAP_STRIDE_SIZE;
+				size -= VMAP_STRIDE_SIZE;
+			} else {
+				vaddr = codec_mm_vmap(phyaddr, size);
+				tmp_size = size;
+				size = 0;
+			}
+			if (vaddr == NULL) {
+				dbg_print(FC_CRC_DEBUG, "%s: codec_mm_vmap failed phy: 0x%x\n",
+					__func__, (unsigned int)phyaddr);
+				return -1;
+			}
+			codec_mm_dma_flush(vaddr,
+				tmp_size, DMA_FROM_DEVICE);
+
+			crc = crc32_le(crc, vaddr, tmp_size);
+
+			codec_mm_unmap_phyaddr(vaddr);
+		}
 	}
 	*crc32 = crc;
 
@@ -669,22 +750,24 @@ static int fbc_check_prepare(struct pic_check_t *check,
 	return 0;
 }
 
-static struct vdec_s *single_mode_vdec = NULL;
+
 
 int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 {
-	int ret = 0;
 	int resize = 0;
 	void *planes[4];
 	struct pic_check_t *check = NULL;
 	struct pic_check_mgr_t *mgr = NULL;
+	int ret = 0;
 
 	if (vdec == NULL) {
 		if (single_mode_vdec == NULL)
 			return 0;
 		mgr = &single_mode_vdec->vfc;
-	} else
+	} else {
 		mgr = &vdec->vfc;
+		single_mode_vdec = NULL;
+	}
 
 	if ((mgr == NULL) ||
 		(vf == NULL) ||
@@ -705,7 +788,12 @@ int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 	if (vf->type & VIDTYPE_VIU_NV21) {
 		if (canvas_get_virt_addr(mgr, vf) < 0)
 			return -2;
-
+		if ((mgr->y_vaddr) && (mgr->uv_vaddr)) {
+			codec_mm_dma_flush(mgr->y_vaddr,
+				mgr->size_y, DMA_FROM_DEVICE);
+			codec_mm_dma_flush(mgr->uv_vaddr,
+				mgr->size_uv, DMA_FROM_DEVICE);
+		}
 		if (mgr->enable & CRC_MASK)
 			ret = do_check_nv21(mgr, vf);
 		if (mgr->enable & YUV_MASK)
@@ -726,10 +814,14 @@ int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 		planes[1] = check->fbc_planes[1];
 		planes[2] = check->fbc_planes[2];
 		planes[3] = check->fbc_planes[3];
-		AMLOGIC_FBC_vframe_decoder(planes, vf, 0, 0);
-		do_check_yuv16(mgr, vf,
-			(void *)planes[0], (void *)planes[3],//uv
-			(void *)planes[1], (void *)planes[2]);
+		ret = AMLOGIC_FBC_vframe_decoder(planes, vf, 0, 0);
+		if (ret < 0) {
+			dbg_print(0, "amlogic_fbc_lib.ko error %d\n", ret);
+		} else {
+			do_check_yuv16(mgr, vf,
+				(void *)planes[0], (void *)planes[3],//uv
+				(void *)planes[1], (void *)planes[2]);
+		}
 	}
 	mgr->frame_cnt++;
 
@@ -815,7 +907,7 @@ int frame_check_init(struct pic_check_mgr_t *mgr, int id)
 		"%s%s", CRC_PATH, comp_crc);
 
 	/* create crc32 log file */
-	check->check_fp = file_open(O_WRONLY | O_CREAT,
+	check->check_fp = file_open(O_CREAT| O_WRONLY | O_TRUNC,
 		"%s%s-%d-%d.crc", CRC_PATH, comp_crc, id, mgr->file_cnt);
 
 	INIT_KFIFO(check->new_chk_q);
@@ -826,15 +918,17 @@ int frame_check_init(struct pic_check_mgr_t *mgr, int id)
 	} else {
 		void *qaddr = NULL, *rdret = NULL;
 		check->cmp_crc_cnt = 0;
-		for (i = 0; i < SIZE_CHECK_Q &&
-			(check->compare_fp != NULL); i++) {
+		for (i = 0; i < SIZE_CHECK_Q; i++) {
 			qaddr = check->check_addr + i * SIZE_CRC;
 			rdret = fget_crc_str(qaddr,
 				SIZE_CRC, check);
 			if (rdret == NULL) {
-				dbg_print(0, "can't get compare crc string\n");
-				filp_close(check->compare_fp, current->files);
-				check->compare_fp = NULL;
+				if (i < 3)
+					dbg_print(0, "can't get compare crc string\n");
+				if (check->compare_fp) {
+					filp_close(check->compare_fp, current->files);
+					check->compare_fp = NULL;
+				}
 			}
 
 			kfifo_put(&check->new_chk_q, qaddr);
@@ -899,20 +993,18 @@ void frame_check_exit(struct pic_check_mgr_t *mgr)
 }
 
 
-
-static unsigned int yuv_enable, check_enable;
-static unsigned int yuv_start[MAX_INSTANCE_MUN];
-static unsigned int yuv_num[MAX_INSTANCE_MUN];
-
-
 int vdec_frame_check_init(struct vdec_s *vdec)
 {
 	int ret = 0, id = 0;
 
-	if ((vdec == NULL) ||
-		(vdec->is_reset))
+	if (vdec == NULL)
 		return 0;
 
+	if ((vdec->is_reset) &&
+		(get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_GXL))
+		return 0;
+
+	vdec->vfc.err_crc_block = 0;
 	if (!check_enable && !yuv_enable)
 		return 0;
 
@@ -924,7 +1016,9 @@ int vdec_frame_check_init(struct vdec_s *vdec)
 
 	if (check_enable & (0x01 << id)) {
 		frame_check_init(&vdec->vfc, id);
-		check_enable &= ~(0x01 << id);
+		/*repeat check one video crc32, not clear enable*/
+		if ((fc_debug & FC_CHECK_CRC_LOOP_MODE) == 0)
+			check_enable &= ~(0x01 << id);
 	}
 
 	if (yuv_enable & (0x01 << id)) {
@@ -1044,9 +1138,24 @@ ssize_t frame_check_show(struct class *class,
 	pbuf += sprintf(pbuf,
 		"\nUsage:\techo [id]  [1:on/0:off] > frame_check\n\n");
 
+	if (fc_debug & FC_ERR_CRC_BLOCK_MODE) {
+		/* cat frame_check to next frame when block */
+		struct vdec_s *vdec = NULL;
+		vdec = vdec_get_with_id(__ffs(check_enable));
+		if (vdec)
+			vdec->vfc.err_crc_block = 0;
+	}
+
 	return pbuf - buf;
 }
 
 
+module_param_string(comp_crc, comp_crc, 128, 0664);
+MODULE_PARM_DESC(comp_crc, "\n crc_filename\n");
 
+module_param(fc_debug, uint, 0664);
+MODULE_PARM_DESC(fc_debug, "\n frame check debug\n");
+
+module_param(size_yuv_buf, uint, 0664);
+MODULE_PARM_DESC(size_yuv_buf, "\n size_yuv_buf\n");
 

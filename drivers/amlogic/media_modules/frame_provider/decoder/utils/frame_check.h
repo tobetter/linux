@@ -71,6 +71,7 @@ struct pic_check_mgr_t{
 	void *uv_vaddr;
 	ulong y_phyaddr;
 	ulong uv_phyaddr;
+	int err_crc_block;
 
 	int file_cnt;
 	atomic_t work_inited;
