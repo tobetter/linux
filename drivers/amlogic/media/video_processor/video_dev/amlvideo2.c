@@ -961,7 +961,8 @@ struct amlvideo2_node *node)
 	}
 
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -1323,7 +1324,8 @@ struct amlvideo2_node *node)
 	if (src_width < src_height)
 		cur_angle = (cur_angle + 90) % 360;
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -1700,7 +1702,8 @@ struct amlvideo2_node *node)
 	}
 
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -2102,7 +2105,8 @@ struct amlvideo2_node *node)
 	}
 
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -2502,7 +2506,8 @@ struct amlvideo2_node *node)
 	}
 
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -3110,7 +3115,8 @@ int amlvideo2_ge2d_pre_process(struct vframe_s *vf,
 	}
 
 	if ((node->crop_info.capture_crop_enable == 0) &&
-		(node->porttype != TVIN_PORT_VIU1_VIDEO)) {
+		((node->porttype != TVIN_PORT_VIU1_VIDEO) &&
+		(node->porttype != TVIN_PORT_VIU1_WB0_VD1))) {
 		output_axis_adjust(
 			src_width, src_height,
 			&dst_width, &dst_height,
@@ -4787,10 +4793,11 @@ static int amlvideo2_start_tvin_service(struct amlvideo2_node *node)
 	para.dest_vactive = dst_h;
 	if (para.scan_mode == TVIN_SCAN_MODE_INTERLACED)
 		para.dest_vactive = para.dest_vactive / 2;
-	if (para.port == TVIN_PORT_VIU1_VIDEO) {
-		para.dest_hactive = 0;
-		para.dest_vactive = 0;
-	}
+
+	if ((para.port == TVIN_PORT_VIU1_VIDEO) ||
+		(para.port == TVIN_PORT_VIU1_WB0_VD1))
+		para.cfmt = 1;
+
 	if (amlvideo2_dbg_en) {
 		pr_info("node->r_type=%d, node->p_type=%d\n",
 			node->r_type, node->p_type);
@@ -5055,14 +5062,13 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
 	para.dest_vactive = dst_h;
 	if (para.scan_mode == TVIN_SCAN_MODE_INTERLACED)
 		para.dest_vactive = para.dest_vactive / 2;
-	if (para.port == TVIN_PORT_VIU1_VIDEO) {
+	if ((para.port == TVIN_PORT_VIU1_VIDEO) ||
+		(para.port == TVIN_PORT_VIU1_WB0_VD1)) {
 		if (node->ge2d_multi_process_flag) {
 			para.dest_hactive = 384;
 			para.dest_vactive = 216;
-		} else {
-			para.dest_hactive = 0;
-			para.dest_vactive = 0;
-		}
+		} else
+			para.cfmt = 1;
 	}
 	if (amlvideo2_dbg_en) {
 		pr_info("para.h_active: %d, para.v_active: %d,",
