@@ -1117,6 +1117,57 @@ static const struct regulator_desc s2mpu02_regulators[] = {
 	regulator_desc_s2mpu02_buck7(7),
 };
 
+static int s2mps11_pmic_ethonoff(struct platform_device *pdev, bool onoff)
+{
+	struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
+	unsigned int reg_val = 0;
+	int ret = 0;
+
+	ret = regmap_read(iodev->regmap_pmic, S2MPS11_REG_L15CTRL, &reg_val);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to read S2MPS11_REG_L15CTRL value\n");
+		return ret;
+	}
+
+	ret = regmap_read(iodev->regmap_pmic, S2MPS11_REG_L17CTRL, &reg_val);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to read S2MPS11_REG_L17CTRL value\n");
+		return ret;
+	}
+
+	if (onoff) {
+		/* ETH VDD0 ON */
+		ret = regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_L15CTRL, 0xFF, 0x72);
+		if (ret) {
+			dev_err(&pdev->dev, "cannot update S2MPS11 LDO CTRL15 register\n");
+			return ret;
+		}
+
+		/* ETH VDD1 ON */
+		ret = regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_L17CTRL, 0xFF, 0x72);
+		if (ret) {
+			dev_err(&pdev->dev, "cannot update S2MPS11 LDO CTRL17 register\n");
+			return ret;
+		}
+	} else {
+		/* ETH VDD0 OFF */
+		ret = regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_L15CTRL, 0x3F, 0x00);
+		if (ret) {
+			dev_err(&pdev->dev, "cannot update S2MPS11 LDO CTRL15 register\n");
+			return ret;
+		}
+
+		/* ETH VDD1 OFF */
+		ret = regmap_update_bits(iodev->regmap_pmic, S2MPS11_REG_L17CTRL, 0x3F, 0x00);
+		if (ret) {
+			dev_err(&pdev->dev, "cannot update S2MPS11 LDO CTRL17 register\n");
+			return ret;
+		}
+	}
+
+	return ret;
+}
+
 static int s2mps11_pmic_probe(struct platform_device *pdev)
 {
 	struct sec_pmic_dev *iodev = dev_get_drvdata(pdev->dev.parent);
@@ -1266,6 +1317,9 @@ static void s2mps11_pmic_shutdown(struct platform_device *pdev)
 					 "could not write S2MPS11_REG_CTRL1 value\n");
 		}
 	}
+	s2mps11_pmic_ethonoff(pdev, false);
+	mdelay(10);
+	s2mps11_pmic_ethonoff(pdev, true);
 }
 
 static const struct platform_device_id s2mps11_pmic_id[] = {
