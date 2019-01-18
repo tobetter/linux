@@ -581,7 +581,7 @@ static void vavs_isr(void)
 				decoder_bmmu_box_get_mem_handle(
 					mm_blk_handle,
 					buffer_index);
-
+			decoder_do_frame_check(NULL, vf);
 			kfifo_put(&display_q,
 					  (const struct vframe_s *)vf);
 			vf_notify_receiver(PROVIDER_NAME,
@@ -717,6 +717,7 @@ static void vavs_isr(void)
 				decoder_bmmu_box_get_mem_handle(
 					mm_blk_handle,
 					buffer_index);
+			decoder_do_frame_check(NULL, vf);
 			kfifo_put(&display_q,
 					  (const struct vframe_s *)vf);
 			vf_notify_receiver(PROVIDER_NAME,
@@ -849,6 +850,7 @@ static int vavs_canvas_init(void)
 	u32 decbuf_size, decbuf_y_size, decbuf_uv_size;
 	unsigned long buf_start;
 	int need_alloc_buf_num;
+	u32 endian;
 
 	vf_buf_num_used = vf_buf_num;
 	if (buf_size <= 0x00400000) {
@@ -899,37 +901,40 @@ static int vavs_canvas_init(void)
 			continue;
 		}
 #endif
-
+		if (vdec->canvas_mode == CANVAS_BLKMODE_LINEAR)
+			endian = 7;
+		else
+			endian = 0;
 #ifdef NV21
-			canvas_config(canvas_base + canvas_num * i + 0,
+			canvas_config_ex(canvas_base + canvas_num * i + 0,
 					buf_start,
 					canvas_width, canvas_height,
 					CANVAS_ADDR_NOWRAP,
-					CANVAS_BLKMODE_32X32);
-			canvas_config(canvas_base + canvas_num * i + 1,
+					vdec->canvas_mode, endian);
+			canvas_config_ex(canvas_base + canvas_num * i + 1,
 					buf_start +
 					decbuf_y_size, canvas_width,
 					canvas_height / 2,
 					CANVAS_ADDR_NOWRAP,
-					CANVAS_BLKMODE_32X32);
+					vdec->canvas_mode, endian);
 #else
-			canvas_config(canvas_num * i + 0,
+			canvas_config_ex(canvas_num * i + 0,
 					buf_start,
 					canvas_width, canvas_height,
 					CANVAS_ADDR_NOWRAP,
-					CANVAS_BLKMODE_32X32);
-			canvas_config(canvas_num * i + 1,
+					vdec->canvas_mode, endian);
+			canvas_config_ex(canvas_num * i + 1,
 					buf_start +
 					decbuf_y_size, canvas_width / 2,
 					canvas_height / 2,
 					CANVAS_ADDR_NOWRAP,
-					CANVAS_BLKMODE_32X32);
-			canvas_config(canvas_num * i + 2,
+					vdec->canvas_mode, endian);
+			canvas_config_ex(canvas_num * i + 2,
 					buf_start +
 					decbuf_y_size + decbuf_uv_size,
 					canvas_width / 2, canvas_height / 2,
 					CANVAS_ADDR_NOWRAP,
-					CANVAS_BLKMODE_32X32);
+					vdec->canvas_mode, endian);
 #endif
 			if (debug_flag & AVS_DEBUG_PRINT) {
 				pr_info("canvas config %d, addr %p\n", i,
@@ -1690,6 +1695,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 	}
 
 	INIT_WORK(&set_clk_work, avs_set_clk);
+	vdec = pdata;
 	if (vavs_init() < 0) {
 		pr_info("amvdec_avs init failed.\n");
 		kfree(gvs);
@@ -1697,7 +1703,6 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
-	vdec = pdata;
 
 	INIT_WORK(&fatal_error_wd_work, vavs_fatal_error_handler);
 	atomic_set(&error_handler_run, 0);

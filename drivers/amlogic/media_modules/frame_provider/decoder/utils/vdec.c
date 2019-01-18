@@ -1614,7 +1614,7 @@ static const char *get_dev_name(bool use_legacy_vdec, int format)
 #endif
 }
 
-struct vdec_s *vdec_get_with_id(unsigned id)
+struct vdec_s *vdec_get_with_id(unsigned int id)
 {
 	struct vdec_s *vdec, *ret_vdec = NULL;
 	struct vdec_core_s *core = vdec_core;
@@ -2203,6 +2203,10 @@ unsigned long vdec_ready_to_run(struct vdec_s *vdec, unsigned long mask)
 		return false;
 
 	if (!vdec->run_ready)
+		return false;
+
+	/* when crc32 error, block at error frame */
+	if (vdec->vfc.err_crc_block)
 		return false;
 
 	if ((vdec->slave || vdec->master) &&
