@@ -3542,17 +3542,6 @@ void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 void vdin_dolby_addr_release(struct vdin_dev_s *devp, unsigned int size)
 {
 	unsigned int alloc_size;
-	int highmem_flag, index;
-
-	if (devp->cma_config_flag & 0x100)
-		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
-	else
-		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
-
-	for (index = 0; index < size; index++) {
-		if (highmem_flag == 1)
-			codec_mm_unmap_phyaddr(devp->vfp->dv_buf_ori[index]);
-	}
 
 	alloc_size = dolby_size_byte*size;
 	if (devp->dv.dv_dma_vaddr)
