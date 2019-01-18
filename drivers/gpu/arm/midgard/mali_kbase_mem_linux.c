@@ -46,6 +46,18 @@
 #include <mali_kbase_tlstream.h>
 #include <mali_kbase_ioctl.h>
 
+/*
+ * From 4.20.0 kernel vm_insert_pfn was dropped
+ * Make wrapper to preserve compatibility
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+int vm_insert_pfn(struct vm_area_struct *vma, unsigned long addr,
+		  unsigned long pfn)
+{
+	return vm_fault_to_errno(vmf_insert_pfn(vma, addr, pfn), 0xffff);
+}
+#endif
+
 static int kbase_tracking_page_setup(struct kbase_context *kctx, struct vm_area_struct *vma);
 
 /**
