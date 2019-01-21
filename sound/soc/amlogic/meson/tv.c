@@ -285,9 +285,17 @@ static int aml_get_spdif_audio_type(
 	int audio_type = 0;
 	int i;
 	int total_num = sizeof(type_texts)/sizeof(struct spdif_audio_info);
-	int pc = aml_audin_read(AUDIN_SPDIF_NPCM_PCPD)>>16;
+	int pc_ori = aml_audin_read(AUDIN_SPDIF_NPCM_PCPD)>>16;
+	int pc = 0;
 
-	pc = pc&0xfff;
+	/* data type is 0~4 bit*/
+	pc = pc_ori&0x1f;
+	/* check whether it has stop bit
+	 *  refer to IEC61937-1 table 9
+	 */
+	if (pc == 0) {
+		pc = pc_ori&0xfff;
+	}
 	for (i = 0; i < total_num; i++) {
 		if (pc == type_texts[i].pc) {
 			audio_type = type_texts[i].aud_type;
@@ -615,6 +623,9 @@ static const struct snd_kcontrol_new aml_tv_controls[] = {
 				NULL),
 	SOC_ENUM_EXT("HDMIIN audio format", hdmi_in_status_enum[3],
 				aml_get_hdmiin_audio_format,
+				NULL),
+	SOC_ENUM_EXT("HDMIIN Audio Packet", hdmi_in_status_enum[4],
+				aml_get_hdmiin_audio_packet,
 				NULL),
 	SOC_SINGLE_BOOL_EXT("HDMI ATMOS EDID Switch", 0,
 				aml_get_atmos_audio_edid,

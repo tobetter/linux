@@ -800,6 +800,11 @@ static const struct snd_kcontrol_new extn_controls[] = {
 		aml_get_hdmiin_audio_format,
 		NULL),
 
+	SOC_ENUM_EXT("HDMIIN Audio Packet",
+		hdmi_in_status_enum[4],
+		aml_get_hdmiin_audio_packet,
+		NULL),
+
 	SOC_SINGLE_BOOL_EXT("HDMI ATMOS EDID Switch",
 		0,
 		aml_get_atmos_audio_edid,

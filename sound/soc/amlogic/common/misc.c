@@ -176,6 +176,16 @@ static const char * const hdmi_in_format[] = {
 	"WMA_PRO"
 };
 
+static const char * const hdmi_in_audio_packet[] = {
+	"None",
+	"AUDS",
+	"OBA",
+	"DST",
+	"HBR",
+	"OBM",
+	"MAS"
+};
+
 const struct soc_enum hdmi_in_status_enum[] = {
 	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(audio_is_stable),
 			audio_is_stable),
@@ -184,7 +194,9 @@ const struct soc_enum hdmi_in_status_enum[] = {
 	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(hdmi_in_channels),
 			hdmi_in_channels),
 	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(hdmi_in_format),
-			hdmi_in_format)
+			hdmi_in_format),
+	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(hdmi_in_audio_packet),
+			hdmi_in_audio_packet)
 };
 
 int aml_get_hdmiin_audio_stable(
@@ -194,7 +206,8 @@ int aml_get_hdmiin_audio_stable(
 	struct rx_audio_stat_s aud_sts;
 
 	rx_get_audio_status(&aud_sts);
-	ucontrol->value.integer.value[0] = aud_sts.aud_rcv_flag;
+	ucontrol->value.integer.value[0] =
+		(aud_sts.aud_rcv_packet == 0) ? 0 : 1;
 
 	return 0;
 }
@@ -236,6 +249,7 @@ int aml_get_hdmiin_audio_format(
 	return 0;
 }
 
+
 /* call HDMI CEC API to enable arc audio */
 int aml_set_atmos_audio_edid(
 	struct snd_kcontrol *kcontrol,
@@ -255,6 +269,46 @@ int aml_get_atmos_audio_edid(
 	bool flag = rx_get_atmos_flag();
 
 	ucontrol->value.integer.value[0] = flag;
+
+	return 0;
+}
+
+int aml_get_hdmiin_audio_packet(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct rx_audio_stat_s aud_sts;
+	int val;
+
+	rx_get_audio_status(&aud_sts);
+
+	switch (aud_sts.aud_rcv_packet) {
+	case 0:
+		val = 0;
+		break;
+	case 1:
+		val = 1;
+		break;
+	case 2:
+		val = 2;
+		break;
+	case 4:
+		val = 3;
+		break;
+	case 8:
+		val = 4;
+		break;
+	case 16:
+		val = 5;
+		break;
+	case 32:
+		val = 6;
+		break;
+	default:
+		val = 0;
+		break;
+	}
+	ucontrol->value.integer.value[0] = val;
 
 	return 0;
 }

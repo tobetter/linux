@@ -71,6 +71,10 @@ extern int aml_get_atmos_audio_edid(
 	struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
 
+extern int aml_get_hdmiin_audio_packet(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol);
+
 #endif
 
 #endif
