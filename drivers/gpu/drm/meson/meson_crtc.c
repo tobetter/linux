@@ -94,16 +94,32 @@ static void meson_crtc_atomic_enable(struct drm_crtc *crtc,
 		return;
 	}
 
-	/* Enable VPP Postblend */
-	writel(crtc_state->mode.hdisplay,
-	       priv->io_base + _REG(VPP_POSTBLEND_H_SIZE));
-
 	/* VD1 Preblend vertical start/end */
 	writel(FIELD_PREP(GENMASK(11, 0), 2303),
-			priv->io_base + _REG(VPP_PREBLEND_VD1_V_START_END));
+	       priv->io_base + _REG(VPP_PREBLEND_VD1_V_START_END));
 
-	writel_bits_relaxed(VPP_POSTBLEND_ENABLE, VPP_POSTBLEND_ENABLE,
-			    priv->io_base + _REG(VPP_MISC));
+	/* Enable VPP Postblend */
+	if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu")) {
+		writel(crtc_state->mode.hdisplay |
+		       crtc_state->mode.vdisplay << 16,
+		       priv->io_base + _REG(VPP_POSTBLEND_H_SIZE));
+
+		writel_relaxed(0 << 16 |
+				(crtc_state->mode.hdisplay - 1),
+				priv->io_base + _REG(VPP_OSD1_BLD_H_SCOPE));
+		writel_relaxed(0 << 16 |
+				(crtc_state->mode.vdisplay - 1),
+				priv->io_base + _REG(VPP_OSD1_BLD_V_SCOPE));
+		writel_relaxed(crtc_state->mode.hdisplay << 16 |
+				crtc_state->mode.vdisplay,
+				priv->io_base + _REG(VPP_OUT_H_V_SIZE));
+	} else {
+		writel(crtc_state->mode.hdisplay,
+		       priv->io_base + _REG(VPP_POSTBLEND_H_SIZE));
+
+		writel_bits_relaxed(VPP_POSTBLEND_ENABLE, VPP_POSTBLEND_ENABLE,
+				    priv->io_base + _REG(VPP_MISC));
+	}
 
 	drm_crtc_vblank_on(crtc);
 
@@ -127,9 +143,10 @@ static void meson_crtc_atomic_disable(struct drm_crtc *crtc,
 	priv->viu.vd1_commit = false;
 
 	/* Disable VPP Postblend */
-	writel_bits_relaxed(VPP_OSD1_POSTBLEND | VPP_VD1_POSTBLEND |
-			    VPP_VD1_PREBLEND | VPP_POSTBLEND_ENABLE, 0,
-			    priv->io_base + _REG(VPP_MISC));
+	if (!meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu"))
+		writel_bits_relaxed(VPP_OSD1_POSTBLEND | VPP_VD1_POSTBLEND |
+				    VPP_VD1_PREBLEND | VPP_POSTBLEND_ENABLE, 0,
+				    priv->io_base + _REG(VPP_MISC));
 
 	if (crtc->state->event && !crtc->state->active) {
 		spin_lock_irq(&crtc->dev->event_lock);
@@ -218,9 +235,23 @@ void meson_crtc_irq(struct meson_drm *priv)
 				priv->viu.osd1_height, MESON_CANVAS_WRAP_NONE,
 				MESON_CANVAS_BLKMODE_LINEAR, 0);
 
-		/* Enable OSD1 */
-		writel_bits_relaxed(VPP_OSD1_POSTBLEND, VPP_OSD1_POSTBLEND,
-				    priv->io_base + _REG(VPP_MISC));
+		if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu")) {
+			writel_relaxed(priv->viu.osd_blend_din0_scope_h,
+				       priv->io_base +
+				       _REG(VIU_OSD_BLEND_DIN0_SCOPE_H));
+			writel_relaxed(priv->viu.osd_blend_din0_scope_v,
+				       priv->io_base +
+				       _REG(VIU_OSD_BLEND_DIN0_SCOPE_V));
+			writel_relaxed(priv->viu.osb_blend0_size,
+				       priv->io_base +
+				       _REG(VIU_OSD_BLEND_BLEND0_SIZE));
+			writel_relaxed(priv->viu.osb_blend1_size,
+				       priv->io_base +
+				       _REG(VIU_OSD_BLEND_BLEND1_SIZE));
+		} else
+			/* Enable OSD1 */
+			writel_bits_relaxed(VPP_OSD1_POSTBLEND, VPP_OSD1_POSTBLEND,
+					    priv->io_base + _REG(VPP_MISC));
 
 		priv->viu.osd1_commit = false;
 	}
@@ -261,89 +292,89 @@ void meson_crtc_irq(struct meson_drm *priv)
 		};
 
 		writel_relaxed(priv->viu.vd1_if0_gen_reg,
-				priv->io_base + _REG(VD1_IF0_GEN_REG));
+				priv->io_base + _REG(VD1_IF0_GEN_REG + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_gen_reg,
-				priv->io_base + _REG(VD2_IF0_GEN_REG));
+				priv->io_base + _REG(VD2_IF0_GEN_REG + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_gen_reg2,
-				priv->io_base + _REG(VD1_IF0_GEN_REG2));
+				priv->io_base + _REG(VD1_IF0_GEN_REG2 + 0x17b0));
 		writel_relaxed(priv->viu.viu_vd1_fmt_ctrl,
-				priv->io_base + _REG(VIU_VD1_FMT_CTRL));
+				priv->io_base + _REG(VIU_VD1_FMT_CTRL + 0x17b0));
 		writel_relaxed(priv->viu.viu_vd1_fmt_ctrl,
-				priv->io_base + _REG(VIU_VD2_FMT_CTRL));
+				priv->io_base + _REG(VIU_VD2_FMT_CTRL + 0x17b0));
 		writel_relaxed(priv->viu.viu_vd1_fmt_w,
-				priv->io_base + _REG(VIU_VD1_FMT_W));
+				priv->io_base + _REG(VIU_VD1_FMT_W + 0x17b0));
 		writel_relaxed(priv->viu.viu_vd1_fmt_w,
-				priv->io_base + _REG(VIU_VD2_FMT_W));
+				priv->io_base + _REG(VIU_VD2_FMT_W + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_canvas0,
-				priv->io_base + _REG(VD1_IF0_CANVAS0));
+				priv->io_base + _REG(VD1_IF0_CANVAS0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_canvas0,
-				priv->io_base + _REG(VD1_IF0_CANVAS1));
+				priv->io_base + _REG(VD1_IF0_CANVAS1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_canvas0,
-				priv->io_base + _REG(VD2_IF0_CANVAS0));
+				priv->io_base + _REG(VD2_IF0_CANVAS0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_canvas0,
-				priv->io_base + _REG(VD2_IF0_CANVAS1));
+				priv->io_base + _REG(VD2_IF0_CANVAS1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_x0,
-				priv->io_base + _REG(VD1_IF0_LUMA_X0));
+				priv->io_base + _REG(VD1_IF0_LUMA_X0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_x0,
-				priv->io_base + _REG(VD1_IF0_LUMA_X1));
+				priv->io_base + _REG(VD1_IF0_LUMA_X1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_x0,
-				priv->io_base + _REG(VD2_IF0_LUMA_X0));
+				priv->io_base + _REG(VD2_IF0_LUMA_X0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_x0,
-				priv->io_base + _REG(VD2_IF0_LUMA_X1));
+				priv->io_base + _REG(VD2_IF0_LUMA_X1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_y0,
-				priv->io_base + _REG(VD1_IF0_LUMA_Y0));
+				priv->io_base + _REG(VD1_IF0_LUMA_Y0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_y0,
-				priv->io_base + _REG(VD1_IF0_LUMA_Y1));
+				priv->io_base + _REG(VD1_IF0_LUMA_Y1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_y0,
-				priv->io_base + _REG(VD2_IF0_LUMA_Y0));
+				priv->io_base + _REG(VD2_IF0_LUMA_Y0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma_y0,
-				priv->io_base + _REG(VD2_IF0_LUMA_Y1));
+				priv->io_base + _REG(VD2_IF0_LUMA_Y1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_x0,
-				priv->io_base + _REG(VD1_IF0_CHROMA_X0));
+				priv->io_base + _REG(VD1_IF0_CHROMA_X0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_x0,
-				priv->io_base + _REG(VD1_IF0_CHROMA_X1));
+				priv->io_base + _REG(VD1_IF0_CHROMA_X1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_x0,
-				priv->io_base + _REG(VD2_IF0_CHROMA_X0));
+				priv->io_base + _REG(VD2_IF0_CHROMA_X0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_x0,
-				priv->io_base + _REG(VD2_IF0_CHROMA_X1));
+				priv->io_base + _REG(VD2_IF0_CHROMA_X1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_y0,
-				priv->io_base + _REG(VD1_IF0_CHROMA_Y0));
+				priv->io_base + _REG(VD1_IF0_CHROMA_Y0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_y0,
-				priv->io_base + _REG(VD1_IF0_CHROMA_Y1));
+				priv->io_base + _REG(VD1_IF0_CHROMA_Y1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_y0,
-				priv->io_base + _REG(VD2_IF0_CHROMA_Y0));
+				priv->io_base + _REG(VD2_IF0_CHROMA_Y0 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma_y0,
-				priv->io_base + _REG(VD2_IF0_CHROMA_Y1));
+				priv->io_base + _REG(VD2_IF0_CHROMA_Y1 + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_repeat_loop,
-				priv->io_base + _REG(VD1_IF0_RPT_LOOP));
+				priv->io_base + _REG(VD1_IF0_RPT_LOOP + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_repeat_loop,
-				priv->io_base + _REG(VD2_IF0_RPT_LOOP));
+				priv->io_base + _REG(VD2_IF0_RPT_LOOP + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma0_rpt_pat,
-				priv->io_base + _REG(VD1_IF0_LUMA0_RPT_PAT));
+				priv->io_base + _REG(VD1_IF0_LUMA0_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma0_rpt_pat,
-				priv->io_base + _REG(VD2_IF0_LUMA0_RPT_PAT));
+				priv->io_base + _REG(VD2_IF0_LUMA0_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma0_rpt_pat,
-				priv->io_base + _REG(VD1_IF0_LUMA1_RPT_PAT));
+				priv->io_base + _REG(VD1_IF0_LUMA1_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_luma0_rpt_pat,
-				priv->io_base + _REG(VD2_IF0_LUMA1_RPT_PAT));
+				priv->io_base + _REG(VD2_IF0_LUMA1_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma0_rpt_pat,
-				priv->io_base + _REG(VD1_IF0_CHROMA0_RPT_PAT));
+				priv->io_base + _REG(VD1_IF0_CHROMA0_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma0_rpt_pat,
-				priv->io_base + _REG(VD2_IF0_CHROMA0_RPT_PAT));
+				priv->io_base + _REG(VD2_IF0_CHROMA0_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma0_rpt_pat,
-				priv->io_base + _REG(VD1_IF0_CHROMA1_RPT_PAT));
+				priv->io_base + _REG(VD1_IF0_CHROMA1_RPT_PAT + 0x17b0));
 		writel_relaxed(priv->viu.vd1_if0_chroma0_rpt_pat,
-				priv->io_base + _REG(VD2_IF0_CHROMA1_RPT_PAT));
-		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_LUMA_PSEL));
-		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_CHROMA_PSEL));
-		writel_relaxed(0, priv->io_base + _REG(VD2_IF0_LUMA_PSEL));
-		writel_relaxed(0, priv->io_base + _REG(VD2_IF0_CHROMA_PSEL));
+				priv->io_base + _REG(VD2_IF0_CHROMA1_RPT_PAT + 0x17b0));
+		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_LUMA_PSEL + 0x17b0));
+		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_CHROMA_PSEL + 0x17b0));
+		writel_relaxed(0, priv->io_base + _REG(VD2_IF0_LUMA_PSEL + 0x17b0));
+		writel_relaxed(0, priv->io_base + _REG(VD2_IF0_CHROMA_PSEL + 0x17b0));
 		writel_relaxed(priv->viu.vd1_range_map_y,
-				priv->io_base + _REG(VD1_IF0_RANGE_MAP_Y));
+				priv->io_base + _REG(VD1_IF0_RANGE_MAP_Y + 0x17b0));
 		writel_relaxed(priv->viu.vd1_range_map_cb,
-				priv->io_base + _REG(VD1_IF0_RANGE_MAP_CB));
+				priv->io_base + _REG(VD1_IF0_RANGE_MAP_CB + 0x17b0));
 		writel_relaxed(priv->viu.vd1_range_map_cr,
-				priv->io_base + _REG(VD1_IF0_RANGE_MAP_CR));
+				priv->io_base + _REG(VD1_IF0_RANGE_MAP_CR + 0x17b0));
 		writel_relaxed(0x78404,
 				priv->io_base + _REG(VPP_SC_MISC));
 		writel_relaxed(priv->viu.vpp_pic_in_height,
@@ -389,11 +420,18 @@ void meson_crtc_irq(struct meson_drm *priv)
 		writel_relaxed(0x42, priv->io_base + _REG(VPP_SCALE_COEF_IDX));
 
 		/* Enable VD1 */
-		writel_bits_relaxed(VPP_VD1_PREBLEND | VPP_VD1_POSTBLEND |
-				    VPP_COLOR_MNG_ENABLE,
-				    VPP_VD1_PREBLEND | VPP_VD1_POSTBLEND |
-				    VPP_COLOR_MNG_ENABLE,
-				    priv->io_base + _REG(VPP_MISC));
+		if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu"))
+			writel_relaxed(((1 << 16) | /* post bld premult*/
+				(1 << 8) | /* post src */
+				(1 << 4) | /* pre bld premult*/
+				(1 << 0)),
+				priv->io_base + _REG(VD1_BLEND_SRC_CTRL));
+		else
+			writel_bits_relaxed(VPP_VD1_PREBLEND | VPP_VD1_POSTBLEND |
+					    VPP_COLOR_MNG_ENABLE,
+					    VPP_VD1_PREBLEND | VPP_VD1_POSTBLEND |
+					    VPP_COLOR_MNG_ENABLE,
+					    priv->io_base + _REG(VPP_MISC));
 
 		priv->viu.vd1_commit = false;
 	}
