@@ -4104,13 +4104,24 @@ static void config_title_hw(struct hevc_state_s *hevc, int sao_vb_size,
 	WRITE_VREG(HEVC_SAO_VB, hevc->work_space_buf->sao_vb.buf_start);
 }
 
+static u32 init_aux_size;
+static int aux_data_is_avaible(struct hevc_state_s *hevc)
+{
+	u32 reg_val;
+
+	reg_val = READ_VREG(HEVC_AUX_DATA_SIZE);
+	if (reg_val != 0 && reg_val != init_aux_size)
+		return 1;
+	else
+		return 0;
+}
+
 static void config_aux_buf(struct hevc_state_s *hevc)
 {
 	WRITE_VREG(HEVC_AUX_ADR, hevc->aux_phy_addr);
-	WRITE_VREG(HEVC_AUX_DATA_SIZE,
-		((hevc->prefix_aux_size >> 4) << 16) |
-		(hevc->suffix_aux_size >> 4)
-		);
+	init_aux_size = ((hevc->prefix_aux_size >> 4) << 16) |
+		(hevc->suffix_aux_size >> 4);
+	WRITE_VREG(HEVC_AUX_DATA_SIZE, init_aux_size);
 }
 
 static void config_mpred_hw(struct hevc_state_s *hevc)
@@ -4920,7 +4931,7 @@ static void set_aux_data(struct hevc_state_s *hevc,
 		READ_VREG(HEVC_AUX_DATA_SIZE);
 	unsigned int aux_count = 0;
 	int aux_size = 0;
-	if (pic == NULL)
+	if (pic == NULL || 0 == aux_data_is_avaible(hevc))
 		return;
 
 	if (hevc->aux_data_dirty ||
@@ -8240,7 +8251,7 @@ pic_done:
 			hevc->dec_result = DEC_RESULT_DONE;
 			amhevc_stop();
 			reset_process_time(hevc);
-			if (READ_VREG(HEVC_AUX_DATA_SIZE) != 0)
+			if (aux_data_is_avaible(hevc))
 				dolby_get_meta(hevc);
 
 			vdec_schedule_work(&hevc->work);
@@ -8286,7 +8297,7 @@ pic_done:
 			hevc_print(hevc, 0, "get NAL_UNIT_EOS, flush output\n");
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 			if ((vdec->master || vdec->slave) &&
-				READ_VREG(HEVC_AUX_DATA_SIZE) != 0) {
+				aux_data_is_avaible(hevc)) {
 				if (hevc->decoding_pic)
 					dolby_get_meta(hevc);
 			}
@@ -8519,7 +8530,7 @@ pic_done:
 				vdec->master == NULL &&
 				vdec->slave == NULL &&
 #endif
-				READ_VREG(HEVC_AUX_DATA_SIZE) != 0
+				aux_data_is_avaible(hevc)
 				) {
 				dma_sync_single_for_cpu(
 				amports_get_dma_device(),
@@ -10174,7 +10185,7 @@ static void vh265_work(struct work_struct *work)
 		hevc->eos = 1;
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 		if ((vdec->master || vdec->slave) &&
-			READ_VREG(HEVC_AUX_DATA_SIZE) != 0)
+			aux_data_is_avaible(hevc))
 			dolby_get_meta(hevc);
 #endif
 		check_pic_decoded_error(hevc,
