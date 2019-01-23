@@ -7363,17 +7363,6 @@ static void uniformization_fb(u32 index,
 		blending->screen_ratio_w;
 	blending->dst_data.h = (osd_hw.dst_data[index].h << OSD_CALC) /
 		blending->screen_ratio_h;
-	if (osd_hw.dst_data[index].w < osd_hw.disp_info.position_w)
-		osd_log_err("base dispframe w(%d) must >= position_w(%d)\n",
-		osd_hw.dst_data[index].w, osd_hw.disp_info.position_w);
-	if ((blending->dst_data.w + blending->dst_data.x) >
-		osd_hw.disp_info.background_w) {
-		blending->dst_data.w = osd_hw.disp_info.background_w
-			- blending->dst_data.x;
-		osd_log_info("blending w(%d) must < base fb w(%d)\n",
-			blending->dst_data.w + blending->dst_data.x,
-			osd_hw.disp_info.background_w);
-	}
 	osd_log_dbg2(MODULE_BLEND,
 		"uniformization:osd%d:dst_data:%d,%d,%d,%d\n",
 		index,
