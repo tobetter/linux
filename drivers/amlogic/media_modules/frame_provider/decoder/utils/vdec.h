@@ -243,7 +243,7 @@ struct vdec_s {
 	int (*user_data_read)(struct vdec_s *vdec,
 			struct userdata_param_t *puserdata_para);
 	void (*reset_userdata_fifo)(struct vdec_s *vdec, int bInit);
-	void (*wakeup_userdata_poll)(void);
+	void (*wakeup_userdata_poll)(struct vdec_s *vdec);
 	/* private */
 	void *private;       /* decoder per instance specific data */
 #ifdef VDEC_DEBUG_SUPPORT
@@ -426,6 +426,8 @@ int vdec_read_user_data(struct vdec_s *vdec,
 int vdec_wakeup_userdata_poll(struct vdec_s *vdec);
 
 void vdec_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
+
+struct vdec_s *vdec_get_vdec_by_id(int vdec_id);
 
 #ifdef VDEC_DEBUG_SUPPORT
 extern void vdec_set_step_mode(void);

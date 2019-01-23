@@ -1263,7 +1263,7 @@ static void vmpeg12_ppmgr_reset(void)
 #endif
 
 static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
-static void vmpeg12_wakeup_userdata_poll(void);
+static void vmpeg12_wakeup_userdata_poll(struct vdec_s *vdec);
 
 static void reset_do_work(struct work_struct *work)
 {
@@ -1487,15 +1487,12 @@ static int vmpeg12_user_data_read(struct vdec_s *vdec,
 	u8 *rec_data_start;
 	u8 *pdest_buf;
 	struct mpeg12_userdata_recored_t *p_userdata_rec;
-	unsigned long addr;
-
-
 	u32 data_size;
 	u32 res;
 	int copy_ok = 1;
 
-	addr = puserdata_para->pbuf_addr;
-	pdest_buf = (void *)addr;
+	pdest_buf = puserdata_para->pbuf_addr;
+
 	mutex_lock(&userdata_mutex);
 
 	if (!p_userdata_mgr) {
@@ -1683,9 +1680,9 @@ static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 	mutex_unlock(&userdata_mutex);
 }
 
-static void vmpeg12_wakeup_userdata_poll(void)
+static void vmpeg12_wakeup_userdata_poll(struct vdec_s *vdec)
 {
-	amstream_wakeup_userdata_poll();
+	amstream_wakeup_userdata_poll(vdec);
 }
 
 static int vmpeg12_vdec_info_init(void)
