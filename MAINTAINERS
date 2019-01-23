@@ -13528,6 +13528,8 @@ F: drivers/amlogic/memory_ext/*
 F: include/linux/amlogic/ramdump.h
 F: include/linux/amlogic/vmap_stack.h
 F: drivers/amlogic/memory_ext/vmap_stack.c
+F: drivers/amlogic/memory_ext/watch_point.c
+F: include/linux/amlogic/watch_point.h
 
 AMLOGIC driver for memory extend
 M: Tao Zeng <tao.zeng@amlogic.com>

@@ -58,3 +58,13 @@ config AMLOGIC_SLUB_DEBUG
 	help
 		This option open trace debug for each slub objects. And will give
 		slub objdect allocator information when detected bad objects
+
+config AMLOGIC_WATCHPOINT
+	tristate "Amlogic point driver"
+	depends on HAVE_HW_BREAKPOINT
+	depends on AMLOGIC_MEMORY_EXTEND
+	default y
+	help
+		This driver export a debug sysfs in order
+		to using watch point function on ARMv8.
+		say y to enable Amlogic watch point driver
