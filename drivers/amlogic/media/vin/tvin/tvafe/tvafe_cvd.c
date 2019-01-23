@@ -1128,9 +1128,10 @@ enum tvafe_cvbs_video_e tvafe_cvd2_get_lock_status(
 {
 	enum tvafe_cvbs_video_e cvbs_lock_status = TVAFE_CVBS_VIDEO_HV_UNLOCKED;
 
-	if (!cvd2->hw.h_lock && !cvd2->hw.v_lock)
+	if (!cvd2->hw.h_lock && !cvd2->hw.v_lock) {
 		cvbs_lock_status = TVAFE_CVBS_VIDEO_HV_UNLOCKED;
-	else if (cvd2->hw.h_lock && cvd2->hw.v_lock) {
+		lock_cnt = 0;
+	} else if (cvd2->hw.h_lock && cvd2->hw.v_lock) {
 		cvbs_lock_status = TVAFE_CVBS_VIDEO_HV_LOCKED;
 		lock_cnt++;
 	} else if (cvd2->hw.h_lock) {
