@@ -3738,6 +3738,31 @@ struct vdec_s *vdec_get_default_vdec_for_userdata(void)
 }
 EXPORT_SYMBOL(vdec_get_default_vdec_for_userdata);
 
+struct vdec_s *vdec_get_vdec_by_id(int vdec_id)
+{
+	struct vdec_s *vdec;
+	struct vdec_s *ret_vdec;
+	struct vdec_core_s *core = vdec_core;
+	unsigned long flags;
+
+	flags = vdec_core_lock(vdec_core);
+
+	ret_vdec = NULL;
+	if (!list_empty(&core->connected_vdec_list)) {
+		list_for_each_entry(vdec, &core->connected_vdec_list, list) {
+			if (vdec->id == vdec_id) {
+				ret_vdec = vdec;
+				break;
+			}
+		}
+	}
+
+	vdec_core_unlock(vdec_core, flags);
+
+	return ret_vdec;
+}
+EXPORT_SYMBOL(vdec_get_vdec_by_id);
+
 int vdec_read_user_data(struct vdec_s *vdec,
 			struct userdata_param_t *p_userdata_param)
 {
@@ -3756,9 +3781,9 @@ EXPORT_SYMBOL(vdec_read_user_data);
 
 int vdec_wakeup_userdata_poll(struct vdec_s *vdec)
 {
-	if (vdec && vdec == vdec_get_default_vdec_for_userdata()) {
+	if (vdec) {
 		if (vdec->wakeup_userdata_poll)
-			vdec->wakeup_userdata_poll();
+			vdec->wakeup_userdata_poll(vdec);
 	}
 
 	return 0;

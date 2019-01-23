@@ -479,10 +479,9 @@ static int vh264_vf_states(struct vframe_states *states, void *);
 static int vh264_event_cb(int type, void *data, void *private_data);
 static void vh264_work(struct work_struct *work);
 static void vh264_notify_work(struct work_struct *work);
-static void user_data_push_work(struct work_struct *work);
 #ifdef MH264_USERDATA_ENABLE
 static void user_data_ready_notify_work(struct work_struct *work);
-static void vmh264_wakeup_userdata_poll(void);
+static void vmh264_wakeup_userdata_poll(struct vdec_s *vdec);
 #endif
 
 static const char vh264_dec_id[] = "vh264-dev";
@@ -617,8 +616,6 @@ struct vdec_h264_hw_s {
 	/* recycle buffer for user data storing all itu35 records */
 	void *sei_user_data_buffer;
 	u32 sei_user_data_wp;
-	int sei_poc;
-	struct work_struct user_data_work;
 #ifdef MH264_USERDATA_ENABLE
 	struct work_struct user_data_ready_work;
 #endif
@@ -816,9 +813,7 @@ struct vdec_h264_hw_s {
 	/*user data*/
 	struct mutex userdata_mutex;
 	struct mh264_userdata_info_t userdata_info;
-	struct list_head frame_uds; /*user data records list waiting for vpts*/
-	struct list_head free_uds_wait_nodes; /*free user data records list*/
-	struct mh264_ud_record_wait_node_t free_nodes[MAX_FREE_USERDATA_NODES];
+	struct mh264_userdata_record_t ud_record;
 	int wait_for_udr_send;
 #endif
 	u32 no_mem_count;
@@ -4778,11 +4773,6 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 
 		if (p_H264_Dpb->mVideo.dec_picture) {
 			int cfg_ret = 0;
-			if (hw->sei_itu_data_len) {
-				hw->sei_poc =
-					p_H264_Dpb->mVideo.dec_picture->poc;
-				schedule_work(&hw->user_data_work);
-			}
 			if (slice_header_process_status == 1) {
 				if ((p_H264_Dpb->mSPS.profile_idc == BASELINE) ||
 					(((unsigned long)(hw->vh264_amstream_dec_info
@@ -5216,20 +5206,23 @@ send_again:
 	}
 
 	if (READ_VREG(AV_SCRATCH_G) == 1) {
-		hw->sei_itu_data_len =
+		int aux_data_len;
+		aux_data_len =
 			(READ_VREG(H264_AUX_DATA_SIZE) >> 16) << 4;
-		if (hw->sei_itu_data_len > SEI_ITU_DATA_SIZE * 2) {
+		if (aux_data_len > SEI_ITU_DATA_SIZE * 2) {
 				dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 					"itu data size more than 4K: %d, discarded it\n",
-					hw->sei_itu_data_len);
-				hw->sei_itu_data_len = 0;
+					aux_data_len);
+				aux_data_len = 0;
 		}
 
-		if (hw->sei_itu_data_len != 0) {
+		if (aux_data_len != 0) {
 			u8 *trans_data_buf;
 			u8 *sei_data_buf;
 			u32 temp;
 			u32 *pswap_data;
+			int new_size;
+			int bContinue;
 
 			dma_sync_single_for_cpu(
 			amports_get_dma_device(),
@@ -5241,16 +5234,29 @@ send_again:
 #endif
 
 			trans_data_buf = (u8 *)hw->aux_addr;
-			sei_data_buf = (u8 *)hw->sei_itu_data_buf;
-			for (i = 0; i < hw->sei_itu_data_len/2; i++)
-				sei_data_buf[i] = trans_data_buf[i*2];
-			hw->sei_itu_data_len = hw->sei_itu_data_len / 2;
+			new_size = hw->sei_itu_data_len + aux_data_len / 2;
 
-			pswap_data = (u32 *)hw->sei_itu_data_buf;
-			for (i = 0; i < hw->sei_itu_data_len/4; i = i+2) {
-				temp = pswap_data[i];
-				pswap_data[i] = pswap_data[i+1];
-				pswap_data[i+1] = temp;
+			bContinue = 1;
+			if (new_size > SEI_ITU_DATA_SIZE) {
+				dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+						"itu data size over (0x%x, 0x%x), discarded it\n",
+						hw->sei_itu_data_len,
+						new_size);
+				bContinue = 0;
+			}
+
+			if (bContinue) {
+				sei_data_buf = (u8 *)hw->sei_itu_data_buf + hw->sei_itu_data_len;
+				for (i = 0; i < aux_data_len/2; i++)
+					sei_data_buf[i] = trans_data_buf[i*2];
+				hw->sei_itu_data_len += aux_data_len / 2;
+
+				pswap_data = (u32 *)sei_data_buf;
+				for (i = 0; i < aux_data_len/8; i = i+2) {
+					temp = pswap_data[i];
+					pswap_data[i] = pswap_data[i+1];
+					pswap_data[i+1] = temp;
+				}
 			}
 		}
 		WRITE_VREG(AV_SCRATCH_G, 0);
@@ -5943,7 +5949,6 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	vh264_local_init(hw);
 	INIT_WORK(&hw->work, vh264_work);
 	INIT_WORK(&hw->notify_work, vh264_notify_work);
-	INIT_WORK(&hw->user_data_work, user_data_push_work);
 #ifdef MH264_USERDATA_ENABLE
 	INIT_WORK(&hw->user_data_ready_work, user_data_ready_notify_work);
 #endif
@@ -6126,7 +6131,6 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 #endif
 	cancel_work_sync(&hw->work);
 	cancel_work_sync(&hw->notify_work);
-	cancel_work_sync(&hw->user_data_work);
 #ifdef MH264_USERDATA_ENABLE
 	cancel_work_sync(&hw->user_data_ready_work);
 #endif
@@ -6210,15 +6214,9 @@ static void vh264_notify_work(struct work_struct *work)
 #ifdef MH264_USERDATA_ENABLE
 static void vmh264_reset_udr_mgr(struct vdec_h264_hw_s *hw)
 {
-	int i;
 	hw->wait_for_udr_send = 0;
-
-	INIT_LIST_HEAD(&hw->free_uds_wait_nodes);
-	INIT_LIST_HEAD(&hw->frame_uds);
-
-	for (i = 0; i < MAX_FREE_USERDATA_NODES; i++)
-		list_add_tail(&hw->free_nodes[i].list,
-				&hw->free_uds_wait_nodes);
+	hw->sei_itu_data_len = 0;
+	memset(&hw->ud_record, 0, sizeof(hw->ud_record));
 }
 
 static void vmh264_crate_userdata_manager(
@@ -6522,70 +6520,74 @@ static void vmh264_reset_user_data_buf(void)
 }
 #endif
 
-static void vmh264_input_udc_waitqueue(struct vdec_h264_hw_s *hw,
-					struct userdata_meta_info_t meta_info,
-					int wp)
-{
-	struct mh264_ud_record_wait_node_t *node;
-	struct mh264_userdata_record_t *p_userdata_rec;
-	int data_length;
-
-	node = list_entry(
-			hw->free_uds_wait_nodes.next,
-			struct mh264_ud_record_wait_node_t,
-			list);
-
-	if (node) {
-		if (wp > hw->userdata_info.last_wp)
-			data_length = wp - hw->userdata_info.last_wp;
-		else
-			data_length = wp + hw->userdata_info.buf_len
-				- hw->userdata_info.last_wp;
-
-		if (data_length & 0x7)
-			data_length = (((data_length + 8) >> 3) << 3);
-#if 0
-	pr_info("wakeup_push: ri:%d, wi:%d, data_len:%d, last_wp:%d, wp:%d, id = %d\n",
-					lg_p_mpeg12_userdata_info->read_index,
-					lg_p_mpeg12_userdata_info->write_index,
-					data_length,
-					lg_p_mpeg12_userdata_info->last_wp,
-					wp,
-					n_userdata_id);
-#endif
-		p_userdata_rec = &node->ud_record;
-		p_userdata_rec->meta_info = meta_info;
-		p_userdata_rec->rec_start = hw->userdata_info.last_wp;
-		p_userdata_rec->rec_len = data_length;
-#if 0
-		dump_userdata_record(hw, p_userdata_rec);
-#endif
-		list_move(&node->list, &hw->frame_uds);
-	}
-	hw->userdata_info.last_wp = wp;
-}
 
 static void vmh264_udc_fill_vpts(struct vdec_h264_hw_s *hw,
 						int frame_type,
 						u32 vpts,
 						u32 vpts_valid)
 {
-	struct mh264_ud_record_wait_node_t *node;
-	struct mh264_ud_record_wait_node_t *tmp;
-	struct mh264_userdata_record_t *pud_record;
 	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
 
-	if (!list_empty(&hw->frame_uds)) {
-		list_for_each_entry_safe(node, tmp, &hw->frame_uds, list) {
-			pud_record = &node->ud_record;
-			pud_record->meta_info.vpts = vpts;
-			pud_record->meta_info.vpts_valid = vpts_valid;
-			pud_record->meta_info.poc_number =
-				p_H264_Dpb->mVideo.dec_picture->poc;
-		}
-		hw->wait_for_udr_send = 1;
-		schedule_work(&hw->user_data_ready_work);
+	unsigned char *pdata;
+	u8 *pmax_sei_data_buffer;
+	u8 *sei_data_buf;
+	int i;
+	int wp;
+	int data_length;
+	struct mh264_userdata_record_t *p_userdata_rec;
+
+
+#ifdef MH264_USERDATA_ENABLE
+	struct userdata_meta_info_t meta_info;
+	memset(&meta_info, 0, sizeof(meta_info));
+#endif
+
+	if (hw->sei_itu_data_len <= 0)
+		return;
+
+	pdata = (u8 *)hw->sei_user_data_buffer + hw->sei_user_data_wp;
+	pmax_sei_data_buffer = (u8 *)hw->sei_user_data_buffer + USER_DATA_SIZE;
+	sei_data_buf = (u8 *)hw->sei_itu_data_buf;
+	for (i = 0; i < hw->sei_itu_data_len; i++) {
+		*pdata++ = sei_data_buf[i];
+		if (pdata >= pmax_sei_data_buffer)
+			pdata = (u8 *)hw->sei_user_data_buffer;
 	}
+
+	hw->sei_user_data_wp = (hw->sei_user_data_wp
+		+ hw->sei_itu_data_len) % USER_DATA_SIZE;
+	hw->sei_itu_data_len = 0;
+
+#ifdef MH264_USERDATA_ENABLE
+	meta_info.duration = hw->frame_dur;
+	meta_info.flags |= (VFORMAT_H264 << 3);
+
+	meta_info.vpts = vpts;
+	meta_info.vpts_valid = vpts_valid;
+	meta_info.poc_number =
+		p_H264_Dpb->mVideo.dec_picture->poc;
+
+
+	wp = hw->sei_user_data_wp;
+
+	if (hw->sei_user_data_wp > hw->userdata_info.last_wp)
+		data_length = wp - hw->userdata_info.last_wp;
+	else
+		data_length = wp + hw->userdata_info.buf_len
+			- hw->userdata_info.last_wp;
+
+	if (data_length & 0x7)
+		data_length = (((data_length + 8) >> 3) << 3);
+
+	p_userdata_rec = &hw->ud_record;
+	p_userdata_rec->meta_info = meta_info;
+	p_userdata_rec->rec_start = hw->userdata_info.last_wp;
+	p_userdata_rec->rec_len = data_length;
+	hw->userdata_info.last_wp = wp;
+
+	hw->wait_for_udr_send = 1;
+	schedule_work(&hw->user_data_ready_work);
+#endif
 }
 
 
@@ -6594,26 +6596,21 @@ static void user_data_ready_notify_work(struct work_struct *work)
 	struct vdec_h264_hw_s *hw = container_of(work,
 		struct vdec_h264_hw_s, user_data_ready_work);
 
-	struct mh264_ud_record_wait_node_t *node;
-	struct mh264_ud_record_wait_node_t *tmp;
 
-	list_for_each_entry_safe(node, tmp, &hw->frame_uds, list) {
-		mutex_lock(&hw->userdata_mutex);
+	mutex_lock(&hw->userdata_mutex);
 
-		hw->userdata_info.records[hw->userdata_info.write_index]
-			= node->ud_record;
-		hw->userdata_info.write_index++;
-		if (hw->userdata_info.write_index >= USERDATA_FIFO_NUM)
-			hw->userdata_info.write_index = 0;
+	hw->userdata_info.records[hw->userdata_info.write_index]
+		= hw->ud_record;
+	hw->userdata_info.write_index++;
+	if (hw->userdata_info.write_index >= USERDATA_FIFO_NUM)
+		hw->userdata_info.write_index = 0;
 
-		mutex_unlock(&hw->userdata_mutex);
+	mutex_unlock(&hw->userdata_mutex);
 
-		list_move(&node->list, &hw->free_uds_wait_nodes);
 #ifdef DUMP_USERDATA_RECORD
-		dump_userdata_record(hw, &node->ud_record);
+	dump_userdata_record(hw, &hw->ud_record);
 #endif
-		vdec_wakeup_userdata_poll(hw_to_vdec(hw));
-	}
+	vdec_wakeup_userdata_poll(hw_to_vdec(hw));
 
 	hw->wait_for_udr_send = 0;
 	if (!hw->frmbase_cont_flag) {
@@ -6636,13 +6633,12 @@ static int vmh264_user_data_read(struct vdec_s *vdec,
 	struct mh264_userdata_record_t *p_userdata_rec;
 	u32 data_size;
 	u32 res;
-	unsigned long addr;
 	int copy_ok = 1;
 
 	hw = (struct vdec_h264_hw_s *)vdec->private;
 
-	addr = puserdata_para->pbuf_addr;
-	pdest_buf = (void *)addr;
+	pdest_buf = puserdata_para->pbuf_addr;
+
 	mutex_lock(&hw->userdata_mutex);
 
 /*
@@ -6833,56 +6829,13 @@ static void vmh264_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 	}
 }
 
-static void vmh264_wakeup_userdata_poll(void)
+static void vmh264_wakeup_userdata_poll(struct vdec_s *vdec)
 {
-	amstream_wakeup_userdata_poll();
+	amstream_wakeup_userdata_poll(vdec);
 }
 
 #endif
 
-static void user_data_push_work(struct work_struct *work)
-{
-	struct vdec_h264_hw_s *hw = container_of(work,
-		struct vdec_h264_hw_s, user_data_work);
-
-	struct userdata_poc_info_t user_data_poc;
-	unsigned char *pdata;
-	u8 *pmax_sei_data_buffer;
-	u8 *sei_data_buf;
-	int i;
-#ifdef MH264_USERDATA_ENABLE
-	struct userdata_meta_info_t meta_info;
-	memset(&meta_info, 0, sizeof(meta_info));
-#endif
-
-	pdata = (u8 *)hw->sei_user_data_buffer + hw->sei_user_data_wp;
-	pmax_sei_data_buffer = (u8 *)hw->sei_user_data_buffer + USER_DATA_SIZE;
-	sei_data_buf = (u8 *)hw->sei_itu_data_buf;
-	for (i = 0; i < hw->sei_itu_data_len; i++) {
-		*pdata++ = sei_data_buf[i];
-		if (pdata >= pmax_sei_data_buffer)
-			pdata = (u8 *)hw->sei_user_data_buffer;
-	}
-
-	hw->sei_user_data_wp = (hw->sei_user_data_wp
-		+ hw->sei_itu_data_len) % USER_DATA_SIZE;
-	user_data_poc.poc_number = hw->sei_poc;
-
-	hw->sei_itu_data_len = 0;
-
-#ifdef MH264_USERDATA_ENABLE
-	meta_info.duration = hw->frame_dur;
-	meta_info.flags |= (VFORMAT_H264 << 3);
-
-
-	vmh264_input_udc_waitqueue(hw, meta_info, hw->sei_user_data_wp);
-
-#endif
-/*
-	pr_info("sei_itu35_wp = %d, poc = %d\n",
-		hw->sei_user_data_wp, hw->sei_poc);
-*/
-}
 
 static void vh264_work(struct work_struct *work)
 {
@@ -7496,7 +7449,6 @@ static void reset(struct vdec_s *vdec)
 
 	cancel_work_sync(&hw->work);
 	cancel_work_sync(&hw->notify_work);
-	cancel_work_sync(&hw->user_data_work);
 	if (hw->stat & STAT_VDEC_RUN) {
 		amhevc_stop();
 		hw->stat &= ~STAT_VDEC_RUN;

@@ -323,6 +323,8 @@ static wait_queue_head_t amstream_userdata_wait;
 static struct userdata_poc_info_t userdata_poc_info[USERDATA_FIFO_NUM];
 static int userdata_poc_ri, userdata_poc_wi;
 static int last_read_wi;
+static u32 ud_ready_vdec_flag;
+
 
 
 static DEFINE_MUTEX(userdata_mutex);
@@ -1411,9 +1413,25 @@ int wakeup_userdata_poll(struct userdata_poc_info_t poc,
 	return userdata_buf->buf_rp;
 }
 EXPORT_SYMBOL(wakeup_userdata_poll);
-void amstream_wakeup_userdata_poll(void)
+
+
+void amstream_wakeup_userdata_poll(struct vdec_s *vdec)
 {
+	int vdec_id;
+
+	vdec_id = vdec->id;
+	if (vdec_id > 31) {
+		pr_info("Error, not support so many instances(%d) user data push\n",
+			vdec_id);
+		return;
+	}
+
+	mutex_lock(&userdata_mutex);
+	ud_ready_vdec_flag |= (1<<vdec_id);
+
 	atomic_set(&userdata_ready, 1);
+	mutex_unlock(&userdata_mutex);
+
 	wake_up_interruptible(&amstream_userdata_wait);
 }
 EXPORT_SYMBOL(amstream_wakeup_userdata_poll);
@@ -3001,6 +3019,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			if (this->type & PORT_TYPE_USERDATA) {
 				struct userdata_param_t  param;
 				struct userdata_param_t  *p_userdata_param;
+				struct vdec_s *vdec;
 
 				p_userdata_param = &param;
 
@@ -3011,23 +3030,56 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 					break;
 				}
 
-				if (vdec_read_user_data(NULL,
-						p_userdata_param) == 0) {
-					r = -EFAULT;
-					break;
-				}
+				vdec = vdec_get_vdec_by_id(p_userdata_param->instance_id);
+				if (vdec) {
+					if (vdec_read_user_data(vdec,
+							p_userdata_param) == 0) {
+						r = -EFAULT;
+						break;
+					}
 
-				if (copy_to_user((void *)arg,
-					p_userdata_param,
-					sizeof(struct userdata_param_t)))
-					r = -EFAULT;
+					if (copy_to_user((void *)arg,
+						p_userdata_param,
+						sizeof(struct userdata_param_t)))
+						r = -EFAULT;
+				} else
+					r = -EINVAL;
 			}
 		}
 		break;
+
+	case AMSTREAM_IOC_UD_AVAILABLE_VDEC:
+		{
+			unsigned int ready_vdec;
+
+			mutex_lock(&userdata_mutex);
+			ready_vdec = ud_ready_vdec_flag;
+			ud_ready_vdec_flag = 0;
+			mutex_unlock(&userdata_mutex);
+
+			put_user(ready_vdec, (uint32_t __user *)arg);
+		}
+		break;
+
+	case AMSTREAM_IOC_GET_VDEC_ID:
+		if (this->type & PORT_TYPE_VIDEO && priv->vdec) {
+			put_user(priv->vdec->id, (int32_t __user *)arg);
+		} else
+			r = -EINVAL;
+		break;
+
+
 	case AMSTREAM_IOC_UD_FLUSH_USERDATA:
 		if (this->type & PORT_TYPE_USERDATA) {
-			vdec_reset_userdata_fifo(NULL, 0);
-			pr_info("reset_userdata_fifo\n");
+			struct vdec_s *vdec;
+			int vdec_id;
+
+			get_user(vdec_id, (int __user *)arg);
+			vdec = vdec_get_vdec_by_id(vdec_id);
+			if (vdec) {
+				vdec_reset_userdata_fifo(vdec, 0);
+				pr_info("reset_userdata_fifo for vdec: %d\n", vdec_id);
+			}
 		} else
 			r = -EINVAL;
 		break;
@@ -3343,6 +3395,60 @@ static long amstream_set_sysinfo(struct port_priv_s *priv,
 
 	return 0;
 }
+
+
+struct userdata_param32_t {
+	uint32_t version;
+	uint32_t instance_id; /*input, 0~9*/
+	uint32_t buf_len; /*input*/
+	uint32_t data_size; /*output*/
+	compat_uptr_t pbuf_addr; /*input*/
+	struct userdata_meta_info_t meta_info; /*output*/
+};
+
+
+static long amstream_ioc_get_userdata(struct port_priv_s *priv,
+		struct userdata_param32_t __user *arg)
+{
+	struct userdata_param_t __user *data;
+	struct userdata_param32_t __user *data32 = arg;
+	int ret;
+	struct userdata_param32_t param;
+
+
+	if (copy_from_user(&param,
+		(void __user *)arg,
+		sizeof(struct userdata_param32_t)))
+		return -EFAULT;
+
+	data = compat_alloc_user_space(sizeof(*data));
+	if (!access_ok(VERIFY_WRITE, data, sizeof(*data)))
+		return -EFAULT;
+
+	if (copy_in_user(data, data32, 4 * sizeof(u32)))
+		return -EFAULT;
+
+	if (copy_in_user(&data->meta_info, &data32->meta_info,
+					sizeof(data->meta_info)))
+		return -EFAULT;
+
+	if (put_user(compat_ptr(param.pbuf_addr), &data->pbuf_addr))
+		return -EFAULT;
+
+	ret = amstream_do_ioctl(priv, AMSTREAM_IOC_UD_BUF_READ,
+		(unsigned long)data);
+	if (ret < 0)
+		return ret;
+
+	if (copy_in_user(&data32->version, &data->version, 4 * sizeof(u32)) ||
+			copy_in_user(&data32->meta_info, &data->meta_info,
+					sizeof(data32->meta_info)))
+		return -EFAULT;
+
+	return 0;
+}
+
+
 static long amstream_compat_ioctl(struct file *file,
 		unsigned int cmd, ulong arg)
 {
@@ -3361,6 +3467,8 @@ static long amstream_compat_ioctl(struct file *file,
 		return amstream_ioc_setget_ptr(priv, cmd, compat_ptr(arg));
 	case AMSTREAM_IOC_SYSINFO:
 		return amstream_set_sysinfo(priv, compat_ptr(arg));
+	case AMSTREAM_IOC_UD_BUF_READ:
+		return amstream_ioc_get_userdata(priv, compat_ptr(arg));
 	default:
 		return amstream_do_ioctl(priv, cmd, (ulong)compat_ptr(arg));
 	}
