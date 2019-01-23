@@ -31,6 +31,7 @@
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 #include <linux/of_reserved_mem.h>
+#include <linux/dma-mapping.h>
 #include <linux/of_irq.h>
 
 /* #include <linux/mutex.h> */
@@ -1513,6 +1514,7 @@ static int vbi_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct resource *res;
 	struct vbi_dev_s *vbi_dev;
+	dma_addr_t vbi_dma_addr;
 
 	/* allocate memory for the per-device structure */
 	vbi_dev = kzalloc(sizeof(struct vbi_dev_s), GFP_KERNEL);
@@ -1520,7 +1522,7 @@ static int vbi_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto fail_kzalloc_mem;
 	}
-		memset(vbi_dev, 0, sizeof(struct vbi_dev_s));
+	memset(vbi_dev, 0, sizeof(struct vbi_dev_s));
 	vbi_mem_start = 0;
 
 	/* connect the file operations with cdev */
@@ -1547,34 +1549,27 @@ static int vbi_probe(struct platform_device *pdev)
 		goto fail_create_dbg_file;
 	}
 
-	/* get device memory */
-	res = &vbi_memobj;
-	ret = of_reserved_mem_device_init(&pdev->dev);
-	if (ret == 0)
-		tvafe_pr_info("\n vbi memory resource done.\n");
-	else
-		tvafe_pr_info("vbi: can't get memory resource\n");
-	vbi_dev->mem_start = res->start;
-	vbi_dev->mem_size = res->end - res->start + 1;
-	if (vbi_dev->mem_size > DECODER_VBI_SIZE)
-		vbi_dev->mem_size = DECODER_VBI_SIZE;
-	tvafe_pr_info(": start_addr is:0x%x, size is:0x%x\n",
-			vbi_dev->mem_start, vbi_dev->mem_size);
+	/*vbi memory alloc*/
+	vbi_dev->mem_size = DECODER_VBI_SIZE;
+	vbi_dev->pac_addr_start = dma_alloc_coherent(&pdev->dev,
+		vbi_dev->mem_size, &vbi_dma_addr, GFP_KERNEL);
+	vbi_dev->mem_start = (unsigned int)vbi_dma_addr;
+	if (vbi_dev->pac_addr_start == NULL) {
+		tvafe_pr_err(": dma_alloc_coherent failed!!!\n");
+		goto fail_alloc_mem;
+	}
+	tvafe_pr_info("vbi: dma_alloc phy start_addr is:0x%x, size is:0x%x\n",
+		vbi_dev->mem_start, vbi_dev->mem_size);
 
-	/* remap the package vbi hardware address for our conversion */
-	vbi_dev->pac_addr_start = phys_to_virt(vbi_dev->mem_start);
-	/*ioremap_nocache(vbi_dev->mem_start, vbi_dev->mem_size);*/
 	memset(vbi_dev->pac_addr_start, 0, vbi_dev->mem_size);
 	vbi_dev->mem_size = vbi_dev->mem_size/2;
 	vbi_dev->mem_size >>= 4;
 	vbi_dev->mem_size <<= 4;
 	vbi_mem_start = vbi_dev->mem_start;
 	vbi_dev->pac_addr_end = vbi_dev->pac_addr_start + vbi_dev->mem_size - 1;
-	if (vbi_dev->pac_addr_start == NULL)
-		tvafe_pr_err(": ioremap error!!!\n");
-	else
-		tvafe_pr_info(": vbi_dev->pac_addr_start=0x%p, end:0x%p, size:0x%x .......\n",
-	vbi_dev->pac_addr_start, vbi_dev->pac_addr_end, vbi_dev->mem_size);
+	tvafe_pr_info(": vbi_dev->pac_addr_start=0x%p, end:0x%p, size:0x%x\n",
+		vbi_dev->pac_addr_start, vbi_dev->pac_addr_end,
+		vbi_dev->mem_size);
 	vbi_dev->pac_addr = vbi_dev->pac_addr_start;
 
 	mutex_init(&vbi_dev->mutex);
@@ -1643,7 +1638,9 @@ static int vbi_remove(struct platform_device *pdev)
 	mutex_destroy(&vbi_dev->mutex);
 	tasklet_kill(&vbi_dev->tsklt_slicer);
 	if (vbi_dev->pac_addr_start)
-		iounmap(vbi_dev->pac_addr_start);
+		dma_free_coherent(vbi_dev->dev, vbi_dev->mem_size,
+			vbi_dev->pac_addr_start,
+			(dma_addr_t)&vbi_dev->mem_start);
 	vfree(vbi_dev->slicer);
 	device_destroy(vbi_clsp, MKDEV(MAJOR(vbi_id), 0));
 	cdev_del(&vbi_dev->cdev);

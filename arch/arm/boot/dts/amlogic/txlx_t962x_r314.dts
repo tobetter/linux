@@ -169,13 +169,6 @@
 			alignment = <0x400000>;
 			alloc-ranges = <0x0 0x30000000>;
 		};
-
-		/*vbi reserved mem*/
-		vbi_reserved:linux,vbi {
-			compatible = "amlogic, vbi-mem";
-			size = <0x100000>;
-			alloc-ranges = <0x0e000000 0x800000>;
-		};
 	};
 
 	amlogic_battery:dummy-battery {
@@ -578,11 +571,9 @@
 
 	vbi {
 		compatible = "amlogic, vbi";
-		memory-region = <&vbi_reserved>;
 		dev_name = "vbi";
 		status = "okay";
 		interrupts = <0 83 1>;
-		reserve-iomap = "true";
 	};
 
 	tvafe_avin_detect {
