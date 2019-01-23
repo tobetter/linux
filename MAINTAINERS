@@ -14815,10 +14815,22 @@ M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
 F:	drivers/amlogic/power/power_ctrl.c
 F:	include/linux/amlogic/power_ctrl.h
 
-AMLOGIC SM1 DTS
-M:	shaochan.liu <shaochan.liu@amlogic.com>
-F:	arch/arm64/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
-F:	arch/arm/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
+AMLOGIC MESONAXG S400 GVA SBR DTS
+M:	Yeping Miao <yeping.miao@amlogic.com>
+F:	arch/arm64/boot/dts/amlogic/axg_s400_v03gva_sbr.dts
+F:	arch/arm/boot/dts/amlogic/axg_s400_v03gva_sbr.dts
+
+AMLOGIC TL1 DTS
+M:	Huijie Huang <huijie.huang@amlogic.com>
+F:	arch/arm/boot/dts/amlogic/tl1_t962x2_x301_1g.dts
+F:	arch/arm/boot/dts/amlogic/tl1_t962x2_x301_2g.dts
+F:	arch/arm64/boot/dts/amlogic/tl1_t962x2_x301_1g.dts
+F:	arch/arm64/boot/dts/amlogic/tl1_t962x2_x301_2g.dts
+
+AMLOGIC TM2 PINCTRL DRIVER
+M:	Qianggui Song <qianggui.song@amlogic.com>
+F:	drivers/amlogic/pinctrl/pinctrl-meson-tm2.c
+F:	include/dt-bindings/gpio/meson-tm2-gpio.h
 
 
 AMLOGIC TL1 VAD
