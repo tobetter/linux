@@ -1798,6 +1798,31 @@ static int exynos3250_jpeg_try_crop(struct s5p_jpeg_ctx *ctx,
  * V4L2 controls
  */
 
+static int vidioc_decoder_cmd(struct file *file, void *priv,
+			struct v4l2_decoder_cmd *cmd)
+{
+	struct s5p_jpeg_ctx *ctx = fh_to_ctx(priv);
+	struct vb2_queue *vq_src = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT);
+	struct vb2_v4l2_buffer *buf;
+
+	switch (cmd->cmd) {
+	case V4L2_DEC_CMD_STOP:
+		if (cmd->flags != 0)
+			return -EINVAL;
+		if (!vb2_is_streaming(vq_src))
+			return -EINVAL;
+
+		buf = v4l2_m2m_last_src_buf(ctx->fh.m2m_ctx);
+		buf->flags |= V4L2_BUF_FLAG_LAST;
+
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int s5p_jpeg_g_selection(struct file *file, void *priv,
 			 struct v4l2_selection *s)
 {
@@ -1832,9 +1857,6 @@ static int s5p_jpeg_g_selection(struct file *file, void *priv,
 	return 0;
 }
 
-/*
- * V4L2 controls
- */
 static int s5p_jpeg_s_selection(struct file *file, void *fh,
 				  struct v4l2_selection *s)
 {
@@ -2025,6 +2047,8 @@ static const struct v4l2_ioctl_ops s5p_jpeg_ioctl_ops = {
 
 	.vidioc_streamon		= v4l2_m2m_ioctl_streamon,
 	.vidioc_streamoff		= v4l2_m2m_ioctl_streamoff,
+
+	.vidioc_decoder_cmd             = vidioc_decoder_cmd,
 
 	.vidioc_g_selection		= s5p_jpeg_g_selection,
 	.vidioc_s_selection		= s5p_jpeg_s_selection,
@@ -2472,13 +2496,6 @@ static int s5p_jpeg_queue_setup(struct vb2_queue *vq,
 
 	size = q_data->size;
 
-	/*
-	 * header is parsed during decoding and parsed information stored
-	 * in the context so we do not allow another buffer to overwrite it
-	 */
-	if (ctx->mode == S5P_JPEG_DECODE)
-		count = 1;
-
 	*nbuffers = count;
 	*nplanes = 1;
 	sizes[0] = size;
@@ -2589,6 +2606,7 @@ static int s5p_jpeg_start_streaming(struct vb2_queue *q, unsigned int count)
 static void s5p_jpeg_stop_streaming(struct vb2_queue *q)
 {
 	struct s5p_jpeg_ctx *ctx = vb2_get_drv_priv(q);
+	struct vb2_v4l2_buffer *buf;
 
 	/*
 	 * STREAMOFF is an acknowledgment for resolution change event.
@@ -2600,6 +2618,11 @@ static void s5p_jpeg_stop_streaming(struct vb2_queue *q)
 		s5p_jpeg_set_capture_queue_data(ctx);
 		ctx->state = JPEGCTX_RUNNING;
 	}
+
+	while ((buf = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx)))
+		v4l2_m2m_buf_done(buf, VB2_BUF_STATE_ERROR);
+	while ((buf = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx)))
+		v4l2_m2m_buf_done(buf, VB2_BUF_STATE_ERROR);
 
 	pm_runtime_put(ctx->jpeg->dev);
 }
@@ -2840,6 +2863,8 @@ static irqreturn_t exynos3250_jpeg_irq(int irq, void *dev_id)
 	v4l2_m2m_buf_done(src_buf, state);
 	if (curr_ctx->mode == S5P_JPEG_ENCODE)
 		vb2_set_plane_payload(&dst_buf->vb2_buf, 0, payload_size);
+	if (src_buf->flags & V4L2_BUF_FLAG_LAST)
+		dst_buf->flags |= V4L2_BUF_FLAG_LAST;
 	v4l2_m2m_buf_done(dst_buf, state);
 
 	curr_ctx->subsampling =
