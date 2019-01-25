@@ -81,7 +81,7 @@ static void amvdec_pg_enable(bool enable)
 	} else {
 
 		AMVDEC_CLK_GATE_OFF(AMRISC);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(MDEC_PIC_DC_STATUS) != 0) {
 			if (time_after(jiffies, timeout)) {
@@ -95,7 +95,7 @@ static void amvdec_pg_enable(bool enable)
 		}
 
 		AMVDEC_CLK_GATE_OFF(MDEC_CLK_PIC_DC);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(DBLK_STATUS) & 1) {
 			if (time_after(jiffies, timeout)) {
@@ -108,7 +108,7 @@ static void amvdec_pg_enable(bool enable)
 			}
 		}
 		AMVDEC_CLK_GATE_OFF(MDEC_CLK_DBLK);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(MC_STATUS0) & 1) {
 			if (time_after(jiffies, timeout)) {
@@ -121,7 +121,7 @@ static void amvdec_pg_enable(bool enable)
 			}
 		}
 		AMVDEC_CLK_GATE_OFF(MC_CLK);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 		while (READ_VREG(DCAC_DMA_CTRL) & 0x8000) {
 			if (time_after(jiffies, timeout))
 				break;
