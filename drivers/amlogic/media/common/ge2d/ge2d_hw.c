@@ -903,8 +903,6 @@ void ge2d_set_cmd(struct ge2d_cmd_s *cfg)
 		rate_h = (heighto * 10) / heighti;
 		if (rate_h == 10) {
 			/* not scaler case */
-			cfg->sc_vsc_en = 0;
-			cfg->vsc_rpt_l0_num = 0;
 			cfg->vsc_ini_phase = 0;
 			ge2d_reg_set_bits(GE2D_SC_MISC_CTRL,
 				((0 << 1) | (0 << 0)), 8, 2);
@@ -927,8 +925,6 @@ void ge2d_set_cmd(struct ge2d_cmd_s *cfg)
 
 		if (rate_w == 10) {
 			/* not scaler case */
-			cfg->sc_hsc_en = 0;
-			cfg->hsc_rpt_p0_num = 0;
 			cfg->hsc_ini_phase = 0;
 			ge2d_reg_set_bits(GE2D_SC_MISC_CTRL,
 				((0 << 1) | (0 << 0)), 8, 2);
