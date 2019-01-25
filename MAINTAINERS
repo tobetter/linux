@@ -14785,6 +14785,13 @@ F:	arch/arm/boot/dts/amlogic/mesong12b.dtsi
 F:	arch/arm64/boot/dts/amlogic/g12b*_a.dts
 F:	arch/arm64/boot/dts/amlogic/mesong12b.dtsi
 
+AMLOGIC MESONAXG SBR DTS
+M:	Bing Jiang <Bing.Jiang@amlogic.com>
+F:	arch/arm64/boot/dts/amlogic/axg_s400_v03sbr.dts
+F:	arch/arm/boot/dts/amlogic/axg_s400_v03sbr.dts
+F:	sound/soc/codecs/amlogic/tas5782m.c
+F:	sound/soc/codecs/amlogic/tas5782m.h
+
 AMLOGIC SM1 DTS
 M:	Zhiqiang Liang <Zhiqiang.Liang@amlogic.com>
 F:	arch/arm64/boot/dts/amlogic/mesongsm1.dtsi
@@ -14805,6 +14812,7 @@ AMLOGIC SM1 DTS
 M:	shaochan.liu <shaochan.liu@amlogic.com>
 F:	arch/arm64/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
 F:	arch/arm/boot/dts/amlogic/mesonsm1_skt-panel.dtsi
+
 
 AMLOGIC TL1 VAD
 M:	Wenbiao Zhang <wenbiao.zhang@amlogic.com>

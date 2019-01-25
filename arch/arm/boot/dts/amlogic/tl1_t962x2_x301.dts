@@ -1213,7 +1213,7 @@
 		 * 0: in user space
 		 * 1: in kernel space
 		 */
-		level = <0>;
+		level = <1>;
 
 		status = "disabled";
 	};
