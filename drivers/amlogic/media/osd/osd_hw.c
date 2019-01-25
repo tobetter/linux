@@ -108,7 +108,7 @@ static int osd_afbc_dec_enable;
 static int ext_canvas_id[HW_OSD_COUNT];
 static int osd_extra_idx[HW_OSD_COUNT][2];
 static bool suspend_flag;
-
+static u32 rdma_dt_cnt;
 static void osd_clone_pan(u32 index, u32 yoffset, int debug_flag);
 static void osd_set_dummy_data(u32 index, u32 alpha);
 
@@ -454,12 +454,15 @@ module_param(enable_vd_zorder, uint, 0664);
 static int vsync_enter_line_max;
 static int vsync_exit_line_max;
 static int vsync_line_threshold = 950;
+static int line_threshold = 90;
 MODULE_PARM_DESC(vsync_enter_line_max, "\n vsync_enter_line_max\n");
 module_param(vsync_enter_line_max, uint, 0664);
 MODULE_PARM_DESC(vsync_exit_line_max, "\n vsync_exit_line_max\n");
 module_param(vsync_exit_line_max, uint, 0664);
 MODULE_PARM_DESC(vsync_line_threshold, "\n vsync_line_threshold\n");
 module_param(vsync_line_threshold, uint, 0664);
+MODULE_PARM_DESC(line_threshold, "\n line_threshold\n");
+module_param(line_threshold, uint, 0664);
 
 static unsigned int osd_filter_coefs_bicubic_sharp[] = {
 	0x01fa008c, 0x01fa0100, 0xff7f0200, 0xfe7f0300,
@@ -692,26 +695,37 @@ static void f2v_get_vertical_phase(
 static bool osd_hdr_on;
 #endif
 
-static int cnt;
 #ifdef CONFIG_AMLOGIC_MEDIA_FB_OSD_SYNC_FENCE
 static int get_encp_line(void)
 {
 	int enc_line = 0;
+	int active_line_begin = 0;
+	unsigned int reg = 0;
 
 	switch (osd_reg_read(VPU_VIU_VENC_MUX_CTRL) & 0x3) {
 	case 0:
-		enc_line = (osd_reg_read(ENCL_INFO_READ) >> 16) & 0x1fff;
+		reg = osd_reg_read(ENCL_INFO_READ);
+		active_line_begin =
+			osd_reg_read(ENCL_VIDEO_VAVON_BLINE);
 		break;
 	case 1:
-		enc_line = (osd_reg_read(ENCI_INFO_READ) >> 16) & 0x1fff;
+		reg = osd_reg_read(ENCI_INFO_READ);
+		active_line_begin =
+			osd_reg_read(ENCI_VFIFO2VD_LINE_TOP_START);
 		break;
 	case 2:
-		enc_line = (osd_reg_read(ENCP_INFO_READ) >> 16) & 0x1fff;
+		reg = osd_reg_read(ENCP_INFO_READ);
+		active_line_begin =
+			osd_reg_read(ENCP_VIDEO_VAVON_BLINE);
 		break;
 	case 3:
-		enc_line = (osd_reg_read(ENCT_INFO_READ) >> 16) & 0x1fff;
+		reg = osd_reg_read(ENCT_INFO_READ);
+		active_line_begin =
+			osd_reg_read(ENCT_VIDEO_VAVON_BLINE);
 		break;
 	}
+	enc_line = (reg >> 16) & 0x1fff;
+	enc_line -= active_line_begin;
 	return enc_line;
 }
 #endif
@@ -720,20 +734,7 @@ static int get_enter_encp_line(void)
 {
 	int enc_line = 0;
 
-	switch (osd_reg_read(VPU_VIU_VENC_MUX_CTRL) & 0x3) {
-	case 0:
-		enc_line = (osd_reg_read(ENCL_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 1:
-		enc_line = (osd_reg_read(ENCI_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 2:
-		enc_line = (osd_reg_read(ENCP_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 3:
-		enc_line = (osd_reg_read(ENCT_INFO_READ) >> 16) & 0x1fff;
-		break;
-	}
+	enc_line = get_encp_line();
 	if (enc_line > vsync_enter_line_max)
 		vsync_enter_line_max = enc_line;
 	return enc_line;
@@ -743,20 +744,7 @@ static int get_exit_encp_line(void)
 {
 	int enc_line = 0;
 
-	switch (osd_reg_read(VPU_VIU_VENC_MUX_CTRL) & 0x3) {
-	case 0:
-		enc_line = (osd_reg_read(ENCL_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 1:
-		enc_line = (osd_reg_read(ENCI_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 2:
-		enc_line = (osd_reg_read(ENCP_INFO_READ) >> 16) & 0x1fff;
-		break;
-	case 3:
-		enc_line = (osd_reg_read(ENCT_INFO_READ) >> 16) & 0x1fff;
-		break;
-	}
+	enc_line = get_encp_line();
 	if (enc_line > vsync_exit_line_max)
 		vsync_exit_line_max = enc_line;
 	return enc_line;
@@ -1118,11 +1106,10 @@ int osd_sync_request_render(u32 index, u32 yres,
 {
 	int line;
 
-	cnt++;
 	line = get_encp_line();
 	osd_log_dbg2(MODULE_RENDER,
-			"enter osd_sync_request_render:cnt=%d,encp line=%d\n",
-			cnt, line);
+			"enter osd_sync_request_render:encp line=%d\n",
+			line);
 	if (request->magic == FB_SYNC_REQUEST_RENDER_MAGIC_V1)
 		osd_hw.hwc_enable = 0;
 	else if (request->magic == FB_SYNC_REQUEST_RENDER_MAGIC_V2)
@@ -1144,8 +1131,8 @@ int osd_sync_do_hwc(struct do_hwc_cmd_s *hwc_cmd)
 
 	line = get_encp_line();
 	osd_log_dbg2(MODULE_RENDER,
-		"enter osd_sync_do_hwc:cnt=%d,encp line=%d\n",
-		cnt, line);
+		"enter osd_sync_do_hwc:encp line=%d\n",
+		line);
 	fence_map = kzalloc(
 		sizeof(struct osd_layers_fence_map_s), GFP_KERNEL);
 	if (!fence_map)
@@ -7402,6 +7389,7 @@ static void adjust_dst_position(void)
 
 static int osd_setting_order(void)
 {
+#define RDMA_DETECT_REG VIU_OSD2_TCOLOR_AG2
 	int i;
 	struct layer_blend_reg_s *blend_reg;
 	struct hw_osd_blending_s *blending;
@@ -7410,6 +7398,7 @@ static int osd_setting_order(void)
 	int line1;
 	int line2;
 	int vinfo_height;
+	u32 val;
 
 	blending = &osd_blending;
 	blend_reg = &(blending->blend_reg);
@@ -7445,10 +7434,11 @@ static int osd_setting_order(void)
 	line1 = get_enter_encp_line();
 	vinfo_height = osd_hw.field_out_en ?
 		(osd_hw.vinfo_height * 2) : osd_hw.vinfo_height;
-	if (line1 >= vinfo_height) {
+	/* if nearly vsync signal, wait vsync here */
+	if (line1 >= vinfo_height * line_threshold / 100) {
 		osd_log_dbg(MODULE_RENDER,
-			"enter osd_setting_order:cnt=%d,encp line=%d\n",
-			cnt, line1);
+			"enter osd_setting_order:encp line=%d\n",
+			line1);
 		osd_wait_vsync_hw();
 		line1 = get_enter_encp_line();
 	}
@@ -7519,14 +7509,21 @@ static int osd_setting_order(void)
 
 	set_blend_reg(blend_reg);
 	save_blend_reg(blend_reg);
+	/* append RDMA_DETECT_REG at last and detect if rdma missed some regs */
+	rdma_dt_cnt++;
+	VSYNCOSD_WR_MPEG_REG(RDMA_DETECT_REG, rdma_dt_cnt);
 	spin_unlock_irqrestore(&osd_lock, lock_flags);
 	line2 = get_exit_encp_line();
 	osd_log_dbg2(MODULE_RENDER,
-		"enter osd_setting_order:cnt=%d,encp line=%d\n",
-		cnt, line2);
-	if (line2 < line1)
-		osd_log_info("osd line %d,%d\n", line1, line2);
+		"enter osd_setting_order:encp line=%d\n",
+		line2);
 	osd_wait_vsync_hw();
+	val = osd_reg_read(RDMA_DETECT_REG);
+	/* if missed, need wait vsync */
+	if (/*(line2 < line1) || */(val != rdma_dt_cnt)) {
+		osd_wait_vsync_hw();
+		osd_log_dbg(MODULE_RENDER, "osd line %d,%d\n", line1, line2);
+	}
 	return 0;
 }
 
@@ -8512,7 +8509,7 @@ void osd_init_hw(u32 logo_loaded, u32 osd_probe,
 				osd_hw.afbc_regs_backup = 1;
 			} else {
 				osd_hw.afbc_force_reset = 1;
-				osd_hw.afbc_regs_backup = 0;
+				osd_hw.afbc_regs_backup = 1;
 				data32 = osd_reg_read(MALI_AFBCD_TOP_CTRL);
 				osd_reg_write(MALI_AFBCD_TOP_CTRL,
 					data32 | 0x800000);
