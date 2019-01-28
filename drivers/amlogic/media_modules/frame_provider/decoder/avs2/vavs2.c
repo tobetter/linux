@@ -57,6 +57,7 @@
 #include "../../../common/chips/decoder_cpu_ver_info.h"
 #include <linux/amlogic/tee.h>
 
+#define I_ONLY_SUPPORT
 #define MIX_STREAM_SUPPORT
 #define G12A_BRINGUP_DEBUG
 
@@ -111,6 +112,7 @@
 
 /*cmd*/
 #define AVS2_10B_DISCARD_NAL                 0xf0
+#define AVS2_SEARCH_NEW_PIC                  0xf1
 #define AVS2_ACTION_ERROR                    0xfe
 #define HEVC_ACTION_ERROR                    0xfe
 #define AVS2_ACTION_DONE                     0xff
@@ -747,6 +749,10 @@ struct AVS2Decoder_s {
 	u32 pre_parser_wr_ptr;
 	int need_cache_size;
 	u64 sc_start_time;
+#ifdef I_ONLY_SUPPORT
+	u32 i_only;
+#endif
+
 };
 
 static int  compute_losless_comp_body_size(
@@ -5023,6 +5029,11 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 			dec->slice_idx++;
 
 		PRINT_LINE();
+#ifdef I_ONLY_SUPPORT
+		if ((start_code == PB_PICTURE_START_CODE) &&
+			(dec->i_only & 0x2))
+			ret = -2;
+#endif
 #ifdef AVS2_10B_MMU
 		if (ret >= 0) {
 			ret = avs2_alloc_mmu(dec,
@@ -5580,6 +5591,21 @@ static void vavs2_prot_init(struct AVS2Decoder_s *dec)
 
 }
 
+#ifdef I_ONLY_SUPPORT
+static int vavs2_set_trickmode(struct vdec_s *vdec, unsigned long trickmode)
+{
+	struct AVS2Decoder_s *dec =
+		(struct AVS2Decoder_s *)vdec->private;
+	if (i_only_flag & 0x100)
+		return 0;
+	if (trickmode == TRICKMODE_I)
+		dec->i_only = 0x3;
+	else if (trickmode == TRICKMODE_NONE)
+		dec->i_only = 0x0;
+	return 0;
+}
+#endif
+
 static int vavs2_local_init(struct AVS2Decoder_s *dec)
 {
 	int i;
@@ -5617,7 +5643,15 @@ TODO:FOR VERSION
 
 	if (dec->frame_dur == 0)
 		dec->frame_dur = 96000 / 24;
-
+#ifdef I_ONLY_SUPPORT
+	if (i_only_flag & 0x100)
+		dec->i_only = i_only_flag & 0xff;
+	else if ((unsigned long) dec->vavs2_amstream_dec_info.param
+		& 0x08)
+		dec->i_only = 0x7;
+	else
+		dec->i_only = 0x0;
+#endif
 	INIT_KFIFO(dec->display_q);
 	INIT_KFIFO(dec->newframe_q);
 
@@ -6363,7 +6397,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 
 	vdec_enable_input(vdec);
 
-	WRITE_VREG(HEVC_DEC_STATUS_REG, AVS2_ACTION_DONE);
+	WRITE_VREG(HEVC_DEC_STATUS_REG, AVS2_SEARCH_NEW_PIC);
 
 	if (vdec_frame_based(vdec) && dec->chunk) {
 		if (debug & PRINT_FLAG_VDEC_DATA)
@@ -6590,7 +6624,9 @@ static int ammvdec_avs2_probe(struct platform_device *pdev)
 	}
 	pdata->private = dec;
 	pdata->dec_status = vavs2_dec_status;
-	/* pdata->set_trickmode = set_trickmode; */
+#ifdef I_ONLY_SUPPORT
+	pdata->set_trickmode = vavs2_set_trickmode;
+#endif
 	pdata->run_ready = run_ready;
 	pdata->run = run;
 	pdata->reset = reset;
