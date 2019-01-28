@@ -505,14 +505,16 @@ static ssize_t vout_vinfo_show(struct class *class,
 		"    fr_adj_type:           %d\n"
 		"    video_clk:             %d\n"
 		"    viu_color_fmt:         %d\n"
-		"    viu_mux:               %d\n\n",
+		"    viu_mux:               %d\n"
+		"    3d_info:               %d\n\n",
 		info->name, info->mode,
 		info->width, info->height, info->field_height,
 		info->aspect_ratio_num, info->aspect_ratio_den,
 		info->sync_duration_num, info->sync_duration_den,
 		info->screen_real_width, info->screen_real_height,
 		info->htotal, info->vtotal, info->fr_adj_type,
-		info->video_clk, info->viu_color_fmt, info->viu_mux);
+		info->video_clk, info->viu_color_fmt, info->viu_mux,
+		info->info_3d);
 	len += sprintf(buf+len, "master_display_info:\n"
 		"    present_flag          %d\n"
 		"    features              0x%x\n"
@@ -563,6 +565,7 @@ static ssize_t vout_vinfo_show(struct class *class,
 		info->hdr_info.hdr10plus_info.ieeeoui);
 	len += sprintf(buf+len, "    application_version: %x\n",
 		info->hdr_info.hdr10plus_info.application_version);
+
 	return len;
 }
 

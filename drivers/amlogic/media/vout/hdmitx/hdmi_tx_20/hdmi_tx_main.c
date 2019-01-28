@@ -3490,6 +3490,16 @@ static enum vmode_e hdmitx_validate_vmode(char *mode)
 
 	if (info) {
 		hdmitx_vinfo = info;
+		hdmitx_vinfo->info_3d = NON_3D;
+		if (hdmitx_device.flag_3dfp)
+			hdmitx_vinfo->info_3d = FP_3D;
+
+		if (hdmitx_device.flag_3dtb)
+			hdmitx_vinfo->info_3d = TB_3D;
+
+		if (hdmitx_device.flag_3dss)
+			hdmitx_vinfo->info_3d = SS_3D;
+
 		hdmitx_vinfo->vout_device = &hdmitx_vdev;
 		return VMODE_HDMI;
 	}
@@ -4264,6 +4274,10 @@ static int amhdmitx_device_init(struct hdmitx_dev *hdmi_dev)
 	 * 2, unmux hpd when unplug  or off;
 	 */
 	hdmitx_device.hpdmode = 1;
+
+	hdmitx_device.flag_3dfp = 0;
+	hdmitx_device.flag_3dss = 0;
+	hdmitx_device.flag_3dtb = 0;
 
 	if ((init_flag&INIT_FLAG_POWERDOWN) && (hdmitx_device.hpdmode == 2))
 		hdmitx_device.mux_hpd_if_pin_high_flag = 0;

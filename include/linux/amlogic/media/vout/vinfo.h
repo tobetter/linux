@@ -53,6 +53,13 @@ enum vout_fr_adj_type_e {
 	VOUT_FR_ADJ_MAX,
 };
 
+enum vinfo_3d_e {
+	NON_3D = 0,
+	SS_3D,
+	FP_3D,
+	TB_3D,
+};
+
 /*emp : extended metadata type*/
 #define VENDOR_SPECIFIC_EM_DATA 0x0
 #define COMPRESS_VIDEO_TRAMSPORT 0x1
@@ -258,6 +265,7 @@ struct vinfo_s {
 	u32 video_clk;
 	u32 htotal;
 	u32 vtotal;
+	enum vinfo_3d_e info_3d;
 	enum vout_fr_adj_type_e fr_adj_type;
 	enum color_fmt_e viu_color_fmt;
 	enum viu_mux_e viu_mux;
