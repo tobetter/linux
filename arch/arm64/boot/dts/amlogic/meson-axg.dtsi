@@ -111,6 +111,14 @@
 		compatible = "amlogic,meson-gxbb-sm";
 	};
 
+	efuse: efuse {
+		compatible = "amlogic,meson-gxbb-efuse";
+		clocks = <&clkc CLKID_EFUSE>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		read-only;
+	};
+
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
@@ -1257,6 +1265,18 @@
 					 <&clkc_audio AUD_CLKID_TDMIN_LB_LRCLK>;
 				clock-names = "pclk", "sclk", "sclk_sel",
 					      "lrclk", "lrclk_sel";
+				status = "disabled";
+			};
+
+			spdifin: audio-controller@400 {
+				compatible = "amlogic,axg-spdifin";
+				reg = <0x0 0x400 0x0 0x30>;
+				#sound-dai-cells = <0>;
+				sound-name-prefix = "SPDIFIN";
+				interrupts = <GIC_SPI 87 IRQ_TYPE_EDGE_RISING>;
+				clocks = <&clkc_audio AUD_CLKID_SPDIFIN>,
+					 <&clkc_audio AUD_CLKID_SPDIFIN_CLK>;
+				clock-names = "pclk", "refclk";
 				status = "disabled";
 			};
 
