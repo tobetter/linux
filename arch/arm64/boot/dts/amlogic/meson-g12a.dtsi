@@ -265,6 +265,8 @@
 					interrupts = <GIC_SPI 208 IRQ_TYPE_EDGE_RISING>,
 						     <GIC_SPI 209 IRQ_TYPE_EDGE_RISING>,
 						     <GIC_SPI 210 IRQ_TYPE_EDGE_RISING>;
+					clocks = <&clkc_AO CLKID_AO_MAILBOX>;
+					clock-names = "pclk";
 					#mbox-cells = <1>;
 				};
 			};
