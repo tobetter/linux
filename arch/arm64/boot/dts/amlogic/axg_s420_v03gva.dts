@@ -441,16 +441,16 @@
 			};
 		};
 
-		/*aml-audio-card,dai-link@4 {
-		 *	mclk-fs = <128>;
-		 *	cpu {
-		 *		sound-dai = <&aml_spdif>;
-		 *	};
-		 *	codec {
-		 *		sound-dai = <&dummy_codec>;
-		 *	};
-		 *};
-		 */
+		aml-audio-card,dai-link@4 {
+			mclk-fs = <128>;
+			cpu {
+				sound-dai = <&aml_spdif>;
+			};
+			codec {
+				sound-dai = <&dummy_codec>;
+			};
+		};
+
 	};
 
 	bt-dev{
