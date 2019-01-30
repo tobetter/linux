@@ -1447,7 +1447,7 @@ static void  hevc_sao_set_pic_buffer(struct vdec_h264_hw_s *hw,
 #endif
 
 	ret = hevc_alloc_mmu(hw, pic->buf_spec_num,
-			hw->frame_width, hw->frame_height, 0x0,
+			(hw->mb_width << 4), (hw->mb_height << 4), 0x0,
 			hw->frame_mmu_map_addr);
 	if (ret != 0) {
 		dpb_print(DECODE_ID(hw),
@@ -3965,13 +3965,17 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 		if (hw->frame_height == 1088)
 			hw->frame_height = 1080;
 #endif
-
-		mb_width = (mb_width+3) & 0xfffffffc;
-		mb_height = (mb_height+3) & 0xfffffffc;
+		if (!hw->mmu_enable) {
+			mb_width = (mb_width+3) & 0xfffffffc;
+			mb_height = (mb_height+3) & 0xfffffffc;
+		}
 		mb_total = mb_width * mb_height;
+		hw->mb_width = mb_width;
+		hw->mb_height = mb_height;
+		hw->mb_total = mb_total;
 		if (hw->mmu_enable)
 			hevc_mcr_sao_global_hw_init(hw,
-				hw->frame_width, hw->frame_height);
+				(hw->mb_width << 4), (hw->mb_height << 4));
 
 		reg_val = param4;
 		level_idc = reg_val & 0xff;
@@ -3982,10 +3986,6 @@ static int vh264_set_params(struct vdec_h264_hw_s *hw,
 			level_idc, max_reference_size);
 
 		p_H264_Dpb->colocated_buf_size = mb_total * 96;
-		hw->mb_total = mb_total;
-		hw->mb_width = mb_width;
-		hw->mb_height = mb_height;
-
 		hw->dpb.reorder_pic_num =
 			get_max_dec_frame_buf_size(level_idc,
 			max_reference_size, mb_width, mb_height);
@@ -7391,7 +7391,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 		amhevc_start();
 		if (hw->config_bufmgr_done) {
 			hevc_mcr_sao_global_hw_init(hw,
-					hw->frame_width, hw->frame_height);
+					(hw->mb_width << 4), (hw->mb_height << 4));
 			hevc_mcr_config_canv2axitbl(hw, 1);
 		}
 	}
