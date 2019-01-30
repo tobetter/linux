@@ -2967,6 +2967,8 @@ static void dealloc_pic_buf(struct hevc_state_s *hevc,
 static int get_work_pic_num(struct hevc_state_s *hevc)
 {
 	int used_buf_num = 0;
+	int sps_pic_buf_diff = 0;
+
 	if (get_dynamic_buf_num_margin(hevc) > 0) {
 		if ((!hevc->sps_num_reorder_pics_0) &&
 			(hevc->param.p.sps_max_dec_pic_buffering_minus1_0)) {
@@ -2977,6 +2979,10 @@ static int get_work_pic_num(struct hevc_state_s *hevc)
 		} else
 			used_buf_num = hevc->sps_num_reorder_pics_0
 				+ get_dynamic_buf_num_margin(hevc);
+
+		sps_pic_buf_diff = hevc->param.p.sps_max_dec_pic_buffering_minus1_0
+					- hevc->sps_num_reorder_pics_0;
+
 #ifdef MULTI_INSTANCE_SUPPORT
 		/*
 		need one more for multi instance, as
@@ -2993,6 +2999,11 @@ static int get_work_pic_num(struct hevc_state_s *hevc)
 			hevc_print(hevc, 0,
 				"save buf _mode : dynamic_buf_num_margin %d ----> %d \n",
 				dynamic_buf_num_margin,  hevc->dynamic_buf_num_margin);
+
+	if (sps_pic_buf_diff >= 4)
+	{
+		used_buf_num += 1;
+	}
 
 	if (used_buf_num > MAX_BUF_NUM)
 		used_buf_num = MAX_BUF_NUM;
