@@ -82,7 +82,7 @@ extern void vlock_reg_dump(void);
 extern void vlock_log_start(void);
 extern void vlock_log_stop(void);
 extern void vlock_log_print(void);
-
+extern int phase_lock_check(void);
 
 #define VLOCK_STATE_NULL 0
 #define VLOCK_STATE_ENABLE_STEP1_DONE 1
@@ -92,12 +92,14 @@ extern void vlock_log_print(void);
 #define VLOCK_STATE_ENABLE_FORCE_RESET 5
 
 /* video lock */
-#define VLOCK_MODE_AUTO_ENC (1 << 0)
-#define VLOCK_MODE_AUTO_PLL (1 << 1)
-#define VLOCK_MODE_MANUAL_PLL (1 << 2)
-#define VLOCK_MODE_MANUAL_ENC (1 << 3)
-#define VLOCK_MODE_MANUAL_SOFT_ENC (1 << 4)
-#define VLOCK_MODE_MANUAL_MIX_PLL_ENC (1 << 5)
+enum VLOCK_MD {
+	VLOCK_MODE_AUTO_ENC = 0x01,
+	VLOCK_MODE_AUTO_PLL = 0x02,
+	VLOCK_MODE_MANUAL_PLL = 0x04,
+	VLOCK_MODE_MANUAL_ENC = 0x08,
+	VLOCK_MODE_MANUAL_SOFT_ENC = 0x10,
+	VLOCK_MODE_MANUAL_MIX_PLL_ENC = 0x20,
+};
 
 #define IS_MANUAL_MODE(md)	(md & \
 				(VLOCK_MODE_MANUAL_PLL | \
@@ -111,6 +113,11 @@ extern void vlock_log_print(void);
 #define IS_PLL_MODE(md)	(md & \
 				(VLOCK_MODE_MANUAL_PLL | \
 				VLOCK_MODE_AUTO_PLL))
+
+#define IS_ENC_MODE(md)	(md & \
+				(VLOCK_MODE_MANUAL_ENC | \
+				VLOCK_MODE_MANUAL_SOFT_ENC | \
+				VLOCK_MODE_AUTO_ENC))
 
 #define IS_AUTO_PLL_MODE(md) (md & \
 					VLOCK_MODE_AUTO_PLL)

@@ -738,12 +738,32 @@ static ssize_t amvecm_vlock_store(struct class *cla,
 		if (kstrtol(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		vlock_set_phase(val);
-	} else if (!strncmp(parm[0], "phaseen", 7)) {
+	} else if (!strncmp(parm[0], "phlock_en", 9)) {
 		if (kstrtol(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		vlock_set_phase_en(val);
 	} else {
-		pr_info("unsupport cmd!!\n");
+		pr_info("----cmd list -----\n");
+		pr_info("vlock_mode val\n");
+		pr_info("vlock_en val\n");
+		pr_info("vlock_debug val\n");
+		pr_info("vlock_adapt val\n");
+		pr_info("vlock_dis_cnt_limit val\n");
+		pr_info("vlock_delta_limit val\n");
+		pr_info("vlock_dynamic_adjust val\n");
+		pr_info("vlock_line_limit val\n");
+		pr_info("vlock_dis_cnt_no_vf_limit val\n");
+		pr_info("vlock_line_limit val\n");
+		pr_info("vlock_support val\n");
+		pr_info("enable\n");
+		pr_info("disable\n");
+		pr_info("status\n");
+		pr_info("dump_reg\n");
+		pr_info("log_start\n");
+		pr_info("log_stop\n");
+		pr_info("log_print\n");
+		pr_info("phase persent\n");
+		pr_info("phlock_en val\n");
 	}
 	if (sel < VLOCK_PARAM_MAX)
 		vlock_param_set(temp_val, sel);
@@ -6526,13 +6546,6 @@ static const struct vecm_match_data_s vecm_dt_tl1 = {
 	.vlk_phlock_en = true,
 };
 
-static const struct vecm_match_data_s vecm_dt_tm2 = {
-	.vlk_support = true,
-	.vlk_new_fsm = 1,
-	.vlk_hwver = vlock_hw_ver2,
-	.vlk_phlock_en = false,
-};
-
 static const struct of_device_id aml_vecm_dt_match[] = {
 	{
 		.compatible = "amlogic, vecm",
@@ -6592,6 +6605,18 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 			pr_info("Can't find  tx_op_color_primary.\n");
 		else
 			tx_op_color_primary = val;
+
+		/*get compatible matched device, to get chip related data*/
+		of_id = of_match_device(aml_vecm_dt_match, &pdev->dev);
+		if (of_id != NULL) {
+			pr_info("%s", of_id->compatible);
+			matchdata = (struct vecm_match_data_s *)of_id->data;
+		} else {
+			matchdata = (struct vecm_match_data_s *)&vecm_dt_xxx;
+			pr_info("unable to get matched device\n");
+		}
+		vlock_dt_match_init(matchdata);
+
 		/*vlock param config*/
 		vlock_param_config(node);
 	}
