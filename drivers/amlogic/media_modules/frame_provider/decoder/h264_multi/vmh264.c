@@ -709,6 +709,7 @@ struct vdec_h264_hw_s {
 	u32 h264_pts_count;
 	u32 duration_from_pts_done;
 	u32 pts_unstable;
+	u32 unstable_pts;
 	u32 last_checkout_pts;
 	u32 max_refer_buf;
 
@@ -2462,10 +2463,17 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			return -1;
 		}
 		vf->duration_pulldown = 0;
-		vf->pts = frame->pts;
-		vf->pts_us64 = frame->pts64;
-		vf->timestamp = frame->timestamp;
-		vf->index = VF_INDEX(frame->index, buffer_index);
+		if (!(frame->frame->slice_type == I_SLICE) && hw->unstable_pts) {
+			vf->pts = 0;
+			vf->pts_us64 = 0;
+			vf->timestamp = 0;
+			vf->index = VF_INDEX(frame->index, buffer_index);
+		} else {
+			vf->pts = frame->pts;
+			vf->pts_us64 = frame->pts64;
+			vf->timestamp = frame->timestamp;
+			vf->index = VF_INDEX(frame->index, buffer_index);
+		}
 
 		if (hw->is_used_v4l) {
 			vf->v4l_mem_handle
@@ -2588,7 +2596,6 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			else
 				decoder_do_frame_check(hw_to_vdec(hw), vf);
 		}
-
 		kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
 		ATRACE_COUNTER(MODULE_NAME, vf->pts);
 		hw->vf_pre_count++;
@@ -5856,7 +5863,6 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 	hw->vld_dec_control = 0;
 	hw->decode_timeout_count = 0;
 	hw->no_mem_count = 0;
-
 	hw->vh264_ratio = hw->vh264_amstream_dec_info.ratio;
 	/* vh264_ratio = 0x100; */
 
@@ -5881,6 +5887,8 @@ static void vh264_local_init(struct vdec_h264_hw_s *hw)
 		 */
 		hw->frame_dur = 96000/30;
 	}
+
+	hw->unstable_pts = (((unsigned long) hw->vh264_amstream_dec_info.param & 0x40) >> 6);
 
 	hw->is_used_v4l = (((unsigned long)
 		hw->vh264_amstream_dec_info.param & 0x80) >> 7);
