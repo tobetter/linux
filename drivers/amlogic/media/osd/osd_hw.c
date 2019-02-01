@@ -695,7 +695,6 @@ static void f2v_get_vertical_phase(
 static bool osd_hdr_on;
 #endif
 
-#ifdef CONFIG_AMLOGIC_MEDIA_FB_OSD_SYNC_FENCE
 static int get_encp_line(void)
 {
 	int enc_line = 0;
@@ -728,7 +727,6 @@ static int get_encp_line(void)
 	enc_line -= active_line_begin;
 	return enc_line;
 }
-#endif
 
 static int get_enter_encp_line(void)
 {
