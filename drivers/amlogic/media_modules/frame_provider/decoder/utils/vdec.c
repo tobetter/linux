@@ -93,6 +93,8 @@ static int hevc_max_reset_count;
 
 static int no_powerdown;
 static int parallel_decode = 1;
+static int fps_detection;
+static int fps_clear;
 static DEFINE_SPINLOCK(vdec_spin_lock);
 
 #define HEVC_TEST_LIMIT 100
@@ -114,10 +116,18 @@ struct vdec_isr_context_s {
 	struct vdec_s *vdec;
 };
 
+struct decode_fps_s {
+	u32 frame_count;
+	u64 start_timestamp;
+	u64 last_timestamp;
+	u32 fps;
+};
+
 struct vdec_core_s {
 	struct list_head connected_vdec_list;
 	spinlock_t lock;
 	spinlock_t canvas_lock;
+	spinlock_t fps_lock;
 	struct ida ida;
 	atomic_t vdec_nr;
 	struct vdec_s *vfm_vdec;
@@ -137,6 +147,7 @@ struct vdec_core_s {
 	int parallel_dec;
 	unsigned long power_ref_mask;
 	int vdec_combine_flag;
+	struct decode_fps_s decode_fps[MAX_INSTANCE_MUN];
 };
 
 struct canvas_status_s {
@@ -207,6 +218,18 @@ void vdec_canvas_unlock(struct vdec_core_s *core, unsigned long flags)
 	spin_unlock_irqrestore(&core->canvas_lock, flags);
 }
 
+unsigned long vdec_fps_lock(struct vdec_core_s *core)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&core->fps_lock, flags);
+
+	return flags;
+}
+
+void vdec_fps_unlock(struct vdec_core_s *core, unsigned long flags)
+{
+	spin_unlock_irqrestore(&core->fps_lock, flags);
+}
 
 unsigned long vdec_core_lock(struct vdec_core_s *core)
 {
@@ -221,6 +244,75 @@ void vdec_core_unlock(struct vdec_core_s *core, unsigned long flags)
 {
 	spin_unlock_irqrestore(&core->lock, flags);
 }
+
+static u64 vdec_get_us_time_system(void)
+{
+	struct timeval tv;
+
+	do_gettimeofday(&tv);
+
+	return div64_u64(timeval_to_ns(&tv), 1000);
+}
+
+static void vdec_fps_clear(int id)
+{
+	if (id >= MAX_INSTANCE_MUN)
+		return;
+
+	vdec_core->decode_fps[id].frame_count = 0;
+	vdec_core->decode_fps[id].start_timestamp = 0;
+	vdec_core->decode_fps[id].last_timestamp = 0;
+	vdec_core->decode_fps[id].fps = 0;
+}
+
+static void vdec_fps_clearall(void)
+{
+	int i;
+
+	for (i = 0; i < MAX_INSTANCE_MUN; i++) {
+		vdec_core->decode_fps[i].frame_count = 0;
+		vdec_core->decode_fps[i].start_timestamp = 0;
+		vdec_core->decode_fps[i].last_timestamp = 0;
+		vdec_core->decode_fps[i].fps = 0;
+	}
+}
+
+static void vdec_fps_detec(int id)
+{
+	unsigned long flags;
+
+	if (fps_detection == 0)
+		return;
+
+	if (id >= MAX_INSTANCE_MUN)
+		return;
+
+	flags = vdec_fps_lock(vdec_core);
+
+	if (fps_clear == 1) {
+		vdec_fps_clearall();
+		fps_clear = 0;
+	}
+
+	vdec_core->decode_fps[id].frame_count++;
+	if (vdec_core->decode_fps[id].frame_count == 1) {
+		vdec_core->decode_fps[id].start_timestamp =
+			vdec_get_us_time_system();
+		vdec_core->decode_fps[id].last_timestamp =
+			vdec_core->decode_fps[id].start_timestamp;
+	} else {
+		vdec_core->decode_fps[id].last_timestamp =
+			vdec_get_us_time_system();
+		vdec_core->decode_fps[id].fps =
+				(u32)div_u64(((u64)(vdec_core->decode_fps[id].frame_count) *
+					10000000000),
+					(vdec_core->decode_fps[id].last_timestamp -
+					vdec_core->decode_fps[id].start_timestamp));
+	}
+	vdec_fps_unlock(vdec_core, flags);
+}
+
+
 
 static int get_canvas(unsigned int index, unsigned int base)
 {
@@ -1686,6 +1778,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 	p->get_canvas = get_canvas;
 	p->get_canvas_ex = get_canvas_ex;
 	p->free_canvas_ex = free_canvas_ex;
+	p->vdec_fps_detec = vdec_fps_detec;
 	atomic_set(&p->inirq_flag, 0);
 	atomic_set(&p->inirq_thread_flag, 0);
 	/* todo */
@@ -1940,6 +2033,7 @@ void vdec_release(struct vdec_s *vdec)
 #ifdef FRAME_CHECK
 	vdec_frame_check_exit(vdec);
 #endif
+	vdec_fps_clear(vdec->id);
 
 	platform_device_unregister(vdec->dev);
 	pr_debug("vdec_release instance %p, total %d\n", vdec,
@@ -4065,6 +4159,23 @@ static ssize_t dump_decoder_state_show(struct class *class,
 	return pbuf - buf;
 }
 
+static ssize_t dump_fps_show(struct class *class,
+			struct class_attribute *attr, char *buf)
+{
+	char *pbuf = buf;
+	struct vdec_core_s *core = vdec_core;
+	int i;
+
+	unsigned long flags = vdec_fps_lock(vdec_core);
+	for (i = 0; i < MAX_INSTANCE_MUN; i++)
+		pbuf += sprintf(pbuf, "%d ", core->decode_fps[i].fps);
+
+	pbuf += sprintf(pbuf, "\n");
+	vdec_fps_unlock(vdec_core, flags);
+
+	return pbuf - buf;
+}
+
 
 
 static struct class_attribute vdec_class_attrs[] = {
@@ -4092,6 +4203,7 @@ static struct class_attribute vdec_class_attrs[] = {
 	__ATTR(frame_check, S_IRUGO | S_IWUSR | S_IWGRP,
 	frame_check_show, frame_check_store),
 #endif
+	__ATTR_RO(dump_fps),
 	__ATTR_NULL
 };
 
@@ -4176,6 +4288,7 @@ static int vdec_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&vdec_core->connected_vdec_list);
 	spin_lock_init(&vdec_core->lock);
 	spin_lock_init(&vdec_core->canvas_lock);
+	spin_lock_init(&vdec_core->fps_lock);
 	ida_init(&vdec_core->ida);
 	vdec_core->thread = kthread_run(vdec_core_thread, vdec_core,
 					"vdec-core");
@@ -4309,6 +4422,8 @@ module_param(clk_config, uint, 0664);
 module_param(step_mode, int, 0664);
 module_param(debugflags, int, 0664);
 module_param(parallel_decode, int, 0664);
+module_param(fps_detection, int, 0664);
+module_param(fps_clear, int, 0664);
 
 /*
 *module_init(vdec_module_init);

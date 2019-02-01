@@ -306,6 +306,7 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 		"%s:frame num:%d,pts=%d,pts64=%lld. dur=%d\n",
 	__func__, hw->frame_num,
 	vf->pts, vf->pts_us64, vf->duration);
+	vdec->vdec_fps_detec(vdec->id);
 	vf_notify_receiver(vdec->vf_provider_name,
 			VFRAME_EVENT_PROVIDER_VFRAME_READY,
 			NULL);

@@ -231,6 +231,7 @@ struct vdec_s {
 	int (*dec_status)(struct vdec_s *vdec, struct vdec_info *vstatus);
 	int (*set_trickmode)(struct vdec_s *vdec, unsigned long trickmode);
 	int (*set_isreset)(struct vdec_s *vdec, int isreset);
+	void (*vdec_fps_detec)(int id);
 
 	unsigned long (*run_ready)(struct vdec_s *vdec, unsigned long mask);
 	void (*run)(struct vdec_s *vdec, unsigned long mask,

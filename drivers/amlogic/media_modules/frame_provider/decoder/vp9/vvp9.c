@@ -6886,6 +6886,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		gvs->frame_dur = pbi->frame_dur;
 		vdec_count_info(gvs, 0, stream_offset);
 #endif
+		hw_to_vdec(pbi)->vdec_fps_detec(hw_to_vdec(pbi)->id);
 		vf_notify_receiver(pbi->provider_name,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
 		} else {
