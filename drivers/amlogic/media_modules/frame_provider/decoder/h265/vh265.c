@@ -8007,6 +8007,7 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		/*count info*/
 		vdec_count_info(gvs, 0, stream_offset);
 #endif
+		hw_to_vdec(hevc)->vdec_fps_detec(hw_to_vdec(hevc)->id);
 		vf_notify_receiver(hevc->provider_name,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
 	}

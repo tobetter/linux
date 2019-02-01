@@ -4524,6 +4524,7 @@ static int avs2_prepare_display_buf(struct AVS2Decoder_s *dec)
 			gvs->frame_dur = dec->frame_dur;
 			vdec_count_info(gvs, 0, stream_offset);
 	#endif
+			hw_to_vdec(dec)->vdec_fps_detec(hw_to_vdec(dec)->id);
 			vf_notify_receiver(dec->provider_name,
 			VFRAME_EVENT_PROVIDER_VFRAME_READY, NULL);
 		}
