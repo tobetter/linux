@@ -50,6 +50,18 @@ void kbase_gpuprops_set(struct kbase_device *kbdev);
 void kbase_gpuprops_set_features(struct kbase_device *kbdev);
 
 /**
+ * @brief Provide GPU properties to userside through UKU call.
+ *
+ * Fill the struct kbase_uk_gpuprops with values from GPU configuration registers.
+ *
+ * @param kctx		The struct kbase_context structure
+ * @param kbase_props	A copy of the struct kbase_uk_gpuprops structure from userspace
+ *
+ * @return 0 on success. Any other value indicates failure.
+ */
+int kbase_gpuprops_uk_get_props(struct kbase_context *kctx, struct kbase_uk_gpuprops * const kbase_props);
+
+/**
  * kbase_gpuprops_populate_user_buffer - Populate the GPU properties buffer
  * @kbdev: The kbase device
  *

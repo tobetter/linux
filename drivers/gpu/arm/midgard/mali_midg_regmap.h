@@ -92,7 +92,6 @@
 #define TEXTURE_FEATURES_0      0x0B0	/* (RO) Support flags for indexed texture formats 0..31 */
 #define TEXTURE_FEATURES_1      0x0B4	/* (RO) Support flags for indexed texture formats 32..63 */
 #define TEXTURE_FEATURES_2      0x0B8	/* (RO) Support flags for indexed texture formats 64..95 */
-#define TEXTURE_FEATURES_3      0x0BC	/* (RO) Support flags for texture order */
 
 #define TEXTURE_FEATURES_REG(n) GPU_CONTROL_REG(TEXTURE_FEATURES_0 + ((n) << 2))
 

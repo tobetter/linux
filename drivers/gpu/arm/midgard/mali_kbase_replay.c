@@ -772,6 +772,22 @@ static int kbasep_replay_parse_payload(struct kbase_context *kctx,
 		return -EINVAL;
 	}
 
+#ifdef BASE_LEGACY_UK10_2_SUPPORT
+	if (KBASE_API_VERSION(10, 3) > replay_atom->kctx->api_version) {
+		base_jd_replay_payload_uk10_2 *payload_uk10_2;
+		u16 tiler_core_req;
+		u16 fragment_core_req;
+
+		payload_uk10_2 = (base_jd_replay_payload_uk10_2 *) payload;
+		memcpy(&tiler_core_req, &payload_uk10_2->tiler_core_req,
+				sizeof(tiler_core_req));
+		memcpy(&fragment_core_req, &payload_uk10_2->fragment_core_req,
+				sizeof(fragment_core_req));
+		payload->tiler_core_req = (u32)(tiler_core_req & 0x7fff);
+		payload->fragment_core_req = (u32)(fragment_core_req & 0x7fff);
+	}
+#endif /* BASE_LEGACY_UK10_2_SUPPORT */
+
 #ifdef CONFIG_MALI_DEBUG
 	dev_dbg(kctx->kbdev->dev, "kbasep_replay_parse_payload: payload=%p\n", payload);
 	dev_dbg(kctx->kbdev->dev, "Payload structure:\n"

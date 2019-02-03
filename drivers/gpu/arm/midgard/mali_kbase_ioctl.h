@@ -658,9 +658,6 @@ struct kbase_ioctl_tlstream_stats {
 #define KBASE_GPUPROP_COHERENCY_GROUP_14		78
 #define KBASE_GPUPROP_COHERENCY_GROUP_15		79
 
-#define KBASE_GPUPROP_TEXTURE_FEATURES_3		80
-#define KBASE_GPUPROP_RAW_TEXTURE_FEATURES_3		81
-
 #ifdef __cpluscplus
 }
 #endif

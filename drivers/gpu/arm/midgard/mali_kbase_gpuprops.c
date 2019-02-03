@@ -43,6 +43,54 @@
 #define KBASE_UBFX32(value, offset, size) \
 	(((u32)(value) >> (u32)(offset)) & (u32)((1ULL << (u32)(size)) - 1))
 
+int kbase_gpuprops_uk_get_props(struct kbase_context *kctx, struct kbase_uk_gpuprops * const kbase_props)
+{
+	kbase_gpu_clk_speed_func get_gpu_speed_mhz;
+	u32 gpu_speed_mhz;
+	int rc = 1;
+
+	KBASE_DEBUG_ASSERT(NULL != kctx);
+	KBASE_DEBUG_ASSERT(NULL != kbase_props);
+
+	/* Current GPU speed is requested from the system integrator via the GPU_SPEED_FUNC function.
+	 * If that function fails, or the function is not provided by the system integrator, we report the maximum
+	 * GPU speed as specified by GPU_FREQ_KHZ_MAX.
+	 */
+	get_gpu_speed_mhz = (kbase_gpu_clk_speed_func) GPU_SPEED_FUNC;
+	if (get_gpu_speed_mhz != NULL) {
+		rc = get_gpu_speed_mhz(&gpu_speed_mhz);
+#ifdef CONFIG_MALI_DEBUG
+		/* Issue a warning message when the reported GPU speed falls outside the min/max range */
+		if (rc == 0) {
+			u32 gpu_speed_khz = gpu_speed_mhz * 1000;
+
+			if (gpu_speed_khz < kctx->kbdev->gpu_props.props.core_props.gpu_freq_khz_min ||
+					gpu_speed_khz > kctx->kbdev->gpu_props.props.core_props.gpu_freq_khz_max)
+				dev_warn(kctx->kbdev->dev, "GPU Speed is outside of min/max range (got %lu Khz, min %lu Khz, max %lu Khz)\n",
+						(unsigned long)gpu_speed_khz,
+						(unsigned long)kctx->kbdev->gpu_props.props.core_props.gpu_freq_khz_min,
+						(unsigned long)kctx->kbdev->gpu_props.props.core_props.gpu_freq_khz_max);
+		}
+#endif				/* CONFIG_MALI_DEBUG */
+	}
+	if (kctx->kbdev->clock) {
+		gpu_speed_mhz = clk_get_rate(kctx->kbdev->clock) / 1000000;
+		rc = 0;
+	}
+	if (rc != 0)
+		gpu_speed_mhz = kctx->kbdev->gpu_props.props.core_props.gpu_freq_khz_max / 1000;
+
+	kctx->kbdev->gpu_props.props.core_props.gpu_speed_mhz = gpu_speed_mhz;
+
+	memcpy(&kbase_props->props, &kctx->kbdev->gpu_props.props, sizeof(kbase_props->props));
+
+	/* Before API 8.2 they expect L3 cache info here, which was always 0 */
+	if (kctx->api_version < KBASE_API_VERSION(8, 2))
+		kbase_props->props.raw_props.suspend_size = 0;
+
+	return 0;
+}
+
 static void kbase_gpuprops_construct_coherent_groups(base_gpu_props * const props)
 {
 	struct mali_base_gpu_coherent_group *current_group;
@@ -308,7 +356,6 @@ static struct {
 	PROP(TEXTURE_FEATURES_0,          core_props.texture_features[0]),
 	PROP(TEXTURE_FEATURES_1,          core_props.texture_features[1]),
 	PROP(TEXTURE_FEATURES_2,          core_props.texture_features[2]),
-	PROP(TEXTURE_FEATURES_3,          core_props.texture_features[3]),
 	PROP(GPU_AVAILABLE_MEMORY_SIZE,   core_props.gpu_available_memory_size),
 
 	PROP(L2_LOG2_LINE_SIZE,           l2_props.log2_line_size),
@@ -356,7 +403,6 @@ static struct {
 	PROP(RAW_TEXTURE_FEATURES_0,      raw_props.texture_features[0]),
 	PROP(RAW_TEXTURE_FEATURES_1,      raw_props.texture_features[1]),
 	PROP(RAW_TEXTURE_FEATURES_2,      raw_props.texture_features[2]),
-	PROP(RAW_TEXTURE_FEATURES_3,      raw_props.texture_features[3]),
 	PROP(RAW_GPU_ID,                  raw_props.gpu_id),
 	PROP(RAW_THREAD_MAX_THREADS,      raw_props.thread_max_threads),
 	PROP(RAW_THREAD_MAX_WORKGROUP_SIZE,

@@ -45,6 +45,7 @@
 #include <linux/workqueue.h>
 
 #include "mali_base_kernel.h"
+#include <mali_kbase_uku.h>
 #include <mali_kbase_linux.h>
 
 /*
