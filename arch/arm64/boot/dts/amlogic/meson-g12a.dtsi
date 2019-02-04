@@ -619,6 +619,22 @@
 							bias-disable;
 						};
 					};
+
+					remote_input_ao_pins: remote_input_ao {
+						mux {
+							groups = "remote_ao_input";
+							function = "remote_ao_input";
+							bias-disable;
+						};
+					};
+
+					remote_output_ao_pins: remote_output_ao {
+						mux {
+							groups = "remote_ao_out";
+							function = "remote_ao_out";
+							bias-disable;
+						};
+					};
 				};
 			};
 
@@ -657,6 +673,13 @@
 				clocks = <&xtal>, <&clkc_AO CLKID_AO_UART2>, <&xtal>;
 				clock-names = "xtal", "pclk", "baud";
 				reset = <&clkc_AO RESET_AO_UART2>;
+				status = "disabled";
+			};
+
+			ir: ir@8000 {
+				compatible = "amlogic,meson-gxbb-ir";
+				reg = <0x0 0x8000 0x0 0x20>;
+				interrupts = <GIC_SPI 196 IRQ_TYPE_EDGE_RISING>;
 				status = "disabled";
 			};
 
