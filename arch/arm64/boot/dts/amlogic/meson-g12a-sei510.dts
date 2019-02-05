@@ -124,3 +124,12 @@
 	pinctrl-0 = <&uart_ao_a_pins>;
 	pinctrl-names = "default";
 };
+
+&usb {
+	status = "okay";
+	dr_mode = "host";
+};
+
+&dwc2 {
+	status = "okay";
+};
