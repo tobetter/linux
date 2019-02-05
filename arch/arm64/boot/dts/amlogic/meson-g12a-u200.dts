@@ -15,6 +15,7 @@
 
 	aliases {
 		serial0 = &uart_AO;
+		ethernet0 = &ethmac;
 	};
 
 	chosen {
@@ -107,6 +108,14 @@
 		regulator-always-on;
 	};
 
+};
+
+&ethmac {
+	status = "okay";
+	pinctrl-0 = <&eth_leds_pins>;
+	pinctrl-names = "default";
+	phy-handle = <&internal_ephy>;
+	phy-mode = "rmii";
 };
 
 &uart_AO {
