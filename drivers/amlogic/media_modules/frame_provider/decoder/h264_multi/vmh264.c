@@ -911,6 +911,13 @@ static int hevc_alloc_mmu(struct vdec_h264_hw_s *hw, int pic_idx,
 		PRINT_FLAG_MMU_DETAIL,
 		"alloc_mmu new_fb_idx %d picture_size %d cur_mmu_4k_number %d\n",
 		cur_buf_idx, picture_size, cur_mmu_4k_number);
+
+	if (cur_mmu_4k_number > MAX_FRAME_4K_NUM) {
+		pr_err("hevc_alloc_mmu cur_mmu_4k_number %d unsupport\n",
+		cur_mmu_4k_number);
+		return -1;
+	}
+
 	return decoder_mmu_box_alloc_idx(
 	hw->mmu_box,
 	cur_buf_idx,
