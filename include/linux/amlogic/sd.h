@@ -300,6 +300,7 @@ struct amlsd_platform {
 	unsigned int gpio_power;
 	unsigned int power_level;
 	unsigned int calc_f;
+	unsigned int no_sduart;
 
 	unsigned int auto_clk_close;
 	unsigned int vol_switch;
