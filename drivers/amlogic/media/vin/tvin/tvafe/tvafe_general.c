@@ -802,7 +802,7 @@ int adc_set_pll_cntl(bool on, unsigned int module_sel, void *pDtvPara)
 
 			W_HIU_REG(0xf3, 0x00800000);
 			//HHI_AUDPLL_CLK_OUT_CNTL
-			W_HIU_REG(0x74, 0x501);
+			W_HIU_REG(HHI_DEMOD_CLK_CNTL, 0x501);
 
 		} else if (tvafe_cpu_type() == CPU_TYPE_TXL ||
 			tvafe_cpu_type() == CPU_TYPE_TXLX ||
@@ -850,7 +850,7 @@ int adc_set_pll_cntl(bool on, unsigned int module_sel, void *pDtvPara)
 			tvafe_pr_info("\n%s: on:%d,module:0x%x,flag:0x%x...\n",
 				__func__, on, module_sel, adc_pll_chg);
 		break;
-	case ADC_EN_DTV_DEMODPLL: /* dtv demod default*/
+	case ADC_EN_DTV_DEMODPLL: /* dtv demod */
 
 		if (adc_pll_chg & (ADC_EN_ATV_DEMOD | ADC_EN_TVAFE)) {
 			ret = -4;
@@ -873,10 +873,17 @@ int adc_set_pll_cntl(bool on, unsigned int module_sel, void *pDtvPara)
 				/*reset*/
 				W_HIU_REG(HHI_ADC_PLL_CNTL3, 0xca6a2110);
 				W_HIU_REG(HHI_ADC_PLL_CNTL,  pDpara->adcpllctl);
-				if (pDpara->atsc)
+				if (pDpara->atsc) {
 					W_HIU_REG(HHI_DEMOD_CLK_CNTL, 0x507);
-				else
-					W_HIU_REG(HHI_DEMOD_CLK_CNTL, 0x502);
+				} else {
+					/*bugzilla 139044*/
+					if (tvafe_cpu_type() == CPU_TYPE_TXL)
+						W_HIU_REG(HHI_DEMOD_CLK_CNTL,
+							0x301);
+					else
+						W_HIU_REG(HHI_DEMOD_CLK_CNTL,
+							0x502);
+				}
 
 				W_HIU_REG(HHI_ADC_PLL_CNTL3, 0x4a6a2110);
 
