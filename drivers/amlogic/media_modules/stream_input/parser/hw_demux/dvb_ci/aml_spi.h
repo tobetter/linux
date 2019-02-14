@@ -1,34 +1,15 @@
-/*
-* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
-* more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with this program; if not, write to the Free Software Foundation, Inc.,
-* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-*
-* Description:
-*/
 #ifndef __AML_SPI_H_
 #define __AML_SPI_H_
 
 #include <linux/amlogic/aml_gpio_consumer.h>
 #include <linux/gpio/consumer.h>
-#include <dvb_ca_en50221.h>
 #include "aml_pcmcia.h"
 #include "aml_ci.h"
+#include "drivers/media/dvb-core/dvb_ca_en50221.h"
 
 /*
- *aml spi dev
- */
+aml spi dev
+*/
 struct aml_spi {
 		spinlock_t spi_lock;
 
@@ -95,6 +76,6 @@ extern void dirspi_start(struct spi_device *spi);
 extern void dirspi_stop(struct spi_device *spi);
 extern void dvb_ca_en50221_camready_irq(struct dvb_ca_en50221 *pubca, int slot);
 extern int aml_spi_init(struct platform_device *pdev, struct aml_ci *ci_dev);
-extern int aml_spi_exit(void);
+extern int aml_spi_exit(struct aml_ci *ci_dev);
 
 #endif				/* __AML_SPI_H_ */

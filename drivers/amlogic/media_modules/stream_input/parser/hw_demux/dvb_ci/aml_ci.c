@@ -17,39 +17,21 @@
 *
 * Description:
 */
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
-#include <linux/mutex.h>
-#include <linux/wait.h>
-#include <linux/string.h>
-#include <linux/interrupt.h>
-#include <linux/fs.h>
 #include <linux/cdev.h>
-#include <linux/spinlock.h>
-#include <linux/fcntl.h>
-#include <asm/irq.h>
-#include <linux/uaccess.h>
-#include <linux/poll.h>
-#include <linux/delay.h>
-#include <linux/delay.h>
-#include <asm/cacheflush.h>
-#include <linux/dma-mapping.h>
-#include <linux/signal.h>
-#include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/interrupt.h>
-#include <linux/io.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
-#include <linux/spi/spi.h>
 #include "aml_ci.h"
 #include "aml_spi.h"
+#include "cimax/aml_cimax.h"
 
 MODULE_PARM_DESC(aml_ci_debug, "\n\t\t dvb ci debug");
 static int aml_ci_debug = 1;
-module_param(aml_ci_debug, int, 0444);
+module_param(aml_ci_debug, int, S_IRUGO);
 
 #define pr_dbg(args...)\
 	do {\
@@ -90,7 +72,7 @@ static int aml_ci_mem_read(struct dvb_ca_en50221 *en50221, int slot, int addr)
  *   - -EINVAL : error
  */
 static int aml_ci_mem_write(struct dvb_ca_en50221 *en50221,
-	int slot, int addr, u8 data)
+		int slot, int addr, u8 data)
 {
 
 	struct aml_ci *ci = en50221->data;
@@ -137,8 +119,8 @@ static int aml_ci_io_read(struct dvb_ca_en50221 *en50221, int slot, u8 addr)
  *   - 0:ok
  *   - -EINVAL : error
  */
-static int aml_ci_io_write(
-	struct dvb_ca_en50221 *en50221, int slot, u8 addr, u8 data)
+static int aml_ci_io_write(struct dvb_ca_en50221 *en50221,
+		int slot, u8 addr, u8 data)
 {
 	struct aml_ci *ci = en50221->data;
 
@@ -163,7 +145,6 @@ static int aml_ci_io_write(
 static int aml_ci_slot_reset(struct dvb_ca_en50221 *en50221, int slot)
 {
 	struct aml_ci *ci = en50221->data;
-
 	pr_dbg("Slot(%d): Slot RESET\n", slot);
 	if (ci->ci_slot_reset != NULL) {
 		ci->ci_slot_reset(ci, slot);
@@ -183,7 +164,6 @@ static int aml_ci_slot_reset(struct dvb_ca_en50221 *en50221, int slot)
 static int aml_ci_slot_shutdown(struct dvb_ca_en50221 *en50221, int slot)
 {
 	struct aml_ci *ci = en50221->data;
-
 	pr_dbg("Slot(%d): Slot shutdown\n", slot);
 	if (ci->ci_slot_shutdown != NULL) {
 		ci->ci_slot_shutdown(ci, slot);
@@ -204,7 +184,6 @@ static int aml_ci_ts_control(struct dvb_ca_en50221 *en50221, int slot)
 {
 
 		struct aml_ci *ci = en50221->data;
-
 		pr_dbg("Slot(%d): TS control\n", slot);
 		if (ci->ci_slot_ts_enable != NULL) {
 			ci->ci_slot_ts_enable(ci, slot);
@@ -222,18 +201,282 @@ static int aml_ci_ts_control(struct dvb_ca_en50221 *en50221, int slot)
  *   - cam status
  *   - -EINVAL : error
  */
-static int aml_ci_slot_status(
-	struct dvb_ca_en50221 *en50221, int slot, int open)
+static int aml_ci_slot_status(struct dvb_ca_en50221 *en50221,
+		int slot, int open)
 {
 	struct aml_ci *ci = en50221->data;
 
 	pr_dbg("Slot(%d): Poll Slot status\n", slot);
 
-	if (ci->ci_poll_slot_status != NULL)
+	if (ci->ci_poll_slot_status != NULL) {
 		return ci->ci_poll_slot_status(ci, slot, open);
-	pr_error("ci_poll_slot_status is null %s\r\n", __func__);
+	} else {
+		pr_error("ci_poll_slot_status is null %s\r\n", __func__);
+		return -EINVAL;
+	}
+
 	return -EINVAL;
 }
+static int aml_ci_cimax_slot_reset(struct dvb_ca_en50221_cimax *en50221,
+		int slot)
+{
+	struct aml_ci *ci = en50221->data;
+	pr_dbg("Slot(%d): Slot RESET\n", slot);
+	if (ci->ci_slot_reset != NULL) {
+		ci->ci_slot_reset(ci, slot);
+	} else {
+		pr_error("ci_slot_reset is null %s\r\n", __func__);
+		return -EINVAL;
+	}
+	return 0;
+}
+/**\brief aml_ci_slot_shutdown:show slot
+ * \param en50221: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
+static int aml_ci_cimax_slot_shutdown(struct dvb_ca_en50221_cimax *en50221,
+		int slot)
+{
+	struct aml_ci *ci = en50221->data;
+	pr_dbg("Slot(%d): Slot shutdown\n", slot);
+	if (ci->ci_slot_shutdown != NULL) {
+		ci->ci_slot_shutdown(ci, slot);
+	} else {
+		pr_error("aml_ci_slot_shutdown is null %s\r\n", __func__);
+		return -EINVAL;
+	}
+	return 0;
+}
+/**\brief aml_ci_ts_control:control slot ts
+ * \param en50221: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \return
+ *   - 0:ok
+ *   - -EINVAL : error
+ */
+static int aml_ci_cimax_ts_control(struct dvb_ca_en50221_cimax *en50221,
+		int slot)
+{
+
+	struct aml_ci *ci = en50221->data;
+	pr_dbg("Slot(%d): TS control\n", slot);
+	if (ci->ci_slot_ts_enable != NULL) {
+		ci->ci_slot_ts_enable(ci, slot);
+	} else {
+		pr_error("aml_ci_ts_control is null %s\r\n", __func__);
+		return -EINVAL;
+	}
+	return 0;
+}
+/**\brief aml_ci_slot_status:get slot status
+ * \param en50221: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param open: no used
+ * \return
+ *   - cam status
+ *   - -EINVAL : error
+ */
+static int aml_ci_cimax_slot_status(
+	struct dvb_ca_en50221_cimax *en50221, int slot, int open)
+{
+	struct aml_ci *ci = en50221->data;
+
+	/*pr_dbg("Slot(%d): Poll Slot status\n", slot);*/
+
+	if (ci->ci_poll_slot_status != NULL) {
+		return ci->ci_poll_slot_status(ci, slot, open);
+	} else {
+		pr_error("ci_poll_slot_status is null %s\r\n", __func__);
+		return -EINVAL;
+	}
+
+	return -EINVAL;
+}
+
+/**\brief aml_ci_read_cis: read cis
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param buf: buf for cis data
+ * \param size: buf size
+ * \return
+ *   --EINVAL : error
+ *   -        : actual size read
+ */
+static int aml_ci_read_cis(struct dvb_ca_en50221_cimax *en50221,
+		int slot, u8 *buf, int size)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_read_cis != NULL)
+		return ci->ci_read_cis(ci, slot, buf, size);
+
+	pr_error("ci_read_cis is null %s\r\n", __func__);
+	return -EINVAL;
+}
+/**\brief aml_ci_write_cor: write cor
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param addr:
+ * \param buf:
+ * \return
+ *   --EINVAL : error
+ *   -0       : ok
+ */
+static int aml_ci_write_cor(struct dvb_ca_en50221_cimax *en50221,
+		int slot, int address, u8 *buf)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_write_cor != NULL)
+		return ci->ci_write_cor(ci, slot, address, buf);
+
+	pr_error("ci_write_cor is null %s\r\n", __func__);
+	return -EINVAL;
+}
+/**\brief aml_ci_negociate: negotiate
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param size: suggested size
+ * \return
+ *   --EINVAL : error
+ *   -        : size negotiated
+ */
+static int aml_ci_negotiate(struct dvb_ca_en50221_cimax *en50221,
+		int slot, int size)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_negotiate != NULL)
+		return ci->ci_negotiate(ci, slot, size);
+
+	pr_error("ci_negotiate is null %s\r\n", __func__);
+	return -EINVAL;
+}
+/**\brief aml_ci_read_lpdu: read lpdu
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param buf:  buf
+ * \param size: buf size
+ * \return
+ *   --EINVAL : error
+ *   -        : size read
+ */
+static int aml_ci_read_lpdu(struct dvb_ca_en50221_cimax *en50221,
+		int slot, u8 *buf, int size)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_read_lpdu != NULL)
+		return ci->ci_read_lpdu(ci, slot, buf, size);
+
+	pr_error("ci_read_lpdu is null %s\r\n", __func__);
+	return -EINVAL;
+}
+
+/**\brief aml_ci_write_lpdu: write lpdu
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \param buf:  buf
+ * \param size: write size
+ * \return
+ *   --EINVAL : error
+ *   -        : size written
+ */
+static int aml_ci_write_lpdu(struct dvb_ca_en50221_cimax *en50221,
+		int slot, u8 *buf, int size)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_write_lpdu != NULL)
+		return ci->ci_write_lpdu(ci, slot, buf, size);
+
+	pr_error("ci_write_lpdu is null %s\r\n", __func__);
+	return -EINVAL;
+}
+
+static int aml_ci_read_cam_status(struct dvb_ca_en50221_cimax *en50221,
+		int slot)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_read_cam_status != NULL)
+		return ci->ci_read_cam_status(ci, slot);
+
+	pr_error("ci_read_cam_status is null %s\r\n", __func__);
+	return -EINVAL;
+}
+
+static int aml_ci_cam_reset(struct dvb_ca_en50221_cimax *en50221, int slot)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_cam_reset != NULL)
+		return ci->ci_cam_reset(ci, slot);
+
+	pr_error("ci_cam_reset is null %s\r\n", __func__);
+	return -EINVAL;
+}
+
+/**\brief aml_ci_get_capbility
+ * \param en50221_max: en50221 obj,used this data to get dvb_ci obj
+ * \param slot: slot index
+ * \return
+ *   -        : capbilities
+ */
+static int aml_ci_get_capbility(struct dvb_ca_en50221_cimax *en50221, int slot)
+{
+	struct aml_ci *ci = en50221->data;
+
+	if (slot != 0) {
+		pr_error("slot !=0 %s :%d\r\n", __func__, slot);
+		return -EINVAL;
+	}
+
+	if (ci->ci_get_capbility != NULL)
+		return ci->ci_get_capbility(ci, slot);
+
+	pr_error("ci_get_capbility is null %s\r\n", __func__);
+	return -EINVAL;
+}
+
 
 /**\brief get ci config from dts
  * \param np: device node
@@ -241,8 +484,8 @@ static int aml_ci_slot_status(
  *   - 0 成功
  *   - 其他值 :
  */
-static int aml_ci_get_config_from_dts(
-	struct platform_device *pdev, struct aml_ci *ci)
+static int aml_ci_get_config_from_dts(struct platform_device *pdev,
+		struct aml_ci *ci)
 {
 	char buf[32];
 	int ret = 0;
@@ -282,67 +525,106 @@ int aml_ci_init(struct platform_device *pdev,
 	aml_ci_get_config_from_dts(pdev, ci);
 
 	ci->priv		= dvb;
-	ca_flags		= DVB_CA_EN50221_FLAG_IRQ_CAMCHANGE;
 	/* register CA interface */
-	ci->en50221.owner		= THIS_MODULE;
-	ci->en50221.read_attribute_mem	= aml_ci_mem_read;
-	ci->en50221.write_attribute_mem	= aml_ci_mem_write;
-	ci->en50221.read_cam_control	= aml_ci_io_read;
-	ci->en50221.write_cam_control	= aml_ci_io_write;
-	ci->en50221.slot_reset		= aml_ci_slot_reset;
-	ci->en50221.slot_shutdown	= aml_ci_slot_shutdown;
-	ci->en50221.slot_ts_enable	= aml_ci_ts_control;
-	ci->en50221.poll_slot_status	= aml_ci_slot_status;
-	ci->en50221.data		= ci;
+	if (ci->io_type == AML_DVB_IO_TYPE_CIMAX) {
+		ci->en50221_cimax.owner = THIS_MODULE;
+		ci->en50221_cimax.read_cis = aml_ci_read_cis;
+		ci->en50221_cimax.write_cor = aml_ci_write_cor;
+		ci->en50221_cimax.negotiate = aml_ci_negotiate;
+		ci->en50221_cimax.read_lpdu = aml_ci_read_lpdu;
+		ci->en50221_cimax.write_lpdu = aml_ci_write_lpdu;
+		ci->en50221_cimax.read_cam_status = aml_ci_read_cam_status;
+		ci->en50221_cimax.cam_reset = aml_ci_cam_reset;
+		ci->en50221_cimax.get_capbility = aml_ci_get_capbility;
+		ci->en50221_cimax.slot_reset = aml_ci_cimax_slot_reset;
+		ci->en50221_cimax.slot_shutdown = aml_ci_cimax_slot_shutdown;
+		ci->en50221_cimax.slot_ts_enable = aml_ci_cimax_ts_control;
+		ci->en50221_cimax.poll_slot_status = aml_ci_cimax_slot_status;
+		ci->en50221_cimax.data = ci;
+
+		pr_dbg("Registering EN50221 CIMAX device\n");
+		result = dvb_ca_en50221_cimax_init(dvb_adapter,
+			&ci->en50221_cimax, ca_flags, 1);
+		if (result != 0) {
+			pr_error("EN50221 CIMAX: Initialization failed <%d>\n",
+				result);
+			goto err;
+		}
+	} else {
+		ca_flags		= DVB_CA_EN50221_FLAG_IRQ_CAMCHANGE;
+		ci->en50221.read_attribute_mem	= aml_ci_mem_read;
+		ci->en50221.write_attribute_mem	= aml_ci_mem_write;
+		ci->en50221.read_cam_control	= aml_ci_io_read;
+		ci->en50221.write_cam_control	= aml_ci_io_write;
+		ci->en50221.slot_reset		= aml_ci_slot_reset;
+		ci->en50221.slot_shutdown	= aml_ci_slot_shutdown;
+		ci->en50221.slot_ts_enable	= aml_ci_ts_control;
+		ci->en50221.poll_slot_status	= aml_ci_slot_status;
+		ci->en50221.data		= ci;
 
 
-	pr_dbg("Registering EN50221 device\n");
-	result = dvb_ca_en50221_init(dvb_adapter, &ci->en50221, ca_flags, 1);
-	if (result != 0) {
-		pr_error("EN50221: Initialization failed <%d>\n", result);
-		goto err;
+		pr_dbg("Registering EN50221 device\n");
+		result = dvb_ca_en50221_init(dvb_adapter,
+			&ci->en50221, ca_flags, 1);
+		if (result != 0) {
+			pr_error("EN50221: Initialization failed <%d>\n",
+				result);
+			goto err;
+		}
 	}
 	*cip = ci;
 	pr_dbg("Registered EN50221 device\n");
+
 	if (ci->io_type == AML_DVB_IO_TYPE_SPI) {
 		/* spi init */
-		aml_spi_init(pdev, ci);
+		//ci->ci_init = aml_spi_init;
+		//ci->ci_exit = aml_spi_exit;
+	} else if (ci->io_type == AML_DVB_IO_TYPE_CIMAX) {
+		ci->ci_init = aml_cimax_init;
+		ci->ci_exit = aml_cimax_exit;
 	} else {
 		/* no io dev init,is error */
-		pr_dbg("io dev no init,we do not known use spi or iobus or other,please check io_type in dts file\r\n");
+		pr_dbg("unknown io type, please check io_type in dts file\r\n");
 	}
-	return 0;
+
+	if (ci->ci_init)
+		result = ci->ci_init(pdev, ci);
+
+	if (result)
+		dvb_ca_en50221_cimax_release(&ci->en50221_cimax);
+
+	return result;
 err:
-	/* for init spi */
-	aml_spi_exit();
 	kfree(ci);
 	return result;
 }
-EXPORT_SYMBOL_GPL(aml_ci_init);
 
 void aml_ci_exit(struct aml_ci *ci)
 {
 	pr_dbg("Unregistering EN50221 device\n");
 	if (ci) {
-		dvb_ca_en50221_release(&ci->en50221);
+		if (ci->io_type == AML_DVB_IO_TYPE_CIMAX)
+			dvb_ca_en50221_cimax_release(&ci->en50221_cimax);
+		else
+			dvb_ca_en50221_release(&ci->en50221);
+		if (ci->ci_exit)
+			ci->ci_exit(ci);
 		kfree(ci);
 	}
 }
-EXPORT_SYMBOL_GPL(aml_ci_exit);
 
 static struct aml_ci *ci_dev;
 
 static ssize_t aml_ci_ts_show(struct class *class,
-struct class_attribute *attr, char *buf)
+	struct class_attribute *attr, char *buf)
 {
 		int ret;
-
 		ret = sprintf(buf, "ts%d\n", 1);
 	return ret;
 }
 
 static struct class_attribute amlci_class_attrs[] = {
-	__ATTR(ts,  0644, aml_ci_ts_show, NULL),
+	__ATTR(ts,  S_IRUGO | S_IWUSR, aml_ci_ts_show, NULL),
 	__ATTR_NULL
 };
 
@@ -380,7 +662,6 @@ static int aml_ci_probe(struct platform_device *pdev)
 {
 	struct aml_dvb *dvb = aml_get_dvb_device();
 	int err = 0;
-
 	pr_dbg("---Amlogic CI Init---\n");
 	err = aml_ci_init(pdev, dvb, &ci_dev);
 	if (err < 0)
@@ -394,10 +675,13 @@ static int aml_ci_remove(struct platform_device *pdev)
 {
 	aml_ci_unregister_class(ci_dev);
 	platform_set_drvdata(pdev, NULL);
-	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
-		aml_spi_exit();
+	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI) {
+		//aml_spi_exit(ci_dev);
+		}
+	else if (ci_dev->io_type == AML_DVB_IO_TYPE_CIMAX)
+		aml_cimax_exit(ci_dev);
 	else
-	  pr_dbg("---Amlogic CI remove unknown io type---\n");
+		pr_dbg("---Amlogic CI remove unkown io type---\n");
 
 	aml_ci_exit(ci_dev);
 	return 0;
@@ -406,10 +690,13 @@ static int aml_ci_remove(struct platform_device *pdev)
 static int aml_ci_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	pr_dbg("Amlogic CI Suspend!\n");
-	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
-		aml_spi_exit();
+	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI) {
+		//aml_spi_exit(ci_dev);
+		}
+	else if (ci_dev->io_type == AML_DVB_IO_TYPE_CIMAX)
+		aml_cimax_exit(ci_dev);
 	else
-	  pr_dbg("---Amlogic CI remove unknown io type---\n");
+		pr_dbg("---Amlogic CI remove unkown io type---\n");
 
 	return 0;
 }
@@ -417,12 +704,14 @@ static int aml_ci_suspend(struct platform_device *pdev, pm_message_t state)
 static int aml_ci_resume(struct platform_device *pdev)
 {
 	int err = 0;
-
 	pr_dbg("Amlogic CI Resume!\n");
-	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI)
-		aml_spi_init(pdev, ci_dev);
+	if (ci_dev->io_type == AML_DVB_IO_TYPE_SPI) {
+		//aml_spi_init(pdev, ci_dev);
+		}
+	else if (ci_dev->io_type == AML_DVB_IO_TYPE_CIMAX)
+		aml_cimax_init(pdev, ci_dev);
 	else
-	  pr_dbg("---Amlogic CI remove unknown io type---\n");
+		pr_dbg("---Amlogic CI remove unkown io type---\n");
 	return err;
 }
 
@@ -447,13 +736,13 @@ static struct platform_driver aml_ci_driver = {
 	}
 };
 
-static int __init aml_ci_mod_init(void)
+static int  aml_ci_mod_init(void)
 {
 	pr_dbg("Amlogic CI mode init\n");
 	return platform_driver_register(&aml_ci_driver);
 }
 
-static void __exit aml_ci_mod_exit(void)
+static void  aml_ci_mod_exit(void)
 {
 	pr_dbg("Amlogic CI mode Exit\n");
 	platform_driver_unregister(&aml_ci_driver);
@@ -461,7 +750,5 @@ static void __exit aml_ci_mod_exit(void)
 
 module_init(aml_ci_mod_init);
 module_exit(aml_ci_mod_exit);
-
 MODULE_LICENSE("GPL");
-
 
