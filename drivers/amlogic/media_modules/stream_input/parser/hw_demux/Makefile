@@ -5,4 +5,4 @@ ccflags-y += -I$(srctree)/drivers/media/dvb-core -I$(srctree)/drivers/gpio -I$(s
 aml_hardware_dmx-objs += aml_dvb.o
 aml_hardware_dmx-objs += aml_dmx.o
 
-#obj-y += dvb_ci/
+obj-y += dvb_ci/

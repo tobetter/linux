@@ -17,25 +17,31 @@
 *
 * Description:
 */
+
 #ifndef __AML_CI_H_
 #define __AML_CI_H_
 
-#include <dvb_ca_en50221.h>
-#include "../aml_dvb.h"
+#include "drivers/media/dvb-core/dvb_ca_en50221.h"
+#include "cimax/dvb_ca_en50221_cimax.h"
+#include "aml_dvb.h"
 
 enum aml_dvb_io_type_e {
 	AML_DVB_IO_TYPE_IOBUS = 0,
 	AML_DVB_IO_TYPE_SPI,
+	AML_DVB_IO_TYPE_CIMAX,
 	AML_DVB_IO_TYPE_MAX,
 };
 
 struct aml_ci {
-	struct dvb_ca_en50221 en50221;
-	struct mutex          ci_lock;
-	int                   io_type;
-	void                 *priv;
-	int                   id;
-	struct class          class;
+	struct dvb_ca_en50221		en50221;
+	struct mutex			ci_lock;
+	int				io_type;
+	void				*priv;
+	int				id;
+	struct class			class;
+
+	int (*ci_init)(struct platform_device *pdev, struct aml_ci *ci);
+	int (*ci_exit)(struct aml_ci *ci);
 
 	/* NOTE: the read_*, write_* and poll_slot_status functions will be
 	 * called for different slots concurrently and need to use locks where
@@ -56,10 +62,27 @@ struct aml_ci {
 	int (*ci_slot_ts_enable)(struct aml_ci *ca, int slot);
 
 	/*
-	 * Poll slot status.
-	 * Only necessary if DVB_CA_FLAG_EN50221_IRQ_CAMCHANGE is not set
-	 */
+	* Poll slot status.
+	* Only necessary if DVB_CA_FLAG_EN50221_IRQ_CAMCHANGE is not set
+	*/
 	int (*ci_poll_slot_status)(struct aml_ci *ca, int slot, int open);
+
+
+	struct dvb_ca_en50221_cimax en50221_cimax;
+
+	int (*ci_read_cis)(struct aml_ci *ca, int slot, u8 *buf, int size);
+	int (*ci_write_cor)(struct aml_ci *ca, int slot, int address, u8 *buf);
+      /*return the final size or -1 for error*/
+	int (*ci_negotiate)(struct aml_ci *ca, int slot, int size);
+
+	/* functions for accessing the control interface on the CAM */
+	int (*ci_read_lpdu)(struct aml_ci *ca, int slot, u8 *buf, int size);
+	int (*ci_write_lpdu)(struct aml_ci *ca, int slot, u8 *buf, int size);
+
+	int (*ci_get_capbility)(struct aml_ci *ca, int slot);
+
+	int (*ci_cam_reset)(struct aml_ci *ca, int slot);
+	int (*ci_read_cam_status)(struct aml_ci *ca, int slot);
 
 	/* private data, used by caller */
 	void *data;
@@ -71,8 +94,8 @@ struct ci_dev_config_s {
 	int cs_hold_delay;
 	int cs_clk_delay;
 };
-extern int aml_ci_init(struct platform_device
-	*pdev, struct aml_dvb *dvb, struct aml_ci **cip);
+extern int aml_ci_init(struct platform_device *pdev,
+		struct aml_dvb *dvb, struct aml_ci **cip);
 extern void aml_ci_exit(struct aml_ci *ci);
 
 #endif /* __AML_CI_H_ */
