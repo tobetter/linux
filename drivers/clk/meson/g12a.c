@@ -463,7 +463,7 @@ static struct clk_regmap g12a_cpu_clk_trace = {
 };
 
 static const struct pll_mult_range g12a_gp0_pll_mult_range = {
-	.min = 55,
+	.min = 60,
 	.max = 255,
 };
 
