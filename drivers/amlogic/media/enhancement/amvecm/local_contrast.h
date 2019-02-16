@@ -36,6 +36,8 @@ enum lc_mtx_csc_e {
 	LC_MTX_NULL = 0,
 	LC_MTX_YUV709L_RGB = 0x1,
 	LC_MTX_RGB_YUV709L = 0x2,
+	LC_MTX_YUV601L_RGB = 0x3,
+	LC_MTX_RGB_YUV601L = 0x4,
 	LC_MTX_MAX
 };
 
