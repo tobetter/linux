@@ -1088,13 +1088,14 @@ static s32 vmpeg4_init(void)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	if (vmpeg4_amstream_dec_info.rate != 0) {
-		if (!is_reset)
+		if (!is_reset) {
 			vf_notify_receiver(PROVIDER_NAME,
 						VFRAME_EVENT_PROVIDER_FR_HINT,
 						(void *)
 						((unsigned long)
 						vmpeg4_amstream_dec_info.rate));
-		fr_hint_status = VDEC_HINTED;
+			fr_hint_status = VDEC_HINTED;
+		}
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
 
@@ -1167,7 +1168,7 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 	}
 
 	if (stat & STAT_VF_HOOK) {
-		if (fr_hint_status == VDEC_HINTED && !is_reset)
+		if (fr_hint_status == VDEC_HINTED)
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
 		fr_hint_status = VDEC_NO_NEED_HINT;
