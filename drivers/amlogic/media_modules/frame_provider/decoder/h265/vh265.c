@@ -10091,12 +10091,13 @@ static s32 vh265_init(struct hevc_state_s *hevc)
 	vf_notify_receiver(hevc->provider_name, VFRAME_EVENT_PROVIDER_START,
 				NULL);
 	if (hevc->frame_dur != 0) {
-		if (!is_reset)
+		if (!is_reset) {
 			vf_notify_receiver(hevc->provider_name,
 					VFRAME_EVENT_PROVIDER_FR_HINT,
 					(void *)
 					((unsigned long)hevc->frame_dur));
-		fr_hint_status = VDEC_HINTED;
+			fr_hint_status = VDEC_HINTED;
+		}
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
 #else
@@ -10223,7 +10224,7 @@ static int vh265_stop(struct hevc_state_s *hevc)
 	}
 
 	if (hevc->stat & STAT_VF_HOOK) {
-		if (fr_hint_status == VDEC_HINTED && !is_reset) {
+		if (fr_hint_status == VDEC_HINTED) {
 			vf_notify_receiver(hevc->provider_name,
 					VFRAME_EVENT_PROVIDER_FR_END_HINT,
 					NULL);
