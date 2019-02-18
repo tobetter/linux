@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to merge all configs and run 'make silentoldconfig' on it to wade out bad juju.
+# Script to merge all configs and run 'make syncconfig' on it to wade out bad juju.
 # Then split the configs into distro-commmon and flavour-specific parts
 #
 # See this page for more details:
@@ -69,15 +69,15 @@ for arch in $archs; do
         case "$mode" in
             oldconfig)
                 # Weed out incorrect config parameters
-                echo "* Run silentoldconfig on $arch/$config ..."
-                make O=`pwd`/build ARCH=$kernarch silentoldconfig ;;
+                echo "* Run syncconfig on $arch/$config ..."
+                make O=`pwd`/build ARCH=$kernarch syncconfig ;;
             editconfig)
                 # Interactively edit config parameters
                 echo "* $arch/$config: press <Enter> to edit, S to skip"
                 read -s -n 1
                 if [ $REPLY = 's' -o $REPLY = 'S' ]; then
-                    echo "* Skip: running silentoldconfig"
-                    make O=`pwd`/build ARCH=$kernarch silentoldconfig
+                    echo "* Skip: running syncconfig"
+                    make O=`pwd`/build ARCH=$kernarch syncconfig
                 else
                     echo "* Running menuconfig"
                     make O=`pwd`/build ARCH=$kernarch menuconfig
