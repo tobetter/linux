@@ -101,12 +101,16 @@ EXPORT_SYMBOL(cma_page_count_update);
 
 #define RESTRIC_ANON	0
 #define ANON_RATIO	60
+bool cma_first_wm_low __read_mostly;
 
 bool can_use_cma(gfp_t gfp_flags)
 {
 #if RESTRIC_ANON
 	unsigned long anon_cma;
 #endif /* RESTRIC_ANON */
+
+	if (unlikely(!cma_first_wm_low))
+		return false;
 
 	if (cma_forbidden_mask(gfp_flags))
 		return false;
@@ -715,14 +719,17 @@ EXPORT_SYMBOL(aml_cma_free);
 void show_page(struct page *page)
 {
 	unsigned long trace = 0;
+	unsigned long map_flag = -1UL;
 
 	if (!page)
 		return;
 #ifdef CONFIG_AMLOGIC_PAGE_TRACE
 	trace = get_page_trace(page);
 #endif
-	pr_info("page:%lx, map:%p, f:%lx, m:%d, c:%d, f:%pf\n",
-		page_to_pfn(page), page->mapping,
+	if (page->mapping && !((unsigned long)page->mapping & 0x3))
+		map_flag = page->mapping->flags;
+	pr_info("page:%lx, map:%p, mf:%lx, pf:%lx, m:%d, c:%d, f:%pf\n",
+		page_to_pfn(page), page->mapping, map_flag,
 		page->flags & 0xffffffff,
 		page_mapcount(page), page_count(page),
 		(void *)trace);

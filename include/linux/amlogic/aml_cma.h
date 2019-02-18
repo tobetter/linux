@@ -74,6 +74,7 @@ extern bool cma_page(struct page *page);
 extern unsigned long get_cma_allocated(void);
 extern unsigned long get_total_cmapages(void);
 extern spinlock_t cma_iso_lock;
+extern bool cma_first_wm_low;
 extern int cma_debug_level;
 extern int aml_cma_alloc_range(unsigned long start, unsigned long end);
 

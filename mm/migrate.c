@@ -445,7 +445,7 @@ int migrate_page_move_mapping(struct address_space *mapping,
 		radix_tree_deref_slot_protected(pslot, &mapping->tree_lock) != page) {
 		spin_unlock_irq(&mapping->tree_lock);
 	#ifdef CONFIG_AMLOGIC_CMA
-		cma_debug(2, page, " anon page cnt miss match, e:%d, p:%d\n",
+		cma_debug(2, page, " file page cnt miss match, e:%d, p:%d\n",
 			  expected_count, page_has_private(page));
 	#endif
 		return -EAGAIN;

@@ -501,6 +501,7 @@ struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align)
 	int ret;
 #ifdef CONFIG_AMLOGIC_CMA
 	int dummy;
+	unsigned long long tick;
 #endif /* CONFIG_AMLOGIC_CMA */
 
 	if (!cma || !cma->count)
@@ -510,6 +511,7 @@ struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align)
 		 count, align);
 
 #ifdef CONFIG_AMLOGIC_CMA
+	tick = sched_clock();
 	cma_debug(0, NULL, "(cma %p, count %zu, align %d)\n",
 		  (void *)cma, count, align);
 #endif
@@ -574,7 +576,8 @@ struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align)
 
 #ifdef CONFIG_AMLOGIC_CMA
 	aml_cma_alloc_post_hook(&dummy, count, page);
-	cma_debug(0, NULL, "return %p\n", page);
+	cma_debug(0, NULL, "return page:%lx, tick:%lld\n",
+		  page ? page_to_pfn(page) : 0, sched_clock() - tick);
 #endif /* CONFIG_AMLOGIC_CMA */
 	pr_debug("%s(): returned %p\n", __func__, page);
 	return page;
