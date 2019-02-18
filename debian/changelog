@@ -1,3 +1,9 @@
+linux (5.0.0-rc7-1) unstable; urgency=medium
+
+  * Linux kernel v5.0.0-rc7-1
+
+ --  Dongjin Kim <tobetter@linuxfactory.or.kr>  Tue, 19 Feb 2019 00:53:22 +0900
+
 linux (5.0.0-rc6-5) stretch; urgency=medium
 
   [ Dongjin Kim ]
