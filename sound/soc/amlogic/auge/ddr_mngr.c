@@ -504,11 +504,10 @@ void aml_toddr_set_resample_ab(struct toddr *to, int asrc_src_sel, bool enable)
 }
 
 static void aml_resample_enable(
+	struct toddr *to,
 	struct toddr_attach *p_attach_resample,
 	bool enable)
 {
-	struct toddr *to = fetch_toddr_by_src(p_attach_resample->attach_module);
-
 	if (!to)
 		return;
 
@@ -587,7 +586,7 @@ static void aml_resample_enable(
 void aml_set_resample(int id, bool enable, int resample_module)
 {
 	struct toddr_attach *p_attach_resample;
-
+	struct toddr *to;
 	bool update_running = false;
 
 	if (id == 0)
@@ -599,11 +598,12 @@ void aml_set_resample(int id, bool enable, int resample_module)
 	p_attach_resample->id            = id;
 	p_attach_resample->attach_module = resample_module;
 
+	to = fetch_toddr_by_src(
+		p_attach_resample->attach_module);
+
 	if (enable) {
 		if ((p_attach_resample->status == DISABLED)
 			|| (p_attach_resample->status == READY)) {
-			struct toddr *to = fetch_toddr_by_src(
-				p_attach_resample->attach_module);
 
 			if (!to) {
 				p_attach_resample->status = READY;
@@ -620,8 +620,8 @@ void aml_set_resample(int id, bool enable, int resample_module)
 		p_attach_resample->status = DISABLED;
 	}
 
-	if (update_running)
-		aml_resample_enable(p_attach_resample, enable);
+	if (update_running && to)
+		aml_resample_enable(to, p_attach_resample, enable);
 }
 
 /*
@@ -649,7 +649,7 @@ start_check:
 		else
 			p_attach_resample->status = DISABLED;
 
-		aml_resample_enable(p_attach_resample, enable);
+		aml_resample_enable(to, p_attach_resample, enable);
 	}
 
 	if ((!resample_b_check)
