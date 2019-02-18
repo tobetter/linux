@@ -193,6 +193,8 @@ static unsigned int max_get_frame_interval[H264_DEV_NUM];
 static unsigned int run_count[H264_DEV_NUM];
 static unsigned int input_empty[H264_DEV_NUM];
 static unsigned int not_run_ready[H264_DEV_NUM];
+static unsigned int ref_frame_mark_flag[H264_DEV_NUM] =
+{1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 #define VDEC_CLOCK_ADJUST_FRAME 30
 static unsigned int clk_adj_frame_count;
@@ -243,6 +245,7 @@ static unsigned int i_only_flag;
 	bit[12] i_only when error happen
 */
 static unsigned int error_proc_policy = 0xf36; /*0x1f14*/
+
 
 /*
 	error_skip_count:
@@ -2406,6 +2409,7 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			__func__, buffer_index,  frame->data_flag & ERROR_FLAG,
 			frame->poc, hw->data_flag & ERROR_FLAG,
 			error_proc_policy);
+
 	if ((frame->data_flag & NODISP_FLAG) ||
 		(frame->data_flag & NULL_FLAG) ||
 		(frame->data_flag & ERROR_FLAG) ||
@@ -2418,6 +2422,7 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 		return 0; /*do not return -1,
 			otherwise flush_dpb() will not flush all dbp frames*/
 	}
+
 	display_frame_count[DECODE_ID(hw)]++;
 
 	if (dpb_is_debug(DECODE_ID(hw),
@@ -3076,14 +3081,14 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 		/* bit[6:5] - frame/field info,
 		 * 01 - top, 10 - bottom, 11 - frame
 		 */
-#ifdef ERROR_CHECK
+	#ifdef ERROR_CHECK
 		if (ref == NULL) {
 			hw->data_flag |= ERROR_FLAG;
 			pic->data_flag  |= ERROR_FLAG;
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERRORFLAG_DBG, " ref list0 NULL\n");
 			return -1;
 		}
-		if (ref->data_flag & ERROR_FLAG) {
+		if ((ref->data_flag & ERROR_FLAG) && ref_frame_mark_flag[DECODE_ID(hw)]) {
 			hw->data_flag |= ERROR_FLAG;
 			pic->data_flag |= ERROR_FLAG;
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERRORFLAG_DBG, " ref error mark1 \n");
@@ -3145,14 +3150,15 @@ int config_decode_buf(struct vdec_h264_hw_s *hw, struct StorablePicture *pic)
 		/* bit[6:5] - frame/field info,
 		 * 01 - top, 10 - bottom, 11 - frame
 		 */
-#ifdef ERROR_CHECK
+
+	#ifdef ERROR_CHECK
 		if (ref == NULL) {
 			hw->data_flag |= ERROR_FLAG;
 			pic->data_flag  |= ERROR_FLAG;
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERRORFLAG_DBG, " ref error list1 NULL\n");
 			return -2;
 		}
-		if (ref->data_flag & ERROR_FLAG) {
+		if ((ref->data_flag & ERROR_FLAG) && (ref_frame_mark_flag[DECODE_ID(hw)])) {
 			pic->data_flag  |= ERROR_FLAG;
 			hw->data_flag |= ERROR_FLAG;
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERRORFLAG_DBG, " ref error mark2\n");
@@ -4800,6 +4806,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 							p->data_flag |= MAYBE_ERROR_FLAG;
 					}
 				}
+
 			if (error_proc_policy & 0x400) {
 				int ret = dpb_check_ref_list_error(p_H264_Dpb);
 				if (ret != 0) {
@@ -8208,6 +8215,8 @@ module_param_array(max_get_frame_interval, uint,
 	&max_decode_instance_num, 0664);
 
 module_param_array(step, uint, &max_decode_instance_num, 0664);
+
+module_param_array(ref_frame_mark_flag, uint, &max_decode_instance_num, 0664);
 
 module_param(disp_vframe_valve_level, uint, 0664);
 MODULE_PARM_DESC(disp_vframe_valve_level, "\n disp_vframe_valve_level\n");
