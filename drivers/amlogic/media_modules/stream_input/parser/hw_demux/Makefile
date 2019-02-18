@@ -1,4 +1,4 @@
-obj-m	+= aml_hardware_dmx.o
+obj-y	+= aml_hardware_dmx.o
 
 ccflags-y += -I$(srctree)/drivers/media/dvb-core -I$(srctree)/drivers/gpio -I$(srctree)/include -DENABLE_DEMUX_DRIVER
 

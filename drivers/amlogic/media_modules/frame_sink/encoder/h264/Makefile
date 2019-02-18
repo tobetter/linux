@@ -1,1 +1,1 @@
-obj-m	+=	encoder.o
+obj-y	+=	encoder.o

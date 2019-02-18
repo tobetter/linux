@@ -1,4 +1,4 @@
-obj-m += ci.o cimax-usb.o
+obj-y += ci.o cimax-usb.o
 
 ci-objs = $(amlci-objs) $(cimax-objs)
 

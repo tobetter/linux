@@ -1,1 +1,1 @@
-obj-m	+=	vpu.o
+obj-y	+=	vpu.o
