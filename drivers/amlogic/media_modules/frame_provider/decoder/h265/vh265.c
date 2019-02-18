@@ -447,7 +447,6 @@ static unsigned int force_disp_pic_index;
 static unsigned int disp_vframe_valve_level;
 static int pre_decode_buf_level = 0x1000;
 
-
 #ifdef MULTI_INSTANCE_SUPPORT
 static unsigned int max_decode_instance_num
 				= MAX_DECODE_INSTANCE_NUM;
@@ -458,6 +457,8 @@ static unsigned int max_get_frame_interval[MAX_DECODE_INSTANCE_NUM];
 static unsigned int run_count[MAX_DECODE_INSTANCE_NUM];
 static unsigned int input_empty[MAX_DECODE_INSTANCE_NUM];
 static unsigned int not_run_ready[MAX_DECODE_INSTANCE_NUM];
+static unsigned int ref_frame_mark_flag[MAX_DECODE_INSTANCE_NUM] =
+{1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 static unsigned char get_idx(struct hevc_state_s *hevc);
@@ -3535,7 +3536,7 @@ static int config_mc_buffer(struct hevc_state_s *hevc, struct PIC_s *cur_pic)
 						pic->width, pic->height);
 					cur_pic->error_mark = 1;
 				}
-				if (pic->error_mark)
+				if (pic->error_mark && (ref_frame_mark_flag[hevc->index]))
 					cur_pic->error_mark = 1;
 				WRITE_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR,
 						(pic->mc_canvas_u_v << 16)
@@ -3570,6 +3571,7 @@ static int config_mc_buffer(struct hevc_state_s *hevc, struct PIC_s *cur_pic)
 				"config_mc_buffer RefNum_L1\n");
 		WRITE_VREG(HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
 				   (16 << 8) | (0 << 1) | 1);
+
 		for (i = 0; i < cur_pic->RefNum_L1; i++) {
 			pic =
 				get_ref_pic_by_POC(hevc,
@@ -3586,7 +3588,7 @@ static int config_mc_buffer(struct hevc_state_s *hevc, struct PIC_s *cur_pic)
 					cur_pic->error_mark = 1;
 				}
 
-				if (pic->error_mark)
+				if (pic->error_mark && (ref_frame_mark_flag[hevc->index]))
 					cur_pic->error_mark = 1;
 				WRITE_VREG(HEVCD_MPP_ANC_CANVAS_DATA_ADDR,
 						   (pic->mc_canvas_u_v << 16)
@@ -11454,6 +11456,7 @@ static void vh265_dump_state(struct vdec_s *vdec)
 
 }
 
+
 static int ammvdec_h265_probe(struct platform_device *pdev)
 {
 
@@ -12044,6 +12047,10 @@ module_param_array(input_empty, uint,
 
 module_param_array(not_run_ready, uint,
 	&max_decode_instance_num, 0664);
+
+module_param_array(ref_frame_mark_flag, uint,
+	&max_decode_instance_num, 0664);
+
 #endif
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 module_param(dv_toggle_prov_name, uint, 0664);
