@@ -2567,6 +2567,77 @@ static ssize_t store_valid_mode(struct device *dev,
 	return count;
 }
 
+static ssize_t show_allm_mode(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	int pos = 0;
+	struct hdmitx_dev *hdev = &hdmitx_device;
+	struct rx_cap *pRXCap = &(hdmitx_device.RXCap);
+
+	if (!pRXCap->allm) { /* Rx not support ALLM */
+		pos += snprintf(buf + pos, PAGE_SIZE, "0\n\r");
+		return pos;
+	}
+
+	if (hdev->allm_mode == 1)
+		pos += snprintf(buf + pos, PAGE_SIZE, "game\n\r");
+	else if (hdev->allm_mode == 2)
+		pos += snprintf(buf + pos, PAGE_SIZE, "graphics\n\r");
+	else if (hdev->allm_mode == 3)
+		pos += snprintf(buf + pos, PAGE_SIZE, "photo\n\r");
+	else if (hdev->allm_mode == 4)
+		pos += snprintf(buf + pos, PAGE_SIZE, "cinema\n\r");
+	else
+		pos += snprintf(buf + pos, PAGE_SIZE, "0\n\r");
+
+	return pos;
+}
+
+static ssize_t store_allm_mode(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct hdmitx_dev *hdev = &hdmitx_device;
+	struct rx_cap *pRXCap = &hdev->RXCap;
+
+	pr_info("hdmitx: store allm_mode as %s\n", buf);
+
+	if (!pRXCap->allm) /* Rx not support ALLM */
+		return count;
+
+#define CMP_STR(str)	(strncmp(buf, str, strlen(str)) == 0)
+	if (CMP_STR("0")) {
+		// disable ALLM
+		hdev->allm_mode = 0;
+		hdev->HWOp.CntlConfig(hdev, CONF_ALLM_MODE, CLEAR_ALLM_MODE);
+		hdmitx_construct_vsif(hdev, VT_ALLM, 0, NULL);
+		if (is_hdmi14_4k(hdev->cur_VIC))
+			hdmitx_construct_vsif(hdev, VT_HDMI14_4K, 1, NULL);
+		return count;
+	}
+	if (CMP_STR("1") || CMP_STR("game") || CMP_STR("graphics")
+		|| CMP_STR("photo") || CMP_STR("cinema")) {
+		hdmitx_construct_vsif(hdev, VT_ALLM, 1, NULL);
+	}
+	if (CMP_STR("1") || CMP_STR("game")) {
+		hdev->allm_mode = 1;
+		// enable the default GAME ALLM
+		hdev->HWOp.CntlConfig(hdev, CONF_ALLM_MODE, SET_ALLM_GAME);
+	}
+	if (CMP_STR("graphics")) {
+		hdev->allm_mode = 2;
+		hdev->HWOp.CntlConfig(hdev, CONF_ALLM_MODE, SET_ALLM_GRAPHICS);
+	}
+	if (CMP_STR("photo")) {
+		hdev->allm_mode = 3;
+		hdev->HWOp.CntlConfig(hdev, CONF_ALLM_MODE, SET_ALLM_PHOTO);
+	}
+	if (CMP_STR("cinema")) {
+		hdev->allm_mode = 4;
+		hdev->HWOp.CntlConfig(hdev, CONF_ALLM_MODE, SET_ALLM_CINEMA);
+	}
+
+	return count;
+}
 
 /**/
 static ssize_t show_hdr_cap(struct device *dev,
@@ -3452,6 +3523,7 @@ static DEVICE_ATTR(hdr_cap, 0444, show_hdr_cap, NULL);
 static DEVICE_ATTR(dv_cap, 0444, show_dv_cap, NULL);
 static DEVICE_ATTR(dc_cap, 0444, show_dc_cap, NULL);
 static DEVICE_ATTR(valid_mode, 0664, show_valid_mode, store_valid_mode);
+static DEVICE_ATTR(allm_mode, 0664, show_allm_mode, store_allm_mode);
 static DEVICE_ATTR(aud_ch, 0664, show_aud_ch, store_aud_ch);
 static DEVICE_ATTR(avmute, 0664, show_avmute, store_avmute);
 static DEVICE_ATTR(swap, 0644, show_swap, store_swap);
@@ -3845,7 +3917,7 @@ static void hdmitx_hpd_plugin_handler(struct work_struct *work)
 	} else
 #endif
 	{
-		if (hdev->RXCap.IEEEOUI != 0x000c03)
+		if (hdev->RXCap.ieeeoui != HDMI_IEEEOUI)
 			hdev->HWOp.CntlConfig(hdev,
 				CONF_HDMI_DVI_MODE, DVI_MODE);
 		else
@@ -4604,6 +4676,7 @@ static int amhdmitx_probe(struct platform_device *pdev)
 	ret = device_create_file(dev, &dev_attr_support_3d);
 	ret = device_create_file(dev, &dev_attr_dc_cap);
 	ret = device_create_file(dev, &dev_attr_valid_mode);
+	ret = device_create_file(dev, &dev_attr_allm_mode);
 
 #ifdef CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND
 	register_early_suspend(&hdmitx_early_suspend_handler);
@@ -4673,6 +4746,7 @@ static int amhdmitx_remove(struct platform_device *pdev)
 	device_remove_file(dev, &dev_attr_dv_cap);
 	device_remove_file(dev, &dev_attr_dc_cap);
 	device_remove_file(dev, &dev_attr_valid_mode);
+	device_remove_file(dev, &dev_attr_allm_mode);
 	device_remove_file(dev, &dev_attr_hpd_state);
 	device_remove_file(dev, &dev_attr_rhpd_state);
 	device_remove_file(dev, &dev_attr_max_exceed);
