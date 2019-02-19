@@ -14762,6 +14762,13 @@ F:	drivers/amlogic/media/video_processor/videosync/vfp.h
 F:	drivers/amlogic/media/video_processor/videosync/videosync.h
 F:	drivers/amlogic/media/video_processor/videosync/videosync.c
 
+AMLOGIC G12B_A DTS
+M:	Jianxiong Pan <jianxiong.pan@amlogic.com>
+F:	arch/arm/boot/dts/amlogic/g12b*_a.dts
+F:	arch/arm/boot/dts/amlogic/mesong12b.dtsi
+F:	arch/arm64/boot/dts/amlogic/g12b*_a.dts
+F:	arch/arm64/boot/dts/amlogic/mesong12b.dtsi
+
 HARDKERNEL S922D odroidn2
 M: 	Joy Cho <joy.cho@hardkernel.com>
 F:	arch/arm64/configs/odroidn2_defconfig
