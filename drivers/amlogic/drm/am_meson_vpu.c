@@ -208,7 +208,7 @@ static struct osd_device_data_s osd_g12a = {
 	.cpu_id = __MESON_CPU_MAJOR_ID_G12A,
 	.osd_ver = OSD_HIGH_ONE,
 	.afbc_type = MALI_AFBC,
-	.osd_count = 3,
+	.osd_count = 4,
 	.has_deband = 1,
 	.has_lut = 1,
 	.has_rdma = 1,
@@ -223,7 +223,7 @@ static struct osd_device_data_s osd_g12b = {
 	.cpu_id = __MESON_CPU_MAJOR_ID_G12B,
 	.osd_ver = OSD_HIGH_ONE,
 	.afbc_type = MALI_AFBC,
-	.osd_count = 3,
+	.osd_count = 4,
 	.has_deband = 1,
 	.has_lut = 1,
 	.has_rdma = 1,
@@ -240,15 +240,22 @@ static struct page *logo_page;
 static struct delayed_work osd_dwork;
 static struct platform_device *gp_dev;
 
+
 int am_meson_crtc_dts_info_set(const void *dt_match_data)
 {
 	struct osd_device_data_s *osd_meson;
 
 	osd_meson = (struct osd_device_data_s *)dt_match_data;
-	if (osd_meson)
+	if (osd_meson) {
 		memcpy(&osd_meson_dev, osd_meson,
 			sizeof(struct osd_device_data_s));
-	else {
+		osd_meson_dev.viu1_osd_count = osd_meson_dev.osd_count;
+		if (osd_meson_dev.has_viu2) {
+			/* set viu1 osd count */
+			osd_meson_dev.viu1_osd_count--;
+			osd_meson_dev.viu2_index = osd_meson_dev.viu1_osd_count;
+		}
+	} else {
 		DRM_ERROR("%s data NOT match\n", __func__);
 		return -1;
 	}
