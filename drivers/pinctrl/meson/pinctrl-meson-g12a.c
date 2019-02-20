@@ -1343,6 +1343,21 @@ static struct meson_axg_pmx_data meson_g12a_periphs_pmx_banks_data = {
 	.num_pmx_banks	= ARRAY_SIZE(meson_g12a_periphs_pmx_banks),
 };
 
+static struct meson_drive_bank meson_g12a_periphs_drive_banks[] = {
+	/*	 name	 first		lask	   reg	offset  */
+	BANK_DRIVE("Z",    GPIOZ_0, GPIOZ_15, 0x5, 0),
+	BANK_DRIVE("H",    GPIOH_0, GPIOH_8, 0x4, 0),
+	BANK_DRIVE("BOOT", BOOT_0,  BOOT_15,  0x0, 0),
+	BANK_DRIVE("C",    GPIOC_0, GPIOC_7, 0x1, 0),
+	BANK_DRIVE("A",    GPIOA_0, GPIOA_15, 0x6, 0),
+	BANK_DRIVE("X",    GPIOX_0, GPIOX_19, 0x2, 0),
+};
+
+static struct meson_drive_data meson_g12a_periphs_drive_data = {
+	.drive_banks	= meson_g12a_periphs_drive_banks,
+	.num_drive_banks = ARRAY_SIZE(meson_g12a_periphs_drive_banks),
+};
+
 static struct meson_pmx_bank meson_g12a_aobus_pmx_banks[] = {
 	BANK_PMX("AO",  GPIOAO_0, GPIOAO_11, 0x0, 0),
 	BANK_PMX("E",   GPIOE_0,  GPIOE_2,   0x1, 16),
@@ -1351,6 +1366,16 @@ static struct meson_pmx_bank meson_g12a_aobus_pmx_banks[] = {
 static struct meson_axg_pmx_data meson_g12a_aobus_pmx_banks_data = {
 	.pmx_banks	= meson_g12a_aobus_pmx_banks,
 	.num_pmx_banks	= ARRAY_SIZE(meson_g12a_aobus_pmx_banks),
+};
+
+static struct meson_drive_bank meson_g12a_aobus_drive_banks[] = {
+	BANK_DRIVE("AO", GPIOAO_0, GPIOAO_11, 0x0, 0),
+	BANK_DRIVE("E", GPIOE_0, GPIOE_2, 0x1, 0),
+};
+
+static struct meson_drive_data meson_g12a_aobus_drive_data = {
+	.drive_banks     = meson_g12a_aobus_drive_banks,
+	.num_drive_banks = ARRAY_SIZE(meson_g12a_aobus_drive_banks),
 };
 
 static struct meson_pinctrl_data meson_g12a_periphs_pinctrl_data = {
@@ -1365,6 +1390,8 @@ static struct meson_pinctrl_data meson_g12a_periphs_pinctrl_data = {
 	.num_banks	= ARRAY_SIZE(meson_g12a_periphs_banks),
 	.pmx_ops	= &meson_axg_pmx_ops,
 	.pmx_data	= &meson_g12a_periphs_pmx_banks_data,
+	.ds_data	= &meson_g12a_periphs_drive_data,
+
 };
 
 static struct meson_pinctrl_data meson_g12a_aobus_pinctrl_data = {
@@ -1379,6 +1406,7 @@ static struct meson_pinctrl_data meson_g12a_aobus_pinctrl_data = {
 	.num_banks	= ARRAY_SIZE(meson_g12a_aobus_banks),
 	.pmx_ops	= &meson_axg_pmx_ops,
 	.pmx_data	= &meson_g12a_aobus_pmx_banks_data,
+	.ds_data	= &meson_g12a_aobus_drive_data,
 };
 
 static const struct of_device_id meson_g12a_pinctrl_dt_match[] = {

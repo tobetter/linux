@@ -97,6 +97,18 @@ struct meson_bank {
 	struct meson_reg_desc regs[NUM_REG];
 };
 
+struct meson_drive_bank {
+	const char *name;
+	unsigned int first;
+	unsigned int last;
+	struct meson_reg_desc reg;
+};
+
+struct meson_drive_data {
+	struct meson_drive_bank *drive_banks;
+	unsigned int num_drive_banks;
+};
+
 struct meson_pinctrl_data {
 	const char *name;
 	const struct pinctrl_pin_desc *pins;
@@ -109,6 +121,8 @@ struct meson_pinctrl_data {
 	unsigned int num_banks;
 	const struct pinmux_ops *pmx_ops;
 	void *pmx_data;
+	void *ds_data;
+
 };
 
 struct meson_pinctrl {
@@ -147,6 +161,14 @@ struct meson_pinctrl {
 			[REG_IN]	= { ir, ib },			\
 		},							\
 	 }
+
+#define BANK_DRIVE(n, f, l, r, o)					\
+	{								\
+		.name   = n,						\
+		.first	= f,						\
+		.last	= l,						\
+		.reg	= {r, o},					\
+	}
 
 #define MESON_PIN(x) PINCTRL_PIN(x, #x)
 

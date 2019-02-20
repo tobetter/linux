@@ -87,6 +87,23 @@ static int meson_get_bank(struct meson_pinctrl *pc, unsigned int pin,
 	return -EINVAL;
 }
 
+static int meson_get_drive_bank(struct meson_pinctrl *pc, unsigned int pin,
+				struct meson_drive_bank **bank)
+{
+	int i;
+	struct meson_drive_data *drive = pc->data->ds_data;
+
+	for (i = 0; i < drive->num_drive_banks; i++) {
+		if (pin >= drive->drive_banks[i].first &&
+		    pin <= drive->drive_banks[i].last) {
+			*bank = &drive->drive_banks[i];
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
 /**
  * meson_calc_reg_and_bit() - calculate register and bit for a pin
  *
@@ -104,6 +121,17 @@ static void meson_calc_reg_and_bit(struct meson_bank *bank, unsigned int pin,
 
 	*reg = desc->reg * 4;
 	*bit = desc->bit + pin - bank->first;
+}
+
+static void meson_drive_calc_reg_and_bit(struct meson_drive_bank *drive_bank,
+					 unsigned int pin, unsigned int *reg,
+					 unsigned int *bit)
+{
+	struct meson_reg_desc *desc = &drive_bank->reg;
+	int shift = pin - drive_bank->first;
+
+	*reg = (desc->reg + (desc->bit + (shift << 1)) / 32) * 4;
+	*bit = (desc->bit + (shift << 1)) % 32;
 }
 
 static int meson_get_groups_count(struct pinctrl_dev *pcdev)
@@ -179,8 +207,9 @@ static int meson_pinconf_set(struct pinctrl_dev *pcdev, unsigned int pin,
 {
 	struct meson_pinctrl *pc = pinctrl_dev_get_drvdata(pcdev);
 	struct meson_bank *bank;
+	struct meson_drive_bank *drive_bank;
 	enum pin_config_param param;
-	unsigned int reg, bit;
+	unsigned int reg, bit, arg;
 	int i, ret;
 
 	ret = meson_get_bank(pc, pin, &bank);
@@ -233,6 +262,25 @@ static int meson_pinconf_set(struct pinctrl_dev *pcdev, unsigned int pin,
 			if (ret)
 				return ret;
 			break;
+		case PIN_CONFIG_DRIVE_STRENGTH:
+			dev_dbg(pc->dev, "pin %u: set drive-strength\n", pin);
+			arg = pinconf_to_config_argument(configs[i]);
+			ret = meson_get_drive_bank(pc, pin, &drive_bank);
+			if (ret)
+				return ret;
+
+			if (arg >= 4) {
+				dev_err(pc->dev,
+					"pin %u: invalid drive-strength [0-3]: %d\n",
+					pin, arg);
+				return -EINVAL;
+			}
+			meson_drive_calc_reg_and_bit(drive_bank, pin, &reg,
+						     &bit);
+			ret = regmap_update_bits(pc->reg_ds, reg, 0x3 << bit,
+						 (arg & 0x3) << bit);
+			if (ret)
+				return ret;
 		default:
 			return -ENOTSUPP;
 		}
@@ -275,12 +323,36 @@ static int meson_pinconf_get_pull(struct meson_pinctrl *pc, unsigned int pin)
 	return conf;
 }
 
+static int meson_pinconf_get_drive_strength(struct meson_pinctrl *pc,
+					    unsigned int pin, u16 *arg)
+{
+	struct meson_drive_bank *drive_bank;
+	unsigned int reg, bit;
+	unsigned int val;
+	int ret;
+
+	ret = meson_get_drive_bank(pc, pin, &drive_bank);
+	if (ret)
+		return ret;
+
+	meson_drive_calc_reg_and_bit(drive_bank, pin, &reg, &bit);
+
+	ret = regmap_read(pc->reg_ds, reg, &val);
+	if (ret)
+		return ret;
+
+	*arg = (val >> bit) & 0x3;
+
+	return 0;
+}
+
 static int meson_pinconf_get(struct pinctrl_dev *pcdev, unsigned int pin,
 			     unsigned long *config)
 {
 	struct meson_pinctrl *pc = pinctrl_dev_get_drvdata(pcdev);
 	enum pin_config_param param = pinconf_to_config_param(*config);
 	u16 arg;
+	int ret;
 
 	switch (param) {
 	case PIN_CONFIG_BIAS_DISABLE:
@@ -291,6 +363,10 @@ static int meson_pinconf_get(struct pinctrl_dev *pcdev, unsigned int pin,
 		else
 			return -EINVAL;
 		break;
+	case PIN_CONFIG_DRIVE_STRENGTH:
+		ret = meson_pinconf_get_drive_strength(pc, pin, &arg);
+		if (ret)
+			return ret;
 	default:
 		return -ENOTSUPP;
 	}
@@ -509,7 +585,7 @@ static int meson_pinctrl_parse_dt(struct meson_pinctrl *pc,
 
 	pc->reg_ds = meson_map_resource(pc, gpio_np, "ds");
 	if (IS_ERR(pc->reg_ds)) {
-		dev_dbg(pc->dev, "ds registers not found - skipping\n");
+		dev_dbg(pc->dev, "drive-strength registers not found - skipping\n");
 		pc->reg_ds = NULL;
 	}
 
