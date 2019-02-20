@@ -42,6 +42,7 @@ struct snd_elem_info {
 static unsigned int loopback_enable;
 static unsigned int loopback_is_running;
 static unsigned int datain_datalb_total;
+static unsigned int audio_inskew;
 
 static const char *const loopback_enable_texts[] = {
 	"Disable",
@@ -625,6 +626,51 @@ static int audio_locker_set_enum(
 	return 0;
 }
 
+static const char *const audio_inskew_texts[] = {
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+};
+
+static const struct soc_enum audio_inskew_enum =
+	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(audio_inskew_texts),
+			audio_inskew_texts);
+
+
+static int audio_inskew_get_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.enumerated.item[0] = audio_inskew;
+
+	return 0;
+}
+
+static int audio_inskew_set_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int reg_in, off_set;
+	int inskew;
+	int id;
+
+	id = (ucontrol->value.enumerated.item[0] >> 16) & 0xffff;
+	inskew = (int)(ucontrol->value.enumerated.item[0] & 0xffff);
+	audio_inskew = inskew;
+	off_set = EE_AUDIO_TDMIN_B_CTRL - EE_AUDIO_TDMIN_A_CTRL;
+	reg_in = EE_AUDIO_TDMIN_A_CTRL + off_set * id;
+	pr_info("id=%d set inskew=%d\n", id, inskew);
+	audiobus_update_bits(reg_in, 0x7 << 16, inskew << 16);
+
+	return 0;
+}
+
+
+
 #define SND_MIX(xname, type, xenum, xshift, xmask)   \
 	SND_ENUM(xname, type, CTRL0, xenum, xshift, xmask)
 
@@ -925,6 +971,12 @@ static const struct snd_kcontrol_new snd_auge_controls[] = {
 		     audio_locker_enum,
 		     audio_locker_get_enum,
 		     audio_locker_set_enum),
+
+	/* audio inskew */
+	SOC_ENUM_EXT("audio inskew set",
+		     audio_inskew_enum,
+		     audio_inskew_get_enum,
+		     audio_inskew_set_enum),
 };
 
 
