@@ -192,17 +192,7 @@ static int lcd_framerate_automation_set_mode(void)
 #endif
 
 	/* change clk parameter */
-	switch (lcd_drv->lcd_config->lcd_timing.clk_change) {
-	case LCD_CLK_PLL_CHANGE:
-		lcd_clk_generate_parameter(lcd_drv->lcd_config);
-		lcd_clk_set(lcd_drv->lcd_config);
-		break;
-	case LCD_CLK_FRAC_UPDATE:
-		lcd_clk_update(lcd_drv->lcd_config);
-		break;
-	default:
-		break;
-	}
+	lcd_clk_change(lcd_drv->lcd_config);
 	lcd_tablet_config_post_update(lcd_drv->lcd_config);
 	lcd_venc_change(lcd_drv->lcd_config);
 
@@ -1259,17 +1249,7 @@ static void lcd_set_vinfo(unsigned int sync_duration)
 #endif
 
 	/* change clk parameter */
-	switch (lcd_drv->lcd_config->lcd_timing.clk_change) {
-	case LCD_CLK_PLL_CHANGE:
-		lcd_clk_generate_parameter(lcd_drv->lcd_config);
-		lcd_clk_set(lcd_drv->lcd_config);
-		break;
-	case LCD_CLK_FRAC_UPDATE:
-		lcd_clk_update(lcd_drv->lcd_config);
-		break;
-	default:
-		break;
-	}
+	lcd_clk_change(lcd_drv->lcd_config);
 	lcd_tablet_config_post_update(lcd_drv->lcd_config);
 	lcd_venc_change(lcd_drv->lcd_config);
 

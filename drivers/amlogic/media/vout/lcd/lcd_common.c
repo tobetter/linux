@@ -1064,6 +1064,21 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 }
 #endif
 
+void lcd_clk_change(struct lcd_config_s *pconf)
+{
+	switch (pconf->lcd_timing.clk_change) {
+	case LCD_CLK_PLL_CHANGE:
+		lcd_clk_generate_parameter(pconf);
+		lcd_clk_set(pconf);
+		break;
+	case LCD_CLK_FRAC_UPDATE:
+		lcd_clk_update(pconf);
+		break;
+	default:
+		break;
+	}
+}
+
 void lcd_venc_change(struct lcd_config_s *pconf)
 {
 	unsigned int htotal, vtotal, frame_rate;

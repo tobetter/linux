@@ -1663,17 +1663,7 @@ int lcd_tv_driver_change(void)
 				lcd_vbyone_interrupt_enable(0);
 		}
 
-		switch (pconf->lcd_timing.clk_change) {
-		case LCD_CLK_PLL_CHANGE:
-			lcd_clk_generate_parameter(pconf);
-			lcd_clk_set(pconf);
-			break;
-		case LCD_CLK_FRAC_UPDATE:
-			lcd_clk_update(pconf);
-			break;
-		default:
-			break;
-		}
+		lcd_clk_change(pconf);
 		lcd_venc_change(pconf);
 
 		if (pconf->lcd_basic.lcd_type == LCD_VBYONE) {

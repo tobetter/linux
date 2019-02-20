@@ -445,17 +445,7 @@ static int lcd_framerate_automation_set_mode(void)
 	if (lcd_drv->lcd_config->lcd_basic.lcd_type == LCD_VBYONE)
 		lcd_vbyone_interrupt_enable(0);
 	/* change clk parameter */
-	switch (lcd_drv->lcd_config->lcd_timing.clk_change) {
-	case LCD_CLK_PLL_CHANGE:
-		lcd_clk_generate_parameter(lcd_drv->lcd_config);
-		lcd_clk_set(lcd_drv->lcd_config);
-		break;
-	case LCD_CLK_FRAC_UPDATE:
-		lcd_clk_update(lcd_drv->lcd_config);
-		break;
-	default:
-		break;
-	}
+	lcd_clk_change(lcd_drv->lcd_config);
 	lcd_venc_change(lcd_drv->lcd_config);
 	if (lcd_drv->lcd_config->lcd_basic.lcd_type == LCD_VBYONE)
 		lcd_vbyone_wait_stable();
@@ -1360,17 +1350,7 @@ static void lcd_set_vinfo(unsigned int sync_duration)
 	if (lcd_drv->lcd_config->lcd_basic.lcd_type == LCD_VBYONE)
 		lcd_vbyone_interrupt_enable(0);
 	/* change clk parameter */
-	switch (lcd_drv->lcd_config->lcd_timing.clk_change) {
-	case LCD_CLK_PLL_CHANGE:
-		lcd_clk_generate_parameter(lcd_drv->lcd_config);
-		lcd_clk_set(lcd_drv->lcd_config);
-		break;
-	case LCD_CLK_FRAC_UPDATE:
-		lcd_clk_update(lcd_drv->lcd_config);
-		break;
-	default:
-		break;
-	}
+	lcd_clk_change(lcd_drv->lcd_config);
 	lcd_venc_change(lcd_drv->lcd_config);
 	if (lcd_drv->lcd_config->lcd_basic.lcd_type == LCD_VBYONE)
 		lcd_vbyone_wait_stable();
