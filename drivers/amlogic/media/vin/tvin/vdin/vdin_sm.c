@@ -92,9 +92,11 @@ static int atv_stable_fmt_check_enable;
 static int atv_prestable_out_cnt = 100;
 static int other_stable_out_cnt = EXIT_STABLE_MAX_CNT;
 static int other_unstable_out_cnt = BACK_STABLE_MAX_CNT;
+static int manual_unstable_out_cnt = 30;
 static int other_unstable_in_cnt = UNSTABLE_MAX_CNT;
 static int nosig_in_cnt = NOSIG_MAX_CNT;
 static int nosig2_unstable_cnt = EXIT_NOSIG_MAX_CNT;
+bool manual_flag;
 
 #ifdef DEBUG_SUPPORT
 module_param(back_nosig_max_cnt, int, 0664);
@@ -408,6 +410,9 @@ void tvin_smr(struct vdin_dev_s *devp)
 					(port == TVIN_PORT_CVBS0)) &&
 					(devp->flags & VDIN_FLAG_SNOW_FLAG))
 					unstb_in = sm_p->atv_unstable_out_cnt;
+				else if ((port == TVIN_PORT_CVBS3) &&
+					manual_flag)
+					unstb_in = manual_unstable_out_cnt;
 				else if ((port >= TVIN_PORT_HDMI0) &&
 						 (port <= TVIN_PORT_HDMI7))
 					unstb_in = sm_p->hdmi_unstable_out_cnt;
