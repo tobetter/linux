@@ -389,7 +389,8 @@ static int lcd_vout_clr_state(int index)
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 
 	lcd_vout_state &= ~(1 << index);
-	lcd_drv->viu_sel = LCD_VIU_SEL_NONE;
+	if (lcd_drv->viu_sel == index)
+		lcd_drv->viu_sel = LCD_VIU_SEL_NONE;
 
 	return 0;
 }

@@ -131,6 +131,24 @@ static struct vinfo_s nulldisp_vinfo[] = {
 		.viu_mux           = VIU_MUX_MAX,
 		.vout_device       = NULL,
 	},
+	{
+		.name              = "dummy_panel",
+		.mode              = VMODE_DUMMY_LCD,
+		.width             = 1920,
+		.height            = 1080,
+		.field_height      = 1080,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk         = 148500000,
+		.htotal            = 2200,
+		.vtotal            = 1125,
+		.fr_adj_type       = VOUT_FR_ADJ_NONE,
+		.viu_color_fmt     = COLOR_FMT_RGB444,
+		.viu_mux           = VIU_MUX_MAX,
+		.vout_device       = NULL,
+	},
 };
 
 static struct vinfo_s *nulldisp_get_current_info(void)
@@ -395,6 +413,41 @@ static ssize_t vout_mode_store(struct class *class,
 	return count;
 }
 
+static ssize_t vout_dummy_store(struct class *class,
+		struct class_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int tmp[4], sync_duration;
+	enum vmode_e mode;
+	int ret;
+
+	mutex_lock(&vout_serve_mutex);
+	mode = VMODE_DUMMY_LCD;
+	ret = sscanf(buf, "%d %d %d %d", &tmp[0], &tmp[1], &tmp[2], &tmp[3]);
+	if (ret == 2) {
+		nulldisp_vinfo[2].width = tmp[0];
+		nulldisp_vinfo[2].height = tmp[1];
+		nulldisp_vinfo[2].field_height = tmp[1];
+		VOUTPR("set dummy size: %d x %d\n", tmp[0], tmp[1]);
+		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE, &mode);
+	} else if (ret == 4) {
+		nulldisp_vinfo[2].width = tmp[0];
+		nulldisp_vinfo[2].height = tmp[1];
+		nulldisp_vinfo[2].field_height = tmp[1];
+		nulldisp_vinfo[2].sync_duration_num = tmp[2];
+		nulldisp_vinfo[2].sync_duration_den = tmp[3];
+		sync_duration = (tmp[2] * 100) / tmp[3];
+		VOUTPR("set dummy size: %d x %d, frame_rate: %d.%02dHz\n",
+			tmp[0], tmp[1],
+			(sync_duration / 100), (sync_duration % 100));
+		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE, &mode);
+	} else {
+		VOUTERR("invalid data\n");
+	}
+	mutex_unlock(&vout_serve_mutex);
+
+	return count;
+}
+
 static ssize_t vout_axis_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
@@ -571,6 +624,7 @@ static ssize_t vout_vinfo_show(struct class *class,
 
 static struct class_attribute vout_class_attrs[] = {
 	__ATTR(mode,      0644, vout_mode_show, vout_mode_store),
+	__ATTR(dummy,      0644, NULL, vout_dummy_store),
 	__ATTR(axis,      0644, vout_axis_show, vout_axis_store),
 	__ATTR(fr_policy, 0644,
 		vout_fr_policy_show, vout_fr_policy_store),
