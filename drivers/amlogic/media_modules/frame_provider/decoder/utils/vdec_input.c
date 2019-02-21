@@ -75,8 +75,7 @@ static int copy_from_user_to_phyaddr(void *virts, const char __user *buf,
 			memset(p, 0, pading);
 		}
 
-		dma_sync_single_for_device(get_vdec_device(),
-			addr, size + pading, DMA_TO_DEVICE);
+		codec_mm_dma_flush(p, size + pading, DMA_TO_DEVICE);
 
 		return 0;
 	}
@@ -92,10 +91,8 @@ static int copy_from_user_to_phyaddr(void *virts, const char __user *buf,
 			return -EFAULT;
 		}
 
+		codec_mm_dma_flush(p, span, DMA_TO_DEVICE);
 		codec_mm_unmap_phyaddr(p);
-
-		dma_sync_single_for_device(get_vdec_device(),
-			addr, span, DMA_TO_DEVICE);
 	}
 
 	if (!remain)
@@ -115,10 +112,8 @@ static int copy_from_user_to_phyaddr(void *virts, const char __user *buf,
 	if (pading)
 		memset(p + remain, 0, pading);
 
+	codec_mm_dma_flush(p, remain + pading, DMA_TO_DEVICE);
 	codec_mm_unmap_phyaddr(p);
-
-	dma_sync_single_for_device(get_vdec_device(),
-		addr, remain + pading, DMA_TO_DEVICE);
 
 	return 0;
 }
@@ -160,27 +155,30 @@ static int vframe_chunk_fill(struct vdec_input_s *input,
 		if (!block->is_mapped) {
 			p = codec_mm_vmap(block->start + wp, len);
 			memset(p, 0, len);
+			codec_mm_dma_flush(p, len, DMA_TO_DEVICE);
 			codec_mm_unmap_phyaddr(p);
-		} else
+		} else {
 			memset(p, 0, len);
-
-		dma_sync_single_for_device(get_vdec_device(),
-			block->start + wp,
-			len, DMA_TO_DEVICE);
+			codec_mm_dma_flush(p, len, DMA_TO_DEVICE);
+		}
 
 		if (chunk->pading_size > len) {
 			p = (u8 *)block->start_virt;
 
 			if (!block->is_mapped) {
-				p = codec_mm_vmap(block->start, count - len);
-				memset(p, 0, count - len);
+				p = codec_mm_vmap(block->start,
+					chunk->pading_size - len);
+				memset(p, 0, chunk->pading_size - len);
+				codec_mm_dma_flush(p,
+					chunk->pading_size - len,
+					DMA_TO_DEVICE);
 				codec_mm_unmap_phyaddr(p);
-			} else
-				memset(p, 0, count - len);
-
-			dma_sync_single_for_device(get_vdec_device(),
-					block->start,
-				chunk->pading_size - len, DMA_TO_DEVICE);
+			} else {
+				memset(p, 0, chunk->pading_size - len);
+				codec_mm_dma_flush(p,
+					chunk->pading_size - len,
+					DMA_TO_DEVICE);
+			}
 		}
 	}
 
