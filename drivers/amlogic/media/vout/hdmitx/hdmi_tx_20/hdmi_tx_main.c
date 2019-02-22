@@ -556,15 +556,16 @@ static int set_disp_mode_auto(void)
 			pr_info(SYS "change to DVI mode\n");
 		} else if (hdev->RXCap.IEEEOUI == 0) {
 #else
-		if (hdev->RXCap.IEEEOUI == 0) {
+		if (hdev->RXCap.ieeeoui == 0) {
 #endif
+		if (hdev->RXCap.ieeeoui == 0) {
 			/* DVI case judgement. In uboot, directly output HDMI
 			 * mode
 			 */
 			hdev->HWOp.CntlConfig(hdev, CONF_HDMI_DVI_MODE,
 				DVI_MODE);
 			pr_info(SYS "change to DVI mode\n");
-		} else if ((hdev->RXCap.IEEEOUI == 0xc03) &&
+		} else if ((hdev->RXCap.ieeeoui == 0xc03) &&
 		(hdev->HWOp.CntlConfig(hdev, CONF_GET_HDMI_DVI_MODE, 0)
 			== DVI_MODE)) {
 			hdev->HWOp.CntlConfig(hdev, CONF_HDMI_DVI_MODE,
@@ -3904,7 +3905,6 @@ static void hdmitx_hpd_plugin_handler(struct work_struct *work)
 		rx_repeat_hpd_state(1);
 	hdmitx_get_edid(hdev);
 	hdmi_physcial_size_update(hdev);
-
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 	if (odroid_voutmode() == VOUTMODE_HDMI) {
 		pr_info(VID "Sink is HDMI device\n");
@@ -3916,14 +3916,14 @@ static void hdmitx_hpd_plugin_handler(struct work_struct *work)
 			CONF_HDMI_DVI_MODE, DVI_MODE);
 	} else
 #endif
-	{
-		if (hdev->RXCap.ieeeoui != HDMI_IEEEOUI)
-			hdev->HWOp.CntlConfig(hdev,
-				CONF_HDMI_DVI_MODE, DVI_MODE);
-		else
-			hdev->HWOp.CntlConfig(hdev,
-				CONF_HDMI_DVI_MODE, HDMI_MODE);
-	}
+{
+	if (hdev->RXCap.ieeeoui != HDMI_IEEEOUI)
+		hdev->HWOp.CntlConfig(hdev,
+			CONF_HDMI_DVI_MODE, DVI_MODE);
+	else
+		hdev->HWOp.CntlConfig(hdev,
+			CONF_HDMI_DVI_MODE, HDMI_MODE);
+}
 
 	mutex_lock(&getedid_mutex);
 	mutex_unlock(&getedid_mutex);
