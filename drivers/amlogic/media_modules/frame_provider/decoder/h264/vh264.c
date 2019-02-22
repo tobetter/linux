@@ -3434,6 +3434,9 @@ exit:
 
 int vh264_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	u32 ratio_control;
+	u32 ar;
+
 	if (!(stat & STAT_VDEC_RUN))
 		return -1;
 
@@ -3457,6 +3460,13 @@ int vh264_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	vstatus->total_data = gvs->total_data;
 	vstatus->samp_cnt = gvs->samp_cnt;
 	vstatus->offset = gvs->offset;
+	ar = min_t(u32,
+			h264_ar,
+			DISP_RATIO_ASPECT_RATIO_MAX);
+	ratio_control =
+		ar << DISP_RATIO_ASPECT_RATIO_BIT;
+	vstatus->ratio_control = ratio_control;
+
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 

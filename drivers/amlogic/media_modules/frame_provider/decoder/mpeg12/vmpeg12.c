@@ -176,6 +176,7 @@ static int ccbuf_phyAddress_is_remaped_nocache;
 static u32 lastpts;
 static u32 fr_hint_status;
 static u32 last_offset;
+static u32 ratio_control;
 
 
 static DEFINE_SPINLOCK(lock);
@@ -294,6 +295,8 @@ static void set_frame_info(struct vframe_s *vf)
 
 	else
 		vf->ratio_control = 0;
+
+	ratio_control = vf->ratio_control;
 
 	amlog_level_if(first, LOG_LEVEL_INFO,
 		"mpeg2dec: w(%d), h(%d), dur(%d), dur-ES(%d)\n",
@@ -1392,6 +1395,7 @@ int vmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	vstatus->total_data = gvs->total_data;
 	vstatus->samp_cnt = gvs->samp_cnt;
 	vstatus->offset = gvs->offset;
+	vstatus->ratio_control = ratio_control;
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 
