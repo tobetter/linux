@@ -252,6 +252,7 @@ struct vdec_mpeg12_hw_s {
 	u32 get_num;
 	u32 drop_frame_count;
 	u32 buffer_not_ready;
+	u32 ratio_control;
 	int frameinfo_enable;
 	struct firmware_s *fw;
 	u32 canvas_mode;
@@ -413,6 +414,8 @@ static void set_frame_info(struct vdec_mpeg12_hw_s *hw, struct vframe_s *vf)
 		vf->ratio_control = 0x74 << DISP_RATIO_ASPECT_RATIO_BIT;
 	else
 		vf->ratio_control = 0;
+
+	hw->ratio_control = vf->ratio_control;
 
 	vf->canvas0Addr = vf->canvas1Addr = -1;
 	vf->plane_num = 2;
@@ -1888,6 +1891,7 @@ static int vmmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	vstatus->total_data = gvs.total_data;
 	vstatus->samp_cnt = gvs.samp_cnt;
 	vstatus->offset = gvs.offset;
+	vstatus->ratio_control = hw->ratio_control;
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 			"%s", DRIVER_NAME);
 
