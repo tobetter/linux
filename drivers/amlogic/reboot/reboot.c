@@ -154,7 +154,21 @@ static int aml_restart_probe(struct platform_device *pdev)
 	}
 
 	ret = register_die_notifier(&panic_notifier);
-	return ret;
+	if (ret != 0) {
+		pr_err("%s,register die notifier failed,ret =%d!\n",
+			__func__, ret);
+		return ret;
+	}
+
+	/* Register a call for panic conditions. */
+	ret = atomic_notifier_chain_register(&panic_notifier_list,
+			&panic_notifier);
+	if (ret != 0) {
+		pr_err("%s,register panic notifier failed,ret =%d!\n",
+			__func__, ret);
+		return ret;
+	}
+	return 0;
 }
 
 static const struct of_device_id of_aml_restart_match[] = {
