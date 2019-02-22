@@ -669,6 +669,40 @@ static int audio_inskew_set_enum(
 	return 0;
 }
 
+static const char *const tdmout_c_binv_texts[] = {
+	"0",
+	"1",
+};
+
+static const struct soc_enum tdmout_c_binv_enum =
+	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(tdmout_c_binv_texts),
+			tdmout_c_binv_texts);
+
+
+static int tdmout_c_binv_get_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int val;
+
+	val = audiobus_read(EE_AUDIO_CLK_TDMOUT_C_CTRL);
+	ucontrol->value.enumerated.item[0] = ((val >> 29) & 0x1);
+
+	return 0;
+}
+
+static int tdmout_c_binv_set_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int binv;
+
+	binv = ucontrol->value.enumerated.item[0];
+	audiobus_update_bits(EE_AUDIO_CLK_TDMOUT_C_CTRL, 0x1 << 29, binv << 29);
+
+	return 0;
+}
+
 
 
 #define SND_MIX(xname, type, xenum, xshift, xmask)   \
@@ -977,6 +1011,11 @@ static const struct snd_kcontrol_new snd_auge_controls[] = {
 		     audio_inskew_enum,
 		     audio_inskew_get_enum,
 		     audio_inskew_set_enum),
+	/* tdmc out binv */
+	SOC_ENUM_EXT("tdmout_c binv set",
+		     tdmout_c_binv_enum,
+		     tdmout_c_binv_get_enum,
+		     tdmout_c_binv_set_enum),
 };
 
 
