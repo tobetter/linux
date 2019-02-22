@@ -180,7 +180,7 @@ unsigned int debug_game_mode_1;
 module_param(debug_game_mode_1, uint, 0664);
 MODULE_PARM_DESC(debug_game_mode_1, "\n debug_game_mode_1\n");
 unsigned int pq_user_value;
-unsigned int hdr_source_type = 0x1;
+enum hdr_type_e hdr_source_type = HDRTYPE_SDR;
 
 #define SR0_OFFSET 0xc00
 #define SR1_OFFSET 0xc80
@@ -1670,6 +1670,12 @@ static long amvecm_ioctl(struct file *file,
 		    ve_lc_curve_update();
 			pr_amvecm_dbg("lc load curve parm success\n");
 		}
+		break;
+	case AMVECM_IOC_G_HDR_TYPE:
+		argp = (void __user *)arg;
+		if (copy_to_user(argp,
+				&hdr_source_type, sizeof(enum hdr_type_e)))
+			ret = -EFAULT;
 		break;
 	default:
 		ret = -EINVAL;

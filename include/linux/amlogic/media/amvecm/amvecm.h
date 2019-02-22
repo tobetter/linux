@@ -211,6 +211,11 @@ enum pc_mode_e {
 #define AMVECM_IOC_G_PIC_MODE _IOR(_VE_CM, 0x59, struct am_vdj_mode_s)
 #define AMVECM_IOC_S_PIC_MODE _IOW(_VE_CM, 0x60, struct am_vdj_mode_s)
 
+
+/*HDR TYPE command list*/
+#define AMVECM_IOC_G_HDR_TYPE _IOR(_VE_CM, 0x61, enum hdr_type_e)
+
+
 /*Local contrast command list*/
 #define AMVECM_IOC_S_LC_CURVE _IOW(_VE_CM, 0x62, struct ve_lc_curve_parm_s)
 
@@ -262,6 +267,14 @@ enum vpp_matrix_csc_e {
 	VPP_MATRIX_BT2020RGB_CUSRGB,
 	VPP_MATRIX_BT2020YUV_BT2020RGB_DYNAMIC = 0x50,
 	VPP_MATRIX_DEFAULT_CSCTYPE = 0xffff,
+};
+
+enum hdr_type_e {
+	HDRTYPE_NONE = 0,
+	HDRTYPE_SDR = 0x1,
+	HDRTYPE_HDR10 = 0x2,
+	HDRTYPE_HLG = 0x4,
+	HDRTYPE_MAX,
 };
 
 enum vpp_transfer_characteristic_e {
@@ -409,9 +422,10 @@ static inline uint32_t READ_VPP_REG_BITS(uint32_t reg,
 
 extern signed int vd1_brightness, vd1_contrast;
 extern bool gamma_en;
-extern unsigned int hdr_source_type;
+
 extern unsigned int atv_source_flg;
 
+extern enum hdr_type_e hdr_source_type;
 
 #define CSC_FLAG_TOGGLE_FRAME	1
 #define CSC_FLAG_CHECK_OUTPUT	2
