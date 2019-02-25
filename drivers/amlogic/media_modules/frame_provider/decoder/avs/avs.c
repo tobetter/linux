@@ -48,7 +48,6 @@
 #define DRIVER_NAME "amvdec_avs"
 #define MODULE_NAME "amvdec_avs"
 
-#define ENABLE_USER_DATA
 
 #if 1/* MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
 #define NV21
@@ -111,6 +110,7 @@ firmware_sel
 static int firmware_sel;
 static int disable_longcabac_trans = 1;
 
+static int support_user_data = 1;
 
 int avs_get_debug_flag(void)
 {
@@ -203,10 +203,10 @@ void *avsp_heap_adr;
 static uint long_cabac_busy;
 #endif
 
-#ifdef ENABLE_USER_DATA
+
 static void *user_data_buffer;
 static dma_addr_t user_data_buffer_phys;
-#endif
+
 static DECLARE_KFIFO(newframe_q, struct vframe_s *, VF_POOL_SIZE);
 static DECLARE_KFIFO(display_q, struct vframe_s *, VF_POOL_SIZE);
 static DECLARE_KFIFO(recycle_q, struct vframe_s *, VF_POOL_SIZE);
@@ -311,7 +311,6 @@ static void set_frame_info(struct vframe_s *vf, unsigned int *duration)
 	vf->flag = 0;
 }
 
-#ifdef ENABLE_USER_DATA
 
 static struct work_struct userdata_push_work;
 /*
@@ -410,7 +409,7 @@ static void UserDataHandler(void)
 		schedule_work(&userdata_push_work);
 	}
 }
-#endif
+
 
 #ifdef HANDLE_AVS_IRQ
 static irqreturn_t vavs_isr(int irq, void *dev_id)
@@ -445,9 +444,9 @@ static void vavs_isr(void)
 	}
 #endif
 
-#ifdef ENABLE_USER_DATA
+
 	UserDataHandler();
-#endif
+
 	reg = READ_VREG(AVS_BUFFEROUT);
 
 	if (reg) {
@@ -1021,6 +1020,13 @@ void vavs_recover(void)
 		WRITE_VREG(LONG_CABAC_SRC_ADDR, 0);
 	}
 #endif
+	WRITE_VREG(AV_SCRATCH_N, (u32)(user_data_buffer_phys - buf_offset));
+	pr_info("support_user_data = %d\n", support_user_data);
+	if (support_user_data)
+		WRITE_VREG(AV_SCRATCH_M, 1);
+	else
+		WRITE_VREG(AV_SCRATCH_M, 0);
+
 	WRITE_VREG(AV_SCRATCH_5, 0);
 
 }
@@ -1127,10 +1133,12 @@ static int vavs_prot_init(void)
 	}
 #endif
 
-#ifdef ENABLE_USER_DATA
 	WRITE_VREG(AV_SCRATCH_N, (u32)(user_data_buffer_phys - buf_offset));
-	pr_debug("AV_SCRATCH_N = 0x%x\n", READ_VREG(AV_SCRATCH_N));
-#endif
+	pr_info("support_user_data = %d\n", support_user_data);
+	if (support_user_data)
+		WRITE_VREG(AV_SCRATCH_M, 1);
+	else
+		WRITE_VREG(AV_SCRATCH_M, 0);
 
 	return r;
 }
@@ -1226,9 +1234,9 @@ static void vavs_local_reset(void)
 	vavs_local_init();
 	vavs_recover();
 
-#ifdef ENABLE_USER_DATA
+
 	reset_userdata_fifo(1);
-#endif
+
 
 	amvdec_start();
 	recover_flag = 0;
@@ -1666,7 +1674,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 
 	vavs_vdec_info_init();
 
-#ifdef ENABLE_USER_DATA
+
 	if (NULL == user_data_buffer) {
 		user_data_buffer =
 			dma_alloc_coherent(amports_get_dma_device(),
@@ -1680,7 +1688,7 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 		pr_debug("user_data_buffer = 0x%p, user_data_buffer_phys = 0x%x\n",
 			user_data_buffer, (u32)user_data_buffer_phys);
 	}
-#endif
+
 	INIT_WORK(&set_clk_work, avs_set_clk);
 	if (vavs_init() < 0) {
 		pr_info("amvdec_avs init failed.\n");
@@ -1693,9 +1701,9 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 
 	INIT_WORK(&fatal_error_wd_work, vavs_fatal_error_handler);
 	atomic_set(&error_handler_run, 0);
-#ifdef ENABLE_USER_DATA
+
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
-#endif
+
 	INIT_WORK(&notify_work, vavs_notify_work);
 
 	return 0;
@@ -1705,9 +1713,9 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 {
 	cancel_work_sync(&fatal_error_wd_work);
 	atomic_set(&error_handler_run, 0);
-#ifdef ENABLE_USER_DATA
+
 	cancel_work_sync(&userdata_push_work);
-#endif
+
 	cancel_work_sync(&notify_work);
 	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
@@ -1769,7 +1777,7 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 		stat &= ~STAT_VF_HOOK;
 	}
 
-#ifdef ENABLE_USER_DATA
+
 	if (user_data_buffer != NULL) {
 		dma_free_coherent(
 			amports_get_dma_device(),
@@ -1779,7 +1787,7 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 		user_data_buffer = NULL;
 		user_data_buffer_phys = 0;
 	}
-#endif
+
 
 	amvdec_disable();
 	vdec_disable_DMC(NULL);
@@ -1912,6 +1920,9 @@ MODULE_PARM_DESC(disable_longcabac_trans, "\n disable_longcabac_trans\n");
 
 module_param(dec_control, uint, 0664);
 MODULE_PARM_DESC(dec_control, "\n amvdec_vavs decoder control\n");
+
+module_param(support_user_data, uint, 0664);
+MODULE_PARM_DESC(support_user_data, "\n support_user_data\n");
 
 module_init(amvdec_avs_driver_init_module);
 module_exit(amvdec_avs_driver_remove_module);
