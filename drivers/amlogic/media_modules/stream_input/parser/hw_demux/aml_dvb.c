@@ -781,6 +781,20 @@ static ssize_t stb_show_source(struct class *class,
 	return ret;
 }
 
+static ssize_t stb_clear_av(struct class *class,
+				struct class_attribute *attr, const char *buf,
+				size_t size)
+{
+	if (!strncmp("1", buf, 1)) {
+		aml_tsdemux_set_vid(0x1fff);
+		aml_tsdemux_set_aid(0x1fff);
+		aml_tsdemux_set_sid(0x1fff);
+		aml_tsdemux_set_pcrid(0x1fff);
+	}
+
+	return size;
+}
+
 /*Set the STB input source*/
 static ssize_t stb_store_source(struct class *class,
 				struct class_attribute *attr, const char *buf,
@@ -1700,6 +1714,7 @@ static struct class_attribute aml_stb_class_attrs[] = {
 	       NULL),
 	__ATTR(first_audio_pts, 0644, demux_show_first_audio_pts,
 	       NULL),
+	__ATTR(clear_av, 0644, NULL, stb_clear_av),
 
 #define DSC_SOURCE_ATTR_DECL(i)\
 	__ATTR(dsc##i##_source,  0664,\
