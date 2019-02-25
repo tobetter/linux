@@ -263,6 +263,7 @@ static void atv_demod_afc_enable(struct atv_demod_afc *afc)
 		afc->offset = 0;
 		afc->no_sig_cnt = 0;
 		afc->pre_step = 0;
+		afc->timer_delay_cnt = 20;
 		afc->status = AFC_LOCK_STATUS_NULL;
 		add_timer(&afc->timer);
 		afc->state = true;
