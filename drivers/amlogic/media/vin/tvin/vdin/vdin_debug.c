@@ -860,6 +860,7 @@ static void vdin_dump_state(struct vdin_dev_s *devp)
 	pr_info("color_depth_support:0x%x\n", devp->color_depth_support);
 	pr_info("cma_flag:0x%x\n", devp->cma_config_flag);
 	pr_info("auto_cutwindow_en:%d\n", devp->auto_cutwindow_en);
+	pr_info("cutwindow_cfg:%d\n", devp->cutwindow_cfg);
 	pr_info("auto_ratio_en:%d\n", devp->auto_ratio_en);
 	pr_info("cma_mem_alloc:%d\n", devp->cma_mem_alloc);
 	pr_info("cma_mem_size:0x%x\n", devp->cma_mem_size);

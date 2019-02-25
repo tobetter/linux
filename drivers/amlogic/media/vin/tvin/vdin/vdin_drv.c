@@ -93,6 +93,7 @@ static unsigned int dv_work_delby;
  * enable viu_hw_irq for the bandwidth is enough on gxbb/gxtvbb and laters ic
  */
 static bool viu_hw_irq = 1;
+static bool de_fmt_flag;
 
 #ifdef DEBUG_SUPPORT
 module_param(canvas_config_mode, int, 0664);
@@ -452,6 +453,21 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	devp->canvas_config_mode = canvas_config_mode;
 	/* h_active/v_active will be recalculated by bellow calling */
 	vdin_set_decimation(devp);
+	if (de_fmt_flag == 1 &&
+		(devp->prop.vs != 0 ||
+		devp->prop.ve != 0 ||
+		devp->prop.hs != 0 ||
+		devp->prop.he != 0)) {
+		devp->prop.vs = 0;
+		devp->prop.ve = 0;
+		devp->prop.hs = 0;
+		devp->prop.he = 0;
+		devp->prop.pre_vs = 0;
+		devp->prop.pre_ve = 0;
+		devp->prop.pre_hs = 0;
+		devp->prop.pre_he = 0;
+		pr_info("ioctl start dec,restore the cutwin param.\n");
+	}
 	vdin_set_cutwin(devp);
 	vdin_set_hvscale(devp);
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_GXTVBB))
@@ -1995,10 +2011,13 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			break;
 		}
 		if ((devp->parm.info.fmt == TVIN_SIG_FMT_NULL) &&
-			(devp->parm.port == TVIN_PORT_CVBS3))
+			(devp->parm.port == TVIN_PORT_CVBS3)) {
+			de_fmt_flag = 1;
 			fmt = devp->parm.info.fmt = TVIN_SIG_FMT_CVBS_NTSC_M;
-		else
+		} else {
+			de_fmt_flag = 0;
 			fmt = devp->parm.info.fmt = parm.info.fmt;
+		}
 		devp->fmt_info_p  =
 				(struct tvin_format_s *)tvin_get_fmt_info(fmt);
 		if (!devp->fmt_info_p) {
