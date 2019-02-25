@@ -34,6 +34,7 @@ bool atvdemod_det_snr_en = true;
 bool audio_thd_en;
 bool atvdemod_det_nonstd_en;
 bool atvaudio_det_outputmode_en = true;
+bool audio_carrier_offset_det_en;
 
 unsigned int atvdemod_timer_delay = 100; /* 1s */
 unsigned int atvdemod_timer_delay2 = 10; /* 100ms */
@@ -69,6 +70,9 @@ static void atv_demod_monitor_do_work(struct work_struct *work)
 
 	if (atvaudio_det_outputmode_en)
 		atvauddemod_set_outputmode();
+
+	if (audio_carrier_offset_det_en)
+		audio_carrier_offset_det();
 
 	if (atvdemod_det_nonstd_en)
 		atv_dmd_non_std_set(true);

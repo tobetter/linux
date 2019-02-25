@@ -57,6 +57,7 @@
 	DEBUGFS_CREATE_NODE(over_threshold, 0640, dentry, u64)\
 	DEBUGFS_CREATE_NODE(input_amplitude, 0640, dentry, u64)\
 	DEBUGFS_CREATE_NODE(atvaudio_det_outputmode_en, 0640, dentry, bool)\
+	DEBUGFS_CREATE_NODE(audio_carrier_offset_det_en, 0640, dentry, bool)\
 	DEBUGFS_CREATE_NODE(audio_det_en, 0640, dentry, bool)\
 	DEBUGFS_CREATE_NODE(non_std_en, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(atvdemod_det_nonstd_en, 0640, dentry, bool)\

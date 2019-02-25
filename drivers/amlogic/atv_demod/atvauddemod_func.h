@@ -32,6 +32,7 @@ void configure_adec(int Audio_mode);
 void adec_soft_reset(void);
 void audio_thd_init(void);
 void audio_thd_det(void);
+void audio_carrier_offset_det(void);
 void set_nicam_outputmode(uint32_t outmode);
 void set_a2_eiaj_outputmode(uint32_t outmode);
 void set_btsc_outputmode(uint32_t outmode);

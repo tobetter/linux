@@ -60,7 +60,12 @@ static int last_mode = -1;
 #undef pr_info
 #define pr_info(args...)\
 	do {\
-		if (ademod_debug_en)\
+		if (ademod_debug_en & 0x1)\
+			printk(args);\
+	} while (0)
+#define pr_carr(args...)\
+	do {\
+		if (ademod_debug_en & 0x2)\
 			printk(args);\
 	} while (0)
 #undef pr_dbg
@@ -1467,6 +1472,37 @@ void audio_thd_det(void)
 			thd_tmp_v = 0;
 		}
 	}
+}
+
+void audio_carrier_offset_det(void)
+{
+	unsigned int carrier_freq = 0, report = 0;
+	int threshold = 0;
+
+	report = adec_rd_reg(DC_REPORT);
+	carrier_freq = adec_rd_reg(ADDR_DDC_FREQ0);
+
+	pr_carr("\n\nreport: 0x%x.\n", report);
+	pr_carr("read carrier_freq: 0x%x.\n", carrier_freq);
+	report = report & 0xFFFF;
+
+	if (report > (1 << 15))
+		threshold = report - (1 << 16);
+	else
+		threshold = report;
+
+	threshold = threshold >> 8;
+	pr_carr("threshold: %d.\n", threshold);
+
+	if (threshold > 30) {
+		carrier_freq = carrier_freq - 0x100;
+		adec_wr_reg(ADDR_DDC_FREQ0, carrier_freq);
+	} else if (threshold < -30) {
+		carrier_freq = carrier_freq + 0x100;
+		adec_wr_reg(ADDR_DDC_FREQ0, carrier_freq);
+	}
+
+	pr_carr("write carrier_freq: 0x%x.\n", carrier_freq);
 }
 
 void set_outputmode_status_init(void)
