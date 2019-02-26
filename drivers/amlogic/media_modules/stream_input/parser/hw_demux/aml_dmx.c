@@ -439,6 +439,8 @@ static int dmx_timeout_set(struct aml_dmxtimeout *dto, int enable,
 /*Audio & Video PTS value*/
 static u32 video_pts;
 static u32 audio_pts;
+static u32 video_pts_bit32;
+static u32 audio_pts_bit32;
 static u32 first_video_pts;
 static u32 first_audio_pts;
 static int demux_skipbyte;
@@ -1311,6 +1313,8 @@ static irqreturn_t dmx_irq_handler(int irq_number, void *para)
 
 		if (pdts_status & (1 << VIDEO_PTS_READY)) {
 			video_pts = DMX_READ_REG(dmx->id, VIDEO_PTS_DEMUX);
+			video_pts_bit32 =
+				(status & (1 << VIDEO_PTS_BIT32)) ? 1 : 0;
 			if (!first_video_pts
 			    || 0 > (int)(video_pts - first_video_pts))
 				first_video_pts = video_pts;
@@ -1318,6 +1322,8 @@ static irqreturn_t dmx_irq_handler(int irq_number, void *para)
 
 		if (pdts_status & (1 << AUDIO_PTS_READY)) {
 			audio_pts = DMX_READ_REG(dmx->id, AUDIO_PTS_DEMUX);
+			audio_pts_bit32 =
+				(status & (1 << AUDIO_PTS_BIT32)) ? 1 : 0;
 			if (!first_audio_pts
 			    || 0 > (int)(audio_pts - first_audio_pts))
 				first_audio_pts = audio_pts;
@@ -5038,6 +5044,29 @@ u32 aml_dmx_get_audio_pts(struct aml_dvb *dvb)
 	return pts;
 }
 
+u32 aml_dmx_get_video_pts_bit32(struct aml_dvb *dvb)
+{
+	unsigned long flags;
+	u32 bit32;
+
+	spin_lock_irqsave(&dvb->slock, flags);
+	bit32 = video_pts_bit32;
+	spin_unlock_irqrestore(&dvb->slock, flags);
+
+	return bit32;
+}
+
+u32 aml_dmx_get_audio_pts_bit32(struct aml_dvb *dvb)
+{
+	unsigned long flags;
+	u32 bit32;
+
+	spin_lock_irqsave(&dvb->slock, flags);
+	bit32 = audio_pts_bit32;
+	spin_unlock_irqrestore(&dvb->slock, flags);
+
+	return bit32;
+}
 u32 aml_dmx_get_first_video_pts(struct aml_dvb *dvb)
 {
 	unsigned long flags;

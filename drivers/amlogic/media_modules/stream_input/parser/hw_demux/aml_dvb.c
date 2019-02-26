@@ -1483,6 +1483,31 @@ static ssize_t demux_show_audio_pts(struct class *class,
 	return ret;
 }
 
+/*Show the Video PTS bit32 value*/
+static ssize_t demux_show_video_pts_bit32(struct class *class,
+				struct class_attribute *attr, char *buf)
+{
+	struct aml_dvb *dvb = &aml_dvb_device;
+	ssize_t ret = 0;
+
+	ret = sprintf(buf, "%u\n", aml_dmx_get_video_pts_bit32(dvb));
+
+	return ret;
+}
+
+/*Show the Audio PTS bit32 value*/
+static ssize_t demux_show_audio_pts_bit32(struct class *class,
+				struct class_attribute *attr, char *buf)
+{
+	struct aml_dvb *dvb = &aml_dvb_device;
+	ssize_t ret = 0;
+
+	ret = sprintf(buf, "%u\n", aml_dmx_get_audio_pts_bit32(dvb));
+
+	return ret;
+}
+
+
 /*Show the First Video PTS value*/
 static ssize_t demux_show_first_video_pts(struct class *class,
 					  struct class_attribute *attr,
@@ -1710,6 +1735,8 @@ static struct class_attribute aml_stb_class_attrs[] = {
 	       NULL),
 	__ATTR(audio_pts, 0664, demux_show_audio_pts,
 	       NULL),
+	__ATTR(video_pts_bit32, 0644, demux_show_video_pts_bit32, NULL),
+	__ATTR(audio_pts_bit32, 0644, demux_show_audio_pts_bit32, NULL),
 	__ATTR(first_video_pts, 0644, demux_show_first_video_pts,
 	       NULL),
 	__ATTR(first_audio_pts, 0644, demux_show_first_audio_pts,
