@@ -375,7 +375,7 @@ void aml_spdifout_select_aed(bool enable, int spdifout_id)
 	/* select eq_drc output */
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL1 - EE_AUDIO_SPDIFOUT_CTRL1;
 	reg = EE_AUDIO_SPDIFOUT_CTRL1 + offset * spdifout_id;
-	audiobus_update_bits(reg, 0x1 << 21, enable << 21);
+	audiobus_update_bits(reg, 0x1 << 31, enable << 31);
 }
 
 void aml_spdifout_get_aed_info(int spdifout_id,

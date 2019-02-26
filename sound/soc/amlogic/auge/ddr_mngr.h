@@ -221,7 +221,7 @@ struct frddr {
 
 	struct aml_audio_controller *actrl;
 	unsigned int reg_base;
-	unsigned int fifo_id;
+	enum ddr_num fifo_id;
 
 	unsigned int channels;
 	unsigned int msb;

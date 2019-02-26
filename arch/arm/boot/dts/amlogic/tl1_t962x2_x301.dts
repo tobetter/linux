@@ -1114,9 +1114,6 @@
 			&clkaudio CLKID_AUDIO_EQDRC>;
 		clock-names = "gate", "srcpll", "eqdrc";
 
-		eq_enable = <1>;
-		multiband_drc_enable = <0>;
-		fullband_drc_enable = <0>;
 		/*
 		 * 0:tdmout_a
 		 * 1:tdmout_b
@@ -1128,7 +1125,7 @@
 		/* max 0xf, each bit for one lane, usually one lane */
 		lane_mask = <0x1>;
 		/* max 0xff, each bit for one channel */
-		channel_mask = <0x3>;
+		channel_mask = <0xff>;
 
 		status = "okay";
 	};
