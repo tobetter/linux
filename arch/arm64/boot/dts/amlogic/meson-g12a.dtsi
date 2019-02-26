@@ -275,6 +275,7 @@
 								 "hdmitx_sck";
 							function = "hdmitx";
 							bias-disable;
+							drive-strength = <3>;
 						};
 					};
 
@@ -296,6 +297,7 @@
 								 "sdcard_clk_c";
 							function = "sdcard";
 							bias-pull-up;
+							drive-strength = <3>;
 						};
 					};
 
@@ -317,6 +319,7 @@
 								 "sdcard_clk_z";
 							function = "sdcard";
 							bias-pull-up;
+							drive-strength = <3>;
 						};
 					};
 
@@ -337,7 +340,8 @@
 								 "sdio_cmd",
 								 "sdio_clk";
 							function = "sdio";
-							bias-disable;
+							bias-pull-up;
+							drive-strength = <3>;
 						};
 					};
 
