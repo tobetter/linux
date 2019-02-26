@@ -11,7 +11,7 @@
 #ifndef __AML_CIMAX_H_
 #define __AML_CIMAX_H_
 
-#include "aml_ci.h"
+#include "../aml_ci.h"
 #include "dvb_ca_en50221_cimax.h"
 
 struct aml_cimax;

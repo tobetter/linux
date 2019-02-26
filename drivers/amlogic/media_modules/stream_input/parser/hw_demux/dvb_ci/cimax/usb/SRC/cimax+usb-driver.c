@@ -48,7 +48,7 @@
 #ifdef TIMESTAMP
 #include "cimax+usb_time.h"
 #endif
-#include "aml_cimax_usb_priv.h"
+#include "../../aml_cimax_usb_priv.h"
 
 /******************************************************************************
  * Defines

@@ -12,8 +12,4 @@ ccflags-y += -I$(srctree)/
 ccflags-y += -I$(srctree)/include
 ccflags-y += -I$(srctree)/drivers/gpio
 ccflags-y += -I$(srctree)/drivers/media/dvb-core
-ccflags-y += -I$(srctree)/../hardware/amlogic/media_modules/drivers/stream_input/parser/hw_demux/
-ccflags-y += -I$(srctree)/../hardware/amlogic/media_modules/drivers/stream_input/parser/hw_demux/dvb_ci/
-ccflags-y += -I$(srctree)/../hardware/amlogic/media_modules/drivers/stream_input/parser/hw_demux/dvb_ci/cimax/
-ccflags-y += -I$(srctree)/../hardware/amlogic/media_modules/drivers/stream_input/parser/hw_demux/dvb_ci/cimax/usb/SRC
 

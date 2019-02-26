@@ -18,7 +18,7 @@
 #include <linux/slab.h>
 #include <linux/kthread.h>
 //#include <linux/switch.h>
-#include "aml_ci.h"
+#include "../aml_ci.h"
 #include "aml_cimax.h"
 #include "aml_cimax_spi.h"
 #include "aml_cimax_usb.h"
