@@ -173,11 +173,13 @@
 		compatible = "amlogic, tl1-sound-card";
 		aml-audio-card,name = "AML-AUGESOUND";
 
+		avout_mute-gpios = <&gpio GPIODV_3 GPIO_ACTIVE_HIGH>;
+
 		aml-audio-card,dai-link@0 {
 			format = "i2s";
 			mclk-fs = <256>;
-			//continuous-clock;
-			bitclock-inversion;
+			continuous-clock;
+			//bitclock-inversion;
 			//frame-inversion;
 			/* master mode */
 			bitclock-master = <&tdma>;
@@ -188,7 +190,7 @@
 			 * frame-master = <&tdmacodec>;
 			 */
 			/* suffix-name, sync with android audio hal used for */
-			suffix-name = "alsaPORT-pcm";
+			suffix-name = "alsaPORT-i2s";
 			tdmacpu: cpu {
 				sound-dai = <&tdma>;
 				dai-tdm-slot-tx-mask =
@@ -201,11 +203,13 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = <&tl1_codec>;
+				sound-dai = <&ad82584f &tl1_codec>;
 			};
 		};
 
 		aml-audio-card,dai-link@1 {
+			status = "disabled";
+
 			format = "i2s";
 			mclk-fs = <256>;
 			//continuous-clock;
@@ -218,7 +222,7 @@
 			//bitclock-master = <&tdmbcodec>;
 			//frame-master = <&tdmbcodec>;
 			/* suffix-name, sync with android audio hal used for */
-			suffix-name = "alsaPORT-i2s";
+			suffix-name = "alsaPORT-pcm";
 			cpu {
 				sound-dai = <&tdmb>;
 				dai-tdm-slot-tx-mask = <1 1>;
@@ -240,6 +244,8 @@
 		};
 
 		aml-audio-card,dai-link@2 {
+			status = "disabled";
+
 			format = "i2s";
 			mclk-fs = <256>;
 			//continuous-clock;
@@ -304,6 +310,7 @@
 
 		aml-audio-card,dai-link@6 {
 			mclk-fs = <256>;
+			suffix-name = "alsaPORT-tv";
 			cpu {
 				sound-dai = <&extn>;
 				system-clock-frequency = <12288000>;
@@ -924,15 +931,28 @@
 		#sound-dai-cells = <0>;
 
 		dai-tdm-lane-slot-mask-in = <1 0>;
-		dai-tdm-lane-slot-mask-out = <1 0>;
+		dai-tdm-lane-slot-mask-out = <1 1 1 1>;
 		dai-tdm-clk-sel = <0>;
 
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_A
+				&clkc CLKID_MPLL0
 				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll";
+		clock-names = "mclk", "clk_srcpll", "samesource_sysclk";
 
 		pinctrl-names = "tdm_pins";
-		pinctrl-0 = <&tdma_mclk &tdmout_a &tdmin_a>;
+		pinctrl-0 = <&tdma_mclk &tdmout_a>;
+
+		/*
+		 * 0: tdmout_a;
+		 * 1: tdmout_b;
+		 * 2: tdmout_c;
+		 * 3: spdifout;
+		 * 4: spdifout_b;
+		 */
+		samesource_sel = <3>;
+
+		/* In for ACODEC_ADC */
+		acodec_adc = <1>;
 
 		status = "okay";
 	};
@@ -1086,8 +1106,8 @@
 
 	asrca: resample@0 {
 		compatible = "amlogic, tl1-resample-a";
-		clocks = <&clkc CLKID_MPLL3
-				&clkaudio CLKID_AUDIO_MCLK_F
+		clocks = <&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_MCLK_A
 				&clkaudio CLKID_AUDIO_RESAMPLE_A>;
 		clock-names = "resample_pll", "resample_src", "resample_clk";
 		/*same with toddr_src
@@ -1102,7 +1122,7 @@
 		 */
 		resample_module = <3>;
 
-		status = "disabled";
+		status = "okay";
 	};
 
 	asrcb: resample@1 {
@@ -1153,6 +1173,13 @@
 		 * 7: loopback_a;
 		 */
 		src = <4>;
+
+		/*
+		 * deal with hot word in user space or kernel space
+		 * 0: in user space
+		 * 1: in kernel space
+		 */
+		level = <0>;
 
 		status = "disabled";
 	};
@@ -1246,6 +1273,30 @@
 
 &audio_data{
 	status = "okay";
+};
+
+&i2c2 {
+	status = "okay";
+	pinctrl-names="default";
+	pinctrl-0=<&i2c2_z_pins>;
+	clock-frequency = <400000>;
+
+	tas5805: tas5805@36 {
+		compatible = "ti,tas5805";
+		#sound-dai-cells = <0>;
+		codec_name = "tas5805";
+		reg = <0x2d>;
+		status = "disable";
+	};
+
+	ad82584f: ad82584f@62 {
+		compatible = "ESMT, ad82584f";
+		#sound-dai-cells = <0>;
+		reg = <0x31>;
+		status = "okay";
+		reset_pin = <&gpio_ao GPIOAO_6 0>;
+	};
+
 };
 
 &sd_emmc_c {
