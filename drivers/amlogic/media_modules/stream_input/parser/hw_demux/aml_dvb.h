@@ -356,6 +356,8 @@ extern int aml_asyncfifo_hw_reset(struct aml_asyncfifo *afifo);
 /*Get the Audio & Video PTS*/
 extern u32 aml_dmx_get_video_pts(struct aml_dvb *dvb);
 extern u32 aml_dmx_get_audio_pts(struct aml_dvb *dvb);
+extern u32 aml_dmx_get_video_pts_bit32(struct aml_dvb *dvb);
+extern u32 aml_dmx_get_audio_pts_bit32(struct aml_dvb *dvb);
 extern u32 aml_dmx_get_first_video_pts(struct aml_dvb *dvb);
 extern u32 aml_dmx_get_first_audio_pts(struct aml_dvb *dvb);
 
