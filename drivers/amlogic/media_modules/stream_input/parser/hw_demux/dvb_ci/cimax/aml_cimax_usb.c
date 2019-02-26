@@ -27,7 +27,7 @@
 //#include <linux/switch.h>
 
 #include "aml_cimax.h"
-#include "cimax+usb-driver.h"
+#include "./usb/SRC/cimax+usb-driver.h"
 
 #define MOD_NAME       "aml_cimax_usb"
 

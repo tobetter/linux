@@ -23,7 +23,7 @@
 
 #include "drivers/media/dvb-core/dvb_ca_en50221.h"
 #include "cimax/dvb_ca_en50221_cimax.h"
-#include "aml_dvb.h"
+#include "../aml_dvb.h"
 
 enum aml_dvb_io_type_e {
 	AML_DVB_IO_TYPE_IOBUS = 0,
