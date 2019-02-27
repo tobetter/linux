@@ -760,6 +760,30 @@ static int lcd_vbyone_lanes_set(int lane_num, int byte_mode, int region_num,
 	return 0;
 }
 
+static void lcd_vbyone_hw_filter(int flag)
+{
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+		if (flag) {
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L, 0xffff);
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H, 0xf);
+			lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 8, 4);
+			lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 12, 4);
+		} else {
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L, 0xff);
+			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H, 0x0);
+			lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 8, 4);
+			lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 12, 4);
+		}
+		break;
+	default:
+		lcd_vcbus_write(VBO_INFILTER_CTRL, 0xff77);
+		break;
+	}
+}
+
 static void lcd_vbyone_sw_reset(void)
 {
 	if (lcd_debug_print_flag)
@@ -890,7 +914,7 @@ static void lcd_vbyone_control_set(struct lcd_config_s *pconf)
 	/* Mux pads in combo-phy: 0 for dsi; 1 for lvds or vbyone; 2 for edp */
 	/*lcd_hiu_write(HHI_DSI_LVDS_EDP_CNTL0, 0x1);*/
 
-	lcd_vcbus_write(VBO_INFILTER_CTRL, 0xff77);
+	lcd_vbyone_hw_filter(0);
 	lcd_vcbus_setb(VBO_INSGN_CTRL, 0, 2, 2);
 	lcd_vcbus_setb(VBO_CTRL_L, 1, 0, 1);
 
@@ -928,6 +952,7 @@ void lcd_vbyone_interrupt_enable(int flag)
 
 	vx1_conf = lcd_drv->lcd_config->lcd_control.vbyone_config;
 	if (flag) {
+		lcd_vbyone_hw_filter(1);
 		if (vx1_conf->intr_en) {
 			vx1_fsm_acq_st = 0;
 			/* clear interrupt */
@@ -982,6 +1007,7 @@ static void lcd_vbyone_interrupt_init(struct aml_lcd_drv_s *lcd_drv)
 
 	/* release sw filter ctrl in uboot */
 	lcd_vcbus_setb(VBO_INSGN_CTRL, 0, 0, 1);
+	lcd_vbyone_hw_filter(1);
 
 	/* set hold in FSM_ACQ */
 	if (vx1_conf->vsync_intr_en == 3)
@@ -1216,19 +1242,23 @@ static irqreturn_t lcd_vbyone_vsync_isr(int irq, void *dev_id)
 		if (vsync_cnt < VSYNC_CNT_VX1_RESET)
 			vsync_cnt++;
 		else if (vsync_cnt == VSYNC_CNT_VX1_RESET) {
+			lcd_vbyone_hw_filter(0);
 			lcd_vbyone_sw_reset();
 			vsync_cnt++;
 		} else if ((vsync_cnt > VSYNC_CNT_VX1_RESET) &&
 			(vsync_cnt < VSYNC_CNT_VX1_STABLE)) {
-			if (lcd_vcbus_read(VBO_STATUS_L) & 0x20)
+			if (lcd_vcbus_read(VBO_STATUS_L) & 0x20) {
 				vsync_cnt = VSYNC_CNT_VX1_STABLE;
-			else
+				lcd_vbyone_hw_filter(1);
+			} else {
 				vsync_cnt++;
+			}
 		}
 	} else if (vx1_conf->vsync_intr_en == 2) {
 		if (vsync_cnt >= 5) {
 			vsync_cnt = 0;
 			if (!(lcd_vcbus_read(VBO_STATUS_L) & 0x20)) {
+				lcd_vbyone_hw_filter(0);
 				lcd_vbyone_sw_reset();
 				LCDPR("vx1 sw_reset 2\n");
 				while (lcd_vcbus_read(VBO_STATUS_L) & 0x4)
@@ -1236,6 +1266,8 @@ static irqreturn_t lcd_vbyone_vsync_isr(int irq, void *dev_id)
 
 				lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0, 15, 1);
 				lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 1, 15, 1);
+			} else {
+				lcd_vbyone_hw_filter(1);
 			}
 		} else
 			vsync_cnt++;
@@ -1398,6 +1430,7 @@ static irqreturn_t lcd_vbyone_interrupt_handler(int irq, void *dev_id)
 #if (VX1_FSM_ACQ_NEXT == VX1_FSM_ACQ_NEXT_RELEASE_HOLDER)
 			lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0xffff, 0, 16);
 #endif
+			lcd_vbyone_hw_filter(1);
 			LCDPR("vx1 fsm stable\n");
 		}
 	}
