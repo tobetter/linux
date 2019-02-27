@@ -32,7 +32,7 @@
 #define FLAG_VADJ1_COLOR        (1 << 30)
 #define FLAG_VE_DNLP            (1 << 29)
 #define FLAG_VE_NEW_DNLP        (1 << 28)
-#define FLAG_RSV27              (1 << 27)
+#define FLAG_VE_LC_CURV         (1 << 27)
 #define FLAG_RSV26              (1 << 26)
 #define FLAG_3D_BLACK_DIS       (1 << 25)
 #define FLAG_3D_BLACK_EN        (1 << 24)
@@ -213,6 +213,10 @@ enum pc_mode_e {
 /*PIC_MODE IOCTL command list*/
 #define AMVECM_IOC_G_PIC_MODE _IOR(_VE_CM, 0x59, struct am_vdj_mode_s)
 #define AMVECM_IOC_S_PIC_MODE _IOW(_VE_CM, 0x60, struct am_vdj_mode_s)
+
+/*Local contrast command list*/
+#define AMVECM_IOC_S_LC_CURVE _IOW(_VE_CM, 0x62, struct ve_lc_curve_parm_s)
+
 
 struct am_vdj_mode_s {
 	int flag;
@@ -422,11 +426,11 @@ struct hdr_metadata_info_s {
 extern void vpp_vd_adj1_saturation_hue(signed int sat_val,
 	signed int hue_val, struct vframe_s *vf);
 extern void amvecm_sharpness_enable(int sel);
-
 extern int metadata_read_u32(uint32_t *value);
 extern int metadata_wait(struct vframe_s *vf);
 extern int metadata_sync(uint32_t frame_id, uint64_t pts);
 extern void amvecm_wakeup_queue(void);
+extern void lc_load_curve(struct ve_lc_curve_parm_s *p);
 
 #ifndef CONFIG_AMLOGIC_MEDIA_VSYNC_RDMA
 #define VSYNC_WR_MPEG_REG(adr, val) WRITE_VPP_REG(adr, val)

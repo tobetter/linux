@@ -159,6 +159,24 @@ struct ve_dnlp_s {
 	unsigned char gamma[64];
 };
 #endif
+
+struct ve_lc_curve_parm_s {
+	unsigned int ve_lc_saturation[63];
+	unsigned int ve_lc_yminval_lmt[12];
+	unsigned int ve_lc_ypkbv_ymaxval_lmt[12];
+	unsigned int ve_lc_ypkbv_ratio[4];
+	unsigned int param[100];
+};
+
+enum lc_alg_param_e {
+	lc_dbg_parm0 = 0,
+	lc_dbg_parm1,
+	lc_dbg_parm2,
+	lc_dbg_parm3,
+	lc_dbg_parm4,
+	lc_dbg_parm_max,
+};
+
 struct ve_hsvs_s {
 	unsigned char en;
 	unsigned char peak_gain_h1;

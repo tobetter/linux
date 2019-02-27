@@ -22,7 +22,8 @@
 #include <linux/amlogic/media/vfm/vframe.h>
 
 /*V1.0: Local_contrast Basic function, iir algorithm, debug interface for tool*/
-#define LC_VER		"Ref.2019/02/27-V1.0"
+/*V1.1: add ioctrl load interface supprt*/
+#define LC_VER		"Ref.2019/03/07-V1.1"
 
 enum lc_mtx_sel_e {
 	INP_MTX = 0x1,
@@ -47,6 +48,15 @@ enum lc_reg_lut_e {
 	CNTST_LMT = 0x20,
 	MAX_REG_LUT
 };
+
+struct lc_alg_param_s {
+	unsigned int dbg_parm0;
+	unsigned int dbg_parm1;
+	unsigned int dbg_parm2;
+	unsigned int dbg_parm3;
+	unsigned int dbg_parm4;
+};
+
 
 extern int amlc_debug;
 extern int lc_en;
@@ -77,7 +87,8 @@ extern bool lc_curve_fresh;
 extern int *lc_szcurve;/*12*8*6+4*/
 extern int *curve_nodes_cur;
 extern int *lc_hist;/*12*8*17*/
-
+extern struct ve_lc_curve_parm_s lc_curve_parm_load;
+extern struct lc_alg_param_s lc_alg_parm;
 
 extern void lc_init(void);
 extern void lc_process(struct vframe_s *vf,

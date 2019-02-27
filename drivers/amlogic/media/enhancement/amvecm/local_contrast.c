@@ -76,6 +76,9 @@ unsigned int lc_hist_prcnt;
 unsigned int lc_curve_prcnt;
 bool lc_curve_fresh = true;
 
+struct ve_lc_curve_parm_s lc_curve_parm_load;
+struct lc_alg_param_s lc_alg_parm;
+
 /*lc saturation gain, low parameters*/
 static unsigned int lc_satur_gain[63] = {
 	51, 104, 158, 213, 269, 325, 382, 440, 498,

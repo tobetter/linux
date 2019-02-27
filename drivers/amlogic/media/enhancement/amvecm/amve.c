@@ -36,6 +36,7 @@
 #include "amve_gamma_table.h"
 #include <linux/io.h>
 #include "dnlp_cal.h"
+#include "local_contrast.h"
 
 #define pr_amve_dbg(fmt, args...)\
 	do {\
@@ -766,6 +767,14 @@ void ve_dnlp_latch_process(void)
 	}
 }
 
+void ve_lc_latch_process(void)
+{
+	if (vecm_latch_flag & FLAG_VE_LC_CURV) {
+		vecm_latch_flag &= ~FLAG_VE_LC_CURV;
+		lc_load_curve(&lc_curve_parm_load);
+	}
+}
+
 void ve_lcd_gamma_process(void)
 {
 	if (vecm_latch_flag & FLAG_GAMMA_TABLE_EN) {
@@ -866,6 +875,11 @@ void ve_dnlp_param_update(void)
 void ve_new_dnlp_param_update(void)
 {
 	vecm_latch_flag |= FLAG_VE_NEW_DNLP;
+}
+
+void ve_lc_curve_update(void)
+{
+	vecm_latch_flag |= FLAG_VE_LC_CURV;
 }
 
 static void video_data_limitation(int *val)

@@ -1028,7 +1028,8 @@ void amvecm_video_latch(void)
 	}
 /* #endif */
 	pq_user_latch_process();
-
+	if (cpu_after_eq(MESON_CPU_MAJOR_ID_TL1))
+		ve_lc_latch_process();
 }
 
 int amvecm_on_vs(
@@ -1643,6 +1644,17 @@ static long amvecm_ioctl(struct file *file,
 				break;
 			}
 			ret = amvecm_set_contrast2(vdj_mode_s.contrast2);
+		}
+		break;
+	case AMVECM_IOC_S_LC_CURVE:
+		if (copy_from_user(&lc_curve_parm_load,
+			(void __user *)arg,
+			sizeof(struct ve_lc_curve_parm_s))) {
+			pr_amvecm_dbg("lc load curve parm fail\n");
+			ret = -EFAULT;
+		} else {
+		    ve_lc_curve_update();
+			pr_amvecm_dbg("lc load curve parm success\n");
 		}
 		break;
 	default:
@@ -5579,6 +5591,44 @@ static void lc_wr_reg(int *p, enum lc_reg_lut_e reg_sel)
 	default:
 		break;
 	}
+}
+
+unsigned int lc_saturation_curv[63];
+unsigned int lc_yminval_lmt_curv[12];
+unsigned int lc_ypkbv_ymaxval_lmt_curv[12];
+unsigned int lc_ypkbv_ratio_curv[4];
+
+void lc_load_curve(struct ve_lc_curve_parm_s *p)
+{
+	unsigned int i;
+
+	/*load lc parms*/
+	lc_alg_parm.dbg_parm0 = p->param[lc_dbg_parm0];
+	lc_alg_parm.dbg_parm1 = p->param[lc_dbg_parm1];
+	lc_alg_parm.dbg_parm2 = p->param[lc_dbg_parm2];
+	lc_alg_parm.dbg_parm3 = p->param[lc_dbg_parm3];
+	lc_alg_parm.dbg_parm4 = p->param[lc_dbg_parm4];
+
+	/*load lc curve*/
+	for (i = 0; i < 63; i++)
+		lc_saturation_curv[i] = p->ve_lc_saturation[i];
+	for (i = 0; i < 12; i++) {
+		lc_yminval_lmt_curv[i] =
+			p->ve_lc_yminval_lmt[i];
+		lc_ypkbv_ymaxval_lmt_curv[i] =
+			p->ve_lc_ypkbv_ymaxval_lmt[i];
+	}
+	for (i = 0; i < 4; i++)
+		lc_ypkbv_ratio_curv[i] = p->ve_lc_ypkbv_ratio[i];
+
+	/*load lc_staturation curve*/
+	lc_wr_reg(lc_saturation_curv, 0x1);
+	/*load lc_yminval_lmt*/
+	lc_wr_reg(lc_yminval_lmt_curv, 0x2);
+	/*load lc_ypkbv_ymaxval_lmt*/
+	lc_wr_reg(lc_ypkbv_ymaxval_lmt_curv, 0x4);
+	/*load lc_ypkbV_ratio*/
+	lc_wr_reg(lc_ypkbv_ratio_curv, 0x8);
 }
 
 static ssize_t amvecm_lc_show(struct class *cla,
