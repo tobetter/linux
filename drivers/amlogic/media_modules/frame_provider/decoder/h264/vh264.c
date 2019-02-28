@@ -2838,9 +2838,27 @@ static int vh264_stop(int mode)
 	return 0;
 }
 
+static void wait_vh264_search_done(void)
+{
+	u32 vld_rp = READ_VREG(VLD_MEM_VIFIFO_RP);
+	int count = 0;
+	do {
+		usleep_range(100, 500);
+		if (vld_rp == READ_VREG(VLD_MEM_VIFIFO_RP))
+			break;
+		if (count > 2000) {
+			pr_info("%s, timeout  count %d vld_rp 0x%x VLD_MEM_VIFIFO_RP 0x%x\n",
+					__func__, count, vld_rp, READ_VREG(VLD_MEM_VIFIFO_RP));
+			break;
+		} else
+			vld_rp = READ_VREG(VLD_MEM_VIFIFO_RP);
+		count++;
+	} while (1);
+}
+
+
 static void error_do_work(struct work_struct *work)
 {
-	mutex_lock(&vh264_mutex);
 
 	/*
 	 * we need to lock vh264_stop/vh264_init.
@@ -2851,8 +2869,9 @@ static void error_do_work(struct work_struct *work)
 	if (atomic_read(&vh264_active)) {
 		amvdec_stop();
 		do {
-			msleep(20);
+			msleep(50);
 		} while (vh264_stream_switching_state != SWITCHING_STATE_OFF);
+		wait_vh264_search_done();
 		vh264_reset  = 1;
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vh264_ppmgr_reset();
@@ -2863,14 +2882,10 @@ static void error_do_work(struct work_struct *work)
 
 		vf_reg_provider(&vh264_vf_prov);
 #endif
-		msleep(30);
 		vh264_prot_init();
-
 		amvdec_start();
 		vh264_reset  = 0;
 	}
-
-	mutex_unlock(&vh264_mutex);
 }
 
 static void stream_switching_done(void)
