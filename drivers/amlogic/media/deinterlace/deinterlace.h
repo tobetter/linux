@@ -75,6 +75,16 @@
 #endif
 #endif
 
+#define IS_VDIN_SRC(src) ( \
+	(src == VFRAME_SOURCE_TYPE_TUNER) || \
+	(src == VFRAME_SOURCE_TYPE_CVBS) || \
+	(src == VFRAME_SOURCE_TYPE_COMP) || \
+	(src == VFRAME_SOURCE_TYPE_HDMI))
+
+#define IS_I_SRC(vftype) (vftype & VIDTYPE_INTERLACE_BOTTOM)
+
+#define IS_COMP_MODE(vftype) (vftype & VIDTYPE_COMPRESS)
+
 enum process_fun_index_e {
 	PROCESS_FUN_NULL = 0,
 	PROCESS_FUN_DI,
