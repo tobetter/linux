@@ -110,6 +110,7 @@ struct meson_i2c {
 	int			count;
 	int			pos;
 	int			error;
+	int			retries;
 
 	spinlock_t		lock;
 	struct completion	done;
@@ -324,6 +325,8 @@ static void meson_i2c_prepare_xfer(struct meson_i2c *i2c)
 
 	if (write)
 		meson_i2c_put_data(i2c, i2c->msg->buf + i2c->pos, i2c->count);
+
+	i2c->retries = 0;
 }
 
 static void meson_i2c_stop(struct meson_i2c *i2c)
@@ -346,7 +349,6 @@ static irqreturn_t meson_i2c_irq(int irqno, void *dev_id)
 
 	spin_lock(&i2c->lock);
 
-	meson_i2c_reset_tokens(i2c);
 	ctrl = readl(i2c->regs + REG_CTRL);
 
 	dev_dbg(i2c->dev, "irq: state %d, pos %d, count %d, ctrl %08x\n",
@@ -360,12 +362,15 @@ static irqreturn_t meson_i2c_irq(int irqno, void *dev_id)
 		 * condition.
 		 */
 		dev_dbg(i2c->dev, "error bit set\n");
-		i2c->error = -ENXIO;
-		i2c->state = STATE_IDLE;
-		complete(&i2c->done);
+		if (++i2c->retries >= i2c->adap.retries) {
+			i2c->error = -ENXIO;
+			i2c->state = STATE_IDLE;
+			complete(&i2c->done);
+		}
 		goto out;
 	}
 
+	meson_i2c_reset_tokens(i2c);
 	switch (i2c->state) {
 	case STATE_READ:
 		if (i2c->count > 0) {
