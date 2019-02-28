@@ -47,6 +47,8 @@
 #include "../utils/firmware.h"
 #include "../../../common/chips/decoder_cpu_ver_info.h"
 
+#define CONSTRAIN_MAX_BUF_NUM
+
 #define SWAP_HEVC_UCODE
 #define DETREFILL_ENABLE
 
@@ -331,6 +333,15 @@ static u32 decode_pic_begin;
 static uint slice_parse_begin;
 static u32 step;
 static bool is_reset;
+
+#ifdef CONSTRAIN_MAX_BUF_NUM
+static u32 run_ready_max_vf_only_num;
+static u32 run_ready_display_q_num;
+	/*0: not check
+	  0xff: work_pic_num
+	  */
+static u32 run_ready_max_buf_num = 0xff;
+#endif
 
 static u32 dynamic_buf_num_margin = 7;
 static u32 buf_alloc_width;
@@ -1420,6 +1431,7 @@ struct hevc_state_s {
 	unsigned char eos;
 	int pic_decoded_lcu_idx;
 	u8 over_decode;
+	u8 empty_flag;
 #endif
 	struct vframe_s vframe_dummy;
 	char *provider_name;
@@ -8466,6 +8478,7 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 		if (hevc->m_ins_flag) {
 			read_decode_info(hevc);
 			if (vdec_frame_based(hw_to_vdec(hevc))) {
+				hevc->empty_flag = 1;
 				goto pic_done;
 			} else {
 				if (
@@ -8491,6 +8504,7 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 			read_decode_info(hevc);
 			if (vdec_frame_based(hw_to_vdec(hevc))) {
 				/*hevc->dec_result = DEC_RESULT_GET_DATA;*/
+				hevc->empty_flag = 1;
 				goto pic_done;
 			} else {
 				hevc->dec_result = DEC_RESULT_AGAIN;
@@ -8516,7 +8530,7 @@ static irqreturn_t vh265_isr_thread_fn(int irq, void *data)
 					hevc->delrefill_check = 2;
 			}
 #endif
-
+			hevc->empty_flag = 0;
 pic_done:
 			if (input_frame_based(hw_to_vdec(hevc)) &&
 				frmbase_cont_bitlevel != 0 &&
@@ -8524,7 +8538,7 @@ pic_done:
 				(hevc->decode_size - (READ_VREG(HEVC_SHIFT_BYTE_COUNT))
 				 >	frmbase_cont_bitlevel)) {
 				/*handle the case: multi pictures in one packet*/
-				hevc_print(hevc, 0,
+				hevc_print(hevc, PRINT_FLAG_VDEC_STATUS,
 				"%s  has more data index= %d, size=0x%x shiftcnt=0x%x)\n",
 				__func__,
 				hevc->decode_idx, hevc->decode_size,
@@ -10308,6 +10322,43 @@ static void timeout_process(struct hevc_state_s *hevc)
 	vdec_schedule_work(&hevc->work);
 }
 
+#ifdef CONSTRAIN_MAX_BUF_NUM
+static int get_vf_ref_only_buf_count(struct hevc_state_s *hevc)
+{
+	struct PIC_s *pic;
+	int i;
+	int count = 0;
+	for (i = 0; i < MAX_REF_PIC_NUM; i++) {
+		pic = hevc->m_PIC[i];
+		if (pic == NULL || pic->index == -1)
+			continue;
+		if (pic->output_mark == 0 && pic->referenced == 0
+			&& pic->output_ready == 1)
+			count++;
+	}
+
+	return count;
+}
+
+static int get_used_buf_count(struct hevc_state_s *hevc)
+{
+	struct PIC_s *pic;
+	int i;
+	int count = 0;
+	for (i = 0; i < MAX_REF_PIC_NUM; i++) {
+		pic = hevc->m_PIC[i];
+		if (pic == NULL || pic->index == -1)
+			continue;
+		if (pic->output_mark != 0 || pic->referenced != 0
+			|| pic->output_ready != 0)
+			count++;
+	}
+
+	return count;
+}
+#endif
+
+
 static unsigned char is_new_pic_available(struct hevc_state_s *hevc)
 {
 	struct PIC_s *new_pic = NULL;
@@ -10654,7 +10705,8 @@ static void vh265_work(struct work_struct *work)
 			READ_VREG(HEVC_PARSER_LCU_START)
 			& 0xffffff;
 
-		if (vdec->master == NULL && vdec->slave == NULL) {
+		if (vdec->master == NULL && vdec->slave == NULL &&
+			hevc->empty_flag == 0) {
 			hevc->over_decode =
 				(READ_VREG(HEVC_SHIFT_STATUS) >> 15) & 0x1;
 			if (hevc->over_decode)
@@ -10919,6 +10971,32 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		PRINT_FLAG_VDEC_DETAIL, "%s=>%d\r\n",
 		__func__, ret);
 	}
+
+#ifdef CONSTRAIN_MAX_BUF_NUM
+	if (hevc->pic_list_init_flag == 3) {
+		if (run_ready_max_vf_only_num > 0 &&
+			get_vf_ref_only_buf_count(hevc) >=
+			run_ready_max_vf_only_num
+			)
+			ret = 0;
+		if (run_ready_display_q_num > 0 &&
+			kfifo_len(&hevc->display_q) >=
+			run_ready_display_q_num)
+			ret = 0;
+
+		/*avoid more buffers consumed when
+		switching resolution*/
+		if (run_ready_max_buf_num == 0xff &&
+			get_used_buf_count(hevc) >=
+			get_work_pic_num(hevc))
+			ret = 0;
+		else if (run_ready_max_buf_num &&
+			get_used_buf_count(hevc) >=
+			run_ready_max_buf_num)
+			ret = 0;
+	}
+#endif
+
 	if (ret)
 		not_run_ready[hevc->index] = 0;
 	else
@@ -11958,6 +12036,17 @@ MODULE_PARM_DESC(max_buf_num, "\n max_buf_num\n");
 
 module_param(buf_alloc_size, uint, 0664);
 MODULE_PARM_DESC(buf_alloc_size, "\n buf_alloc_size\n");
+
+#ifdef CONSTRAIN_MAX_BUF_NUM
+module_param(run_ready_max_vf_only_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_max_vf_only_num, "\n run_ready_max_vf_only_num\n");
+
+module_param(run_ready_display_q_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_display_q_num, "\n run_ready_display_q_num\n");
+
+module_param(run_ready_max_buf_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_max_buf_num, "\n run_ready_max_buf_num\n");
+#endif
 
 #if 0
 module_param(re_config_pic_flag, uint, 0664);

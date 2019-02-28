@@ -60,6 +60,7 @@
 #define I_ONLY_SUPPORT
 #define MIX_STREAM_SUPPORT
 #define G12A_BRINGUP_DEBUG
+#define CONSTRAIN_MAX_BUF_NUM
 
 #include "vavs2.h"
 #define HEVC_SHIFT_LENGTH_PROTECT                  0x313a
@@ -926,6 +927,25 @@ int avs2_alloc_mmu(
 	int bit_depth_10 = (bit_depth == AVS2_BITS_10);
 	int picture_size;
 	int cur_mmu_4k_number, max_frame_num;
+#ifdef DYNAMIC_ALLOC_HEAD
+	unsigned long buf_addr;
+	struct avs2_frame_s *pic = dec->avs2_dec.hc.cur_pic;
+	if (pic->header_adr == 0) {
+		if (decoder_bmmu_box_alloc_buf_phy
+				(dec->bmmu_box,
+				HEADER_BUFFER_IDX(cur_buf_idx),
+				MMU_COMPRESS_HEADER_SIZE,
+				DRIVER_HEADER_NAME,
+				&buf_addr) < 0){
+			avs2_print(dec, 0,
+				"%s malloc compress header failed %d\n",
+				DRIVER_HEADER_NAME, cur_buf_idx);
+			dec->fatal_error |= DECODER_FATAL_ERROR_NO_MEM;
+			return -1;
+		} else
+			pic->header_adr = buf_addr;
+	}
+#endif
 
 	picture_size = compute_losless_comp_body_size(
 		dec, pic_width, pic_height,
@@ -948,7 +968,8 @@ int avs2_alloc_mmu(
 }
 #endif
 
-#ifndef MV_USE_FIXED_BUF
+#if 0
+/*ndef MV_USE_FIXED_BUF*/
 static void dealloc_mv_bufs(struct AVS2Decoder_s *dec)
 {
 	int i;
@@ -1125,6 +1146,57 @@ static int get_free_buf_count(struct AVS2Decoder_s *dec)
 	return count;
 }
 
+#ifdef CONSTRAIN_MAX_BUF_NUM
+static int get_vf_ref_only_buf_count(struct AVS2Decoder_s *dec)
+{
+	struct avs2_decoder *avs2_dec = &dec->avs2_dec;
+	int i;
+	int count = 0;
+	for (i = 0; i < avs2_dec->ref_maxbuffer; i++) {
+		if ((avs2_dec->fref[i]->imgcoi_ref < -256
+#if 0
+			|| abs(avs2_dec->fref[i]->
+				imgtr_fwRefDistance - img->tr) >= 128
+#endif
+				) && avs2_dec->fref[i]->is_output == -1
+				&& avs2_dec->fref[i]->bg_flag == 0
+#ifndef NO_DISPLAY
+				&& avs2_dec->fref[i]->vf_ref > 0
+				&& avs2_dec->fref[i]->to_prepare_disp == 0
+#endif
+				) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+static int get_used_buf_count(struct AVS2Decoder_s *dec)
+{
+	struct avs2_decoder *avs2_dec = &dec->avs2_dec;
+	int i;
+	int count = 0;
+	for (i = 0; i < avs2_dec->ref_maxbuffer; i++) {
+		if ((avs2_dec->fref[i]->imgcoi_ref >= -256
+#if 0
+			|| abs(avs2_dec->fref[i]->
+				imgtr_fwRefDistance - img->tr) >= 128
+#endif
+				) || avs2_dec->fref[i]->is_output != -1
+				|| avs2_dec->fref[i]->bg_flag != 0
+#ifndef NO_DISPLAY
+				|| avs2_dec->fref[i]->vf_ref != 0
+				|| avs2_dec->fref[i]->to_prepare_disp != 0
+#endif
+				) {
+			count++;
+		}
+	}
+
+	return count;
+}
+#endif
 
 int avs2_bufmgr_init(struct AVS2Decoder_s *dec, struct BuffInfo_s *buf_spec_i,
 		struct buff_s *mc_buf_i) {
@@ -1214,6 +1286,14 @@ static u32 dynamic_buf_num_margin;
 static u32 buf_alloc_width;
 static u32 buf_alloc_height;
 static u32 dynamic_buf_num_margin = 7;
+#endif
+#ifdef CONSTRAIN_MAX_BUF_NUM
+static u32 run_ready_max_vf_only_num;
+static u32 run_ready_display_q_num;
+	/*0: not check
+	  0xff: avs2_dec.ref_maxbuffer
+	  */
+static u32 run_ready_max_buf_num = 0xff;
 #endif
 static u32 buf_alloc_depth = 10;
 static u32 buf_alloc_size;
@@ -1798,7 +1878,8 @@ static void init_buff_spec(struct AVS2Decoder_s *dec,
 
 static void uninit_mmu_buffers(struct AVS2Decoder_s *dec)
 {
-#ifndef MV_USE_FIXED_BUF
+#if 0
+/*ndef MV_USE_FIXED_BUF*/
 	dealloc_mv_bufs(dec);
 #endif
 	decoder_mmu_box_free(dec->mmu_box);
@@ -1992,12 +2073,14 @@ static int config_pic(struct AVS2Decoder_s *dec,
 #endif
 
 #ifdef AVS2_10B_MMU
+#ifndef DYNAMIC_ALLOC_HEAD
 	pic->header_adr = decoder_bmmu_box_get_phy_addr(
 			dec->bmmu_box, HEADER_BUFFER_IDX(pic->index));
 
 	avs2_print(dec, AVS2_DBG_BUFMGR_MORE,
 		"buf_size %d, MMU header_adr %d: %ld\n",
 		buf_size, pic->index, pic->header_adr);
+#endif
 #endif
 
 	i = pic->index;
@@ -2036,7 +2119,7 @@ static int config_pic(struct AVS2Decoder_s *dec,
 			dec->mc_buf->buf_end)
 			y_adr = dec->mc_buf->buf_start + i * buf_size;
 		else {*/
-		if (buf_size > 0) {
+		if (buf_size > 0 && pic->cma_alloc_addr == 0) {
 			ret = decoder_bmmu_box_alloc_buf_phy(dec->bmmu_box,
 					VF_BUFFER_IDX(i),
 					buf_size, DRIVER_NAME,
@@ -2172,7 +2255,7 @@ static void init_pic_list(struct AVS2Decoder_s *dec,
 			dec->fatal_error |= DECODER_FATAL_ERROR_NO_MEM;
 			return;
 		}
-
+#ifndef DYNAMIC_ALLOC_HEAD
 	for (i = 0; i < dec->used_buf_num; i++) {
 		unsigned long buf_addr;
 		if (decoder_bmmu_box_alloc_buf_phy
@@ -2187,6 +2270,7 @@ static void init_pic_list(struct AVS2Decoder_s *dec,
 			return;
 		}
 	}
+#endif
 #endif
 	dec->frame_height = avs2_dec->img.height;
 	dec->frame_width = avs2_dec->img.width;
@@ -3765,7 +3849,8 @@ static int avs2_local_init(struct AVS2Decoder_s *dec)
 		(dec->vavs2_amstream_dec_info.height ?
 		dec->vavs2_amstream_dec_info.height :
 		dec->work_space_buf->max_height);
-#ifndef MV_USE_FIXED_BUF
+#if 0
+/*ndef MV_USE_FIXED_BUF*/
 	if (init_mv_buf_list(dec) < 0) {
 		pr_err("%s: init_mv_buf_list fail\n", __func__);
 		return -1;
@@ -4778,12 +4863,9 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 
 			avs2_prepare_display_buf(dec);
 			dec->avs2_dec.hc.cur_pic = NULL;
-#ifdef AVS2_10B_MMU
 			for (ii = 0; ii < dec->avs2_dec.ref_maxbuffer;
 					ii++) {
 				if (dec->avs2_dec.fref[ii]->
-					refered_by_others == 0 &&
-					dec->avs2_dec.fref[ii]->
 					bg_flag == 0 &&
 					dec->avs2_dec.fref[ii]->
 					is_output == -1 &&
@@ -4791,15 +4873,37 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 					mmu_alloc_flag &&
 					dec->avs2_dec.fref[ii]->
 					vf_ref == 0) {
-					dec->avs2_dec.fref[ii]->
-					mmu_alloc_flag = 0;
-					/*release_buffer_4k(
-					dec->avs2_dec.fref[ii]->index);*/
-					decoder_mmu_box_free_idx(dec->mmu_box,
-						dec->avs2_dec.fref[ii]->index);
+					struct avs2_frame_s *pic =
+						dec->avs2_dec.fref[ii];
+					if (dec->avs2_dec.fref[ii]->
+						refered_by_others == 0) {
+#ifdef AVS2_10B_MMU
+						dec->avs2_dec.fref[ii]->
+						mmu_alloc_flag = 0;
+						/*release_buffer_4k(
+						dec->avs2_dec.fref[ii]->index);*/
+						decoder_mmu_box_free_idx(dec->mmu_box,
+							dec->avs2_dec.fref[ii]->index);
+#ifdef DYNAMIC_ALLOC_HEAD
+						decoder_bmmu_box_free_idx(
+							dec->bmmu_box,
+							HEADER_BUFFER_IDX(pic->index));
+						pic->header_adr = 0;
+#endif
+#endif
+#ifndef MV_USE_FIXED_BUF
+						decoder_bmmu_box_free_idx(
+							dec->bmmu_box,
+							MV_BUFFER_IDX(pic->index));
+						pic->mpred_mv_wr_start_addr = 0;
+#endif
+					}
+					decoder_bmmu_box_free_idx(
+						dec->bmmu_box,
+						VF_BUFFER_IDX(pic->index));
+					dec->cma_alloc_addr = 0;
 				}
 			}
-#endif
 		}
 	}
 
@@ -5050,6 +5154,29 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 				pr_err("can't alloc need mmu1,idx %d ret =%d\n",
 					dec->avs2_dec.hc.cur_pic->index,
 					ret);
+		}
+#endif
+
+#ifndef MV_USE_FIXED_BUF
+		if (ret >= 0 &&
+			dec->avs2_dec.hc.cur_pic->
+			mpred_mv_wr_start_addr == 0) {
+			unsigned long buf_addr;
+			unsigned mv_buf_size = 0x120000;
+			int i = dec->avs2_dec.hc.cur_pic->index;
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+				mv_buf_size = 0x120000 * 4;
+			if (decoder_bmmu_box_alloc_buf_phy
+			(dec->bmmu_box,
+			MV_BUFFER_IDX(i),
+			mv_buf_size,
+			DRIVER_NAME,
+			&buf_addr) < 0)
+				ret = -1;
+			else
+				dec->avs2_dec.hc.cur_pic->
+				mpred_mv_wr_start_addr
+				= buf_addr;
 		}
 #endif
 		if (ret < 0) {
@@ -6292,6 +6419,28 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		get_free_buf_count(dec) >=
 		run_ready_min_buf_num)
 		ret = 1;
+#ifdef CONSTRAIN_MAX_BUF_NUM
+	if (dec->pic_list_init_flag) {
+		if (run_ready_max_vf_only_num > 0 &&
+			get_vf_ref_only_buf_count(dec) >=
+			run_ready_max_vf_only_num
+			)
+			ret = 0;
+		if (run_ready_display_q_num > 0 &&
+			kfifo_len(&dec->display_q) >=
+			run_ready_display_q_num)
+			ret = 0;
+
+		if (run_ready_max_buf_num == 0xff &&
+			get_used_buf_count(dec) >=
+			dec->avs2_dec.ref_maxbuffer)
+			ret = 0;
+		else if (run_ready_max_buf_num &&
+			get_used_buf_count(dec) >=
+			run_ready_max_buf_num)
+			ret = 0;
+	}
+#endif
 	if (ret)
 		not_run_ready[dec->index] = 0;
 	else
@@ -7024,6 +7173,17 @@ MODULE_PARM_DESC(max_buf_num, "\n max_buf_num\n");
 
 module_param(dynamic_buf_num_margin, uint, 0664);
 MODULE_PARM_DESC(dynamic_buf_num_margin, "\n dynamic_buf_num_margin\n");
+
+#ifdef CONSTRAIN_MAX_BUF_NUM
+module_param(run_ready_max_vf_only_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_max_vf_only_num, "\n run_ready_max_vf_only_num\n");
+
+module_param(run_ready_display_q_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_display_q_num, "\n run_ready_display_q_num\n");
+
+module_param(run_ready_max_buf_num, uint, 0664);
+MODULE_PARM_DESC(run_ready_max_buf_num, "\n run_ready_max_buf_num\n");
+#endif
 
 module_param(mv_buf_margin, uint, 0664);
 MODULE_PARM_DESC(mv_buf_margin, "\n mv_buf_margin\n");
