@@ -995,9 +995,9 @@
 			};
 		};
 		ddr_thermal: ddr_thermal {
-			polling-delay = <1000>;
-			polling-delay-passive = <250>;
-			sustainable-power = <1680>;
+			polling-delay = <2000>;
+			polling-delay-passive = <1000>;
+			sustainable-power = <1322>;
 			thermal-sensors = <&d_tsensor 1>;
 			trips {
 				dswitch_on: trip-point@0 {
@@ -1023,9 +1023,9 @@
 			};
 		};
 		sar_thermal: sar_thermal {
-			polling-delay = <1000>;
-			polling-delay-passive = <250>;
-			sustainable-power = <1680>;
+			polling-delay = <2000>;
+			polling-delay-passive = <1000>;
+			sustainable-power = <1322>;
 			thermal-sensors = <&s_tsensor 2>;
 			trips {
 				sswitch_on: trip-point@0 {
