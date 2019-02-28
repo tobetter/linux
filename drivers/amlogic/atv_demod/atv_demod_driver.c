@@ -45,7 +45,7 @@
 #include "atvauddemod_func.h"
 
 
-#define AMLATVDEMOD_VER "V2.06"
+#define AMLATVDEMOD_VER "V2.07"
 
 struct aml_atvdemod_device *amlatvdemod_devp;
 
@@ -624,7 +624,7 @@ static int aml_atvdemod_probe(struct platform_device *pdev)
 
 		pr_info("audio_reg_base = 0x%p.\n", dev->audio_reg_base);
 	} else if (is_meson_tl1_cpu()) {
-		dev->audio_reg_base = ioremap(round_down(0xff600340, 0x3), 4);
+		dev->audio_reg_base = ioremap(round_down(0xff60074c, 0x3), 4);
 
 		pr_info("audio_reg_base = 0x%p.\n", dev->audio_reg_base);
 	}

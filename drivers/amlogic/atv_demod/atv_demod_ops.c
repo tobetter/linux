@@ -815,6 +815,26 @@ static int atvdemod_fe_afc_closer(struct v4l2_frontend *v4l2_fe, int minafcfreq,
 			}
 		}
 
+		/* After correcting the frequency offset success,
+		 * need to set up tuner.
+		 */
+		if (fe->ops.tuner_ops.set_analog_params) {
+			params.frequency = p->frequency;
+			params.mode = p->afc_range;
+			params.audmode = p->audmode;
+			params.std = p->std;
+			fe->ops.tuner_ops.set_analog_params(fe,
+					&params);
+
+			if (tuner_id == AM_TUNER_SI2151 ||
+				tuner_id == AM_TUNER_SI2159 ||
+				tuner_id == AM_TUNER_R840 ||
+				tuner_id == AM_TUNER_R842)
+				usleep_range(10 * 1000, 10 * 1000 + 100);
+			else if (tuner_id == AM_TUNER_MXL661)
+				usleep_range(30 * 1000, 30 * 1000 + 100);
+		}
+
 		freq_success = p->frequency;
 		ktime_get_ts(&success_time);
 		pr_dbg("[%s] get afc %d khz done, freq %u.\n",
