@@ -252,7 +252,8 @@ static void atv_demod_set_params(struct dvb_frontend *fe,
 	 * but when the input signal frequency offset -0.25MHz,
 	 * demod will be unlocked. That's very strange.
 	 */
-	if (reconfig || amlatvdemod_devp->std != p->param.std ||
+	if (reconfig || !priv->scanning ||
+		amlatvdemod_devp->std != p->param.std ||
 		amlatvdemod_devp->audmode != p->param.audmode ||
 		amlatvdemod_devp->if_freq != p->if_freq ||
 		amlatvdemod_devp->if_inv != p->if_inv ||
@@ -653,9 +654,16 @@ static void atvdemod_fe_try_analog_format(struct v4l2_frontend *v4l2_fe,
 #endif
 	} else {
 		/* V4L2_COLOR_STD_PAL */
-		amlatvdemod_set_std(AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK);
-		broad_std = aml_audiomode_autodet(v4l2_fe);
-		audio = atvdemod_fmt_2_v4l2_std(broad_std);
+		if (cvbs_std == TVIN_SIG_FMT_CVBS_PAL_M ||
+			cvbs_std == TVIN_SIG_FMT_CVBS_PAL_CN) {
+			broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M;
+			audio = V4L2_STD_PAL_M;
+		} else {
+			amlatvdemod_set_std(
+					AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK);
+			broad_std = aml_audiomode_autodet(v4l2_fe);
+			audio = atvdemod_fmt_2_v4l2_std(broad_std);
+		}
 #if 0 /* Why do this to me? We need support PAL_M.*/
 		if (audio == V4L2_STD_PAL_M) {
 			audio = atvdemod_fmt_2_v4l2_std(broad_std_except_pal_m);

@@ -920,19 +920,14 @@ void tvafe_cvd2_get_signal_status(struct tvafe_cvd2_s *cvd2)
 		!cvd2->hw_data[2].secam_detected)
 		cvd2->hw.secam_detected = false;
 
-	if (cnt_dbg_en) {
-
-		tvafe_pr_info("[%d]:cvd2->hw.acc3xx_cnt =%d,cvd2->hw.acc4xx_cnt=%d,acc425_cnt=%d\n",
-			__LINE__,
-		cvd2->hw.acc3xx_cnt, cvd2->hw.acc4xx_cnt, cvd2->hw.acc425_cnt);
-		tvafe_pr_info("[%d]:cvd2->hw.fsc_358=%d,cvd2->hw.fsc_425=%d,cvd2->hw.fsc_443 =%d\n",
-			__LINE__,
-		cvd2->hw.fsc_358, cvd2->hw.fsc_425, cvd2->hw.fsc_443);
-		}
+	if (cnt_dbg_en & 1)
+		tvafe_pr_info("acc4xx_cnt=%d,acc425_cnt=%d,acc3xx_cnt=%d,acc358_cnt=%d\n",
+			cvd2->hw.acc4xx_cnt, cvd2->hw.acc425_cnt,
+			cvd2->hw.acc3xx_cnt, cvd2->hw.acc358_cnt);
 	if (cvd2->hw.acc3xx_cnt > CNT_VLD_TH) {
 
 		if (cvd2->hw.acc358_cnt >
-			(cvd2->hw.acc3xx_cnt - (cvd2->hw.acc3xx_cnt>>2))) {
+			(cvd2->hw.acc3xx_cnt - (cvd2->hw.acc3xx_cnt>>3))) {
 
 			cvd2->hw.fsc_358 = true;
 			cvd2->hw.fsc_425 = false;
@@ -958,8 +953,8 @@ void tvafe_cvd2_get_signal_status(struct tvafe_cvd2_s *cvd2)
 	}
 	if (++ cvd2->hw_data_cur >= 3)
 		cvd2->hw_data_cur = 0;
-	if (cnt_dbg_en)
-		tvafe_pr_info("[%d]:cvd2->hw.fsc_358=%d,cvd2->hw.fsc_425=%d,cvd2->hw.fsc_443 =%d\n",
+	if (cnt_dbg_en & 2)
+		tvafe_pr_info("[%d]:hw.fsc_358=%d,hw.fsc_425=%d,hw.fsc_443 =%d\n",
 		__LINE__, cvd2->hw.fsc_358,
 		cvd2->hw.fsc_425, cvd2->hw.fsc_443);
 
