@@ -45,7 +45,7 @@
 #include "vdin_vf.h"
 #include "vdin_regs.h"
 
-#define VDIN_VER "Ref.2018/11/21a"
+#define VDIN_VER "Ref.2019/03/01"
 
 /*the counter of vdin*/
 #define VDIN_MAX_DEVS			2
@@ -361,6 +361,8 @@ struct vdin_v4l2_param_s {
 	int height;
 	int fps;
 };
+
+extern unsigned int tl1_vdin1_preview_flag;
 
 extern struct vframe_provider_s *vf_get_provider_by_name(
 		const char *provider_name);

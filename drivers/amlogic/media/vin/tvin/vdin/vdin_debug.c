@@ -953,7 +953,7 @@ static void vdin_dump_state(struct vdin_dev_s *devp)
 				devp->afbce_info->frame_body_size);
 		}
 	}
-
+	pr_info("tl1 preview flag = %d\n", tl1_vdin1_preview_flag);
 	pr_info("Vdin driver version :  %s\n", VDIN_VER);
 }
 
