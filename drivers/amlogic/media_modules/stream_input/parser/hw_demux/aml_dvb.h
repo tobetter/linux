@@ -133,14 +133,16 @@ struct aml_filter {
 #define DSC_SET_AES_ODD  8
 #define DSC_FROM_KL      16
 
+#define DSC_KEY_SIZE_MAX 16
+
 struct aml_dsc_channel {
 	int                  pid;
-	u8                   even[8];
-	u8                   odd[8];
-	u8                   aes_even[16];
-	u8                   aes_odd[16];
+	u8                   even[DSC_KEY_SIZE_MAX];
+	u8                   odd[DSC_KEY_SIZE_MAX];
+	u8                   even_iv[DSC_KEY_SIZE_MAX];
+	u8                   odd_iv[DSC_KEY_SIZE_MAX];
 	int                  used;
-	int                  flags;
+	int                  set;
 	int                  id;
 	struct aml_dsc      *dsc;
 	int                  work_mode;

@@ -341,7 +341,7 @@ static void dsc_channel_alloc(struct aml_dsc *dsc, int id, unsigned int pid)
 	ch->work_mode = -1;
 	ch->id    = id;
 	ch->pid   = pid;
-	ch->flags = 0;
+	ch->set = 0;
 	ch->dsc   = dsc;
 	ch->aes_mode = -1;
 
@@ -358,7 +358,7 @@ static void dsc_channel_free(struct aml_dsc_channel *ch)
 	dsc_release();
 
 	ch->pid   = 0x1fff;
-	ch->flags = 0;
+	ch->set = 0;
 	ch->work_mode = -1;
 	ch->aes_mode  = -1;
 }
@@ -373,15 +373,22 @@ static void dsc_reset(struct aml_dsc *dsc)
 
 static int get_dsc_key_work_mode(enum ca_cw_type cw_type)
 {
-	int work_mode = 0;
+	int work_mode = DVBCSA_MODE;
 
-	if (cw_type == CA_CW_DVB_CSA_EVEN || cw_type == CA_CW_DVB_CSA_ODD)
+	switch (cw_type) {
+	case CA_CW_DVB_CSA_EVEN:
+	case CA_CW_DVB_CSA_ODD:
 		work_mode = DVBCSA_MODE;
-	else if (cw_type == CA_CW_AES_EVEN ||
-		cw_type == CA_CW_AES_ODD ||
-		cw_type == CA_CW_AES_EVEN_IV ||
-		cw_type == CA_CW_AES_ODD_IV) {
+		break;
+	case CA_CW_AES_EVEN:
+	case CA_CW_AES_ODD:
+	case CA_CW_AES_ODD_IV:
+	case CA_CW_AES_EVEN_IV:
+	case CA_CW_DES_EVEN:
+	case CA_CW_DES_ODD:
 		work_mode = CIPLUS_MODE;
+	default:
+		break;
 	}
 	return work_mode;
 }
@@ -409,6 +416,8 @@ static void dsc_ciplus_switch_check(struct aml_dsc_channel *ch,
 			pr_error("Dsc work mode changed,");
 			pr_error("but there are still some channels");
 			pr_error("run in different mode\n");
+			pr_error("mod_pre[%d] -> mod[%d] ch[%d]\n",
+				pch->work_mode, work_mode, i);
 		}
 	}
 }
@@ -424,32 +433,28 @@ static int dsc_set_cw(struct aml_dsc *dsc, struct ca_descr_ex *d)
 
 	switch (d->type) {
 	case CA_CW_DVB_CSA_EVEN:
-		memcpy(ch->even, d->cw, 8);
-		ch->flags &= ~(DSC_SET_AES_EVEN|DSC_SET_AES_ODD);
-		ch->flags |= DSC_SET_EVEN;
+	case CA_CW_AES_EVEN:
+	case CA_CW_DES_EVEN:
+		memcpy(ch->even, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	case CA_CW_DVB_CSA_ODD:
-		memcpy(ch->odd, d->cw, 8);
-		ch->flags &= ~(DSC_SET_AES_EVEN|DSC_SET_AES_ODD);
-		ch->flags |= DSC_SET_ODD;
-		break;
-	case CA_CW_AES_EVEN:
-		memcpy(ch->aes_even, d->cw, 16);
-		ch->flags &= ~(DSC_SET_EVEN|DSC_SET_ODD);
-		ch->flags |= DSC_SET_AES_EVEN;
-		break;
 	case CA_CW_AES_ODD:
-		memcpy(ch->aes_odd, d->cw, 16);
-		ch->flags &= ~(DSC_SET_EVEN|DSC_SET_ODD);
-		ch->flags |= DSC_SET_AES_ODD;
+	case CA_CW_DES_ODD:
+		memcpy(ch->odd, d->cw, DSC_KEY_SIZE_MAX);
+		break;
+	case CA_CW_AES_EVEN_IV:
+		memcpy(ch->even_iv, d->cw, DSC_KEY_SIZE_MAX);
+		break;
+	case CA_CW_AES_ODD_IV:
+		memcpy(ch->odd_iv, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	default:
 		break;
 	}
 
-	if (d->flags & CA_CW_FROM_KL)
-		ch->flags = DSC_FROM_KL;
+	ch->set |= (1 << d->type) | (d->flags << 24);
 
+	/*do key set*/
 	dsc_set_key(ch, d->flags, d->type, d->cw);
 	dsc_ciplus_switch_check(ch, d->type);
 
@@ -714,7 +719,7 @@ static int aml_dvb_dsc_init(struct aml_dvb *advb,
 	for (i = 0; i < DSC_COUNT; i++) {
 		dsc->channel[i].id    = i;
 		dsc->channel[i].used  = 0;
-		dsc->channel[i].flags = 0;
+		dsc->channel[i].set = 0;
 		dsc->channel[i].pid   = 0x1fff;
 		dsc->channel[i].dsc   = dsc;
 	}
@@ -890,8 +895,6 @@ static ssize_t dsc##i##_store_source(struct class *class,  \
 	else \
 		dst = src; \
 	aml_dsc_hw_set_source(&aml_dvb_device.dsc[i], src, dst);\
-	if (i == 0) \
-		aml_ciplus_hw_set_source(src); \
 	return size;\
 }
 
