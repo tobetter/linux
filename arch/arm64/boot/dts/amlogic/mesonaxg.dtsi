@@ -467,6 +467,16 @@
 				clock-names = "clk_i2c";
 				clock-frequency = <100000>;
 			};
+
+			irblaster: meson-irblaster@c0 {
+				compatible = "amlogic, aml_irblaster";
+				reg = <0x0 0xc0 0x0 0xc>,
+					<0x0 0x40 0x0 0x4>;
+				#irblaster-cells = <2>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&irblaster_pins>;
+				status = "disabled";
+			};
 		};/* end of aobus */
 
 		periphs: periphs@ff634400 {
@@ -740,16 +750,6 @@
 			dev_name = "aml_sha_dma";
 			status = "okay";
 		};
-	};
-
-	irblaster: meson-irblaster {
-		compatible = "amlogic, meson_irblaster";
-		reg = <0x0 0xff8000c0 0x0 0x10>,
-			<0x0 0xff800040 0x0 0x4>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&irblaster_pins>;
-		interrupts = <0 198 1>;
-		status = "disabled";
 	};
 
 	saradc:saradc {

@@ -838,12 +838,12 @@
 				status = "disabled";
 			};
 
-			meson-irblaster {
-				compatible = "amlogic, am_irblaster";
-				dev_name = "meson-irblaster";
-				status = "disable";
-				pinctrl-names = "default";
-				pinctrl-0 = <&irblaster_pins>;
+			irblaster: meson-irblaster@c0 {
+				compatible = "amlogic, aml_irblaster";
+				reg = <0xc0 0xc>,
+					<0x40 0x4>;
+				#irblaster-cells = <2>;
+				status = "disabled";
 			};
 
 
@@ -1024,6 +1024,13 @@
 	irblaster_pins:irblaster_pin {
 		mux {
 			groups = "remote_out_ao2";
+			function = "ir_out";
+		};
+	};
+
+	irblaster_pins1:irblaster_pin1 {
+		mux {
+			groups = "remote_out_ao6";
 			function = "ir_out";
 		};
 	};
