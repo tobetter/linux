@@ -103,7 +103,8 @@ struct aml_tdm {
 	struct clk *clk;
 	struct clk *clk_gate;
 	struct clk *mclk;
-	struct clk *samesrc_sysclk;
+	struct clk *samesrc_srcpll;
+	struct clk *samesrc_clk;
 	bool contns_clk;
 	unsigned int id;
 	/* bclk src selection */
@@ -761,9 +762,16 @@ static int aml_dai_tdm_hw_params(struct snd_pcm_substream *substream,
 			sharebuffer_get_mclk_fs_ratio(p_tdm->samesource_sel,
 				&mux, &ratio);
 			pr_info("samesource sysclk:%d\n", rate * ratio * mux);
-			if (p_tdm->samesrc_sysclk)
-				clk_set_rate(p_tdm->samesrc_sysclk,
+			if (!IS_ERR(p_tdm->samesrc_srcpll)) {
+				clk_set_rate(p_tdm->samesrc_srcpll,
 					rate * ratio * mux);
+				clk_prepare_enable(p_tdm->samesrc_srcpll);
+			}
+			if (!IS_ERR(p_tdm->samesrc_clk)) {
+				clk_set_rate(p_tdm->samesrc_clk,
+					rate * ratio);
+				clk_prepare_enable(p_tdm->samesrc_clk);
+			}
 	}
 
 	if (!p_tdm->contns_clk && !IS_ERR(p_tdm->mclk)) {
@@ -1338,12 +1346,25 @@ static int aml_tdm_platform_probe(struct platform_device *pdev)
 		if (ret < 0)
 			p_tdm->samesource_sel = -1;
 		else {
-			p_tdm->samesrc_sysclk = devm_clk_get(&pdev->dev,
-				"samesource_sysclk");
-			if (IS_ERR(p_tdm->samesrc_sysclk)) {
+			p_tdm->samesrc_srcpll = devm_clk_get(&pdev->dev,
+				"samesource_srcpll");
+			if (IS_ERR(p_tdm->samesrc_srcpll)) {
 				dev_err(&pdev->dev,
-					"Can't retrieve samesrc_sysclk clock\n");
-				return PTR_ERR(p_tdm->samesrc_sysclk);
+					"Can't retrieve samesrc_srcpll clock\n");
+				return PTR_ERR(p_tdm->samesrc_srcpll);
+			}
+			p_tdm->samesrc_clk = devm_clk_get(&pdev->dev,
+				"samesource_clk");
+			if (IS_ERR(p_tdm->samesrc_clk)) {
+				dev_err(&pdev->dev,
+					"Can't retrieve samesrc_clk clock\n");
+				return PTR_ERR(p_tdm->samesrc_clk);
+			}
+			ret = clk_set_parent(p_tdm->samesrc_clk,
+				p_tdm->samesrc_srcpll);
+			if (ret) {
+				dev_err(dev, "can't set samesource clock\n");
+				return ret;
 			}
 			pr_info("TDM id %d samesource_sel:%d\n",
 				p_tdm->id,

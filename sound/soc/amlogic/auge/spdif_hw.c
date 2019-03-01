@@ -391,8 +391,8 @@ void spdifout_to_hdmitx_ctrl(int spdif_index)
 		| spdif_index << 0 /* spdif_clk */
 	);
 }
-
-void spdifout_clk_ctrl(int spdif_id, bool is_enable)
+#if 0
+static void spdifout_clk_ctrl(int spdif_id, bool is_enable)
 {
 	unsigned int offset, reg;
 
@@ -402,7 +402,7 @@ void spdifout_clk_ctrl(int spdif_id, bool is_enable)
 	/* select : mpll 0, 24m, so spdif clk:6m */
 	audiobus_write(reg, is_enable << 31 | 0x0 << 24 | 0x3 << 0);
 }
-
+#endif
 static void spdifout_fifo_ctrl(int spdif_id,
 	int fifo_id, int bitwidth, int channels)
 {
@@ -483,10 +483,6 @@ void spdifout_samesource_set(int spdif_index, int fifo_id,
 		spdif_id = 1;
 	else
 		spdif_id = 0;
-
-	/* clk for spdif_b is always on */
-	/*if (!spdif_id)*/
-		//spdifout_clk_ctrl(spdif_id, /*is_enable*/true);
 
 	if (is_enable)
 		spdifout_fifo_ctrl(spdif_id, fifo_id, bitwidth, channels);
@@ -623,16 +619,13 @@ void spdifout_play_with_zerodata(unsigned int spdif_id)
 			src0_sel = 3;
 
 		/* spdif clk */
-		spdifout_clk_ctrl(spdif_id, true);
-
+		//spdifout_clk_ctrl(spdif_id, true);
+		/* spdif to hdmitx */
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 		/* ODROID spdif_b only to hdmitx */
 		if (spdif_id == 1)
-			spdifout_to_hdmitx_ctrl(spdif_id);
-#else
-		/* spdif to hdmitx */
-		spdifout_to_hdmitx_ctrl(spdif_id);
 #endif
+		spdifout_to_hdmitx_ctrl(spdif_id);
 
 		/* spdif ctrl */
 		spdifout_fifo_ctrl(spdif_id,

@@ -937,8 +937,8 @@ int aml_check_sharebuffer_valid(struct frddr *fr, int ss_sel)
 			&& (frddrs[i].fifo_id != current_fifo_id)
 			&& (frddrs[i].dest == ss_sel)) {
 
-			pr_info(" frddr:%d, ss_sel:%d used, invalid for share buffer\n",
-				i,
+			pr_info("%s, ss_sel:%d used, not for share buffer at same time\n",
+				__func__,
 				ss_sel);
 			ret = 0;
 			break;
