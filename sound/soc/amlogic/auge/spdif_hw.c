@@ -117,6 +117,22 @@ void aml_spdif_mute(
 	}
 }
 
+void aml_spdifout_mute_without_actrl(
+		int index,
+		bool is_mute)
+{
+	unsigned int offset, reg;
+	int mute_lr = 0;
+
+	if (is_mute)
+		mute_lr = 0x3;
+
+	offset = EE_AUDIO_SPDIFOUT_B_CTRL0 - EE_AUDIO_SPDIFOUT_CTRL0;
+	reg = EE_AUDIO_SPDIFOUT_CTRL0 + offset * index;
+
+	audiobus_update_bits(reg, 0x3 << 21, mute_lr << 21);
+}
+
 void aml_spdif_arb_config(struct aml_audio_controller *actrl)
 {
 	/* config ddr arb */
@@ -248,8 +264,8 @@ void aml_spdif_fifo_ctrl(
 		reg = EE_AUDIO_SPDIFOUT_CTRL0 + offset * index;
 		aml_audiobus_update_bits(actrl,
 			reg,
-			0x1<<29|0x1<<28|0x3<<21|0x1<<20|0x1<<19|0xff<<4,
-			1<<29|1<<28|0x0<<21|0<<20|0<<19|0x3<<4);
+			0x1<<29|0x1<<28|0x1<<20|0x1<<19|0xff<<4,
+			1<<29|1<<28|0<<20|0<<19|0x3<<4);
 
 		offset = EE_AUDIO_SPDIFOUT_B_CTRL1 - EE_AUDIO_SPDIFOUT_CTRL1;
 		reg = EE_AUDIO_SPDIFOUT_CTRL1 + offset * index;
@@ -422,8 +438,8 @@ static void spdifout_fifo_ctrl(int spdif_id,
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL0 - EE_AUDIO_SPDIFOUT_CTRL0;
 	reg = EE_AUDIO_SPDIFOUT_CTRL0 + offset * spdif_id;
 	audiobus_update_bits(reg,
-		0x3<<21|0x1<<20|0x1<<19|0xff<<4,
-		0x0<<21|0<<20|0<<19|chmask<<4);
+		0x1<<20|0x1<<19|0xff<<4,
+		0<<20|0<<19|chmask<<4);
 
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL1 - EE_AUDIO_SPDIFOUT_CTRL1;
 	reg = EE_AUDIO_SPDIFOUT_CTRL1 + offset * spdif_id;
@@ -467,7 +483,7 @@ void spdifout_enable(int spdif_id, bool is_enable)
 
 	if (!is_enable) {
 		/* share buffer, spdif should be active, so mute it */
-		audiobus_update_bits(reg, 0x3 << 21, 0x3 << 21);
+		/*audiobus_update_bits(reg, 0x3 << 21, 0x3 << 21);*/
 		return;
 	}
 

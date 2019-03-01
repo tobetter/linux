@@ -1187,6 +1187,9 @@ static int aml_dai_spdif_trigger(struct snd_pcm_substream *substream, int cmd,
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "S/PDIF Playback enable\n");
 			aml_frddr_enable(p_spdif->fddr, 1);
+			udelay(100);
+			aml_spdif_mute(p_spdif->actrl,
+				substream->stream, p_spdif->id, false);
 		} else {
 			dev_info(substream->pcm->card->dev, "S/PDIF Capture enable\n");
 			aml_toddr_enable(p_spdif->tddr, 1);

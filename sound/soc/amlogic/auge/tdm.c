@@ -40,7 +40,8 @@
 #include "tdm_hw.h"
 #include "sharebuffer.h"
 #include "vad.h"
-#include "spdif.h"
+#include "spdif_hw.h"
+
 
 /*#define __PTM_TDM_CLK__*/
 
@@ -547,13 +548,23 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 				sharebuffer_trigger(cmd, p_tdm->samesource_sel);
 			}
 			aml_frddr_enable(p_tdm->fddr, 1);
+			aml_tdm_enable(p_tdm->actrl,
+				substream->stream, p_tdm->id, true);
+			udelay(100);
+			aml_tdm_mute_playback(p_tdm->actrl, p_tdm->id, false);
+			if (p_tdm->chipinfo
+				&& p_tdm->chipinfo->same_src_fn
+				&& (p_tdm->samesource_sel >= 0)
+				&& (aml_check_sharebuffer_valid(p_tdm->fddr,
+						p_tdm->samesource_sel))) {
+				aml_spdifout_mute_without_actrl(0, false);
+			}
 		} else {
 			dev_info(substream->pcm->card->dev, "tdm capture enable\n");
 			aml_toddr_enable(p_tdm->tddr, 1);
+			aml_tdm_enable(p_tdm->actrl,
+				substream->stream, p_tdm->id, true);
 		}
-		aml_tdm_enable(p_tdm->actrl,
-			substream->stream, p_tdm->id, true);
-
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -575,13 +586,13 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 				0, substream->runtime->dma_bytes);
 			mdelay(3);
 			aml_frddr_enable(p_tdm->fddr, 0);
-			/* share buffer trigger */
+			aml_tdm_mute_playback(p_tdm->actrl, p_tdm->id, true);
 			if (p_tdm->chipinfo
 				&& p_tdm->chipinfo->same_src_fn
 				&& (p_tdm->samesource_sel >= 0)
 				&& (aml_check_sharebuffer_valid(p_tdm->fddr,
 						p_tdm->samesource_sel))) {
-				sharebuffer_trigger(cmd, p_tdm->samesource_sel);
+				aml_spdifout_mute_without_actrl(0, true);
 			}
 		} else {
 			dev_info(substream->pcm->card->dev, "tdm capture stop\n");
@@ -1096,7 +1107,7 @@ static int aml_dai_tdm_mute_stream(struct snd_soc_dai *cpu_dai,
 
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		pr_debug("tdm playback mute: %d\n", mute);
-		aml_tdm_mute_playback(p_tdm->actrl, p_tdm->id, mute);
+		//aml_tdm_mute_playback(p_tdm->actrl, p_tdm->id, mute);
 	} else if (stream == SNDRV_PCM_STREAM_CAPTURE) {
 		pr_debug("tdm capture mute: %d\n", mute);
 		aml_tdm_mute_capture(p_tdm->actrl, p_tdm->id, mute);

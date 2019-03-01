@@ -40,6 +40,10 @@ extern void aml_spdif_mute(
 	int index,
 	bool is_mute);
 
+extern void aml_spdifout_mute_without_actrl(
+	int index,
+	bool is_mute);
+
 extern void aml_spdif_arb_config(struct aml_audio_controller *actrl);
 
 extern int aml_spdifin_status_check(
