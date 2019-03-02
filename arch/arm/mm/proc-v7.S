@@ -79,7 +79,9 @@ ENDPROC(cpu_v7_do_idle)
 ENTRY(cpu_v7_dcache_clean_area)
 	ALT_SMP(W(nop))			@ MP extensions imply L1 PTW
 	ALT_UP_B(1f)
+#ifndef CONFIG_AMLOGIC_MODIFY
 	ret	lr
+#endif
 1:	dcache_line_size r2, r3
 2:	mcr	p15, 0, r0, c7, c10, 1		@ clean D entry
 	add	r0, r0, r2

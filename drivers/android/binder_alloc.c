@@ -185,6 +185,152 @@ struct binder_buffer *binder_alloc_prepare_to_free(struct binder_alloc *alloc,
 	return buffer;
 }
 
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+static unsigned long check_range(struct binder_alloc *alloc, void *end)
+{
+	unsigned long size;
+
+	size = (unsigned long)end - (unsigned long)alloc->buffer;
+	if (size > PAGE_SIZE && size > alloc->mapped_size) {
+		pr_debug("%s, %d, base:%p, end:%p, size:%ld, task:%d %s\n",
+			__func__, __LINE__, alloc->buffer, end, size,
+			current->pid, current->comm);
+		return size;
+	}
+	return 0;
+}
+
+static int move_vma_mapping(void *old, void *new_addr, unsigned long size)
+{
+	struct page *page, *pages[2] = {};
+	unsigned long addr, end, new, moved = 0;
+	int ret;
+
+	addr = (unsigned long)old;
+	end  = (unsigned long)old + size;
+	new  = (unsigned long)new_addr;
+	for (; addr < end; addr += PAGE_SIZE) {
+		page = vmalloc_to_page((void *)addr);
+		if (!page) {
+			new += PAGE_SIZE;
+			continue;
+		}
+		/* Make sure cache same for other address */
+		cpu_ca8_dcache_clean_area((void *)addr, PAGE_SIZE);
+		pages[0] = page;
+		ret = map_kernel_range_noflush(new, PAGE_SIZE,
+					       PAGE_KERNEL, pages);
+		pr_debug("%s, addr:%lx->%lx, old:%p, new:%p, page:%lx %p %p\n",
+			__func__, addr, new, old, new_addr,
+			page_to_pfn(page), pages[0], pages[1]);
+		flush_cache_vmap(addr, addr + PAGE_SIZE);
+		new += PAGE_SIZE;
+		moved++;
+		if (ret < 0)
+			return ret;
+	}
+	return moved;
+}
+
+static void free_back_buffer(struct binder_alloc *alloc)
+{
+	int i;
+	void *p;
+
+	for (i = 0; i < MAX_BUFFER; i++) {
+		p = alloc->back_buffer[i];
+		if (p && p != alloc->buffer) {
+			vfree(p);
+			pr_debug("free alloc %p, buffer:%p@%d\n", alloc, p, i);
+		}
+	}
+}
+
+static unsigned long get_new_size(unsigned long curr_size,
+			   unsigned long max_size, int next_step)
+{
+	int order, step;
+	long next_size;
+
+	order = get_order(max_size);
+	step  = (order + MAX_BUFFER / 2) / MAX_BUFFER;
+	next_step += 1;
+	next_size = (1 << (next_step * step + PAGE_SHIFT));
+	if (next_size <= curr_size)
+		return curr_size + PAGE_SIZE * 4;
+	return next_size;
+}
+
+static int try_to_replace_vmap(struct binder_alloc *alloc,
+			       unsigned long new_sz,
+			       void **start, void **endp)
+{
+	unsigned long max_size, diff, size;
+	unsigned long *old_buffer;
+	struct binder_buffer *buffer;
+	struct vm_struct *area;
+	int ret, i;
+
+	for (i = 0; i < MAX_BUFFER; i++) {
+		if (!alloc->back_buffer[i])
+			break;
+	}
+
+	if (i == MAX_BUFFER) {
+		pr_info("max buffer:%d, new_sz:%lx, buffer:%p %p %p %p\n",
+			i, new_sz, alloc->back_buffer[0],
+			alloc->back_buffer[1], alloc->back_buffer[2],
+			alloc->back_buffer[3]);
+		dump_stack();
+		return -ENOMEM;
+	}
+
+	max_size = alloc->vma->vm_end - alloc->vma->vm_start;
+	size     = get_new_size(new_sz, max_size, i);
+	if (size >= max_size)
+		size = max_size;
+	area = get_vm_area(size, VM_ALLOC | VM_NO_GUARD);
+	if (area == NULL) {
+		pr_err("%s, get vmalloc size:%lx failed\n", __func__, size);
+		return -ENOMEM;
+	}
+
+	ret = move_vma_mapping(alloc->buffer, area->addr, alloc->mapped_size);
+	pr_debug("%s, move %p:%p, ret:%d, vm size:%x:%lx, want:%lx, alloc:%p\n",
+		 __func__, alloc->buffer, area->addr,
+		 ret, alloc->mapped_size, size, new_sz, alloc);
+	if (ret < 0) {
+		free_vm_area(area);
+		return -ENOMEM;
+	}
+
+	old_buffer    = alloc->buffer;
+	alloc->buffer = area->addr;
+	diff          = (unsigned long)old_buffer -
+			(unsigned long)alloc->buffer;
+	pr_debug("old:%p, new:%p, size:%ld, mapped:%d, alloc:%p\n",
+		old_buffer, alloc->buffer, size, alloc->mapped_size, alloc);
+	alloc->user_buffer_offset = alloc->vma->vm_start -
+				    (uintptr_t)alloc->buffer;
+	list_for_each_entry(buffer, &alloc->buffers, entry) {
+		void *tmp;
+
+		tmp = buffer->data;
+		buffer->data = buffer->data - diff;
+		pr_debug("replace:%p, new:%p, diff:%lx\n",
+			 tmp, buffer->data, diff);
+	}
+	*start = *start - diff;
+	*endp  = *endp  - diff;
+	alloc->mapped_size = size;
+	alloc->back_buffer[i] = area->addr;
+	pr_debug("replace %i, alloc:%p, size:%lx:%lx, start:%p, end:%p\n",
+		i, alloc, new_sz, size, *start, *endp);
+
+	return 0;
+}
+#endif
+
 static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 				    void *start, void *end)
 {
@@ -194,6 +340,9 @@ static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 	struct vm_area_struct *vma = NULL;
 	struct mm_struct *mm = NULL;
 	bool need_mm = false;
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	unsigned long map_size;
+#endif
 
 	binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
 		     "%d: %s pages %pK-%pK\n", alloc->pid,
@@ -229,6 +378,14 @@ static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 		goto err_no_vma;
 	}
 
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	/* try to replace vmalloc */
+	map_size = check_range(alloc, end);
+	if (map_size) {
+		if (try_to_replace_vmap(alloc, map_size, &start, &end))
+			return -ENOMEM;
+	}
+#endif
 	for (page_addr = start; page_addr < end; page_addr += PAGE_SIZE) {
 		int ret;
 		bool on_lru;
@@ -670,7 +827,11 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 		goto err_already_mapped;
 	}
 
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	area = get_vm_area(PAGE_SIZE, VM_ALLOC | VM_NO_GUARD);
+#else
 	area = get_vm_area(vma->vm_end - vma->vm_start, VM_ALLOC);
+#endif
 	if (area == NULL) {
 		ret = -ENOMEM;
 		failure_string = "get_vm_area";
@@ -701,6 +862,9 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 		goto err_alloc_pages_failed;
 	}
 	alloc->buffer_size = vma->vm_end - vma->vm_start;
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	alloc->mapped_size = PAGE_SIZE;
+#endif
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer) {
@@ -792,6 +956,9 @@ void binder_alloc_deferred_release(struct binder_alloc *alloc)
 		}
 		kfree(alloc->pages);
 		vfree(alloc->buffer);
+	#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+		free_back_buffer(alloc);
+	#endif
 	}
 	mutex_unlock(&alloc->mutex);
 	if (alloc->vma_vm_mm)

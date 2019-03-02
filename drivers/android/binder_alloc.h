@@ -99,11 +99,21 @@ struct binder_lru_page {
  * calls. The address space is used for both user-visible buffers and for
  * struct binder_buffer objects used to track the user buffers
  */
+#if defined(CONFIG_AMLOGIC_MODIFY) && defined(CONFIG_ARM)
+#define CONFIG_AMLOGIC_BINDER_VMALLOC
+#define MAX_BUFFER	4
+extern void cpu_ca8_dcache_clean_area(void *addr, int size);
+#endif
+
 struct binder_alloc {
 	struct mutex mutex;
 	struct vm_area_struct *vma;
 	struct mm_struct *vma_vm_mm;
 	void *buffer;
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	size_t mapped_size;
+	void *back_buffer[MAX_BUFFER];
+#endif /* CONFIG_AMLOGIC_BINDER_VMALLOC */
 	ptrdiff_t user_buffer_offset;
 	struct list_head buffers;
 	struct rb_root free_buffers;
