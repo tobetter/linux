@@ -1113,29 +1113,14 @@ static int lcd_config_probe(struct platform_device *pdev)
 		LCDPR("detect lcd_auto_test: %d\n", lcd_driver->lcd_auto_test);
 	}
 
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 0, &str);
-	if (ret == 0) {
-		lcd_driver->res_vsync_irq = platform_get_resource(pdev,
-			IORESOURCE_IRQ, 0);
-	}
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 1, &str);
-	if (ret == 0) {
-		if (strcmp(str, "vbyone") == 0) {
-			lcd_driver->res_vx1_irq =
-				platform_get_resource(pdev, IORESOURCE_IRQ, 1);
-		} else if (strcmp(str, "vsync2") == 0) {
-			lcd_driver->res_vsync2_irq =
-				platform_get_resource(pdev, IORESOURCE_IRQ, 1);
-		}
-	}
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 2, &str);
-	if (ret == 0) {
-		lcd_driver->res_tcon_irq = platform_get_resource(pdev,
-			IORESOURCE_IRQ, 2);
-	}
+	lcd_driver->res_vsync_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vsync");
+	lcd_driver->res_vsync2_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vsync2");
+	lcd_driver->res_vx1_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vbyone");
+	lcd_driver->res_tcon_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "tcon");
 
 	lcd_driver->lcd_info = &lcd_vinfo;
 	lcd_driver->lcd_config = &lcd_config_dft;
