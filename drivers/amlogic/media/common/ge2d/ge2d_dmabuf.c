@@ -33,13 +33,14 @@
 #include "ge2d_log.h"
 #include "ge2d_dmabuf.h"
 
+static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index);
 /* dma free*/
 static void aml_dma_put(void *buf_priv)
 {
 	struct aml_dma_buf *buf = buf_priv;
 
 	if (!atomic_dec_and_test(&buf->refcount)) {
-		ge2d_log_dbg("aml_dma_put, refcont=%d\n",
+		ge2d_log_dbg("ge2d aml_dma_put, refcont=%d\n",
 			atomic_read(&buf->refcount));
 		return;
 	}
@@ -49,9 +50,10 @@ static void aml_dma_put(void *buf_priv)
 	}
 	dma_free_attrs(buf->dev, buf->size, buf->cookie, buf->dma_addr,
 		       buf->attrs);
+	clear_dma_buffer((struct aml_dma_buffer *)buf->priv, buf->index);
 	put_device(buf->dev);
 	kfree(buf);
-	ge2d_log_dbg("aml_dma_put free!\n");
+	ge2d_log_dbg("ge2d aml_dma_put free!\n");
 }
 
 static void *aml_dma_alloc(struct device *dev, unsigned long attrs,
@@ -339,6 +341,11 @@ static int find_empty_dma_buffer(struct aml_dma_buffer *buffer)
 		return -1;
 }
 
+static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index)
+{
+	buffer->gd_buffer[index].alloc = 0;
+}
+
 void *ge2d_dma_buffer_create(void)
 {
 	int i;
@@ -391,7 +398,8 @@ int ge2d_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 		GFP_HIGHUSER | __GFP_ZERO);
 	if (!buf)
 		return (-ENOMEM);
-
+	((struct aml_dma_buf *)buf)->priv = buffer;
+	((struct aml_dma_buf *)buf)->index = index;
 	mutex_lock(&(buffer->lock));
 	buffer->gd_buffer[index].mem_priv = buf;
 	buffer->gd_buffer[index].index = index;
@@ -416,7 +424,6 @@ int ge2d_dma_buffer_free(struct aml_dma_buffer *buffer, int index)
 		return (-EINVAL);
 	}
 	aml_dma_put(buf);
-	buffer->gd_buffer[index].alloc = 0;
 	return 0;
 }
 
@@ -515,7 +522,7 @@ int ge2d_dma_buffer_map(struct aml_dma_cfg *cfg)
 	cfg->attach = d_att;
 	cfg->vaddr = vaddr;
 	cfg->sg = sg;
-	ge2d_log_dbg("%s\n", __func__);
+	ge2d_log_dbg("%s, dbuf=0x%p\n", __func__, dbuf);
 	return ret;
 
 vmap_err:
@@ -587,7 +594,7 @@ void ge2d_dma_buffer_unmap(struct aml_dma_cfg *cfg)
 
 	dma_buf_put(dbuf);
 
-	ge2d_log_dbg("%s\n", __func__);
+	ge2d_log_dbg("%s, dbuf=0x%p\n", __func__, dbuf);
 }
 
 void ge2d_dma_buffer_dma_flush(struct device *dev, int fd)

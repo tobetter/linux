@@ -34,13 +34,14 @@
 #include "system_log.h"
 #include "gdc_dmabuf.h"
 
+static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index);
 /* dma free*/
 static void aml_dma_put(void *buf_priv)
 {
 	struct aml_dma_buf *buf = buf_priv;
 
 	if (!atomic_dec_and_test(&buf->refcount)) {
-		gdc_log(LOG_INFO, "aml_dma_put, refcont=%d\n",
+		gdc_log(LOG_INFO, "gdc aml_dma_put, refcont=%d\n",
 			atomic_read(&buf->refcount));
 		return;
 	}
@@ -50,9 +51,10 @@ static void aml_dma_put(void *buf_priv)
 	}
 	dma_free_attrs(buf->dev, buf->size, buf->cookie, buf->dma_addr,
 		       buf->attrs);
+	clear_dma_buffer((struct aml_dma_buffer *)buf->priv, buf->index);
 	put_device(buf->dev);
 	kfree(buf);
-	gdc_log(LOG_INFO, "aml_dma_put free!\n");
+	gdc_log(LOG_INFO, "gdc aml_dma_put free!\n");
 }
 
 static void *aml_dma_alloc(struct device *dev, unsigned long attrs,
@@ -341,6 +343,11 @@ static int find_empty_dma_buffer(struct aml_dma_buffer *buffer)
 		return -1;
 }
 
+static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index)
+{
+	buffer->gd_buffer[index].alloc = 0;
+}
+
 void *gdc_dma_buffer_create(void)
 {
 	int i;
@@ -393,7 +400,8 @@ int gdc_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 		GFP_HIGHUSER | __GFP_ZERO);
 	if (!buf)
 		return (-ENOMEM);
-
+	((struct aml_dma_buf *)buf)->priv = buffer;
+	((struct aml_dma_buf *)buf)->index = index;
 	mutex_lock(&(buffer->lock));
 	buffer->gd_buffer[index].mem_priv = buf;
 	buffer->gd_buffer[index].index = index;
@@ -418,7 +426,6 @@ int gdc_dma_buffer_free(struct aml_dma_buffer *buffer, int index)
 		return (-EINVAL);
 	}
 	aml_dma_put(buf);
-	buffer->gd_buffer[index].alloc = 0;
 	return 0;
 }
 
@@ -476,6 +483,7 @@ int gdc_dma_buffer_map(struct aml_dma_cfg *cfg)
 	struct device *dev = NULL;
 	enum dma_data_direction dir;
 
+
 	if (cfg == NULL || (cfg->fd < 0) || cfg->dev == NULL) {
 		pr_err("error input param");
 		return -EINVAL;
@@ -517,6 +525,7 @@ int gdc_dma_buffer_map(struct aml_dma_cfg *cfg)
 	cfg->attach = d_att;
 	cfg->vaddr = vaddr;
 	cfg->sg = sg;
+	gdc_log(LOG_INFO, "gdc_dma_buffer_map, dbuf=0x%p\n", dbuf);
 
 	return ret;
 
@@ -589,6 +598,7 @@ void gdc_dma_buffer_unmap(struct aml_dma_cfg *cfg)
 	dma_buf_detach(dbuf, d_att);
 
 	dma_buf_put(dbuf);
+	gdc_log(LOG_INFO, "gdc_dma_buffer_unmap, dbuf=0x%p\n", dbuf);
 }
 
 void gdc_dma_buffer_dma_flush(struct device *dev, int fd)

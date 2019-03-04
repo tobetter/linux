@@ -38,6 +38,7 @@ struct aml_dma_buf {
 	struct sg_table		*sgt_base;
 	/* DMABUF related */
 	struct dma_buf_attachment	*db_attach;
+	void                *priv;
 };
 
 struct aml_dma_buf_priv {
