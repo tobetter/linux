@@ -97,7 +97,7 @@ void cpu_hotplug_set_max(unsigned int num, int clustr)
 {
 	unsigned int cpu_online;
 
-	if (!num || clustr > hpg.clusters) {
+	if (clustr > hpg.clusters) {
 		dev_err(NULL, " %s <:%d %d>\n", __func__, num, clustr);
 		return;
 	}
@@ -177,7 +177,7 @@ static int __ref cpu_hotplug_thread(void *data)
 				}
 			} else if (flg == CPU_HOTPLUG_UNPLUG) {
 				cnt = 0;
-				while ((online = cpu_num_online(clustr)) > 1) {
+				while ((online = cpu_num_online(clustr)) > 0) {
 					if (online <= hpg.gov_num[clustr] &&
 						online <= hpg.max_num[clustr])
 						break;
@@ -200,7 +200,8 @@ static int __ref cpu_hotplug_thread(void *data)
 						goto clear_cpu;
 					}
 					if (!cpu_online(target) ||
-					cpumask_first(hpg.cpumask) == target)
+					(cpumask_first(hpg.cpumask) == target &&
+					clustr == 0))
 						goto clear_cpu;
 					device_offline(get_cpu_device(target));
 clear_cpu:
@@ -250,8 +251,7 @@ static ssize_t store_hotplug_max_cpus(struct kobject *kobj,
 
 	for (c = 0; c < hpg.clusters; c++)	{
 		max = input & 0xff;
-		if (max)
-			cpu_hotplug_set_max(max, c);
+		cpu_hotplug_set_max(max, c);
 		input = input >> 8;
 	}
 	return count;
