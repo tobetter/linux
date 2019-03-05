@@ -78,7 +78,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				6 /*clk_ss_level*/
+				15 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -163,7 +163,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				6 /*clk_ss_level*/
+				15 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			lvds_attr = <
@@ -205,7 +205,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				1 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -247,7 +247,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				1 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -335,7 +335,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				1 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -381,7 +381,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				1 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			vbyone_attr = <
@@ -477,7 +477,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			p2p_attr = <
@@ -524,7 +524,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			p2p_attr = <
@@ -571,7 +571,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			p2p_attr = <
@@ -618,7 +618,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			minilvds_attr = <
@@ -663,7 +663,7 @@
 				   *(0=clk, 1=htotal, 2=vtotal, 3=auto_range,
 				   * 4=hdmi_mode)
 				   */
-				0 /*clk_ss_level*/
+				3 /*clk_ss_level*/
 				1 /*clk_auto_generate*/
 				0>; /*pixel_clk(unit in Hz)*/
 			minilvds_attr = <
