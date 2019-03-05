@@ -68,7 +68,7 @@ static int sharebuffer_spdifout_free(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-void sharebuffer_enable(int sel, bool enable)
+void sharebuffer_enable(int sel, bool enable, bool reenable)
 {
 	if (sel < 0) {
 		pr_err("Not support same source\n");
@@ -77,7 +77,7 @@ void sharebuffer_enable(int sel, bool enable)
 		// TODO: same with tdm
 	} else if (sel < 5) {
 		/* same source with spdif a/b */
-		spdifout_enable(sel - 3, enable);
+		spdifout_enable(sel - 3, enable, reenable);
 	}
 }
 
@@ -127,18 +127,18 @@ int sharebuffer_free(struct snd_pcm_substream *substream,
 }
 
 
-int sharebuffer_trigger(int cmd, int samesource_sel)
+int sharebuffer_trigger(int cmd, int samesource_sel, bool reenable)
 {
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		sharebuffer_enable(samesource_sel, true);
+		sharebuffer_enable(samesource_sel, true, reenable);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		sharebuffer_enable(samesource_sel, false);
+		sharebuffer_enable(samesource_sel, false, reenable);
 		break;
 	default:
 		return -EINVAL;

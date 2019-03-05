@@ -450,13 +450,6 @@ static void spdifout_fifo_ctrl(int spdif_id,
 	offset = EE_AUDIO_SPDIFOUT_B_SWAP - EE_AUDIO_SPDIFOUT_SWAP;
 	reg = EE_AUDIO_SPDIFOUT_SWAP + offset * spdif_id;
 	audiobus_write(reg, 1<<4);
-
-	/* reset afifo */
-	offset = EE_AUDIO_SPDIFOUT_B_CTRL0 - EE_AUDIO_SPDIFOUT_CTRL0;
-	reg = EE_AUDIO_SPDIFOUT_CTRL0 + offset * spdif_id;
-	audiobus_update_bits(reg, 3<<28, 0);
-	audiobus_update_bits(reg, 1<<29, 1<<29);
-	audiobus_update_bits(reg, 1<<28, 1<<28);
 }
 
 static bool spdifout_is_enable(int spdif_id)
@@ -470,7 +463,7 @@ static bool spdifout_is_enable(int spdif_id)
 	return ((val >> 31) == 1);
 }
 
-void spdifout_enable(int spdif_id, bool is_enable)
+void spdifout_enable(int spdif_id, bool is_enable, bool reenable)
 {
 	unsigned int offset, reg;
 
@@ -486,6 +479,15 @@ void spdifout_enable(int spdif_id, bool is_enable)
 		/*audiobus_update_bits(reg, 0x3 << 21, 0x3 << 21);*/
 		return;
 	}
+
+	/* disable then for reset, to correct channel map */
+	if (reenable)
+		audiobus_update_bits(reg, 1<<31, 0x0<<31);
+
+	/* reset afifo */
+	audiobus_update_bits(reg, 3<<28, 0);
+	audiobus_update_bits(reg, 1<<29, 1<<29);
+	audiobus_update_bits(reg, 1<<28, 1<<28);
 
 	audiobus_update_bits(reg, 1<<31, is_enable<<31);
 }
@@ -608,7 +610,7 @@ void spdif_set_channel_status_info(
 	audiobus_write(reg, chsts->chstat1_r << 16 | chsts->chstat0_r);
 }
 
-void spdifout_play_with_zerodata(unsigned int spdif_id)
+void spdifout_play_with_zerodata(unsigned int spdif_id, bool reenable)
 {
 	pr_debug("%s, spdif id:%d enable:%d\n",
 		__func__,
@@ -658,7 +660,7 @@ void spdifout_play_with_zerodata(unsigned int spdif_id)
 		frddr_init_without_mngr(frddr_index, src0_sel);
 
 		/* spdif enable */
-		spdifout_enable(spdif_id, true);
+		spdifout_enable(spdif_id, true, reenable);
 	}
 }
 
