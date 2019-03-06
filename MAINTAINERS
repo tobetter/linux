@@ -14775,6 +14775,10 @@ F:	arch/arm64/boot/dts/amlogic/sm1_pxp.dts
 F:	arch/arm/boot/dts/amlogic/mesonsm1.dtsi
 F:	arch/arm/boot/dts/amlogic/sm1_pxp.dts
 
+AMLOGIC SM1 CLOCK DRIVERS
+M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
+F:	drivers/amlogic/clk/sm1/*
+
 HARDKERNEL S922D odroidn2
 M: 	Joy Cho <joy.cho@hardkernel.com>
 F:	arch/arm64/configs/odroidn2_defconfig
