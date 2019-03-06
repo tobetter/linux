@@ -3480,6 +3480,25 @@ static void aml_dtvdemod_shutdown(struct platform_device *pdev)
 
 }
 
+static int aml_dtvdemod_suspend(struct platform_device *pdev,
+					pm_message_t state)
+{
+	enum aml_fe_n_mode_t nmode = dtvdd_devp->n_mode;
+
+	PR_INFO("%s, mode = %d\n", __func__, nmode);
+
+	if (nmode != AM_FE_UNKNOWN_N)
+		leave_mode(nmode);
+
+	return 0;
+}
+
+static int aml_dtvdemod_resume(struct platform_device *pdev)
+{
+	PR_INFO("%s is called\n", __func__);
+	return 0;
+}
+
 static struct platform_driver aml_dtvdemod_driver = {
 	.driver = {
 		.name = "aml_dtv_demod",
@@ -3490,6 +3509,10 @@ static struct platform_driver aml_dtvdemod_driver = {
 	.shutdown   = aml_dtvdemod_shutdown,
 	.probe = aml_dtvdemod_probe,
 	.remove = __exit_p(aml_dtvdemod_remove),
+#ifdef CONFIG_PM
+	.suspend  = aml_dtvdemod_suspend,
+	.resume   = aml_dtvdemod_resume,
+#endif
 };
 
 
