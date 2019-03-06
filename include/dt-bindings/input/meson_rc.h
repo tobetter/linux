@@ -56,6 +56,7 @@
  *2. multi-format IR controller decode other protocol
  */
 #define REMOTE_TYPE_NEC_RC6  ((REMOTE_TYPE_LEGACY_NEC << 8) | REMOTE_TYPE_RC6)
+#define REMOTE_TYPE_NEC_RC5  ((REMOTE_TYPE_LEGACY_NEC << 8) | REMOTE_TYPE_RC5)
 #define REMOTE_TYPE_NEC_TOSHIBA  ((REMOTE_TYPE_LEGACY_NEC << 8) |	     \
 			REMOTE_TYPE_TOSHIBA)
 
