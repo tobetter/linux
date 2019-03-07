@@ -589,6 +589,9 @@ module_param(cur_skip_ratio, uint, 0444);
 static unsigned int cur_vf_type;
 MODULE_PARM_DESC(cur_vf_type, "cur_vf_type");
 module_param(cur_vf_type, uint, 0444);
+static unsigned int cur_freq_ratio;
+MODULE_PARM_DESC(cur_freq_ratio, "cur_freq_ratio");
+module_param(cur_freq_ratio, uint, 0444);
 
 static unsigned int custom_ar;
 MODULE_PARM_DESC(custom_ar, "custom_ar");
@@ -625,6 +628,8 @@ static int vpp_process_speed_check(
 {
 	u32 cur_ratio, bpp = 1;
 	int min_ratio_1000 = 0;
+	int freq_ratio = 1;
+	u32 sync_duration_den = 1;
 	u32 vtotal, htotal = 0, clk_in_pps = 0, clk_vpu = 0, clk_temp;
 	u32 input_time_us = 0, display_time_us = 0, dummy_time_us = 0;
 	u32 width_out = 0;
@@ -642,6 +647,9 @@ static int vpp_process_speed_check(
 
 	if (next_frame_par->vscale_skip_count < force_vskip_cnt)
 		return SPEED_CHECK_VSKIP;
+
+	if (vinfo->sync_duration_den >  0)
+		sync_duration_den = vinfo->sync_duration_den;
 
 	if (vf->type & VIDTYPE_PRE_INTERLACE) {
 		if (is_meson_txlx_cpu())
@@ -690,13 +698,22 @@ static int vpp_process_speed_check(
 		if (clk_temp)
 			dummy_time_us = (vtotal * htotal -
 			height_out * width_out) / clk_temp;
-		display_time_us = 1000000 * vinfo->sync_duration_den /
+		display_time_us = 1000000 * sync_duration_den /
 			vinfo->sync_duration_num;
 		if (display_time_us > dummy_time_us)
 			display_time_us = display_time_us - dummy_time_us;
 		if (input_time_us > display_time_us)
 			return SPEED_CHECK_VSKIP;
 	}
+
+	if ((vinfo->sync_duration_num / sync_duration_den) > 60)
+		freq_ratio = vinfo->sync_duration_num /
+			sync_duration_den / 60;
+
+	if (freq_ratio < 1)
+		freq_ratio = 1;
+	cur_freq_ratio = freq_ratio;
+
 	/* #if (MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON8) */
 	if ((get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) && !is_meson_mtvd_cpu()) {
 		if ((width_in <= 0) || (height_in <= 0) || (height_out <= 0)
@@ -719,7 +736,7 @@ static int vpp_process_speed_check(
 				MESON_CPU_MAJOR_ID_GXBB) {
 				cur_ratio = div_u64((u64)height_in *
 					(u64)vinfo->height *
-					1000,
+					1000 * freq_ratio,
 					height_out * max_height);
 				/* di process first, need more a bit of ratio */
 				if (vf->type & VIDTYPE_PRE_INTERLACE)
@@ -748,7 +765,7 @@ static int vpp_process_speed_check(
 					(u64)vinfo->sync_duration_num *
 					(u64)vtotal,
 					height_out *
-					vinfo->sync_duration_den *
+					sync_duration_den *
 					bypass_ratio) > clk_in_pps)
 					return SPEED_CHECK_VSKIP;
 				else
@@ -762,7 +779,7 @@ static int vpp_process_speed_check(
 					(u64)vinfo->sync_duration_num *
 					(u64)vtotal,
 					height_out *
-					vinfo->sync_duration_den * 256)
+					sync_duration_den * 256)
 					> clk_in_pps)
 					return SPEED_CHECK_VSKIP;
 				/* 4K down scaling to non 4K > 30hz,*/
@@ -772,7 +789,7 @@ static int vpp_process_speed_check(
 					&& (height_in > 2048)
 					&& (height_out < 2048)
 					&& (vinfo->sync_duration_num >
-					(30 * vinfo->sync_duration_den))
+					(30 * sync_duration_den))
 					&& (get_cpu_type() !=
 					MESON_CPU_MAJOR_ID_GXTVBB)
 					&& (get_cpu_type() !=
@@ -785,7 +802,7 @@ static int vpp_process_speed_check(
 			/*TODO vpu */
 			if (div_u64(VPP_SPEED_FACTOR * width_in *
 				vinfo->sync_duration_num * height_screen,
-				vinfo->sync_duration_den * 256)
+				sync_duration_den * 256)
 				> get_vpu_clk())
 				return SPEED_CHECK_HSKIP;
 			else
@@ -2249,7 +2266,15 @@ static void vpp_get_video_source_size(
 	u32 process_3d_type, struct vframe_s *vf,
 	struct vpp_frame_par_s *next_frame_par)
 {
+	int frame_width, frame_height;
 
+	if (vf->type & VIDTYPE_COMPRESS) {
+		frame_width = vf->compWidth;
+		frame_height = vf->compHeight;
+	} else {
+		frame_width = vf->width;
+		frame_height = vf->height;
+	}
 	if ((process_3d_type & MODE_3D_AUTO) ||
 		(((process_3d_type & MODE_3D_TO_2D_R) ||
 		(process_3d_type & MODE_3D_TO_2D_L) ||
@@ -2293,8 +2318,8 @@ static void vpp_get_video_source_size(
 			break;
 		case TVIN_TFMT_3D_DET_CHESSBOARD:
 		default:
-			*src_width = vf->width;
-			*src_height = vf->height;
+			*src_width = frame_width;
+			*src_height = frame_height;
 			next_frame_par->vpp_3d_mode = VPP_3D_MODE_NULL;
 			next_frame_par->vpp_3d_scale = 0;
 			next_frame_par->vpp_2pic_mode = 0;
@@ -2305,15 +2330,15 @@ static void vpp_get_video_source_size(
 		(process_3d_type & MODE_FORCE_3D_LR)) {
 		next_frame_par->vpp_3d_mode = VPP_3D_MODE_LR;
 		if (process_3d_type & MODE_3D_TO_2D_MASK) {
-			*src_width = vf->width >> 1;
-			*src_height = vf->height;
+			*src_width = frame_width >> 1;
+			*src_height = frame_height;
 		} else if (process_3d_type & MODE_3D_OUT_LR) {
-			*src_width = vf->width;
-			*src_height = vf->height;
+			*src_width = frame_width;
+			*src_height = frame_height;
 			next_frame_par->vpp_2pic_mode = 1;
 		} else {
-			*src_width = vf->width >> 1;
-			*src_height = vf->height << 1;
+			*src_width = frame_width >> 1;
+			*src_height = frame_height << 1;
 			next_frame_par->vpp_2pic_mode = 1;
 		}
 
@@ -2321,38 +2346,38 @@ static void vpp_get_video_source_size(
 		(process_3d_type & MODE_FORCE_3D_TB)) {
 		next_frame_par->vpp_3d_mode = VPP_3D_MODE_TB;
 		if (process_3d_type & MODE_3D_TO_2D_MASK) {
-			*src_width = vf->width;
-			*src_height = vf->height >> 1;
+			*src_width = frame_width;
+			*src_height = frame_height >> 1;
 		} else if (process_3d_type & MODE_3D_OUT_LR) {
-			*src_width = vf->width << 1;
-			*src_height = vf->height >> 1;
+			*src_width = frame_width << 1;
+			*src_height = frame_height >> 1;
 			next_frame_par->vpp_2pic_mode = 1;
 		} else {
-			*src_width = vf->width;
-			*src_height = vf->height;
+			*src_width = frame_width;
+			*src_height = frame_height;
 			next_frame_par->vpp_2pic_mode = 1;
 		}
 		if (process_3d_type & MODE_3D_MVC) {
-			*src_width = vf->width;
-			*src_height = vf->height << 1;
+			*src_width = frame_width;
+			*src_height = frame_height << 1;
 			next_frame_par->vpp_2pic_mode = 2;
 			next_frame_par->vpp_3d_mode = VPP_3D_MODE_FA;
 		}
 	} else if (process_3d_type & MODE_3D_LA) {
 		next_frame_par->vpp_3d_mode = VPP_3D_MODE_LA;
-		*src_height = vf->height - 1;
-		*src_width = vf->width;
+		*src_height = frame_height - 1;
+		*src_width = frame_width;
 		next_frame_par->vpp_2pic_mode = 0;
 		next_frame_par->vpp_3d_scale = 1;
 		if (process_3d_type & MODE_3D_TO_2D_MASK) {
 			next_frame_par->vscale_skip_count = 1;
 			next_frame_par->vpp_3d_scale = 0;
 		} else if (process_3d_type & MODE_3D_OUT_TB) {
-			*src_height = vf->height << 1;
+			*src_height = frame_height << 1;
 			next_frame_par->vscale_skip_count = 1;
 			next_frame_par->vpp_3d_scale = 0;
 		} else if (process_3d_type & MODE_3D_OUT_LR) {
-			*src_width = vf->width << 1;
+			*src_width = frame_width << 1;
 			next_frame_par->vscale_skip_count = 1;
 			next_frame_par->vpp_3d_scale = 0;
 		}
@@ -2364,37 +2389,37 @@ static void vpp_get_video_source_size(
 		if (process_3d_type & MODE_3D_TO_2D_MASK) {
 			if (process_3d_type & MODE_FORCE_3D_FA_TB) {
 				next_frame_par->vpp_3d_mode = VPP_3D_MODE_TB;
-				*src_width = vf->width;
-				*src_height = vf->height >> 1;
+				*src_width = frame_width;
+				*src_height = frame_height >> 1;
 			}
 			if (process_3d_type & MODE_FORCE_3D_FA_LR) {
 				next_frame_par->vpp_3d_mode = VPP_3D_MODE_LR;
-				*src_width = vf->width >> 1;
-				*src_height = vf->height;
+				*src_width = frame_width >> 1;
+				*src_height = frame_height;
 			}
 			if (process_3d_type & MODE_3D_MVC) {
-				*src_width = vf->width;
-				*src_height = vf->height;
+				*src_width = frame_width;
+				*src_height = frame_height;
 				next_frame_par->vpp_3d_mode = VPP_3D_MODE_FA;
 			}
 			if (vf->trans_fmt == TVIN_TFMT_3D_FP) {
 				next_frame_par->vpp_3d_mode = VPP_3D_MODE_TB;
-				*src_width = vf->width;
+				*src_width = frame_width;
 				*src_height = vf->left_eye.height;
 			}
 			next_frame_par->vpp_2pic_mode = 0;
 		} else if (process_3d_type & MODE_3D_OUT_LR) {
-			*src_width = vf->width << 1;
-			*src_height = vf->height;
+			*src_width = frame_width << 1;
+			*src_height = frame_height;
 			next_frame_par->vpp_2pic_mode = 2;
 		} else {
-			*src_width = vf->width;
-			*src_height = vf->height << 1;
+			*src_width = frame_width;
+			*src_height = frame_height << 1;
 			next_frame_par->vpp_2pic_mode = 2;
 		}
 	} else {
-		*src_width = vf->width;
-		*src_height = vf->height;
+		*src_width = frame_width;
+		*src_height = frame_height;
 		next_frame_par->vpp_3d_mode = VPP_3D_MODE_NULL;
 		next_frame_par->vpp_2pic_mode = 0;
 		next_frame_par->vpp_3d_scale = 0;
@@ -2421,8 +2446,8 @@ static void vpp_get_video_source_size(
 	}
 	/*avoid dividing 0 error */
 	if (*src_width == 0 || *src_height == 0) {
-		*src_width = vf->width;
-		*src_height = vf->height;
+		*src_width = frame_width;
+		*src_height = frame_height;
 	}
 }
 #endif
