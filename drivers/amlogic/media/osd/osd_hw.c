@@ -9565,11 +9565,17 @@ static bool osd_direct_render(struct osd_plane_map_s *plane_map)
 		plane_map->byte_stride * plane_map->src_h;
 	osd_log_dbg(MODULE_RENDER, "canvas_id=%x, phy_addr=%x\n",
 		osd_hw.fb_gem[index].canvas_idx, phy_addr);
-	canvas_config(osd_hw.fb_gem[index].canvas_idx,
-		phy_addr,
-		plane_map->byte_stride,
-		plane_map->src_h,
-		CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_LINEAR);
+	if (osd_hw.osd_meson_dev.osd_ver == OSD_SIMPLE) {
+		osd_hw.fb_gem[index].addr = phy_addr;
+		osd_hw.fb_gem[index].width = plane_map->byte_stride;
+		osd_update_phy_addr(0);
+	} else {
+		canvas_config(osd_hw.fb_gem[index].canvas_idx,
+			phy_addr,
+			plane_map->byte_stride,
+			plane_map->src_h,
+			CANVAS_ADDR_NOWRAP, CANVAS_BLKMODE_LINEAR);
+	}
 	if (osd_hw.hwc_enable) {
 		/* just get para, need update via do_hwc */
 		osd_hw.order[index] = plane_map->zorder;
