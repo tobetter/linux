@@ -350,6 +350,23 @@ done:
 		pr_cont("%s", name);
 	pr_cont("\n");
 }
+
+static void show_vmalloc_pfn(struct pt_regs *regs)
+{
+	int i;
+	struct page *page;
+
+	for (i = 0; i < 16; i++) {
+		if (is_vmalloc_or_module_addr((void *)regs->uregs[i])) {
+			page = vmalloc_to_page((void *)regs->uregs[i]);
+			if (!page)
+				continue;
+			pr_info("R%-2d : %08lx, PFN:%5lx\n",
+				i, regs->uregs[i], page_to_pfn(page));
+		}
+	}
+
+}
 #endif /* CONFIG_AMLOGIC_USER_FAULT */
 
 void __show_regs(struct pt_regs *regs)
@@ -407,6 +424,10 @@ void __show_regs(struct pt_regs *regs)
 	buf[2] = flags & PSR_C_BIT ? 'C' : 'c';
 	buf[3] = flags & PSR_V_BIT ? 'V' : 'v';
 	buf[4] = '\0';
+
+#ifdef CONFIG_AMLOGIC_USER_FAULT
+	show_vmalloc_pfn(regs);
+#endif
 
 #ifndef CONFIG_CPU_V7M
 	{
