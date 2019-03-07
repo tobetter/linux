@@ -427,9 +427,11 @@ static int dwc3_meson_g12a_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	ret = regulator_enable(priv->vbus);
-	if (ret)
-		return ret;
+	if (priv->vbus) {
+		ret = regulator_enable(priv->vbus);
+		if (ret)
+			return ret;
+	}
 
 	/* Get dr_mode */
 	priv->otg_mode = usb_get_dr_mode(dev);
