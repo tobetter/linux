@@ -76,6 +76,7 @@ struct meson_ir {
 	struct rc_dev	*rc;
 	int		irq;
 	spinlock_t	lock;
+	struct timer_list flush_timer;
 };
 
 static void meson_ir_set_mask(struct meson_ir *ir, unsigned int reg,
@@ -103,6 +104,10 @@ static irqreturn_t meson_ir_irq(int irqno, void *dev_id)
 	ir_raw_event_store_edge(ir->rc,
 		(readl(ir->reg + IR_DEC_STATUS) & STATUS_IR_DEC_IN)
 		? IR_PULSE : IR_SPACE);
+
+	mod_timer(&ir->flush_timer,
+		jiffies + nsecs_to_jiffies(ir->rc->timeout));
+
 	ir_raw_event_handle(ir->rc);
 #else
 	duration = readl(ir->reg + IR_DEC_REG1);
@@ -118,6 +123,17 @@ static irqreturn_t meson_ir_irq(int irqno, void *dev_id)
 	spin_unlock(&ir->lock);
 
 	return IRQ_HANDLED;
+}
+
+static void flush_timer(unsigned long arg)
+{
+	struct meson_ir *ir = (struct meson_ir *)arg;
+	DEFINE_IR_RAW_EVENT(rawir);
+
+	rawir.timeout = true;
+	rawir.duration = ir->rc->timeout;
+	ir_raw_event_store(ir->rc, &rawir);
+	ir_raw_event_handle(ir->rc);
 }
 
 static int meson_ir_probe(struct platform_device *pdev)
@@ -166,7 +182,9 @@ static int meson_ir_probe(struct platform_device *pdev)
 	ir->rc->driver_type = RC_DRIVER_IR_RAW;
 	ir->rc->allowed_protocols = RC_BIT_ALL;
 	ir->rc->rx_resolution = US_TO_NS(MESON_TRATE);
-	ir->rc->timeout = MS_TO_NS(200);
+	ir->rc->min_timeout = 1;
+	ir->rc->timeout = MS_TO_NS(125);
+	ir->rc->max_timeout = MS_TO_NS(1250);
 	ir->rc->driver_name = DRIVER_NAME;
 #if defined(CONFIG_ARCH_MESON64_ODROIDN2)
 	pulse_inverted = of_property_read_bool(node, "pulse-inverted");
@@ -180,6 +198,8 @@ static int meson_ir_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to register rc device\n");
 		goto out_free;
 	}
+
+	setup_timer(&ir->flush_timer, flush_timer, (unsigned long) ir);
 
 	ret = devm_request_irq(dev, ir->irq, meson_ir_irq, 0, "ir-meson", ir);
 	if (ret) {
@@ -243,6 +263,8 @@ static int meson_ir_remove(struct platform_device *pdev)
 	spin_lock_irqsave(&ir->lock, flags);
 	meson_ir_set_mask(ir, IR_DEC_REG1, REG1_ENABLE, 0);
 	spin_unlock_irqrestore(&ir->lock, flags);
+
+	del_timer_sync(&ir->flush_timer);
 
 	rc_unregister_device(ir->rc);
 
