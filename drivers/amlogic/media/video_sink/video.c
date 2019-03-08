@@ -3780,7 +3780,7 @@ static void vsync_toggle_frame(struct vframe_s *vf)
 				vf->plane_num,
 				&disp_canvas_index[rdma_canvas_id][0]);
 		}
-		if (is_mvc) {
+		if (is_mvc || process_3d_type) {
 			if (vf->canvas1Addr != (u32)-1) {
 				canvas_copy(vf->canvas1Addr & 0xff,
 					disp_canvas_index[rdma_canvas_id][3]);
@@ -3821,18 +3821,22 @@ static void vsync_toggle_frame(struct vframe_s *vf)
 					disp_canvas[rdma_canvas_id][0]);
 		}
 		if (cur_frame_par
-		&& (process_3d_type & MODE_3D_ENABLE)
-		&& (process_3d_type & MODE_3D_TO_2D_R)
-		&& (cur_frame_par->vpp_2pic_mode == VPP_SELECT_PIC1)
-		&& is_mvc) {
+			&& (process_3d_type & MODE_3D_ENABLE)
+			&& (process_3d_type & MODE_3D_TO_2D_R)
+			&& (cur_frame_par->vpp_2pic_mode
+			== VPP_SELECT_PIC1)) {
 			VSYNC_WR_MPEG_REG(VD1_IF0_CANVAS0 + cur_dev->viu_off,
-					  disp_canvas[rdma_canvas_id][1]);
+				  disp_canvas[rdma_canvas_id][1]);
 			VSYNC_WR_MPEG_REG(VD1_IF0_CANVAS1 + cur_dev->viu_off,
-					  disp_canvas[rdma_canvas_id][1]);
-			VSYNC_WR_MPEG_REG(VD2_IF0_CANVAS0 + cur_dev->viu_off,
-					  disp_canvas[rdma_canvas_id][1]);
-			VSYNC_WR_MPEG_REG(VD2_IF0_CANVAS1 + cur_dev->viu_off,
-					  disp_canvas[rdma_canvas_id][1]);
+				  disp_canvas[rdma_canvas_id][1]);
+			if (is_mvc) {
+				VSYNC_WR_MPEG_REG(
+					VD2_IF0_CANVAS0 + cur_dev->viu_off,
+					disp_canvas[rdma_canvas_id][1]);
+				VSYNC_WR_MPEG_REG(
+					VD2_IF0_CANVAS1 + cur_dev->viu_off,
+					disp_canvas[rdma_canvas_id][1]);
+			}
 		}
 		next_rdma_canvas_id = rdma_canvas_id ? 0 : 1;
 #else
@@ -3841,7 +3845,7 @@ static void vsync_toggle_frame(struct vframe_s *vf)
 			    disp_canvas_index[1]);
 		canvas_copy((vf->canvas0Addr >> 16) & 0xff,
 			    disp_canvas_index[2]);
-		if (is_mvc) {
+		if (is_mvc || process_3d_type) {
 			canvas_copy(vf->canvas1Addr & 0xff,
 				disp_canvas_index[3]);
 			canvas_copy((vf->canvas1Addr >> 8) & 0xff,
