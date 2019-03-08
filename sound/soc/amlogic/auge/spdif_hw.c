@@ -516,15 +516,27 @@ void spdifout_samesource_set(int spdif_index, int fifo_id,
 int spdifin_get_sample_rate(void)
 {
 	unsigned int val;
+	/*EE_AUDIO_SPDIFIN_STAT0*/
+	/*r_width_max bit17:8 (the max width of two edge;)*/
+	unsigned int max_width = 0;
 
 	val = audiobus_read(EE_AUDIO_SPDIFIN_STAT0);
 
 	/* NA when check min width of two edges */
 	if (((val >> 18) & 0x3ff) == 0x3ff)
-		return 0x7;
+		return 7;
+
+	/*check the max width of two edge when spdifin sr=32kHz*/
+	/*if max_width is more than 0x2f0(magic number),*/
+	/*sr(32kHz) is unavailable*/
+	max_width = ((val >> 8) & 0x3ff);
+
+	if ((((val >> 28) & 0x7) == 0) && (max_width == 0x3ff))
+		return 7;
 
 	return (val >> 28) & 0x7;
 }
+
 
 static int spdifin_get_channel_status(int sel)
 {
