@@ -921,33 +921,6 @@ struct frddr *fetch_frddr_by_src(int frddr_src)
 	return NULL;
 }
 
-/*
- * check frddr_src is used by other frddr for sharebuffer
- * if used, disabled the other share frddr src, the module would
- * for current frddr, and the checked frddr
- */
-int aml_check_sharebuffer_valid(struct frddr *fr, int ss_sel)
-{
-	int current_fifo_id = fr->fifo_id;
-	unsigned int i;
-	int ret = 1;
-
-	for (i = 0; i < DDRMAX; i++) {
-		if (frddrs[i].in_use
-			&& (frddrs[i].fifo_id != current_fifo_id)
-			&& (frddrs[i].dest == ss_sel)) {
-
-			pr_info("%s, ss_sel:%d used, not for share buffer at same time\n",
-				__func__,
-				ss_sel);
-			ret = 0;
-			break;
-		}
-	}
-
-	return ret;
-}
-
 struct frddr *aml_audio_register_frddr(struct device *dev,
 	struct aml_audio_controller *actrl,
 	irq_handler_t handler, void *data)
@@ -974,6 +947,137 @@ static inline unsigned int
 	calc_frddr_address(unsigned int reg, unsigned int base)
 {
 	return base + reg - EE_AUDIO_FRDDR_A_CTRL0;
+}
+
+/*
+ * check frddr_src is used by other frddr for sharebuffer
+ * if used, disabled the other share frddr src, the module would
+ * for current frddr, and the checked frddr
+ */
+int aml_check_sharebuffer_valid(struct frddr *fr, int ss_sel)
+{
+	int current_fifo_id = fr->fifo_id;
+	unsigned int i;
+	int ret = 1;
+
+	for (i = 0; i < DDRMAX; i++) {
+		if (frddrs[i].in_use
+			&& (frddrs[i].fifo_id != current_fifo_id)
+			&& (frddrs[i].dest == ss_sel)) {
+
+			pr_debug("%s, ss_sel:%d used, not for share buffer at same time\n",
+				__func__,
+				ss_sel);
+			ret = 0;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/* select dst for same source
+ * sel: share buffer req_sel 1~2
+ * sel 0 is aleardy used for reg_frddr_src_sel1
+ * sel 1 is for reg_frddr_src_sel2
+ * sel 2 is for reg_frddr_src_sel3
+ */
+static void frddr_set_sharebuffer_enable(
+	struct frddr *fr,  int dst, int sel, bool enable)
+{
+	struct aml_audio_controller *actrl = fr->actrl;
+	unsigned int reg_base = fr->reg_base;
+	unsigned int reg;
+	int s_v = 0, s_m = 0;
+
+	if (fr->chipinfo
+		&& fr->chipinfo->src_sel_ctrl) {
+		reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL2,
+				reg_base);
+
+		switch (sel) {
+		case 1:
+			s_m = 0x17 << 8;
+			s_v = enable ?
+				(dst << 8 | 1 << 12) : 0 << 8;
+			break;
+		case 2:
+			s_m = 0x17 << 16;
+			s_v = enable ?
+				(dst << 16 | 1 << 20) : 0 << 16;
+			break;
+		default:
+			pr_warn_once("sel :%d is not supported for same source\n",
+				sel);
+			break;
+		}
+		s_m |= 0xff << 24;
+		if (enable)
+			s_v |= (fr->channels - 1) << 24;
+		else
+			s_v |= 0x0 << 24;
+	} else {
+		reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL0,
+				reg_base);
+
+		switch (sel) {
+		case 1:
+			s_m = 0xf << 4;
+			s_v = enable ?
+				(dst << 4 | 1 << 7) : 0 << 4;
+			break;
+		case 2:
+			s_m = 0xf << 8;
+			s_v = enable ?
+				(dst << 8 | 1 << 11) : 0 << 8;
+			break;
+		default:
+			pr_warn_once("sel :%d is not supported for same source\n",
+				sel);
+			break;
+		}
+	}
+	pr_debug("%s sel:%d, dst_src:%d\n",
+		__func__, sel, dst);
+	fr->ss_dest = enable ? dst : 0;
+	fr->ss_en = enable;
+
+	aml_audiobus_update_bits(actrl, reg, s_m, s_v);
+}
+
+/*
+ * check frddr_src is used by other frddr for sharebuffer
+ * if used for share frddr src, release from sharebuffer
+ * and used for new frddr
+ */
+static int aml_check_and_release_sharebuffer(struct frddr *fr, int ss_sel)
+{
+	int current_fifo_id = fr->fifo_id;
+	unsigned int i;
+	int ret = 1;
+
+	for (i = 0; i < DDRMAX; i++) {
+		struct frddr *from = &frddrs[i];
+
+		if (from->in_use
+			&& (from->fifo_id != current_fifo_id)
+			&& from->ss_en
+			&& (from->ss_dest == ss_sel)) {
+
+			frddr_set_sharebuffer_enable(from,
+				ss_sel,
+				1,
+				false);
+
+			pr_debug("%s, ss_sel:%d release from share buffer, use for new playback\n",
+				__func__,
+				ss_sel);
+			ret = 0;
+			break;
+		}
+	}
+
+	return ret;
 }
 
 int aml_frddr_set_buf(struct frddr *fr, unsigned int start,
@@ -1066,6 +1170,11 @@ void aml_frddr_select_dst(struct frddr *fr, enum frddr_dest dst)
 		src_sel_en = 3;
 	}
 
+	/* if sharebuffer in use, release it */
+	if (fr->chipinfo
+		&& fr->chipinfo->same_src_fn)
+		aml_check_and_release_sharebuffer(fr, dst);
+
 	aml_audiobus_update_bits(actrl, reg, 0x7, dst & 0x7);
 
 	/* same source en */
@@ -1085,69 +1194,14 @@ void aml_frddr_select_dst(struct frddr *fr, enum frddr_dest dst)
 void aml_frddr_select_dst_ss(struct frddr *fr,
 	enum frddr_dest dst, int sel, bool enable)
 {
-	struct aml_audio_controller *actrl = fr->actrl;
-	unsigned int reg_base = fr->reg_base;
-	unsigned int reg, ss_valid;
-
-	ss_valid = aml_check_sharebuffer_valid(fr, dst);
+	unsigned int ss_valid = aml_check_sharebuffer_valid(fr, dst);
 
 	/* same source en */
 	if (fr->chipinfo
 		&& fr->chipinfo->same_src_fn
-		&& ss_valid) {
-		int s_v = 0, s_m = 0;
-
-			if (fr->chipinfo
-				&& fr->chipinfo->src_sel_ctrl) {
-				reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL2,
-						reg_base);
-
-				switch (sel) {
-				case 1:
-					s_m = 0x17 << 8;
-					s_v = enable ?
-						(dst << 8 | 1 << 12) : 0 << 8;
-					break;
-				case 2:
-					s_m = 0x17 << 16;
-					s_v = enable ?
-						(dst << 16 | 1 << 20) : 0 << 16;
-					break;
-				default:
-					pr_warn_once("sel :%d is not supported for same source\n",
-						sel);
-					break;
-				}
-				s_m |= 0xff << 24;
-				if (enable)
-					s_v |= (fr->channels - 1) << 24;
-				else
-					s_v |= 0x0 << 24;
-			} else {
-				reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL0,
-						reg_base);
-
-				switch (sel) {
-				case 1:
-					s_m = 0xf << 4;
-					s_v = enable ?
-						(dst << 4 | 1 << 7) : 0 << 4;
-					break;
-				case 2:
-					s_m = 0xf << 8;
-					s_v = enable ?
-						(dst << 8 | 1 << 11) : 0 << 8;
-					break;
-				default:
-					pr_warn_once("sel :%d is not supported for same source\n",
-						sel);
-					break;
-				}
-			}
-			pr_debug("%s sel:%d, dst_src:%d\n",
-				__func__, sel, dst);
-			aml_audiobus_update_bits(actrl, reg, s_m, s_v);
-	}
+		&& ss_valid
+	)
+		frddr_set_sharebuffer_enable(fr, dst, sel, enable);
 }
 
 void aml_frddr_set_fifos(struct frddr *fr,
