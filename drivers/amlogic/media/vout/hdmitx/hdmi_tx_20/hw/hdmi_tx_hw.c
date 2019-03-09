@@ -3710,7 +3710,7 @@ static void hdmitx_dump_audio_info(void)
 		conf = "One Bit Audio";
 		break;
 	case CT_DOLBY_D:
-		conf = "Dobly Digital+";
+		conf = "Dolby Digital+";
 		break;
 	case CT_DTS_HD:
 		conf = "DTS_HD";

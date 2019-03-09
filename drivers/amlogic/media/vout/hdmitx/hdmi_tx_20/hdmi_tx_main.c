@@ -1906,7 +1906,7 @@ static ssize_t show_config(struct device *dev,
 		conf = "One Bit Audio";
 		break;
 	case CT_DOLBY_D:
-		conf = "Dobly Digital+";
+		conf = "Dolby Digital+";
 		break;
 	case CT_DTS_HD:
 		conf = "DTS_HD";
@@ -2379,7 +2379,7 @@ static ssize_t show_aud_cap(struct device *dev,
 	static const char * const aud_ct[] =  {
 		"ReferToStreamHeader", "PCM", "AC-3", "MPEG1", "MP3",
 		"MPEG2", "AAC", "DTS", "ATRAC",	"OneBitAudio",
-		"Dobly_Digital+", "DTS-HD", "MAT", "DST", "WMA_Pro",
+		"Dolby_Digital+", "DTS-HD", "MAT", "DST", "WMA_Pro",
 		"Reserved", NULL};
 	static const char * const aud_sampling_frequency[] = {
 		"ReferToStreamHeader", "32", "44.1", "48", "88.2", "96",
