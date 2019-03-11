@@ -48,7 +48,7 @@ unsigned int audio_thd_threshold2 = 0xf00;
 
 unsigned int audio_a2_auto = 1;
 unsigned int audio_a2_power_threshold = 0x1800;
-unsigned int audio_a2_carrier_report = 0x600;
+unsigned int audio_a2_carrier_report = 0xc00;
 
 static int last_nicam_lock = -1;
 static int last_nicam_mono_flag = -1;
@@ -392,7 +392,9 @@ void set_a2k(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 
 	adec_wr_reg((ADDR_SEL_CTRL), 0x1000);
 }
@@ -428,7 +430,9 @@ void set_a2g(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 }
 
 void set_a2bg(void)
@@ -462,7 +466,9 @@ void set_a2bg(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 }
 
 void set_a2dk1(void)
@@ -496,7 +502,9 @@ void set_a2dk1(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 }
 
 void set_a2dk2(void)
@@ -530,7 +538,9 @@ void set_a2dk2(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 }
 
 void set_a2dk3(void)
@@ -564,7 +574,9 @@ void set_a2dk3(void)
 	adec_wr_reg(ADDR_LPR_GAIN_ADJ, 0x3e0);
 
 	adec_wr_reg(ADDR_LPR_COMP_CTRL, 0x010);
-	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xd65d7f7f);
+	adec_wr_reg(ADDR_IIR_SPEED_CTRL, 0xff5d7f7f/*0xd65d7f7f*/);
+	adec_wr_reg(STEREO_DET_THD, 0x4000);
+	adec_wr_reg(DUAL_DET_THD, 0x4000);
 }
 
 void set_eiaj(void)
@@ -903,13 +915,15 @@ void update_car_power_measure(int *sc1_power, int *sc2_power)
 
 void update_a2_eiaj_mode(int auto_en, int *stereo_flag, int *dual_flag)
 {
-	uint32_t reg_value;
-	uint32_t stereo_power, dual_power;
+	uint32_t reg_value = 0;
+	uint32_t stereo_power = 0, dual_power = 0;
 
 	msleep(a2_detect_delay);
 
 	if (auto_en) {
 		reg_value = adec_rd_reg(CARRIER_MAG_REPORT);
+		pr_info("%s CARRIER_MAG_REPORT: 0x%x [threshold: 0x%x].\n",
+				__func__, reg_value, audio_a2_carrier_report);
 		if (((reg_value >> 16) & 0xffff) < audio_a2_carrier_report) {
 			*stereo_flag = 0;
 			*dual_flag = 0;
@@ -920,6 +934,8 @@ void update_a2_eiaj_mode(int auto_en, int *stereo_flag, int *dual_flag)
 		}
 	} else {
 		reg_value = adec_rd_reg(POWER_REPORT);
+		pr_info("%s POWER_REPORT: 0x%x [threshold: 0x%x].\n",
+				__func__, reg_value, audio_a2_power_threshold);
 		stereo_power = reg_value & 0xffff;
 		dual_power = (reg_value >> 16) & 0xffff;
 

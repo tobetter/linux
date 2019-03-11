@@ -66,6 +66,7 @@ unsigned int if_freq = 4250000;	/*PAL-DK:3250000;NTSC-M:4250000*/
 unsigned int if_inv;
 
 int afc_default = CARR_AFC_DEFAULT_VAL;
+int snr_threshold = 30;
 
 
 /*
@@ -2416,6 +2417,10 @@ void aml_audio_overmodulation(int enable)
 	unsigned long tmp_v1 = 0;
 	unsigned int reg = 0;
 	u32 Broadcast_Standard = broad_std;
+
+	/* False entry on weak signal */
+	if (atvdemod_get_snr() < snr_threshold)
+		return;
 
 	if (enable && Broadcast_Standard ==
 		AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_DK) {

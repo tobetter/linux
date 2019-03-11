@@ -29,6 +29,7 @@ static DEFINE_MUTEX(monitor_mutex);
 
 bool atvdemod_mixer_tune_en;
 bool atvdemod_overmodulated_en;
+bool atv_audio_overmodulated_en;
 bool audio_det_en;
 bool atvdemod_det_snr_en = true;
 bool audio_thd_en;
@@ -53,14 +54,23 @@ static void atv_demod_monitor_do_work(struct work_struct *work)
 
 	retrieve_vpll_carrier_lock(&vpll_lock);
 	retrieve_vpll_carrier_line_lock(&line_lock);
-	if ((vpll_lock != 0) || (line_lock != 0))
+	if ((vpll_lock != 0) || (line_lock != 0)) {
+		monitor->lock_cnt = 0;
 		return;
+	}
+
+	monitor->lock_cnt++;
 
 	if (atvdemod_mixer_tune_en)
 		atvdemod_mixer_tune();
 
 	if (atvdemod_overmodulated_en)
 		atvdemod_video_overmodulated();
+
+	if (atv_audio_overmodulated_en) {
+		if (monitor->lock_cnt % 10 == 0)
+			aml_audio_overmodulation(1);
+	}
 
 	if (atvdemod_det_snr_en)
 		atvdemod_det_snr_serice();
@@ -112,6 +122,7 @@ static void atv_demod_monitor_enable(struct atv_demod_monitor *monitor)
 				ATVDEMOD_INTERVAL * atvdemod_timer_delay;
 		add_timer(&monitor->timer);
 		monitor->state = true;
+		monitor->lock_cnt = 0;
 	}
 
 	mutex_unlock(&monitor->mtx);
@@ -143,6 +154,7 @@ void atv_demod_monitor_init(struct atv_demod_monitor *monitor)
 
 	monitor->state = false;
 	monitor->lock = false;
+	monitor->lock_cnt = 0;
 	monitor->disable = atv_demod_monitor_disable;
 	monitor->enable = atv_demod_monitor_enable;
 

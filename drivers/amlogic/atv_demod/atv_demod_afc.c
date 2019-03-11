@@ -107,7 +107,6 @@ void atv_demod_afc_do_work(struct work_struct *work)
 	int freq_offset = 100;
 	int tmp = 0;
 	int field_lock = 0;
-	static int audio_overmodul;
 
 	if (afc->state == false)
 		return;
@@ -124,13 +123,6 @@ void atv_demod_afc_do_work(struct work_struct *work)
 	}
 
 	afc->pre_step = 0;
-
-	if (afc->lock) {
-		if (0 == ((audio_overmodul++) % 10)) {
-			aml_audio_overmodulation(1);
-			audio_overmodul = 0;
-		}
-	}
 
 	retrieve_frequency_offset(&freq_offset);
 

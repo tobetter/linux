@@ -34,6 +34,8 @@ struct atv_demod_monitor {
 	bool state;
 	bool lock;
 
+	unsigned int lock_cnt;
+
 	void (*disable)(struct atv_demod_monitor *monitor);
 	void (*enable)(struct atv_demod_monitor *monitor);
 };

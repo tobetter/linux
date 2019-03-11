@@ -87,6 +87,7 @@
 	DEBUGFS_CREATE_NODE(atvdemod_timer_delay2, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(atvdemod_mixer_tune_en, 0640, dentry, bool)\
 	DEBUGFS_CREATE_NODE(atvdemod_overmodulated_en, 0640, dentry, bool)\
+	DEBUGFS_CREATE_NODE(atv_audio_overmodulated_en, 0640, dentry, bool)\
 	DEBUGFS_CREATE_NODE(audio_thd_en, 0640, dentry, bool)\
 	DEBUGFS_CREATE_NODE(pwm_kp, 0640, dentry, u32)\
 	DEBUGFS_CREATE_NODE(audio_gain_val, 0640, dentry, u32)\
@@ -116,6 +117,7 @@
 	DEBUGFS_CREATE_FILE(sum2_thd_h, 0640, dentry, fops, int)\
 	DEBUGFS_CREATE_FILE(sum2_thd_l, 0640, dentry, fops, int)\
 	DEBUGFS_CREATE_FILE(afc_default, 0640, dentry, fops, int)\
+	DEBUGFS_CREATE_FILE(snr_threshold, 0640, dentry, fops, int)\
 }
 
 
@@ -131,6 +133,7 @@ DEBUGFS_DENTRY_DEFINE(sum1_thd_l);
 DEBUGFS_DENTRY_DEFINE(sum2_thd_h);
 DEBUGFS_DENTRY_DEFINE(sum2_thd_l);
 DEBUGFS_DENTRY_DEFINE(afc_default);
+DEBUGFS_DENTRY_DEFINE(snr_threshold);
 
 struct dentry_value *debugfs_dentry[] = {
 	DEBUGFS_DENTRY_VALUE(non_std_thld_4c_h),
@@ -142,6 +145,7 @@ struct dentry_value *debugfs_dentry[] = {
 	DEBUGFS_DENTRY_VALUE(sum2_thd_h),
 	DEBUGFS_DENTRY_VALUE(sum2_thd_l),
 	DEBUGFS_DENTRY_VALUE(afc_default),
+	DEBUGFS_DENTRY_VALUE(snr_threshold),
 };
 
 static int debugfs_open(struct inode *node, struct file *file)
