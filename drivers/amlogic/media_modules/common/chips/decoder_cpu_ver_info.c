@@ -147,6 +147,12 @@ static void initial_cpu_id(void)
 	{
 		cpu_ver_id = (enum AM_MESON_CPU_MAJOR_ID)get_cpu_type();
 	}
+
+	if (AM_MESON_CPU_MAJOR_ID_G12B == cpu_ver_id)
+	{
+		if (is_meson_rev_b())
+		cpu_ver_id = AM_MESON_CPU_MAJOR_ID_TL1;
+	}
 }
 
 enum AM_MESON_CPU_MAJOR_ID get_cpu_major_id(void)
