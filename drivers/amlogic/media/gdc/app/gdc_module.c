@@ -53,6 +53,9 @@ static const struct of_device_id gdc_dt_match[] = {
 	{} };
 
 MODULE_DEVICE_TABLE(of, gdc_dt_match);
+static void meson_gdc_cache_flush(struct device *dev,
+					dma_addr_t addr,
+					size_t size);
 
 //////
 static int meson_gdc_open(struct inode *inode, struct file *file)
@@ -80,7 +83,7 @@ static int meson_gdc_open(struct inode *inode, struct file *file)
 
 	fh->gdev = gdc_dev;
 
-	gdc_log(LOG_CRIT, "Success open\n");
+	gdc_log(LOG_INFO, "Success open\n");
 
 	return rc;
 }
@@ -146,7 +149,7 @@ static int meson_gdc_release(struct inode *inode, struct file *file)
 	fh = NULL;
 
 	if (ret == 0)
-		gdc_log(LOG_CRIT, "Success release\n");
+		gdc_log(LOG_INFO, "Success release\n");
 	else
 		gdc_log(LOG_ERR, "Error release\n");
 
@@ -181,6 +184,8 @@ static long meson_gdc_set_buff(void *f_fh,
 		fh->o_paddr = page_to_phys(cma_pages);
 		fh->o_kaddr = phys_to_virt(fh->o_paddr);
 		fh->o_len = len;
+		meson_gdc_cache_flush(&fh->gdev->pdev->dev,
+			fh->o_paddr, fh->o_len);
 	break;
 	case CONFIG_BUFF_TYPE:
 		if (fh->c_paddr != 0 && fh->c_kaddr != NULL)

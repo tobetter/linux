@@ -380,8 +380,8 @@ int gdc_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 	struct device *dev,
 	struct gdc_dmabuf_req_s *gdc_req_buf)
 {
-	struct aml_dma_buf *dma_buf;
 	void *buf;
+	struct aml_dma_buf *dma_buf;
 	unsigned int size;
 	int index;
 
@@ -417,6 +417,11 @@ int gdc_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 	buffer->gd_buffer[index].alloc = 1;
 	mutex_unlock(&(buffer->lock));
 	gdc_req_buf->index = index;
+	dma_buf = (struct aml_dma_buf *)buf;
+	if (dma_buf->dma_dir == DMA_FROM_DEVICE)
+		dma_sync_single_for_cpu(dma_buf->dev,
+			dma_buf->dma_addr,
+			dma_buf->size, DMA_FROM_DEVICE);
 	return 0;
 }
 
@@ -643,7 +648,7 @@ void gdc_dma_buffer_cache_flush(struct device *dev, int fd)
 		return;
 	}
 	if (buf->size > 0)
-		dma_sync_single_for_device(buf->dev, buf->dma_addr,
+		dma_sync_single_for_cpu(buf->dev, buf->dma_addr,
 			buf->size, DMA_FROM_DEVICE);
 	dma_buf_put(dmabuf);
 }
