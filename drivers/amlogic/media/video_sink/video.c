@@ -213,6 +213,9 @@ static struct vframe_s local_pip;
 static struct device *amvideo_dev;
 static struct device *amvideo_poll_dev;
 
+static u32 cur_width;
+static u32 cur_height;
+
 #define DRIVER_NAME "amvideo"
 #define MODULE_NAME "amvideo"
 #define DEVICE_NAME "amvideo"
@@ -3690,6 +3693,13 @@ static void vsync_toggle_frame(struct vframe_s *vf, int line)
 					vpts_remainder -= 0xf;
 					timestamp_vpts_inc(-1);
 				}
+			}
+			if (vf->type & VIDTYPE_COMPRESS) {
+				cur_width = vf->compWidth;
+				cur_height = vf->compHeight;
+			} else {
+				cur_width = vf->width;
+				cur_height = vf->height;
 			}
 			video_vf_put(vf);
 			ATRACE_COUNTER(__func__,  __LINE__);
@@ -10686,7 +10696,8 @@ static ssize_t video_hold_store(struct class *cla,
 				   const char *buf, size_t count)
 {
 	int r;
-
+	cur_width = 0;
+	cur_height = 0;
 	if (debug_flag & DEBUG_FLAG_BLACKOUT)
 		pr_info("%s(%s)\n", __func__, buf);
 
@@ -10851,6 +10862,8 @@ static ssize_t frame_width_show(struct class *cla,
 			struct class_attribute *attr,
 			char *buf)
 {
+	if (hold_video == 1)
+		return sprintf(buf, "%d\n", cur_width);
 	if (cur_dispbuf) {
 		if (cur_dispbuf->type & VIDTYPE_COMPRESS)
 			return sprintf(buf, "%d\n", cur_dispbuf->compWidth);
@@ -10864,6 +10877,8 @@ static ssize_t frame_width_show(struct class *cla,
 static ssize_t frame_height_show(struct class *cla,
 				 struct class_attribute *attr, char *buf)
 {
+	if (hold_video == 1)
+		return sprintf(buf, "%d\n", cur_height);
 	if (cur_dispbuf) {
 		if (cur_dispbuf->type & VIDTYPE_COMPRESS)
 			return sprintf(buf, "%d\n", cur_dispbuf->compHeight);
