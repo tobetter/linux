@@ -1046,6 +1046,7 @@
 			"pdm_sysclk";
 		pinctrl-names = "pdm_pins";
 		pinctrl-0 = <&pdmin>;
+		lane-mask-in = <0 0 1 0>;
 		filter_mode = <1>; /* mode 0~4, defalut:1 */
 		status = "okay";
 	};
