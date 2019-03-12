@@ -206,7 +206,7 @@ static struct vpp_frame_par_s *curpip_frame_par, *nextpip_frame_par;
 static struct vpp_frame_par_s pip_frame_parms[2];
 static struct vframe_s *cur_pipbuf;
 static struct vframe_s local_pip;
-static int _videopip_set_disable(u32 val);
+//int _videopip_set_disable(u32 val);
 #endif
 
 static struct device *amvideo_dev;
@@ -950,6 +950,7 @@ static u32 blackout;
 static u32 blackout = 1;
 #endif
 static u32 force_blackout;
+static u32 blackout_pip;
 
 /* disable video */
 
@@ -981,6 +982,12 @@ u32 get_video_enabled(void)
 {
 	return video_enabled;
 }
+
+u32 get_videopip_enabled(void)
+{
+	return video2_enabled;
+}
+
 /* show first frame*/
 static bool show_first_frame_nosync;
 bool show_first_picture;
@@ -1152,7 +1159,12 @@ void safe_disble_videolayer(void)
 #endif
 }
 
-
+#ifdef VIDEO_PIP
+void safe_disble_videolayer2(void)
+{
+	DisableVideoLayer2();
+}
+#endif
 /*********************************************************/
 #ifdef VIDEO_PIP
 static inline struct vframe_s *pip_vf_peek(void)
@@ -3132,6 +3144,8 @@ static void pip_toggle_frame(struct vframe_s *vf)
 	cur_pipbuf = vf;
 	if (first_picture)
 		pip_frame_ready_to_set = 1;
+	if (cur_pipbuf != &local_pip)
+		video_pip_keeper_new_frame_notify();
 }
 
 static void pip_set_dcu(struct vpp_frame_par_s *frame_par, struct vframe_s *vf)
@@ -8299,6 +8313,7 @@ static int video_receiver_event_fun(int type, void *data, void *private_data)
 static void pip_vf_unreg_provider(void)
 {
 	ulong flags;
+	int keeped = 0;
 
 	/* atomic_set(&video_unreg_flag, 1); */
 	while (atomic_read(&video_inirq_flag) > 0)
@@ -8317,11 +8332,25 @@ static void pip_vf_unreg_provider(void)
 	pip_frame_count = 0;
 	spin_unlock_irqrestore(&lock, flags);
 
-	disable_videopip = VIDEO_DISABLE_FORNEXT;
-	DisableVideoLayer2();
+	if (blackout_pip | force_blackout) {
+		safe_disble_videolayer2();
+		try_free_keep_videopip(1);
+	}
+
+	if (cur_pipbuf)
+		keeped = vf_keep_pip_current_locked(cur_pipbuf, NULL);
+
+	if (keeped < 0) {/*keep failed.*/
+		pr_info("videopip keep failed, disable video now!\n");
+		safe_disble_videolayer2();
+		try_free_keep_videopip(1);
+	}
+
+	/*disable_videopip = VIDEO_DISABLE_FORNEXT;*/
+	/*DisableVideoLayer2();*/
 }
 
-static void pip_vf_light_unreg_provider(void)
+static void pip_vf_light_unreg_provider(int need_keep_frame)
 {
 	ulong flags;
 
@@ -8336,6 +8365,11 @@ static void pip_vf_light_unreg_provider(void)
 		cur_pipbuf = &local_pip;
 	}
 	spin_unlock_irqrestore(&lock, flags);
+	if (need_keep_frame) {
+		if (cur_pipbuf) {
+			vf_keep_pip_current_locked(cur_pipbuf, NULL);
+		}
+	}
 }
 
 static int pip_receiver_event_fun(
@@ -8344,11 +8378,11 @@ static int pip_receiver_event_fun(
 	if (type == VFRAME_EVENT_PROVIDER_UNREG)
 		pip_vf_unreg_provider();
 	else if (type == VFRAME_EVENT_PROVIDER_RESET)
-		pip_vf_light_unreg_provider();
+		pip_vf_light_unreg_provider(1);
 	else if (type == VFRAME_EVENT_PROVIDER_LIGHT_UNREG)
-		pip_vf_light_unreg_provider();
+		pip_vf_light_unreg_provider(0);
 	else if (type == VFRAME_EVENT_PROVIDER_REG)
-		pip_vf_light_unreg_provider();
+		pip_vf_light_unreg_provider(0);
 	return 0;
 }
 #endif
@@ -8372,6 +8406,19 @@ u32 set_blackout_policy(int policy)
 	return 0;
 }
 EXPORT_SYMBOL(set_blackout_policy);
+
+u32 get_blackout_pip_policy(void)
+{
+	return blackout_pip | force_blackout;
+}
+EXPORT_SYMBOL(get_blackout_pip_policy);
+
+u32 set_blackout_pip_policy(int policy)
+{
+	blackout_pip = policy;
+	return 0;
+}
+EXPORT_SYMBOL(set_blackout_pip_policy);
 
 u8 is_vpp_postblend(void)
 {
@@ -8865,27 +8912,28 @@ static long amvideo_ioctl(struct file *file, unsigned int cmd, ulong arg)
 		break;
 
 	case AMSTREAM_IOC_GET_VIDEOPIP_DISABLE:
+		put_user(disable_videopip, (u32 __user *)argp);
+		break;
 	case AMSTREAM_IOC_GET_VIDEO_DISABLE:
-		if (layer->layer_id == 0)
-			put_user(disable_video, (u32 __user *)argp);
-#ifdef VIDEO_PIP
-		else if (layer->layer_id == 1)
-			put_user(disable_videopip, (u32 __user *)argp);
-#endif
+		put_user(disable_video, (u32 __user *)argp);
 		break;
 
 	case AMSTREAM_IOC_SET_VIDEOPIP_DISABLE:
+		{
+			u32 val;
+
+			if (copy_from_user(&val, argp, sizeof(u32)) == 0)
+				ret = _videopip_set_disable(val);
+			else
+				ret = -EFAULT;
+		}
+		break;
 	case AMSTREAM_IOC_SET_VIDEO_DISABLE:
 		{
 			u32 val;
 
 			if (copy_from_user(&val, argp, sizeof(u32)) == 0) {
-				if (layer->layer_id == 0)
-					ret = _video_set_disable(val);
-#ifdef VIDEO_PIP
-				else if (layer->layer_id == 1)
-					ret = _videopip_set_disable(val);
-#endif
+				ret = _video_set_disable(val);
 			} else
 				ret = -EFAULT;
 		}
@@ -9012,6 +9060,24 @@ static long amvideo_ioctl(struct file *file, unsigned int cmd, ulong arg)
 		}
 		break;
 
+	case AMSTREAM_IOC_GET_BLACKOUT_PIP_POLICY:
+		if (copy_to_user(argp, &blackout_pip, sizeof(u32)) != 0)
+			ret = -EFAULT;
+		break;
+
+	case AMSTREAM_IOC_SET_BLACKOUT_PIP_POLICY:{
+			u32 mode;
+
+			if (copy_from_user(&mode, argp, sizeof(u32)) == 0) {
+				if (mode > 2)
+					ret = -EINVAL;
+				else
+					blackout_pip = mode;
+			} else
+				ret = -EFAULT;
+		}
+		break;
+
 	case AMSTREAM_IOC_CLEAR_VBUF:{
 			unsigned long flags;
 			while (atomic_read(&video_inirq_flag) > 0 ||
@@ -9026,6 +9092,19 @@ static long amvideo_ioctl(struct file *file, unsigned int cmd, ulong arg)
 	case AMSTREAM_IOC_CLEAR_VIDEO:
 		if (blackout)
 			safe_disble_videolayer();
+		break;
+
+	case AMSTREAM_IOC_CLEAR_PIP_VBUF:{
+			unsigned long flags;
+
+			spin_lock_irqsave(&lock, flags);
+			cur_pipbuf = NULL;
+			spin_unlock_irqrestore(&lock, flags);
+		}
+		break;
+
+	case AMSTREAM_IOC_CLEAR_VIDEOPIP:
+		safe_disble_videolayer2();
 		break;
 
 	case AMSTREAM_IOC_SET_FREERUN_MODE:
@@ -9304,6 +9383,8 @@ static long amvideo_compat_ioctl(struct file *file, unsigned int cmd, ulong arg)
 	case AMSTREAM_IOC_SET_VIDEO_DISCONTINUE_REPORT:
 	case AMSTREAM_IOC_CLEAR_VBUF:
 	case AMSTREAM_IOC_CLEAR_VIDEO:
+	case AMSTREAM_IOC_CLEAR_PIP_VBUF:
+	case AMSTREAM_IOC_CLEAR_VIDEOPIP:
 	case AMSTREAM_IOC_SET_FREERUN_MODE:
 	case AMSTREAM_IOC_DISABLE_SLOW_SYNC:
 	case AMSTREAM_IOC_SET_3D_TYPE:
@@ -11228,7 +11309,7 @@ static ssize_t video_zorder_store(
 }
 
 #ifdef VIDEO_PIP
-static int _videopip_set_disable(u32 val)
+int _videopip_set_disable(u32 val)
 {
 	if (val > VIDEO_DISABLE_FORNEXT)
 		return -EINVAL;
@@ -11241,12 +11322,33 @@ static int _videopip_set_disable(u32 val)
 		if ((disable_videopip == VIDEO_DISABLE_FORNEXT)
 			&& cur_pipbuf && (cur_pipbuf != &local_pip))
 			pip_property_changed = 1;
+		try_free_keep_videopip(0);
 	} else {
 		if (cur_pipbuf && (cur_pipbuf != &local_pip))
 			EnableVideoLayer2();
 	}
 
 	return 0;
+}
+
+static ssize_t videopip_blackout_policy_show(struct class *cla,
+					  struct class_attribute *attr,
+					  char *buf)
+{
+	return sprintf(buf, "%d\n", blackout_pip);
+}
+
+static ssize_t videopip_blackout_policy_store(struct class *cla,
+					   struct class_attribute *attr,
+					   const char *buf, size_t count)
+{
+	int r;
+
+	r = kstrtoint(buf, 0, &blackout_pip);
+	if (r < 0)
+		return -EINVAL;
+
+	return count;
 }
 
 static ssize_t videopip_axis_show(
@@ -11598,6 +11700,10 @@ static struct class_attribute amvideo_class_attrs[] = {
 	       0664,
 	       video_blackout_policy_show,
 	       video_blackout_policy_store),
+	__ATTR(blackout_pip_policy,
+			0664,
+			videopip_blackout_policy_show,
+			videopip_blackout_policy_store),
 	__ATTR(video_seek_flag,
 	       0664,
 	       video_seek_flag_show,
