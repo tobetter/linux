@@ -592,9 +592,6 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 			break;
 		}
 
-		aml_tdm_enable(p_tdm->actrl,
-			substream->stream, p_tdm->id, false);
-
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "tdm playback stop\n");
 			memset(substream->runtime->dma_area,
@@ -614,7 +611,7 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 			aml_toddr_enable(p_tdm->tddr, 0);
 		}
 		aml_tdm_enable(p_tdm->actrl,
-				substream->stream, p_tdm->id, false);
+			substream->stream, p_tdm->id, false);
 		break;
 	default:
 		return -EINVAL;
@@ -877,6 +874,14 @@ static int aml_dai_set_tdm_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	aml_tdm_set_format(p_tdm->actrl,
 		&(p_tdm->setting), p_tdm->clk_sel, p_tdm->id, fmt,
 		1, 1);
+	if (p_tdm->contns_clk && !IS_ERR(p_tdm->mclk)) {
+		int ret = clk_prepare_enable(p_tdm->mclk);
+
+		if (ret) {
+			pr_err("Can't enable mclk: %d\n", ret);
+			return ret;
+		}
+	}
 
 capture:
 	/* update skew for ACODEC_ADC */
