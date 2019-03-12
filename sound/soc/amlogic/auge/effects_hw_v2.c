@@ -184,7 +184,7 @@ void aed_set_volume(
 		(Rch_vol << 8) |     /* channel 2 volume: 0dB */
 		(Lch_vol << 0)       /* channel 1 volume: 0dB */
 	);
-	eqdrc_write(AED_EQ_VOLUME_SLEW_CNT, 0x200); /*10ms*/
+	eqdrc_write(AED_EQ_VOLUME_SLEW_CNT, 0x2); /*40ms from -120dB~0dB*/
 	eqdrc_write(AED_MUTE, 0);
 }
 
