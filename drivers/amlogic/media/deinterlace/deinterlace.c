@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-05a";
+static const char version_s[] = "2019-03-13b";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -3531,10 +3531,15 @@ static unsigned char pre_de_buf_config(void)
 			return 0;
 
 		/*for support compress from dec*/
-		if (IS_COMP_MODE(vframe->type) &&
-			(!is_from_vdin(vframe))) {
-			vframe->width = vframe->compWidth;
-			vframe->height = vframe->compHeight;
+		if (IS_COMP_MODE(vframe->type)) {
+			if (IS_VDIN_SRC(vframe->source_type)
+				&& IS_I_SRC(vframe->type)) {
+				vframe->width = vframe->compWidth;
+				vframe->height = vframe->compHeight*2;
+			} else {
+				vframe->width = vframe->compWidth;
+				vframe->height = vframe->compHeight;
+			}
 		}
 
 		di_print("DI: get %dth vf[0x%p] from frontend %u ms.\n",
@@ -3970,7 +3975,7 @@ jiffies_to_msecs(jiffies_64 - vframe->ready_jiffies64));
 			di_buf->di_wr_linked_buf->index);
 #endif
 
-	/*for support compress from dec*/
+	/*for support compress from dec, not from vdin*/
 	if (IS_COMP_MODE(di_pre_stru.cur_inp_type) &&
 		(!(di_pre_stru.cur_inp_type & VIDTYPE_VIU_422))) {
 		/*compress type and not from vdin*/
