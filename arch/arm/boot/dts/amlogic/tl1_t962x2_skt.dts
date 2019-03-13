@@ -1015,8 +1015,11 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "irq_spdifin";
 
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+				"spdif_pins_mute";
+
 		pinctrl-0 = <&spdifout_a &spdifin_a>;
+		pinctrl-1 = <&spdifout_a_mute>;
 
 		/*
 		 * whether do asrc for pcm and resample a or b
@@ -1256,6 +1259,13 @@
 		mux { /* GPIODV_4 */
 			groups = "spdif_out_dv4";
 			function = "spdif_out";
+		};
+	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* GPIODV_4 */
+			groups = "GPIODV_4";
+			function = "gpio_periphs";
 		};
 	};
 
