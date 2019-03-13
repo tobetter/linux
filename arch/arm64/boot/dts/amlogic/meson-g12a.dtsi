@@ -114,6 +114,7 @@
 						#gpio-cells = <2>;
 						gpio-ranges = <&periphs_pinctrl 0 0 86>;
 					};
+				};
 			};
 
 			hiu: bus@3c000 {
