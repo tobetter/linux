@@ -197,6 +197,7 @@ static int phy_g12a_usb3_init(struct phy *phy)
 	int data, ret;
 
 	/* Switch PHY to USB3 */
+	/* TODO figure out how to handle when PCIe was set in the bootloader */
 	regmap_update_bits(priv->regmap, PHY_R0,
 			   PHY_R0_PCIE_USB3_SWITCH,
 			   PHY_R0_PCIE_USB3_SWITCH);
@@ -284,6 +285,7 @@ static int phy_g12a_usb3_pcie_init(struct phy *phy)
 		return phy_g12a_usb3_init(phy);
 
 	/* Power UP PCIE */
+	/* TODO figure out when the bootloader has set USB3 mode before */
 	regmap_update_bits(priv->regmap, PHY_R0,
 			   PHY_R0_PCIE_POWER_STATE,
 			   FIELD_PREP(PHY_R0_PCIE_POWER_STATE, 0x1c));
