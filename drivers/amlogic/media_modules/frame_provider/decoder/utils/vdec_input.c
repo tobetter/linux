@@ -72,10 +72,8 @@ static int copy_from_user_to_phyaddr(void *virts, const char __user *buf,
 		if (copy_from_user(p, buf, size))
 			return -EFAULT;
 
-		if (pading) {
-			p += size;
-			memset(p, 0, pading);
-		}
+		if (pading)
+			memset(p + size, 0, pading);
 
 		codec_mm_dma_flush(p, size + pading, DMA_TO_DEVICE);
 
