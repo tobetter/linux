@@ -201,7 +201,7 @@ static void dwc3_meson_g12a_usb3_init(struct dwc3_meson_g12a *priv)
 			FIELD_PREP(USB_R1_P30_PCS_TX_SWING_FULL_MASK, 127));
 }
 
-static void dwc3_meson_g12a_usb_init_mode(struct dwc3_meson_g12a *priv)
+static void dwc3_meson_g12a_usb_otg_apply_mode(struct dwc3_meson_g12a *priv)
 {
 	if (priv->otg_phy_mode == PHY_MODE_USB_DEVICE) {
 		regmap_update_bits(priv->regmap, USB_R0,
@@ -244,7 +244,7 @@ static int dwc3_meson_g12a_usb_init(struct dwc3_meson_g12a *priv)
 	if (priv->usb3_ports)
 		dwc3_meson_g12a_usb3_init(priv);
 
-	dwc3_meson_g12a_usb_init_mode(priv);
+	dwc3_meson_g12a_usb_otg_apply_mode(priv);
 
 	return 0;
 }
@@ -318,9 +318,9 @@ static int dwc3_meson_g12a_otg_mode_set(struct dwc3_meson_g12a *priv,
 
 	dwc3_meson_g12a_usb2_set_mode(priv, USB2_OTG_PHY, mode);
 
-	dwc3_meson_g12a_usb_init_mode(priv);
+	dwc3_meson_g12a_usb_otg_apply_mode(priv);
 
-	return phy_set_mode(priv->phys[USB2_OTG_PHY], mode);
+	return 0;
 }
 
 static int dwc3_meson_g12a_role_set(struct device *dev, enum usb_role role)
@@ -331,7 +331,8 @@ static int dwc3_meson_g12a_role_set(struct device *dev, enum usb_role role)
 	if (role == USB_ROLE_NONE)
 		return 0;
 
-	mode = role == USB_ROLE_HOST ? PHY_MODE_USB_HOST : PHY_MODE_USB_DEVICE;
+	mode = (role == USB_ROLE_HOST) ? PHY_MODE_USB_HOST
+				       : PHY_MODE_USB_DEVICE;
 
 	if (mode == priv->otg_phy_mode)
 		return 0;
@@ -353,7 +354,7 @@ static struct device *dwc3_meson_g12_find_child(struct device *dev,
 	struct platform_device *pdev;
 	struct device_node *np;
 
-	np = of_find_compatible_node(dev->of_node, NULL, compatible);
+	np = of_get_compatible_child(dev->of_node, compatible);
 	if (!np)
 		return NULL;
 
@@ -404,6 +405,10 @@ static int dwc3_meson_g12a_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	devm_add_action_or_reset(dev,
+				 (void(*)(void *))clk_disable_unprepare,
+				 priv->clk);
+
 	platform_set_drvdata(pdev, priv);
 	priv->dev = dev;
 
@@ -431,18 +436,18 @@ static int dwc3_meson_g12a_probe(struct platform_device *pdev)
 
 	dwc3_meson_g12a_usb_init(priv);
 
-	/* Set PHY Power */
-	for (i = 0 ; i < PHY_COUNT ; ++i) {
-		ret = phy_power_on(priv->phys[i]);
-		if (ret)
-			goto err_phys_put;
-	}
-
 	/* Init PHYs */
 	for (i = 0 ; i < PHY_COUNT ; ++i) {
 		ret = phy_init(priv->phys[i]);
 		if (ret)
 			goto err_phys_power;
+	}
+
+	/* Set PHY Power */
+	for (i = 0 ; i < PHY_COUNT ; ++i) {
+		ret = phy_power_on(priv->phys[i]);
+		if (ret)
+			goto err_phys_put;
 	}
 
 	ret = of_platform_populate(np, NULL, NULL, dev);
@@ -512,9 +517,6 @@ static int dwc3_meson_g12a_remove(struct platform_device *pdev)
 		phy_put(priv->phys[i]);
 	}
 
-	clk_disable_unprepare(priv->clk);
-	clk_put(priv->clk);
-
 	pm_runtime_disable(dev);
 	pm_runtime_put_noidle(dev);
 	pm_runtime_set_suspended(dev);
@@ -544,8 +546,7 @@ static int __maybe_unused dwc3_meson_g12a_suspend(struct device *dev)
 	int i;
 
 	for (i = 0 ; i < PHY_COUNT ; ++i)
-		if (priv->phys[i])
-			phy_exit(priv->phys[i]);
+		phy_exit(priv->phys[i]);
 
 	reset_control_assert(priv->reset);
 
@@ -563,11 +564,9 @@ static int __maybe_unused dwc3_meson_g12a_resume(struct device *dev)
 
 	/* Init PHYs */
 	for (i = 0 ; i < PHY_COUNT ; ++i) {
-		if (priv->phys[i]) {
-			ret = phy_init(priv->phys[i]);
-			if (ret)
-				return ret;
-		}
+		ret = phy_init(priv->phys[i]);
+		if (ret)
+			return ret;
 	}
 
 	return 0;
