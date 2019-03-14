@@ -21,22 +21,24 @@
 
 void aed_set_ram_coeff(int add, int len, unsigned int *params);
 void aed_get_ram_coeff(int add, int len, unsigned int *params);
-void aed_set_multiband_drc_coeff(int len, int *params);
-void aed_set_fullband_drc_coeff(int len, int *params);
+void aed_set_multiband_drc_coeff(int band, unsigned int *params);
+void aed_get_multiband_drc_coeff(int band, unsigned int *params);
+void aed_set_fullband_drc_coeff(int group, unsigned int *params);
+void aed_get_fullband_drc_coeff(int len, unsigned int *params);
 void aed_dc_enable(bool enable);
 void aed_nd_enable(bool enable);
 void aed_eq_enable(int idx, bool enable);
-void aed_multiband_drc_enable(bool enable);
-void aed_fullband_drc_enable(bool enable);
-void aed_set_volume(
-		unsigned int master_volume,
-		unsigned int Lch_vol,
-		unsigned int Rch_vol);
+void aed_set_fullband_drc_enable(bool enable);
+void aed_set_multiband_drc_enable(bool enable);
+void aed_set_volume(unsigned int master_volume,
+		unsigned int Lch_vol, unsigned int Rch_vol);
 void aed_set_lane_and_channels(int lane_mask, int ch_mask);
 void aed_set_ctrl(bool enable, int sel, enum frddr_dest module);
 void aed_set_format(int msb, enum ddr_types frddr_type, enum ddr_num source);
 void aed_enable(bool enable);
 void aed_set_mixer_params(void);
 void aed_eq_taps(unsigned int eq1_taps);
+void aed_set_multiband_drc_param(void);
+void aed_set_fullband_drc_param(int tap);
 
 #endif
