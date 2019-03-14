@@ -53,7 +53,8 @@ static void aml_dma_put(void *buf_priv)
 	clear_dma_buffer((struct aml_dma_buffer *)buf->priv, buf->index);
 	put_device(buf->dev);
 	kfree(buf);
-	ge2d_log_dbg("ge2d aml_dma_put free!\n");
+	ge2d_log_dbg("ge2d free:aml_dma_buf=0x%p,buf->index=%d\n",
+		buf, buf->index);
 }
 
 static void *aml_dma_alloc(struct device *dev, unsigned long attrs,
@@ -88,8 +89,8 @@ static void *aml_dma_alloc(struct device *dev, unsigned long attrs,
 	buf->dma_dir = dma_dir;
 
 	atomic_inc(&buf->refcount);
-	ge2d_log_dbg("aml_dma_alloc, refcont=%d\n",
-		atomic_read(&buf->refcount));
+	ge2d_log_dbg("aml_dma_buf=0x%p, refcont=%d\n",
+		buf, atomic_read(&buf->refcount));
 
 	return buf;
 }
@@ -343,7 +344,11 @@ static int find_empty_dma_buffer(struct aml_dma_buffer *buffer)
 
 static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index)
 {
+	mutex_lock(&(buffer->lock));
+	buffer->gd_buffer[index].mem_priv = NULL;
+	buffer->gd_buffer[index].index = 0;
 	buffer->gd_buffer[index].alloc = 0;
+	mutex_unlock(&(buffer->lock));
 }
 
 void *ge2d_dma_buffer_create(void)
@@ -373,6 +378,7 @@ int ge2d_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 	struct device *dev,
 	struct ge2d_dmabuf_req_s *ge2d_req_buf)
 {
+	struct aml_dma_buf *dma_buf;
 	void *buf;
 	unsigned int size;
 	int index;
@@ -388,19 +394,23 @@ int ge2d_dma_buffer_alloc(struct aml_dma_buffer *buffer,
 	if (size == 0)
 		return (-EINVAL);
 
-	index = find_empty_dma_buffer(buffer);
-	if ((index < 0) || (index >= AML_MAX_DMABUF)) {
-		pr_err("no empty buffer found\n");
-		return (-ENOMEM);
-	}
-
 	buf = aml_dma_alloc(dev, 0, size, ge2d_req_buf->dma_dir,
 		GFP_HIGHUSER | __GFP_ZERO);
 	if (!buf)
 		return (-ENOMEM);
+	dma_buf = (struct aml_dma_buf *)buf;
+	mutex_lock(&(buffer->lock));
+	index = find_empty_dma_buffer(buffer);
+	if ((index < 0) || (index >= AML_MAX_DMABUF)) {
+		pr_err("no empty buffer found\n");
+		dma_free_attrs(dev, dma_buf->size, dma_buf->cookie,
+			       dma_buf->dma_addr,
+			       dma_buf->attrs);
+		mutex_unlock(&(buffer->lock));
+		return (-ENOMEM);
+	}
 	((struct aml_dma_buf *)buf)->priv = buffer;
 	((struct aml_dma_buf *)buf)->index = index;
-	mutex_lock(&(buffer->lock));
 	buffer->gd_buffer[index].mem_priv = buf;
 	buffer->gd_buffer[index].index = index;
 	buffer->gd_buffer[index].alloc = 1;
@@ -490,19 +500,19 @@ int ge2d_dma_buffer_map(struct aml_dma_cfg *cfg)
 	dir = cfg->dir;
 
 	dbuf = dma_buf_get(fd);
-	if (dbuf == NULL) {
+	if (IS_ERR(dbuf)) {
 		pr_err("failed to get dma buffer");
 		return -EINVAL;
 	}
 
 	d_att = dma_buf_attach(dbuf, dev);
-	if (d_att == NULL) {
+	if (IS_ERR(d_att)) {
 		pr_err("failed to set dma attach");
 		goto attach_err;
 	}
 
 	sg = dma_buf_map_attachment(d_att, dir);
-	if (sg == NULL) {
+	if (IS_ERR(sg)) {
 		pr_err("failed to get dma sg");
 		goto map_attach_err;
 	}
