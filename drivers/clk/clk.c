@@ -21,6 +21,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/sched.h>
 #include <linux/clkdev.h>
+#include <linux/delay.h>
 
 #include "clk.h"
 
@@ -1116,6 +1117,9 @@ static void clk_disable_unused_subtree(struct clk_core *core)
 
 	if (core->flags & CLK_IGNORE_UNUSED)
 		goto unlock_out;
+
+	printk("%s\n", core->name);
+	udelay(1000);
 
 	/*
 	 * some gate clocks have special needs during the disable-unused
