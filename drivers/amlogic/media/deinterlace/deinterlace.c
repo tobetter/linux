@@ -2240,46 +2240,62 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 
 			if (prog_flag) {
 				di_buf->canvas_height = canvas_height;
-				di_buf->nr_adr = de_devp->mem_start +
-					di_buf_size * i;
+
+				//use reserved memory
+				if (de_devp->flag_cma == 0)
+					di_buf->nr_adr = de_devp->mem_start +
+						di_buf_size * i;
+
 				di_buf->canvas_config_flag = 1;
 			} else {
 				di_buf->canvas_height = (canvas_height>>1);
 				di_buf->canvas_height =
 					roundup(di_buf->canvas_height,
 					canvas_align_width);
-				di_buf->nr_adr = de_devp->mem_start +
-					di_buf_size * i;
-				di_buf->mtn_adr = de_devp->mem_start +
-					di_buf_size * i +
-					nr_size;
-				di_buf->cnt_adr = de_devp->mem_start +
-					di_buf_size * i +
-					nr_size + mtn_size;
 
-				if (mc_mem_alloc) {
-					di_buf->mcvec_adr = de_devp->mem_start +
+				//use reserved memory
+				if (de_devp->flag_cma == 0) {
+					di_buf->nr_adr = de_devp->mem_start +
+						di_buf_size * i;
+					di_buf->mtn_adr = de_devp->mem_start +
 						di_buf_size * i +
-						nr_size + mtn_size + count_size;
-					di_buf->mcinfo_adr =
-						de_devp->mem_start +
-						di_buf_size * i + nr_size +
-						mtn_size + count_size + mv_size;
-					tmp = di_vmap(di_buf->mcinfo_adr,
-						di_pre_stru.mcinfo_size,
-						&di_buf->bflg_vmap);
+						nr_size;
+					di_buf->cnt_adr = de_devp->mem_start +
+						di_buf_size * i +
+						nr_size + mtn_size;
+
+					if (mc_mem_alloc) {
+						di_buf->mcvec_adr =
+							de_devp->mem_start +
+							di_buf_size * i +
+							nr_size + mtn_size +
+							count_size;
+						di_buf->mcinfo_adr =
+							de_devp->mem_start +
+							di_buf_size * i +
+							nr_size +
+							mtn_size +
+							count_size + mv_size;
+						tmp = di_vmap(
+							di_buf->mcinfo_adr,
+							di_pre_stru.
+							mcinfo_size,
+							&di_buf->bflg_vmap);
 
 					if (di_buf->bflg_vmap == true)
 						di_buf->mcinfo_vaddr =
-							(unsigned short *)tmp;
+						(unsigned short *)tmp;
 					else {
 						di_buf->mcinfo_vaddr = NULL;
 						pr_err("DI: %s vmap fail\n",
 							__func__);
 					}
+					}
 				}
+
 				di_buf->canvas_config_flag = 2;
 			}
+
 			di_buf->index = i;
 			di_buf->vframe = &(vframe_local[i]);
 			di_buf->vframe->private_data = di_buf;
@@ -2299,8 +2315,11 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 		up(&di_sema);
 	}
 #endif
-	di_post_mem = de_devp->mem_start +
-		di_buf_size*de_devp->buf_num_avail;
+
+	//use reserved memory
+	if (de_devp->flag_cma == 0)
+		di_post_mem = de_devp->mem_start +
+			di_buf_size*de_devp->buf_num_avail;
 	if (post_wr_en && post_wr_support) {
 		di_post_buf_size = nr_width * canvas_height * 2;
 		/* pre buffer must 2 more than post buffer */
@@ -2348,8 +2367,11 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 						(nr_width << 1);
 					di_buf->canvas_height = canvas_height;
 					di_buf->canvas_config_flag = 1;
-					di_buf->nr_adr = di_post_mem +
-						di_post_buf_size*i;
+
+					//use reserved memory
+					if (de_devp->flag_cma == 0)
+						di_buf->nr_adr = di_post_mem +
+							di_post_buf_size*i;
 				}
 				queue_in(di_buf, QUEUE_POST_FREE);
 			}
