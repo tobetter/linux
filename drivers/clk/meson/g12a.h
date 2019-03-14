@@ -69,6 +69,7 @@
 #define HHI_VDEC4_CLK_CNTL		0x1EC
 #define HHI_HDCP22_CLK_CNTL		0x1F0
 #define HHI_VAPBCLK_CNTL		0x1F4
+#define HHI_SYS_CPUB_CLK_CNTL		0x208
 #define HHI_VPU_CLKB_CNTL		0x20C
 #define HHI_GEN_CLK_CNTL		0x228
 #define HHI_VDIN_MEAS_CLK_CNTL		0x250
@@ -102,6 +103,13 @@
 #define HHI_HDMI_PLL_CNTL5		0x334
 #define HHI_HDMI_PLL_CNTL6		0x338
 #define HHI_SPICC_CLK_CNTL		0x3dc
+#define HHI_SYS1_PLL_CNTL0		0x380
+#define HHI_SYS1_PLL_CNTL1		0x384
+#define HHI_SYS1_PLL_CNTL2		0x388
+#define HHI_SYS1_PLL_CNTL3		0x38c
+#define HHI_SYS1_PLL_CNTL4		0x390
+#define HHI_SYS1_PLL_CNTL5		0x394
+#define HHI_SYS1_PLL_CNTL6		0x398
 
 /*
  * CLKID index values
@@ -189,8 +197,18 @@
 #define CLKID_PCIE_PLL_DCO			198
 #define CLKID_PCIE_PLL_DCO_DIV2			199
 #define CLKID_PCIE_PLL_OD			200
+#define CLKID_SYS1_PLL_DCO			202
+#define CLKID_SYS1_PLL				203
+#define CLKID_CPUB_CLK_DYN0_SEL			204
+#define CLKID_CPUB_CLK_DYN0_DIV			205
+#define CLKID_CPUB_CLK_DYN0			206
+#define CLKID_CPUB_CLK_DYN1_SEL			207
+#define CLKID_CPUB_CLK_DYN1_DIV			208
+#define CLKID_CPUB_CLK_DYN1			209
+#define CLKID_CPUB_CLK_DYN			210
+#define CLKID_CPUB_CLK				211
 
-#define NR_CLKS					202
+#define NR_CLKS					212
 
 /* include the CLKIDs that have been made part of the DT binding */
 #include <dt-bindings/clock/g12a-clkc.h>
