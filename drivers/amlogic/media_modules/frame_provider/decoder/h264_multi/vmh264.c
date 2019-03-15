@@ -7732,6 +7732,14 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 			(pdata->sys_info->height * pdata->sys_info->width
 			> 1920 * 1088))
 			hw->mmu_enable = 1;
+
+	if (hw->mmu_enable &&
+		(pdata->frame_base_video_path == FRAME_BASE_PATH_IONVIDEO)) {
+		hw->mmu_enable = 0;
+		pr_info("ionvideo needs disable mmu, path= %d \n",
+				pdata->frame_base_video_path);
+	}
+
 	if (ammvdec_h264_mmu_init(hw)) {
 		h264_free_hw_stru(&pdev->dev, (void *)hw);
 		pr_info("\nammvdec_h264 mmu alloc failed!\n");
