@@ -52,6 +52,7 @@ static void tas5782m_late_resume(struct early_suspend *h);
 	 SNDRV_PCM_FMTBIT_S32_LE)
 
 #define TAS5782M_REG_00      (0x00)
+#define TAS5782M_REG_03      (0x03)
 #define TAS5782M_REG_7F      (0x7F)
 #define TAS5782M_REG_28      (0x28)
 #define TAS5782M_REG_29      (0x29)
@@ -85,6 +86,8 @@ struct tas5782m_priv {
 	struct soc_enum eq_conf_enum;
 	unsigned char Ch1_vol;
 	unsigned char Ch2_vol;
+	unsigned char Ch1_mute;
+	unsigned char Ch2_mute;
 	unsigned char master_vol;
 	unsigned int mclk;
 	unsigned int EQ_enum_value;
@@ -127,6 +130,38 @@ static int tas5782m_ch2_vol_info(struct snd_kcontrol *kcontrol,
 }
 
 
+static int tas5782m_ch1_mute_info(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type   = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->access = SNDRV_CTL_ELEM_ACCESS_TLV_READ
+			| SNDRV_CTL_ELEM_ACCESS_READWRITE;
+	uinfo->count  = 1;
+
+	uinfo->value.integer.min  = 0;
+	uinfo->value.integer.max  = 1;
+	uinfo->value.integer.step = 1;
+
+	return 0;
+}
+
+static int tas5782m_ch2_mute_info(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type   = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->access = SNDRV_CTL_ELEM_ACCESS_TLV_READ
+			| SNDRV_CTL_ELEM_ACCESS_READWRITE;
+	uinfo->count  = 1;
+
+	uinfo->value.integer.min  = 0;
+	uinfo->value.integer.max  = 1;
+	uinfo->value.integer.step = 1;
+
+	return 0;
+}
+
+
+
 static int tas5782m_ch1_vol_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
@@ -145,6 +180,29 @@ static int tas5782m_ch2_vol_get(struct snd_kcontrol *kcontrol,
 	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
 
 	ucontrol->value.integer.value[0] = tas5782m->Ch2_vol;
+
+	return 0;
+}
+
+
+static int tas5782m_ch1_mute_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = tas5782m->Ch1_mute;
+
+	return 0;
+}
+
+static int tas5782m_ch2_mute_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = tas5782m->Ch2_mute;
 
 	return 0;
 }
@@ -198,6 +256,7 @@ static int tas5782m_ch1_vol_put(struct snd_kcontrol *kcontrol,
 
 	value = ucontrol->value.integer.value[0];
 	tas5782m->Ch1_vol = value;
+	value = 255 - value;
 	tas5782m_set_volume(codec, value, 0);
 
 	return 0;
@@ -212,10 +271,77 @@ static int tas5782m_ch2_vol_put(struct snd_kcontrol *kcontrol,
 
 	value = ucontrol->value.integer.value[0];
 	tas5782m->Ch2_vol = value;
+	value = 255 - value;
 	tas5782m_set_volume(codec, value, 1);
 
 	return 0;
 }
+
+static void tas5782m_set_mute(struct snd_soc_codec *codec,
+				unsigned char left_mute,
+				unsigned char right_mute)
+{
+	unsigned char buf[2];
+	int write_count = 0;
+	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
+
+
+	buf[0] = TAS5782M_REG_00, buf[1] = 0x00;
+	write_count = 2;
+	if (write_count != i2c_master_send(tas5782m->i2c, buf, write_count))
+		pr_err("%s %d !!!!! i2c_master_send error !!!!!\n",
+				__func__, __LINE__);
+
+	buf[0] = TAS5782M_REG_7F, buf[1] = 0x00;
+	write_count = 2;
+	if (write_count != i2c_master_send(tas5782m->i2c, buf, write_count))
+		pr_err("%s %d !!!!! i2c_master_send error !!!!!\n",
+				__func__, __LINE__);
+
+	buf[0] = TAS5782M_REG_00, buf[1] = 0x00;
+	write_count = 2;
+	if (write_count != i2c_master_send(tas5782m->i2c, buf, write_count))
+		pr_err("%s %d !!!!! i2c_master_send error !!!!!\n",
+				__func__, __LINE__);
+
+	buf[0] = TAS5782M_REG_03;
+	buf[1] = left_mute << 4 | right_mute;
+	write_count = 2;
+	if (write_count != i2c_master_send(tas5782m->i2c, buf, write_count))
+		pr_err("%s %d !!!!! i2c_master_send error !!!!!\n",
+				__func__, __LINE__);
+
+}
+
+
+static int tas5782m_ch1_mute_set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
+	int value;
+
+	value = ucontrol->value.integer.value[0];
+	tas5782m->Ch1_mute = value;
+	tas5782m_set_mute(codec, tas5782m->Ch1_mute, tas5782m->Ch2_mute);
+
+	return 0;
+}
+
+static int tas5782m_ch2_mute_set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct tas5782m_priv *tas5782m = snd_soc_codec_get_drvdata(codec);
+	int value;
+
+	value = ucontrol->value.integer.value[0];
+	tas5782m->Ch2_mute = value;
+	tas5782m_set_mute(codec, tas5782m->Ch1_mute, tas5782m->Ch2_mute);
+
+	return 0;
+}
+
 
 
 static const struct snd_kcontrol_new tas5782m_snd_controls[] = {
@@ -232,7 +358,22 @@ static const struct snd_kcontrol_new tas5782m_snd_controls[] = {
 		.info  = tas5782m_ch2_vol_info,
 		.get   = tas5782m_ch2_vol_get,
 		.put   = tas5782m_ch2_vol_put,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name  = "Ch1 Mute",
+		.info  = tas5782m_ch1_mute_info,
+		.get   = tas5782m_ch1_mute_get,
+		.put   = tas5782m_ch1_mute_set,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name  = "Ch2 Mute",
+		.info  = tas5782m_ch2_mute_info,
+		.get   = tas5782m_ch2_mute_get,
+		.put   = tas5782m_ch2_mute_set,
 	}
+
 };
 
 static int tas5782m_set_dai_sysclk(struct snd_soc_dai *codec_dai,
