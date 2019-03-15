@@ -1749,7 +1749,7 @@
 			function = "emmc";
 			input-enable;
 			bias-pull-up;
-			drive-strength = <3>;
+			drive-strength = <2>;
 		};
 	};
 
@@ -1768,7 +1768,7 @@
 			function = "emmc";
 			input-enable;
 			bias-pull-up;
-			drive-strength = <3>;
+			drive-strength = <2>;
 		};
 	};
 
@@ -1778,7 +1778,7 @@
 			function = "emmc";
 			input-enable;
 			bias-pull-down;
-			drive-strength = <3>;
+			drive-strength = <2>;
 		};
 	};
 
