@@ -34,6 +34,7 @@ extern bool super_scaler;
 #define VPP_FLAG_AR_BITS            8
 #define VPP_FLAG_PORTRAIT_MODE      0x00040000
 #define VPP_FLAG_VSCALE_DISABLE     0x00080000
+#define VPP_FLAG_MORE_LOG     0x00100000
 
 #define IDX_H           (2 << 8)
 #define IDX_V_Y         (1 << 13)
@@ -285,13 +286,13 @@ extern int vpp_set_filters(
 	struct vframe_s *vf,
 	struct vpp_frame_par_s *next_frame_par,
 	const struct vinfo_s *vinfo,
-	bool bypass_sr);
+	bool bypass_sr, u32 op_flag);
 
 extern int vpp_set_filters_no_scaler(
 	struct disp_info_s *input,
 	struct vframe_s *vf,
 	struct vpp_frame_par_s *next_frame_par,
-	const struct vinfo_s *vinfo);
+	const struct vinfo_s *vinfo, u32 op_flag);
 
 extern s32 vpp_set_nonlinear_factor(
 	struct disp_info_s *info, u32 f);

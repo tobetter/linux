@@ -3168,12 +3168,12 @@ static void pip_toggle_frame(struct vframe_s *vf)
 		if (legacy_vpp || is_meson_tl1_cpu())
 			iret = vpp_set_filters_no_scaler(
 				&glayer_info[1], vf,
-				nextpip_frame_par, vinfo);
+				nextpip_frame_par, vinfo, 1);
 		else
 			iret = vpp_set_filters(
 				&glayer_info[1], vf,
 				nextpip_frame_par, vinfo,
-				true);
+				true, 1);
 
 		if (iret == VppFilter_Success_and_Changed)
 			pip_property_changed = 1;
@@ -3976,7 +3976,7 @@ static void vsync_toggle_frame(struct vframe_s *vf, int line)
 			&glayer_info[0], vf,
 			next_frame_par, vinfo,
 			(is_dolby_vision_on() &&
-			is_dolby_vision_stb_mode()));
+			is_dolby_vision_stb_mode()), 1);
 
 		if (iret == VppFilter_Success_and_Changed)
 			video_property_changed = 1;
@@ -8127,7 +8127,7 @@ int get_current_vscale_skip_count(struct vframe_s *vf)
 		&glayer_info[0],
 		vf, &frame_par, vinfo,
 		(is_dolby_vision_on() &&
-		is_dolby_vision_stb_mode()));
+		is_dolby_vision_stb_mode()), 0);
 	ret = frame_par.vscale_skip_count;
 	if (cur_frame_par && (process_3d_type & MODE_3D_ENABLE))
 		ret |= (cur_frame_par->vpp_3d_mode<<8);

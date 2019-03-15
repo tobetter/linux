@@ -1417,7 +1417,8 @@ RESTART:
 		(vf->canvas0Addr != 0) &&
 		(next_frame_par->vscale_skip_count > 1) &&
 		(!next_frame_par->nocomp)) {
-		pr_info(
+		if (vpp_flags & VPP_FLAG_MORE_LOG)
+			pr_info(
 			"layer%d: Try DW buffer for compressed frame scaling.\n",
 			input->layer_id);
 
@@ -2798,7 +2799,8 @@ RESTART:
 		(vf->canvas0Addr != 0) &&
 		(next_frame_par->vscale_skip_count > 1) &&
 		(!next_frame_par->nocomp)) {
-		pr_info(
+		if (vpp_flags & VPP_FLAG_MORE_LOG)
+			pr_info(
 			"layer%d: Try DW buffer for compressed frame scaling.\n",
 			input->layer_id);
 
@@ -2856,7 +2858,7 @@ int vpp_set_filters(
 	struct vframe_s *vf,
 	struct vpp_frame_par_s *next_frame_par,
 	const struct vinfo_s *vinfo,
-	bool bypass_sr)
+	bool bypass_sr, u32 op_flag)
 {
 	u32 src_width = 0;
 	u32 src_height = 0;
@@ -2992,6 +2994,9 @@ int vpp_set_filters(
 	if (vinfo->field_height != vinfo->height)
 		vpp_flags |= VPP_FLAG_INTERLACE_OUT;
 
+	if (op_flag & 1)
+		vpp_flags |= VPP_FLAG_MORE_LOG;
+
 	next_frame_par->VPP_post_blend_vd_v_end_ = vinfo->field_height - 1;
 	next_frame_par->VPP_post_blend_vd_h_end_ = vinfo->width - 1;
 	next_frame_par->VPP_post_blend_h_size_ = vinfo->width;
@@ -3015,7 +3020,7 @@ int vpp_set_filters_no_scaler(
 	struct disp_info_s *input,
 	struct vframe_s *vf,
 	struct vpp_frame_par_s *next_frame_par,
-	const struct vinfo_s *vinfo)
+	const struct vinfo_s *vinfo, u32 op_flag)
 {
 	u32 src_width = 0;
 	u32 src_height = 0;
@@ -3084,6 +3089,9 @@ int vpp_set_filters_no_scaler(
 
 	if (vinfo->field_height != vinfo->height)
 		vpp_flags |= VPP_FLAG_INTERLACE_OUT;
+
+	if (op_flag & 1)
+		vpp_flags |= VPP_FLAG_MORE_LOG;
 
 	next_frame_par->VPP_post_blend_vd_v_end_ = vinfo->field_height - 1;
 	next_frame_par->VPP_post_blend_vd_h_end_ = vinfo->width - 1;
