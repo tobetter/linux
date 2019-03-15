@@ -9516,6 +9516,7 @@ static const struct color_bit_define_s *convert_panel_format(u32 format)
 {
 	const struct color_bit_define_s *color = NULL;
 
+	format &= ~AFBC_EN;
 	switch (format) {
 	case COLOR_INDEX_02_PAL4:
 	case COLOR_INDEX_04_PAL16:
