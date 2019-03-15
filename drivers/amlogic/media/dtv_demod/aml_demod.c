@@ -280,6 +280,7 @@ static long aml_demod_ioctl(struct file *file,
 		dvbfe = aml_get_fe();/*get_si2177_tuner();*/
 #if 0
 		if (dvbfe != NULL)
+			if (dvbfe->ops.tuner_ops.get_strength)
 			strength = dvbfe->ops.tuner_ops.get_strength(dvbfe);
 #else
 		strength = tuner_get_ch_power2();
@@ -323,7 +324,8 @@ static long aml_demod_ioctl(struct file *file,
 	#if 0 /*ary temp for my_tool:*/
 		if (dvbfe != NULL) {
 			pr_dbg("calling tuner ops\n");
-			dvbfe->ops.tuner_ops.set_params(dvbfe);
+			if (dvbfe->ops.tuner_ops.set_params)
+				dvbfe->ops.tuner_ops.set_params(dvbfe);
 		}
 	#endif
 		break;

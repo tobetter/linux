@@ -3828,7 +3828,8 @@ static int delsys_set(struct dvb_frontend *fe, unsigned int delsys)
 	else if (mode == AM_FE_ISDBT_N)
 		fe->ops.info.type = FE_ISDBT;
 
-	fe->ops.tuner_ops.set_config(fe, NULL);
+	if (fe->ops.tuner_ops.set_config)
+		fe->ops.tuner_ops.set_config(fe, NULL);
 
 	return 0;
 }
