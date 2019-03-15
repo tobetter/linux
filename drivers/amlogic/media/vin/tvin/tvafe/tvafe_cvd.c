@@ -27,6 +27,7 @@
 #include <linux/amlogic/media/frame_provider/tvin/tvin.h>
 #include "../tvin_global.h"
 #include "../tvin_format_table.h"
+#include "tvafe.h"
 #include "tvafe_regs.h"
 #include "tvafe_cvd.h"
 #include "tvafe_debug.h"
@@ -418,8 +419,9 @@ static void tvafe_cvd2_write_mode_reg(struct tvafe_cvd2_s *cvd2,
 	}
 
 	/*setting for txhd snow*/
-	if (tvafe_cpu_type() == CPU_TYPE_TXHD ||
-		tvafe_cpu_type() == CPU_TYPE_TL1) {
+	if (tvafe_get_snow_cfg() &&
+		(tvafe_cpu_type() == CPU_TYPE_TXHD ||
+		tvafe_cpu_type() == CPU_TYPE_TL1)) {
 		W_APB_BIT(CVD2_OUTPUT_CONTROL, 3, 5, 2);
 		W_APB_REG(ACD_REG_6C, 0x80500000);
 	}

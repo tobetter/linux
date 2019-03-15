@@ -101,6 +101,8 @@ static int cutwindow_val_h_level2 = 18;
 static int cutwindow_val_h_level3 = 20;
 static int cutwindow_val_h_level4 = 62;/*48-->62 for ntsc-m*/
 
+/*tvconfig snow config*/
+static bool snow_cfg;
 /*1: snow function on;*/
 /*0: off snow function*/
 bool tvafe_snow_function_flag;
@@ -820,6 +822,18 @@ static bool tvafe_cvbs_get_secam_phase(struct tvin_frontend_s *fe)
 
 }
 
+bool tvafe_get_snow_cfg(void)
+{
+	return snow_cfg;
+}
+EXPORT_SYMBOL(tvafe_get_snow_cfg);
+
+void tvafe_set_snow_cfg(bool cfg)
+{
+	snow_cfg = cfg;
+}
+EXPORT_SYMBOL(tvafe_set_snow_cfg);
+
 /**check frame skip,only for av input*/
 static bool tvafe_cvbs_check_frame_skip(struct tvin_frontend_s *fe)
 {
@@ -890,6 +904,7 @@ static long tvafe_ioctl(struct file *file,
 				unsigned int cmd, unsigned long arg)
 {
 	long ret = 0;
+	unsigned int snowcfg = 0;
 	void __user *argp = (void __user *)arg;
 	struct tvafe_dev_s *devp = file->private_data;
 	struct tvafe_info_s *tvafe = &devp->tvafe;
@@ -905,8 +920,8 @@ static long tvafe_ioctl(struct file *file,
 		return -EPERM;
 
 	mutex_lock(&devp->afe_mutex);
-	if (!(devp->flags & TVAFE_FLAG_DEV_OPENED)) {
-
+	if (!(devp->flags & TVAFE_FLAG_DEV_OPENED) &&
+		cmd != TVIN_IOC_S_AFE_SONWCFG) {
 		tvafe_pr_info("%s, tvafe device is disable, ignore the command %d\n",
 				__func__, cmd);
 		mutex_unlock(&devp->afe_mutex);
@@ -934,6 +949,20 @@ static long tvafe_ioctl(struct file *file,
 
 		break;
 		}
+	case TVIN_IOC_S_AFE_SONWCFG:
+		/*tl1/txhd tvconfig snow en/disable*/
+		if (copy_from_user(&snowcfg, argp,
+			sizeof(unsigned int))) {
+			tvafe_pr_info("snowcfg: get param err\n");
+			ret = -EINVAL;
+			break;
+		}
+		if (snowcfg == 1)
+			tvafe_set_snow_cfg(true);
+		else
+			tvafe_set_snow_cfg(false);
+		tvafe_pr_info("tvconfig snow:%d\n", snow_cfg);
+		break;
 	case TVIN_IOC_S_AFE_SONWON:
 		devp->flags |= TVAFE_FLAG_DEV_SNOW_FLAG;
 		tvafe_snow_function_flag = true;
