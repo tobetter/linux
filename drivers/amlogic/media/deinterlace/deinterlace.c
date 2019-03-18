@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-14b";
+static const char version_s[] = "2019-03-19";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -274,8 +274,8 @@ static int di_receiver_event_fun(int type, void *data, void *arg);
 static void di_uninit_buf(unsigned int disable_mirror);
 static void log_buffer_state(unsigned char *tag);
 /* static void put_get_disp_buf(void); */
-static unsigned int isbypass_flag;
-static unsigned int needbypass_flag;
+static unsigned int isbypass_flag = true;
+static unsigned int needbypass_flag = true;
 
 static const
 struct vframe_receiver_op_s di_vf_receiver = {
@@ -6010,8 +6010,15 @@ static void di_unreg_process_irq(void)
 #endif
 	adpative_combing_exit();
 	enable_di_pre_mif(false, mcpre_en);
-	afbc_reg_sw(false);
-	afbc_input_sw(false);
+	/*disable afbc module when afbc working in DI*/
+	#if 0
+	if (IS_COMP_MODE(di_pre_stru.cur_inp_type) &&
+		(!needbypass_flag && !isbypass_flag)) {
+		pr_info("DI: disable afbc\n");
+		afbc_reg_sw(false);
+		afbc_input_sw(false);
+	}
+	#endif
 	di_hw_uninit();
 	if (is_meson_txlx_cpu() || is_meson_txhd_cpu()
 		|| is_meson_g12a_cpu() || is_meson_g12b_cpu()
@@ -6667,19 +6674,6 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 				di_pre_stru.reg_req_flag,
 				di_pre_stru.reg_req_flag_irq);
 		di_pre_stru.vdin_source = false;
-
-		/*check reg process, and waiting reg*/
-		di_pre_stru.unreg_req_flag_cnt = 0;
-		while (di_pre_stru.reg_req_flag ||
-			di_pre_stru.reg_req_flag_irq) {
-			msleep(20);
-			if (di_pre_stru.unreg_req_flag_cnt++ >
-				di_reg_unreg_cnt) {
-				pr_err("DI : reg to unreg timeout!!!\n");
-				di_reg_process();
-				break;
-			}
-		}
 		di_pre_stru.unreg_req_flag = 1;
 		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_UNREG);
 		/*check unreg process*/
@@ -6900,19 +6894,6 @@ light_unreg:
 				di_pre_stru.unreg_req_flag_irq);
 
 		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_REG);
-		/*check unreg process*/
-		di_pre_stru.reg_req_flag_cnt = 0;
-		while (di_pre_stru.unreg_req_flag ||
-			di_pre_stru.unreg_req_flag_irq) {
-			msleep(20);
-			if (di_pre_stru.reg_req_flag_cnt++ > di_reg_unreg_cnt) {
-				pr_err("%s:unreg to reg timeout!!!\n",
-					__func__);
-				di_unreg_process();
-				break;
-			}
-		}
-
 		di_pre_stru.reg_req_flag = 1;
 		/*check reg process*/
 		di_pre_stru.reg_req_flag_cnt = 0;

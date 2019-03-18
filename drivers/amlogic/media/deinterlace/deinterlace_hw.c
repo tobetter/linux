@@ -1136,7 +1136,7 @@ u32 enable_afbc_input(struct vframe_s *vf)
 
 	return true;
 }
-
+#if 0
 static void afbcx_power_sw(enum eAFBC_DEC decsel, bool on)	/*g12a*/
 {
 	unsigned int reg_ctrl;
@@ -1151,23 +1151,23 @@ static void afbcx_power_sw(enum eAFBC_DEC decsel, bool on)	/*g12a*/
 		RDMA_WR_BITS(reg_ctrl, 0x55, 0, 8);
 
 }
-
+#endif
 static void afbcx_sw(bool on)	/*g12a*/
 {
 	unsigned int tmp;
 	unsigned int mask;
 	unsigned int reg_ctrl, reg_en;
 	enum eAFBC_DEC dec_sel;
+	const unsigned int *reg = afbc_get_regbase();
 
 	dec_sel = afbc_get_decnub();
 
 	if (dec_sel == eAFBC_DEC0) {
 		reg_ctrl = VD1_AFBCD0_MISC_CTRL;
-		reg_en = AFBC_ENABLE;
 	} else {
 		reg_ctrl = VD2_AFBCD1_MISC_CTRL;
-		reg_en = VD2_AFBC_ENABLE;
 	}
+	reg_en = reg[eAFBC_ENABLE];
 
 	mask = (3<<20)  | (1<<12) | (1<<9);
 	/*clear*/
@@ -1194,24 +1194,15 @@ static void afbcx_sw(bool on)	/*g12a*/
 		if (is_meson_tl1_cpu())
 			RDMA_WR_BITS(VD1_AFBCD0_MISC_CTRL, 0, 22, 1);
 	}
-//	printk("%s,on[%d],CTRL[0x%x],en[0x%x]\n", __func__, on,
-//			RDMA_RD(VD1_AFBCD0_MISC_CTRL),
-//			RDMA_RD(VD1_AFBCD0_MISC_CTRL));
 }
 static void afbc_sw_old(bool on)/*txlx*/
 {
 	enum eAFBC_DEC dec_sel;
 	unsigned int reg_en;
+	const unsigned int *reg = afbc_get_regbase();
 
 	dec_sel = afbc_get_decnub();
-
-	if (dec_sel == eAFBC_DEC0) {
-		//reg_ctrl = VD1_AFBCD0_MISC_CTRL;
-		reg_en = AFBC_ENABLE;
-	} else {
-		//reg_ctrl = VD2_AFBCD1_MISC_CTRL;
-		reg_en = VD2_AFBC_ENABLE;
-	}
+	reg_en = reg[eAFBC_ENABLE];
 
 	if (on) {
 		/* DI inp(current data) switch to AFBC */
@@ -1253,6 +1244,7 @@ static void afbc_power_sw(bool on)
 	/*afbc*/
 	enum eAFBC_DEC dec_sel;
 	unsigned int vpu_sel;
+	unsigned int reg_ctrl;
 
 	dec_sel = afbc_get_decnub();
 	if (dec_sel == eAFBC_DEC0)
@@ -1263,8 +1255,17 @@ static void afbc_power_sw(bool on)
 	switch_vpu_mem_pd_vmod(vpu_sel,
 		on?VPU_MEM_POWER_ON:VPU_MEM_POWER_DOWN);
 
-	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A))
-		afbcx_power_sw(dec_sel, on);
+	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A)) {
+		if (dec_sel == eAFBC_DEC0)
+			reg_ctrl = VD1_AFBCD0_MISC_CTRL;
+		else
+			reg_ctrl = VD2_AFBCD1_MISC_CTRL;
+		if (on)
+			RDMA_WR_BITS(reg_ctrl, 0, 0, 8);
+		else
+			RDMA_WR_BITS(reg_ctrl, 0x55, 0, 8);
+	}
+		/*afbcx_power_sw(dec_sel, on);*/
 }
 
 static int afbc_reg_unreg_flag;
