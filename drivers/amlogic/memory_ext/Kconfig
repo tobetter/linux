@@ -11,6 +11,7 @@ config AMLOGIC_PAGE_TRACE
 	bool "Amlogic trace for page allocate"
 	depends on AMLOGIC_MEMORY_EXTEND
 	depends on KALLSYMS
+	depends on !NUMA_BALANCING
 	default y
 	help
 		Amlogic page trace will record function address of caller for page
