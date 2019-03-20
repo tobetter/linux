@@ -443,6 +443,10 @@ static struct vframe_pic_mode_s gPic_info[MAX_VD_LAYERS];
 
 static u32 reference_zorder = 128;
 
+/* default value 20 30 */
+static s32 black_threshold_width = 20;
+static s32 black_threshold_height = 30;
+
 #define MAX_ZOOM_RATIO 300
 
 #define VPP_PREBLEND_VD_V_END_LIMIT 2304
@@ -6088,6 +6092,32 @@ static int vpp_zorder_check(void)
 	return force_flush;
 }
 
+static bool black_threshold_check(u8 id)
+{
+	struct disp_info_s *layer = NULL;
+	bool ret = false;
+
+	if (id >= MAX_VD_LAYERS)
+		return ret;
+
+	if ((black_threshold_width <= 0)
+		|| (black_threshold_height <= 0))
+		return ret;
+
+	layer = &glayer_info[id];
+	if ((layer->layer_top == 0)
+		&& (layer->layer_left == 0)
+		&& (layer->layer_width <= 1)
+		&& (layer->layer_height <= 1))
+		/* special case to do full screen display */
+		return ret;
+
+	if ((layer->layer_width <= black_threshold_width)
+		|| (layer->layer_height <= black_threshold_height))
+		ret = true;
+	return ret;
+}
+
 #ifdef TV_3D_FUNCTION_OPEN
 inline void switch_3dView_per_vsync(void)
 {
@@ -7760,7 +7790,8 @@ SET_FILTER:
 		spin_unlock_irqrestore(&video2_onoff_lock, flags);
 	}
 
-	if (video_global_output == 0) {
+	if ((video_global_output == 0)
+		|| black_threshold_check(0)) {
 		video_enabled = 0;
 		vpp_misc_set &= ~(VPP_VD1_PREBLEND |
 			VPP_VD2_PREBLEND |
@@ -7783,7 +7814,8 @@ SET_FILTER:
 			VPP_PREBLEND_EN);
 
 #ifdef VIDEO_PIP
-	if (pip_global_output == 0) {
+	if ((pip_global_output == 0)
+		|| black_threshold_check(1)) {
 		video2_enabled = 0;
 		vpp_misc_set &= ~(VPP_VD2_PREBLEND |
 			VPP_VD2_POSTBLEND);
@@ -11513,6 +11545,30 @@ static ssize_t video_zorder_store(
 	return count;
 }
 
+static ssize_t black_threshold_show(
+	struct class *cla,
+	struct class_attribute *attr,
+	char *buf)
+{
+	return sprintf(buf, "width: %d, height: %d\n",
+		black_threshold_width,
+		black_threshold_height);
+}
+
+static ssize_t black_threshold_store(
+	struct class *cla,
+	struct class_attribute *attr,
+	const char *buf, size_t count)
+{
+	int parsed[2];
+
+	if (likely(parse_para(buf, 2, parsed) == 2)) {
+		black_threshold_width = parsed[0];
+		black_threshold_height = parsed[1];
+	}
+	return strnlen(buf, count);
+}
+
 #ifdef VIDEO_PIP
 int _videopip_set_disable(u32 val)
 {
@@ -12035,6 +12091,10 @@ static struct class_attribute amvideo_class_attrs[] = {
 	       0664,
 	       video_zorder_show,
 	       video_zorder_store),
+	 __ATTR(black_threshold,
+	       0664,
+	       black_threshold_show,
+	       black_threshold_store),
 	__ATTR_RO(frame_addr),
 	__ATTR_RO(frame_canvas_width),
 	__ATTR_RO(frame_canvas_height),
