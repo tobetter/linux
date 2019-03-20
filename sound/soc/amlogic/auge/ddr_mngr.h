@@ -42,29 +42,19 @@ enum ddr_types {
  * from tl1, add new source FRATV, FRHDMIRX, LOOPBACK_B, SPDIFIN_LB, VAD
  */
 enum toddr_src {
-	TODDR_INVAL = -1,
-	TDMIN_A = 0,
-	TDMIN_B = 1,
-	TDMIN_C = 2,
-	SPDIFIN = 3,
-	PDMIN = 4,
-	FRATV = 5, /* NONE for axg, g12a, g12b */
-	TDMIN_LB = 6,
-	LOOPBACK_A = 7,
-	FRHDMIRX = 8, /* from tl1 chipset*/
-	LOOPBACK_B = 9,
-	SPDIFIN_LB = 10,
-	EARCRX_DMAC = 11,/* from sm1 chipset */
-	RESERVED_0 = 12,
-	RESERVED_1 = 13,
-	RESERVED_2 = 14,
-	VAD = 15,
-	TODDR_SRC_MAX = 16
-};
-
-enum resample_idx {
-	RESAMPLE_A,
-	RESAMPLE_B
+	TDMIN_A,
+	TDMIN_B,
+	TDMIN_C,
+	SPDIFIN,
+	PDMIN,
+	FRATV, /* NONE for axg, g12a, g12b */
+	TDMIN_LB,
+	LOOPBACK_A,
+	FRHDMIRX, /* from tl1 chipset*/
+	LOOPBACK_B,
+	SPDIFIN_LB,
+	EARCRX_DMAC, /* from sm1 chipset */
+	VAD,
 };
 
 enum resample_src {

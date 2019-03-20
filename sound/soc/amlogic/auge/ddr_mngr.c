@@ -1482,7 +1482,7 @@ static const char *const toddr_src_sel_texts[] = {
 	"TDMIN_A", "TDMIN_B", "TDMIN_C", "SPDIFIN",
 	"PDMIN", "FRATV", "TDMIN_LB", "LOOPBACK_A",
 	"FRHDMIRX", "LOOPBACK_B", "SPDIFIN_LB",
-	"EARCRX_DMAC", "RESERVED_0", "RESERVED_1", "RESERVED_2",
+	"EARCRX_DMAC", "RESERVED", "RESERVED", "RESERVED",
 	"VAD"
 };
 
@@ -1608,6 +1608,15 @@ static struct ddr_chipinfo tl1_ddr_chipinfo = {
 	.wakeup                = 2,
 };
 
+static struct ddr_chipinfo sm1_ddr_chipinfo = {
+	.same_src_fn           = true,
+	.ugt                   = true,
+	.src_sel_ctrl          = true,
+	.asrc_src_sel_ctrl     = true,
+	.fifo_num              = 4,
+	.wakeup                = 2,
+};
+
 static const struct of_device_id aml_ddr_mngr_device_id[] = {
 	{
 		.compatible = "amlogic, axg-audio-ddr-manager",
@@ -1620,6 +1629,10 @@ static const struct of_device_id aml_ddr_mngr_device_id[] = {
 	{
 		.compatible = "amlogic, tl1-audio-ddr-manager",
 		.data       = &tl1_ddr_chipinfo,
+	},
+	{
+		.compatible = "amlogic, sm1-audio-ddr-manager",
+		.data       = &sm1_ddr_chipinfo,
 	},
 	{},
 };
@@ -1684,6 +1697,8 @@ static int aml_ddr_mngr_platform_probe(struct platform_device *pdev)
 		&& (p_ddr_chipinfo->fifo_num == 4)) {
 		toddrs[DDR_D].irq = platform_get_irq_byname(pdev, "toddr_d");
 		frddrs[DDR_D].irq = platform_get_irq_byname(pdev, "frddr_d");
+		if (toddrs[DDR_D].irq < 0 || frddrs[DDR_D].irq < 0)
+			dev_err(&pdev->dev, "check irq for DDR_D\n");
 		ddr_num = p_ddr_chipinfo->fifo_num;
 	}
 
