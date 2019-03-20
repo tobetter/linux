@@ -1268,7 +1268,7 @@ static void afbc_power_sw(bool on)
 		/*afbcx_power_sw(dec_sel, on);*/
 }
 
-static int afbc_reg_unreg_flag;
+int afbc_reg_unreg_flag;
 void afbc_sw(bool on)
 {
 	if (is_meson_gxl_cpu() || is_meson_txlx_cpu())
@@ -3646,7 +3646,7 @@ static void di_pre_data_mif_ctrl(bool enable)
 			afbc_input_sw(true);
 		} else {
 			DI_Wr(DI_INP_GEN_REG, Rd(DI_INP_GEN_REG) | 0x1);
-			afbc_input_sw(false);
+			/*afbc_input_sw(false);*/
 		}
 		#endif
 		/* nrwr no clk gate en=0 */

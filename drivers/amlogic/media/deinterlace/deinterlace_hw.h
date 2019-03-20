@@ -212,6 +212,7 @@ extern void afbc_reg_sw(bool on);
 extern void afbc_sw(bool on);
 extern void afbc_input_sw(bool on);
 extern void dump_vd2_afbc(void);
+extern int afbc_reg_unreg_flag;
 
 extern u8 *di_vmap(ulong addr, u32 size, bool *bflg);
 extern void di_unmap_phyaddr(u8 *vaddr);

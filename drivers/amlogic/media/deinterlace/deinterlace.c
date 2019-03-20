@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-19";
+static const char version_s[] = "2019-03-20a";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -6011,6 +6011,7 @@ static void di_unreg_process_irq(void)
 	adpative_combing_exit();
 	enable_di_pre_mif(false, mcpre_en);
 	/*disable afbc module when afbc working in DI*/
+	afbc_reg_unreg_flag = 0;
 	#if 0
 	if (IS_COMP_MODE(di_pre_stru.cur_inp_type) &&
 		(!needbypass_flag && !isbypass_flag)) {
