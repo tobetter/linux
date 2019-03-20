@@ -562,22 +562,6 @@ static int aml_set_arc_audio(struct snd_kcontrol *kcontrol,
 }
 #endif
 
-#ifdef CONFIG_TVIN_VDIN
-static const char *const av_audio_is_stable[] = {
-	"false",
-	"true"
-};
-static const struct soc_enum av_audio_status_enum =
-	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(av_audio_is_stable),
-			av_audio_is_stable);
-static int aml_get_av_audio_stable(struct snd_kcontrol *kcontrol,
-			struct snd_ctl_elem_value *ucontrol)
-{
-	ucontrol->value.integer.value[0] = tvin_get_av_status();
-	return 0;
-}
-#endif /* CONFIG_TVIN_VDIN */
-
 static const struct snd_kcontrol_new av_controls[] = {
 	SOC_ENUM_EXT("AudioIn Switch",
 			 audio_in_switch_enum,
@@ -641,7 +625,7 @@ static const struct snd_kcontrol_new aml_tv_controls[] = {
 				aml_get_atv_audio_stable,
 				NULL),
 #endif
-#ifdef CONFIG_TVIN_VDIN
+#ifdef CONFIG_AMLOGIC_MEDIA_TVIN_AVDETECT
 	SOC_ENUM_EXT("AV audio stable", av_audio_status_enum,
 				aml_get_av_audio_stable,
 				NULL),

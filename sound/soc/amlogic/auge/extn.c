@@ -772,6 +772,13 @@ static const struct snd_kcontrol_new extn_controls[] = {
 		NULL),
 #endif
 
+#ifdef CONFIG_AMLOGIC_MEDIA_TVIN_AVDETECT
+	SOC_ENUM_EXT("AV audio stable",
+		av_audio_status_enum,
+		aml_get_av_audio_stable,
+		NULL),
+#endif
+
 #ifdef CONFIG_AMLOGIC_MEDIA_TVIN_HDMI
 	SOC_ENUM_EXT("HDMIIN audio stable",
 		hdmi_in_status_enum[0],

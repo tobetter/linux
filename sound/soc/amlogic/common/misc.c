@@ -47,6 +47,20 @@ int aml_get_atv_audio_stable(
 }
 #endif /* CONFIG_AMLOGIC_ATV_DEMOD */
 
+#ifdef CONFIG_AMLOGIC_MEDIA_TVIN_AVDETECT
+
+const struct soc_enum av_audio_status_enum =
+	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(audio_is_stable),
+			audio_is_stable);
+
+int aml_get_av_audio_stable(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = tvin_get_av_status();
+	return 0;
+}
+#endif /* CONFIG_AMLOGIC_MEDIA_TVIN_AVDETECT */
+
 #ifdef CONFIG_AMLOGIC_MEDIA_TVIN_HDMI
 int hdmiin_fifo_disable_count;
 
