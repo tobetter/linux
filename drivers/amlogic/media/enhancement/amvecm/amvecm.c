@@ -1945,6 +1945,101 @@ static ssize_t amvecm_dnlp_debug_store(struct class *cla,
 				else
 					pr_info("%d\n", wext_gain_copy[val]);
 			}
+		} else if (!strcmp(parm[1], "adp_thrd")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 33; i++)
+					d_convert_str(adp_thrd_copy[i],
+						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				if ((val > 32) || (val < 0))
+					pr_info("error cmd\n");
+				else
+					pr_info("%d\n", adp_thrd_copy[val]);
+			}
+		} else if (!strcmp(parm[1], "reg_blk_boost_12")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 13; i++)
+					d_convert_str(reg_blk_boost_12_copy[i],
+						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				if ((val > 12) || (val < 0))
+					pr_info("error cmd\n");
+				else
+					pr_info("%d\n",
+					reg_blk_boost_12_copy[val]);
+			}
+		} else if (!strcmp(parm[1], "reg_adp_ofset_20")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 20; i++)
+					d_convert_str(reg_adp_ofset_20_copy[i],
+						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				if ((val > 19) || (val < 0))
+					pr_info("error cmd\n");
+				else
+					pr_info("%d\n",
+					reg_adp_ofset_20_copy[val]);
+			}
+		} else if (!strcmp(parm[1], "reg_mono_protect")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 6; i++)
+					d_convert_str(reg_mono_protect_copy[i],
+						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				if ((val > 5) || (val < 0))
+					pr_info("error cmd\n");
+				else
+					pr_info("%d\n",
+					reg_mono_protect_copy[val]);
+			}
+		} else if (!strcmp(parm[1], "reg_trend_wht_expand_lut8")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 9; i++)
+					d_convert_str(
+					reg_trend_wht_expand_lut8_copy[i],
+						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				if ((val > 8) || (val < 0))
+					pr_info("error cmd\n");
+				else
+					pr_info("%d\n",
+					reg_trend_wht_expand_lut8_copy[val]);
+			}
 		} else if (!strcmp(parm[1], "ve_dnlp_tgt")) {
 			/*read only curve*/
 			if (parm[2] == NULL) {
@@ -2166,6 +2261,112 @@ static ssize_t amvecm_dnlp_debug_store(struct class *cla,
 					pr_info("error cmd\n");
 				else
 					wext_gain_copy[num] = val;
+			}
+		} else if (!strcmp(parm[1], "adp_thrd")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				str_sapr_to_d(parm[3], curve_val, 5);
+				for (i = 0; i < 33; i++)
+					adp_thrd_copy[i] = curve_val[i];
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				num = val;
+				if (kstrtoul(parm[3], 10, &val) < 0)
+					goto free_buf;
+
+				if (num > 32)
+					pr_info("error cmd\n");
+				else
+					adp_thrd_copy[num] = val;
+			}
+		} else if (!strcmp(parm[1], "reg_blk_boost_12")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				str_sapr_to_d(parm[3], curve_val, 5);
+				for (i = 0; i < 13; i++)
+					reg_blk_boost_12_copy[i] = curve_val[i];
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				num = val;
+				if (kstrtoul(parm[3], 10, &val) < 0)
+					goto free_buf;
+
+				if (num > 12)
+					pr_info("error cmd\n");
+				else
+					reg_blk_boost_12_copy[num] = val;
+			}
+		} else if (!strcmp(parm[1], "reg_adp_ofset_20")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				str_sapr_to_d(parm[3], curve_val, 5);
+				for (i = 0; i < 20; i++)
+					reg_adp_ofset_20_copy[i] = curve_val[i];
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				num = val;
+				if (kstrtoul(parm[3], 10, &val) < 0)
+					goto free_buf;
+
+				if (num > 19)
+					pr_info("error cmd\n");
+				else
+					reg_adp_ofset_20_copy[num] = val;
+			}
+		} else if (!strcmp(parm[1], "reg_mono_protect")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				str_sapr_to_d(parm[3], curve_val, 5);
+				for (i = 0; i < 6; i++)
+					reg_mono_protect_copy[i] = curve_val[i];
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				num = val;
+				if (kstrtoul(parm[3], 10, &val) < 0)
+					goto free_buf;
+
+				if (num > 5)
+					pr_info("error cmd\n");
+				else
+					reg_mono_protect_copy[num] = val;
+			}
+		} else if (!strcmp(parm[1], "reg_trend_wht_expand_lut8")) {
+			if (parm[2] == NULL) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				str_sapr_to_d(parm[3], curve_val, 5);
+				for (i = 0; i < 9; i++)
+					reg_trend_wht_expand_lut8_copy[i] =
+						curve_val[i];
+			} else {
+				if (kstrtoul(parm[2], 10, &val) < 0)
+					goto free_buf;
+
+				num = val;
+				if (kstrtoul(parm[3], 10, &val) < 0)
+					goto free_buf;
+
+				if (num > 8)
+					pr_info("error cmd\n");
+				else
+				reg_trend_wht_expand_lut8_copy[num] = val;
 			}
 		}
 	} else if (!strcmp(parm[0], "ro")) {

@@ -69,6 +69,11 @@ int *dnlp_scurv_hgh1_copy;
 int *dnlp_scurv_hgh2_copy;
 int *gain_var_lut49_copy;
 int *wext_gain_copy;
+int *adp_thrd_copy;
+int *reg_blk_boost_12_copy;
+int *reg_adp_ofset_20_copy;
+int *reg_mono_protect_copy;
+int *reg_trend_wht_expand_lut8_copy;
 
 int *ro_luma_avg4_copy;
 int *ro_var_d8_copy;
@@ -154,6 +159,29 @@ struct dnlp_parse_cmd_s dnlp_parse_cmd[] = {
 	{"scurv_hgh1_th", &(dnlp_alg_param.dnlp_scurv_hgh1_th)},
 	{"scurv_hgh2_th", &(dnlp_alg_param.dnlp_scurv_hgh2_th)},
 	{"mtdrate_adp_en", &(dnlp_alg_param.dnlp_mtdrate_adp_en)},
+	{"clahe_method", &(dnlp_alg_param.dnlp_clahe_method)},
+	{"ble_en", &(dnlp_alg_param.dnlp_ble_en)},
+	{"norm", &(dnlp_alg_param.dnlp_norm)},
+	{"scn_chg_th", &(dnlp_alg_param.dnlp_scn_chg_th)},
+	{"step_th", &(dnlp_alg_param.dnlp_step_th)},
+	{"iir_step_mux", &(dnlp_alg_param.dnlp_iir_step_mux)},
+	{"single_bin_bw", &(dnlp_alg_param.dnlp_single_bin_bw)},
+	{"single_bin_method", &(dnlp_alg_param.dnlp_single_bin_method)},
+	{"reg_max_slop_1st", &(dnlp_alg_param.dnlp_reg_max_slop_1st)},
+	{"reg_max_slop_mid", &(dnlp_alg_param.dnlp_reg_max_slop_mid)},
+	{"reg_max_slop_fin", &(dnlp_alg_param.dnlp_reg_max_slop_fin)},
+	{"reg_min_slop_1st", &(dnlp_alg_param.dnlp_reg_min_slop_1st)},
+	{"reg_min_slop_mid", &(dnlp_alg_param.dnlp_reg_min_slop_mid)},
+	{"reg_min_slop_fin", &(dnlp_alg_param.dnlp_reg_min_slop_fin)},
+	{"reg_trend_wht_expand_mode",
+		&(dnlp_alg_param.dnlp_reg_trend_wht_expand_mode)},
+	{"reg_trend_blk_expand_mode",
+		&(dnlp_alg_param.dnlp_reg_trend_blk_expand_mode)},
+	{"ve_hist_cur_gain", &(dnlp_alg_param.dnlp_ve_hist_cur_gain)},
+	{"ve_hist_cur_gain_precise",
+		&(dnlp_alg_param.dnlp_ve_hist_cur_gain_precise)},
+	{"reg_mono_binrang_st", &(dnlp_alg_param.dnlp_reg_mono_binrang_st)},
+	{"reg_mono_binrang_ed", &(dnlp_alg_param.dnlp_reg_mono_binrang_ed)},
 	{"", NULL}
 };
 
@@ -166,6 +194,12 @@ void dnlp_alg_param_copy(void)
 	dnlp_scurv_hgh2_copy = dnlp_dbg_rw_param->dnlp_scurv_hgh2;
 	gain_var_lut49_copy = dnlp_dbg_rw_param->gain_var_lut49;
 	wext_gain_copy = dnlp_dbg_rw_param->wext_gain;
+	adp_thrd_copy = dnlp_dbg_rw_param->adp_thrd;
+	reg_blk_boost_12_copy = dnlp_dbg_rw_param->reg_blk_boost_12;
+	reg_adp_ofset_20_copy = dnlp_dbg_rw_param->reg_adp_ofset_20;
+	reg_mono_protect_copy = dnlp_dbg_rw_param->reg_mono_protect;
+	reg_trend_wht_expand_lut8_copy =
+		dnlp_dbg_rw_param->reg_trend_wht_expand_lut8;
 
 	ro_luma_avg4_copy = dnlp_dbg_ro_param->ro_luma_avg4;
 	ro_var_d8_copy = dnlp_dbg_ro_param->ro_var_d8;
@@ -257,6 +291,26 @@ void dnlp_alg_param_init(void)
 	dnlp_alg_param.dnlp_scurv_hgh1_th = 176;
 	dnlp_alg_param.dnlp_scurv_hgh2_th = 240;
 	dnlp_alg_param.dnlp_mtdrate_adp_en = 1;
+	dnlp_alg_param.dnlp_clahe_method = 1;
+	dnlp_alg_param.dnlp_ble_en = 1;
+	dnlp_alg_param.dnlp_norm = 10;
+	dnlp_alg_param.dnlp_scn_chg_th = 48;
+	dnlp_alg_param.dnlp_step_th = 1;
+	dnlp_alg_param.dnlp_iir_step_mux = 1;
+	dnlp_alg_param.dnlp_single_bin_bw = 2;
+	dnlp_alg_param.dnlp_single_bin_method = 1;
+	dnlp_alg_param.dnlp_reg_max_slop_1st = 614;
+	dnlp_alg_param.dnlp_reg_max_slop_mid = 400;
+	dnlp_alg_param.dnlp_reg_max_slop_fin = 614;
+	dnlp_alg_param.dnlp_reg_min_slop_1st = 77;
+	dnlp_alg_param.dnlp_reg_min_slop_mid = 144;
+	dnlp_alg_param.dnlp_reg_min_slop_fin = 77;
+	dnlp_alg_param.dnlp_reg_trend_wht_expand_mode = 2;
+	dnlp_alg_param.dnlp_reg_trend_blk_expand_mode = 2;
+	dnlp_alg_param.dnlp_ve_hist_cur_gain = 8;
+	dnlp_alg_param.dnlp_ve_hist_cur_gain_precise = 8;
+	dnlp_alg_param.dnlp_reg_mono_binrang_st = 7;
+	dnlp_alg_param.dnlp_reg_mono_binrang_ed = 26;
 
 	if (dnlp_alg_function != NULL) {
 		dnlp_alg_function->dnlp_para_set(&dnlp_alg_output,
@@ -500,6 +554,34 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 	/* general settings */
 	if (dnlp_insmod_ok == 0)
 		return;
+	/*load static curve*/
+	memcpy(dnlp_scurv_low_copy, p->ve_dnlp_scurv_low,
+		sizeof(int) * DNLP_SCURV_LEN);
+	memcpy(dnlp_scurv_mid1_copy, p->ve_dnlp_scurv_mid1,
+		sizeof(int) * DNLP_SCURV_LEN);
+	memcpy(dnlp_scurv_mid2_copy, p->ve_dnlp_scurv_mid2,
+		sizeof(int) * DNLP_SCURV_LEN);
+	memcpy(dnlp_scurv_hgh1_copy, p->ve_dnlp_scurv_hgh1,
+		sizeof(int) * DNLP_SCURV_LEN);
+	memcpy(dnlp_scurv_hgh2_copy, p->ve_dnlp_scurv_hgh2,
+		sizeof(int) * DNLP_SCURV_LEN);
+	/*load gain var*/
+	memcpy(gain_var_lut49_copy, p->ve_gain_var_lut49,
+		sizeof(int) * GAIN_VAR_LUT_LEN);
+	/*load wext gain*/
+	memcpy(wext_gain_copy, p->ve_wext_gain,
+		sizeof(int) * WEXT_GAIN_LEN);
+	/*load new c curve lut for vlsi-kite.li*/
+	memcpy(adp_thrd_copy, p->ve_adp_thrd,
+		sizeof(int) * ADP_THRD_LEN);
+	memcpy(reg_blk_boost_12_copy, p->ve_reg_blk_boost_12,
+		sizeof(int) * REG_BLK_BOOST_LEN);
+	memcpy(reg_adp_ofset_20_copy, p->ve_reg_adp_ofset_20,
+		sizeof(int) * REG_ADP_OFSET_LEN);
+	memcpy(reg_mono_protect_copy, p->ve_reg_mono_protect,
+		sizeof(int) * REG_MONO_PROT_LEN);
+	memcpy(reg_trend_wht_expand_lut8_copy, p->ve_reg_trend_wht_expand_lut8,
+		sizeof(int) * TREND_WHT_EXP_LUT_LEN);
 
 	if ((ve_en != p->param[ve_dnlp_enable]) ||
 		(dnlp_sel != p->param[ve_dnlp_sel]) ||
@@ -580,7 +662,45 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 		(dnlp_alg_param.dnlp_scurv_hgh2_th !=
 			p->param[ve_dnlp_scurv_hgh2_th]) ||
 		(dnlp_alg_param.dnlp_mtdrate_adp_en !=
-			p->param[ve_dnlp_mtdrate_adp_en])) {
+			p->param[ve_dnlp_mtdrate_adp_en]) ||
+		(dnlp_alg_param.dnlp_clahe_method !=
+			p->param[ve_dnlp_clahe_method]) ||
+		(dnlp_alg_param.dnlp_ble_en !=
+			p->param[ve_dnlp_ble_en]) ||
+		(dnlp_alg_param.dnlp_norm !=
+			p->param[ve_dnlp_norm]) ||
+		(dnlp_alg_param.dnlp_scn_chg_th !=
+			p->param[ve_dnlp_scn_chg_th]) ||
+		(dnlp_alg_param.dnlp_iir_step_mux !=
+			p->param[ve_dnlp_iir_step_mux]) ||
+		(dnlp_alg_param.dnlp_single_bin_bw !=
+			p->param[ve_dnlp_single_bin_bw]) ||
+		(dnlp_alg_param.dnlp_single_bin_method !=
+			p->param[ve_dnlp_single_bin_method]) ||
+		(dnlp_alg_param.dnlp_reg_max_slop_1st !=
+			p->param[ve_dnlp_reg_max_slop_1st]) ||
+		(dnlp_alg_param.dnlp_reg_max_slop_mid !=
+			p->param[ve_dnlp_reg_max_slop_mid]) ||
+		(dnlp_alg_param.dnlp_reg_max_slop_fin !=
+			p->param[ve_dnlp_reg_max_slop_fin]) ||
+		(dnlp_alg_param.dnlp_reg_min_slop_1st !=
+			p->param[ve_dnlp_reg_min_slop_1st]) ||
+		(dnlp_alg_param.dnlp_reg_min_slop_mid !=
+			p->param[ve_dnlp_reg_min_slop_mid]) ||
+		(dnlp_alg_param.dnlp_reg_min_slop_fin !=
+			p->param[ve_dnlp_reg_min_slop_fin]) ||
+		(dnlp_alg_param.dnlp_reg_trend_wht_expand_mode !=
+			p->param[ve_dnlp_reg_trend_wht_expand_mode]) ||
+		(dnlp_alg_param.dnlp_reg_trend_blk_expand_mode !=
+			p->param[ve_dnlp_reg_trend_blk_expand_mode]) ||
+		(dnlp_alg_param.dnlp_ve_hist_cur_gain !=
+			p->param[ve_dnlp_ve_hist_cur_gain]) ||
+		(dnlp_alg_param.dnlp_ve_hist_cur_gain_precise !=
+			p->param[ve_dnlp_ve_hist_cur_gain_precise]) ||
+		(dnlp_alg_param.dnlp_reg_mono_binrang_st !=
+			p->param[ve_dnlp_reg_mono_binrang_st]) ||
+		(dnlp_alg_param.dnlp_reg_mono_binrang_ed !=
+			p->param[ve_dnlp_reg_mono_binrang_ed])) {
 		if (dnlp_insmod_ok)
 			*menu_chg_en_copy = 1;
 	} else
@@ -651,26 +771,53 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 	dnlp_alg_param.dnlp_mtdrate_adp_en =
 		p->param[ve_dnlp_mtdrate_adp_en];
 	/* TODO: ve_dnlp_set_saturtn = p->dnlp_set_saturtn; */
+	/*new c curve param add for vlsi-kiteli*/
+	dnlp_alg_param.dnlp_mtdrate_adp_en =
+		p->param[ve_dnlp_mtdrate_adp_en];
+
+	dnlp_alg_param.dnlp_clahe_method =
+		p->param[ve_dnlp_clahe_method];
+	dnlp_alg_param.dnlp_ble_en =
+		p->param[ve_dnlp_ble_en];
+	dnlp_alg_param.dnlp_norm =
+		p->param[ve_dnlp_norm];
+	dnlp_alg_param.dnlp_scn_chg_th =
+		p->param[ve_dnlp_scn_chg_th];
+	dnlp_alg_param.dnlp_iir_step_mux =
+		p->param[ve_dnlp_iir_step_mux];
+	dnlp_alg_param.dnlp_single_bin_bw =
+		p->param[ve_dnlp_single_bin_bw];
+	dnlp_alg_param.dnlp_single_bin_method =
+		p->param[ve_dnlp_single_bin_method];
+	dnlp_alg_param.dnlp_reg_max_slop_1st =
+		p->param[ve_dnlp_reg_max_slop_1st];
+	dnlp_alg_param.dnlp_reg_max_slop_mid =
+		p->param[ve_dnlp_reg_max_slop_mid];
+	dnlp_alg_param.dnlp_reg_max_slop_fin =
+		p->param[ve_dnlp_reg_max_slop_fin];
+	dnlp_alg_param.dnlp_reg_min_slop_1st =
+		p->param[ve_dnlp_reg_min_slop_1st];
+	dnlp_alg_param.dnlp_reg_min_slop_mid =
+		p->param[ve_dnlp_reg_min_slop_mid];
+	dnlp_alg_param.dnlp_reg_min_slop_fin =
+		p->param[ve_dnlp_reg_min_slop_fin];
+	dnlp_alg_param.dnlp_reg_trend_wht_expand_mode =
+		p->param[ve_dnlp_reg_trend_wht_expand_mode];
+	dnlp_alg_param.dnlp_reg_trend_blk_expand_mode =
+		p->param[ve_dnlp_reg_trend_blk_expand_mode];
+	dnlp_alg_param.dnlp_ve_hist_cur_gain =
+		p->param[ve_dnlp_ve_hist_cur_gain];
+	dnlp_alg_param.dnlp_ve_hist_cur_gain_precise =
+		p->param[ve_dnlp_ve_hist_cur_gain_precise];
+	dnlp_alg_param.dnlp_reg_mono_binrang_st =
+		p->param[ve_dnlp_reg_mono_binrang_st];
+	dnlp_alg_param.dnlp_reg_mono_binrang_ed =
+		p->param[ve_dnlp_reg_mono_binrang_ed];
 
 	if (dnlp_insmod_ok == 0)
 		return;
 
 	dnlp_dbg_node_copy();
-
-	/*load static curve*/
-	for (i = 0; i < 65; i++) {
-		dnlp_scurv_low_copy[i] = p->ve_dnlp_scurv_low[i];
-		dnlp_scurv_mid1_copy[i] = p->ve_dnlp_scurv_mid1[i];
-		dnlp_scurv_mid2_copy[i] = p->ve_dnlp_scurv_mid2[i];
-		dnlp_scurv_hgh1_copy[i] = p->ve_dnlp_scurv_hgh1[i];
-		dnlp_scurv_hgh2_copy[i] = p->ve_dnlp_scurv_hgh2[i];
-	}
-	/*load gain var*/
-	for (i = 0; i < 49; i++)
-		gain_var_lut49_copy[i] = p->ve_gain_var_lut49[i];
-	/*load wext gain*/
-	for (i = 0; i < 48; i++)
-		wext_gain_copy[i] = p->ve_wext_gain[i];
 
 	if (ve_en) {
 		/* clear historic luma sum */
