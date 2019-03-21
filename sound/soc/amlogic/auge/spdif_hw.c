@@ -420,19 +420,31 @@ static void spdifout_clk_ctrl(int spdif_id, bool is_enable)
 }
 #endif
 static void spdifout_fifo_ctrl(int spdif_id,
-	int fifo_id, int bitwidth, int channels)
+	int fifo_id, int bitwidth, int channels, int lane_i2s)
 {
 	unsigned int frddr_type = spdifout_get_frddr_type(bitwidth);
 	unsigned int offset, reg, i, chmask = 0;
+	unsigned int swap_masks = 0;
+
+	/* spdif always masks two channel */
+	if (lane_i2s * 2 >= channels) {
+		pr_err("invalid lane(%d) and channels(%d)\n",
+				lane_i2s, channels);
+		return;
+	}
 
 	for (i = 0; i < channels; i++)
 		chmask |= (1 << i);
 
-	pr_debug("spdif_%s fifo ctrl, frddr:%d type:%d, %d bits\n",
+	swap_masks = (2 * lane_i2s) |
+		(2 * lane_i2s + 1) << 4;
+	pr_debug("spdif_%s fifo ctrl, frddr:%d type:%d, %d bits, chmask %#x, swap %#x\n",
 		(spdif_id == 0) ? "a":"b",
 		fifo_id,
 		frddr_type,
-		bitwidth);
+		bitwidth,
+		chmask,
+		swap_masks);
 
 	/* mask lane 0 L/R channels */
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL0 - EE_AUDIO_SPDIFOUT_CTRL0;
@@ -449,7 +461,7 @@ static void spdifout_fifo_ctrl(int spdif_id,
 
 	offset = EE_AUDIO_SPDIFOUT_B_SWAP - EE_AUDIO_SPDIFOUT_SWAP;
 	reg = EE_AUDIO_SPDIFOUT_SWAP + offset * spdif_id;
-	audiobus_write(reg, 1<<4);
+	audiobus_write(reg, swap_masks);
 }
 
 static bool spdifout_is_enable(int spdif_id)
@@ -493,7 +505,7 @@ void spdifout_enable(int spdif_id, bool is_enable, bool reenable)
 }
 
 void spdifout_samesource_set(int spdif_index, int fifo_id,
-	int bitwidth, int channels, bool is_enable)
+	int bitwidth, int channels, bool is_enable, int lane_i2s)
 {
 	int spdif_id;
 
@@ -503,7 +515,8 @@ void spdifout_samesource_set(int spdif_index, int fifo_id,
 		spdif_id = 0;
 
 	if (is_enable)
-		spdifout_fifo_ctrl(spdif_id, fifo_id, bitwidth, channels);
+		spdifout_fifo_ctrl(spdif_id,
+			fifo_id, bitwidth, channels, lane_i2s);
 }
 
 int spdifin_get_sample_rate(void)
@@ -647,7 +660,7 @@ void spdifout_play_with_zerodata(unsigned int spdif_id, bool reenable)
 
 		/* spdif ctrl */
 		spdifout_fifo_ctrl(spdif_id,
-			frddr_index, bitwidth, runtime.channels);
+			frddr_index, bitwidth, runtime.channels, 0);
 
 		/* channel status info */
 		spdif_get_channel_status_info(&chsts, sample_rate);

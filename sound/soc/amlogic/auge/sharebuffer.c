@@ -24,7 +24,7 @@
 #include "spdif_hw.h"
 
 static int sharebuffer_spdifout_prepare(struct snd_pcm_substream *substream,
-	struct frddr *fr, int spdif_id)
+	struct frddr *fr, int spdif_id, int lane_i2s)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	int bit_depth;
@@ -36,7 +36,8 @@ static int sharebuffer_spdifout_prepare(struct snd_pcm_substream *substream,
 		aml_frddr_get_fifo_id(fr),
 		bit_depth,
 		runtime->channels,
-		true);
+		true,
+		lane_i2s);
 
 	/* spdif to hdmitx */
 	spdifout_to_hdmitx_ctrl(spdif_id);
@@ -63,7 +64,7 @@ static int sharebuffer_spdifout_free(struct snd_pcm_substream *substream,
 			aml_frddr_get_fifo_id(fr),
 			bit_depth,
 			runtime->channels,
-			false);
+			false, 0);
 
 	return 0;
 }
@@ -82,7 +83,7 @@ void sharebuffer_enable(int sel, bool enable, bool reenable)
 }
 
 int sharebuffer_prepare(struct snd_pcm_substream *substream,
-	void *pfrddr, int samesource_sel)
+	void *pfrddr, int samesource_sel, int lane_i2s)
 {
 	struct frddr *fr = (struct frddr *)pfrddr;
 
@@ -95,7 +96,7 @@ int sharebuffer_prepare(struct snd_pcm_substream *substream,
 	} else if (samesource_sel < 5) {
 		/* same source with spdif a/b */
 		sharebuffer_spdifout_prepare(substream,
-			fr, samesource_sel - 3);
+			fr, samesource_sel - 3, lane_i2s);
 	}
 
 	/* frddr, share buffer, src_sel1 */

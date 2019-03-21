@@ -119,12 +119,16 @@ struct aml_tdm {
 	struct tdm_chipinfo *chipinfo;
 	/* share buffer with module */
 	int samesource_sel;
+	/* share buffer lane setting from DTS */
+	int lane_ss;
 	/* virtual link for i2s to hdmitx */
 	int i2s2hdmitx;
 	int acodec_adc;
 	uint last_mpll_freq;
 	uint last_mclk_freq;
 	uint last_fmt;
+
+	bool en_share;
 };
 
 static const struct snd_pcm_hardware aml_tdm_hardware = {
@@ -396,12 +400,11 @@ static int aml_dai_tdm_prepare(struct snd_pcm_substream *substream,
 			p_tdm->chipinfo->same_src_fn
 			&& (p_tdm->samesource_sel >= 0)
 			&& (aml_check_sharebuffer_valid(p_tdm->fddr,
-					p_tdm->samesource_sel))) {
+					p_tdm->samesource_sel))
+			&& p_tdm->en_share) {
 				sharebuffer_prepare(substream,
-					fr, p_tdm->samesource_sel);
-				/* sharebuffer default uses spdif_a */
-				spdif_set_audio_clk(SPDIF_A, p_tdm->clk,
-					runtime->rate*128, 1);
+					fr, p_tdm->samesource_sel,
+					p_tdm->lane_ss);
 		}
 
 		/* i2s source to hdmix */
@@ -571,7 +574,8 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 				&& p_tdm->chipinfo->same_src_fn
 				&& (p_tdm->samesource_sel >= 0)
 				&& (aml_check_sharebuffer_valid(p_tdm->fddr,
-						p_tdm->samesource_sel))) {
+						p_tdm->samesource_sel))
+				&& p_tdm->en_share) {
 				aml_spdifout_mute_without_actrl(0, false);
 			}
 		} else {
@@ -603,7 +607,8 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 				&& p_tdm->chipinfo->same_src_fn
 				&& (p_tdm->samesource_sel >= 0)
 				&& (aml_check_sharebuffer_valid(p_tdm->fddr,
-						p_tdm->samesource_sel))) {
+						p_tdm->samesource_sel))
+				&& p_tdm->en_share) {
 				aml_spdifout_mute_without_actrl(0, true);
 			}
 		} else {
@@ -779,7 +784,8 @@ static int aml_dai_tdm_hw_params(struct snd_pcm_substream *substream,
 		&& (p_tdm->chipinfo->same_src_fn)
 		&& (p_tdm->samesource_sel >= 0)
 		&& (aml_check_sharebuffer_valid(p_tdm->fddr,
-				p_tdm->samesource_sel))) {
+				p_tdm->samesource_sel))
+		&& p_tdm->en_share) {
 		int mux = 0, ratio = 0;
 
 			sharebuffer_get_mclk_fs_ratio(p_tdm->samesource_sel,
@@ -831,7 +837,8 @@ static int aml_dai_tdm_hw_free(struct snd_pcm_substream *substream,
 		&& p_tdm->chipinfo->same_src_fn
 		&& (p_tdm->samesource_sel >= 0)
 		&& fr
-		&& (aml_check_sharebuffer_valid(fr, p_tdm->samesource_sel))) {
+		&& (aml_check_sharebuffer_valid(fr, p_tdm->samesource_sel))
+		&& p_tdm->en_share) {
 			sharebuffer_free(substream,
 				fr, p_tdm->samesource_sel);
 	}
@@ -1326,6 +1333,51 @@ static const struct of_device_id aml_tdm_device_id[] = {
 };
 MODULE_DEVICE_TABLE(of, aml_tdm_device_id);
 
+static int check_channel_mask(const char *str)
+{
+	int ret = -1;
+
+	if (!strncmp(str, "i2s_0/1", 7))
+		ret = 0;
+	else if (!strncmp(str, "i2s_2/3", 7))
+		ret = 1;
+	else if (!strncmp(str, "i2s_4/5", 7))
+		ret = 2;
+	else if (!strncmp(str, "i2s_6/7", 7))
+		ret = 3;
+	return ret;
+}
+
+/* spdif same source with i2s */
+static void parse_samesrc_channel_mask(struct aml_tdm *p_tdm)
+{
+	struct device_node *node = p_tdm->dev->of_node;
+	struct device_node *np = NULL;
+	const char *str = NULL;
+	int ret = 0;
+
+	/* channel mask */
+	np = of_get_child_by_name(node, "Channel_Mask");
+	if (np == NULL) {
+		pr_info("No channel mask node %s\n",
+				"Channel_Mask");
+		return;
+	}
+
+	/* If spdif is same source to i2s,
+	 * it can be muxed to i2s 2 channels
+	 */
+	ret = of_property_read_string(np,
+			"Spdif_samesource_Channel_Mask", &str);
+	if (ret) {
+		pr_err("error:read Spdif_samesource_Channel_Mask\n");
+		return;
+	}
+	p_tdm->lane_ss = check_channel_mask(str);
+
+	pr_info("Channel_Mask: lane_ss = %d\n", p_tdm->lane_ss);
+}
+
 static int aml_tdm_platform_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
@@ -1482,7 +1534,12 @@ static int aml_tdm_platform_probe(struct platform_device *pdev)
 	}
 
 	p_tdm->dev = dev;
+	/* For debug to disable share buffer */
+	p_tdm->en_share = 1;
 	dev_set_drvdata(dev, p_tdm);
+
+	/* spdif same source with i2s */
+	parse_samesrc_channel_mask(p_tdm);
 
 	ret = devm_snd_soc_register_component(dev, &aml_tdm_component,
 					 &aml_tdm_dai[p_tdm->id], 1);
