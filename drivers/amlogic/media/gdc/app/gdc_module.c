@@ -556,7 +556,9 @@ static long gdc_process_input_dma_info(struct mgdc_fh_s *fh,
 			}
 			gdc_log(LOG_INFO, "1 plane get input addr=%x\n",
 				gdc_cmd->y_base_addr);
-			gdc_buffer_dma_flush(gs_ex->input_buffer.shared_fd);
+			meson_gdc_dma_flush(&fh->gdev->pdev->dev,
+				gdc_cmd->y_base_addr,
+				gc->input_y_stride * gc->input_height);
 		} else if (gs_ex->input_buffer.plane_number == 2) {
 			cfg = &fh->dma_cfg.input_cfg_plane1;
 			cfg->fd = gs_ex->input_buffer.y_base_fd;
@@ -570,7 +572,9 @@ static long gdc_process_input_dma_info(struct mgdc_fh_s *fh,
 				return -EINVAL;
 			}
 			gdc_cmd->y_base_addr = addr;
-			gdc_buffer_dma_flush(gs_ex->input_buffer.y_base_fd);
+			meson_gdc_dma_flush(&fh->gdev->pdev->dev,
+				gdc_cmd->y_base_addr,
+				gc->input_y_stride * gc->input_height);
 			cfg = &fh->dma_cfg.input_cfg_plane2;
 			cfg->fd = gs_ex->input_buffer.uv_base_fd;
 			cfg->dev = &fh->gdev->pdev->dev;
@@ -583,7 +587,9 @@ static long gdc_process_input_dma_info(struct mgdc_fh_s *fh,
 				return -EINVAL;
 			}
 			gdc_cmd->uv_base_addr = addr;
-			gdc_buffer_dma_flush(gs_ex->input_buffer.uv_base_fd);
+			meson_gdc_dma_flush(&fh->gdev->pdev->dev,
+				gdc_cmd->uv_base_addr,
+				gc->input_y_stride * gc->input_height / 2);
 			gdc_log(LOG_INFO, "2 plane get input addr=%x\n",
 				gdc_cmd->y_base_addr);
 			gdc_log(LOG_INFO, "2 plane get input addr=%x\n",
@@ -604,7 +610,9 @@ static long gdc_process_input_dma_info(struct mgdc_fh_s *fh,
 		}
 		gdc_cmd->y_base_addr = addr;
 		gdc_cmd->uv_base_addr = 0;
-		gdc_buffer_dma_flush(gs_ex->input_buffer.shared_fd);
+		meson_gdc_dma_flush(&fh->gdev->pdev->dev,
+			gdc_cmd->y_base_addr,
+			gc->input_y_stride * gc->input_height);
 	break;
 	default:
 		gdc_log(LOG_ERR, "Error image format");
