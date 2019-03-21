@@ -5139,8 +5139,8 @@ pic_done_proc:
 			(dec_dpb_status == H264_DECODE_TIMEOUT)) {
 empty_proc:
 		reset_process_time(hw);
-
-		release_cur_decoding_buf(hw);
+		if (!hw->frmbase_cont_flag)
+			release_cur_decoding_buf(hw);
 
 		if (input_frame_based(vdec) ||
 			(READ_VREG(VLD_MEM_VIFIFO_LEVEL) > 0x200)) {
@@ -5171,8 +5171,8 @@ empty_proc:
 				hw->decode_timeout_num++;
 			else if (dec_dpb_status == H264_DECODE_BUFEMPTY)
 				hw->decode_dataempty_num++;
-
-			hw->data_flag |= ERROR_FLAG;
+			if (!hw->frmbase_cont_flag)
+				hw->data_flag |= ERROR_FLAG;
 
 			vdec_schedule_work(&hw->work);
 		} else {
