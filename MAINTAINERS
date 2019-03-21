@@ -14780,6 +14780,11 @@ AMLOGIC SM1 CLOCK DRIVERS
 M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
 F:	drivers/amlogic/clk/sm1/*
 
+AMLOGIC SM1 POWER CTRL DRIVERS
+M:	Shunzhou Jiang <shunzhou.jiang@amlogic.com>
+F:	drivers/amlogic/power/power_ctrl.c
+F:	include/linux/amlogic/power_ctrl.h
+
 HARDKERNEL S922D odroidn2
 M: 	Joy Cho <joy.cho@hardkernel.com>
 F:	arch/arm64/configs/odroidn2_defconfig
