@@ -108,9 +108,9 @@ static struct remote_reg_map regs_default_rc5[] = {
 	/*bit[0-3]: RC5; bit[8]: MSB first mode; bit[11]: compare frame method*/
 	{ REG_REG2,         ((1 << 13) | (1 << 11) | (1 << 8) | 0x7)},
 	/*Half bit for RC5 format: 888.89us*/
-	{ REG_DURATN2,      ((49 << 16) | (40 << 0))},
+	{ REG_DURATN2,      ((53 << 16) | (38 << 0))},
 	/*RC5 typically 1777.78us for whole bit*/
-	{ REG_DURATN3,      ((94 << 16) | (83 << 0))},
+	{ REG_DURATN3,      ((99 << 16) | (81 << 0))},
 	{ REG_REG3,         0}
 };
 
