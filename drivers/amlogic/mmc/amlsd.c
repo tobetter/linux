@@ -675,6 +675,9 @@ static int aml_is_sduart(struct amlsd_platform *pdata)
 	struct amlsd_host *host = pdata->host;
 	struct sd_emmc_status *ista = (struct sd_emmc_status *)&vstat;
 
+	if (pdata->no_sduart)
+		return 0;
+
 	mutex_lock(&host->pinmux_lock);
 	pc = aml_devm_pinctrl_get_select(host, "sd_to_ao_uart_pins");
 
@@ -867,8 +870,10 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			}
 		} else {
 			pr_info("normal card in\n");
-			aml_uart_switch(pdata, 0);
-			aml_jtag_switch_ao(pdata);
+			if (!pdata->no_sduart) {
+				aml_uart_switch(pdata, 0);
+				aml_jtag_switch_ao(pdata);
+			}
 			if (host->data->chip_type == MMC_CHIP_G12A)
 				host->is_sduart = 0;
 			if (pdata->caps & MMC_CAP_4_BIT_DATA)
