@@ -685,8 +685,6 @@ static int video_port_init(struct port_priv_s *priv,
 
 	pbuf->flag |= BUF_FLAG_IN_USE;
 
-	vdec_connect(priv->vdec);
-
 	return 0;
 }
 
@@ -1031,6 +1029,7 @@ static int amstream_port_release(struct port_priv_s *priv)
 	}
 
 	if (port->type & PORT_TYPE_MPTS) {
+		vdec_disconnect(priv->vdec);
 		tsync_pcr_stop();
 		tsdemux_release();
 	}
