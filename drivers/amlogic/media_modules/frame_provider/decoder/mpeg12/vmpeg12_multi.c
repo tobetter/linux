@@ -514,8 +514,7 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 		"ammvdec_mpeg12: error = 0x%x, offset = 0x%x\n",
 			info & PICINFO_ERROR, offset);*/
 
-		if (((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_I) ||
-			((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_P)) {
+		if (((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_I)) {
 			if (hw->chunk) {
 				hw->pts_valid[index] = hw->chunk->pts_valid;
 				hw->pts[index] = hw->chunk->pts;
