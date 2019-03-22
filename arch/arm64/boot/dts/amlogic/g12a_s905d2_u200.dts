@@ -941,9 +941,9 @@
 	hispeed_cpufreq_max = <2100>;
 	medspeed_cpufreq_max = <1908>;
 	lospeed_cpufreq_max = <1800>;
-	operating-points-v2 = <&cpu_opp_table0>;
-			//<&cpu_opp_table1>,
-			//<&cpu_opp_table2>;
+	operating-points-v2 = <&cpu_opp_table0>,
+			<&cpu_opp_table1>,
+			<&cpu_opp_table2>;
 };
 
 &CPU1 {
