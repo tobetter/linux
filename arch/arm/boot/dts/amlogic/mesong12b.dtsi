@@ -562,6 +562,7 @@
 		status = "okay";
 		reg = <0xFF6345E0 4>;
 		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	soc {
@@ -1459,7 +1460,7 @@
 		clocks = <&clkc CLKID_SD_EMMC_C>,
 			   <&clkc CLKID_SD_EMMC_C_P0_COMP>,
 			   <&clkc CLKID_FCLK_DIV2>,
-			   <&clkc CLKID_FCLK_DIV5>,
+			   <&clkc CLKID_FCLK_DIV2P5>,
 			   <&xtal>;
 		clock-names = "core", "clkin0", "clkin1", "clkin2", "xtal";
 

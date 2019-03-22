@@ -155,7 +155,6 @@
 			<0x0 0xff80023c 0x0 0x4>;
 	};
 
-
 	secmon {
 		compatible = "amlogic, secmon";
 		memory-region = <&secmon_reserved>;
@@ -280,6 +279,9 @@
 	ram-dump {
 		compatible = "amlogic, ram_dump";
 		status = "okay";
+		reg = <0x0 0xFF6345E0 0x0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	jtag {

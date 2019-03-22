@@ -562,6 +562,7 @@
 		status = "okay";
 		reg = <0x0 0xFF6345E0 0x0 4>;
 		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	soc {
@@ -1469,7 +1470,7 @@
 		clocks = <&clkc CLKID_SD_EMMC_C>,
 			   <&clkc CLKID_SD_EMMC_C_P0_COMP>,
 			   <&clkc CLKID_FCLK_DIV2>,
-			   <&clkc CLKID_FCLK_DIV5>,
+			   <&clkc CLKID_FCLK_DIV2P5>,
 			   <&xtal>;
 		clock-names = "core", "clkin0", "clkin1", "clkin2", "xtal";
 
@@ -1685,7 +1686,7 @@
 			thermal-sensors = <&p_tsensor 0>;
 			trips {
 				pswitch_on: trip-point@0 {
-					temperature = <65000>;
+					temperature = <60000>;
 					hysteresis = <5000>;
 					type = "passive";
 				};
@@ -1695,7 +1696,7 @@
 					type = "passive";
 				};
 				phot: trip-point@2 {
-					temperature = <95000>;
+					temperature = <85000>;
 					hysteresis = <5000>;
 					type = "hot";
 				};
