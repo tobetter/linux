@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-20a";
+static const char version_s[] = "2019-03-22va";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -6543,11 +6543,14 @@ static int di_task_handle(void *data)
 				di_pre_stru.disable_req_flag) &&
 				(di_pre_stru.pre_de_busy == 0)) {
 				di_unreg_process();
+				#if 0
+				/* if mirror mode, can't speed down the clk*/
 				/* set min rate for power saving */
 				if (de_devp->vpu_clkb) {
 					clk_set_rate(de_devp->vpu_clkb,
 						de_devp->clkb_min_rate);
 				}
+				#endif
 			}
 			if (di_pre_stru.reg_req_flag_irq ||
 				di_pre_stru.reg_req_flag) {
