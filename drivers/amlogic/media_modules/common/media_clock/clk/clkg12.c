@@ -719,7 +719,8 @@ static int vdec_clock_set(int clk)
 		clk = 667;
 	}
 
-	if (get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1 &&
+		get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_TL1)
 		clk = 800;
 
 	if (set_frq_enable && vdec_frq) {
@@ -1014,6 +1015,7 @@ static int vdec_clock_get(enum vdec_type_e core)
 	AM_MESON_CPU_MAJOR_ID_G12B,\
 	AM_MESON_CPU_MAJOR_ID_SM1,\
 	AM_MESON_CPU_MAJOR_ID_TL1,\
+	AM_MESON_CPU_MAJOR_ID_TM2,\
 	0}
 #include "clk.h"
 
