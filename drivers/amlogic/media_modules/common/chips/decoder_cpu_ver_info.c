@@ -57,7 +57,10 @@ static enum AM_MESON_CPU_MAJOR_ID cpu_ver_info[AM_MESON_CPU_MAJOR_ID_MAX - MAJOR
 	AM_MESON_CPU_MAJOR_ID_G12B,
 	AM_MESON_CPU_MAJOR_ID_GXLX2,
 	AM_MESON_CPU_MAJOR_ID_SM1,
+	AM_MESON_CPU_MAJOR_ID_RES_0x2c,
+	AM_MESON_CPU_MAJOR_ID_RES_0x2d,
 	AM_MESON_CPU_MAJOR_ID_TL1,
+	AM_MESON_CPU_MAJOR_ID_TM2,
 };
 
 static const struct of_device_id cpu_ver_of_match[] = {
@@ -71,7 +74,7 @@ static const struct of_device_id cpu_ver_of_match[] = {
 		.data = &cpu_ver_info[AM_MESON_CPU_MAJOR_ID_G12A - MAJOR_ID_START],
 	},
 
-    {
+	{
 		.compatible = "amlogic, cpu-major-id-gxl",
 		.data = &cpu_ver_info[AM_MESON_CPU_MAJOR_ID_GXL - MAJOR_ID_START],
 	},
@@ -100,6 +103,10 @@ static const struct of_device_id cpu_ver_of_match[] = {
 		.compatible = "amlogic, cpu-major-id-tl1",
 		.data = &cpu_ver_info[AM_MESON_CPU_MAJOR_ID_TL1 - MAJOR_ID_START],
 	},
+	{
+		.compatible = "amlogic, cpu-major-id-tm2",
+		.data = &cpu_ver_info[AM_MESON_CPU_MAJOR_ID_TM2 - MAJOR_ID_START],
+	},
 	{},
 };
 
@@ -110,23 +117,17 @@ static bool get_cpu_id_from_dtb(enum AM_MESON_CPU_MAJOR_ID *pidType)
 	const struct of_device_id *pMatch = NULL;
 
 	pNode = of_find_node_by_name(NULL, DECODE_CPU_VER_ID_NODE_NAME);
-
-	if (NULL == pNode)
-	{
+	if (NULL == pNode) {
 		pr_err("No find node.\n");
 		return -EINVAL;
 	}
 
 	pDev =  of_find_device_by_node(pNode);
 	if (NULL == pDev)
-	{
 		return -EINVAL;
-	}
 
 	pMatch = of_match_device(cpu_ver_of_match, &pDev->dev);
-
-	if (NULL == pMatch)
-	{
+	if (NULL == pMatch) {
 		pr_err("No find of_match_device\n");
 		return -EINVAL;
 	}
@@ -141,28 +142,20 @@ static void initial_cpu_id(void)
 	enum AM_MESON_CPU_MAJOR_ID id_type = AM_MESON_CPU_MAJOR_ID_MAX;
 
 	if (AM_SUCESS == get_cpu_id_from_dtb(&id_type))
-	{
 		cpu_ver_id = id_type;
-	}else
-	{
+	else
 		cpu_ver_id = (enum AM_MESON_CPU_MAJOR_ID)get_cpu_type();
-	}
 
 	if (AM_MESON_CPU_MAJOR_ID_G12B == cpu_ver_id)
-	{
 		if (is_meson_rev_b())
-		cpu_ver_id = AM_MESON_CPU_MAJOR_ID_TL1;
-	}
+			cpu_ver_id = AM_MESON_CPU_MAJOR_ID_TL1;
 }
 
 enum AM_MESON_CPU_MAJOR_ID get_cpu_major_id(void)
 {
 	if (AM_MESON_CPU_MAJOR_ID_MAX == cpu_ver_id)
-	{
 		initial_cpu_id();
-	}
 
 	return cpu_ver_id;
 }
-
 EXPORT_SYMBOL(get_cpu_major_id);
