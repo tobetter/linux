@@ -51,6 +51,9 @@
 
 /*#define __SPDIFIN_AUDIO_TYPE_HW__*/
 
+static int aml_dai_set_spdif_sysclk(struct snd_soc_dai *cpu_dai,
+				int clk_id, unsigned int freq, int dir);
+
 struct spdif_chipinfo {
 	enum SPDIF_ID id;
 
@@ -357,16 +360,49 @@ int spdifin_source_set_enum(
 	return 0;
 }
 
+static int spdif_clk_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_spdif *p_spdif = snd_soc_dai_get_drvdata(cpu_dai);
+
+	ucontrol->value.enumerated.item[0] =
+			clk_get_rate(p_spdif->clk_spdifout);
+	return 0;
+}
+
+static int spdif_clk_set(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_spdif *p_spdif = snd_soc_dai_get_drvdata(cpu_dai);
+
+	int sysclk = p_spdif->sysclk_freq;
+	int value = ucontrol->value.enumerated.item[0];
+
+	if (value > 2000000 || value < 0) {
+		pr_err("Fine spdif sysclk setting range(0~2000000), %d\n",
+				value);
+		return 0;
+	}
+	sysclk += (value - 1000000);
+
+	aml_dai_set_spdif_sysclk(cpu_dai, 0, sysclk, 0);
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new snd_spdif_controls[] = {
 
-	SOC_ENUM_EXT("SPDIFIN audio samplerate", spdifin_sample_rate_enum,
+	SOC_ENUM_EXT("SPDIFIN audio samplerate",
+				spdifin_sample_rate_enum,
 				spdifin_samplerate_get_enum,
 				NULL),
 
 	SOC_ENUM_EXT("SPDIFIN Audio Type",
-			 spdif_audio_type_enum,
-			 spdifin_audio_type_get_enum,
-			 NULL),
+				spdif_audio_type_enum,
+				spdifin_audio_type_get_enum,
+				NULL),
 
 	SOC_ENUM_EXT("Audio spdif format",
 				spdif_format_enum,
@@ -376,15 +412,22 @@ static const struct snd_kcontrol_new snd_spdif_controls[] = {
 	SOC_SINGLE_BOOL_EXT("Audio spdif mute",
 				0, aml_audio_get_spdif_mute,
 				aml_audio_set_spdif_mute),
+
 	SOC_ENUM_EXT("Audio spdifin source",
 				spdifin_src_enum,
 				spdifin_source_get_enum,
 				spdifin_source_set_enum),
+
 #ifdef CONFIG_AMLOGIC_HDMITX
 	SOC_SINGLE_BOOL_EXT("Audio hdmi-out mute",
 				0, aml_get_hdmi_out_audio,
 				aml_set_hdmi_out_audio),
 #endif
+
+	SOC_SINGLE_EXT("SPDIF CLK Fine Setting",
+				0, 0, 2000000, 0,
+				spdif_clk_get,
+				spdif_clk_set),
 };
 
 static bool spdifin_check_audiotype_by_sw(struct aml_spdif *p_spdif)

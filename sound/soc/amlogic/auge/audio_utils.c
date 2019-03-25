@@ -165,6 +165,7 @@ static int loopback_tdminlb_set_enum(
 	return 0;
 }
 
+#if 0
 static int snd_int_info(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_info *uinfo)
 {
@@ -279,6 +280,7 @@ static int snd_byte_set(struct snd_kcontrol *kcontrol,
 
 	return 0;
 }
+#endif
 
 #define SND_BYTE(xname, type, func, xshift, xmask)   \
 {                                      \
@@ -742,7 +744,7 @@ static const struct snd_kcontrol_new snd_auge_controls[] = {
 		     loopback_tdminlb_enum,
 		     loopback_tdminlb_get_enum,
 		     loopback_tdminlb_set_enum),
-
+#if 0
 	/*TDMIN_A swap*/
 	SND_SWAP("TDMIN_A Ch0 Swap", TDMIN_A, in_swap_channel_enum, 0, 0x7),
 	SND_SWAP("TDMIN_A Ch1 Swap", TDMIN_A, in_swap_channel_enum, 4, 0x7),
@@ -983,6 +985,7 @@ static const struct snd_kcontrol_new snd_auge_controls[] = {
 		TDMOUT_C, lane2_mixer_enum, 22, 0x1),
 	SND_MIX("TDMOUT_C Lane3 Mixer Channel",
 		TDMOUT_C, lane3_mixer_enum, 23, 0x1),
+#endif
 
 	/* SPDIFIN Channel Status */
 	SPDIFIN_CHSTATUS("SPDIFIN Channel Status",
