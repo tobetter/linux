@@ -42,7 +42,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/firmware.h"
 #include <linux/amlogic/tee.h>
-
+#include <linux/delay.h>
 #include <trace/events/meson_atrace.h>
 
 
@@ -142,6 +142,7 @@ static u32 next_pts;
 static u64 next_pts_us64;
 static bool is_reset;
 static struct work_struct set_clk_work;
+static struct work_struct error_wd_work;
 
 #ifdef DEBUG_PTS
 static u32 pts_hit, pts_missed, pts_i_hit, pts_i_missed;
@@ -999,13 +1000,10 @@ static void vvc1_set_clk(struct work_struct *work)
 	}
 }
 
-static void vvc1_put_timer_func(unsigned long arg)
+static void error_do_work(struct work_struct *work)
 {
-	struct timer_list *timer = (struct timer_list *)arg;
-
-#if 1
-	if (READ_VREG(VC1_SOS_COUNT) > 10) {
 		amvdec_stop();
+		msleep(20);
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 		vvc1_ppmgr_reset();
 #else
@@ -1015,8 +1013,15 @@ static void vvc1_put_timer_func(unsigned long arg)
 #endif
 		vvc1_prot_init();
 		amvdec_start();
-	}
-#endif
+}
+
+
+static void vvc1_put_timer_func(unsigned long arg)
+{
+	struct timer_list *timer = (struct timer_list *)arg;
+
+	if (READ_VREG(VC1_SOS_COUNT) > 10)
+		schedule_work(&error_wd_work);
 
 	while (!kfifo_is_empty(&recycle_q) && (READ_VREG(VC1_BUFFERIN) == 0)) {
 		struct vframe_s *vf;
@@ -1163,6 +1168,8 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 
 	vvc1_vdec_info_init();
 
+	INIT_WORK(&error_wd_work, error_do_work);
+	INIT_WORK(&set_clk_work, vvc1_set_clk);
 	if (vvc1_init() < 0) {
 		pr_info("amvdec_vc1 init failed.\n");
 		kfree(gvs);
@@ -1170,12 +1177,13 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
-	INIT_WORK(&set_clk_work, vvc1_set_clk);
+
 	return 0;
 }
 
 static int amvdec_vc1_remove(struct platform_device *pdev)
 {
+	cancel_work_sync(&error_wd_work);
 	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
