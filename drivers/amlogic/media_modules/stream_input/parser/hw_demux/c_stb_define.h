@@ -62,11 +62,12 @@
 /* bit 19 -- invert fec_valid for S2P1*/
 /* bit 18 -- invert fec_clk for S2P1*/
 /* bit 17:16 -- fec_s_sel for S2P1
- * 00 - select TS0, 01 -- select TS1, 10 -- select TS2, 11 - reserved*/
+ * 00 - select TS0, 01 -- select TS1, 10 -- select TS2, 11 - TS3*/
 /* Bit 15 -- enable_des_pl_clk*/
-/* Bit 14:13 -- reserved*/
+/* Bit 14 -- reserved*/
+/* Bit 13 -- use FAIL for TS3*/
 /* Bit 12:10 -- ts_out_select,
- * 0-TS0, 1-TS1, 2-TS2, 3,4-Reserved, 5-S2P1, 6-S2P0, 7-File*/
+ * 0-TS0, 1-TS1, 2-TS2, 3-TS3,4-S2P2, 5-S2P1, 6-S2P0, 7-File*/
 /* bit 9:8 -- des_i_sel 00 -- select demux0 as des input,
 *  01 -- select_demux1, 10 -- select_demux2, 11 - reserved*/
 /* bit 7 -- enable_des_pl*/
@@ -86,6 +87,7 @@
 #define INVERT_S2P1_FEC_CLK         18
 #define S2P1_FEC_SERIAL_SEL         16
 #define ENABLE_DES_PL_CLK           15
+#define FAIL_TS3					13
 #define TS_OUTPUT_SOURCE            10
 #define DES_INPUT_SEL               8
 #define ENABLE_DES_PL               7
@@ -106,6 +108,26 @@
 #define INVERT_S2P2_FEC_CLK         2
 #define S2P2_FEC_SERIAL_SEL         0
 
+
+/* 31:24 --  file_m2ts_skip_bytes_hiu1*/
+/* 21 -- ts_hiu_enable_hiu1 */
+/*20:16  --  fec_clk_div_hiu1*/
+/*15:8  -- TS_package_length_sub_1_hiu1 */
+/*7:0  --  fec_sync_byte_hiu1*/
+/*#define TS_HIU1_CONFIG	(STB_CBUS_BASE + 0x4e)*/
+#define FILE_M2TS_SKIP_BYTES_HIU1		24
+#define TS_HIU_ENABLE_HIU1				21
+#define FEC_CLK_DIV_HIU1				16
+#define TS_PACKAGE_LENGTH_SUB_1_HIU1 	8
+#define FEC_SYNC_BYTE_HIU1				0
+
+/*5:4 -- fec_sel_demux_2, default:2*/
+/*3:2 -- fec_sel_demux_1, default:1*/
+/*1:0 -- fec_sel_demux_0, default:0*/
+/*#define TS_TOP_CONFIG1	(STB_CBUS_BASE + 0x4f)*/
+#define FEC_SEL_DEMUX_2					4
+#define FEC_SEL_DEMUX_1					2
+#define FEC_SEL_DEMUX_0					0
 
 /* 31:28 - s2p1_clk_div*/
 /* 27:24 - s2p0_clk_div*/
@@ -213,6 +235,7 @@
 /*#define FEC_INPUT_CONTROL_3
  * (STB_CBUS_BASE + DEMUX_3_OFFSET + 0x02)  // 0x16a2*/
 /*----------- bit define -----------*/
+#define FEC_SEL_3BIT			   16
 #define FEC_CORE_SEL               15
 #define FEC_SEL                    12
 #define FEC_INPUT_FEC_CLK          11

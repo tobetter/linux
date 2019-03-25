@@ -47,6 +47,12 @@
 #define DEMUX_3_OFFSET         0xa0
 
 
+#define TS_HIU1_CONFIG	(STB_CBUS_BASE + 0x4e)
+#define P_TS_HIU1_CONFIG                 CBUS_REG_ADDR(TS_HIU1_CONFIG)
+
+#define TS_TOP_CONFIG1	(STB_CBUS_BASE + 0x4f)
+#define P_TS_TOP_CONFIG1                 CBUS_REG_ADDR(TS_TOP_CONFIG1)
+
 #define STB_S2P2_CONFIG  (STB_CBUS_BASE + 0xef)
 #define P_STB_S2P2_CONFIG                CBUS_REG_ADDR(STB_S2P2_CONFIG)
 

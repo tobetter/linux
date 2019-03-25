@@ -94,6 +94,7 @@ enum aml_ts_source_t {
 	AM_TS_SRC_S_TS2,
 
 	AM_TS_SRC_HIU,
+	AM_TS_SRC_HIU1,
 	AM_TS_SRC_DMX0,
 	AM_TS_SRC_DMX1,
 	AM_TS_SRC_DMX2
@@ -126,14 +127,17 @@ struct aml_filter {
 
 #define DVBCSA_MODE 0
 #define CIPLUS_MODE 1
-#define AES_CBC_MODE 0
-#define AES_ECB_MODE 1
+#define CBC_MODE 0
+#define ECB_MODE 1
+#define IDSA_MODE 2
 
 #define DSC_SET_EVEN     1
 #define DSC_SET_ODD      2
 #define DSC_SET_AES_EVEN 4
 #define DSC_SET_AES_ODD  8
 #define DSC_FROM_KL      16
+#define DSC_SET_SM4_EVEN 32
+#define DSC_SET_SM4_ODD  64
 
 #define DSC_KEY_SIZE_MAX 16
 
@@ -148,7 +152,7 @@ struct aml_dsc_channel {
 	int                  id;
 	struct aml_dsc      *dsc;
 	int                  work_mode;
-	int                  aes_mode;
+	int                  mode;
 };
 
 struct aml_dsc {

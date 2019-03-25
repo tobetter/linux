@@ -402,7 +402,7 @@ static void dsc_channel_alloc(struct aml_dsc *dsc, int id, unsigned int pid)
 	ch->pid   = pid;
 	ch->set = 0;
 	ch->dsc   = dsc;
-	ch->aes_mode = -1;
+	ch->mode = -1;
 
 	dsc_set_pid(ch, ch->pid);
 }
@@ -419,7 +419,7 @@ static void dsc_channel_free(struct aml_dsc_channel *ch)
 	ch->pid   = 0x1fff;
 	ch->set = 0;
 	ch->work_mode = -1;
-	ch->aes_mode  = -1;
+	ch->mode  = -1;
 }
 
 static void dsc_reset(struct aml_dsc *dsc)
@@ -445,6 +445,10 @@ static int get_dsc_key_work_mode(enum ca_cw_type cw_type)
 	case CA_CW_AES_EVEN_IV:
 	case CA_CW_DES_EVEN:
 	case CA_CW_DES_ODD:
+	case CA_CW_SM4_EVEN:
+	case CA_CW_SM4_ODD:
+	case CA_CW_SM4_ODD_IV:
+	case CA_CW_SM4_EVEN_IV:
 		work_mode = CIPLUS_MODE;
 	default:
 		break;
@@ -494,17 +498,21 @@ static int dsc_set_cw(struct aml_dsc *dsc, struct ca_descr_ex *d)
 	case CA_CW_DVB_CSA_EVEN:
 	case CA_CW_AES_EVEN:
 	case CA_CW_DES_EVEN:
+	case CA_CW_SM4_EVEN:
 		memcpy(ch->even, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	case CA_CW_DVB_CSA_ODD:
 	case CA_CW_AES_ODD:
 	case CA_CW_DES_ODD:
+	case CA_CW_SM4_ODD:
 		memcpy(ch->odd, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	case CA_CW_AES_EVEN_IV:
+	case CA_CW_SM4_EVEN_IV:
 		memcpy(ch->even_iv, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	case CA_CW_AES_ODD_IV:
+	case CA_CW_SM4_ODD_IV:
 		memcpy(ch->odd_iv, d->cw, DSC_KEY_SIZE_MAX);
 		break;
 	default:
@@ -512,6 +520,10 @@ static int dsc_set_cw(struct aml_dsc *dsc, struct ca_descr_ex *d)
 	}
 
 	ch->set |= (1 << d->type) | (d->flags << 24);
+
+	if (d->mode == CA_DSC_IDSA) {
+		ch->mode = IDSA_MODE;
+	}
 
 	/*do key set*/
 	dsc_set_key(ch, d->flags, d->type, d->cw);
@@ -566,6 +578,7 @@ static int dvb_dsc_do_ioctl(struct file *file, unsigned int cmd,
 
 		dex.index = d->index;
 		dex.type  = d->parity ? CA_CW_DVB_CSA_ODD : CA_CW_DVB_CSA_EVEN;
+		dex.mode = -1;
 		dex.flags = 0;
 		memcpy(dex.cw, d->cw, sizeof(d->cw));
 
@@ -827,6 +840,9 @@ static ssize_t stb_show_source(struct class *class,
 	case AM_TS_SRC_HIU:
 		src = "hiu";
 		break;
+	case AM_TS_SRC_HIU1:
+		src = "hiu1";
+		break;
 	case AM_TS_SRC_DMX0:
 		src = "dmx0";
 		break;
@@ -876,6 +892,8 @@ static ssize_t stb_store_source(struct class *class,
 		src = DMX_SOURCE_FRONT3;
 	else if (!strncmp("hiu", buf, 3))
 		src = DMX_SOURCE_DVR0;
+	else if (!strncmp("hiu1", buf, 4))
+		src = DMX_SOURCE_DVR1;
 	else if (!strncmp("dmx0", buf, 4))
 		src = DMX_SOURCE_FRONT0 + 100;
 	else if (!strncmp("dmx1", buf, 4))
@@ -1099,8 +1117,20 @@ static ssize_t demux##i##_show_source(struct class *class,  \
 	CASE_PREFIX case AM_TS_SRC_S_TS2:\
 		src = "ts2";\
 	break;\
+	CASE_PREFIX case AM_TS_SRC_DMX0:\
+		src = "dmx0";\
+	break;\
+	CASE_PREFIX case AM_TS_SRC_DMX1:\
+		src = "dmx1";\
+	break;\
+	CASE_PREFIX case AM_TS_SRC_DMX2:\
+		src = "dmx2";\
+	break;\
 	CASE_PREFIX case AM_TS_SRC_HIU:\
 		src = "hiu";\
+	break;\
+	CASE_PREFIX case AM_TS_SRC_HIU1:\
+		src = "hiu1";\
 	break;\
 	CASE_PREFIX default :\
 		src = "";\
@@ -1122,6 +1152,14 @@ static ssize_t demux##i##_store_source(struct class *class,  \
 		src = DMX_SOURCE_FRONT2;\
 	} else if (!strncmp("hiu", buf, 3)) {\
 		src = DMX_SOURCE_DVR0;\
+	} else if (!strncmp("hiu1", buf, 3)) {\
+		src = DMX_SOURCE_DVR1;\
+	} else if (!strncmp("dmx0", buf, 4)) {\
+		src = DMX_SOURCE_FRONT0_OFFSET;\
+	} else if (!strncmp("dmx1", buf, 4)) {\
+		src = DMX_SOURCE_FRONT1_OFFSET;\
+	} else if (!strncmp("dmx2", buf, 4)) {\
+		src = DMX_SOURCE_FRONT2_OFFSET;\
 	} \
 	if (src != -1) {\
 		aml_dmx_hw_set_source(aml_dvb_device.dmx[i].dmxdev.demux, src);\
