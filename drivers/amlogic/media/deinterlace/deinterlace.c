@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-22va";
+static const char version_s[] = "2019-03-25va";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -265,8 +265,6 @@ static long same_field_bot_count;
 
 static int post_hold_line = 8; /*2019-01-10: from VLSI feijun from 17 to 8*/
 static int post_urgent = 1;
-
-static struct mutex di_event_mutex;
 
 /*pre process speed debug */
 static int pre_process_time;
@@ -3467,14 +3465,8 @@ static unsigned char pre_de_buf_config(void)
 	bool bit10_pack_patch = false;
 	unsigned int width_roundup = 2;
 
-	if (di_blocking || !atomic_read(&de_devp->mem_flag)
-		|| di_pre_stru.unreg_req_flag) {
-		if (di_pre_stru.unreg_req_flag)
-			pr_info("DI: %s fail unreg_req_flag=%d\n", __func__,
-			di_pre_stru.unreg_req_flag);
+	if (di_blocking || !atomic_read(&de_devp->mem_flag))
 		return 0;
-	}
-
 	if ((list_count(QUEUE_IN_FREE) < 2 && (!di_pre_stru.di_inp_buf_next)) ||
 	    (queue_empty(QUEUE_LOCAL_FREE)))
 		return 0;
@@ -5997,8 +5989,6 @@ static void di_unreg_process_irq(void)
 	ulong flags = 0;
 	spin_lock_irqsave(&plist_lock, flags);
 #endif
-
-	pr_info("DI: %s S\n", __func__);
 	init_flag = 0;
 	mirror_disable = get_blackout_policy();
 	di_lock_irqfiq_save(irq_flag2);
@@ -6071,7 +6061,6 @@ static void di_unreg_process_irq(void)
 		up(&di_sema);
 	}
 #endif
-	pr_info("DI: %s E\n", __func__);
 }
 
 static void di_reg_process(void)
@@ -6246,6 +6235,7 @@ static void di_reg_process_irq(void)
 		return;
 	if (pre_run_flag == DI_RUN_FLAG_STEP)
 		pre_run_flag = DI_RUN_FLAG_STEP_DONE;
+
 
 	vframe = vf_peek(VFM_NAME);
 
@@ -6622,10 +6612,7 @@ static void di_pre_process_irq(struct di_pre_stru_s *pre_stru_p)
 	}
 
 	for (i = 0; i < 2; i++) {
-		if (active_flag && (!pre_stru_p->unreg_req_flag_irq
-			&& !pre_stru_p->unreg_req_flag
-			&& !pre_stru_p->reg_req_flag_irq
-			&& !pre_stru_p->reg_req_flag))
+		if (active_flag)
 			di_process();
 	}
 	log_buffer_state("pro");
@@ -6659,31 +6646,21 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 	int i;
 	ulong flags;
 	char *provider_name = (char *)data;
-	u32 sts = 0;
 
 	if (type == VFRAME_EVENT_PROVIDER_QUREY_VDIN2NR) {
-		sts = di_pre_stru.vdin2nr;
 		return di_pre_stru.vdin2nr;
 	} else if (type == VFRAME_EVENT_PROVIDER_UNREG) {
-		mutex_lock(&di_event_mutex);
-
 		pr_dbg("%s , is_bypass() %d trick_mode %d bypass_all %d\n",
 			__func__, is_bypass(NULL), trick_mode, bypass_all);
+		di_pre_stru.vdin_source = false;
 		pr_info("DI: %s: unreg\n", __func__);
 		pr_info("DI: provider name:%s\n", provider_name);
 
-		if (di_pre_stru.reg_req_flag ||
-			di_pre_stru.reg_req_flag_irq)
-			pr_info("DI: warning reg_req_flag is %d,%d\n",
-				di_pre_stru.reg_req_flag,
-				di_pre_stru.reg_req_flag_irq);
-		di_pre_stru.vdin_source = false;
 		di_pre_stru.unreg_req_flag = 1;
+		di_pre_stru.vdin_source = false;
 		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_UNREG);
-		/*check unreg process*/
 		di_pre_stru.unreg_req_flag_cnt = 0;
 		while (di_pre_stru.unreg_req_flag) {
-			/*waitting di_unreg_process_irq finish*/
 			usleep_range(10000, 10001);
 			if (di_pre_stru.unreg_req_flag_cnt++ >
 				di_reg_unreg_cnt) {
@@ -6711,12 +6688,11 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 		if (di_pre_stru.vdin_source)
 			DI_Wr_reg_bits(VDIN_WR_CTRL, 0x3, 24, 3);
 #endif
-		mutex_unlock(&di_event_mutex);
-		pr_info("DI:ureg f\n");
+		pr_info("DI: unreg f\n");
 	} else if (type == VFRAME_EVENT_PROVIDER_RESET) {
 		di_blocking = 1;
 
-		pr_info("%s: VFRAME_EVENT_PROVIDER_RESET\n", __func__);
+		pr_dbg("%s: VFRAME_EVENT_PROVIDER_RESET\n", __func__);
 		if (is_bypass(NULL)
 			|| bypass_state
 			|| di_pre_stru.bypass_flag) {
@@ -6729,7 +6705,7 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 	} else if (type == VFRAME_EVENT_PROVIDER_LIGHT_UNREG) {
 		di_blocking = 1;
 
-		pr_info("%s: vf_notify_receiver ligth unreg\n", __func__);
+		pr_dbg("%s: vf_notify_receiver ligth unreg\n", __func__);
 
 light_unreg:
 		spin_lock_irqsave(&plist_lock, flags);
@@ -6745,7 +6721,7 @@ light_unreg:
 	} else if (type == VFRAME_EVENT_PROVIDER_LIGHT_UNREG_RETURN_VFRAME) {
 		unsigned char vf_put_flag = 0;
 
-		pr_info(
+		pr_dbg(
 			"%s:VFRAME_EVENT_PROVIDER_LIGHT_UNREG_RETURN_VFRAME\n",
 			__func__);
 /*
@@ -6873,39 +6849,28 @@ light_unreg:
 		}
 #endif
 	} else if (type == VFRAME_EVENT_PROVIDER_REG) {
-		/*char *provider_name = (char *)data;*/
 		char *receiver_name = NULL;
-		mutex_lock(&di_event_mutex);
-
 		if (de_devp->flags & DI_SUSPEND_FLAG) {
 			pr_err("[DI] reg event device hasn't resumed\n");
-			mutex_unlock(&di_event_mutex);
 			return -1;
 		}
 		if (reg_flag) {
 			pr_err("[DI] no muti instance.\n");
-			mutex_unlock(&di_event_mutex);
 			return -1;
 		}
-		pr_info("DI: %s: reg\n", __func__);
-		pr_info("DI: provider name:%s\n", provider_name);
+		pr_info("%s: vframe provider reg %s\n", __func__,
+			provider_name);
 
 		bypass_state = 0;
-		if (di_pre_stru.unreg_req_flag ||
-			di_pre_stru.unreg_req_flag_irq)
-			pr_info("DI: warning unreg_req_flag is %d,%d\n",
-				di_pre_stru.unreg_req_flag,
-				di_pre_stru.unreg_req_flag_irq);
-
-		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_REG);
 		di_pre_stru.reg_req_flag = 1;
-		/*check reg process*/
+		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_REG);
+		/*check unreg process*/
 		di_pre_stru.reg_req_flag_cnt = 0;
 		while (di_pre_stru.reg_req_flag) {
 			usleep_range(10000, 10001);
 			if (di_pre_stru.reg_req_flag_cnt++ > di_reg_unreg_cnt) {
 				reg_unreg_timeout_cnt++;
-				pr_err("%s:reg_req_flag timeout!!!\n",
+				pr_dbg("%s:reg_req_flag timeout!!!\n",
 					__func__);
 				break;
 			}
@@ -6930,8 +6895,7 @@ light_unreg:
 		} else {
 			pr_info("%s error receiver is null.\n", __func__);
 		}
-		mutex_unlock(&di_event_mutex);
-		pr_info("DI:reg f\n");
+		pr_info("DI: reg f\n");
 	}
 #ifdef DET3D
 	else if (type == VFRAME_EVENT_PROVIDER_SET_3D_VFRAME_INTERLEAVE) {
@@ -6948,9 +6912,9 @@ light_unreg:
 			VFRAME_EVENT_PROVIDER_FR_END_HINT, data);
 	}
 
-	return sts;
+	return 0;
 }
-#if 0
+
 static void fast_process(void)
 {
 	int i;
@@ -7007,7 +6971,6 @@ static void fast_process(void)
 		}
 	}
 }
-#endif
 
 static vframe_t *di_vf_peek(void *arg)
 {
@@ -7026,7 +6989,7 @@ static vframe_t *di_vf_peek(void *arg)
 
 	log_buffer_state("pek");
 
-	/*fast_process(); qy temp */
+	fast_process();
 #ifdef SUPPORT_START_FRAME_HOLD
 	if ((disp_frame_count == 0) && (is_bypass(NULL) == 0)) {
 		int ready_count = list_count(QUEUE_POST_READY);
@@ -7806,7 +7769,6 @@ static int di_probe(struct platform_device *pdev)
 	device_create_file(di_devp->dev, &dev_attr_tvp_region);
 	pd_device_files_add(di_devp->dev);
 	nr_drv_init(di_devp->dev);
-	mutex_init(&di_event_mutex);
 
 	init_flag = 0;
 	reg_flag = 0;
