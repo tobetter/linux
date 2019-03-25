@@ -31,6 +31,8 @@
 #include <linux/stat.h>
 #include <linux/errno.h>
 #include <linux/uaccess.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
 /* #include <linux/amlogic/aml_common.h> */
 #include <linux/ctype.h>/* for parse_para_pq */
 #include <linux/vmalloc.h>
@@ -6555,10 +6557,6 @@ static const struct of_device_id aml_vecm_dt_match[] = {
 		.compatible = "amlogic, vecm-tl1",
 		.data = &vecm_dt_tl1,
 	},
-	{
-		.compatible = "amlogic, vecm-tm2",
-		.data = &vecm_dt_tm2,
-	},
 	{},
 };
 
@@ -6567,6 +6565,8 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 	struct device_node *node;
 	unsigned int val;
 	int ret;
+	const struct of_device_id *of_id;
+	struct vecm_match_data_s *matchdata;
 
 	node = pdev->dev.of_node;
 	/* get integer value */

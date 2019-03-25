@@ -23,7 +23,7 @@
 #include <linux/amlogic/media/vfm/vframe.h>
 #include "linux/amlogic/media/amvecm/ve.h"
 
-#define VLOCK_VER "Ref.2019/1/24"
+#define VLOCK_VER "Ref.2019/3/26a"
 
 #define VLOCK_REG_NUM	33
 
@@ -62,6 +62,7 @@ enum vlock_param_e {
 struct stvlock_sig_sts {
 	u32 fsm_sts;
 	u32 fsm_prests;
+	u32 fsm_pause;
 	u32 vf_sts;
 	u32 vmd_chg;
 	u32 frame_cnt_in;
@@ -70,6 +71,12 @@ struct stvlock_sig_sts {
 	u32 output_hz;
 	bool md_support;
 	u32 phlock_percent;
+	u32 phlock_sts;
+	u32 phlock_en;
+	u32 frqlock_sts;
+	/*u32 frqlock_stable_cnt;*/
+	u32 ss_sts;
+	u32 pll_mode_pause;
 	struct vecm_match_data_s *dtdata;
 	u32 val_frac;
 	u32 val_m;
@@ -131,6 +138,11 @@ enum VLOCK_MD {
 #define IS_MANUAL_SOFTENC_MODE(md) (md & \
 				VLOCK_MODE_MANUAL_SOFT_ENC)
 
+#define VLOCK_START_CNT		50
+#define VLOCK_WORK_CNT	(VLOCK_START_CNT + 10)
+
+#define VLOCK_UPDATE_M_CNT	8
+#define VLOCK_UPDATE_F_CNT	4
 
 #define XTAL_VLOCK_CLOCK   24000000/*vlock use xtal clock*/
 
@@ -155,7 +167,7 @@ enum VLOCK_MD {
 extern unsigned int vlock_mode;
 extern unsigned int vlock_en;
 extern unsigned int vecm_latch_flag;
-extern void __iomem *amvecm_hiu_reg_base;
+/*extern void __iomem *amvecm_hiu_reg_base;*/
 extern unsigned int probe_ok;
 
 extern void lcd_ss_enable(bool flag);
@@ -178,4 +190,7 @@ extern void vlock_set_en(bool en);
 extern void vlock_set_phase(u32 percent);
 extern void vlock_set_phase_en(u32 en);
 
+extern void lcd_vlock_m_update(unsigned int vlock_m);
+extern void lcd_vlock_farc_update(unsigned int vlock_farc);
+extern int lcd_set_ss(unsigned int level, unsigned int freq, unsigned int mode);
 
