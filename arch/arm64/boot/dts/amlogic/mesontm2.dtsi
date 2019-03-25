@@ -1404,6 +1404,9 @@
 		mem_size = <0 0x100000>;
 		status = "okay";
 	};
+	cpu_ver_name {
+		compatible = "amlogic, cpu-major-id-tm2";
+	};
 }; /* end of / */
 
 &pinctrl_aobus {
