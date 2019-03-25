@@ -120,6 +120,8 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 
 #define DUR2PTS(x) ((x) - ((x) >> 4))
 
+#define MAX_MPEG4_SUPPORT_SIZE (1920*1088)
+
 static struct vframe_s *vmpeg_vf_peek(void *);
 static struct vframe_s *vmpeg_vf_get(void *);
 static void vmpeg_vf_put(struct vframe_s *, void *);
@@ -1040,7 +1042,7 @@ static s32 vmpeg4_init(void)
 
 		pr_info("load VIDEO_DEC_FORMAT_H263\n");
 	} else
-		pr_err("not supported MPEG4 format %d\n",
+		pr_err("unsupport mpeg4 sub format %d\n",
 				vmpeg4_amstream_dec_info.format);
 
 	if (size < 0) {
@@ -1132,9 +1134,17 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	if (pdata->sys_info)
+	if (pdata->sys_info) {
 		vmpeg4_amstream_dec_info = *pdata->sys_info;
-
+		if ((vmpeg4_amstream_dec_info.height != 0) &&
+			(vmpeg4_amstream_dec_info.width >
+			(MAX_MPEG4_SUPPORT_SIZE/vmpeg4_amstream_dec_info.height))) {
+			pr_info("amvdec_mpeg4: oversize, unsupport: %d*%d\n",
+				vmpeg4_amstream_dec_info.width,
+				vmpeg4_amstream_dec_info.height);
+			return -EFAULT;
+		}
+	}
 	pdata->dec_status = vmpeg4_dec_status;
 	pdata->set_isreset = vmpeg4_set_isreset;
 	is_reset = 0;
