@@ -112,6 +112,8 @@ static u32 buf_size = 32 * 1024 * 1024;
 
 #define DUR2PTS(x) ((x) - ((x) >> 4))
 
+#define MAX_MPEG4_SUPPORT_SIZE (1920*1088)
+
 #define DEC_RESULT_NONE     0
 #define DEC_RESULT_DONE     1
 #define DEC_RESULT_AGAIN    2
@@ -1560,7 +1562,9 @@ static s32 vmmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 			VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263_MULTI, fw->data);
 		strncpy(fw->name, "mh263_mc", sizeof(fw->name));
-	}
+	} else
+		pr_err("unsupport mpeg4 sub format %d\n",
+				hw->vmpeg4_amstream_dec_info.format);
 	pr_info("mmpeg4 get fw %s, size %x\n", fw->name, size);
 	if (size < 0) {
 		pr_err("get firmware failed.");
@@ -1870,9 +1874,20 @@ static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 	hw->buf_start = hw->cma_alloc_addr;
 	hw->buf_size = DEFAULT_MEM_SIZE;
 */
-	if (pdata->sys_info)
+	if (pdata->sys_info) {
 		hw->vmpeg4_amstream_dec_info = *pdata->sys_info;
-
+		if ((hw->vmpeg4_amstream_dec_info.height != 0) &&
+			(hw->vmpeg4_amstream_dec_info.width >
+			(MAX_MPEG4_SUPPORT_SIZE/hw->vmpeg4_amstream_dec_info.height))) {
+			pr_info("ammvdec_mpeg4: oversize, unsupport: %d*%d\n",
+				hw->vmpeg4_amstream_dec_info.width,
+				hw->vmpeg4_amstream_dec_info.height);
+			pdata->dec_status = NULL;
+			vfree((void *)hw);
+			hw = NULL;
+			return -EFAULT;
+		}
+	}
 	mmpeg4_debug_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 		"W:%d,H:%d,rate=%d\n",
 	hw->vmpeg4_amstream_dec_info.width,
