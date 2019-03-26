@@ -385,7 +385,9 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		amports_switch_gate("vdec", 1);
 		spin_lock_irqsave(&s_vpu_lock, flags);
 		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & ~(0x3<<24));
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+			(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+			? ~0x8 : ~(0x3<<24)));
 		udelay(10);
 
 		if (get_cpu_type() <= MESON_CPU_MAJOR_ID_TXLX) {
@@ -418,7 +420,9 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		WRITE_VREG(DOS_MEM_PD_WAVE420L, 0x0);
 
 		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-			READ_AOREG(AO_RTI_GEN_PWR_ISO0) & ~(0x3<<12));
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+			(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+			? ~0x8 : ~(0x3<<12)));
 		udelay(10);
 
 		spin_unlock_irqrestore(&s_vpu_lock, flags);
@@ -1368,7 +1372,9 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 			}
 			spin_lock_irqsave(&s_vpu_lock, flags);
 			WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-				READ_AOREG(AO_RTI_GEN_PWR_ISO0) | (0x3<<12));
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+				(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+				? 0x8 : (0x3<<12)));
 			udelay(10);
 
 			WRITE_VREG(DOS_MEM_PD_WAVE420L, 0xffffffff);
@@ -1376,7 +1382,9 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 			vpu_clk_config(0);
 #endif
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | (0x3<<24));
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+				(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+				? 0x8 : (0x3<<24)));
 			udelay(10);
 			spin_unlock_irqrestore(&s_vpu_lock, flags);
 			amports_switch_gate("vdec", 0);
@@ -1980,7 +1988,8 @@ static s32 __init vpu_init(void)
 	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM)
 		&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A)
 			&& (get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX)
-				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)) {
+				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)
+				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_SM1)) {
 		enc_pr(LOG_DEBUG,
 			"The chip is not support hevc encoder\n");
 		return -1;
@@ -2005,7 +2014,8 @@ static void __exit vpu_exit(void)
 	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM) &&
 		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12A) &&
 		(get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX) &&
-		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)) {
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_SM1)) {
 		enc_pr(LOG_INFO,
 			"The chip is not support hevc encoder\n");
 		return;
