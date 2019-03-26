@@ -299,6 +299,7 @@ struct di_pre_stru_s {
 	int	reg_req_flag;
 	int	reg_req_flag_irq;
 	int	reg_req_flag_cnt;
+	int	reg_irq_busy;
 	int	force_unreg_req_flag;
 	int	disable_req_flag;
 	/* current source info */

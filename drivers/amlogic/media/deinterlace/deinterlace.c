@@ -105,7 +105,7 @@ static int mpeg2vdin_en;
 #endif
 
 static int queue_print_flag = -1;
-static int di_reg_unreg_cnt = 100;
+static int di_reg_unreg_cnt = 1000;
 static bool overturn;
 static bool check_start_drop_prog;
 static bool mcpre_en = true;
@@ -113,7 +113,7 @@ static bool mcpre_en = true;
 static bool mc_mem_alloc;
 
 static unsigned int di_pre_rdma_enable;
-
+static struct mutex di_event_mutex;
 
 static unsigned int di_force_bit_mode = 10;
 module_param(di_force_bit_mode, uint, 0664);
@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-25va";
+static const char version_s[] = "2019-03-27a";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -617,6 +617,8 @@ store_dbg(struct device *dev,
 		dump_afbcd_reg();
 	} else if (strncmp(buf, "dumpmif", 7) == 0) {
 		dump_mif_size_state(&di_pre_stru, &di_post_stru);
+	} else if (strncmp(buf, "dumppostmif", 11) == 0) {
+		dump_post_mif_reg();
 	} else if (strncmp(buf, "recycle_buf", 11) == 0) {
 		recycle_keep_buffer();
 	} else if (strncmp(buf, "recycle_post", 12) == 0) {
@@ -648,6 +650,7 @@ store_dbg(struct device *dev,
 		pr_info("\t pstep\n");
 		pr_info("\t dumpreg\n");
 		pr_info("\t dumpmif\n");
+		pr_info("\t dumppostmif\n");
 		pr_info("\t recycle_buf\n");
 		pr_info("\t recycle_post\n");
 		pr_info("\t mem_map\n");
@@ -2135,7 +2138,7 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A))
 		canvas_align_width = 64;
-
+	pr_info("di: %s -S\n", __func__);
 	frame_count = 0;
 	disp_frame_count = 0;
 	cur_post_ready_di_buf = NULL;
@@ -2383,6 +2386,7 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 		nr_ds_buf_init(de_devp->flag_cma, nrds_mem,
 			&(de_devp->pdev->dev));
 	}
+	pr_info("di: %s -E\n", __func__);
 	return 0;
 }
 
@@ -6258,6 +6262,7 @@ static void di_reg_process_irq(void)
 	if (pre_run_flag == DI_RUN_FLAG_STEP)
 		pre_run_flag = DI_RUN_FLAG_STEP_DONE;
 
+	di_pre_stru.reg_irq_busy = true;
 
 	vframe = vf_peek(VFM_NAME);
 
@@ -6269,6 +6274,7 @@ static void di_reg_process_irq(void)
 			}
 			di_pre_stru.bypass_flag = true;
 			di_patch_post_update_mc_sw(DI_MC_SW_OTHER, false);
+			di_pre_stru.reg_irq_busy = false;
 			return;
 		} else {
 			di_pre_stru.bypass_flag = false;
@@ -6357,6 +6363,8 @@ static void di_reg_process_irq(void)
 			spin_unlock_irqrestore(&plist_lock, flags);
 #endif
 		}
+		if (!reg_flag)
+			pr_err("di: warning unreg in reg irq\n");
 
 		calc_lmv_init();
 		first_field_type = (vframe->type & VIDTYPE_TYPEMASK);
@@ -6381,6 +6389,7 @@ static void di_reg_process_irq(void)
 		init_flag = 1;
 		di_pre_stru.reg_req_flag_irq = 1;
 	}
+	di_pre_stru.reg_irq_busy = false;
 }
 
 static void di_process(void)
@@ -6672,6 +6681,7 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 	if (type == VFRAME_EVENT_PROVIDER_QUREY_VDIN2NR) {
 		return di_pre_stru.vdin2nr;
 	} else if (type == VFRAME_EVENT_PROVIDER_UNREG) {
+		mutex_lock(&di_event_mutex);
 		pr_dbg("%s , is_bypass() %d trick_mode %d bypass_all %d\n",
 			__func__, is_bypass(NULL), trick_mode, bypass_all);
 		di_pre_stru.vdin_source = false;
@@ -6682,8 +6692,9 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 		di_pre_stru.vdin_source = false;
 		trigger_pre_di_process(TRIGGER_PRE_BY_PROVERDER_UNREG);
 		di_pre_stru.unreg_req_flag_cnt = 0;
-		while (di_pre_stru.unreg_req_flag) {
-			usleep_range(10000, 10001);
+		while (di_pre_stru.unreg_req_flag ||
+			di_pre_stru.reg_irq_busy) {
+			usleep_range(1000, 1001);
 			if (di_pre_stru.unreg_req_flag_cnt++ >
 				di_reg_unreg_cnt) {
 				reg_unreg_timeout_cnt++;
@@ -6710,6 +6721,7 @@ static int di_receiver_event_fun(int type, void *data, void *arg)
 		if (di_pre_stru.vdin_source)
 			DI_Wr_reg_bits(VDIN_WR_CTRL, 0x3, 24, 3);
 #endif
+		mutex_unlock(&di_event_mutex);
 		pr_info("DI: unreg f\n");
 	} else if (type == VFRAME_EVENT_PROVIDER_RESET) {
 		di_blocking = 1;
@@ -6872,12 +6884,16 @@ light_unreg:
 #endif
 	} else if (type == VFRAME_EVENT_PROVIDER_REG) {
 		char *receiver_name = NULL;
+
+		mutex_lock(&di_event_mutex);
 		if (de_devp->flags & DI_SUSPEND_FLAG) {
 			pr_err("[DI] reg event device hasn't resumed\n");
+			mutex_unlock(&di_event_mutex);
 			return -1;
 		}
 		if (reg_flag) {
 			pr_err("[DI] no muti instance.\n");
+			mutex_unlock(&di_event_mutex);
 			return -1;
 		}
 		pr_info("%s: vframe provider reg %s\n", __func__,
@@ -6889,7 +6905,7 @@ light_unreg:
 		/*check unreg process*/
 		di_pre_stru.reg_req_flag_cnt = 0;
 		while (di_pre_stru.reg_req_flag) {
-			usleep_range(10000, 10001);
+			usleep_range(1000, 1001);
 			if (di_pre_stru.reg_req_flag_cnt++ > di_reg_unreg_cnt) {
 				reg_unreg_timeout_cnt++;
 				pr_dbg("%s:reg_req_flag timeout!!!\n",
@@ -6917,6 +6933,7 @@ light_unreg:
 		} else {
 			pr_info("%s error receiver is null.\n", __func__);
 		}
+		mutex_unlock(&di_event_mutex);
 		pr_info("DI: reg f\n");
 	}
 #ifdef DET3D
@@ -6936,7 +6953,7 @@ light_unreg:
 
 	return 0;
 }
-
+#if 0
 static void fast_process(void)
 {
 	int i;
@@ -6993,7 +7010,7 @@ static void fast_process(void)
 		}
 	}
 }
-
+#endif
 static vframe_t *di_vf_peek(void *arg)
 {
 	vframe_t *vframe_ret = NULL;
@@ -7011,7 +7028,7 @@ static vframe_t *di_vf_peek(void *arg)
 
 	log_buffer_state("pek");
 
-	fast_process();
+	/*fast_process();*/
 #ifdef SUPPORT_START_FRAME_HOLD
 	if ((disp_frame_count == 0) && (is_bypass(NULL) == 0)) {
 		int ready_count = list_count(QUEUE_POST_READY);
@@ -7791,6 +7808,7 @@ static int di_probe(struct platform_device *pdev)
 	device_create_file(di_devp->dev, &dev_attr_tvp_region);
 	pd_device_files_add(di_devp->dev);
 	nr_drv_init(di_devp->dev);
+	mutex_init(&di_event_mutex);
 
 	init_flag = 0;
 	reg_flag = 0;
