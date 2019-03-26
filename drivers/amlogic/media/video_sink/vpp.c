@@ -884,6 +884,8 @@ static int vpp_set_filters_internal(
 	u32 vert_chroma_filter;
 	struct filter_info_s *cur_filter;
 	s32 vpp_zoom_center_x, vpp_zoom_center_y;
+	u32 crop_ratio = 1;
+	u32 crop_left, crop_right, crop_top, crop_bottom;
 
 	if (!input)
 		return VppFilter_Fail;
@@ -919,20 +921,6 @@ static int vpp_set_filters_internal(
 		video_source_crop_bottom = input->crop_bottom;
 	}
 
-	if (likely(w_in >
-		(video_source_crop_left + video_source_crop_right))) {
-		w_in -= video_source_crop_left;
-		w_in -= video_source_crop_right;
-		h_crop_enable = true;
-	}
-
-	if (likely(h_in >
-		(video_source_crop_top + video_source_crop_bottom))) {
-		h_in -= video_source_crop_top;
-		h_in -= video_source_crop_bottom;
-		v_crop_enable = true;
-	}
-
 #ifndef TV_3D_FUNCTION_OPEN
 	next_frame_par->vscale_skip_count = 0;
 	next_frame_par->hscale_skip_count = 0;
@@ -953,6 +941,26 @@ static int vpp_set_filters_internal(
 #endif
 	else
 		vskip_step = 1;
+
+RESTART_ALL:
+	crop_left = video_source_crop_left / crop_ratio;
+	crop_right = video_source_crop_right / crop_ratio;
+	crop_top = video_source_crop_top / crop_ratio;
+	crop_bottom = video_source_crop_bottom / crop_ratio;
+
+	if (likely(w_in >
+		(crop_left + crop_right))) {
+		w_in -= crop_left;
+		w_in -= crop_right;
+		h_crop_enable = true;
+	}
+
+	if (likely(h_in >
+		(crop_top + crop_bottom))) {
+		h_in -= crop_top;
+		h_in -= crop_bottom;
+		v_crop_enable = true;
+	}
 
 RESTART:
 	aspect_factor = (vpp_flags & VPP_FLAG_AR_MASK) >> VPP_FLAG_AR_BITS;
@@ -1215,8 +1223,8 @@ RESTART:
 	}
 
 	if (v_crop_enable) {
-		next_frame_par->VPP_vd_start_lines_ += video_source_crop_top;
-		next_frame_par->VPP_vd_end_lines_ += video_source_crop_top;
+		next_frame_par->VPP_vd_start_lines_ += crop_top;
+		next_frame_par->VPP_vd_end_lines_ += crop_top;
 	}
 
 	if (vpp_flags & VPP_FLAG_INTERLACE_IN)
@@ -1333,8 +1341,8 @@ RESTART:
 	}
 
 	if (h_crop_enable) {
-		next_frame_par->VPP_hd_start_lines_ += video_source_crop_left;
-		next_frame_par->VPP_hd_end_lines_ += video_source_crop_left;
+		next_frame_par->VPP_hd_start_lines_ += crop_left;
+		next_frame_par->VPP_hd_end_lines_ += crop_left;
 	}
 
 	next_frame_par->VPP_line_in_length_ =
@@ -1430,7 +1438,8 @@ RESTART:
 		h_in = height_in = vf->height;
 		next_frame_par->hscale_skip_count = 0;
 		next_frame_par->vscale_skip_count = 0;
-		goto RESTART;
+		crop_ratio = vf->compWidth / vf->width;
+		goto RESTART_ALL;
 	}
 
 	if ((skip_policy & 0xf0) && (skip_policy_check == true)) {
@@ -2488,6 +2497,8 @@ static int vpp_set_filters_no_scaler_internal(
 	bool reverse = false;
 #endif
 	int ret = VppFilter_Success;
+	u32 crop_ratio = 1;
+	u32 crop_left, crop_right, crop_top, crop_bottom;
 
 	if (!input)
 		return VppFilter_Fail;
@@ -2515,20 +2526,6 @@ static int vpp_set_filters_no_scaler_internal(
 		video_source_crop_bottom = input->crop_bottom;
 	}
 
-	if (likely(w_in >
-		(video_source_crop_left + video_source_crop_right))) {
-		w_in -= video_source_crop_left;
-		w_in -= video_source_crop_right;
-		h_crop_enable = true;
-	}
-
-	if (likely(h_in >
-		(video_source_crop_top + video_source_crop_bottom))) {
-		h_in -= video_source_crop_top;
-		h_in -= video_source_crop_bottom;
-		v_crop_enable = true;
-	}
-
 	next_frame_par->vscale_skip_count = 0;
 	next_frame_par->hscale_skip_count = 0;
 	next_frame_par->nocomp = false;
@@ -2541,6 +2538,26 @@ static int vpp_set_filters_no_scaler_internal(
 		vskip_step = 2;
 	else
 		vskip_step = 1;
+
+RESTART_ALL:
+	crop_left = video_source_crop_left / crop_ratio;
+	crop_right = video_source_crop_right / crop_ratio;
+	crop_top = video_source_crop_top / crop_ratio;
+	crop_bottom = video_source_crop_bottom / crop_ratio;
+
+	if (likely(w_in >
+		(crop_left + crop_right))) {
+		w_in -= crop_left;
+		w_in -= crop_right;
+		h_crop_enable = true;
+	}
+
+	if (likely(h_in >
+		(crop_top + crop_bottom))) {
+		h_in -= crop_top;
+		h_in -= crop_bottom;
+		v_crop_enable = true;
+	}
 
 RESTART:
 	/* don't use input->wide_mode */
@@ -2628,8 +2645,8 @@ RESTART:
 	}
 
 	if (v_crop_enable) {
-		next_frame_par->VPP_vd_start_lines_ += video_source_crop_top;
-		next_frame_par->VPP_vd_end_lines_ += video_source_crop_top;
+		next_frame_par->VPP_vd_start_lines_ += crop_top;
+		next_frame_par->VPP_vd_end_lines_ += crop_top;
 	}
 
 	if (vpp_flags & VPP_FLAG_INTERLACE_IN)
@@ -2741,8 +2758,8 @@ RESTART:
 	}
 
 	if (h_crop_enable) {
-		next_frame_par->VPP_hd_start_lines_ += video_source_crop_left;
-		next_frame_par->VPP_hd_end_lines_ += video_source_crop_left;
+		next_frame_par->VPP_hd_start_lines_ += crop_left;
+		next_frame_par->VPP_hd_end_lines_ += crop_left;
 	}
 
 	next_frame_par->VPP_line_in_length_ =
@@ -2812,7 +2829,8 @@ RESTART:
 		h_in = height_in = vf->height;
 		next_frame_par->hscale_skip_count = 0;
 		next_frame_par->vscale_skip_count = 0;
-		goto RESTART;
+		crop_ratio = vf->compWidth / vf->width;
+		goto RESTART_ALL;
 	}
 
 	if ((skip_policy & 0xf0) && (skip_policy_check == true)) {
