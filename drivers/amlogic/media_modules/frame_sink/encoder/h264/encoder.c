@@ -2418,7 +2418,11 @@ static s32 avc_poweron(u32 clock)
 	/* Powerup HCODEC */
 	/* [1:0] HCODEC */
 	WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-		(READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & (~0x3)));
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			 get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? ~0x1 : ~0x3));
+
 	udelay(10);
 
 	WRITE_VREG(DOS_SW_RESET1, 0xffffffff);
@@ -2432,7 +2436,11 @@ static s32 avc_poweron(u32 clock)
 
 	/* Remove HCODEC ISO */
 	WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-		(READ_AOREG(AO_RTI_GEN_PWR_ISO0) & (~0x30)));
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? ~0x1 : ~0x30));
+
 	udelay(10);
 	/* Disable auto-clock gate */
 	WRITE_VREG(DOS_GEN_CTRL0,
@@ -2454,7 +2462,11 @@ static s32 avc_poweroff(void)
 
 	/* enable HCODEC isolation */
 	WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-		READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0x30);
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? 0x1 : 0x30));
+
 	/* power off HCODEC memories */
 	WRITE_VREG(DOS_MEM_PD_HCODEC, 0xffffffffUL);
 
@@ -2463,7 +2475,10 @@ static s32 avc_poweroff(void)
 
 	/* HCODEC power off */
 	WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-		READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0x3);
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? 0x1 : 0x3));
 
 	spin_unlock_irqrestore(&lock, flags);
 
