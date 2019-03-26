@@ -2178,6 +2178,68 @@ lcd_pll_reset_end:
 	LCDPR("%s\n", __func__);
 }
 
+void lcd_vlock_m_update(unsigned int vlock_m)
+{
+	struct lcd_clk_ctrl_s *table;
+	int i = 0;
+	unsigned long flags = 0;
+
+	if (clk_conf.data == NULL) {
+		LCDERR("%s: clk config data is null\n", __func__);
+		return;
+	}
+
+	if (clk_conf.data->pll_ctrl_table == NULL)
+		return;
+
+	spin_lock_irqsave(&lcd_clk_lock, flags);
+	vlock_m &= 0xff;
+	if (lcd_debug_print_flag == 2)
+		LCDPR("%s,vlcok_m: 0x%x,", __func__, vlock_m);
+
+	table = clk_conf.data->pll_ctrl_table;
+	while (i < LCD_CLK_CTRL_CNT_MAX) {
+		if (table[i].flag == LCD_CLK_CTRL_M) {
+			lcd_hiu_setb(table[i].reg, vlock_m,
+				table[i].bit, table[i].len);
+			break;
+		}
+		i++;
+	}
+	spin_unlock_irqrestore(&lcd_clk_lock, flags);
+}
+
+void lcd_vlock_farc_update(unsigned int vlock_farc)
+{
+	struct lcd_clk_ctrl_s *table;
+	int i = 0;
+	unsigned long flags = 0;
+
+	if (clk_conf.data == NULL) {
+		LCDERR("%s: clk config data is null\n", __func__);
+		return;
+	}
+
+	if (clk_conf.data->pll_ctrl_table == NULL)
+		return;
+
+	spin_lock_irqsave(&lcd_clk_lock, flags);
+	vlock_farc &= 0x1ffff;
+	if (lcd_debug_print_flag == 2)
+		LCDPR("%s,vlock_farc: 0x%x\n", __func__, vlock_farc);
+
+	table = clk_conf.data->pll_ctrl_table;
+	while (i < LCD_CLK_CTRL_CNT_MAX) {
+		if (table[i].flag == LCD_CLK_CTRL_FRAC) {
+			lcd_hiu_setb(table[i].reg, vlock_farc,
+				table[i].bit, table[i].len);
+			break;
+		}
+		i++;
+	}
+	spin_unlock_irqrestore(&lcd_clk_lock, flags);
+}
+
 /* for frame rate change */
 void lcd_clk_update(struct lcd_config_s *pconf)
 {

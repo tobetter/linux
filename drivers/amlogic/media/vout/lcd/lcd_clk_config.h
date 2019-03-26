@@ -27,7 +27,8 @@
  */
 #define LCD_CLK_CTRL_EN      0
 #define LCD_CLK_CTRL_RST     1
-#define LCD_CLK_CTRL_FRAC    2
+#define LCD_CLK_CTRL_M	     2
+#define LCD_CLK_CTRL_FRAC    3
 #define LCD_CLK_CTRL_END     0xffff
 
 #define LCD_CLK_REG_END      0xffff

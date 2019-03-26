@@ -1337,6 +1337,8 @@ static void lcd_set_vinfo(unsigned int sync_duration)
 
 	LCDPR("%s: sync_duration=%d\n", __func__, sync_duration);
 
+	vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE_PRE,
+		&lcd_drv->lcd_info->mode);
 	/* update vinfo */
 	lcd_drv->lcd_info->sync_duration_num = sync_duration;
 	lcd_drv->lcd_info->sync_duration_den = 100;

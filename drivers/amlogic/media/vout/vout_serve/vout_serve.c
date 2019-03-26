@@ -424,12 +424,14 @@ static ssize_t vout_dummy_store(struct class *class,
 	mode = VMODE_DUMMY_LCD;
 	ret = sscanf(buf, "%d %d %d %d", &tmp[0], &tmp[1], &tmp[2], &tmp[3]);
 	if (ret == 2) {
+		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE_PRE, &mode);
 		nulldisp_vinfo[2].width = tmp[0];
 		nulldisp_vinfo[2].height = tmp[1];
 		nulldisp_vinfo[2].field_height = tmp[1];
 		VOUTPR("set dummy size: %d x %d\n", tmp[0], tmp[1]);
 		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE, &mode);
 	} else if (ret == 4) {
+		vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE_PRE, &mode);
 		nulldisp_vinfo[2].width = tmp[0];
 		nulldisp_vinfo[2].height = tmp[1];
 		nulldisp_vinfo[2].field_height = tmp[1];

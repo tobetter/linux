@@ -294,6 +294,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_txl[] = {
 	/* flag             reg                 bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_HDMI_PLL_CNTL,  LCD_PLL_EN_TXL,   1},
 	{LCD_CLK_CTRL_RST,  HHI_HDMI_PLL_CNTL,  LCD_PLL_RST_TXL,  1},
+	{LCD_CLK_CTRL_M,    HHI_HDMI_PLL_CNTL,  LCD_PLL_M_TXL,    9},
 	{LCD_CLK_CTRL_FRAC, HHI_HDMI_PLL_CNTL2,               0, 12},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                  0,  0},
 };
@@ -302,6 +303,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_axg[] = {
 	/* flag             reg                   bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_GP0_PLL_CNTL_AXG, LCD_PLL_EN_AXG,   1},
 	{LCD_CLK_CTRL_RST,  HHI_GP0_PLL_CNTL_AXG, LCD_PLL_RST_AXG,  1},
+	{LCD_CLK_CTRL_M,    HHI_GP0_PLL_CNTL_AXG, LCD_PLL_M_AXG,    9},
 	{LCD_CLK_CTRL_FRAC, HHI_GP0_PLL_CNTL1_AXG,              0, 12},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                    0,  0},
 };
@@ -310,6 +312,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_g12a_path0[] = {
 	/* flag             reg                 bit                    len*/
 	{LCD_CLK_CTRL_EN,   HHI_HDMI_PLL_CNTL,  LCD_PLL_EN_HPLL_G12A,   1},
 	{LCD_CLK_CTRL_RST,  HHI_HDMI_PLL_CNTL,  LCD_PLL_RST_HPLL_G12A,  1},
+	{LCD_CLK_CTRL_M,    HHI_HDMI_PLL_CNTL,  LCD_PLL_M_HPLL_G12A,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_HDMI_PLL_CNTL2,                     0, 19},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                        0,  0},
 };
@@ -318,6 +321,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_g12a_path1[] = {
 	/* flag             reg                     bit                   len*/
 	{LCD_CLK_CTRL_EN,   HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_EN_GP0_G12A,   1},
 	{LCD_CLK_CTRL_RST,  HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_RST_GP0_G12A,  1},
+	{LCD_CLK_CTRL_M,    HHI_GP0_PLL_CNTL0_G12A, LCD_PLL_M_GP0_G12A,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_GP0_PLL_CNTL1_G12A,                    0, 19},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                           0,  0},
 };
@@ -326,6 +330,7 @@ struct lcd_clk_ctrl_s pll_ctrl_table_tl1[] = {
 	/* flag             reg                 bit              len*/
 	{LCD_CLK_CTRL_EN,   HHI_TCON_PLL_CNTL0, LCD_PLL_EN_TL1,   1},
 	{LCD_CLK_CTRL_RST,  HHI_TCON_PLL_CNTL0, LCD_PLL_RST_TL1,  1},
+	{LCD_CLK_CTRL_M,    HHI_TCON_PLL_CNTL0, LCD_PLL_M_TL1,    8},
 	{LCD_CLK_CTRL_FRAC, HHI_TCON_PLL_CNTL1,               0, 17},
 	{LCD_CLK_CTRL_END,  LCD_CLK_REG_END,                  0,  0},
 };

@@ -24,6 +24,8 @@
 #include <linux/amlogic/media/vout/vout_notify.h>
 #include <linux/amlogic/iomap.h>
 
+extern void lcd_vlock_m_update(unsigned int vlock_m);
+extern void lcd_vlock_frac_update(unsigned int vlock_farc);
 
 /* **********************************
  * debug print define

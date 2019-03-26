@@ -1397,6 +1397,8 @@ static void lcd_debug_clk_change(unsigned int pclk)
 	struct lcd_config_s *pconf;
 	unsigned int sync_duration;
 
+	vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE_PRE,
+		&lcd_drv->lcd_info->mode);
 	pconf = lcd_drv->lcd_config;
 	sync_duration = pclk / pconf->lcd_basic.h_period;
 	sync_duration = sync_duration * 100 / pconf->lcd_basic.v_period;
