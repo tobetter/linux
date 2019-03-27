@@ -394,10 +394,10 @@ void aml_toddr_set_fifos(struct toddr *to, unsigned int thresh)
 	if (to->chipinfo
 			&& to->chipinfo->src_sel_ctrl) {
 		mask = 0xfff << 12 | 0xf << 8;
-		val = (thresh-1) << 12 | 2 << 8;
+		val = (thresh-2) << 12 | 2 << 8;
 	} else {
 		mask = 0xff << 16 | 0xf << 8;
-		val = (thresh-1) << 16 | 2 << 8;
+		val = (thresh-2) << 16 | 2 << 8;
 	}
 
 	aml_audiobus_update_bits(actrl, reg, mask, val);
@@ -485,28 +485,29 @@ void aml_toddr_write(struct toddr *to, unsigned int val)
 
 	aml_audiobus_write(actrl, reg, val);
 }
-
-void aml_toddr_set_resample(struct toddr *to, bool enable)
+/* not for tl1 */
+static void aml_toddr_set_resample(struct toddr *to, bool enable)
 {
 	struct aml_audio_controller *actrl = to->actrl;
 	unsigned int reg_base = to->reg_base;
 	unsigned int reg;
 
 	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL0, reg_base);
-	aml_audiobus_update_bits(actrl,	reg, 1<<30, enable<<30);
+	aml_audiobus_update_bits(actrl,	reg, 1<<30, !!enable<<30);
 }
-
-void aml_toddr_set_resample_ab(struct toddr *to, int asrc_src_sel, bool enable)
+/* tl1 after */
+static void aml_toddr_set_resample_ab(struct toddr *to,
+		enum resample_idx index, bool enable)
 {
 	struct aml_audio_controller *actrl = to->actrl;
 	unsigned int reg_base = to->reg_base;
 	unsigned int reg;
 
 	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL1, reg_base);
-	if (asrc_src_sel == 0)
-		aml_audiobus_update_bits(actrl,	reg, 1 << 27, enable << 27);
-	else
-		aml_audiobus_update_bits(actrl,	reg, 1 << 26, enable << 26);
+	if (index == RESAMPLE_A)
+		aml_audiobus_update_bits(actrl,	reg, 1 << 27, !!enable << 27);
+	else if (index == RESAMPLE_B)
+		aml_audiobus_update_bits(actrl,	reg, 1 << 26, !!enable << 26);
 }
 
 static void aml_resample_enable(
@@ -514,12 +515,15 @@ static void aml_resample_enable(
 	struct toddr_attach *p_attach_resample,
 	bool enable)
 {
-	if (!to)
+	if (!to || !p_attach_resample) {
+		pr_err("%s(), NULL pointer.", __func__);
 		return;
+	}
 
 	if (to->chipinfo
 			&& to->chipinfo->asrc_src_sel_ctrl) {
 		/* fix asrc_src_sel */
+		/*
 		switch (p_attach_resample->attach_module) {
 		case LOOPBACK_A:
 			to->asrc_src_sel = ASRC_LOOPBACK_A;
@@ -531,21 +535,24 @@ static void aml_resample_enable(
 			to->asrc_src_sel = to->fifo_id;
 			break;
 		}
+		*/
+		to->asrc_src_sel = p_attach_resample->attach_module;
 	}
 
 	pr_info("toddr %d selects data to %s resample_%c for module:%s\n",
 		to->fifo_id,
 		enable ? "enable" : "disable",
-		(p_attach_resample->id == 0) ? 'a' : 'b',
+		(p_attach_resample->id == RESAMPLE_A) ? 'a' : 'b',
 		toddr_src_get_str(p_attach_resample->attach_module)
 		);
 
 	if (enable) {
 		int bitwidth = to->bitdepth;
 		/* channels and bit depth for resample */
+
 		if (to->chipinfo
 			&& to->chipinfo->asrc_only_left_j
-			&& (to->src == SPDIFIN)
+			/*&& (to->src == SPDIFIN)*/
 			&& (bitwidth == 32)) {
 			struct aml_audio_controller *actrl = to->actrl;
 			unsigned int reg_base = to->reg_base;
@@ -589,13 +596,14 @@ static void aml_resample_enable(
 		aml_toddr_set_resample(to, enable);
 }
 
-void aml_set_resample(int id, bool enable, int resample_module)
+void aml_set_resample(enum resample_idx id,
+		bool enable, enum toddr_src resample_module)
 {
 	struct toddr_attach *p_attach_resample;
 	struct toddr *to;
 	bool update_running = false;
 
-	if (id == 0)
+	if (id == RESAMPLE_A)
 		p_attach_resample = &attach_resample_a;
 	else
 		p_attach_resample = &attach_resample_b;
@@ -1376,13 +1384,13 @@ void frddr_deinit_without_mngr(unsigned int frddr_index)
 	audiobus_write(reg, 0x0);
 }
 
-static int toddr_src_idx = -1;
+static enum toddr_src toddr_src_idx = TODDR_INVAL;
 
 static const char *const toddr_src_sel_texts[] = {
 	"TDMIN_A", "TDMIN_B", "TDMIN_C", "SPDIFIN",
 	"PDMIN", "FRATV", "TDMIN_LB", "LOOPBACK_A",
 	"FRHDMIRX", "LOOPBACK_B", "SPDIFIN_LB",
-	"RESERVED", "RESERVED", "RESERVED", "RESERVED",
+	"EARCRX_DMAC", "RESERVED_0", "RESERVED_1", "RESERVED_2",
 	"VAD"
 };
 
@@ -1390,14 +1398,14 @@ static const struct soc_enum toddr_input_source_enum =
 	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(toddr_src_sel_texts),
 		toddr_src_sel_texts);
 
-int toddr_src_get(void)
+enum toddr_src toddr_src_get(void)
 {
 	return toddr_src_idx;
 }
 
-const char *toddr_src_get_str(int idx)
+const char *toddr_src_get_str(enum toddr_src idx)
 {
-	if (idx < 0 || idx > 15)
+	if (idx < TDMIN_A || idx > VAD)
 		return NULL;
 
 	return toddr_src_sel_texts[idx];
@@ -1415,6 +1423,8 @@ static int toddr_src_enum_set(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	toddr_src_idx = ucontrol->value.enumerated.item[0];
+	/* also update to resample src */
+	//set_resample_source(toddr_src_idx);
 
 	return 0;
 }

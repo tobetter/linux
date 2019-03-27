@@ -37,6 +37,7 @@
 #include "ddr_mngr.h"
 #include "audio_utils.h"
 #include "frhdmirx_hw.h"
+#include "resample.h"
 
 #include <linux/amlogic/media/sound/misc.h>
 
@@ -371,6 +372,7 @@ static int extn_dai_startup(
 	struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai)
 {
+	resample_set_inner_rate(RESAMPLE_A);
 	return 0;
 }
 
@@ -378,6 +380,7 @@ static void extn_dai_shutdown(
 	struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai)
 {
+	//resample_set(RESAMPLE_A, RATE_OFF);
 }
 
 static int extn_dai_prepare(
@@ -401,7 +404,7 @@ static int extn_dai_prepare(
 	} else {
 		struct toddr *to = p_extn->tddr;
 		unsigned int msb = 0, lsb = 0, toddr_type = 0;
-		unsigned int src = toddr_src_get();
+		enum toddr_src src = toddr_src_get();
 		struct toddr_fmt fmt;
 
 		if (bit_depth == 24)
@@ -472,7 +475,7 @@ static int extn_dai_trigger(struct snd_pcm_substream *substream, int cmd,
 			       struct snd_soc_dai *cpu_dai)
 {
 	struct extn *p_extn = snd_soc_dai_get_drvdata(cpu_dai);
-	unsigned int src = toddr_src_get();
+	enum toddr_src src = toddr_src_get();
 
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:

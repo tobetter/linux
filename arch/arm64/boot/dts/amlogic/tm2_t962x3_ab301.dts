@@ -1520,8 +1520,9 @@
 		 *	NONE,
 		 *	TDMIN_LB, 6
 		 *	LOOPBACK, 7
+		 *	FRHDMIRX, 8
 		 */
-		resample_module = <3>;
+		resample_module = <8>;
 
 		status = "okay";
 	};

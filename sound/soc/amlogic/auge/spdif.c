@@ -110,11 +110,11 @@ struct aml_spdif {
 	/*
 	 * resample a/b do asrc for spdif in
 	 */
-	unsigned int asrc_id;
+	enum resample_idx asrc_id;
 	/* spdif in do asrc for pcm,
 	 * if raw data, disable it automatically.
 	 */
-	unsigned int auto_asrc;
+	enum samplerate_index auto_asrc;
 
 	/* check spdifin channel status for pcm or nonpcm */
 	struct timer_list timer;
@@ -479,7 +479,7 @@ static void spdifin_audio_type_work_func(struct work_struct *work)
 
 	if (val & 0x2)
 		/* nonpcm, resample disable */
-		resample_set(p_spdif->asrc_id, 0);
+		resample_set(p_spdif->asrc_id, RATE_OFF);
 	else
 		/* pcm, resample which rate ? */
 		resample_set(p_spdif->asrc_id, p_spdif->auto_asrc);
@@ -690,7 +690,7 @@ static void spdifin_status_event(struct aml_spdif *p_spdif)
 #ifdef __SPDIFIN_AUDIO_TYPE_HW__
 			/* resample disable, by hw */
 			if (!spdifin_check_audiotype_by_sw(p_spdif))
-				resample_set(p_spdif->asrc_id, 0);
+				resample_set(p_spdif->asrc_id, RATE_OFF);
 #endif
 #endif
 		}
@@ -1115,7 +1115,7 @@ static void aml_dai_spdif_shutdown(
 #ifdef __SPDIFIN_AUDIO_TYPE_HW__
 		/* resample disabled, by hw */
 		if (!spdifin_check_audiotype_by_sw(p_spdif))
-			resample_set(p_spdif->asrc_id, 0);
+			resample_set(p_spdif->asrc_id, RATE_OFF);
 #endif
 		clk_disable_unprepare(p_spdif->clk_spdifin);
 		clk_disable_unprepare(p_spdif->fixed_clk);
