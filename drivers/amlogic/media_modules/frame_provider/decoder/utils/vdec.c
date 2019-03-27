@@ -2816,7 +2816,9 @@ void vdec_poweron(enum vdec_type_e core)
 	if (core == VDEC_1) {
 		/* vdec1 power on */
 		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & ~0xc);
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? ~0x2 : ~0xc));
 		/* wait 10uS */
 		udelay(10);
 		/* vdec1 soft reset */
@@ -2834,7 +2836,9 @@ void vdec_poweron(enum vdec_type_e core)
 		WRITE_VREG(DOS_MEM_PD_VDEC, 0);
 		/* remove vdec1 isolation */
 		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-				READ_AOREG(AO_RTI_GEN_PWR_ISO0) & ~0xC0);
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? ~0x2 : ~0xC0));
 		/* reset DOS top registers */
 		WRITE_VREG(DOS_VDEC_MCRCC_STALL_CTRL, 0);
 		if (get_cpu_major_id() >=
@@ -2875,8 +2879,9 @@ void vdec_poweron(enum vdec_type_e core)
 		if (has_hdec()) {
 			/* hcodec power on */
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
-					~0x3);
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? ~0x1 : ~0x3));
 			/* wait 10uS */
 			udelay(10);
 			/* hcodec soft reset */
@@ -2888,8 +2893,9 @@ void vdec_poweron(enum vdec_type_e core)
 			WRITE_VREG(DOS_MEM_PD_HCODEC, 0);
 			/* remove hcodec isolation */
 			WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-					READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
-					~0x30);
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? ~0x1 : ~0x30));
 		}
 	} else if (core == VDEC_HEVC) {
 		if (has_hevc_vdec()) {
@@ -2899,7 +2905,8 @@ void vdec_poweron(enum vdec_type_e core)
 				/* hevc power on */
 				WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
 					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
-					~0xc0);
+					(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+					? ~0x4 : ~0xc0));
 				/* wait 10uS */
 				udelay(10);
 				/* hevc soft reset */
@@ -2916,7 +2923,8 @@ void vdec_poweron(enum vdec_type_e core)
 				/* remove hevc isolation */
 				WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
 					READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
-					~0xc00);
+					(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+					? ~0x4 : ~0xc00));
 
 				if (!hevc_workaround_needed())
 					break;
@@ -2994,14 +3002,18 @@ void vdec_poweroff(enum vdec_type_e core)
 		}
 		/* enable vdec1 isolation */
 		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-				READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0xc0);
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x2 : 0xc0));
 		/* power off vdec1 memories */
 		WRITE_VREG(DOS_MEM_PD_VDEC, 0xffffffffUL);
 		/* disable vdec1 clock */
 		vdec_clock_off();
 		/* vdec1 power off */
 		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0xc);
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x2 : 0xc));
 	} else if (core == VDEC_2) {
 		if (has_vdec2()) {
 			/* enable vdec2 isolation */
@@ -3021,15 +3033,18 @@ void vdec_poweroff(enum vdec_type_e core)
 		if (has_hdec()) {
 			/* enable hcodec isolation */
 			WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-					READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
-					0x30);
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x1 : 0x30));
 			/* power off hcodec memories */
 			WRITE_VREG(DOS_MEM_PD_HCODEC, 0xffffffffUL);
 			/* disable hcodec clock */
 			hcodec_clock_off();
 			/* hcodec power off */
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 3);
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x1 : 3));
 		}
 	} else if (core == VDEC_HEVC) {
 		if (has_hevc_vdec()) {
@@ -3037,7 +3052,8 @@ void vdec_poweroff(enum vdec_type_e core)
 				/* enable hevc isolation */
 				WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
 					READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
-					0xc00);
+					(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+					? 0x4 : 0xc00));
 			/* power off hevc memories */
 			WRITE_VREG(DOS_MEM_PD_HEVC, 0xffffffffUL);
 
@@ -3048,8 +3064,9 @@ void vdec_poweroff(enum vdec_type_e core)
 
 			/* hevc power off */
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-					READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
-					0xc0);
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x4 : 0xc0));
 			} else {
 				pr_info("!!!!!!!!not power down\n");
 				hevc_reset_core(NULL);
@@ -3066,7 +3083,9 @@ bool vdec_on(enum vdec_type_e core)
 	bool ret = false;
 
 	if (core == VDEC_1) {
-		if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & 0xc) == 0) &&
+		if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+			(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+			? 0x2 : 0xc)) == 0) &&
 			(READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0x100))
 			ret = true;
 	} else if (core == VDEC_2) {
@@ -3077,13 +3096,17 @@ bool vdec_on(enum vdec_type_e core)
 		}
 	} else if (core == VDEC_HCODEC) {
 		if (has_hdec()) {
-			if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & 0x3) == 0) &&
+			if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x1 : 0x3)) == 0) &&
 				(READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0x1000000))
 				ret = true;
 		}
 	} else if (core == VDEC_HEVC) {
 		if (has_hevc_vdec()) {
-			if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & 0xc0) == 0) &&
+			if (((READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+				(get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1
+				? 0x4 : 0xc0)) == 0) &&
 				(READ_HHI_REG(HHI_VDEC2_CLK_CNTL) & 0x1000000))
 				ret = true;
 		}

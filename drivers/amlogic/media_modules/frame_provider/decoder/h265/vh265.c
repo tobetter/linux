@@ -1693,7 +1693,7 @@ u32 again_threshold = 0x40;
 
 static int get_frame_mmu_map_size(void)
 {
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 		return (MAX_FRAME_8K_NUM * 4);
 
 	return (MAX_FRAME_4K_NUM * 4);
@@ -1701,7 +1701,7 @@ static int get_frame_mmu_map_size(void)
 
 static int is_oversize(int w, int h)
 {
-	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)?
+	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)?
 		MAX_SIZE_8K : MAX_SIZE_4K;
 
 	if (w < 0 || h < 0)
@@ -2822,7 +2822,7 @@ static int cal_current_buf_size(struct hevc_state_s *hevc,
 	int dw_mode = get_double_write_mode(hevc);
 
 	if (hevc->mmu_enable) {
-		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 			(IS_8K_SIZE(hevc->pic_w, hevc->pic_h)))
 			buf_size = ((MMU_COMPRESS_8K_HEADER_SIZE + 0xffff) >> 16)
 				<< 16;
@@ -3066,7 +3066,7 @@ static int config_pic(struct hevc_state_s *hevc, struct PIC_s *pic)
 
 	if (hevc->mmu_enable) {
 		pic->header_adr = hevc->m_BUF[i].start_adr;
-		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+		if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 			(IS_8K_SIZE(hevc->pic_w, hevc->pic_h)))
 			y_adr = hevc->m_BUF[i].start_adr +
 				MMU_COMPRESS_8K_HEADER_SIZE;
@@ -4870,7 +4870,7 @@ static void config_sao_hw(struct hevc_state_s *hevc, union param_u *params)
 	/* DBLK CONFIG HERE */
 	if (hevc->new_pic) {
 		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_G12A) {
-			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 				data32 = (0xff << 8) | (0x0  << 0);
 			else
 				data32 = (0x57 << 8) |  /* 1st/2nd write both enable*/
@@ -6422,7 +6422,7 @@ static int H265_alloc_mmu(struct hevc_state_s *hevc, struct PIC_s *new_pic,
 		decoder_mmu_box_free_idx(hevc->mmu_box, new_pic->index);
 		new_pic->scatter_alloc = 0;
 	}
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 		max_frame_num = MAX_FRAME_8K_NUM;
 	else
 		max_frame_num = MAX_FRAME_4K_NUM;
@@ -6537,7 +6537,7 @@ static int hevc_local_init(struct hevc_state_s *hevc)
 	cur_buf_info = &hevc->work_space_buf_store;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			memcpy(cur_buf_info, &amvh265_workbuff_spec[2],	/* 4k */
 			sizeof(struct BuffInfo_s));
 		else
@@ -11866,7 +11866,7 @@ static int __init amvdec_h265_driver_init_module(void)
 	struct BuffInfo_s *p_buf_info;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			p_buf_info = &amvh265_workbuff_spec[2];
 		else
 			p_buf_info = &amvh265_workbuff_spec[1];
@@ -11909,7 +11909,7 @@ static int __init amvdec_h265_driver_init_module(void)
 		if (is_meson_m8m2_cpu()) {
 			/* m8m2 support 4k */
 			amvdec_h265_profile.profile = "4k";
-		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 			amvdec_h265_profile.profile =
 				"8k, 8bit, 10bit, dwrite, compressed";
 		}else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXBB) {

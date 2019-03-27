@@ -1590,7 +1590,7 @@ int vp9_alloc_mmu(
 				   bit_depth_10);
 	cur_mmu_4k_number = ((picture_size + (1 << 12) - 1) >> 12);
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 		max_frame_num = MAX_FRAME_8K_NUM;
 	else
 		max_frame_num = MAX_FRAME_4K_NUM;
@@ -4677,7 +4677,7 @@ static int config_pic(struct VP9Decoder_s *pbi,
 
 static int is_oversize(int w, int h)
 {
-	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)?
+	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)?
 		MAX_SIZE_8K : MAX_SIZE_4K;
 
 	if (w < 0 || h < 0)
@@ -4691,7 +4691,7 @@ static int is_oversize(int w, int h)
 
 static int vvp9_mmu_compress_header_size(struct VP9Decoder_s *pbi)
 {
-	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		IS_8K_SIZE(pbi->max_pic_w, pbi->max_pic_h))
 		return (MMU_COMPRESS_8K_HEADER_SIZE);
 
@@ -4701,7 +4701,7 @@ static int vvp9_mmu_compress_header_size(struct VP9Decoder_s *pbi)
 /*#define FRAME_MMU_MAP_SIZE  (MAX_FRAME_4K_NUM * 4)*/
 static int vvp9_frame_mmu_map_size(struct VP9Decoder_s *pbi)
 {
-	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		IS_8K_SIZE(pbi->max_pic_w, pbi->max_pic_h))
 		return (MAX_FRAME_8K_NUM * 4);
 
@@ -4890,7 +4890,7 @@ static int config_pic_size(struct VP9Decoder_s *pbi, unsigned short bit_depth)
 		else
 			WRITE_VREG(HEVCD_MPP_DECOMP_CTL1, (1 << 3));
 	}
-	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TL1)
+	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_SM1)
 		WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, (losless_comp_body_size >> 5));
 	/*WRITE_VREG(HEVCD_MPP_DECOMP_CTL3,(0xff<<20) | (0xff<<10) | 0xff);*/
 	WRITE_VREG(HEVC_CM_BODY_LENGTH, losless_comp_body_size);
@@ -5241,7 +5241,7 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 		/* cfg_d_addr */
 		WRITE_VREG(HEVC_DBLK_CFG5, buf_spec->dblk_data.buf_start);
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		 /*
 	     * data32 = (READ_VREG(P_HEVC_DBLK_CFG3)>>8) & 0xff; // xio left offset, default is 0x40
 	     * data32 = data32 * 2;
@@ -5254,7 +5254,7 @@ static void vp9_config_work_space_hw(struct VP9Decoder_s *pbi, u32 mask)
 	if (pbi->mmu_enable) {
 		/*bit[4] : paged_mem_mode*/
 		WRITE_VREG(HEVCD_MPP_DECOMP_CTL1, (0x1 << 4));
-		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_SM1)
 			WRITE_VREG(HEVCD_MPP_DECOMP_CTL2, 0);
 	} else {
 		/*if(cur_pic_config->bit_depth == VPX_BITS_10)
@@ -5466,7 +5466,7 @@ void vp9_loop_filter_init(struct VP9Decoder_s *pbi)
 	}
 
 	/*video format is VP9*/
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		data32 = (0x3 << 14) | // (dw fifo thres r and b)
 		(0x3 << 12) | // (dw fifo thres r or b)
 		(0x3 << 10) | // (dw fifo thres not r/b)
@@ -5826,7 +5826,7 @@ static void  config_mcrcc_axi_hw(struct VP9Decoder_s *pbi)
 		return;
 	}
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		mcrcc_get_hitrate(pbi->m_ins_flag);
 		decomp_get_hitrate();
 		decomp_get_comprate();
@@ -6120,7 +6120,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 	cur_buf_info = &pbi->work_space_buf_store;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 			memcpy(cur_buf_info, &amvvp9_workbuff_spec[2],	/* 8k */
 			sizeof(struct BuffInfo_s));
 		} else
@@ -6137,7 +6137,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 #else
 /*! MULTI_INSTANCE_SUPPORT*/
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			cur_buf_info = &amvvp9_workbuff_spec[2];/* 8k work space */
 		else
 			cur_buf_info = &amvvp9_workbuff_spec[1];/* 4k2k work space */
@@ -6157,7 +6157,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 			pbi->max_pic_w = 1920;
 			pbi->max_pic_h = 1088;
 		}
-	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		buf_alloc_width = 8192;
 		buf_alloc_height = 4608;
 	}
@@ -6172,7 +6172,7 @@ static int vp9_local_init(struct VP9Decoder_s *pbi)
 		pbi->vvp9_amstream_dec_info.height :
 		pbi->work_space_buf->max_height));
 
-	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		(pbi->double_write_mode != 0) &&
 		(((pbi->max_pic_w % 64) != 0) ||
 		(pbi->vvp9_amstream_dec_info.width % 64) != 0))
@@ -8336,7 +8336,7 @@ static int amvdec_vp9_probe(struct platform_device *pdev)
 
 	pbi->init_flag = 0;
 	pbi->first_sc_checked= 0;
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		vp9_max_pic_w = 8192;
 		vp9_max_pic_h = 4608;
 	}
@@ -9347,7 +9347,7 @@ static int ammvdec_vp9_probe(struct platform_device *pdev)
 	if (get_cpu_major_id() < AM_MESON_CPU_MAJOR_ID_TXLX)
 		pbi->stat |= VP9_TRIGGER_FRAME_ENABLE;
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		pbi->max_pic_w = 8192;
 		pbi->max_pic_h = 4608;
 	}
@@ -9611,7 +9611,7 @@ static int __init amvdec_vp9_driver_init_module(void)
 	struct BuffInfo_s *p_buf_info;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			p_buf_info = &amvvp9_workbuff_spec[2];
 		else
 			p_buf_info = &amvvp9_workbuff_spec[1];
@@ -9646,7 +9646,7 @@ static int __init amvdec_vp9_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		amvdec_vp9_profile.profile =
 				"8k, 10bit, dwrite, compressed";
 	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_GXL

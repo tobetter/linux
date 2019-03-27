@@ -887,7 +887,7 @@ static u32 mem_map_mode = H265_MEM_MAP_MODE;
 
 static int is_oversize(int w, int h)
 {
-	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)?
+	int max = (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)?
 		MAX_SIZE_8K : MAX_SIZE_4K;
 
 	if (w < 0 || h < 0)
