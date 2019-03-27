@@ -74,13 +74,15 @@ static long meson_efuse_fn_smc(struct efuse_hal_api_arg *arg)
 int meson_trustzone_efuse(struct efuse_hal_api_arg *arg)
 {
 	int ret;
+	struct cpumask org_cpumask;
 
 	if (!arg)
 		return -1;
 
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
-	ret = meson_efuse_fn_smc(arg);
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	ret = meson64_efuse_fn_smc(arg);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 	return ret;
 }
 
@@ -122,13 +124,15 @@ unsigned long efuse_aml_sec_boot_check(unsigned long nType,
 unsigned long efuse_amlogic_set(char *buf, size_t count)
 {
 	unsigned long ret;
+	struct cpumask org_cpumask;
 
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
 
 	ret = efuse_aml_sec_boot_check(AML_D_P_W_EFUSE_AMLOGIC,
 		(unsigned long)buf, (unsigned long)count, 0);
 
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 
 	return ret;
 }
@@ -160,12 +164,14 @@ ssize_t efuse_get_max(void)
 {
 	struct efuse_hal_api_arg arg;
 	int ret;
+	struct cpumask org_cpumask;
 
 	arg.cmd = EFUSE_HAL_API_USER_MAX;
 
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
-	ret = meson_trustzone_efuse_get_max(&arg);
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	ret = meson64_trustzone_efuse_get_max(&arg);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 
 	if (ret == 0) {
 		pr_info("ERROR: can not get efuse user max bytes!!!\n");

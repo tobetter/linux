@@ -182,7 +182,9 @@ static int aml_jtag_select_tee(struct platform_device *pdev)
 {
 	struct aml_jtag_dev *jdev = platform_get_drvdata(pdev);
 	uint32_t select = jdev->select;
+	struct cpumask org_cpumask;
 
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
 	pr_info("meson8b select %s\n", select_to_name(jdev->select));
 	switch (select) {
@@ -200,7 +202,7 @@ static int aml_jtag_select_tee(struct platform_device *pdev)
 		writel_relaxed(0x0, jdev->base);
 		break;
 	}
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 
 	return 0;
 }
@@ -291,6 +293,7 @@ static int aml_jtag_select(struct platform_device *pdev)
 	struct aml_jtag_dev *jdev = platform_get_drvdata(pdev);
 	unsigned int select = jdev->select;
 	unsigned int state = AMLOGIC_JTAG_STATE_OFF;
+	struct cpumask org_cpumask;
 
 	if (select != AMLOGIC_JTAG_DISABLE)
 		state = AMLOGIC_JTAG_STATE_ON;
@@ -299,9 +302,10 @@ static int aml_jtag_select(struct platform_device *pdev)
 		select |= jdev->cluster << CLUSTER_BIT;
 
 	pr_info("select %s\n", select_to_name(select));
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
 	aml_set_jtag_state(state, select);
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 
 	return 0;
 }
