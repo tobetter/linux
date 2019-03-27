@@ -60,17 +60,18 @@ static const struct format_name_s format_name[] = {
 };
 
 static const struct cpu_type_s cpu_type[] = {
-	{AM_MESON_CPU_MAJOR_ID_GXL,	"gxl"},
-	{AM_MESON_CPU_MAJOR_ID_GXM,	"gxm"},
-	{AM_MESON_CPU_MAJOR_ID_TXL,	"txl"},
+	{AM_MESON_CPU_MAJOR_ID_GXL,		"gxl"},
+	{AM_MESON_CPU_MAJOR_ID_GXM,		"gxm"},
+	{AM_MESON_CPU_MAJOR_ID_TXL,		"txl"},
 	{AM_MESON_CPU_MAJOR_ID_TXLX,	"txlx"},
-	{AM_MESON_CPU_MAJOR_ID_AXG,	"axg"},
+	{AM_MESON_CPU_MAJOR_ID_AXG,		"axg"},
 	{AM_MESON_CPU_MAJOR_ID_GXLX,	"gxlx"},
 	{AM_MESON_CPU_MAJOR_ID_TXHD,	"txhd"},
 	{AM_MESON_CPU_MAJOR_ID_G12A,	"g12a"},
 	{AM_MESON_CPU_MAJOR_ID_G12B,	"g12b"},
 	{AM_MESON_CPU_MAJOR_ID_GXLX2,	"gxlx2"},
-	{AM_MESON_CPU_MAJOR_ID_TL1,	"tl1"},
+	{AM_MESON_CPU_MAJOR_ID_SM1,		"sm1"},
+	{AM_MESON_CPU_MAJOR_ID_TL1,		"tl1"},
 };
 
 const char *get_fw_format_name(unsigned int format)

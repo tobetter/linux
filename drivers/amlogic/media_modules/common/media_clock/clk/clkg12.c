@@ -719,6 +719,9 @@ static int vdec_clock_set(int clk)
 		clk = 667;
 	}
 
+	if (get_cpu_major_id() == AM_MESON_CPU_MAJOR_ID_SM1)
+		clk = 800;
+
 	if (set_frq_enable && vdec_frq) {
 		pr_info("Set the vdec frq is %u MHz\n", vdec_frq);
 		clk = vdec_frq;
@@ -765,7 +768,7 @@ static int hevc_back_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVCB] == 648)
 		return 648;
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			clk = TL1_HEVC_MAX_CLK;
 		else
 			clk = 667;
@@ -813,7 +816,7 @@ static int hevc_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVC] == 648)
 			return 648;
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			clk = TL1_HEVC_MAX_CLK;
 		else
 			clk = 667;
@@ -1009,6 +1012,7 @@ static int vdec_clock_get(enum vdec_type_e core)
 	AM_MESON_CPU_MAJOR_ID_TXLX,\
 	AM_MESON_CPU_MAJOR_ID_G12A,\
 	AM_MESON_CPU_MAJOR_ID_G12B,\
+	AM_MESON_CPU_MAJOR_ID_SM1,\
 	AM_MESON_CPU_MAJOR_ID_TL1,\
 	0}
 #include "clk.h"

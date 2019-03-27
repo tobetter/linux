@@ -809,7 +809,7 @@ static int avs2_print_cont(struct AVS2Decoder_s *dec,
 
 static int get_frame_mmu_map_size(struct AVS2Decoder_s *dec)
 {
-	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		(IS_8K_SIZE(dec->init_pic_w, dec->init_pic_h)))
 		return (MAX_FRAME_8K_NUM * 4);
 	return (MAX_FRAME_4K_NUM * 4);
@@ -817,7 +817,7 @@ static int get_frame_mmu_map_size(struct AVS2Decoder_s *dec)
 
 static int get_compress_header_size(struct AVS2Decoder_s *dec)
 {
-	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) &&
+	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		(IS_8K_SIZE(dec->init_pic_w, dec->init_pic_h)))
 		return MMU_COMPRESS_8K_HEADER_SIZE;
 	return MMU_COMPRESS_HEADER_SIZE;
@@ -952,7 +952,7 @@ int avs2_alloc_mmu(
 		dec, pic_width, pic_height,
 		bit_depth_10);
 	cur_mmu_4k_number = ((picture_size + (1 << 12) - 1) >> 12);
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 		max_frame_num = MAX_FRAME_8K_NUM;
 	else
 		max_frame_num = MAX_FRAME_4K_NUM;
@@ -2188,7 +2188,7 @@ static int config_pic(struct AVS2Decoder_s *dec,
 			}
 #ifdef MV_USE_FIXED_BUF
 #ifdef G12A_BRINGUP_DEBUG
-			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 				pic->mpred_mv_wr_start_addr =
 				dec->work_space_buf->mpred_mv.buf_start +
 					(pic->index * 0x120000 * 4);
@@ -2709,7 +2709,7 @@ static void config_mcrcc_axi_hw(struct AVS2Decoder_s *dec)
 		return;
 	}
 /*
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		mcrcc_get_hitrate();
 		decomp_get_hitrate();
 		decomp_get_comprate();
@@ -3696,7 +3696,7 @@ static void avs2_init_decoder_hw(struct AVS2Decoder_s *dec)
 	avs2_print(dec, AVS2_DBG_BUFMGR_MORE,
 		"Bitstream level Init for DBLK .Done.\n");
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 	    mcrcc_perfcount_reset();
 	    decomp_perfcount_reset();
 	}
@@ -3799,7 +3799,7 @@ static int avs2_local_init(struct AVS2Decoder_s *dec)
 	cur_buf_info = &dec->work_space_buf_store;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			memcpy(cur_buf_info, &amvavs2_workbuff_spec[2],	/* 8k */
 			sizeof(struct BuffInfo_s));
 		else
@@ -3838,7 +3838,7 @@ static int avs2_local_init(struct AVS2Decoder_s *dec)
 		&& (buf_alloc_width > 1920 &&  buf_alloc_height > 1088)) {
 		buf_alloc_width = 1920;
 		buf_alloc_height = 1088;
-	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	} else if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		buf_alloc_width = 8192;
 		buf_alloc_height = 4608;
 	}
@@ -5167,7 +5167,7 @@ static irqreturn_t vavs2_isr_thread_fn(int irq, void *data)
 			unsigned long buf_addr;
 			unsigned mv_buf_size = 0x120000;
 			int i = dec->avs2_dec.hc.cur_pic->index;
-			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+			if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 				mv_buf_size = 0x120000 * 4;
 			if (decoder_bmmu_box_alloc_buf_phy
 			(dec->bmmu_box,
@@ -7036,7 +7036,7 @@ static int __init amvdec_avs2_driver_init_module(void)
 	struct BuffInfo_s *p_buf_info;
 
 	if (vdec_is_support_4k()) {
-		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
 			p_buf_info = &amvavs2_workbuff_spec[2];
 		else
 			p_buf_info = &amvavs2_workbuff_spec[1];
@@ -7068,7 +7068,7 @@ static int __init amvdec_avs2_driver_init_module(void)
 		return -ENODEV;
 	}
 
-	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) {
 		amvdec_avs2_profile.profile =
 				"8k, 10bit, dwrite, compressed";
 		vcodec_profile_register(&amvdec_avs2_profile);
