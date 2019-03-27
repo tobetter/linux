@@ -850,8 +850,11 @@ static void vdin_dump_state(struct vdin_dev_s *devp)
 				i, devp->afbce_info->fm_body_paddr[i],
 				devp->afbce_info->frame_body_size);
 		}
+		if (is_meson_tl1_cpu()) {
+			pr_info("tl1 preview flag = %d\n",
+				tl1_vdin1_preview_flag);
+		}
 	}
-	pr_info("tl1 preview flag = %d\n", tl1_vdin1_preview_flag);
 	pr_info("Vdin driver version :  %s\n", VDIN_VER);
 }
 
@@ -2107,6 +2110,43 @@ start_chk:
 			vdin_dump_one_afbce_mem(parm[1], devp, buf_num);
 		} else if (parm[1] != NULL) {
 			vdin_dump_one_afbce_mem(parm[1], devp, 0);
+		}
+	} else if (!strcmp(parm[0], "skip_frame_debug")) {
+		if (parm[1] != NULL) {
+			if (kstrtouint(parm[1], 10, &skip_frame_debug) == 0)
+				pr_info("set skip_frame_debug: %d\n",
+					skip_frame_debug);
+		} else {
+			pr_info("skip_frame_debug: %d\n", skip_frame_debug);
+		}
+	} else if (!strcmp(parm[0], "afbc_preview_drop_cnt")) {
+		if (parm[1] != NULL) {
+			if (kstrtouint(parm[1], 10,
+				&vdin_afbc_preview_force_drop_frame_cnt) == 0)
+				pr_info("set vdin_afbc_preview_force_drop_frame_cnt: %d\n",
+					vdin_afbc_preview_force_drop_frame_cnt);
+		} else {
+			pr_info("vdin_afbc_preview_force_drop_frame_cnt: %d\n",
+				vdin_afbc_preview_force_drop_frame_cnt);
+		}
+	} else if (!strcmp(parm[0], "afbc_drop_cnt")) {
+		if (parm[1] != NULL) {
+			if (kstrtouint(parm[1], 10,
+				&vdin_afbc_force_drop_frame_cnt) == 0)
+				pr_info("set vdin_afbc_force_drop_frame_cnt: %d\n",
+					vdin_afbc_force_drop_frame_cnt);
+		} else {
+			pr_info("vdin_afbc_force_drop_frame_cnt: %d\n",
+				vdin_afbc_force_drop_frame_cnt);
+		}
+	} else if (!strcmp(parm[0], "max_ignore_cnt")) {
+		if (parm[1] != NULL) {
+			if (kstrtouint(parm[1], 10, &max_ignore_frame_cnt) == 0)
+				pr_info("set max_ignore_frame_cnt: %d\n",
+					max_ignore_frame_cnt);
+		} else {
+			pr_info("max_ignore_frame_cnt: %d\n",
+				max_ignore_frame_cnt);
 		}
 	} else {
 		pr_info("unknown command\n");
