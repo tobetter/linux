@@ -19,6 +19,7 @@
 
 #include "mesontm2.dtsi"
 #include "partition_mbox_normal.dtsi"
+#include "mesontm2_t962x3_ab309-panel.dtsi"
 
 / {
 	model = "Amlogic TM2 T962X3 AB309";

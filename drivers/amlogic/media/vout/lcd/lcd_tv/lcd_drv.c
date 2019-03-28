@@ -379,7 +379,9 @@ static void lcd_venc_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-		lcd_vcbus_write(ENCL_INBUF_CNTL1, (1 << 14) | (h_active - 1));
+	case LCD_CHIP_TM2:
+		/*[15:14]: 2'b10 or 2'b01*/
+		lcd_vcbus_write(ENCL_INBUF_CNTL1, (2 << 14) | (h_active - 1));
 		lcd_vcbus_write(ENCL_INBUF_CNTL0, 0x200);
 		break;
 	default:
@@ -407,6 +409,7 @@ static void lcd_lvds_clk_util_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
 		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
 		break;
@@ -427,6 +430,7 @@ static void lcd_lvds_clk_util_set(struct lcd_config_s *pconf)
 	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
 	switch (lcd_drv->data->chip_type) { /* pn swap */
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		lcd_hiu_setb(reg_cntl0, 1, 2, 1);
 		break;
 	default:
@@ -496,12 +500,9 @@ static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-		ch_swap0 = 0x3210;
-		ch_swap1 = 0x7654;
-		ch_swap2 = 0xba98;
-		lcd_vcbus_write(LVDS_CH_SWAP0, ch_swap0);
-		lcd_vcbus_write(LVDS_CH_SWAP1, ch_swap1);
-		lcd_vcbus_write(LVDS_CH_SWAP2, ch_swap2);
+	case LCD_CHIP_TM2:
+		lcd_vcbus_write(P2P_CH_SWAP0, 0x76543210);
+		lcd_vcbus_write(P2P_CH_SWAP1, 0xba98);
 		break;
 	default:
 		lcd_vcbus_setb(LCD_PORT_SWAP, port_swap, 12, 1);
@@ -635,6 +636,7 @@ static void lcd_vbyone_clk_util_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
 		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
 		break;
@@ -667,6 +669,7 @@ static void lcd_vbyone_clk_util_set(struct lcd_config_s *pconf)
 	lcd_hiu_setb(reg_cntl0, 0xfff, 16, 12);
 	switch (lcd_drv->data->chip_type) { /* pn swap */
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		lcd_hiu_setb(reg_cntl0, 1, 2, 1);
 		break;
 	default:
@@ -766,6 +769,7 @@ static void lcd_vbyone_hw_filter(int flag)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		if (flag) {
 			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L, 0xffff);
 			lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H, 0xf);
@@ -1450,6 +1454,7 @@ static void lcd_p2p_control_set(struct lcd_config_s *pconf)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		reg_cntl0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
 		reg_cntl1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
 		break;

@@ -14834,10 +14834,16 @@ M:	Qianggui Song <qianggui.song@amlogic.com>
 F:	drivers/amlogic/pinctrl/pinctrl-meson-tm2.c
 F:	include/dt-bindings/gpio/meson-tm2-gpio.h
 
+AMLOGIC MESON TM2 CLOCK DRIVER
+M:	Jian Hu <jian.hu@amlogic.com>
+F:	driver/amlogic/clk/tm2/*
 
-AMLOGIC TL1 VAD
-M:	Wenbiao Zhang <wenbiao.zhang@amlogic.com>
-F:	include/linux/amlogic/vad_api.h
+AMLOGIC MESON TM2 LCD DTS
+M:	Shaochan Liu <shaochan.liu@amlogic.com>
+F:	arch/arm64/boot/dts/amlogic/mesontm2_t962x3_ab301-panel.dtsi
+F:	arch/arm64/boot/dts/amlogic/mesontm2_t962x3_ab309-panel.dtsi
+F:	arch/arm/boot/dts/amlogic/mesontm2_t962x3_ab301-panel.dtsi
+F:	arch/arm/boot/dts/amlogic/mesontm2_t962x3_ab309-panel.dtsi
 
 AMLOGIC SM1 S905X3 DTS
 M:	Xiaoliang Wang <xiaoliang.wang@amlogic.com>

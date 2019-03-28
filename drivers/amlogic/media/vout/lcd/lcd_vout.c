@@ -1371,6 +1371,12 @@ static struct lcd_data_s lcd_data_sm1 = {
 	.reg_map_table = &lcd_reg_axg[0],
 };
 
+static struct lcd_data_s lcd_data_tm2 = {
+	.chip_type = LCD_CHIP_TM2,
+	.chip_name = "tm2",
+	.reg_map_table = &lcd_reg_tl1[0],
+};
+
 static const struct of_device_id lcd_dt_match_table[] = {
 	{
 		.compatible = "amlogic, lcd-gxl",
@@ -1407,6 +1413,10 @@ static const struct of_device_id lcd_dt_match_table[] = {
 	{
 		.compatible = "amlogic, lcd-sm1",
 		.data = &lcd_data_sm1,
+	},
+	{
+		.compatible = "amlogic, lcd-tm2",
+		.data = &lcd_data_tm2,
 	},
 	{},
 };

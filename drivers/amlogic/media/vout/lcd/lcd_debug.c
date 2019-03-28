@@ -597,6 +597,35 @@ static int lcd_info_print(char *buf, int offset)
 	return len;
 }
 
+static void lcd_reg_print_serializer(char *buf, int offset)
+{
+	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
+	unsigned int reg0, reg1;
+	int n, len = 0;
+
+	switch (lcd_drv->data->chip_type) {
+	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
+		reg0 = HHI_LVDS_TX_PHY_CNTL0_TL1;
+		reg1 = HHI_LVDS_TX_PHY_CNTL1_TL1;
+		break;
+	default:
+		reg0 = HHI_LVDS_TX_PHY_CNTL0;
+		reg1 = HHI_LVDS_TX_PHY_CNTL1;
+		break;
+	}
+
+	n = lcd_debug_info_len(len + offset);
+	len += snprintf((buf+len), n, "\nserializer regs:\n");
+	n = lcd_debug_info_len(len + offset);
+	len += snprintf((buf+len), n,
+		"HHI_LVDS_TX_PHY_CNTL0    [0x%04x] = 0x%08x\n",
+		reg0, lcd_hiu_read(reg0));
+	len += snprintf((buf+len), n,
+		"HHI_LVDS_TX_PHY_CNTL1    [0x%04x] = 0x%08x\n",
+		reg1, lcd_hiu_read(reg1));
+}
+
 static int lcd_reg_print_ttl(char *buf, int offset)
 {
 	unsigned int reg;
@@ -4464,6 +4493,7 @@ int lcd_debug_probe(void)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
+	case LCD_CHIP_TM2:
 		lcd_debug_info_reg = &lcd_debug_info_reg_tl1;
 		lcd_debug_info_if_lvds.reg_dump_phy =
 			lcd_reg_print_phy_analog_tl1;

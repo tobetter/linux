@@ -3013,6 +3013,7 @@ int aml_ldim_probe(struct platform_device *pdev)
 	/* ldim_op_func */
 	switch (bl_drv->data->chip_type) {
 	case BL_CHIP_TL1:
+	case BL_CHIP_TM2:
 		devp->ldim_op_func = &ldim_op_func_tl1;
 		break;
 	case BL_CHIP_TXLX:

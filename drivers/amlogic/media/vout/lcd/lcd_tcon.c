@@ -649,7 +649,7 @@ int lcd_tcon_probe(struct aml_lcd_drv_s *lcd_drv)
 
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
-		lcd_tcon_data = &tcon_data_tl1;
+	case LCD_CHIP_TM2:
 		switch (lcd_drv->lcd_config->lcd_basic.lcd_type) {
 		case LCD_MLVDS:
 		case LCD_P2P:

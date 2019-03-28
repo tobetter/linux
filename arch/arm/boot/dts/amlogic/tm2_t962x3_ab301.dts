@@ -19,6 +19,7 @@
 
 #include "mesontm2.dtsi"
 #include "partition_mbox_normal.dtsi"
+#include "mesontm2_t962x3_ab301-panel.dtsi"
 
 / {
 	model = "Amlogic TM2 T962E2 AB301";
@@ -1891,6 +1892,10 @@
 };
 
 &pwm_AO_cd {
+	status = "okay";
+};
+
+&pwm_cd {
 	status = "okay";
 };
 

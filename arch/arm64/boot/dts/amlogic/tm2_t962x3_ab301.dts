@@ -19,6 +19,7 @@
 
 #include "mesontm2.dtsi"
 #include "partition_mbox_normal.dtsi"
+#include "mesontm2_t962x3_ab301-panel.dtsi"
 
 / {
 	model = "Amlogic TM2 T962E2 AB301";
@@ -90,6 +91,14 @@
 			size = <0x0 0x13400000>;
 			alignment = <0x0 0x400000>;
 			linux,contiguous-region;
+		};
+
+		lcd_tcon_reserved:linux,lcd_tcon {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0xc00000>;
+			alignment = <0x0 0x400000>;
+			alloc-ranges = <0x0 0x7ec00000 0x0 0xc00000>;
 		};
 
 		/* codec shared reserved */
@@ -1659,6 +1668,15 @@
 			output-low;
 		};
 	};
+}; /* end of pinctrl_periphs */
+
+&pinctrl_aobus {
+	spdifout: spdifout {
+		mux { /* gpiao_10 */
+			groups = "spdif_out_ao";
+			function = "spdif_out_ao";
+		};
+	};
 
 }; /* end of pinctrl_periphs */
 
@@ -1851,6 +1869,10 @@
 };
 
 &pwm_AO_cd {
+	status = "okay";
+};
+
+&pwm_cd {
 	status = "okay";
 };
 
