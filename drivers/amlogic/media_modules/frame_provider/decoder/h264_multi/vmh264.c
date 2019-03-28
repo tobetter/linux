@@ -4845,6 +4845,7 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 						ret,
 						hw->decode_pic_count+1,
 						hw->skip_frame_count);
+					flush_dpb(p_H264_Dpb);
 					hw->data_flag |= ERROR_FLAG;
 					p_H264_Dpb->mVideo.dec_picture->data_flag |= ERROR_FLAG;
 					if ((error_proc_policy & 0x80)
