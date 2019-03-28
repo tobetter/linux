@@ -132,6 +132,12 @@ static unsigned int decode_timeout_val = 100;
 #define NV21
 #endif
 
+#define AGAIN_HAS_THRESHOLD
+
+#ifdef AGAIN_HAS_THRESHOLD
+u32 again_threshold = 0x40;
+#endif
+
 
 enum {
 	FRAME_REPEAT_TOP,
@@ -226,6 +232,10 @@ struct vdec_mpeg12_hw_s {
 	int frameinfo_enable;
 	struct firmware_s *fw;
 	u32 canvas_mode;
+#ifdef AGAIN_HAS_THRESHOLD
+	u32 pre_parser_wr_ptr;
+	u8 next_again_flag;
+#endif
 };
 static void vmpeg12_local_init(struct vdec_mpeg12_hw_s *hw);
 static int vmpeg12_hw_ctx_restore(struct vdec_mpeg12_hw_s *hw);
@@ -252,6 +262,7 @@ unsigned int mpeg12_debug_mask = 0xff;
 #define PRINT_FRAMEBASE_DATA          0x0400
 #define PRINT_FLAG_VDEC_STATUS        0x0800
 #define PRINT_FLAG_PARA_DATA          0x1000
+
 
 
 int debug_print(int index, int debug_flag, const char *fmt, ...)
@@ -974,6 +985,10 @@ static void vmpeg12_work(struct work_struct *work)
 			vdec_schedule_work(&hw->work);
 			return;
 		}
+
+#ifdef AGAIN_HAS_THRESHOLD
+	hw->next_again_flag = 1;
+#endif
 	}  else if (hw->dec_result == DEC_RESULT_GET_DATA
 		&& (hw_to_vdec(hw)->next_status !=
 		VDEC_STATUS_DISCONNECTED)) {
@@ -1608,6 +1623,23 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 		}
 	}
 
+#ifdef AGAIN_HAS_THRESHOLD
+		if (hw->next_again_flag&&
+			(!vdec_frame_based(vdec))) {
+			u32 parser_wr_ptr =
+				READ_PARSER_REG(PARSER_VIDEO_WP);
+			if (parser_wr_ptr >= hw->pre_parser_wr_ptr &&
+				(parser_wr_ptr - hw->pre_parser_wr_ptr) <
+				again_threshold) {
+				int r = vdec_sync_input(vdec);
+				debug_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
+		"%s buf lelvel%x\n",
+		__func__, r);
+				return 0;
+			}
+		}
+#endif
+
 	index = find_buffer(hw);
 	if (index >= DECODE_BUFFER_NUM_MAX) {
 		hw->buffer_not_ready++;
@@ -1659,6 +1691,12 @@ void (*callback)(struct vdec_s *, void *),
 	vdec_reset_core(vdec);
 	hw->vdec_cb_arg = arg;
 	hw->vdec_cb = callback;
+
+#ifdef AGAIN_HAS_THRESHOLD
+		hw->pre_parser_wr_ptr =
+			READ_PARSER_REG(PARSER_VIDEO_WP);
+		hw->next_again_flag = 0;
+#endif
 
 	size = vdec_prepare_input(vdec, &hw->chunk);
 	if (size < 0) {
@@ -1968,6 +2006,11 @@ module_param_array(max_process_time, uint, &max_decode_instance_num, 0664);
 
 module_param(udebug_flag, uint, 0664);
 MODULE_PARM_DESC(udebug_flag, "\n ammvdec_mpeg12 udebug_flag\n");
+
+#ifdef AGAIN_HAS_THRESHOLD
+module_param(again_threshold, uint, 0664);
+MODULE_PARM_DESC(again_threshold, "\n again_threshold\n");
+#endif
 
 module_init(ammvdec_mpeg12_driver_init_module);
 module_exit(ammvdec_mpeg12_driver_remove_module);
