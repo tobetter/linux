@@ -35,18 +35,66 @@
 #include "ge2d_dmabuf.h"
 
 static void clear_dma_buffer(struct aml_dma_buffer *buffer, int index);
+
+static void *aml_mm_vmap(phys_addr_t phys, unsigned long size)
+{
+	u32 offset, npages;
+	struct page **pages = NULL;
+	pgprot_t pgprot = PAGE_KERNEL;
+	void *vaddr;
+	int i;
+
+	offset = offset_in_page(phys);
+	npages = DIV_ROUND_UP(size + offset, PAGE_SIZE);
+
+	pages = vmalloc(sizeof(struct page *) * npages);
+	if (!pages)
+		return NULL;
+	for (i = 0; i < npages; i++) {
+		pages[i] = phys_to_page(phys);
+		phys += PAGE_SIZE;
+	}
+	/* pgprot = pgprot_writecombine(PAGE_KERNEL); */
+
+	vaddr = vmap(pages, npages, VM_MAP, pgprot);
+	if (!vaddr) {
+		pr_err("vmaped fail, size: %d\n",
+			npages << PAGE_SHIFT);
+		vfree(pages);
+		return NULL;
+	}
+	vfree(pages);
+	ge2d_log_dbg("[HIGH-MEM-MAP] pa(%lx) to va(%p), size: %d\n",
+		(unsigned long)phys, vaddr, npages << PAGE_SHIFT);
+	return vaddr;
+}
+
+static void *aml_map_phyaddr_to_virt(dma_addr_t phys, unsigned long size)
+{
+	void *vaddr = NULL;
+
+	if (!PageHighMem(phys_to_page(phys)))
+		return phys_to_virt(phys);
+	vaddr = aml_mm_vmap(phys, size);
+	return vaddr;
+}
+
 /* dma free*/
 static void aml_dma_put(void *buf_priv)
 {
 	struct aml_dma_buf *buf = buf_priv;
 	struct page *cma_pages = NULL;
+	void *vaddr = (void *)(PAGE_MASK & (ulong)buf->vaddr);
 
 	if (!atomic_dec_and_test(&buf->refcount)) {
 		ge2d_log_dbg("ge2d aml_dma_put, refcont=%d\n",
 			atomic_read(&buf->refcount));
 		return;
 	}
-	cma_pages = virt_to_page(buf->vaddr);
+	cma_pages = phys_to_page(buf->dma_addr);
+	if (is_vmalloc_or_module_addr(vaddr))
+		vunmap(vaddr);
+
 	if (!dma_release_from_contiguous(buf->dev, cma_pages,
 					 buf->size >> PAGE_SHIFT)) {
 		pr_err("failed to release cma buffer\n");
@@ -84,7 +132,7 @@ static void *aml_dma_alloc(struct device *dev, unsigned long attrs,
 		pr_err("failed to alloc cma pages.\n");
 		return NULL;
 	}
-	buf->vaddr = phys_to_virt(paddr);
+	buf->vaddr = aml_map_phyaddr_to_virt(paddr, size);
 	buf->dev = get_device(dev);
 	buf->size = size;
 	buf->dma_dir = dma_dir;
@@ -108,7 +156,7 @@ static int aml_dma_mmap(void *buf_priv, struct vm_area_struct *vma)
 		return -EINVAL;
 	}
 
-	pfn = virt_to_phys(buf->vaddr) >> PAGE_SHIFT;
+	pfn = buf->dma_addr >> PAGE_SHIFT;
 	ret = remap_pfn_range(vma, vma->vm_start, pfn,
 		vsize, vma->vm_page_prot);
 	if (ret) {
@@ -138,7 +186,7 @@ static int aml_dmabuf_ops_attach(struct dma_buf *dbuf, struct device *dev,
 	int num_pages = PAGE_ALIGN(buf->size) / PAGE_SIZE;
 	struct sg_table *sgt;
 	struct scatterlist *sg;
-	void *vaddr = buf->vaddr;
+	phys_addr_t phys = buf->dma_addr;
 	unsigned int i;
 	int ret;
 
@@ -156,7 +204,7 @@ static int aml_dmabuf_ops_attach(struct dma_buf *dbuf, struct device *dev,
 		return -ENOMEM;
 	}
 	for_each_sg(sgt->sgl, sg, sgt->nents, i) {
-		struct page *page = virt_to_page(vaddr);
+		struct page *page = phys_to_page(phys);
 
 		if (!page) {
 			sg_free_table(sgt);
@@ -164,7 +212,7 @@ static int aml_dmabuf_ops_attach(struct dma_buf *dbuf, struct device *dev,
 			return -ENOMEM;
 		}
 		sg_set_page(sg, page, PAGE_SIZE, 0);
-		vaddr += PAGE_SIZE;
+		phys += PAGE_SIZE;
 	}
 
 	attach->dma_dir = DMA_NONE;
