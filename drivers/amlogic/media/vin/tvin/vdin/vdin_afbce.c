@@ -583,6 +583,7 @@ void vdin_afbce_maptable_init(struct vdin_dev_s *devp)
 	unsigned int *vtable = NULL;
 	unsigned int body;
 	unsigned int size;
+	void *p = NULL;
 
 	size = roundup(devp->afbce_info->frame_body_size, 4096);
 
@@ -602,20 +603,40 @@ void vdin_afbce_maptable_init(struct vdin_dev_s *devp)
 			else
 				vtable = phys_to_virt(ptable);
 		} else {
-			vtable = (unsigned int *)codec_mm_vmap(
-				ptable,
+			vtable = (unsigned int *)vdin_vmap(ptable,
 				devp->afbce_info->frame_table_size);
+			if (vdin_dbg_en) {
+				pr_err("----vdin vmap v: %p, p: %lx, size: %d\n",
+					vtable, ptable,
+					devp->afbce_info->frame_table_size);
+			}
+			if (!vtable) {
+				pr_err("vmap fail, size: %d.\n",
+					devp->afbce_info->frame_table_size);
+				return;
+			}
+
 		}
 
-
+		p = vtable;
 		body = devp->afbce_info->fm_body_paddr[i]&0xffffffff;
 		for (j = 0; j < size; j += 4096) {
 			*vtable = ((j + body) >> 12) & 0x000fffff;
 			vtable++;
 		}
 
+		/* clean tail data. */
+		memset(vtable, 0, devp->afbce_info->frame_table_size -
+				((char *)vtable - (char *)p));
+
+		vdin_dma_flush(devp, p,
+			devp->afbce_info->frame_table_size,
+			DMA_TO_DEVICE);
+
 		if (highmem_flag)
-			codec_mm_unmap_phyaddr((void *)vtable);
+			vdin_unmap_phyaddr(p);
+
+		vtable = NULL;
 	}
 }
 

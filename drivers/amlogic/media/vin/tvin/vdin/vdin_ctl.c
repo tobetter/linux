@@ -23,6 +23,9 @@
 #include <linux/device.h>
 #include <linux/platform_device.h>
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
+#include <linux/highmem.h>
+#include <linux/page-flags.h>
+#include <linux/vmalloc.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
 #include <linux/amlogic/media/video_sink/video.h>
@@ -159,6 +162,79 @@ static unsigned int vpu_reg_27af = 0x3;
 #undef pr_info
 #define pr_info(fmt, ...)
 #endif
+
+u8 *vdin_vmap(ulong addr, u32 size)
+{
+	u8 *vaddr = NULL;
+	struct page **pages = NULL;
+	u32 i, npages, offset = 0;
+	ulong phys, page_start;
+	/*pgprot_t pgprot = pgprot_noncached(PAGE_KERNEL);*/
+	pgprot_t pgprot = PAGE_KERNEL;
+
+	if (!PageHighMem(phys_to_page(addr)))
+		return phys_to_virt(addr);
+
+	offset = offset_in_page(addr);
+	page_start = addr - offset;
+	npages = DIV_ROUND_UP(size + offset, PAGE_SIZE);
+
+	pages = kmalloc_array(npages, sizeof(struct page *), GFP_KERNEL);
+	if (!pages)
+		return NULL;
+
+	for (i = 0; i < npages; i++) {
+		phys = page_start + i * PAGE_SIZE;
+		pages[i] = pfn_to_page(phys >> PAGE_SHIFT);
+	}
+
+	vaddr = vmap(pages, npages, VM_MAP, pgprot);
+	if (!vaddr) {
+		pr_err("the phy(%lx) vmaped fail, size: %d\n",
+			page_start, npages << PAGE_SHIFT);
+		kfree(pages);
+		return NULL;
+	}
+
+	kfree(pages);
+
+	if (vdin_dbg_en) {
+		pr_info("[vdin HIGH-MEM-MAP] %s, pa(%lx) to va(%p), size: %d\n",
+			__func__, page_start, vaddr, npages << PAGE_SHIFT);
+	}
+
+	return vaddr + offset;
+}
+
+void vdin_unmap_phyaddr(u8 *vaddr)
+{
+	void *addr = (void *)(PAGE_MASK & (ulong)vaddr);
+
+	if (is_vmalloc_or_module_addr(vaddr)) {
+		if (vdin_dbg_en)
+			pr_info("----vdin unmap v: %p\n", addr);
+		vunmap(addr);
+	}
+}
+
+void vdin_dma_flush(struct vdin_dev_s *devp, void *vaddr,
+		int size, enum dma_data_direction dir)
+{
+	ulong phy_addr;
+
+	if (is_vmalloc_or_module_addr(vaddr)) {
+		phy_addr = page_to_phys(vmalloc_to_page(vaddr))
+			+ offset_in_page(vaddr);
+		if (phy_addr && PageHighMem(phys_to_page(phy_addr))) {
+			if (vdin_dbg_en)
+				pr_info("----vdin flush v: %p, p: %lx\n",
+					vaddr, phy_addr);
+			dma_sync_single_for_device(&devp->this_pdev->dev,
+				phy_addr, size, dir);
+		}
+		return;
+	}
+}
 
 /*reset reg mif value of vdin0:
  *	VDIN_WR_CTRL \VDIN_COM_CTRL0\ VDIN_MISC_CTRL
@@ -3526,12 +3602,12 @@ void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 			if ((devp->cma_config_flag & 0x100)
 				&& devp->cma_config_en)
 				devp->vfp->dv_buf_ori[index] =
-					codec_mm_vmap(devp->vfmem_start[index] +
+					vdin_vmap(devp->vfmem_start[index] +
 					devp->vfmem_size-dolby_size_byte,
 					dolby_size_byte);
 			else
 				devp->vfp->dv_buf_ori[index] =
-					codec_mm_vmap(devp->mem_start +
+					vdin_vmap(devp->mem_start +
 					devp->mem_size -
 					dolby_size_byte *
 					(devp->canvas_max_num - index),
@@ -3548,15 +3624,32 @@ void vdin_dolby_addr_alloc(struct vdin_dev_s *devp, unsigned int size)
 void vdin_dolby_addr_release(struct vdin_dev_s *devp, unsigned int size)
 {
 	unsigned int alloc_size;
+	int highmem_flag;
+	int index;
 
 	alloc_size = dolby_size_byte*size;
 	if (devp->dv.dv_dma_vaddr)
 		dma_free_coherent(&devp->this_pdev->dev, alloc_size,
 			devp->dv.dv_dma_vaddr, devp->dv.dv_dma_paddr);
 	devp->dv.dv_dma_vaddr = NULL;
+
+	if (devp->cma_config_flag & 0x100)
+		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
+	else
+		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+
+	if (highmem_flag) {
+		for (index = 0; index < size; index++) {
+			if (devp->vfp->dv_buf_ori[index]) {
+				vdin_unmap_phyaddr(
+					devp->vfp->dv_buf_ori[index]);
+				devp->vfp->dv_buf_ori[index] = NULL;
+			}
+		}
+	}
 }
 
-static void vdin_dolby_metadata_swap(char *buf)
+static void vdin_dolby_metadata_swap(struct vdin_dev_s *devp, char *buf)
 {
 	char ext;
 	unsigned int i, j;
@@ -3568,6 +3661,8 @@ static void vdin_dolby_metadata_swap(char *buf)
 			buf[i*16+15-j] = ext;
 		}
 	}
+
+	vdin_dma_flush(devp, buf, dolby_size_byte, DMA_TO_DEVICE);
 }
 
 #define swap32(num) \
@@ -3665,7 +3760,8 @@ void vdin_dolby_buffer_update(struct vdin_dev_s *devp, unsigned int index)
 	for (count = 0; count < META_RETRY_MAX; count++) {
 		if (dv_dbg_mask & DV_READ_MODE_AXI) {
 			memcpy(p, devp->vfp->dv_buf_vmem[index], 128);
-			vdin_dolby_metadata_swap(c);
+			vdin_dma_flush(devp, p, 128, DMA_TO_DEVICE);
+			vdin_dolby_metadata_swap(devp, c);
 		} else {
 			wr(offset, VDIN_DOLBY_DSC_CTRL3, 0);
 			wr(offset, VDIN_DOLBY_DSC_CTRL2, 0xd180c0d5);
@@ -3678,7 +3774,9 @@ void vdin_dolby_buffer_update(struct vdin_dev_s *devp, unsigned int index)
 			if ((i == 31) && (multimeta_flag == 0))
 				break;
 			}
+			vdin_dma_flush(devp, p, 128, DMA_TO_DEVICE);
 		}
+
 		meta_size = (c[3] << 8) | c[4];
 		crc = p[31];
 		crc_result = crc32(0, p, 124);

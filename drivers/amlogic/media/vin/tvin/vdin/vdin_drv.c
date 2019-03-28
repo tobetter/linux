@@ -131,7 +131,7 @@ module_param(game_mode_switch_frames, int, 0664);
 MODULE_PARM_DESC(game_mode_switch_frames, "game mode switch <n> frames");
 #endif
 
-static bool vdin_dbg_en;
+bool vdin_dbg_en;
 module_param(vdin_dbg_en, bool, 0664);
 MODULE_PARM_DESC(vdin_dbg_en, "enable/disable vdin debug information");
 
@@ -622,14 +622,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 #endif
 		vf_notify_receiver(devp->name,
 			VFRAME_EVENT_PROVIDER_START, NULL);
-	if ((devp->parm.port != TVIN_PORT_VIU1) ||
-		(viu_hw_irq != 0)) {
-		/*enable irq */
-		enable_irq(devp->irq);
-		if (vdin_dbg_en)
-			pr_info("****[%s]enable_irq ifdef VDIN_V2****\n",
-					__func__);
-	}
 
 	if (vdin_dbg_en)
 		pr_info("****[%s]ok!****\n", __func__);
@@ -654,7 +646,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 
 	if ((devp->afbce_mode == 1) && is_meson_tl1_cpu() &&
 		(devp->h_active >= 1920) && (devp->v_active >= 1080)) {
-		spin_lock_init(&tl1_preview_lock);
 		tl1_vdin1_preview_flag = 1;
 		max_ignore_frames[devp->index] = 9;
 	}
@@ -724,14 +715,16 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
 		vdin_afbce_hw_disable();
 
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
+	vdin_dolby_addr_release(devp, devp->vfp->size);
+#endif
+
 #ifdef CONFIG_CMA
 	if (devp->afbce_mode == 1)
 		vdin_afbce_cma_release(devp);
 	else if (devp->afbce_mode == 0)
 		vdin_cma_release(devp);
 #endif
-	vdin_dolby_addr_release(devp, devp->vfp->size);
-
 	switch_vpu_mem_pd_vmod(devp->addr_offset?VPU_VIU_VDIN1:VPU_VIU_VDIN0,
 			VPU_MEM_POWER_DOWN);
 	memset(&devp->prop, 0, sizeof(struct tvin_sig_property_s));
@@ -803,18 +796,7 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 		else
 			return -EBUSY;
 	}
-	if ((para->port != TVIN_PORT_VIU1) ||
-		(viu_hw_irq != 0)) {
-		ret = request_irq(devp->irq, vdin_v4l2_isr, IRQF_SHARED,
-				devp->irq_name, (void *)devp);
-		if (ret != 0) {
-			pr_info("vdin_v4l2_isr request irq error.\n");
-			return -1;
-		}
-		devp->flags |= VDIN_FLAG_ISR_REQ;
-		/*disable vsync irq until vdin configured completely*/
-		disable_irq_nosync(devp->irq);
-	}
+
 	vdin_clk_onoff(devp, true);
 	/*config the vdin use default value*/
 	vdin_set_default_regmap(devp->addr_offset);
@@ -896,6 +878,16 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 	devp->flags |= VDIN_FLAG_DEC_OPENED;
 	devp->flags |= VDIN_FLAG_DEC_STARTED;
 
+	if ((para->port != TVIN_PORT_VIU1) ||
+		(viu_hw_irq != 0)) {
+		ret = request_irq(devp->irq, vdin_v4l2_isr, IRQF_SHARED,
+				devp->irq_name, (void *)devp);
+		if (ret != 0) {
+			pr_info("vdin_v4l2_isr request irq error.\n");
+			return -1;
+		}
+		devp->flags |= VDIN_FLAG_ISR_REQ;
+	}
 	return 0;
 }
 EXPORT_SYMBOL(start_tvin_service);
@@ -2316,6 +2308,16 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			break;
 		}
 		vdin_start_dec(devp);
+
+		if ((devp->parm.port != TVIN_PORT_VIU1) ||
+			(viu_hw_irq != 0)) {
+			/*enable irq */
+			enable_irq(devp->irq);
+			if (vdin_dbg_en)
+				pr_info("****[%s]enable_irq ifdef VDIN_V2****\n",
+						__func__);
+		}
+
 		devp->flags |= VDIN_FLAG_DEC_STARTED;
 		if (vdin_dbg_en)
 			pr_info("TVIN_IOC_START_DEC port %s, decode started ok\n\n",
@@ -2326,29 +2328,19 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		mutex_lock(&devp_vdin1->fe_lock);
 		if ((tl1_vdin1_preview_flag == 1) &&
 			!(devp_vdin1->flags & VDIN_FLAG_DEC_STARTED)) {
-			msleep(150);
+			/*msleep(150);*/
 			devp_vdin1->flags |= VDIN_FLAG_FS_OPENED;
-			if (!(devp_vdin1->flags & VDIN_FLAG_ISR_REQ)) {
-				ret = request_irq(devp_vdin1->irq, vdin_isr,
-					IRQF_SHARED,
-					devp_vdin1->irq_name,
-					(void *)devp_vdin1);
-				if (ret != 0) {
-					pr_info("tl1_vdin1_preview request irq error.\n");
-					return -1;
-				}
-				devp_vdin1->flags |= VDIN_FLAG_ISR_REQ;
-				disable_irq_nosync(devp_vdin1->irq);
-				/*init queue*/
-				init_waitqueue_head(&devp_vdin1->queue);
-			}
 
 			devp_vdin1->unstable_flag = false;
 			devp_vdin1->parm.info.fmt = fmt;
 			devp_vdin1->parm.port = devp->parm.port;
 			devp_vdin1->fmt_info_p = (struct tvin_format_s *)
-				tvin_get_fmt_info(fmt);
+			tvin_get_fmt_info(fmt);
+
 			if (!(devp_vdin1->flags & VDIN_FLAG_DEC_OPENED)) {
+				/*init queue*/
+				init_waitqueue_head(&devp_vdin1->queue);
+
 				ret = vdin_open_fe(devp_vdin1->parm.port,
 					0, devp_vdin1);
 				if (ret) {
@@ -2371,6 +2363,23 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 			vdin_start_dec(devp_vdin1);
 			devp_vdin1->flags |= VDIN_FLAG_DEC_STARTED;
+
+			if (!(devp_vdin1->flags & VDIN_FLAG_ISR_REQ)) {
+				ret = request_irq(devp_vdin1->irq, vdin_isr,
+					IRQF_SHARED,
+					devp_vdin1->irq_name,
+					(void *)devp_vdin1);
+				if (ret != 0) {
+					pr_info("tl1_vdin1_preview request irq error.\n");
+					return -1;
+				}
+				devp_vdin1->flags |= VDIN_FLAG_ISR_REQ;
+			} else {
+				enable_irq(devp_vdin1->irq);
+				if (vdin_dbg_en)
+					pr_info("****[%s]enable_vdin1_irq****\n",
+						__func__);
+			}
 
 			pr_info("TVIN_IOC_START_DEC port %s, vdin1 used for preview\n",
 				tvin_port_str(devp_vdin1->parm.port));
@@ -3050,6 +3059,8 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	else
 		vdevp->color_depth_mode = 0;
 
+	/* use for tl1 vdin1 preview */
+	spin_lock_init(&tl1_preview_lock);
 	/*set afbce mode*/
 	ret = of_property_read_u32(pdev->dev.of_node,
 		"afbce_bit_mode", &vdevp->afbce_mode);

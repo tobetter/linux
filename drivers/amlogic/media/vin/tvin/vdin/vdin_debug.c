@@ -343,14 +343,15 @@ static void vdin_dump_one_buf_mem(char *path, struct vdin_dev_s *devp,
 
 		for (j = 0; j < count; j++) {
 			highaddr = phys + j * devp->canvas_w;
-			buf = codec_mm_vmap(highaddr, span);
+			buf = vdin_vmap(highaddr, span);
 			if (!buf) {
-				pr_info("codec_mm_vmap error\n");
+				pr_info("vdin_vmap error\n");
 				return;
 			}
 
+			vdin_dma_flush(devp, buf, span, DMA_FROM_DEVICE);
 			vfs_write(filp, buf, span, &pos);
-			codec_mm_unmap_phyaddr(buf);
+			vdin_unmap_phyaddr(buf);
 		}
 		pr_info("high-mem write buffer %2d of %2u to %s.\n",
 				buf_num, devp->canvas_max_num, path);
@@ -448,14 +449,16 @@ static void vdin_dump_mem(char *path, struct vdin_dev_s *devp)
 
 			for (j = 0; j < count; j++) {
 				highaddr = phys + j * devp->canvas_w;
-				buf = codec_mm_vmap(highaddr, span);
+				buf = vdin_vmap(highaddr, span);
 				if (!buf) {
-					pr_info("codec_mm_vmap error\n");
+					pr_info("vdin_vmap error\n");
 					return;
 				}
 
+				vdin_dma_flush(devp, buf, span,
+					DMA_FROM_DEVICE);
 				vfs_write(filp, buf, span, &pos);
-				codec_mm_unmap_phyaddr(buf);
+				vdin_unmap_phyaddr(buf);
 			}
 			pr_info("high-mem write buffer %2d of %2u to %s.\n",
 					i, devp->canvas_max_num, path);
@@ -496,10 +499,8 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		return;
 	}
 
-	if (devp->cma_config_flag == 0x101)
-		highmem_flag = PageHighMem(phys_to_page(devp->vfmem_start[0]));
-	else
-		highmem_flag = PageHighMem(phys_to_page(devp->mem_start));
+	highmem_flag = PageHighMem(
+		phys_to_page(devp->afbce_info->fm_body_paddr[0]));
 
 	if (highmem_flag == 0) {
 		/*low mem area*/
@@ -532,11 +533,11 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 	} else {
 		/*high mem area*/
 		pr_info("high mem area\n");
-		buf_head = codec_mm_vmap(
+		buf_head = vdin_vmap(
 			devp->afbce_info->fm_head_paddr[buf_num],
 			devp->afbce_info->frame_head_size);
 
-		buf_table = codec_mm_vmap(
+		buf_table = vdin_vmap(
 			devp->afbce_info->fm_table_paddr[buf_num],
 			devp->afbce_info->frame_table_size);
 
@@ -557,8 +558,12 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		return;
 	}
 
+	vdin_dma_flush(devp, buf_head,
+		devp->afbce_info->frame_head_size,
+		DMA_FROM_DEVICE);
 	vfs_write(filp, buf_head, devp->afbce_info->frame_head_size, &pos);
-	codec_mm_unmap_phyaddr(buf_head);
+	if (highmem_flag)
+		vdin_unmap_phyaddr(buf_head);
 	pr_info("write buffer %2d of %2u head to %s.\n",
 			buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);
@@ -573,8 +578,12 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 		pr_info("create %s table error.\n", buff);
 		return;
 	}
+	vdin_dma_flush(devp, buf_table,
+		devp->afbce_info->frame_table_size,
+		DMA_FROM_DEVICE);
 	vfs_write(filp, buf_table, devp->afbce_info->frame_table_size, &pos);
-	codec_mm_unmap_phyaddr(buf_table);
+	if (highmem_flag)
+		vdin_unmap_phyaddr(buf_table);
 	pr_info("write buffer %2d of %2u table to %s.\n",
 		buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);
@@ -600,146 +609,35 @@ static void vdin_dump_one_afbce_mem(char *path, struct vdin_dev_s *devp,
 
 		for (j = 0; j < count; j++) {
 			highaddr = phys + j * span;
-			vbuf = codec_mm_vmap(highaddr, span);
+			vbuf = vdin_vmap(highaddr, span);
 			if (!vbuf) {
-				pr_info("codec_mm_vmap error\n");
+				pr_info("vdin_vmap error\n");
 				return;
 			}
 
+			vdin_dma_flush(devp, vbuf, span, DMA_FROM_DEVICE);
 			vfs_write(filp, vbuf, span, &pos);
-			codec_mm_unmap_phyaddr(vbuf);
+			vdin_unmap_phyaddr(vbuf);
 		}
 
 		if (remain) {
 			span = devp->afbce_info->frame_body_size - remain;
 			highaddr = phys + span;
-			vbuf = codec_mm_vmap(highaddr, remain);
+			vbuf = vdin_vmap(highaddr, remain);
 			if (!vbuf) {
-				pr_info("codec_mm_vmap1 error\n");
+				pr_info("vdin_vmap1 error\n");
 				return;
 			}
 
-			vfs_write(filp, vbuf, span, &pos);
-			codec_mm_unmap_phyaddr(vbuf);
+			vdin_dma_flush(devp, vbuf, remain, DMA_FROM_DEVICE);
+			vfs_write(filp, vbuf, remain, &pos);
+			vdin_unmap_phyaddr(vbuf);
 		}
 	}
 	pr_info("write buffer %2d of %2u body to %s.\n",
 		buf_num, devp->canvas_max_num, buff);
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
-
-	set_fs(old_fs);
-}
-
-static void vdin_dump_afbce_mem(char *path, struct vdin_dev_s *devp)
-{
-	struct file *filp = NULL;
-	loff_t pos = 0;
-	void *buf_head = NULL;
-	void *buf_table = NULL;
-	void *buf_body = NULL;
-	unsigned char buff[100];
-	unsigned int i;
-	mm_segment_t old_fs = get_fs();
-
-	if ((devp->cma_config_flag & 0x1) &&
-		(devp->cma_mem_alloc == 0)) {
-		pr_info("%s:no cma alloc mem!!!\n", __func__);
-		return;
-	}
-
-	if (devp->cma_config_flag == 0x101) {
-		buf_head = codec_mm_phys_to_virt(
-			devp->afbce_info->head_paddr);
-		buf_table = codec_mm_phys_to_virt(
-			devp->afbce_info->table_paddr);
-		buf_body = codec_mm_phys_to_virt(
-			devp->afbce_info->fm_body_paddr[0]);
-
-		pr_info(".head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
-			devp->afbce_info->head_paddr,
-			(devp->afbce_info->table_paddr),
-			devp->afbce_info->fm_body_paddr[0]);
-	} else if (devp->cma_config_flag == 0) {
-		buf_head = phys_to_virt(
-			devp->afbce_info->head_paddr);
-		buf_table = phys_to_virt(
-			devp->afbce_info->table_paddr);
-		buf_body = phys_to_virt(
-			devp->afbce_info->fm_body_paddr[0]);
-
-		pr_info("head_paddr=0x%lx,table_paddr=0x%lx,body_paddr=0x%lx\n",
-			devp->afbce_info->head_paddr,
-			(devp->afbce_info->table_paddr),
-			devp->afbce_info->fm_body_paddr[0]);
-	}
-
-	set_fs(KERNEL_DS);
-
-	/* write header bin start */
-	strcpy(buff, path);
-	strcat(buff, "_header.bin");
-	filp = filp_open(buff, O_RDWR|O_CREAT, 0666);
-	if (IS_ERR(filp)) {
-		pr_info("create %s header error.\n", buff);
-		return;
-	}
-
-	for (i = 0; i < devp->vfmem_max_cnt; i++) {
-		vfs_write(filp, buf_head,
-			devp->afbce_info->frame_head_size, &pos);
-		buf_head += devp->afbce_info->frame_head_size;
-		pr_info("write buffer %2d(0x%x bytes) of %2u head to %s.\n",
-			i, devp->afbce_info->frame_head_size,
-			devp->canvas_max_num, buff);
-	}
-	vfs_fsync(filp, 0);
-	filp_close(filp, NULL);
-	/* write header bin end */
-
-	/* write table bin start */
-	pos = 0;
-	strcpy(buff, path);
-	strcat(buff, "_table.bin");
-	filp = filp_open(buff, O_RDWR|O_CREAT, 0666);
-	if (IS_ERR(filp)) {
-		pr_info("create %s table error.\n", buff);
-		return;
-	}
-
-	for (i = 0; i < devp->vfmem_max_cnt; i++) {
-		vfs_write(filp, buf_table,
-			devp->afbce_info->frame_table_size, &pos);
-		buf_table += devp->afbce_info->frame_table_size;
-		pr_info("write buffer %2d(0x%x bytes) of %2u table to %s.\n",
-			i, devp->afbce_info->frame_table_size,
-			devp->canvas_max_num, buff);
-	}
-	vfs_fsync(filp, 0);
-	filp_close(filp, NULL);
-	/* write table bin end */
-
-	/* write body bin start */
-	pos = 0;
-	strcpy(buff, path);
-	strcat(buff, "_body.bin");
-	filp = filp_open(buff, O_RDWR|O_CREAT, 0666);
-	if (IS_ERR(filp)) {
-		pr_info("create %s body error.\n", buff);
-		return;
-	}
-
-	for (i = 0; i < devp->vfmem_max_cnt; i++) {
-		vfs_write(filp, buf_body,
-			devp->afbce_info->frame_body_size, &pos);
-		buf_body += devp->afbce_info->frame_body_size;
-		pr_info("write buffer %2d(0x%x bytes) of %2u body to %s.\n",
-			i, devp->afbce_info->frame_body_size,
-			devp->canvas_max_num, buff);
-	}
-	vfs_fsync(filp, 0);
-	filp_close(filp, NULL);
-	/* write body bin end */
 
 	set_fs(old_fs);
 }
@@ -1101,20 +999,29 @@ static void vdin_dump_histgram(struct vdin_dev_s *devp)
 }
 
 /*type: 1:nv21 2:yuv422 3:yuv444*/
-static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
+static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type,
+		char *path)
 {
-	char *md_path_head = "/storage/B8F7-DBD0/afbce/a0_1header.bin";
-	char *md_path_body = "/storage/B8F7-DBD0/afbce/a0_1body.bin";
-	unsigned int i;
+	char md_path_head[100], md_path_body[100];
+	unsigned int i, j;
+	int highmem_flag = 0;
 	unsigned int size = 0;
+	unsigned int span = 0;
+	unsigned int remain = 0;
+	unsigned int count = 0;
+	unsigned long highaddr;
+	unsigned long phys;
 	long val;
 	struct file *filp = NULL;
 	loff_t pos = 0;
 	mm_segment_t old_fs;
 	void *head_dts = NULL;
 	void *body_dts = NULL;
+	void *vbuf = NULL;
 
 	if (kstrtol(type, 10, &val) < 0)
+		return;
+	if (!path)
 		return;
 
 	if (!devp->curr_wr_vfe) {
@@ -1124,6 +1031,9 @@ static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
 			return;
 		}
 	}
+
+	sprintf(md_path_head, "%s_1header.bin", path);
+	sprintf(md_path_body, "%s_1body.bin", path);
 
 	i = devp->curr_wr_vfe->af_num;
 	devp->curr_wr_vfe->vf.type = VIDTYPE_VIU_SINGLE_PLANE |
@@ -1146,8 +1056,18 @@ static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
 	devp->curr_wr_vfe->vf.compHeadAddr = devp->afbce_info->fm_head_paddr[i];
 	devp->curr_wr_vfe->vf.compBodyAddr = devp->afbce_info->fm_body_paddr[i];
 
-	head_dts = codec_mm_phys_to_virt(devp->afbce_info->fm_head_paddr[i]);
-	body_dts = codec_mm_phys_to_virt(devp->afbce_info->fm_body_paddr[i]);
+	highmem_flag = PageHighMem(
+		phys_to_page(devp->afbce_info->fm_body_paddr[0]));
+	if (highmem_flag == 0) {
+		pr_info("low mem area\n");
+		head_dts = codec_mm_phys_to_virt(
+			devp->afbce_info->fm_head_paddr[i]);
+	} else {
+		pr_info("high mem area\n");
+		head_dts = vdin_vmap(
+			devp->afbce_info->fm_head_paddr[i],
+			devp->afbce_info->frame_head_size);
+	}
 
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
@@ -1160,6 +1080,8 @@ static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
 
 	size = vfs_read(filp, head_dts,
 		devp->afbce_info->frame_head_size, &pos);
+	if (highmem_flag)
+		vdin_unmap_phyaddr(head_dts);
 
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
@@ -1175,8 +1097,30 @@ static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
 		return;
 	}
 
-	size = vfs_read(filp, body_dts,
-		devp->afbce_info->frame_body_size, &pos);
+	if (highmem_flag == 0) {
+		body_dts = codec_mm_phys_to_virt(
+			devp->afbce_info->fm_body_paddr[i]);
+
+		size = vfs_read(filp, body_dts,
+			devp->afbce_info->frame_body_size, &pos);
+	} else {
+		span = SZ_1M;
+		count = devp->afbce_info->frame_body_size/PAGE_ALIGN(span);
+		remain = devp->afbce_info->frame_body_size%PAGE_ALIGN(span);
+		phys = devp->afbce_info->fm_body_paddr[i];
+
+
+		for (j = 0; j < count; j++) {
+			highaddr = phys + j * span;
+			vbuf = vdin_vmap(highaddr, span);
+			if (!vbuf) {
+				pr_info("vdin_vmap error\n");
+				return;
+			}
+			vfs_read(filp, vbuf, span, &pos);
+			vdin_unmap_phyaddr(vbuf);
+		}
+	}
 
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
@@ -1187,6 +1131,7 @@ static void vdin_write_afbce_mem(struct vdin_dev_s *devp, char *type)
 	vf_notify_receiver(devp->name, VFRAME_EVENT_PROVIDER_VFRAME_READY,
 			NULL);
 }
+
 static void vdin_write_mem(
 	struct vdin_dev_s *devp, char *type,
 	char *path, char *md_path)
@@ -1272,13 +1217,14 @@ static void vdin_write_mem(
 		span = devp->canvas_active_w;
 		for (j = 0; j < count; j++) {
 			highaddr = addr + j * devp->canvas_w;
-			dts = codec_mm_vmap(highaddr, span);
+			dts = vdin_vmap(highaddr, span);
 			if (!dts) {
-				pr_info("codec_mm_vmap error\n");
+				pr_info("vdin_vmap error\n");
 				return;
 			}
 			vfs_read(filp, dts, span, &pos);
-			codec_mm_unmap_phyaddr(dts);
+			vdin_dma_flush(devp, dts, span, DMA_TO_DEVICE);
+			vdin_unmap_phyaddr(dts);
 		}
 		vfs_fsync(filp, 0);
 		filp_close(filp, NULL);
@@ -1790,8 +1736,8 @@ start_chk:
 	} else if (!strcmp(parm[0], "force_recycle")) {
 		devp->flags |= VDIN_FLAG_FORCE_RECYCLE;
 	} else if (!strcmp(parm[0], "read_pic_afbce")) {
-		if (parm[1])
-			vdin_write_afbce_mem(devp, parm[1]);
+		if (parm[1] && parm[2])
+			vdin_write_afbce_mem(devp, parm[1], parm[2]);
 		else
 			pr_err("miss parameters.\n");
 	} else if (!strcmp(parm[0], "read_pic")) {
@@ -2160,7 +2106,7 @@ start_chk:
 				buf_num = val;
 			vdin_dump_one_afbce_mem(parm[1], devp, buf_num);
 		} else if (parm[1] != NULL) {
-			vdin_dump_afbce_mem(parm[1], devp);
+			vdin_dump_one_afbce_mem(parm[1], devp, 0);
 		}
 	} else {
 		pr_info("unknown command\n");
