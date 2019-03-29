@@ -697,9 +697,12 @@ static bool vlock_disable_step2(void)
 		vlock_dis_cnt--;
 	else if (vlock_dis_cnt == 0) {
 		if (vlock.dtdata->vlk_hwver >= vlock_hw_ver2) {
+			#if 0
 			amvecm_hiu_reg_write_bits(
 				HHI_HDMI_PLL_VLOCK_CNTL, 0x4, 0, 3);
-			amvecm_hiu_reg_write_bits(
+			#endif
+			if (IS_AUTO_MODE(vlock_mode))
+				amvecm_hiu_reg_write_bits(
 				HHI_HDMI_PLL_VLOCK_CNTL, 0x0, 0, 3);
 		}
 
@@ -1355,9 +1358,11 @@ void amve_vlock_process(struct vframe_s *vf)
 				if (IS_AUTO_MODE(vlock_mode))
 					amvecm_hiu_reg_write_bits(
 					HHI_HDMI_PLL_VLOCK_CNTL, 0x7, 0, 3);
+				#if 0
 				else if (IS_MANUAL_MODE(vlock_mode))
 					amvecm_hiu_reg_write_bits(
 					HHI_HDMI_PLL_VLOCK_CNTL, 0x6, 0, 3);
+				#endif
 			}
 
 			if (vlock_debug & VLOCK_DEBUG_INFO)
@@ -1827,9 +1832,11 @@ u32 vlock_fsm_en_step1_func(struct stvlock_sig_sts *pvlock,
 			if (IS_AUTO_MODE(vlock_mode))
 				amvecm_hiu_reg_write_bits(
 				HHI_HDMI_PLL_VLOCK_CNTL, 0x7, 0, 3);
+			#if 0
 			else if (IS_MANUAL_MODE(vlock_mode))
 				amvecm_hiu_reg_write_bits(
 				HHI_HDMI_PLL_VLOCK_CNTL, 0x6, 0, 3);
+			#endif
 		}
 
 		ret = 1;
@@ -1877,7 +1884,7 @@ void vlock_fsm_monitor(struct vframe_s *vf)
 	case VLOCK_STATE_NULL:
 		if (vlock.vf_sts) {
 			/*have frame in*/
-			if (vlock.frame_cnt_in++ >= 100) {
+			if (vlock.frame_cnt_in++ >= VLOCK_START_CNT) {
 				/*vframe input valid*/
 				if (vlock.md_support) {
 					if (vlock_fsm_to_en_func(&vlock, vf)) {
@@ -1921,6 +1928,7 @@ void vlock_fsm_monitor(struct vframe_s *vf)
 
 	case VLOCK_STATE_ENABLE_STEP2_DONE:
 		if (vlock.vf_sts) {
+			vlock.frame_cnt_in++;
 			if (!vlock.md_support) {
 				/*function not support*/
 				vlock_clear_frame_counter();
