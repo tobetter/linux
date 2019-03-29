@@ -510,6 +510,7 @@ struct osd_device_data_s {
 	u32 vpp_fifo_len;
 	u32 dummy_data;
 	u32 has_viu2;
+	u32 osd0_sc_independ;
 	u32 viu1_osd_count;
 	u32 viu2_index;
 	struct clk *vpu_clkc;

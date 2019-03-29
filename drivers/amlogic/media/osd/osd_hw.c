@@ -75,7 +75,6 @@
 #include "osd_hw_def.h"
 #include "osd_fb.h"
 
-#define OSD_BLEND_SHIFT_WORKAROUND
 #ifdef CONFIG_AMLOGIC_VSYNC_FIQ_ENABLE
 #define FIQ_VSYNC
 #endif
@@ -5564,7 +5563,6 @@ static u32 blend_din_to_osd(
 		return osd_index;
 }
 
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 static u32 get_max_order(u32 order1, u32 order2)
 {
 	u32 max_order = 0;
@@ -5854,155 +5852,6 @@ static void generate_blend_din_table(struct hw_osd_blending_s *blending)
 		blending->din_reoder_sel;
 }
 
-#else
-static void generate_blend_din_table(struct hw_osd_blending_s *blending)
-{
-	int i = 0;
-	int osd_count = osd_hw.osd_meson_dev.osd_count - 1;
-
-	/* reorder[i] = osd[i]'s display layer */
-	for (i = 0; i < OSD_BLEND_LAYERS; i++)
-		blending->osd_to_bdin_table[i] = -1;
-	blending->din_reoder_sel = 0;
-	switch (blending->layer_cnt) {
-	case 0:
-		break;
-	case 1:
-		for (i = 0; i < osd_count; i++) {
-			if (blending->reorder[i] != LAYER_UNSUPPORT) {
-				/* blend_din1 */
-				blending->din_reoder_sel |= (i + 1) << 0;
-				/* blend_din1 -- osdx */
-				blending->osd_to_bdin_table[0] = i;
-				break;
-			}
-		}
-		break;
-	case 2:
-	{
-		int temp_index[2] = {0};
-		int j = 0;
-
-		for (i = 0; i < osd_count; i++) {
-			if (blending->reorder[i] != LAYER_UNSUPPORT) {
-				/* save the osd index */
-				temp_index[j] = i;
-				j++;
-			}
-		}
-		osd_log_dbg(MODULE_BLEND, "blend_din4==%d\n",
-			blending->reorder[temp_index[0]]);
-		osd_log_dbg(MODULE_BLEND, "blend_din1==%d\n",
-			blending->reorder[temp_index[1]]);
-		/* mode A_C */
-		if (blending->osd_blend_mode == OSD_BLEND_A_C) {
-			/* blend_din1 */
-			blending->din_reoder_sel |= (temp_index[0] + 1) << 0;
-			/* blend_din1 -- osdx */
-			blending->osd_to_bdin_table[0] = temp_index[0];
-			/* blend_din3 */
-			blending->din_reoder_sel |= (temp_index[1] + 1) << 12;
-			/* blend_din3 -- osdx */
-			blending->osd_to_bdin_table[3] = temp_index[1];
-			/* exchane vpp osd blend in order */
-			if (blending->reorder[temp_index[0]] <
-				blending->reorder[temp_index[1]]) {
-				blending->b_exchange_blend_in = true;
-				osd_log_dbg(MODULE_BLEND, "need exchange vpp order\n");
-			}
-		} else {
-			if (blending->reorder[temp_index[0]] <
-				blending->reorder[temp_index[1]]) {
-				/* blend_din4 */
-				blending->din_reoder_sel |=
-					(temp_index[0] + 1) << 12;
-				/* blend_din3 -- osdx */
-				blending->osd_to_bdin_table[3] = temp_index[0];
-				/* blend_din1 */
-				blending->din_reoder_sel |=
-					(temp_index[1] + 1) << 0;
-				/* blend_din1 -- osdx */
-				blending->osd_to_bdin_table[0] = temp_index[1];
-				blending->b_exchange_din = true;
-				osd_log_dbg(MODULE_BLEND, "need exchange osd din order\n");
-			} else {
-				/* blend_din1 */
-				blending->din_reoder_sel |=
-					(temp_index[0] + 1) << 0;
-				/* blend_din1 -- osdx */
-				blending->osd_to_bdin_table[0] = temp_index[0];
-				/* blend_din3 */
-				blending->din_reoder_sel |=
-					(temp_index[1] + 1) << 12;
-				/* blend_din3 -- osdx */
-				blending->osd_to_bdin_table[3] = temp_index[1];
-			}
-		}
-		break;
-	}
-	case 3:
-		/* blend_din1 is bottom, blend_din4 is top layer */
-		/* mode A_BC */
-		/* osd0 always used blend_din1 */
-		/* blend_din1 */
-		blending->din_reoder_sel |= 1 << 0;
-		/* blend_din1 -- osd1 */
-		blending->osd_to_bdin_table[0] = OSD1;
-		if (blending->reorder[OSD2] > blending->reorder[OSD3]) {
-			/* blend_din4 */
-			blending->din_reoder_sel |= (OSD3 + 1) << 12;
-			/* blend_din4 -- osd3 */
-			blending->osd_to_bdin_table[3] = OSD3;
-
-			/* blend_din3 */
-			blending->din_reoder_sel |= (OSD2 + 1) << 8;
-			/* blend_din3 -- osd2 */
-			blending->osd_to_bdin_table[2] = OSD2;
-		} else {
-			/* blend_din3 */
-			blending->din_reoder_sel |= (OSD2 + 1) << 12;
-			/* blend_din3 -- osd2 */
-			blending->osd_to_bdin_table[3] = OSD2;
-
-			/* blend_din3 */
-			blending->din_reoder_sel |= (OSD3 + 1) << 8;
-			/* blend_din3 -- osd2 */
-			blending->osd_to_bdin_table[2] = OSD3;
-
-		}
-		if (blending->reorder[OSD1] < blending->reorder[OSD3]) {
-			if (blending->osd_blend_mode == OSD_BLEND_A_BC) {
-				blending->b_exchange_blend_in = true;
-				osd_log_dbg(MODULE_BLEND, "need exchange vpp order\n");
-			} else {
-				u32 temp1, temp2;
-
-				blending->b_exchange_din = true;
-				osd_log_dbg(MODULE_BLEND, "need exchange osd din order\n");
-				temp1 = blending->osd_to_bdin_table[2];
-				temp2 = blending->osd_to_bdin_table[3];
-				blending->osd_to_bdin_table[3] =
-					blending->osd_to_bdin_table[0];
-				blending->osd_to_bdin_table[2] = temp2;
-				blending->osd_to_bdin_table[0] = temp1;
-				temp1 = blending->din_reoder_sel & 0xf000;
-				temp2 = blending->din_reoder_sel & 0x0f00;
-				blending->din_reoder_sel = (1 << 12);
-				blending->din_reoder_sel |= temp1 >> 4;
-				blending->din_reoder_sel |= temp2 >> 8;
-			}
-		}
-		break;
-	}
-	osd_log_dbg(MODULE_BLEND, "osd_to_bdin_table[i]=[%x,%x,%x,%x]\n",
-		blending->osd_to_bdin_table[0],
-		blending->osd_to_bdin_table[1],
-		blending->osd_to_bdin_table[2],
-		blending->osd_to_bdin_table[3]);
-	blending->blend_reg.din_reoder_sel =
-		blending->din_reoder_sel;
-}
-#endif
 static bool is_freescale_para_changed(u32 index)
 {
 	static int first[HW_OSD_COUNT - 1] = {1};
@@ -6161,13 +6010,9 @@ static void set_blend_order(struct hw_osd_blending_s *blending)
 static void set_blend_din(struct hw_osd_blending_s *blending)
 {
 	int i = 0, osd_index;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	/* workaround for shift issue */
 	/* blend_din_en must equal 5 */
 	u32 blend_din_en = 0x5;
-#else
-	u32 blend_din_en = 0x9;
-#endif
 
 	if (!blending)
 		return;
@@ -6188,7 +6033,6 @@ static void set_blend_din(struct hw_osd_blending_s *blending)
 static void set_blend_mode(struct hw_osd_blending_s *blending)
 {
 	u8 osd_blend_mode = OSD_BLEND_NONE;
-	//u32 osd_index;
 
 	if (!blending)
 		return;
@@ -6212,11 +6056,7 @@ static void set_blend_mode(struct hw_osd_blending_s *blending)
 		if (osd_hw.hdr_used)
 			osd_blend_mode = OSD_BLEND_ABC;
 		else
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 			osd_blend_mode = OSD_BLEND_AB_C;
-#else
-			osd_blend_mode = OSD_BLEND_A_BC;
-#endif
 		break;
 	}
 	blending->osd_blend_mode = osd_blend_mode;
@@ -6360,19 +6200,9 @@ static void osd_setting_blend1(struct hw_osd_blending_s *blending)
 	}
 	layer_blend = &(blending->layer_blend);
 	blend_reg = &(blending->blend_reg);
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	/* blend1_dout to blend2 */
 	blend_reg->din2_osd_sel = 0;
-#else
-	/* input1 default route to blend1 */
-	if (layer_blend->input1 & BYPASS_DIN) {
-		/* blend1_dout to dout1 */
-		blend_reg->din2_osd_sel = 1;
-		layer_blend->input1 &= ~BYPASS_DIN;
-	} else
-		/* blend1_dout to blend2 */
-		blend_reg->din2_osd_sel = 0;
-#endif
+
 	if (layer_blend->input2 & BYPASS_DIN) {
 		/* blend1_din3 bypass to dout1 */
 		blend_reg->din3_osd_sel = 1;
@@ -6436,7 +6266,6 @@ static void osd_setting_blend1(struct hw_osd_blending_s *blending)
 	}
 	if (blend_reg->din3_osd_sel || layer_blend->input1 == BLEND_NO_DIN) {
 		/* blend din3 bypass,output == input */
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	if (layer_blend->input2 == BLEND_NO_DIN) {
 		memcpy(&layer_blend->output_data,
 			&layer_blend->input1_data,
@@ -6447,16 +6276,7 @@ static void osd_setting_blend1(struct hw_osd_blending_s *blending)
 			sizeof(struct dispdata_s));
 	}
 	layer_blend->output_data.h += workaround_line;
-#else
-		layer_blend->output_data.x = 0;
-		layer_blend->output_data.y = 0;
-		layer_blend->output_data.w =
-			layer_blend->input2_data.x +
-			layer_blend->input2_data.w;
-		layer_blend->output_data.h =
-			layer_blend->input2_data.y +
-			layer_blend->input2_data.h;
-#endif
+
 	} else
 		calc_max_output(blending);
 	blend_hsize = layer_blend->output_data.w;
@@ -6489,7 +6309,6 @@ static void osd_setting_blend2(struct hw_osd_blending_s *blending)
 	/* osd_blend_blend0_size share with blend2_size*/
 	blend_reg->osd_blend_blend0_size =
 		blend_vsize  << 16 | blend_hsize;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	switch (layer_blend->input2) {
 	case BLEND1_DIN:
 		blend1_input = 0;
@@ -6499,19 +6318,7 @@ static void osd_setting_blend2(struct hw_osd_blending_s *blending)
 		blend1_input = 1;
 		break;
 	}
-#else
-	switch (layer_blend->input2) {
-	case BLEND1_DIN:
-		/* blend1_dout to blend2 */
-		blend_reg->din2_osd_sel = 0;
-		break;
-	default:
-		/* blend1_dout to dout1 */
-		blend_reg->din2_osd_sel = 1;
-		break;
-	}
-	blend1_input = blend_reg->din2_osd_sel;
-#endif
+
 	/* premult set */
 	blend_reg->blend2_premult_en = 3;
 	if (blend1_input)
@@ -6523,11 +6330,9 @@ static void osd_setting_blend2(struct hw_osd_blending_s *blending)
 		blend_vsize = layer_blend->output_data.h;
 		blend_reg->osd_blend_blend0_size =
 			blend_vsize  << 16 | blend_hsize;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		/* blend 0 and blend1 size need same */
 		blend_reg->osd_blend_blend1_size =
 			blend_reg->osd_blend_blend0_size;
-#endif
 	}
 	osd_log_dbg2(MODULE_BLEND, "layer_blend2->output_data:%d,%d,%d,%d\n",
 		layer_blend->output_data.x,
@@ -6566,11 +6371,7 @@ static void vpp_setting_blend(struct hw_osd_blending_s *blending)
 	switch (layer_blend->input1) {
 	case BLEND1_DIN:
 		blend_reg->postbld_src3_sel = POSTBLD_OSD2;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		if (layer_blend->blend_core1_bypass)
-#else
-		if (blend_reg->din3_osd_sel)
-#endif
 			blend_reg->postbld_osd1_premult = 0;
 		else
 			blend_reg->postbld_osd1_premult = 1;
@@ -6599,11 +6400,7 @@ static void vpp_setting_blend(struct hw_osd_blending_s *blending)
 	switch (layer_blend->input2) {
 	case BLEND1_DIN:
 		blend_reg->postbld_src4_sel = POSTBLD_OSD2;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		if (layer_blend->blend_core1_bypass)
-#else
-		if (blend_reg->din3_osd_sel)
-#endif
 			blend_reg->postbld_osd2_premult = 0;
 		else
 			blend_reg->postbld_osd2_premult = 1;
@@ -6638,7 +6435,6 @@ static void vpp_setting_blend(struct hw_osd_blending_s *blending)
 		blend_reg->vpp_osd2_blend_v_scope);
 }
 
-/* input w, h is background */
 static void osd_set_freescale(u32 index,
 	struct hw_osd_blending_s *blending)
 
@@ -6878,7 +6674,6 @@ static void osd_setting_blend1_input(u32 index,
 		layer_blend->output_data.h);
 }
 
-/* every output is next path input */
 static void set_blend_path(struct hw_osd_blending_s *blending)
 {
 	struct layer_blend_s *layer_blend;
@@ -6893,9 +6688,7 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 	output_index = get_output_device_id(index);
 	layer_blend = &(blending->layer_blend);
 	blend_reg = &(blending->blend_reg);
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	layer_blend->blend_core1_bypass = 0;
-#endif
 	switch (blending->osd_blend_mode) {
 	case OSD_BLEND_NONE:
 		blend_reg->postbld_osd1_premult = 0;
@@ -7003,9 +6796,6 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		index = blend_din_to_osd(input1, blending);
 		if (index >= OSD_MAX)
 			return;
-#ifndef OSD_BLEND_SHIFT_WORKAROUND
-		osd_setting_blend0_input(index, blending);
-#endif
 		if (index != OSD1) {
 			/* here used freescale osd1/osd2 */
 			osd_log_dbg2(MODULE_BLEND,
@@ -7013,9 +6803,7 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 				index);
 			osd_set_freescale(index, blending);
 		}
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		osd_setting_blend0_input(index, blending);
-#endif
 		osd_setting_blend0(blending);
 		memcpy(&output1_data, &(layer_blend->output_data),
 			sizeof(struct dispdata_s));
@@ -7031,22 +6819,7 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		}
 		layer_blend->input1 = BLEND_NO_DIN;
 		layer_blend->input2 = input2;
-#ifndef OSD_BLEND_SHIFT_WORKAROUND
-		if (osd_hw.blend_bypass)
-			layer_blend->input2 |= BYPASS_DIN;
-#endif
-#if 0
-		layer_blend->input2_data.x =
-			osd_hw.free_dst_data[index].x_start;
-		layer_blend->input2_data.w =
-			osd_hw.free_dst_data[index].x_end -
-			osd_hw.free_dst_data[index].x_start + 1;
-		layer_blend->input2_data.y =
-			osd_hw.free_dst_data[index].y_start;
-		layer_blend->input2_data.h =
-			osd_hw.free_dst_data[index].y_end -
-			osd_hw.free_dst_data[index].y_start + 1;
-#endif
+
 		osd_setting_blend1_input(index, blending);
 		memcpy(&layer_blend->input2_data,
 			&layer_blend->output_data,
@@ -7134,32 +6907,10 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		osd_log_dbg2(MODULE_BLEND,
 		"before blend1: set osd%d freescale\n", index);
 		osd_set_freescale(index, blending);
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		layer_blend->input1 = BLEND_NO_DIN;
 		/* must bypass for shift workaround */
 		layer_blend->input2 = BLEND_DIN4 | BYPASS_DIN;
 		layer_blend->blend_core1_bypass = 1;
-#else
-		/* always route(bypass) to dout1 */
-		layer_blend->input1 = BLEND_NO_DIN | BYPASS_DIN;
-		layer_blend->input2 = BLEND_DIN4;
-		if (osd_hw.blend_bypass)
-			layer_blend->input2 |= BYPASS_DIN;
-#endif
-		#if 0
-		layer_blend->input2_data.x =
-			osd_hw.free_dst_data[index].x_start +
-			osd_hw.disp_info.position_x;
-		layer_blend->input2_data.w =
-			osd_hw.free_dst_data[index].x_end -
-			osd_hw.free_dst_data[index].x_start + 1;
-		layer_blend->input2_data.y =
-			osd_hw.free_dst_data[index].y_start +
-			osd_hw.disp_info.position_y;
-		layer_blend->input2_data.h =
-			osd_hw.free_dst_data[index].y_end -
-			osd_hw.free_dst_data[index].y_start + 1;
-		#endif
 		osd_setting_blend1_input(index, blending);
 		memcpy(&layer_blend->input2_data,
 			&layer_blend->output_data,
@@ -7244,10 +6995,8 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		layer_blend->input2 = BLEND1_DIN;
 		memcpy(&layer_blend->input1_data, &output1_data,
 			sizeof(struct dispdata_s));
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		memcpy(&layer_blend->input2_data, &layer_blend->output_data,
 			sizeof(struct dispdata_s));
-#endif
 		osd_setting_blend2(blending);
 		/* used osd0 freescale */
 		osd_set_freescale(OSD1, blending);
@@ -7371,7 +7120,6 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		}
 		vpp_setting_blend(blending);
 		break;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	case OSD_BLEND_AB_C:
 		/* blend0 -->blend2-->sc->vpp_osd1 */
 		/* sc-->blend1-->blend2-->sc-->vpp_osd1 */
@@ -7476,7 +7224,563 @@ static void set_blend_path(struct hw_osd_blending_s *blending)
 		}
 		vpp_setting_blend(blending);
 		break;
-#endif
+	}
+}
+
+static void osd_setting_blend0_new(struct hw_osd_blending_s *blending)
+{
+	struct layer_blend_reg_s *blend_reg;
+	struct layer_blend_s *layer_blend;
+	u32 index = 0;
+	u32 bld_osd_h_start = 0, bld_osd_h_end = 0;
+	u32 bld_osd_v_start = 0, bld_osd_v_end = 0;
+
+	if (!blending)
+		return;
+	layer_blend = &(blending->layer_blend);
+	blend_reg = &(blending->blend_reg);
+	/* blend0 only accept input1 */
+	if (layer_blend->input1 & BYPASS_DIN) {
+		blend_reg->din0_byp_blend = 1;
+		layer_blend->input1 &= ~BYPASS_DIN;
+	} else
+		blend_reg->din0_byp_blend = 0;
+	if (layer_blend->input1 != BLEND_NO_DIN) {
+		/* calculate osd blend din scope */
+		index = blend_din_to_osd(layer_blend->input1, blending);
+		if (index >= OSD_MAX)
+			return;
+		layer_blend->input1_data.x =
+			osd_hw.free_dst_data[index].x_start;
+		layer_blend->input1_data.y =
+			osd_hw.free_dst_data[index].y_start;
+		layer_blend->input1_data.w =
+			osd_hw.free_dst_data[index].x_end -
+			osd_hw.free_dst_data[index].x_start + 1;
+		layer_blend->input1_data.h =
+			osd_hw.free_dst_data[index].y_end -
+			osd_hw.free_dst_data[index].y_start + 1;
+
+		bld_osd_h_start =
+			layer_blend->input1_data.x;
+		bld_osd_h_end =
+			layer_blend->input1_data.x +
+			layer_blend->input1_data.w - 1;
+		bld_osd_v_start =
+			layer_blend->input1_data.y;
+		bld_osd_v_end =
+			layer_blend->input1_data.y +
+			layer_blend->input1_data.h - 1;
+		blend_reg->osd_blend_din_scope_h[index] =
+			bld_osd_h_end << 16 | bld_osd_h_start;
+		blend_reg->osd_blend_din_scope_v[index] =
+			bld_osd_v_end << 16 | bld_osd_v_start;
+	}
+	layer_blend->output_data.x = 0;
+	layer_blend->output_data.y = 0;
+	layer_blend->output_data.w = layer_blend->input1_data.x
+		+ layer_blend->input1_data.w;
+	layer_blend->output_data.h = layer_blend->input1_data.y
+		+ layer_blend->input1_data.h;
+	osd_log_dbg2(MODULE_BLEND,
+		"blend0:input1_data[osd%d]:%d,%d,%d,%d\n",
+		index,
+		layer_blend->input1_data.x,
+		layer_blend->input1_data.y,
+		layer_blend->input1_data.w,
+		layer_blend->input1_data.h);
+	osd_log_dbg2(MODULE_BLEND,
+		"blend0:layer_blend->output_data:%d,%d,%d,%d\n",
+		layer_blend->output_data.x,
+		layer_blend->output_data.y,
+		layer_blend->output_data.w,
+		layer_blend->output_data.h);
+}
+
+static void osd_setting_blend1_new(struct hw_osd_blending_s *blending)
+{
+	struct layer_blend_s *layer_blend;
+	struct layer_blend_reg_s *blend_reg;
+	u32 index = 0;
+	u32 blend_hsize, blend_vsize;
+	u32 bld_osd_h_start = 0, bld_osd_h_end = 0;
+	u32 bld_osd_v_start = 0, bld_osd_v_end = 0;
+	/* for g12a blend shift issue */
+
+	if (!blending)
+		return;
+	layer_blend = &(blending->layer_blend);
+	blend_reg = &(blending->blend_reg);
+	/* blend1_dout to blend2 */
+	blend_reg->din2_osd_sel = 0;
+
+	if (layer_blend->input2 & BYPASS_DIN) {
+		/* blend1_din3 bypass to dout1 */
+		blend_reg->din3_osd_sel = 1;
+		layer_blend->input2 &= ~BYPASS_DIN;
+	} else
+		/* blend1_din3 input to blend1 */
+		blend_reg->din3_osd_sel = 0;
+
+	if (layer_blend->input1 != BLEND_NO_DIN) {
+		index = blend_din_to_osd(layer_blend->input1, blending);
+		if (index >= OSD_MAX)
+			return;
+		layer_blend->input1_data.x =
+			osd_hw.free_dst_data[index].x_start;
+		layer_blend->input1_data.y =
+			osd_hw.free_dst_data[index].y_start;
+		layer_blend->input1_data.w =
+			osd_hw.free_dst_data[index].x_end -
+			osd_hw.free_dst_data[index].x_start + 1;
+		layer_blend->input1_data.h =
+			osd_hw.free_dst_data[index].y_end -
+			osd_hw.free_dst_data[index].y_start + 1;
+
+		/* calculate osd blend din scope */
+		bld_osd_h_start =
+			layer_blend->input1_data.x;
+		bld_osd_h_end =
+			layer_blend->input1_data.x +
+			layer_blend->input1_data.w - 1;
+		bld_osd_v_start =
+			layer_blend->input1_data.y;
+		bld_osd_v_end =
+			layer_blend->input1_data.y +
+			layer_blend->input1_data.h - 1;
+		blend_reg->osd_blend_din_scope_h[index] =
+			bld_osd_h_end << 16 | bld_osd_h_start;
+		blend_reg->osd_blend_din_scope_v[index] =
+			bld_osd_v_end << 16 | bld_osd_v_start;
+		osd_log_dbg2(MODULE_BLEND,
+			"blend1:input1_data(osd%d):%d,%d,%d,%d\n",
+			index,
+			layer_blend->input1_data.x,
+			layer_blend->input1_data.y,
+			layer_blend->input1_data.w,
+			layer_blend->input1_data.h);
+	}
+	if (layer_blend->input2 != BLEND_NO_DIN) {
+		index = blend_din_to_osd(layer_blend->input2, blending);
+		if (index >= OSD_MAX)
+			return;
+		layer_blend->input2_data.x =
+			osd_hw.free_dst_data[index].x_start;
+		layer_blend->input2_data.y =
+			osd_hw.free_dst_data[index].y_start;
+		layer_blend->input2_data.w =
+			osd_hw.free_dst_data[index].x_end -
+			osd_hw.free_dst_data[index].x_start + 1;
+		layer_blend->input2_data.h =
+			osd_hw.free_dst_data[index].y_end -
+			osd_hw.free_dst_data[index].y_start + 1;
+		/* calculate osd blend din scope */
+		bld_osd_h_start =
+			layer_blend->input2_data.x;
+		bld_osd_h_end =
+			layer_blend->input2_data.x +
+			layer_blend->input2_data.w - 1;
+		bld_osd_v_start =
+			layer_blend->input2_data.y;
+		bld_osd_v_end =
+			layer_blend->input2_data.y +
+			layer_blend->input2_data.h - 1;
+		blend_reg->osd_blend_din_scope_h[index] =
+			bld_osd_h_end << 16 | bld_osd_h_start;
+		blend_reg->osd_blend_din_scope_v[index] =
+			bld_osd_v_end << 16 | bld_osd_v_start;
+		osd_log_dbg2(MODULE_BLEND,
+			"layer_blend->input2_data:%d,%d,%d,%d\n",
+			layer_blend->input2_data.x,
+			layer_blend->input2_data.y,
+			layer_blend->input2_data.w,
+			layer_blend->input2_data.h);
+	}
+	if (blend_reg->din3_osd_sel || layer_blend->input1 == BLEND_NO_DIN) {
+		/* blend din3 bypass,output == input */
+		if (layer_blend->input2 == BLEND_NO_DIN) {
+			memcpy(&layer_blend->output_data,
+				&layer_blend->input1_data,
+				sizeof(struct dispdata_s));
+		} else {
+			memcpy(&layer_blend->output_data,
+				&layer_blend->input2_data,
+				sizeof(struct dispdata_s));
+		}
+	} else
+		calc_max_output(blending);
+	blend_hsize = layer_blend->output_data.w;
+	blend_vsize = layer_blend->output_data.h;
+	blend_reg->osd_blend_blend1_size =
+		blend_vsize  << 16 | blend_hsize;
+
+	osd_log_dbg2(MODULE_BLEND, "layer_blend1->output_data:%d,%d,%d,%d\n",
+		layer_blend->output_data.x,
+		layer_blend->output_data.y,
+		layer_blend->output_data.w,
+		layer_blend->output_data.h);
+}
+
+/* input w, h is background */
+static void osd_set_freescale_new(u32 index,
+	struct hw_osd_blending_s *blending)
+
+{
+	struct layer_blend_s *layer_blend;
+	struct layer_blend_reg_s *blend_reg;
+	u32 width, height;
+	u32 src_height;
+
+	layer_blend = &(blending->layer_blend);
+	blend_reg = &(blending->blend_reg);
+	if (index >= osd_hw.osd_meson_dev.viu1_osd_count) {
+		osd_log_err("error osd index=%d\n", index);
+		return;
+	}
+	osd_hw.free_scale_enable[index] = 0x10001;
+	osd_hw.free_scale[index].h_enable = 1;
+	osd_hw.free_scale[index].v_enable = 1;
+	osd_hw.free_scale_mode[index] = 1;
+
+	osd_hw.free_src_data[index].x_start =
+		osd_hw.src_data[index].x;
+	osd_hw.free_src_data[index].x_end =
+		osd_hw.src_data[index].x +
+		osd_hw.src_data[index].w - 1;
+	osd_hw.free_src_data[index].y_start =
+		osd_hw.src_data[index].y;
+	osd_hw.free_src_data[index].y_end =
+		osd_hw.src_data[index].y +
+		osd_hw.src_data[index].h - 1;
+
+	/* direct used dst as freescale dst */
+	osd_hw.free_dst_data[index].x_start =
+		osd_hw.dst_data[index].x;
+	osd_hw.free_dst_data[index].y_start =
+		osd_hw.dst_data[index].y;
+	width = osd_hw.dst_data[index].w;
+	height = osd_hw.dst_data[index].h;
+	if (osd_hw.field_out_en) {
+		height = height >> 1;
+		osd_hw.free_dst_data[index].y_start >>= 1;
+	}
+	osd_hw.free_dst_data[index].x_end =
+		osd_hw.free_dst_data[index].x_start +
+		width - 1;
+	osd_hw.free_dst_data[index].y_end =
+		osd_hw.free_dst_data[index].y_start +
+		height - 1;
+
+	src_height = osd_hw.free_src_data[index].x_end -
+		osd_hw.free_src_data[index].x_start + 1;
+	osd_set_dummy_data(index, 0xff);
+	osd_log_dbg2(MODULE_BLEND, "osd%d:free_src_data:%d,%d,%d,%d\n",
+		index,
+		osd_hw.free_src_data[index].x_start,
+		osd_hw.free_src_data[index].y_start,
+		osd_hw.free_src_data[index].x_end,
+		osd_hw.free_src_data[index].y_end);
+	osd_log_dbg2(MODULE_BLEND, "osd%d:free_dst_data:%d,%d,%d,%d\n",
+		index,
+		osd_hw.free_dst_data[index].x_start,
+		osd_hw.free_dst_data[index].y_start,
+		osd_hw.free_dst_data[index].x_end,
+		osd_hw.free_dst_data[index].y_end);
+}
+
+/* every output is next path input */
+static void set_blend_path_new(struct hw_osd_blending_s *blending)
+{
+	struct layer_blend_s *layer_blend;
+	struct layer_blend_reg_s *blend_reg;
+	struct dispdata_s output1_data;
+	u32 index = 0;
+	u8 input1 = 0, input2 = 0;
+	u32 output_index;
+
+	if (!blending)
+		return;
+	output_index = get_output_device_id(index);
+
+	layer_blend = &(blending->layer_blend);
+	blend_reg = &(blending->blend_reg);
+	layer_blend->blend_core1_bypass = 0;
+	switch (blending->osd_blend_mode) {
+	case OSD_BLEND_NONE:
+		blend_reg->postbld_osd1_premult = 0;
+		blend_reg->postbld_src4_sel = POSTBLD_CLOSE;
+		blend_reg->postbld_src3_sel = POSTBLD_CLOSE;
+		blend_reg->postbld_osd2_premult = 0;
+		break;
+	case OSD_BLEND_A:
+		/* sc-->blend0-->blend2-->vpp_osd1 */
+		layer_blend->input1 = BLEND_DIN1;
+		if (osd_hw.blend_bypass)
+			layer_blend->input1 |= BYPASS_DIN;
+		layer_blend->input2 = BLEND_NO_DIN;
+		index = blend_din_to_osd(BLEND_DIN1, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend0_new(blending);
+		if (!blend_reg->din0_byp_blend) {
+			layer_blend->input1 = BLEND0_DIN;
+			layer_blend->input2 = BLEND_NO_DIN;
+			memcpy(&layer_blend->input1_data,
+				&layer_blend->output_data,
+				sizeof(struct dispdata_s));
+			/* same with blend0's background */
+			osd_setting_blend2(blending);
+		}
+		layer_blend->input1 = BLEND2_DIN;
+		layer_blend->input2 = BLEND_NO_DIN;
+		memcpy(&(layer_blend->input1_data),
+				&(layer_blend->output_data),
+				sizeof(struct dispdata_s));
+		layer_blend->input1_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		layer_blend->input1_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+		vpp_setting_blend(blending);
+		break;
+	case OSD_BLEND_AC:
+		/* sc-->blend0 -->blend1-->blend2-->vpp_osd1 */
+		/* sc-->blend0 & blend1-->blend2-->vpp_osd1 */
+		if (!blending->b_exchange_din) {
+			input1 = BLEND_DIN1;
+			input2 = BLEND_DIN4;
+		} else {
+			input1 = BLEND_DIN4;
+			input2 = BLEND_DIN1;
+		}
+		layer_blend->input1 = input1;
+		layer_blend->input2 = BLEND_NO_DIN;
+		index = blend_din_to_osd(input1, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend0_new(blending);
+		/* save blend0 output */
+		memcpy(&output1_data, &(layer_blend->output_data),
+			sizeof(struct dispdata_s));
+
+		index = blend_din_to_osd(input2, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		layer_blend->input1 = BLEND_NO_DIN;
+		layer_blend->input2 = input2;
+		osd_setting_blend1_new(blending);
+
+		layer_blend->input1 = BLEND0_DIN;
+		layer_blend->input2 = BLEND1_DIN;
+
+		/* blend0 output-> blend2  input1 */
+		memcpy(&layer_blend->input1_data, &output1_data,
+			sizeof(struct dispdata_s));
+		/* blend1 output-> blend2  input2 */
+		memcpy(&layer_blend->input2_data, &layer_blend->output_data,
+			sizeof(struct dispdata_s));
+		osd_setting_blend2(blending);
+
+		layer_blend->input1 = BLEND2_DIN;
+		layer_blend->input2 = BLEND_NO_DIN;
+		memcpy(&(layer_blend->input1_data),
+				&(layer_blend->output_data),
+				sizeof(struct dispdata_s));
+		layer_blend->input1_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		layer_blend->input1_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+		vpp_setting_blend(blending);
+		break;
+	case OSD_BLEND_A_C:
+		/* sc-->blend0 -->blend2->vpp_osd1 */
+		/* sc-->blend1 -->vpp_osd2 */
+		layer_blend->input1 = BLEND_DIN1;
+		if (osd_hw.blend_bypass)
+			layer_blend->input1 |= BYPASS_DIN;
+		layer_blend->input2 = BLEND_NO_DIN;
+		index = blend_din_to_osd(BLEND_DIN1, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend0_new(blending);
+		if (!blend_reg->din0_byp_blend) {
+			layer_blend->input1 = BLEND0_DIN;
+			layer_blend->input2 = BLEND_NO_DIN;
+			memcpy(&layer_blend->input1_data,
+				&layer_blend->output_data,
+				sizeof(struct dispdata_s));
+			/* background is same with blend0's background */
+			osd_setting_blend2(blending);
+		}
+		/* save blend0/blend2 output */
+		memcpy(&output1_data, &(layer_blend->output_data),
+			sizeof(struct dispdata_s));
+		/* adjust input 1 offset*/
+		output1_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		output1_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+
+		index = blend_din_to_osd(BLEND_DIN4, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		layer_blend->input1 = BLEND_NO_DIN;
+		layer_blend->input2 = BLEND_DIN4 | BYPASS_DIN;
+		layer_blend->blend_core1_bypass = 1;
+		osd_setting_blend1_new(blending);
+		/* adjust input 2 offset*/
+		layer_blend->output_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		layer_blend->output_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+
+		if (!blending->b_exchange_blend_in) {
+			layer_blend->input1 = BLEND2_DIN;
+			layer_blend->input2 = BLEND1_DIN;
+			memcpy(&layer_blend->input1_data, &output1_data,
+				sizeof(struct dispdata_s));
+			memcpy(&layer_blend->input2_data,
+				&layer_blend->output_data,
+				sizeof(struct dispdata_s));
+		} else {
+			layer_blend->input1 = BLEND1_DIN;
+			layer_blend->input2 = BLEND2_DIN;
+			memcpy(&layer_blend->input1_data,
+				&layer_blend->output_data,
+				sizeof(struct dispdata_s));
+			memcpy(&layer_blend->input2_data, &output1_data,
+				sizeof(struct dispdata_s));
+		}
+		vpp_setting_blend(blending);
+		break;
+	case OSD_BLEND_ABC:
+		/* sc->blend0 -->blend2-->vpp_osd1 */
+		/* sc-->blend1 -->blend2 */
+		input1 = BLEND_DIN1;
+		input2 = BLEND_DIN4;
+		layer_blend->input1 = input1;
+		layer_blend->input2 = BLEND_NO_DIN;
+		index = blend_din_to_osd(input1, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend0_new(blending);
+		/* save blend0 output */
+		memcpy(&output1_data, &(layer_blend->output_data),
+			sizeof(struct dispdata_s));
+
+		layer_blend->input1 = BLEND_DIN3;
+		layer_blend->input2 = input2;
+		index = blend_din_to_osd(layer_blend->input1, blending);
+		osd_set_freescale_new(index, blending);
+		index = blend_din_to_osd(layer_blend->input2, blending);
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend1_new(blending);
+
+		layer_blend->input1 = BLEND0_DIN;
+		layer_blend->input2 = BLEND1_DIN;
+		memcpy(&layer_blend->input1_data, &output1_data,
+			sizeof(struct dispdata_s));
+		memcpy(&layer_blend->input2_data, &layer_blend->output_data,
+			sizeof(struct dispdata_s));
+		osd_setting_blend2(blending);
+
+		layer_blend->input1 = BLEND2_DIN;
+		layer_blend->input2 = BLEND_NO_DIN;
+		memcpy(&(layer_blend->input1_data),
+				&(layer_blend->output_data),
+				sizeof(struct dispdata_s));
+		layer_blend->input1_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		layer_blend->input1_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+		vpp_setting_blend(blending);
+		break;
+	case OSD_BLEND_AB_C:
+		/* sc-->blend0 -->blend2->vpp_osd1 */
+		/* sc-->blend1-->blend2-->vpp_osd1 */
+		/* sc -->vpp_osd2 */
+		layer_blend->input1 = BLEND_DIN1;
+		layer_blend->input2 = BLEND_NO_DIN;
+		blending->blend_din = BLEND_DIN1;
+		index = blend_din_to_osd(BLEND_DIN1, blending);
+		if (index >= OSD_MAX)
+			return;
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend0_new(blending);
+		/* save blend0 output */
+		memcpy(&output1_data, &(layer_blend->output_data),
+			sizeof(struct dispdata_s));
+
+		/* din3 input to blend1 */
+		layer_blend->input1 = BLEND_DIN3;
+		layer_blend->input2 = BLEND_NO_DIN | BYPASS_DIN;
+		layer_blend->blend_core1_bypass = 1;
+		blending->blend_din = BLEND_DIN3;
+		index = blend_din_to_osd(BLEND_DIN3, blending);
+		osd_set_freescale_new(index, blending);
+		osd_setting_blend1_new(blending);
+
+		/* din1=>blend0 & din3-> blend1 ==> blend2 */
+		layer_blend->input1 = BLEND0_DIN;
+		layer_blend->input2 = BLEND1_DIN;
+		memcpy(&layer_blend->input1_data, &output1_data,
+			sizeof(struct dispdata_s));
+		memcpy(&layer_blend->input2_data, &layer_blend->output_data,
+			sizeof(struct dispdata_s));
+		osd_setting_blend2(blending);
+		memcpy(&output1_data, &(layer_blend->output_data),
+			sizeof(struct dispdata_s));
+		output1_data.x +=
+			osd_hw.disp_info[output_index].position_x;
+		output1_data.y +=
+			osd_hw.disp_info[output_index].position_y;
+		osd_log_dbg2(MODULE_BLEND, "output1_data:%d,%d,%d,%d\n",
+			output1_data.x,
+			output1_data.w,
+			output1_data.y,
+			output1_data.h);
+
+
+		/* din4 ==> vpp */
+		index = blend_din_to_osd(BLEND_DIN4, blending);
+		blending->blend_din = BLEND_DIN4;
+		osd_set_freescale_new(index, blending);
+		layer_blend->input2_data.x =
+			osd_hw.free_dst_data[index].x_start +
+			osd_hw.disp_info[output_index].position_x;
+		layer_blend->input2_data.w =
+			osd_hw.free_dst_data[index].x_end -
+			osd_hw.free_dst_data[index].x_start + 1;
+		layer_blend->input2_data.y =
+			osd_hw.free_dst_data[index].y_start +
+			osd_hw.disp_info[output_index].position_y;
+		layer_blend->input2_data.h =
+			osd_hw.free_dst_data[index].y_end -
+			osd_hw.free_dst_data[index].y_start + 1;
+
+		/* 2vpp input */
+		if (!blending->b_exchange_blend_in) {
+			layer_blend->input1 = BLEND2_DIN;
+			layer_blend->input2 = BLEND1_DIN;
+			memcpy(&layer_blend->input1_data, &output1_data,
+				sizeof(struct dispdata_s));
+		} else {
+			layer_blend->input1 = BLEND1_DIN;
+			layer_blend->input2 = BLEND2_DIN;
+			memcpy(&layer_blend->input1_data,
+				&layer_blend->input2_data,
+				sizeof(struct dispdata_s));
+			memcpy(&layer_blend->input2_data,
+				&output1_data,
+				sizeof(struct dispdata_s));
+		}
+		vpp_setting_blend(blending);
+		break;
 	}
 }
 
@@ -7485,16 +7789,16 @@ static void set_blend_reg(struct layer_blend_reg_s *blend_reg)
 	int i;
 	u32 reg_offset = 2;
 	u32 osd1_alpha_div = 0, osd2_alpha_div = 0;
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 	u32 osd_count = OSD_BLEND_LAYERS;
-#else
-	u32 osd_count = osd_hw.osd_meson_dev.viu1_osd_count;
-#endif
 	u32 dv_core2_hsize;
 	u32 dv_core2_vsize;
 
 	if (!blend_reg)
 		return;
+	/* osd0 scale position before osd blend */
+	if (osd_hw.osd_meson_dev.osd0_sc_independ)
+		VSYNCOSD_WR_MPEG_REG(VPP_OSD_SCALE_CTRL, 0x01);
+
 	/* osd blend ctrl */
 	VSYNCOSD_WR_MPEG_REG(VIU_OSD_BLEND_CTRL,
 		4				  << 29|
@@ -7556,7 +7860,6 @@ static void set_blend_reg(struct layer_blend_reg_s *blend_reg)
 			VIU_OSD_BLEND_DIN0_SCOPE_V + reg_offset * i,
 			blend_reg->osd_blend_din_scope_v[i]);
 		}
-#ifdef OSD_BLEND_SHIFT_WORKAROUND
 		else {
 			if ((blend_reg->osd_blend_din_scope_v[i] & 0xffff) == 0)
 				blend_reg->osd_blend_din_scope_v[i] = 0x43a0439;
@@ -7564,7 +7867,6 @@ static void set_blend_reg(struct layer_blend_reg_s *blend_reg)
 				VIU_OSD_BLEND_DIN0_SCOPE_V + reg_offset * i,
 				blend_reg->osd_blend_din_scope_v[i]);
 		}
-#endif
 	}
 
 	dv_core2_vsize = (blend_reg->osd_blend_blend0_size >> 16) & 0xfff;
@@ -7679,7 +7981,8 @@ static int osd_setting_order(u32 output_index)
 	blending->b_exchange_blend_in = false;
 	blending->osd1_freescale_disable = false;
 	adjust_dst_position(output_index);
-	uniformization_fb(OSD1, blending);
+	if (!osd_hw.osd_meson_dev.osd0_sc_independ)
+		uniformization_fb(OSD1, blending);
 
 	/* set blend mode */
 	set_blend_mode(blending);
@@ -7688,7 +7991,10 @@ static int osd_setting_order(u32 output_index)
 	set_blend_din(blending);
 
 	/* set blend path */
-	set_blend_path(blending);
+	if (osd_hw.osd_meson_dev.osd0_sc_independ)
+		set_blend_path_new(blending);
+	else
+		set_blend_path(blending);
 	line1 = get_enter_encp_line();
 	vinfo_height = osd_hw.field_out_en[output_index] ?
 		(osd_hw.vinfo_height[output_index] * 2) :
