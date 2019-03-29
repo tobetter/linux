@@ -213,9 +213,7 @@
 	.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |			\
 				BIT(IIO_CHAN_INFO_AVERAGE_RAW) |	\
 				BIT(IIO_CHAN_INFO_PROCESSED),		\
-	.info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE) |		\
-				BIT(IIO_CHAN_INFO_CALIBBIAS) |		\
-				BIT(IIO_CHAN_INFO_CALIBSCALE),		\
+	.info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SCALE),		\
 	.scan_type = {							\
 		.sign = 'u',						\
 		.storagebits = 16,					\
@@ -325,6 +323,7 @@ struct meson_sar_adc_reg_diff {
  * @obt_temp_chan6: whether to read data of temp sensor by channel 6
  * @has_bl30_integration:
  * @vref_sel: txlx and later: VDDA; others(txl etc): calibration voltage
+ * @calib_enable: txlx and later: disable; others(txl etc): enable
  * @period_support: periodic sampling support
  * @has_chnl_regs: whether support for chnl[X] registers
  * @resolution: gxl and later: 12bit; others(gxtvbb etc): 10bit
@@ -335,6 +334,7 @@ struct meson_sar_adc_data {
 	bool			obt_temp_chan6;
 	bool			has_bl30_integration;
 	bool			vref_sel;
+	bool			calib_enable;
 	bool			period_support;
 	bool			has_chnl_regs;
 	unsigned int		resolution;
@@ -454,7 +454,10 @@ static int meson_sar_adc_read_raw_sample(struct iio_dev *indio_dev,
 	fifo_val &= GENMASK(priv->data->resolution - 1, 0);
 
 	/* to fix the sample value by software */
-	*val = meson_sar_adc_calib_val(indio_dev, fifo_val);
+	if (priv->data->calib_enable)
+		*val = meson_sar_adc_calib_val(indio_dev, fifo_val);
+	else
+		*val = fifo_val;
 
 	return 0;
 }
@@ -495,7 +498,10 @@ static int meson_sar_adc_read_raw_sample_from_chnl(struct iio_dev *indio_dev,
 	fifo_val &= GENMASK(priv->data->resolution - 1, 0);
 
 	/* to fix the sample value by software */
-	*val = meson_sar_adc_calib_val(indio_dev, fifo_val);
+	if (priv->data->calib_enable)
+		*val = meson_sar_adc_calib_val(indio_dev, fifo_val);
+	else
+		*val = fifo_val;
 
 	return 0;
 }
@@ -761,10 +767,16 @@ static int meson_sar_adc_iio_info_read_raw(struct iio_dev *indio_dev,
 		return IIO_VAL_FRACTIONAL_LOG2;
 
 	case IIO_CHAN_INFO_CALIBBIAS:
+		if (!priv->data->calib_enable)
+			return -EINVAL;
+
 		*val = priv->calibbias;
 		return IIO_VAL_INT;
 
 	case IIO_CHAN_INFO_CALIBSCALE:
+		if (!priv->data->calib_enable)
+			return -EINVAL;
+
 		*val = priv->calibscale / MILLION;
 		*val2 = priv->calibscale % MILLION;
 		return IIO_VAL_INT_PLUS_MICRO;
@@ -1430,6 +1442,7 @@ struct meson_sar_adc_data meson_sar_adc_txl_data = {
 	.obt_temp_chan6 = false,
 	.has_bl30_integration = true,
 	.vref_sel = CALIB_VOL_AS_VREF,
+	.calib_enable = true,
 	.resolution = SAR_ADC_12BIT,
 	.name = "meson-txl-saradc",
 	.regmap_config = &meson_sar_adc_regmap_config_gxbb,
@@ -1445,6 +1458,7 @@ struct meson_sar_adc_data meson_sar_adc_gxl_data = {
 	.obt_temp_chan6 = false,
 	.has_bl30_integration = true,
 	.vref_sel = CALIB_VOL_AS_VREF,
+	.calib_enable = true,
 	.resolution = SAR_ADC_12BIT,
 	.name = "meson-gxl-saradc",
 	.regmap_config = &meson_sar_adc_regmap_config_gxbb,
@@ -1460,6 +1474,7 @@ struct meson_sar_adc_data meson_sar_adc_gxm_data = {
 	.obt_temp_chan6 = false,
 	.has_bl30_integration = true,
 	.vref_sel = CALIB_VOL_AS_VREF,
+	.calib_enable = true,
 	.resolution = SAR_ADC_12BIT,
 	.name = "meson-gxm-saradc",
 	.regmap_config = &meson_sar_adc_regmap_config_gxbb,
@@ -1475,6 +1490,7 @@ struct meson_sar_adc_data meson_sar_adc_m8b_data = {
 	.obt_temp_chan6 = true,
 	.has_bl30_integration = true,
 	.vref_sel = CALIB_VOL_AS_VREF,
+	.calib_enable = true,
 	.resolution = SAR_ADC_10BIT,
 	.name = "meson-m8b-saradc",
 	.regmap_config = &meson_sar_adc_regmap_config_meson8,
@@ -1517,8 +1533,10 @@ static int meson_sar_adc_probe(struct platform_device *pdev)
 	struct resource *res;
 	void __iomem *base;
 	const struct of_device_id *match;
+	struct iio_chan_spec *chan;
 	int ret;
 	int irq;
+	int i;
 
 	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*priv));
 	if (!indio_dev) {
@@ -1590,8 +1608,6 @@ static int meson_sar_adc_probe(struct platform_device *pdev)
 			return ret;
 	}
 
-	priv->calibscale = MILLION;
-
 	if (priv->data->period_support) {
 		ret = of_property_read_u32(pdev->dev.of_node,
 			"amlogic,delay-per-tick", &priv->delay_per_tick);
@@ -1630,10 +1646,24 @@ static int meson_sar_adc_probe(struct platform_device *pdev)
 	if (ret)
 		goto err;
 
-	ret = meson_sar_adc_calib(indio_dev);
-	if (ret)
-		dev_warn(&pdev->dev, "calibration failed\n");
+	if (priv->data->calib_enable) {
+		priv->calibscale = MILLION;
 
+		for (i = 0; i < indio_dev->num_channels; i++) {
+			chan = (struct iio_chan_spec *)indio_dev->channels + i;
+			if (chan->channel < 0)
+				continue;
+
+			chan->info_mask_shared_by_all =
+				BIT(IIO_CHAN_INFO_CALIBBIAS) |
+				BIT(IIO_CHAN_INFO_CALIBSCALE);
+
+		}
+		ret = meson_sar_adc_calib(indio_dev);
+		if (ret)
+			dev_warn(&pdev->dev, "calibration failed\n");
+
+	}
 	platform_set_drvdata(pdev, indio_dev);
 
 	ret = iio_device_register(indio_dev);
