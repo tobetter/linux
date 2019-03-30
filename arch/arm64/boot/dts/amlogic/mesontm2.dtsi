@@ -1303,7 +1303,7 @@
 	};
 
 	ge2d {
-		compatible = "amlogic, ge2d-g12a";
+		compatible = "amlogic, ge2d-sm1";
 		status = "okay";
 		interrupts = <0 146 1>;
 		interrupt-names = "ge2d";
