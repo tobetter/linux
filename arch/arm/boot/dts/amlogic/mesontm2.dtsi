@@ -200,10 +200,10 @@
 	};
 
 	mailbox: mhu@ff63c400 {
-		status = "disabled";
+		status = "okay";
 		compatible = "amlogic, meson_mhu";
 		reg = <0xff63c400 0x4c>,   /* MHU registers */
-		      <0xfffd7000 0x800>;   /* Payload area */
+		      <0xfffdf000 0x800>;   /* Payload area */
 		interrupts = <0 209 1>,   /* low priority interrupt */
 			     <0 210 1>;   /* high priority interrupt */
 		#mbox-cells = <1>;
