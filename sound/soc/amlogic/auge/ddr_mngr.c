@@ -102,8 +102,9 @@ static struct toddr *register_toddr_l(struct device *dev,
 	}
 	/* enable audio ddr arb */
 	mask_bit = i;
-	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-			1<<31|1<<mask_bit, 1<<31|1<<mask_bit);
+	/*aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*		(1 << 31)|(1 << mask_bit),*/
+	/*		(1 << 31)|(1 << mask_bit));*/
 
 	to->dev = dev;
 	to->actrl = actrl;
@@ -142,13 +143,14 @@ static int unregister_toddr_l(struct device *dev, void *data)
 	/* disable audio ddr arb */
 	mask_bit = i;
 	actrl = to->actrl;
-	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-			1<<mask_bit, 0<<mask_bit);
+	/*aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*		1 << mask_bit, 0 << mask_bit);*/
+
 	/* no ddr active, disable arb switch */
 	value = aml_audiobus_read(actrl, EE_AUDIO_ARB_CTRL) & 0x77;
-	if (value == 0)
-		aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-				1<<31, 0<<31);
+	/*if (value == 0)*/
+	/*	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*			1 << 31, 0 << 31);*/
 
 	free_irq(to->irq, data);
 	to->dev = NULL;
@@ -285,7 +287,7 @@ int aml_toddr_set_intrpt(struct toddr *to, unsigned int intrpt)
 	reg = calc_toddr_address(EE_AUDIO_TODDR_A_INT_ADDR, reg_base);
 	aml_audiobus_write(actrl, reg, intrpt);
 	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL0, reg_base);
-	aml_audiobus_update_bits(actrl, reg, 0xff<<16, 4<<16);
+	aml_audiobus_update_bits(actrl, reg, 0xff << 16, 0x34 << 16);
 
 	return 0;
 }
@@ -323,7 +325,7 @@ unsigned int aml_toddr_get_addr(struct toddr *to, enum status_sel sel)
 	/* reset to default, current write addr */
 	aml_audiobus_update_bits(actrl, reg_sel,
 		0xf << 8,
-		0x0 << 8);
+		0x2 << 8);
 
 	return addr;
 }
@@ -485,6 +487,40 @@ void aml_toddr_write(struct toddr *to, unsigned int val)
 
 	aml_audiobus_write(actrl, reg, val);
 }
+
+unsigned int aml_toddr_read1(struct toddr *to)
+{
+	struct aml_audio_controller *actrl = to->actrl;
+	unsigned int reg_base = to->reg_base;
+	unsigned int reg;
+
+	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL1, reg_base);
+
+	return aml_audiobus_read(actrl, reg);
+}
+
+void aml_toddr_write1(struct toddr *to, unsigned int val)
+{
+	struct aml_audio_controller *actrl = to->actrl;
+	unsigned int reg_base = to->reg_base;
+	unsigned int reg;
+
+	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL1, reg_base);
+
+	aml_audiobus_write(actrl, reg, val);
+}
+
+unsigned int aml_toddr_read_status2(struct toddr *to)
+{
+	struct aml_audio_controller *actrl = to->actrl;
+	unsigned int reg_base = to->reg_base;
+	unsigned int reg;
+
+	reg = calc_toddr_address(EE_AUDIO_TODDR_A_STATUS2, reg_base);
+
+	return aml_audiobus_read(actrl, reg);
+}
+
 /* not for tl1 */
 static void aml_toddr_set_resample(struct toddr *to, bool enable)
 {
@@ -844,8 +880,9 @@ static struct frddr *register_frddr_l(struct device *dev,
 
 	/* enable audio ddr arb */
 	mask_bit = i + 4;
-	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-			1<<31|1<<mask_bit, 1<<31|1<<mask_bit);
+	/*aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*		(1 << 31)|(1 << mask_bit),*/
+	/*		(1 << 31)|(1 << mask_bit));*/
 
 	/* irqs request */
 	ret = request_threaded_irq(from->irq, aml_ddr_isr, handler,
@@ -885,13 +922,14 @@ static int unregister_frddr_l(struct device *dev, void *data)
 	/* disable audio ddr arb */
 	mask_bit = i + 4;
 	actrl = from->actrl;
-	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-			1<<mask_bit, 0<<mask_bit);
+	/*aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*		1 << mask_bit, 0 << mask_bit);*/
+
 	/* no ddr active, disable arb switch */
 	value = aml_audiobus_read(actrl, EE_AUDIO_ARB_CTRL) & 0x77;
-	if (value == 0)
-		aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,
-				1<<31, 0<<31);
+	/*if (value == 0)*/
+	/*	aml_audiobus_update_bits(actrl, EE_AUDIO_ARB_CTRL,*/
+	/*			1 << 31, 0 << 31);*/
 
 	free_irq(from->irq, data);
 	from->dev = NULL;

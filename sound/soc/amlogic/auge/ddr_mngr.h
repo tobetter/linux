@@ -267,6 +267,9 @@ void aml_toddr_set_format(struct toddr *to, struct toddr_fmt *fmt);
 void aml_toddr_insert_chanum(struct toddr *to);
 unsigned int aml_toddr_read(struct toddr *to);
 void aml_toddr_write(struct toddr *to, unsigned int val);
+unsigned int aml_toddr_read1(struct toddr *to);
+void aml_toddr_write1(struct toddr *to, unsigned int val);
+unsigned int aml_toddr_read_status2(struct toddr *to);
 
 /* resample */
 void aml_set_resample(enum resample_idx id,
