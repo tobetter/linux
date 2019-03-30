@@ -12613,17 +12613,17 @@ static int __init video_early_init(void)
 		WRITE_VCBUS_REG_BITS(
 			VPP_MISC1, 0x100, 0, 9);
 	}
-	if (is_meson_tl1_cpu()) {
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		/* force bypass dolby for TL1, no dolby function */
-		WRITE_VCBUS_REG_BITS(
-			DOLBY_PATH_CTRL, 0xf, 0, 6);
+		if (is_meson_tl1_cpu())
+			WRITE_VCBUS_REG_BITS(
+				DOLBY_PATH_CTRL, 0xf, 0, 6);
 		/* disable latch for sr core0/1 scaler */
 		WRITE_VCBUS_REG_BITS(
 			SRSHARP0_SHARP_SYNC_CTRL, 1, 0, 1);
 		WRITE_VCBUS_REG_BITS(
 			SRSHARP1_SHARP_SYNC_CTRL, 1, 8, 1);
-	}
-	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12B))
+	} else if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12B))
 		WRITE_VCBUS_REG_BITS(
 			SRSHARP0_SHARP_SYNC_CTRL, 1, 0, 1);
 	return 0;

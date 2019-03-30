@@ -1764,10 +1764,12 @@ int vpp_set_super_scaler_regs(
 	if (is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
 		is_meson_g12b_cpu() ||
-		is_meson_sm1_cpu() ||
-		(is_meson_tl1_cpu() &&
+		is_meson_sm1_cpu())
+		tmp_data = ((reg_srscl0_hsize & 0x1fff) << 16) |
+			(reg_srscl0_vsize & 0x1fff);
+	else if ((is_meson_tl1_cpu() || is_meson_tm2_cpu()) &&
 		((scaler_path_sel == PPS_CORE0_CORE1) ||
-		(scaler_path_sel == PPS_CORE0_POSTBLEND_CORE1))))
+		(scaler_path_sel == PPS_CORE0_POSTBLEND_CORE1)))
 		tmp_data = ((reg_srscl0_hsize & 0x1fff) << 16) |
 			(reg_srscl0_vsize & 0x1fff);
 	else
@@ -2164,7 +2166,7 @@ static void vpp_set_super_scaler(
 
 	sr_path = next_frame_par->supscl_path;
 	/* path config */
-	if (is_meson_tl1_cpu()) {
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		if (sr_path == CORE0_PPS_CORE1) {
 			next_frame_par->sr0_position = 1;
 			next_frame_par->sr1_position = 1;
@@ -2831,7 +2833,8 @@ RESTART:
 		h_in = height_in = vf->height;
 		next_frame_par->hscale_skip_count = 0;
 		next_frame_par->vscale_skip_count = 0;
-		crop_ratio = vf->compWidth / vf->width;
+		if (vf->width && vf->compWidth)
+			crop_ratio = vf->compWidth / vf->width;
 		goto RESTART_ALL;
 	}
 
@@ -3164,8 +3167,11 @@ void vpp_super_scaler_support(void)
 		is_meson_sm1_cpu()) {
 		sr_support |= SUPER_CORE0_SUPPORT;
 		sr_support &= ~SUPER_CORE1_SUPPORT;
-	} else if (is_meson_gxtvbb_cpu() || is_meson_txl_cpu() ||
-		is_meson_txlx_cpu() || is_meson_tl1_cpu()) {
+	} else if (is_meson_gxtvbb_cpu()
+		|| is_meson_txl_cpu()
+		|| is_meson_txlx_cpu()
+		|| is_meson_tl1_cpu()
+		|| is_meson_tm2_cpu()) {
 		sr_support |= SUPER_CORE0_SUPPORT;
 		sr_support |= SUPER_CORE1_SUPPORT;
 	} else {
@@ -3181,7 +3187,8 @@ void vpp_super_scaler_support(void)
 		is_meson_sm1_cpu()) {
 		sr_reg_offt = 0xc00;
 		sr_reg_offt2 = 0x00;
-	} else if (is_meson_tl1_cpu()) {
+	} else if (is_meson_tl1_cpu()
+		|| is_meson_tm2_cpu()) {
 		sr_reg_offt = 0xc00;
 		sr_reg_offt2 = 0xc80;
 	} else {
