@@ -566,6 +566,12 @@
 		quality = /bits/ 16 <1000>;
 	};
 
+	power_ctrl: power_ctrl@ff8000e8 {
+		compatible = "amlogic, sm1-powerctrl";
+		reg = <0x0 0xff8000e8 0x0 0x10>,
+		      <0x0 0xff63c100 0x0 0x10>;
+	};
+
 	soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
