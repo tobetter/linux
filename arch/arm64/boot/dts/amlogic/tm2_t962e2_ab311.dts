@@ -19,7 +19,6 @@
 
 #include "mesontm2.dtsi"
 #include "partition_mbox_normal.dtsi"
-#include "mesontl1_x301-panel.dtsi"
 
 / {
 	model = "Amlogic TM2 T962E2 AB311";
@@ -1149,7 +1148,7 @@
 		compatible = "amlogic, cpufreq-meson";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pwm_ao_d_pins3>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	tuner: tuner {
