@@ -438,6 +438,7 @@ static irqreturn_t vmpeg4_isr_thread_fn(struct vdec_s *vdec, int irq)
 	u32 pts, offset = 0;
 	bool pts_valid = false;
 	u64 pts_us64 = 0;
+	u32 frame_size;
 	u32 time_increment_resolution, fixed_vop_rate, vop_time_inc;
 	u32 repeat_cnt, duration = 3200;
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)(vdec->private);
@@ -576,7 +577,8 @@ static irqreturn_t vmpeg4_isr_thread_fn(struct vdec_s *vdec, int irq)
 				hw->pts64[index] = hw->chunk->pts64;
 			} else {
 				if (pts_lookup_offset_us64
-					(PTS_TYPE_VIDEO, offset, &pts, 3000,
+					(PTS_TYPE_VIDEO, offset, &pts,
+					&frame_size, 3000,
 					&pts_us64) == 0) {
 					hw->pts_valid[index] = true;
 					hw->pts[index] = pts;

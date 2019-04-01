@@ -1856,10 +1856,11 @@ static long amstream_ioctl_get(struct port_priv_s *priv, ulong arg)
 		break;
 	case AMSTREAM_GET_APTS_LOOKUP:
 		if (this->type & PORT_TYPE_AUDIO) {
-			u32 pts = 0, offset;
+			u32 pts = 0, frame_size, offset;
 
 			offset = parm.data_32;
-			pts_lookup_offset(PTS_TYPE_AUDIO, offset, &pts, 300);
+			pts_lookup_offset(PTS_TYPE_AUDIO, offset, &pts,
+				&frame_size, 300);
 			parm.data_32 = pts;
 		}
 		break;
@@ -2542,6 +2543,20 @@ static long amstream_do_ioctl_new(struct port_priv_s *priv,
 		else
 			r = -EINVAL;
 		break;
+	case AMSTREAM_IOC_GET_QOSINFO:
+		{
+			struct av_param_qosinfo_t  __user *uarg = (void *)arg;
+			struct vframe_qos_s *qos_info = vdec_get_qos_info();
+			if (this->type & PORT_TYPE_VIDEO) {
+				if (qos_info != NULL && copy_to_user((void *)uarg->vframe_qos,
+							qos_info,
+							QOS_FRAME_NUM*sizeof(struct vframe_qos_s))) {
+					r = -EFAULT;
+					break;
+				}
+			}
+		}
+		break;
 	default:
 		r = -ENOIOCTLCMD;
 		break;
@@ -3100,10 +3115,11 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 
 	case AMSTREAM_IOC_APTS_LOOKUP:
 		if (this->type & PORT_TYPE_AUDIO) {
-			u32 pts = 0, offset;
+			u32 pts = 0, frame_size, offset;
 
 			get_user(offset, (unsigned long __user *)arg);
-			pts_lookup_offset(PTS_TYPE_AUDIO, offset, &pts, 300);
+			pts_lookup_offset(PTS_TYPE_AUDIO, offset, &pts,
+				&frame_size, 300);
 			put_user(pts, (int __user *)arg);
 		}
 		return 0;
@@ -3275,6 +3291,7 @@ static long amstream_do_ioctl(struct port_priv_s *priv,
 	case AMSTREAM_IOC_GET_PTR:
 	case AMSTREAM_IOC_SET_PTR:
 	case AMSTREAM_IOC_SYSINFO:
+	case AMSTREAM_IOC_GET_QOSINFO:
 		r = amstream_do_ioctl_new(priv, cmd, arg);
 		break;
 	default:

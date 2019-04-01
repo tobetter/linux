@@ -120,6 +120,7 @@ extern void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
 unsigned int get_vdec_clk_config_settings(void);
 void update_vdec_clk_config_settings(unsigned int config);
 //unsigned int get_mmu_mode(void);//DEBUG_TMP
+extern void vdec_fill_frame_info(struct vframe_qos_s *vframe_qos, int debug);
 
 struct vdec_s;
 enum vformat_t;
@@ -443,4 +444,5 @@ void vdec_set_timestamp(struct vdec_s *vdec, u64 timestamp);
 
 struct vdec_s *vdec_get_with_id(unsigned int id);
 
+extern struct vframe_qos_s *vdec_get_qos_info(void);
 #endif				/* VDEC_H */

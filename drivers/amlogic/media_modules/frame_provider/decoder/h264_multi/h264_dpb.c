@@ -1597,6 +1597,8 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	case FRAME:
 		fs->frame = p;
 		fs->is_used = 3;
+		fs->slice_type = p->slice_type;
+		fs->frame_size = p->frame_size;
 		if (p->used_for_reference) {
 			fs->is_reference = 3;
 			fs->is_orig_reference = 3;
@@ -1623,6 +1625,12 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 		fs->top_field = p;
 		fs->is_used |= 1;
 		fs->layer_id = p->layer_id;
+		if (fs->frame_size == 0) {
+			fs->slice_type = p->slice_type;
+//			fs->pts = p->pts;
+//			fs->pts64 = p->pts64;
+		}
+		fs->frame_size += p->frame_size;
 #if (MVC_EXTENSION_ENABLE)
 		fs->view_id = p->view_id;
 		fs->inter_view_flag[0] = p->inter_view_flag;
@@ -1649,6 +1657,12 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 		fs->bottom_field = p;
 		fs->is_used |= 2;
 		fs->layer_id = p->layer_id;
+		if (fs->frame_size == 0) {
+			fs->slice_type = p->slice_type;
+//			fs->pts = p->pts;
+//			fs->pts64 = p->pts64;
+		}
+		fs->frame_size += p->frame_size;
 #if (MVC_EXTENSION_ENABLE)
 		fs->view_id = p->view_id;
 		fs->inter_view_flag[1] = p->inter_view_flag;
@@ -1677,6 +1691,19 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 
 	fs->is_output = p->is_output;
 	fs->pre_output = p->pre_output;
+
+	/* picture qos infomation*/
+	fs->max_mv = p->max_mv;
+	fs->avg_mv = p->avg_mv;
+	fs->min_mv = p->min_mv;
+
+	fs->max_qp = p->max_qp;
+	fs->avg_qp = p->avg_qp;
+	fs->min_qp = p->min_qp;
+
+	fs->max_skip = p->max_skip;
+	fs->avg_skip = p->avg_skip;
+	fs->min_skip = p->min_skip;
 
 	if (fs->is_used == 3) {
 		calculate_frame_no(p_Vid, p);
@@ -1960,7 +1987,7 @@ static void remove_frame_from_dpb(struct h264_dpb_stru *p_H264_Dpb, int pos)
 	fs->is_long_term = 0;
 	fs->is_reference = 0;
 	fs->is_orig_reference = 0;
-
+	fs->frame_size = 0;
 	/* move empty framestore to end of buffer */
 	tmp = p_Dpb->fs[pos];
 

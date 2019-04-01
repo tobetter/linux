@@ -1209,6 +1209,7 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 	struct vframe_s *vf = NULL;
 	u32 index;
 	u64 pts_us64 = 0;
+	u32 frame_size;
 	struct vdec_mpeg12_hw_s *hw =
 	(struct vdec_mpeg12_hw_s *)(vdec->private);
 
@@ -1290,7 +1291,8 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 			hw->chunk->size, hw->chunk->offset);
 		} else {
 				if (pts_lookup_offset_us64(PTS_TYPE_VIDEO,
-				offset, &pts, 0, &pts_us64) == 0) {
+				offset, &pts, &frame_size,
+				0, &pts_us64) == 0) {
 					hw->pts_valid[index] = true;
 					hw->pts[index] = pts;
 					hw->pts64[index] = pts_us64;

@@ -247,6 +247,7 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 	struct vframe_s *vf = NULL;
 	u32 index, offset = 0, pts;
 	u64 pts_us64;
+	u32 frame_size;
 
 	if (!hw)
 		return IRQ_HANDLED;
@@ -290,7 +291,8 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 	} else {
 		offset = READ_VREG(MREG_FRAME_OFFSET);
 		if (pts_lookup_offset_us64
-			(PTS_TYPE_VIDEO, offset, &pts, 3000,
+			(PTS_TYPE_VIDEO, offset, &pts,
+			&frame_size, 3000,
 			&pts_us64) == 0) {
 			vf->pts = pts;
 			vf->pts_us64 = pts_us64;

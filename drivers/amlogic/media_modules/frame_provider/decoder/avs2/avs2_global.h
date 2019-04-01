@@ -800,6 +800,17 @@ struct avs2_frame_s {
 #ifndef MV_USE_FIXED_BUF
 	int mv_buf_index;
 #endif
+
+	/* picture qos infomation*/
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
 };
 
 
