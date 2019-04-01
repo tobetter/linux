@@ -321,6 +321,8 @@ static void tvafe_cvd2_memory_init(struct tvafe_cvd2_mem_s *mem,
 	cvd_vbi_mem_set(vbi_start, vbi_size);
 	/*open front lpf for av ring*/
 	W_APB_BIT(ACD_REG_26, 1, 8, 1);
+	/*for vbi vcnt*/
+	W_APB_BIT(ACD_REG_26, 1, 26, 1);
 #endif
 
 }
@@ -2013,16 +2015,8 @@ inline bool tvafe_cvd2_no_sig(struct tvafe_cvd2_s *cvd2,
 			struct tvafe_cvd2_mem_s *mem)
 {
 	static bool ret;
-	static int time_flag;
 
 	tvafe_cvd2_get_signal_status(cvd2);
-
-	/*TVAFE register status need more time to be stable.*/
-	/*for double time delay.*/
-	time_flag++;
-	if (time_flag%2 != 0)
-		return ret;
-
 	/* get signal status from HW */
 
 	/* search video mode */

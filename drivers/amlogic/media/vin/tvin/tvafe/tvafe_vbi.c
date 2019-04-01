@@ -133,7 +133,7 @@ static void vbi_data_type_set(struct vbi_dev_s *devp)
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE23, vbi_data_type);
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE24, vbi_data_type);
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE25, vbi_data_type);
-	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE26, vbi_data_type);
+	/*W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE26, vbi_data_type);*/
 }
 
 static void vbi_dto_set(struct vbi_dev_s *devp)
@@ -380,10 +380,12 @@ static irqreturn_t vbi_isr(int irq, void *dev_id)
 		spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
 		return IRQ_HANDLED;
 	}
+
 	if (devp->vbi_start == false) {
 		spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
 		return IRQ_HANDLED;
 	}
+
 	if (devp->tasklet_enable)
 		tasklet_schedule(&devp->tsklt_slicer);
 	spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
@@ -640,7 +642,8 @@ static void vbi_slicer_task(unsigned long arg)
 	ret = init_cc_data_sync(devp);
 	if (!ret)
 		return;
-
+	if (vbi_dbg_en & 2)
+		tvafe_pr_info("pac_addr:%p\n", devp->pac_addr);
 	if (devp->pac_addr > devp->pac_addr_end)
 		devp->pac_addr = devp->pac_addr_start;
 
@@ -1305,7 +1308,6 @@ static void vbi_dump_mem(char *path, struct vbi_dev_s *devp)
 {
 	struct file *filp = NULL;
 	loff_t pos = 0;
-	void *buf = NULL;
 	mm_segment_t old_fs = get_fs();
 
 	set_fs(KERNEL_DS);
@@ -1315,15 +1317,10 @@ static void vbi_dump_mem(char *path, struct vbi_dev_s *devp)
 		tvafe_pr_info("create %s error.\n", path);
 		return;
 	}
-	buf = phys_to_virt(devp->mem_start);
-	if (buf == NULL) {
-		tvafe_pr_info("buf is null!!!.\n");
-		return;
-	}
 
-	vfs_write(filp, buf, devp->mem_size, &pos);
+	vfs_write(filp, devp->pac_addr_start, devp->mem_size, &pos);
 	tvafe_pr_info("write buffer addr:0x%p size: %2u  to %s.\n",
-			buf, devp->mem_size, path);
+			devp->pac_addr_start, devp->mem_size, path);
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
 	set_fs(old_fs);
@@ -1443,6 +1440,10 @@ static ssize_t vbi_store(struct device *dev,
 		vbi_buffer->data_wmode = val;
 		tvafe_pr_info("data_wmode:%d\n", vbi_buffer->data_wmode);
 	} else if (!strncmp(parm[0], "start", strlen("start"))) {
+		W_APB_REG(ACD_REG_22, 0x07080000);
+		/* manuel reset vbi */
+		W_APB_REG(ACD_REG_22, 0x87080000);
+		W_APB_REG(ACD_REG_22, 0x04080000);
 		vbi_hw_init(devp);
 		vbi_slicer_start(devp);
 		/* enable data capture function */
@@ -1451,10 +1452,11 @@ static ssize_t vbi_store(struct device *dev,
 		devp->vs_delay = VBI_VS_DELAY;
 		tvafe_pr_info("start done!!!\n");
 	} else if (!strncmp(parm[0], "stop", strlen("stop"))) {
-		vbi_slicer_stop(vbi_slicer);
 		/* disable data capture function */
 		devp->tasklet_enable = false;
 		devp->vbi_start = false;
+		init_cc_data_flag = 0;
+		vbi_slicer_stop(vbi_slicer);
 		/* manuel reset vbi */
 		/* vbi reset release, vbi agent enable*/
 		W_VBI_APB_REG(ACD_REG_22, 0x06080000);
@@ -1475,6 +1477,7 @@ static ssize_t vbi_store(struct device *dev,
 		tvafe_pr_info(" set slicer type to %d\n",
 			vbi_slicer->type);
 	} else if (!strncmp(parm[0], "open", strlen("open"))) {
+		tasklet_enable(&devp->tsklt_slicer);
 		vbi_ringbuffer_init(vbi_buffer, NULL,
 			VBI_DEFAULT_BUFFER_PACKAGE_NUM);
 		devp->slicer->type = VBI_TYPE_NULL;
@@ -1490,6 +1493,7 @@ static ssize_t vbi_store(struct device *dev,
 			tvafe_pr_err("request_irq fail\n");
 		tvafe_pr_info(" open ok.\n");
 	} else if (!strncmp(parm[0], "release", strlen("release"))) {
+		tasklet_disable(&devp->tsklt_slicer);
 		ret = vbi_slicer_free(devp, vbi_slicer);
 		devp->tasklet_enable = false;
 		devp->vbi_start = false;  /*disable data capture function*/
