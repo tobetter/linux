@@ -247,6 +247,7 @@ struct di_dev_s {
 	unsigned int       post_wr_support;
 	unsigned int nrds_enable;
 	unsigned int pps_enable;
+	u32 h_sc_down_en;/*sm1, tm2 ...*/
 	/*struct	mutex      cma_mutex;*/
 	unsigned int	   flag_cma;
 	struct page			*total_pages;

@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-03-27a";
+static const char version_s[] = "2019-0401:TM2 bring up";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -3482,6 +3482,11 @@ module_param_named(pps_position, pps_position, uint, 0644);
 static unsigned int pre_enable_mask = 3;/*bit0:ma bit1:mc*/
 module_param_named(pre_enable_mask, pre_enable_mask, uint, 0644);
 
+static bool pre_hsc_down_en;
+module_param_named(pre_hsc_down_en, pre_hsc_down_en, bool, 0644);
+static int pre_hsc_down_width = 480;
+module_param_named(pre_hsc_down_width, pre_hsc_down_width, int, 0644);
+
 static unsigned char pre_de_buf_config(void)
 {
 	struct di_buf_s *di_buf = NULL;
@@ -4026,7 +4031,15 @@ jiffies_to_msecs(jiffies_64 - vframe->ready_jiffies64));
 		}
 		if (pps_dsth != di_buf->vframe->height)
 			di_buf->vframe->height = pps_dsth;
+	} else if (de_devp->h_sc_down_en) {
+		if (pre_hsc_down_width != di_buf->vframe->width) {
+			pr_info("di: hscd %d to %d\n", di_buf->vframe->width,
+				pre_hsc_down_width);
+			di_buf->vframe->width = pre_hsc_down_width;
+			di_pre_stru.width_bk = pre_hsc_down_width;
+		}
 	}
+
 	if (di_force_bit_mode == 10) {
 		di_buf->vframe->bitdepth |= (BITDEPTH_Y10);
 		if (full_422_pack)
@@ -4782,6 +4795,7 @@ de_post_process(void *arg, unsigned int zoom_start_x_lines,
 	di_end_y = zoom_end_y_lines;
 	di_height = di_end_y - di_start_y + 1;
 	di_height = di_height / (di_vscale_skip_count_real + 1);
+
 	/* make sure the height is even number */
 	if (di_height%2)
 		di_height++;
@@ -5248,7 +5262,9 @@ de_post_process(void *arg, unsigned int zoom_start_x_lines,
 			is_meson_txhd_cpu() ||
 			is_meson_g12a_cpu() ||
 			is_meson_g12b_cpu() ||
-			is_meson_tl1_cpu()) {
+			is_meson_tl1_cpu() ||
+			is_meson_tm2_cpu() ||
+			is_meson_sm1_cpu()) {
 		di_post_read_reverse_irq(overturn, mc_pre_flag,
 			post_blend_en ? mcpre_en : false);
 		/* disable mc for first 2 fieldes mv unreliable */
@@ -6039,7 +6055,8 @@ static void di_unreg_process_irq(void)
 	di_hw_uninit();
 	if (is_meson_txlx_cpu() || is_meson_txhd_cpu()
 		|| is_meson_g12a_cpu() || is_meson_g12b_cpu()
-		|| is_meson_tl1_cpu()) {
+		|| is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tm2_cpu()) {
 		di_pre_gate_control(false, mcpre_en);
 		nr_gate_control(false);
 	} else if (cpu_after_eq(MESON_CPU_MAJOR_ID_GXTVBB)) {
@@ -6052,7 +6069,8 @@ static void di_unreg_process_irq(void)
 		di_hw_disable(mcpre_en);
 		if (is_meson_txlx_cpu() || is_meson_txhd_cpu()
 			|| is_meson_g12a_cpu() || is_meson_g12b_cpu()
-			|| is_meson_tl1_cpu()) {
+			|| is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+			is_meson_tm2_cpu()) {
 			enable_di_post_mif(GATE_OFF);
 			di_post_gate_control(false);
 			di_top_gate_control(false, false);
@@ -6165,7 +6183,8 @@ static void di_pre_size_change(unsigned short width,
 			is_meson_txhd_cpu() ||
 			is_meson_g12a_cpu() ||
 			is_meson_g12b_cpu() ||
-			is_meson_tl1_cpu())
+			is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+			is_meson_sm1_cpu())
 			film_mode_win_config(width, height);
 	}
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_TXL))
@@ -6197,6 +6216,15 @@ static void di_pre_size_change(unsigned short width,
 		pps_h = di_pre_stru.cur_height>>1;
 		di_pps_config(1, pps_w, pps_h, pps_dstw, (pps_dsth>>1));
 	}
+
+	if (de_devp->h_sc_down_en) {
+		pps_w = di_pre_stru.cur_width;
+		di_inp_hsc_setting(pps_w, pre_hsc_down_width);
+	} else {
+		di_inp_hsc_setting(di_pre_stru.cur_width,
+			di_pre_stru.cur_width);
+	}
+
 	di_interrupt_ctrl(di_pre_stru.madi_enable,
 		det3d_en?1:0,
 		de_devp->nrds_enable,
@@ -6295,6 +6323,8 @@ static void di_reg_process_irq(void)
 		}
 		de_devp->nrds_enable = nrds_en;
 		de_devp->pps_enable = pps_en;
+		/*di pre h scaling down: sm1 tm2*/
+		de_devp->h_sc_down_en = pre_hsc_down_en;
 		switch_vpu_clk_gate_vmod(VPU_VPU_CLKB, VPU_CLK_GATE_ON);
 		if (post_wr_en && post_wr_support)
 			diwr_set_power_control(1);
@@ -6613,7 +6643,8 @@ static int di_task_handle(void *data)
 				}
 			}
 			if (is_meson_g12a_cpu() || is_meson_g12b_cpu()
-				|| is_meson_tl1_cpu()) {
+				|| is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+				is_meson_sm1_cpu()) {
 				#ifdef CLK_TREE_SUPPORT
 				clk_set_rate(de_devp->vpu_clkb,
 						de_devp->clkb_max_rate);
@@ -7573,7 +7604,8 @@ static void set_di_flag(void)
 		is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
 		is_meson_g12b_cpu() ||
-		is_meson_tl1_cpu()) {
+		is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+		is_meson_sm1_cpu()) {
 		mcpre_en = true;
 		mc_mem_alloc = true;
 		pulldown_enable = false;
@@ -7591,7 +7623,8 @@ static void set_di_flag(void)
 			is_meson_txhd_cpu() ||
 			is_meson_g12a_cpu() ||
 			is_meson_g12b_cpu() ||
-			is_meson_tl1_cpu()) {
+			is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+			is_meson_sm1_cpu()) {
 			full_422_pack = true;
 		}
 
@@ -7603,7 +7636,8 @@ static void set_di_flag(void)
 		}
 		post_hold_line =
 			(is_meson_g12a_cpu() || is_meson_g12b_cpu()
-				|| is_meson_tl1_cpu())?10:17;
+				|| is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+				is_meson_sm1_cpu())?10:17;
 	} else {
 		post_hold_line = 8;	/*2019-01-10: from VLSI feijun*/
 		mcpre_en = false;
@@ -7613,7 +7647,7 @@ static void set_di_flag(void)
 		use_2_interlace_buff = 0;
 		di_force_bit_mode = 8;
 	}
-	if (is_meson_tl1_cpu())
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu())
 		pulldown_enable = true;
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A))
 		intr_mode = 3;
@@ -7731,6 +7765,8 @@ static int di_probe(struct platform_device *pdev)
 		"nrds-enable", &(di_devp->nrds_enable));
 	ret = of_property_read_u32(pdev->dev.of_node,
 		"pps-enable", &(di_devp->pps_enable));
+	/*di pre h scaling down :sm1 tm2*/
+	di_devp->h_sc_down_en = pre_hsc_down_en;
 
 	if (di_devp->flag_cma >= 1) {
 #ifdef CONFIG_CMA

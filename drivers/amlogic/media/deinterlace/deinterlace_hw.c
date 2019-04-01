@@ -467,7 +467,8 @@ void di_hw_init(bool pd_enable, bool mc_enable)
 	switch_vpu_clk_gate_vmod(VPU_VPU_CLKB, VPU_CLK_GATE_ON);
 	if (is_meson_txlx_cpu() || is_meson_txhd_cpu()
 		|| is_meson_g12a_cpu() || is_meson_g12b_cpu()
-		|| is_meson_tl1_cpu())
+		|| is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tm2_cpu())
 		di_top_gate_control(true, true);
 	else if (is_meson_gxl_cpu()	|| is_meson_gxm_cpu()
 		|| is_meson_gxlx_cpu())
@@ -480,8 +481,8 @@ void di_hw_init(bool pd_enable, bool mc_enable)
 		is_meson_gxlx_cpu() ||
 		is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
-		is_meson_g12b_cpu() ||
-		is_meson_tl1_cpu()) {
+		is_meson_g12b_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		/* vpp fifo max size on txl :128*3=384[0x180] */
 		/* di fifo max size on txl :96*3=288[0x120] */
 		fifo_size_vpp = 0x180;
@@ -516,8 +517,8 @@ void di_hw_init(bool pd_enable, bool mc_enable)
 	if (is_meson_txlx_cpu() ||
 		is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
-		is_meson_g12b_cpu() ||
-		is_meson_tl1_cpu()) {
+		is_meson_g12b_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		di_pre_gate_control(true, true);
 		di_post_gate_control(true);
 	}
@@ -536,7 +537,7 @@ void di_hw_init(bool pd_enable, bool mc_enable)
 		is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
 		is_meson_g12b_cpu() ||
-		is_meson_tl1_cpu()) {
+		is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		di_pre_gate_control(false, true);
 		di_post_gate_control(false);
 		di_top_gate_control(false, false);
@@ -878,7 +879,7 @@ static enum eAFBC_DEC afbc_get_decnub(void)
 		sel_dec = eAFBC_DEC1;
 	else if (is_meson_g12a_cpu())
 		sel_dec = eAFBC_DEC1;
-	else if (is_meson_tl1_cpu())
+	else if (is_meson_tl1_cpu() || is_meson_tm2_cpu())
 		sel_dec = eAFBC_DEC0;
 	return sel_dec;
 }
@@ -900,7 +901,7 @@ bool afbc_is_supported(void)
 		ret = false;
 	else if (is_meson_g12a_cpu())
 		ret = false;
-	else if (is_meson_tl1_cpu())
+	else if (is_meson_tl1_cpu() || is_meson_tm2_cpu())
 		ret = true;
 
 	return ret;
@@ -1065,7 +1066,7 @@ u32 enable_afbc_input(struct vframe_s *vf)
 	/* TL1 add bit[13:12]: fmt_mode; 0:yuv444; 1:yuv422; 2:yuv420
 	 * di does not support yuv444, so for fmt yuv444 di will bypass+
 	 */
-	if (is_meson_tl1_cpu()) {
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		if (vf->type & VIDTYPE_VIU_444)
 			r |= (0 << 12);
 		else if (vf->type & VIDTYPE_VIU_422)
@@ -1185,13 +1186,13 @@ static void afbcx_sw(bool on)	/*g12a*/
 		/*RDMA_WR(reg_en, 0x1600);*/
 		RDMA_WR_BITS(VIUB_MISC_CTRL0, 1, 16, 1);
 		/*TL1 add mem control bit */
-		if (is_meson_tl1_cpu())
+		if (is_meson_tl1_cpu() || is_meson_tm2_cpu())
 			RDMA_WR_BITS(VD1_AFBCD0_MISC_CTRL, 1, 22, 1);
 	} else {
 		RDMA_WR(reg_ctrl, tmp);
 		RDMA_WR(reg_en, 0x1600);
 		RDMA_WR_BITS(VIUB_MISC_CTRL0, 0, 16, 1);
-		if (is_meson_tl1_cpu())
+		if (is_meson_tl1_cpu() || is_meson_tm2_cpu())
 			RDMA_WR_BITS(VD1_AFBCD0_MISC_CTRL, 0, 22, 1);
 	}
 }

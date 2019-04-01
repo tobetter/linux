@@ -297,7 +297,7 @@ struct combing_status_s *adpative_combing_config(unsigned int width,
 }
 void mtn_int_combing_glbmot(void)
 {
-	if (is_meson_tl1_cpu()) {/*from VLSI yanling.liu*/
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {/*from VLSI yanling.liu*/
 		combing_glbmot_radprat[0] = 30;
 	}
 }
