@@ -170,6 +170,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 	u32 reg, offset, pts, pts_valid = 0;
 	struct vframe_s *vf = NULL;
 	u64 pts_us64;
+	u32 frame_size;
 
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
@@ -179,7 +180,8 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 		offset = READ_VREG(MREG_FRAME_OFFSET);
 
 		if (pts_lookup_offset_us64
-			(PTS_TYPE_VIDEO, offset, &pts, 0, &pts_us64) == 0)
+			(PTS_TYPE_VIDEO, offset, &pts,
+			&frame_size, 0, &pts_us64) == 0)
 			pts_valid = 1;
 
 		if ((reg & PICINFO_INTERLACE) == 0) {

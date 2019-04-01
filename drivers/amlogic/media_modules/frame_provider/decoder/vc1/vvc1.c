@@ -282,6 +282,7 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 	unsigned int pts, pts_valid = 0, offset = 0;
 	u32 v_width, v_height;
 	u64 pts_us64 = 0;
+	u32 frame_size;
 
 	reg = READ_VREG(VC1_BUFFEROUT);
 
@@ -308,7 +309,8 @@ static irqreturn_t vvc1_isr(int irq, void *dev_id)
 			offset = READ_VREG(VC1_OFFSET_REG);
 			if (pts_lookup_offset_us64(
 					PTS_TYPE_VIDEO,
-					offset, &pts, 0, &pts_us64) == 0) {
+					offset, &pts, &frame_size,
+					0, &pts_us64) == 0) {
 				pts_valid = 1;
 #ifdef DEBUG_PTS
 				pts_hit++;

@@ -6653,6 +6653,7 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 	u32 pts_valid = 0, pts_us64_valid = 0;
 	u32 pts_save;
 	u64 pts_us64_save;
+	u32 frame_size;
 
 	if (debug & VP9_DEBUG_BUFMGR)
 		pr_info("%s index = %d\r\n", __func__, pic_config->index);
@@ -6683,8 +6684,9 @@ static int prepare_display_buf(struct VP9Decoder_s *pbi,
 		 *   stream_offset, &vf->pts, 0) != 0) {
 		 */
 		if (pts_lookup_offset_us64
-			(PTS_TYPE_VIDEO, stream_offset, &vf->pts, 0,
-			 &vf->pts_us64) != 0) {
+			(PTS_TYPE_VIDEO, stream_offset, &vf->pts,
+			&frame_size, 0,
+			&vf->pts_us64) != 0) {
 #ifdef DEBUG_PTS
 			pbi->pts_missed++;
 #endif

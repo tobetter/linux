@@ -693,6 +693,17 @@ struct StorablePicture {
 	u64         pts64;
 	u64         timestamp;
 	unsigned char data_flag;
+	/* picture qos infomation*/
+	int frame_size;
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
 };
 
 struct FrameStore {
@@ -756,6 +767,21 @@ struct FrameStore {
 	u32       pts;
 	u64       pts64;
 	u64       timestamp;
+
+
+	/* picture qos infomation*/
+	int slice_type;
+	int frame_size;
+
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
 };
 
 

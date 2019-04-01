@@ -100,6 +100,18 @@ static DEFINE_SPINLOCK(vdec_spin_lock);
 #define HEVC_TEST_LIMIT 100
 #define GXBB_REV_A_MINOR 0xA
 
+#define PRINT_FRAME_INFO 1
+#define DISABLE_FRAME_INFO 2
+
+static int frameinfo_flag = 0;
+//static int path_debug = 0;
+
+static struct vframe_qos_s *frame_info_buf_in = NULL;
+static struct vframe_qos_s *frame_info_buf_out = NULL;
+static int frame_qos_wr = 0;
+static int frame_qos_rd = 0;
+int decode_underflow = 0;
+
 #define CANVAS_MAX_SIZE (AMVDEC_CANVAS_MAX1 - AMVDEC_CANVAS_START_INDEX + 1 + AMVDEC_CANVAS_MAX2 + 1)
 
 struct am_reg {
@@ -1977,7 +1989,25 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 		vdec->sys_info->height);
 	/* vdec is now ready to be active */
 	vdec_set_status(vdec, VDEC_STATUS_DISCONNECTED);
+	if (p->use_vfm_path) {
+		frame_info_buf_in = (struct vframe_qos_s *)
+			kmalloc(QOS_FRAME_NUM*sizeof(struct vframe_qos_s), GFP_KERNEL);
+		if (!frame_info_buf_in)
+			pr_err("kmalloc: frame_info_buf_in failed\n");
+		else
+			memset(frame_info_buf_in, 0,
+					QOS_FRAME_NUM*sizeof(struct vframe_qos_s));
 
+		frame_info_buf_out = (struct vframe_qos_s *)
+			kmalloc(QOS_FRAME_NUM*sizeof(struct vframe_qos_s), GFP_KERNEL);
+		if (!frame_info_buf_out)
+			pr_err("kmalloc: frame_info_buf_out failed\n");
+		else
+			memset(frame_info_buf_out, 0,
+					QOS_FRAME_NUM*sizeof(struct vframe_qos_s));
+		frame_qos_wr = 0;
+		frame_qos_rd = 0;
+	}
 	return 0;
 
 error:
@@ -2038,6 +2068,14 @@ void vdec_release(struct vdec_s *vdec)
 	platform_device_unregister(vdec->dev);
 	pr_debug("vdec_release instance %p, total %d\n", vdec,
 		atomic_read(&vdec_core->vdec_nr));
+	if (vdec->use_vfm_path) {
+		kfree(frame_info_buf_in);
+		frame_info_buf_in = NULL;
+		kfree(frame_info_buf_out);
+		frame_info_buf_out = NULL;
+		frame_qos_wr = 0;
+		frame_qos_rd = 0;
+	}
 	vdec_destroy(vdec);
 
 	mutex_lock(&vdec_mutex);
@@ -4431,6 +4469,105 @@ static int __init vdec_mem_setup(struct reserved_mem *rmem)
 	return 0;
 }
 
+void vdec_fill_frame_info(struct vframe_qos_s *vframe_qos, int debug)
+{
+	if (frame_info_buf_in == NULL) {
+		pr_info("error,frame_info_buf_in is null\n");
+		return;
+	}
+	if (frame_info_buf_out == NULL) {
+		pr_info("error,frame_info_buf_out is null\n");
+		return;
+	}
+	if (frame_qos_wr >= QOS_FRAME_NUM)
+		frame_qos_wr = 0;
+
+	if (frame_qos_wr >= QOS_FRAME_NUM ||
+			frame_qos_wr < 0) {
+		pr_info("error,index :%d is error\n", frame_qos_wr);
+		return;
+	}
+	if (frameinfo_flag == DISABLE_FRAME_INFO)
+		return;
+
+	if (frameinfo_flag == PRINT_FRAME_INFO) {
+		pr_info("num %d size %d pts %d\n",
+				vframe_qos->num,
+				vframe_qos->size,
+				vframe_qos->pts);
+		pr_info("mv min_mv %d avg_mv %d max_mv %d\n",
+				vframe_qos->min_mv,
+				vframe_qos->avg_mv,
+				vframe_qos->max_mv);
+		pr_info("qp min_qp %d avg_qp %d max_qp %d\n",
+				vframe_qos->min_qp,
+				vframe_qos->avg_qp,
+				vframe_qos->max_qp);
+		pr_info("skip min_skip %d avg_skip %d max_skip %d\n",
+				vframe_qos->min_skip,
+				vframe_qos->avg_skip,
+				vframe_qos->max_skip);
+	}
+	memcpy(&frame_info_buf_in[frame_qos_wr++],
+			vframe_qos, sizeof(struct vframe_qos_s));
+	if (frame_qos_wr >= QOS_FRAME_NUM)
+		frame_qos_wr = 0;
+
+	/*pr_info("frame_qos_wr:%d\n", frame_qos_wr);*/
+
+}
+EXPORT_SYMBOL(vdec_fill_frame_info);
+
+struct vframe_qos_s *vdec_get_qos_info(void)
+{
+	int write_count = 0;
+	int qos_wr = frame_qos_wr;
+
+	if (frame_info_buf_in == NULL) {
+		pr_info("error,frame_info_buf_in is null\n");
+		return NULL;
+	}
+	if (frame_info_buf_out == NULL) {
+		pr_info("error,frame_info_buf_out is null\n");
+		return NULL;
+	}
+
+
+	memset(frame_info_buf_out, 0,
+			QOS_FRAME_NUM*sizeof(struct vframe_qos_s));
+	if (frame_qos_rd > qos_wr) {
+		write_count = QOS_FRAME_NUM - frame_qos_rd;
+		if (write_count > 0 && write_count <= QOS_FRAME_NUM) {
+			memcpy(frame_info_buf_out, &frame_info_buf_in[0],
+				write_count*sizeof(struct vframe_qos_s));
+			if ((write_count + qos_wr) <= QOS_FRAME_NUM)
+				memcpy(&frame_info_buf_out[write_count], frame_info_buf_in,
+					qos_wr*sizeof(struct vframe_qos_s));
+			else
+				pr_info("get_qos_info:%d,out of range\n", __LINE__);
+		} else
+			pr_info("get_qos_info:%d,out of range\n", __LINE__);
+	} else if (frame_qos_rd < qos_wr) {
+		write_count =  qos_wr - frame_qos_rd;
+		if (write_count > 0 && write_count < QOS_FRAME_NUM)
+			memcpy(frame_info_buf_out, &frame_info_buf_in[frame_qos_rd],
+				(write_count)*sizeof(struct vframe_qos_s));
+		else
+			pr_info("get_qos_info:%d, out of range\n", __LINE__);
+	}
+	/*
+	   pr_info("cnt:%d,size:%d,num:%d,rd:%d,wr:%d\n",
+	   wirte_count,
+	   frame_info_buf_out[0].size,
+	   frame_info_buf_out[0].num,
+	   frame_qos_rd,qos_wr);
+	*/
+	frame_qos_rd = qos_wr;
+	return frame_info_buf_out;
+}
+EXPORT_SYMBOL(vdec_get_qos_info);
+
+
 RESERVEDMEM_OF_DECLARE(vdec, "amlogic, vdec-memory", vdec_mem_setup);
 /*
 uint force_hevc_clock_cntl;
@@ -4448,6 +4585,9 @@ module_param(parallel_decode, int, 0664);
 module_param(fps_detection, int, 0664);
 module_param(fps_clear, int, 0664);
 
+module_param(frameinfo_flag, int, 0664);
+MODULE_PARM_DESC(frameinfo_flag,
+				"\n frameinfo_flag\n");
 /*
 *module_init(vdec_module_init);
 *module_exit(vdec_module_exit);

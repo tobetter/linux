@@ -891,6 +891,7 @@ static void vh264mvc_isr(void)
 	struct vframe_s *vf;
 	unsigned int pts, pts_valid = 0;
 	u64 pts_us64;
+	u32 frame_size;
 	int ret = READ_VREG(MAILBOX_COMMAND);
 	/* pr_info("vh264mvc_isr, cmd =%x\n", ret); */
 	switch (ret & 0xff) {
@@ -1024,6 +1025,7 @@ static void vh264mvc_isr(void)
 				if (pts_lookup_offset_us64
 					(PTS_TYPE_VIDEO,
 					 vfpool_idx[slot].stream_offset, &pts,
+					 &frame_size,
 					 0x10000, &pts_us64) == 0)
 					pts_valid = 1;
 				else

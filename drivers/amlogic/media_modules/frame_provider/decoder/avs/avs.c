@@ -426,6 +426,7 @@ static void vavs_isr(void)
 	u32 repeat_count;
 	u32 picture_type;
 	u32 buffer_index;
+	u32 frame_size;
 	bool force_interlaced_frame = false;
 	unsigned int pts, pts_valid = 0, offset = 0;
 	u64 pts_us64;
@@ -460,6 +461,7 @@ static void vavs_isr(void)
 			if (debug_flag & AVS_DEBUG_PRINT)
 				pr_info("AVS OFFSET=%x\n", offset);
 			if (pts_lookup_offset_us64(PTS_TYPE_VIDEO, offset, &pts,
+				&frame_size,
 				0, &pts_us64) == 0) {
 				pts_valid = 1;
 #ifdef DEBUG_PTS

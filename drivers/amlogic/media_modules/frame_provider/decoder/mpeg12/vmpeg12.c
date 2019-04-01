@@ -864,6 +864,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 	u32 reg, info, seqinfo, offset, pts, pts_valid = 0;
 	struct vframe_s *vf;
 	u64 pts_us64 = 0;
+	u32 frame_size;
 
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
@@ -880,7 +881,8 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 			first_i_frame_ready = 1;
 
 		if ((pts_lookup_offset_us64
-			 (PTS_TYPE_VIDEO, offset, &pts, 0, &pts_us64) == 0)
+			 (PTS_TYPE_VIDEO, offset, &pts,
+			 &frame_size, 0, &pts_us64) == 0)
 			&& (((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_I)
 				|| ((info & PICINFO_TYPE_MASK) ==
 					PICINFO_TYPE_P)))
