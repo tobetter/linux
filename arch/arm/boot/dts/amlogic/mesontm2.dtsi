@@ -1148,7 +1148,7 @@
 
 	sd_emmc_c: emmc@ffe07000 {
 		status = "disabled";
-		compatible = "amlogic, meson-mmc-tl1";
+		compatible = "amlogic, meson-mmc-tm2";
 		reg = <0xffe07000 0x800>;
 		interrupts = <0 191 1>;
 		pinctrl-names = "emmc_clk_cmd_pins", "emmc_all_pins";
@@ -1157,7 +1157,7 @@
 		clocks = <&clkc CLKID_SD_EMMC_C>,
 			   <&clkc CLKID_SD_EMMC_C_P0_COMP>,
 			   <&clkc CLKID_FCLK_DIV2>,
-			   <&clkc CLKID_FCLK_DIV5>,
+			   <&clkc CLKID_FCLK_DIV2P5>,
 			   <&clkc CLKID_GP0_PLL>,
 			   <&xtal>;
 		clock-names = "core","clkin0","clkin1","clkin2","clkin3","xtal";
