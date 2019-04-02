@@ -1178,7 +1178,7 @@
 
 	sd_emmc_b: sd@ffe05000 {
 		status = "okay";
-		compatible = "amlogic, meson-mmc-tl1";
+		compatible = "amlogic, meson-mmc-tm2";
 		reg = <0xffe05000 0x800>;
 		interrupts = <0 190 1>;
 

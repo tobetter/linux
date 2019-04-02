@@ -116,7 +116,6 @@ int meson_mmc_clk_init_v3(struct amlsd_host *host)
 	u32 vconf = 0;
 	struct sd_emmc_config *pconf = (struct sd_emmc_config *)&vconf;
 	struct mmc_phase *init = &(host->data->sdmmc.init);
-	struct mmc_phase *calc = &(host->data->sdmmc.calc);
 
 	writel(0, host->base + SD_EMMC_ADJUST_V3);
 	writel(0, host->base + SD_EMMC_DELAY1_V3);
@@ -134,11 +133,6 @@ int meson_mmc_clk_init_v3(struct amlsd_host *host)
 	pclkc->core_phase = init->core_phase;	  /* 2: 180 phase */
 	pclkc->rx_phase = init->rx_phase;
 	pclkc->tx_phase = init->tx_phase;
-	if ((host->data->chip_type >= MMC_CHIP_G12A)
-			&& (host->data->chip_type != MMC_CHIP_TL1)) {
-		pclkc->core_phase = calc->core_phase;
-		pclkc->tx_phase = calc->tx_phase;
-	}
 	pclkc->always_on = 1;	  /* Keep clock always on */
 	writel(vclkc, host->base + SD_EMMC_CLOCK_V3);
 
@@ -247,13 +241,19 @@ static int meson_mmc_clk_set_rate_v3(struct mmc_host *mmc,
 					host->mux_parent[0]);
 			if (ret)
 				pr_warn("set comp0 as mux_clk parent error\n");
-		} else if ((host->data->chip_type == MMC_CHIP_TL1)
+		} else if (((host->data->chip_type >= MMC_CHIP_TL1)
+				|| (host->data->chip_type == MMC_CHIP_G12B))
 				&& (clk_ios >= 166000000)) {
-			src0_clk = devm_clk_get(host->dev, "clkin3");
+			src0_clk = devm_clk_get(host->dev, "clkin2");
 			if (ret)
-				pr_warn("not get GP0\n");
+				pr_warn("not get clkin2\n");
+			if ((host->data->chip_type == MMC_CHIP_TL1)
+				&& (clk_ios <= 198000000)) {
 			ret = clk_set_rate(src0_clk, 792000000);
-			pr_warn("set rate gp0>>>>>>>>>clk:%lu\n",
+				if (ret)
+					pr_warn("not set tl1-gp0\n");
+			}
+			pr_warn("set rate clkin2>>>>>>>>clk:%lu\n",
 					clk_get_rate(src0_clk));
 			ret = clk_set_parent(host->mux_parent[0],
 					src0_clk);
@@ -284,10 +284,12 @@ static int meson_mmc_clk_set_rate_v3(struct mmc_host *mmc,
 
 	/* (re)start clock, if non-zero */
 	if (clk_ios) {
+		if (pdata->calc_f) {
 		vclkc = readl(host->base + SD_EMMC_CLOCK_V3);
 		pdata->clk_lay.source
 			= clk_get_rate(host->cfg_div_clk) * clkc->div;
 		pdata->clk_lay.core = clk_get_rate(host->cfg_div_clk);
+		}
 
 		vcfg = readl(host->base + SD_EMMC_CFG);
 		conf->stop_clk = 0;
@@ -300,7 +302,7 @@ static int meson_mmc_clk_set_rate_v3(struct mmc_host *mmc,
 			mmc->actual_clock,
 			readl(host->clksrc_base + (HHI_NAND_CLK_CNTL << 2)));
 
-	pr_debug("[%s] after clock: 0x%x\n",
+	pr_info("[%s] after clock: 0x%x\n",
 		 __func__, readl(host->base + SD_EMMC_CLOCK_V3));
 
 	return ret;
@@ -348,7 +350,8 @@ static void aml_sd_emmc_set_timing_v3(struct amlsd_platform *pdata,
 				if (pdata->tx_delay != 0)
 					clkc->tx_delay = pdata->tx_delay;
 
-				if ((host->data->chip_type == MMC_CHIP_TL1)
+				if (((host->data->chip_type == MMC_CHIP_TL1)
+				|| (host->data->chip_type == MMC_CHIP_G12B))
 					&& aml_card_type_mmc(pdata)) {
 					clkc->core_phase = para->hs4.core_phase;
 					clkc->tx_phase = para->hs4.tx_phase;
@@ -372,9 +375,7 @@ static void aml_sd_emmc_set_timing_v3(struct amlsd_platform *pdata,
 		/* overide co-phase by dts */
 		if (pdata->co_phase)
 			clkc->core_phase = pdata->co_phase;
-		if ((pdata->calc_f)
-			&& ((host->data->chip_type >= MMC_CHIP_G12A)
-			&& (host->data->chip_type != MMC_CHIP_TL1))) {
+		if (pdata->calc_f) {
 			clkc->core_phase = para->calc.core_phase;
 			clkc->tx_phase = para->calc.tx_phase;
 		}
@@ -386,9 +387,7 @@ static void aml_sd_emmc_set_timing_v3(struct amlsd_platform *pdata,
 			|| (host->data->chip_type == MMC_CHIP_TXLX)
 			|| (host->data->chip_type == MMC_CHIP_G12A))
 			clkc->core_phase = para->sd_hs.core_phase;
-		if ((pdata->calc_f)
-				&& ((host->data->chip_type >= MMC_CHIP_G12A)
-				&& (host->data->chip_type != MMC_CHIP_TL1))) {
+		if (pdata->calc_f) {
 			clkc->core_phase = para->calc.core_phase;
 			clkc->tx_phase = para->calc.tx_phase;
 		}
@@ -397,6 +396,11 @@ static void aml_sd_emmc_set_timing_v3(struct amlsd_platform *pdata,
 		clkc->tx_phase = para->sdr104.tx_phase;
 	} else {
 		ctrl->ddr = 0;
+		clkc->tx_delay = 0;
+		clkc->core_phase = para->init.core_phase;
+		clkc->tx_phase = para->init.tx_phase;
+		irq_en &= ~(1<<17);
+		writel(irq_en, host->base + SD_EMMC_IRQ_EN);
 		/* timing == MMC_TIMING_LEGACY */
 		if (pdata->calc_f) {
 			clkc->core_phase = para->calc.core_phase;
@@ -404,9 +408,7 @@ static void aml_sd_emmc_set_timing_v3(struct amlsd_platform *pdata,
 		}
 	}
 
-	if ((pdata->calc_f)
-			&& ((host->data->chip_type >= MMC_CHIP_G12A)
-			&& (host->data->chip_type != MMC_CHIP_TL1))) {
+	if (pdata->calc_f) {
 		if (timing <= MMC_TIMING_SD_HS) {
 			ret = aml_fixdiv_calc(&fixdiv, &pdata->clk_lay);
 			if (!ret) {
@@ -801,7 +803,7 @@ RETRY:
 	eyetest_log = readl(host->base + SD_EMMC_EYETEST_LOG);
 
 	if (!(geyetest_log->eyetest_done & 0x1)) {
-		pr_debug("testing eyetest times:0x%x,out:0x%x,0x%x,line:%d\n",
+		pr_warn("testing eyetest times:0x%x,out:0x%x,0x%x,line:%d\n",
 			readl(host->base + SD_EMMC_EYETEST_LOG),
 			eyetest_out0, eyetest_out1, line_x);
 		gintf3->eyetest_on = 0;
@@ -822,7 +824,7 @@ RETRY:
 	writel(0, host->base + SD_EMMC_ADJUST_V3);
 	pdata->intf3 = intf3;
 	pdata->align[line_x] = ((tmp | eyetest_out1) << 32) | eyetest_out0;
-	pr_info("d1:0x%x,d2:0x%x,u64eyet:0x%016llx,l_x:%d\n",
+	pr_debug("d1:0x%x,d2:0x%x,u64eyet:0x%016llx,l_x:%d\n",
 			readl(host->base + SD_EMMC_DELAY1_V3),
 			readl(host->base + SD_EMMC_DELAY2_V3),
 			pdata->align[line_x], line_x);
@@ -1090,12 +1092,7 @@ static int emmc_ds_manual_sht(struct mmc_host *mmc)
 
 	host->is_tunning = 1;
 	for (i = 0; i < 64; i++) {
-		gintf3->ds_sht_m += 1;
-		writel(intf3, host->base + SD_EMMC_INTF3);
-		pdata->intf3 = intf3;
-		err = aml_sd_emmc_cali_v3(mmc,
-			MMC_READ_MULTIPLE_BLOCK,
-			host->blk_test, blksz, 20);
+		err = emmc_test_bus(mmc);
 		pr_debug("intf3: 0x%x, err[%d]: %d\n",
 				readl(host->base + SD_EMMC_INTF3), i, err);
 		if (!err)
@@ -1594,6 +1591,7 @@ int aml_emmc_hs200_tl1(struct mmc_host *mmc)
 	int i, err = 0;
 
 	clk_bak = vclkc;
+	clkc->tx_phase = para->hs4.tx_phase;
 	clkc->core_phase = para->hs4.core_phase;
 	clkc->tx_delay = para->hs4.tx_delay;
 	if (pdata->tx_delay != 0)
@@ -1609,12 +1607,14 @@ int aml_emmc_hs200_tl1(struct mmc_host *mmc)
 			continue;
 		count = fbinary(pdata->align[9]);
 		if (((count >= 10) && (count <= 22))
-			|| ((count >= 43) && (count <= 56)))
+			|| ((count >= 45) && (count <= 56)))
 			break;
 	}
 	if (i == 63)
 		pr_err("[%s]no find cmd timing\n", __func__);
 	pdata->cmd_c = (delay2 >> 24);
+	pr_info("cmd->u64eyet:0x%016llx\n",
+			pdata->align[9]);
 	writel(0, host->base + SD_EMMC_DELAY2_V3);
 	writel(clk_bak, host->base + SD_EMMC_CLOCK_V3);
 	pr_info("[%s][%d] clk config:0x%x\n",
@@ -1883,7 +1883,8 @@ int aml_mmc_execute_tuning_v3(struct mmc_host *mmc, u32 opcode)
 		intf3 |= (1<<22);
 		writel(intf3, (host->base + SD_EMMC_INTF3));
 		pdata->intf3 = intf3;
-		if (host->data->chip_type == MMC_CHIP_TL1)
+		if ((host->data->chip_type == MMC_CHIP_TL1)
+			|| (host->data->chip_type == MMC_CHIP_G12B))
 			aml_emmc_hs200_tl1(mmc);
 		err = 0;
 	}
@@ -1902,6 +1903,8 @@ int aml_post_hs400_timming(struct mmc_host *mmc)
 	aml_sd_emmc_clktest(mmc);
 	if (host->data->chip_type == MMC_CHIP_TL1)
 		aml_emmc_hs400_tl1(mmc);
+	else if (host->data->chip_type == MMC_CHIP_G12B)
+		aml_emmc_hs400_Revb(mmc);
 	else
 		aml_emmc_hs400_general(mmc);
 	return 0;
