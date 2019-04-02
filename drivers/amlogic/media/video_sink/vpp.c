@@ -909,7 +909,8 @@ static int vpp_set_filters_internal(
 	reverse = input->reverse;
 #endif
 
-	if (vf->type & VIDTYPE_MVC) {
+	if ((vf->type & VIDTYPE_MVC) ||
+		(input->proc_3d_type & MODE_3D_ENABLE)) {
 		video_source_crop_left = 0;
 		video_source_crop_right = 0;
 		video_source_crop_top = 0;
@@ -2514,7 +2515,8 @@ static int vpp_set_filters_no_scaler_internal(
 	reverse = input->reverse;
 #endif
 
-	if (vf->type & VIDTYPE_MVC) {
+	if ((vf->type & VIDTYPE_MVC) ||
+		(input->proc_3d_type & MODE_3D_ENABLE)) {
 		video_source_crop_left = 0;
 		video_source_crop_right = 0;
 		video_source_crop_top = 0;
