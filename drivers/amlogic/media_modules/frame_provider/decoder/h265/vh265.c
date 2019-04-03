@@ -1360,6 +1360,12 @@ struct PIC_s {
 	u32 sar_height;
 	u32 double_write_mode;
 	u32 video_signal_type;
+	unsigned short conformance_window_flag;
+	unsigned short conf_win_left_offset;
+	unsigned short conf_win_right_offset;
+	unsigned short conf_win_top_offset;
+	unsigned short conf_win_bottom_offset;
+	unsigned short chroma_format_idc;
 } /*PIC_t */;
 
 #define MAX_TILE_COL_NUM    10
@@ -5265,6 +5271,20 @@ static struct PIC_s *get_new_pic(struct hevc_state_s *hevc,
 			hevc->bit_depth_chroma;
 		new_pic->video_signal_type =
 			hevc->video_signal_type;
+
+		new_pic->conformance_window_flag =
+			hevc->param.p.conformance_window_flag;
+		new_pic->conf_win_left_offset =
+			hevc->param.p.conf_win_left_offset;
+		new_pic->conf_win_right_offset =
+			hevc->param.p.conf_win_right_offset;
+		new_pic->conf_win_top_offset =
+			hevc->param.p.conf_win_top_offset;
+		new_pic->conf_win_bottom_offset =
+			hevc->param.p.conf_win_bottom_offset;
+		new_pic->chroma_format_idc =
+				hevc->param.p.chroma_format_idc;
+
 		hevc_print(hevc, H265_DEBUG_BUFMGR_MORE,
 			"%s: index %d, buf_idx %d, decode_idx %d, POC %d\n",
 			__func__, new_pic->index,
@@ -7755,12 +7775,12 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 		 *	need move below code to get_new_pic(),
 		 *	hevc->xxx can only be used by current decoded pic
 		 */
-		if (hevc->param.p.conformance_window_flag &&
+		if (pic->conformance_window_flag &&
 			(get_dbg_flag(hevc) &
 				H265_DEBUG_IGNORE_CONFORMANCE_WINDOW) == 0) {
 			unsigned int SubWidthC, SubHeightC;
 
-			switch (hevc->param.p.chroma_format_idc) {
+			switch (pic->chroma_format_idc) {
 			case 1:
 				SubWidthC = 2;
 				SubHeightC = 2;
@@ -7775,27 +7795,27 @@ static int prepare_display_buf(struct hevc_state_s *hevc, struct PIC_s *pic)
 				break;
 			}
 			 vf->width -= SubWidthC *
-				(hevc->param.p.conf_win_left_offset +
-				hevc->param.p.conf_win_right_offset);
+				(pic->conf_win_left_offset +
+				pic->conf_win_right_offset);
 			 vf->height -= SubHeightC *
-				(hevc->param.p.conf_win_top_offset +
-				hevc->param.p.conf_win_bottom_offset);
+				(pic->conf_win_top_offset +
+				pic->conf_win_bottom_offset);
 
 			 vf->compWidth -= SubWidthC *
-				(hevc->param.p.conf_win_left_offset +
-				hevc->param.p.conf_win_right_offset);
+				(pic->conf_win_left_offset +
+				pic->conf_win_right_offset);
 			 vf->compHeight -= SubHeightC *
-				(hevc->param.p.conf_win_top_offset +
-				hevc->param.p.conf_win_bottom_offset);
+				(pic->conf_win_top_offset +
+				pic->conf_win_bottom_offset);
 
 			if (get_dbg_flag(hevc) & H265_DEBUG_BUFMGR)
 				hevc_print(hevc, 0,
 					"conformance_window %d, %d, %d, %d, %d => cropped width %d, height %d com_w %d com_h %d\n",
-					hevc->param.p.chroma_format_idc,
-					hevc->param.p.conf_win_left_offset,
-					hevc->param.p.conf_win_right_offset,
-					hevc->param.p.conf_win_top_offset,
-					hevc->param.p.conf_win_bottom_offset,
+					pic->chroma_format_idc,
+					pic->conf_win_left_offset,
+					pic->conf_win_right_offset,
+					pic->conf_win_top_offset,
+					pic->conf_win_bottom_offset,
 					vf->width, vf->height, vf->compWidth, vf->compHeight);
 		}
 
