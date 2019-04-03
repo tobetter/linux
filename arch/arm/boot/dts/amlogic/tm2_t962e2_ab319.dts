@@ -309,7 +309,7 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = <&ad82584f &tl1_codec>;
+				sound-dai = </*&ad82584f*/ &tl1_codec>;
 			};
 		};
 
@@ -1601,7 +1601,7 @@
 		compatible = "ESMT, ad82584f";
 		#sound-dai-cells = <0>;
 		reg = <0x31>;
-		status = "okay";
+		status = "disabled";
 		reset_pin = <&gpio_ao GPIOAO_6 0>;
 	};
 

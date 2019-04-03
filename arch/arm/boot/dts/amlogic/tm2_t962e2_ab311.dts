@@ -319,7 +319,7 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = <&ad82584f &tl1_codec>;
+				sound-dai = </*&ad82584f*/ &tl1_codec>;
 			};
 		};
 
@@ -1594,10 +1594,10 @@
 	};
 
 	tdmout_a: tdmout_a {
-		mux { /* GPIOZ_1, GPIOZ_2, GPIOZ_3 */
-			groups = "tdma_sclk_z",
-				"tdma_fs_z",
-				"tdma_dout0_z";
+		mux { /* GPIOH_5, GPIOH_6, GPIOH_7 */
+			groups = "tdma_fs_h",
+				"tdma_sclk_h",
+				"tdma_dout0_h";
 			function = "tdma_out";
 			bias-pull-down;
 		};
@@ -1698,7 +1698,7 @@
 };
 
 &i2c2 {
-	status = "okay";
+	status = "disabled";
 	pinctrl-names="default";
 	pinctrl-0=<&i2c2_z_pins>;
 	clock-frequency = <400000>;
@@ -1710,15 +1710,22 @@
 		reg = <0x2d>;
 		status = "disable";
 	};
+};
+
+&i2c3 {
+	status = "okay";
+	pinctrl-names="default";
+	pinctrl-0=<&i2c3_h1_pins>;
+	clock-frequency = <400000>;
 
 	ad82584f: ad82584f@62 {
 		compatible = "ESMT, ad82584f";
 		#sound-dai-cells = <0>;
 		reg = <0x31>;
-		status = "okay";
-		reset_pin = <&gpio_ao GPIOAO_6 0>;
+		status = "disabled";
+		reset_pin = <&gpio GPIOH_13 0>;
+		no_mclk;
 	};
-
 };
 
 &sd_emmc_c {
