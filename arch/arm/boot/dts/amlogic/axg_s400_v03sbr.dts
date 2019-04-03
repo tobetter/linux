@@ -847,15 +847,15 @@
 	adc_keypad {
 		compatible = "amlogic, adc_keypad";
 		status = "okay";
-		key_name = "power", "vol-", "vol+", "wifi", "<<", ">>";
-		key_num = <6>;
+		key_name = "power", "vol-", "sos+", "wifi", "<<", ">>", "vol+";
+		key_num = <7>;
 		io-channels = <&saradc SARADC_CH0>;
 		io-channel-names = "key-chan-0";
 		key_chan = <SARADC_CH0 SARADC_CH0 SARADC_CH0
-					SARADC_CH0 SARADC_CH0 SARADC_CH0>;
-		key_code = <116 114 115 139 105 106>;
-		key_val = <0 143 266 389 512 635>; //val=voltage/1800mV*1023
-		key_tolerance = <40 40 40 40 40 40>;
+			SARADC_CH0 SARADC_CH0 SARADC_CH0 SARADC_CH0>;
+		key_code = <116 114 115 139 105 106 107>;
+		key_val = <0 143 266 389 512 635 840>; //val=voltage/1800mV*1023
+		key_tolerance = <40 40 40 40 40 40 40>;
 	};
 
 	unifykey{
@@ -1666,7 +1666,7 @@
 			mapname = "amlogic-remote-3";
 			customcode = <0xa4e8>; /* Reference Remote Control */
 			release_delay = <80>;
-			size  = <22>;
+			size  = <45>;
 			keymap = <
 				REMOTE_KEY(0xc7, 200) /* power */
 				REMOTE_KEY(0x93, 201) /* eject-->input source */
@@ -1690,6 +1690,29 @@
 				REMOTE_KEY(0x68, 219) /* HFILT */
 				REMOTE_KEY(0x69, 220) /* Loundness */
 				REMOTE_KEY(0x60, 221) /* Audio_info */
+				REMOTE_KEY(0xb1, 222) /* CD */
+				REMOTE_KEY(0xb4, 223) /* CD */
+				REMOTE_KEY(0xb9, 224) /* CD */
+				REMOTE_KEY(0xab, 225) /* CD */
+				REMOTE_KEY(0x91, 226) /* CD */
+				REMOTE_KEY(0x92, 227) /* CD */
+				REMOTE_KEY(0x89, 228) /* CD */
+				REMOTE_KEY(0x88, 229) /* CD */
+				REMOTE_KEY(0xa5, 230) /* CD */
+				REMOTE_KEY(0x84, 231) /* CD */
+				REMOTE_KEY(0x72, 232) /* CD */
+				REMOTE_KEY(0x73, 233) /* CD */
+				REMOTE_KEY(0x9a, 234) /* CD */
+				REMOTE_KEY(0x9b, 235) /* CD */
+				REMOTE_KEY(0xa0, 236) /* CD */
+				REMOTE_KEY(0x71, 237) /* CD */
+				REMOTE_KEY(0x74, 238) /* CD */
+				REMOTE_KEY(0x75, 239) /* CD */
+				REMOTE_KEY(0x7e, 240) /* CD */
+				REMOTE_KEY(0x7f, 241) /* CD */
+				REMOTE_KEY(0x7a, 242) /* CD */
+				REMOTE_KEY(0xa7, 243) /* CD */
+				REMOTE_KEY(0xa9, 244) /* CD */
 				>;
 		};
 	};
