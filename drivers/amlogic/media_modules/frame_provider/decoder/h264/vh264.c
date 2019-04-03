@@ -3712,11 +3712,10 @@ static int amvdec_h264_remove(struct platform_device *pdev)
 	cancel_work_sync(&notify_work);
 	cancel_work_sync(&set_clk_work);
 	cancel_work_sync(&userdata_push_work);
-
-	mutex_lock(&vh264_mutex);
 	vh264_stop(MODE_FULL);
+	wait_vh264_search_done();
+	mutex_lock(&vh264_mutex);
 	vdec_source_changed(VFORMAT_H264, 0, 0, 0);
-
 #ifdef DUMP_USER_DATA
 	vh264_dump_userdata();
 #endif
