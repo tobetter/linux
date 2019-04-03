@@ -138,6 +138,9 @@ static unsigned int decode_timeout_val = 100;
 u32 again_threshold = 0x40;
 #endif
 
+/*
+#define DUMP_USER_DATA
+*/
 
 enum {
 	FRAME_REPEAT_TOP,
@@ -162,6 +165,26 @@ static struct vframe_s *vmpeg_vf_get(void *);
 static void vmpeg_vf_put(struct vframe_s *, void *);
 static int vmpeg_vf_states(struct vframe_states *states, void *);
 static int vmpeg_event_cb(int type, void *data, void *private_data);
+
+struct mmpeg2_userdata_record_t {
+	struct userdata_meta_info_t meta_info;
+	u32 rec_start;
+	u32 rec_len;
+};
+
+#define USERDATA_FIFO_NUM    256
+#define MAX_FREE_USERDATA_NODES		5
+
+struct mmpeg2_userdata_info_t {
+	struct mmpeg2_userdata_record_t records[USERDATA_FIFO_NUM];
+	u8 *data_buf;
+	u8 *data_buf_end;
+	u32 buf_len;
+	u32 read_index;
+	u32 write_index;
+	u32 last_wp;
+};
+#define MAX_UD_RECORDS	5
 
 struct vdec_mpeg12_hw_s {
 	spinlock_t lock;
@@ -236,6 +259,26 @@ struct vdec_mpeg12_hw_s {
 	u32 pre_parser_wr_ptr;
 	u8 next_again_flag;
 #endif
+
+
+	struct work_struct userdata_push_work;
+	struct mutex userdata_mutex;
+	struct mmpeg2_userdata_info_t userdata_info;
+	struct mmpeg2_userdata_record_t ud_record[MAX_UD_RECORDS];
+	int cur_ud_idx;
+	u8 *user_data_buffer;
+	int wait_for_udr_send;
+	u32 ucode_cc_last_wp;
+
+#ifdef DUMP_USER_DATA
+#define MAX_USER_DATA_SIZE		1572864
+	void *user_data_dump_buf;
+	unsigned char *pdump_buf_cur_start;
+	int total_len;
+	int bskip;
+	int n_userdata_id;
+	u32 reference[MAX_UD_RECORDS];
+#endif
 };
 static void vmpeg12_local_init(struct vdec_mpeg12_hw_s *hw);
 static int vmpeg12_hw_ctx_restore(struct vdec_mpeg12_hw_s *hw);
@@ -262,6 +305,7 @@ unsigned int mpeg12_debug_mask = 0xff;
 #define PRINT_FRAMEBASE_DATA          0x0400
 #define PRINT_FLAG_VDEC_STATUS        0x0800
 #define PRINT_FLAG_PARA_DATA          0x1000
+#define PRINT_FLAG_USERDATA_DETAIL    0x2000
 
 
 
@@ -423,35 +467,742 @@ static inline void vmpeg12_save_hw_context(struct vdec_mpeg12_hw_s *hw)
 	debug_print(DECODE_ID(hw), PRINT_FLAG_PARA_DATA,
 		"signal_type = %x", hw->reg_signal_type);
 }
-#if 0
+
+static void vmmpeg2_reset_udr_mgr(struct vdec_mpeg12_hw_s *hw)
+{
+	hw->wait_for_udr_send = 0;
+	hw->cur_ud_idx = 0;
+	memset(&hw->ud_record, 0, sizeof(hw->ud_record));
+}
+
+static void vmmpeg2_crate_userdata_manager(
+						struct vdec_mpeg12_hw_s *hw,
+						u8 *userdata_buf,
+						int buf_len)
+{
+	if (hw) {
+		mutex_init(&hw->userdata_mutex);
+
+		memset(&hw->userdata_info, 0,
+			sizeof(struct mmpeg2_userdata_info_t));
+		hw->userdata_info.data_buf = userdata_buf;
+		hw->userdata_info.buf_len = buf_len;
+		hw->userdata_info.data_buf_end = userdata_buf + buf_len;
+
+		vmmpeg2_reset_udr_mgr(hw);
+	}
+}
+
+static void vmmpeg2_destroy_userdata_manager(struct vdec_mpeg12_hw_s *hw)
+{
+	if (hw)
+		memset(&hw->userdata_info,
+				0,
+				sizeof(struct mmpeg2_userdata_info_t));
+}
+
+static void aml_swap_data(uint8_t *user_data, int ud_size)
+{
+	int swap_blocks, i, j, k, m;
+	unsigned char c_temp;
+
+	/* swap byte order */
+	swap_blocks = ud_size / 8;
+	for (i = 0; i < swap_blocks; i++) {
+		j = i * 8;
+		k = j + 7;
+		for (m = 0; m < 4; m++) {
+			c_temp = user_data[j];
+			user_data[j++] = user_data[k];
+			user_data[k--] = c_temp;
+		}
+	}
+}
+
+#ifdef DUMP_USER_DATA
+static void push_to_buf(struct vdec_mpeg12_hw_s *hw,
+	u8 *pdata,
+	int len,
+	struct userdata_meta_info_t *pmeta,
+	u32 reference)
+{
+	u32 *pLen;
+	int info_cnt;
+	u8 *pbuf_end;
+
+	if (!hw->user_data_dump_buf)
+		return;
+
+	if (hw->bskip) {
+		pr_info("over size, skip\n");
+		return;
+	}
+	info_cnt = 0;
+	pLen = (u32 *)hw->pdump_buf_cur_start;
+
+	*pLen = len;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->duration;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->flags;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->vpts;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = pmeta->vpts_valid;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+
+	*pLen = hw->n_userdata_id;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	*pLen = reference;
+	hw->pdump_buf_cur_start += sizeof(u32);
+	info_cnt++;
+	pLen++;
+
+	pbuf_end = hw->userdata_info.data_buf_end;
+	if (pdata + len > pbuf_end) {
+		int first_section_len;
+
+		first_section_len = pbuf_end - pdata;
+		memcpy(hw->pdump_buf_cur_start, pdata, first_section_len);
+		pdata = (u8 *)hw->userdata_info.data_buf;
+		hw->pdump_buf_cur_start += first_section_len;
+		memcpy(hw->pdump_buf_cur_start, pdata, len - first_section_len);
+		hw->pdump_buf_cur_start += len - first_section_len;
+	} else {
+		memcpy(hw->pdump_buf_cur_start, pdata, len);
+		hw->pdump_buf_cur_start += len;
+	}
+
+	hw->total_len += len + info_cnt * sizeof(u32);
+	if (hw->total_len >= MAX_USER_DATA_SIZE-4096)
+		hw->bskip = 1;
+}
+
+static void dump_userdata_info(struct vdec_mpeg12_hw_s *hw,
+	void *puser_data,
+	int len,
+	struct userdata_meta_info_t *pmeta,
+	u32 reference)
+{
+	u8 *pstart;
+
+	pstart = (u8 *)puser_data;
+
+#ifdef	DUMP_HEAD_INFO_DATA
+	push_to_buf(hw, pstart, len, pmeta, reference);
+#else
+	push_to_buf(hw, pstart+8, len - 8, pmeta, reference);
+#endif
+}
+
+
+static void print_data(unsigned char *pdata,
+						int len,
+						unsigned int flag,
+						unsigned int duration,
+						unsigned int vpts,
+						unsigned int vpts_valid,
+						int rec_id,
+						u32 reference)
+{
+	int nLeft;
+
+	nLeft = len;
+
+	pr_info("%d len:%d, flag:0x%x, dur:%d, vpts:0x%x, valid:%d, refer:%d\n",
+				rec_id,	len, flag,
+				duration, vpts, vpts_valid,
+				reference);
+	while (nLeft >= 16) {
+		pr_info("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			pdata[0], pdata[1], pdata[2], pdata[3],
+			pdata[4], pdata[5], pdata[6], pdata[7],
+			pdata[8], pdata[9], pdata[10], pdata[11],
+			pdata[12], pdata[13], pdata[14], pdata[15]);
+		nLeft -= 16;
+		pdata += 16;
+	}
+
+
+	while (nLeft > 0) {
+		pr_info("%02x %02x %02x %02x %02x %02x %02x %02x\n",
+			pdata[0], pdata[1], pdata[2], pdata[3],
+			pdata[4], pdata[5], pdata[6], pdata[7]);
+		nLeft -= 8;
+		pdata += 8;
+	}
+}
+
+static void dump_data(u8 *pdata,
+						unsigned int user_data_length,
+						unsigned int flag,
+						unsigned int duration,
+						unsigned int vpts,
+						unsigned int vpts_valid,
+						int rec_id,
+						u32 reference)
+{
+	unsigned char szBuf[256];
+
+
+	memset(szBuf, 0, 256);
+	memcpy(szBuf, pdata, user_data_length);
+
+	aml_swap_data(szBuf, user_data_length);
+
+	print_data(szBuf,
+				user_data_length,
+				flag,
+				duration,
+				vpts,
+				vpts_valid,
+				rec_id,
+				reference);
+}
+
+
+static void show_user_data_buf(struct vdec_mpeg12_hw_s *hw)
+{
+	u8 *pbuf;
+	int len;
+	unsigned int flag;
+	unsigned int duration;
+	unsigned int vpts;
+	unsigned int vpts_valid;
+	int rec_id;
+	u32 reference;
+
+	pr_info("show user data buf\n");
+	pbuf = hw->user_data_dump_buf;
+
+	while (pbuf < hw->pdump_buf_cur_start) {
+		u32 *pLen;
+
+		pLen = (u32 *)pbuf;
+
+		len = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		duration = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		flag = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		vpts = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		vpts_valid = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		rec_id = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+		reference = *pLen;
+		pLen++;
+		pbuf += sizeof(u32);
+
+
+		dump_data(pbuf, len, flag, duration,
+			vpts, vpts_valid, rec_id, reference);
+		pbuf += len;
+		msleep(30);
+	}
+}
+
+static int amvdec_mmpeg12_init_userdata_dump(struct vdec_mpeg12_hw_s *hw)
+{
+	hw->user_data_dump_buf = kmalloc(MAX_USER_DATA_SIZE, GFP_KERNEL);
+	if (hw->user_data_dump_buf)
+		return 1;
+	else
+		return 0;
+}
+
+static void amvdec_mmpeg12_uninit_userdata_dump(struct vdec_mpeg12_hw_s *hw)
+{
+	if (hw->user_data_dump_buf) {
+		show_user_data_buf(hw);
+		kfree(hw->user_data_dump_buf);
+		hw->user_data_dump_buf = NULL;
+	}
+}
+
+static void reset_user_data_buf(struct vdec_mpeg12_hw_s *hw)
+{
+	hw->total_len = 0;
+	hw->pdump_buf_cur_start = hw->user_data_dump_buf;
+	hw->bskip = 0;
+	hw->n_userdata_id = 0;
+}
+#endif
+
+static void user_data_ready_notify(struct vdec_mpeg12_hw_s *hw,
+	u32 pts, u32 pts_valid)
+{
+	struct mmpeg2_userdata_record_t *p_userdata_rec;
+	int i;
+
+	if (hw->wait_for_udr_send) {
+		for (i = 0; i < hw->cur_ud_idx; i++) {
+			mutex_lock(&hw->userdata_mutex);
+
+
+			p_userdata_rec = hw->userdata_info.records
+				+ hw->userdata_info.write_index;
+
+			hw->ud_record[i].meta_info.vpts_valid = pts_valid;
+			hw->ud_record[i].meta_info.vpts = pts;
+
+			*p_userdata_rec = hw->ud_record[i];
+#ifdef DUMP_USER_DATA
+			dump_userdata_info(hw,
+				hw->userdata_info.data_buf + p_userdata_rec->rec_start,
+				p_userdata_rec->rec_len,
+				&p_userdata_rec->meta_info,
+				hw->reference[i]);
+			hw->n_userdata_id++;
+#endif
+/*
+			pr_info("notify: rec_start:%d, rec_len:%d, wi:%d, reference:%d\n",
+				p_userdata_rec->rec_start,
+				p_userdata_rec->rec_len,
+				hw->userdata_info.write_index,
+				hw->reference[i]);
+*/
+			hw->userdata_info.write_index++;
+			if (hw->userdata_info.write_index >= USERDATA_FIFO_NUM)
+				hw->userdata_info.write_index = 0;
+
+			mutex_unlock(&hw->userdata_mutex);
+
+
+			vdec_wakeup_userdata_poll(hw_to_vdec(hw));
+		}
+		hw->wait_for_udr_send = 0;
+		hw->cur_ud_idx = 0;
+	}
+}
+
+static int vmmpeg2_user_data_read(struct vdec_s *vdec,
+	struct userdata_param_t *puserdata_para)
+{
+	struct vdec_mpeg12_hw_s *hw = NULL;
+	int rec_ri, rec_wi;
+	int rec_len;
+	u8 *rec_data_start;
+	u8 *pdest_buf;
+	struct mmpeg2_userdata_record_t *p_userdata_rec;
+	u32 data_size;
+	u32 res;
+	int copy_ok = 1;
+
+	hw = (struct vdec_mpeg12_hw_s *)vdec->private;
+
+	pdest_buf = puserdata_para->pbuf_addr;
+
+	mutex_lock(&hw->userdata_mutex);
+
+/*
+	pr_info("ri = %d, wi = %d\n",
+		hw->userdata_info.read_index,
+		hw->userdata_info.write_index);
+*/
+	rec_ri = hw->userdata_info.read_index;
+	rec_wi = hw->userdata_info.write_index;
+
+	if (rec_ri == rec_wi) {
+		mutex_unlock(&hw->userdata_mutex);
+		return 0;
+	}
+
+	p_userdata_rec = hw->userdata_info.records + rec_ri;
+
+	rec_len = p_userdata_rec->rec_len;
+	rec_data_start = p_userdata_rec->rec_start + hw->userdata_info.data_buf;
+/*
+	pr_info("ri:%d, wi:%d, rec_len:%d, rec_start:%d, buf_len:%d\n",
+		rec_ri, rec_wi,
+		p_userdata_rec->rec_len,
+		p_userdata_rec->rec_start,
+		puserdata_para->buf_len);
+*/
+	if (rec_len <= puserdata_para->buf_len) {
+		/* dvb user data buffer is enought to
+		copy the whole recored. */
+		data_size = rec_len;
+		if (rec_data_start + data_size
+			> hw->userdata_info.data_buf_end) {
+			int first_section_len;
+
+			first_section_len = hw->userdata_info.buf_len -
+				p_userdata_rec->rec_start;
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							first_section_len);
+			if (res) {
+				pr_info("p1 read not end res=%d, request=%d\n",
+					res, first_section_len);
+				copy_ok = 0;
+
+				p_userdata_rec->rec_len -=
+					first_section_len - res;
+				p_userdata_rec->rec_start +=
+					first_section_len - res;
+				puserdata_para->data_size =
+					first_section_len - res;
+			} else {
+				res = (u32)copy_to_user(
+					(void *)(pdest_buf+first_section_len),
+					(void *)hw->userdata_info.data_buf,
+					data_size - first_section_len);
+				if (res) {
+					pr_info("p2 read not end res=%d, request=%d\n",
+						res, data_size);
+					copy_ok = 0;
+				}
+				p_userdata_rec->rec_len -=
+					data_size - res;
+				p_userdata_rec->rec_start =
+					data_size - first_section_len - res;
+				puserdata_para->data_size =
+					data_size - res;
+			}
+		} else {
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							data_size);
+			if (res) {
+				pr_info("p3 read not end res=%d, request=%d\n",
+					res, data_size);
+				copy_ok = 0;
+			}
+			p_userdata_rec->rec_len -= data_size - res;
+			p_userdata_rec->rec_start += data_size - res;
+			puserdata_para->data_size = data_size - res;
+		}
+
+		if (copy_ok) {
+			hw->userdata_info.read_index++;
+			if (hw->userdata_info.read_index >= USERDATA_FIFO_NUM)
+				hw->userdata_info.read_index = 0;
+		}
+	} else {
+		/* dvb user data buffer is not enought
+		to copy the whole recored. */
+		data_size = puserdata_para->buf_len;
+		if (rec_data_start + data_size
+			> hw->userdata_info.data_buf_end) {
+			int first_section_len;
+
+			first_section_len = hw->userdata_info.buf_len -
+				p_userdata_rec->rec_start;
+			res = (u32)copy_to_user((void *)pdest_buf,
+						(void *)rec_data_start,
+						first_section_len);
+			if (res) {
+				pr_info("p4 read not end res=%d, request=%d\n",
+					res, first_section_len);
+				copy_ok = 0;
+				p_userdata_rec->rec_len -=
+					first_section_len - res;
+				p_userdata_rec->rec_start +=
+					first_section_len - res;
+				puserdata_para->data_size =
+					first_section_len - res;
+			} else {
+				/* first secton copy is ok*/
+				res = (u32)copy_to_user(
+					(void *)(pdest_buf+first_section_len),
+					(void *)hw->userdata_info.data_buf,
+					data_size - first_section_len);
+				if (res) {
+					pr_info("p5 read not end res=%d, request=%d\n",
+						res,
+						data_size - first_section_len);
+					copy_ok = 0;
+				}
+
+				p_userdata_rec->rec_len -=
+					data_size - res;
+				p_userdata_rec->rec_start =
+					data_size - first_section_len - res;
+				puserdata_para->data_size =
+					data_size - res;
+			}
+		} else {
+			res = (u32)copy_to_user((void *)pdest_buf,
+							(void *)rec_data_start,
+							data_size);
+			if (res) {
+				pr_info("p6 read not end res=%d, request=%d\n",
+					res, data_size);
+				copy_ok = 0;
+			}
+
+			p_userdata_rec->rec_len -= data_size - res;
+			p_userdata_rec->rec_start += data_size - res;
+			puserdata_para->data_size = data_size - res;
+		}
+
+		if (copy_ok) {
+			hw->userdata_info.read_index++;
+			if (hw->userdata_info.read_index >= USERDATA_FIFO_NUM)
+				hw->userdata_info.read_index = 0;
+		}
+
+	}
+	puserdata_para->meta_info = p_userdata_rec->meta_info;
+
+	if (hw->userdata_info.read_index <= hw->userdata_info.write_index)
+		puserdata_para->meta_info.records_in_que =
+			hw->userdata_info.write_index -
+			hw->userdata_info.read_index;
+	else
+		puserdata_para->meta_info.records_in_que =
+			hw->userdata_info.write_index +
+			USERDATA_FIFO_NUM -
+			hw->userdata_info.read_index;
+
+	puserdata_para->version = (0<<24|0<<16|0<<8|1);
+
+	mutex_unlock(&hw->userdata_mutex);
+
+
+	return 1;
+}
+
+static void vmmpeg2_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
+{
+	struct vdec_mpeg12_hw_s *hw = NULL;
+
+	hw = (struct vdec_mpeg12_hw_s *)vdec->private;
+
+	if (hw) {
+		mutex_lock(&hw->userdata_mutex);
+		pr_info("vmh264_reset_userdata_fifo: bInit: %d, ri: %d, wi: %d\n",
+			bInit,
+			hw->userdata_info.read_index,
+			hw->userdata_info.write_index);
+		hw->userdata_info.read_index = 0;
+		hw->userdata_info.write_index = 0;
+
+		if (bInit)
+			hw->userdata_info.last_wp = 0;
+		mutex_unlock(&hw->userdata_mutex);
+	}
+}
+
+static void vmmpeg2_wakeup_userdata_poll(struct vdec_s *vdec)
+{
+	amstream_wakeup_userdata_poll(vdec);
+}
+
+/*
+#define PRINT_HEAD_INFO
+*/
 static void userdata_push_do_work(struct work_struct *work)
 {
 	u32 reg;
-
-	struct userdata_poc_info_t user_data_poc;
-/*	struct vdec_mpeg12_hw_s *hw =
-		container_of(work, struct vdec_mpeg12_hw_s, work);*/
-	user_data_poc.poc_info = 0;
-	user_data_poc.poc_number = 0;
-	reg = READ_VREG(MREG_BUFFEROUT);
-	/*pr_info("%s,%d\n",__func__,__LINE__);*/
-
-	if (!hw->ccbuf_phyAddress_is_remaped_nocache &&
-		hw->ccbuf_phyAddress &&
-		hw->ccbuf_phyAddress_virt) {
-		codec_mm_dma_flush(
-			hw->ccbuf_phyAddress_virt,
-			CCBUF_SIZE,
-			DMA_FROM_DEVICE);
-	}
-	wakeup_userdata_poll(user_data_poc,
-		reg & 0xffff,
-		(unsigned long)hw->ccbuf_phyAddress_virt,
-		CCBUF_SIZE, 0);
-
-	WRITE_VREG(MREG_BUFFEROUT, 0);
-}
+	u8 *pdata;
+	u8 *psrc_data;
+	u8 head_info[8];
+	struct userdata_meta_info_t meta_info;
+	u32 wp;
+	u32 index;
+	u32 picture_struct;
+	u32 reference;
+	u32 picture_type;
+	u32 temp;
+	u32 data_length;
+	u32 data_start;
+	int i;
+	u32 offset;
+	u32 cur_wp;
+#ifdef PRINT_HEAD_INFO
+	u8 *ptype_str;
 #endif
+	struct mmpeg2_userdata_record_t *pcur_ud_rec;
+
+	struct vdec_mpeg12_hw_s *hw = container_of(work,
+					struct vdec_mpeg12_hw_s, userdata_push_work);
+
+
+	memset(&meta_info, 0, sizeof(meta_info));
+
+	meta_info.duration = hw->frame_dur;
+
+
+	reg = READ_VREG(AV_SCRATCH_J);
+	meta_info.flags = ((reg >> 30) << 1);
+	meta_info.flags |= (VFORMAT_MPEG12 << 3);
+	/* check  top_field_first flag */
+	if ((reg >> 28) & 0x1) {
+		meta_info.flags |= (1 << 10);
+		meta_info.flags |= (((reg >> 29) & 0x1) << 11);
+	}
+
+	cur_wp = reg & 0x7fff;
+	if (cur_wp == hw->ucode_cc_last_wp) {
+		debug_print(DECODE_ID(hw), 0,
+			"Null user data package: wp = %d\n", cur_wp);
+		WRITE_VREG(AV_SCRATCH_J, 0);
+		return;
+	}
+
+	if (hw->cur_ud_idx >= MAX_UD_RECORDS) {
+		debug_print(DECODE_ID(hw), 0,
+			"UD Records over: %d, skip it\n", MAX_UD_RECORDS);
+		WRITE_VREG(AV_SCRATCH_J, 0);
+		return;
+	}
+
+	if (cur_wp < hw->ucode_cc_last_wp)
+		hw->ucode_cc_last_wp = 0;
+
+	offset = READ_VREG(AV_SCRATCH_I);
+
+	codec_mm_dma_flush(
+		hw->ccbuf_phyAddress_virt,
+		CCBUF_SIZE,
+		DMA_FROM_DEVICE);
+
+	mutex_lock(&hw->userdata_mutex);
+	if (hw->ccbuf_phyAddress_virt) {
+		pdata = (u8 *)hw->ccbuf_phyAddress_virt + hw->ucode_cc_last_wp;
+		memcpy(head_info, pdata, 8);
+	} else
+		memset(head_info, 0, 8);
+	mutex_unlock(&hw->userdata_mutex);
+	aml_swap_data(head_info, 8);
+
+	wp = (head_info[0] << 8 | head_info[1]);
+	index = (head_info[2] << 8 | head_info[3]);
+
+	picture_struct = (head_info[6] << 8 | head_info[7]);
+	temp = (head_info[4] << 8 | head_info[5]);
+	reference = temp & 0x3FF;
+	picture_type = (temp >> 10) & 0x7;
+
+	if (debug_enable & PRINT_FLAG_USERDATA_DETAIL)
+		pr_info("index:%d, wp:%d, ref:%d, type:%d, struct:0x%x, u_last_wp:0x%x\n",
+			index, wp, reference,
+			picture_type, picture_struct,
+			hw->ucode_cc_last_wp);
+
+	switch (picture_type) {
+	case 1:
+			/* pr_info("I type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (1<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " I";
+#endif
+			break;
+	case 2:
+			/* pr_info("P type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (2<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " P";
+#endif
+			break;
+	case 3:
+			/* pr_info("B type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (3<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " B";
+#endif
+			break;
+	case 4:
+			/* pr_info("D type, pos:%d\n",
+					(meta_info.flags>>1)&0x3); */
+			meta_info.flags |= (4<<7);
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " D";
+#endif
+			break;
+	default:
+			/* pr_info("Unknown type:0x%x, pos:%d\n",
+					pheader->picture_coding_type,
+					(meta_info.flags>>1)&0x3); */
+#ifdef PRINT_HEAD_INFO
+			ptype_str = " U";
+#endif
+			break;
+	}
+#ifdef PRINT_HEAD_INFO
+	pr_info("ref:%d, type:%s, ext:%d, first:%d, data_length:%d\n",
+		reference, ptype_str,
+		(reg >> 30),
+		(reg >> 28)&0x3,
+		reg & 0xffff);
+#endif
+	data_length = cur_wp - hw->ucode_cc_last_wp;
+	data_start = reg & 0xffff;
+	psrc_data = (u8 *)hw->ccbuf_phyAddress_virt + hw->ucode_cc_last_wp;
+
+	pdata = hw->userdata_info.data_buf + hw->userdata_info.last_wp;
+	for (i = 0; i < data_length; i++) {
+		*pdata++ = *psrc_data++;
+		if (pdata >= hw->userdata_info.data_buf_end)
+			pdata = hw->userdata_info.data_buf;
+	}
+
+	pcur_ud_rec = hw->ud_record + hw->cur_ud_idx;
+
+	pcur_ud_rec->meta_info = meta_info;
+	pcur_ud_rec->rec_start = hw->userdata_info.last_wp;
+	pcur_ud_rec->rec_len = data_length;
+
+	hw->userdata_info.last_wp += data_length;
+	if (hw->userdata_info.last_wp >= USER_DATA_SIZE)
+		hw->userdata_info.last_wp -= USER_DATA_SIZE;
+
+	hw->wait_for_udr_send = 1;
+
+	hw->ucode_cc_last_wp = cur_wp;
+
+	if (debug_enable & PRINT_FLAG_USERDATA_DETAIL)
+		pr_info("cur_wp:%d, rec_start:%d, rec_len:%d\n",
+			cur_wp,
+			pcur_ud_rec->rec_start,
+			pcur_ud_rec->rec_len);
+
+#ifdef DUMP_USER_DATA
+	hw->reference[hw->cur_ud_idx] = reference;
+#endif
+
+	hw->cur_ud_idx++;
+	WRITE_VREG(AV_SCRATCH_J, 0);
+}
+
+
 static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 {
 	u32 reg, info, seqinfo, offset, pts, pts_valid = 0;
@@ -475,13 +1226,15 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 		return IRQ_HANDLED;
 	}
 
+	reg = READ_VREG(AV_SCRATCH_J);
+	if (reg & (1<<16)) {
+		vdec_schedule_work(&hw->userdata_push_work);
+		return IRQ_HANDLED;
+	}
+
 	reg = READ_VREG(MREG_BUFFEROUT);
 
-	if ((reg >> 16) == 0xfe) {
-		/*pr_info("%s,%d\n",__func__,__LINE__);*/
-		/*vdec_schedule_work(&userdata_push_work);*/
-		WRITE_VREG(MREG_BUFFEROUT, 0);
-	} else if (reg == 2) {
+	if (reg == 2) {
 		/*timeout when decoding next frame*/
 
 		debug_print(DECODE_ID(hw), PRINT_FLAG_VLD_DETAIL,
@@ -637,6 +1390,8 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 		pts_valid = hw->pts_valid[index];
 		pts = hw->pts[index];
 		pts_us64 = hw->pts64[index];
+
+		user_data_ready_notify(hw, pts, pts_valid);
 
 		if ((hw->first_i_frame_ready == 0) &&
 			((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_I) &&
@@ -1179,8 +1934,25 @@ static void vmpeg12_canvas_init(struct vdec_mpeg12_hw_s *hw)
 		}
 
 		if (i == (MAX_BMMU_BUFFER_NUM - 1)) {
+			if (hw->ccbuf_phyAddress_is_remaped_nocache)
+				codec_mm_unmap_phyaddr(hw->ccbuf_phyAddress_virt);
+			hw->ccbuf_phyAddress_virt = NULL;
+			hw->ccbuf_phyAddress = 0;
+			hw->ccbuf_phyAddress_is_remaped_nocache = 0;
+
 			hw->buf_start = decbuf_start;
 			hw->ccbuf_phyAddress = hw->buf_start + CTX_CCBUF_OFFSET;
+			hw->ccbuf_phyAddress_virt
+				= codec_mm_phys_to_virt(
+					hw->ccbuf_phyAddress);
+			if (!hw->ccbuf_phyAddress_virt) {
+				hw->ccbuf_phyAddress_virt
+					= codec_mm_vmap(
+						hw->ccbuf_phyAddress,
+						CCBUF_SIZE);
+				hw->ccbuf_phyAddress_is_remaped_nocache = 1;
+			}
+
 			WRITE_VREG(MREG_CO_MV_START, hw->buf_start);
 		} else {
 			if (vdec->parallel_dec == 1) {
@@ -1578,8 +2350,23 @@ static s32 vmpeg12_init(struct vdec_mpeg12_hw_s *hw)
 	fw->len = size;
 	hw->fw = fw;
 
+	INIT_WORK(&hw->userdata_push_work, userdata_push_do_work);
 	INIT_WORK(&hw->work, vmpeg12_work);
 	INIT_WORK(&hw->notify_work, vmpeg12_notify_work);
+
+	if (NULL == hw->user_data_buffer) {
+		hw->user_data_buffer = kmalloc(USER_DATA_SIZE,
+							GFP_KERNEL);
+		if (!hw->user_data_buffer) {
+			pr_info("%s: Can not allocate user_data_buffer\n",
+				   __func__);
+			return -1;
+		}
+	}
+
+	vmmpeg2_crate_userdata_manager(hw,
+			hw->user_data_buffer,
+			USER_DATA_SIZE);
 
 	amvdec_enable();
 
@@ -1836,6 +2623,11 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 	pdata->irq_handler = vmpeg12_isr;
 	pdata->threaded_irq_handler = vmpeg12_isr_thread_fn;
 	pdata->dump_state = vmpeg2_dump_state;
+
+	pdata->user_data_read = vmmpeg2_user_data_read;
+	pdata->reset_userdata_fifo = vmmpeg2_reset_userdata_fifo;
+	pdata->wakeup_userdata_poll = vmmpeg2_wakeup_userdata_poll;
+
 	if (pdata->use_vfm_path) {
 		snprintf(pdata->vf_provider_name, VDEC_PROVIDER_NAME_SIZE,
 			    VFM_DEC_PROVIDER_NAME);
@@ -1871,6 +2663,10 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 		vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
 					| CORE_MASK_COMBINE);
 	}
+#ifdef DUMP_USER_DATA
+	amvdec_mmpeg12_init_userdata_dump(hw);
+	reset_user_data_buf(hw);
+#endif
 
 	/*INIT_WORK(&userdata_push_work, userdata_push_do_work);*/
 	return 0;
@@ -1899,7 +2695,7 @@ static int ammvdec_mpeg12_remove(struct platform_device *pdev)
 		del_timer_sync(&hw->check_timer);
 		hw->stat &= ~STAT_TIMER_ARM;
 	}
-
+	cancel_work_sync(&hw->userdata_push_work);
 	cancel_work_sync(&hw->work);
 	cancel_work_sync(&hw->notify_work);
 
@@ -1919,6 +2715,22 @@ static int ammvdec_mpeg12_remove(struct platform_device *pdev)
 			vdec->free_canvas_ex(canvas_u(hw->canvas_spec[i]), vdec->id);
 		}
 	}
+
+	if (hw->ccbuf_phyAddress_is_remaped_nocache)
+		codec_mm_unmap_phyaddr(hw->ccbuf_phyAddress_virt);
+	hw->ccbuf_phyAddress_virt = NULL;
+	hw->ccbuf_phyAddress = 0;
+	hw->ccbuf_phyAddress_is_remaped_nocache = 0;
+
+	if (hw->user_data_buffer != NULL) {
+		kfree(hw->user_data_buffer);
+		hw->user_data_buffer = NULL;
+	}
+	vmmpeg2_destroy_userdata_manager(hw);
+
+#ifdef DUMP_USER_DATA
+	amvdec_mmpeg12_uninit_userdata_dump(hw);
+#endif
 
 	if (hw->fw) {
 		vfree(hw->fw);
