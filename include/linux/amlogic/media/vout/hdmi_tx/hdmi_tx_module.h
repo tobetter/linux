@@ -448,6 +448,7 @@ struct hdmitx_dev {
 	unsigned int flag_3dss:1;
 	unsigned int dongle_mode:1;
 	unsigned int drm_feature;/*Direct Rander Management*/
+	unsigned int cec_func_config;
 };
 
 #define CMD_DDC_OFFSET          (0x10 << 24)

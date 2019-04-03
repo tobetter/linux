@@ -1771,6 +1771,8 @@ static void cec_pre_init(void)
 			ao_ceca_init();
 	}
 
+	cec_config(cec_dev->tx_dev->cec_func_config, 1);
+
 	//need restore all logical address
 	if (cec_dev->cec_num > 1)
 		cec_restore_logical_addr(CEC_B, cec_dev->cec_info.addr_enable);
@@ -3457,8 +3459,6 @@ static int aml_cec_probe(struct platform_device *pdev)
 
 	/* irq set */
 	cec_irq_enable(false);
-	/* default enable all function*/
-	cec_config(CEC_FUNC_CFG_ALL, 1);
 	/* for init */
 	cec_pre_init();
 	/* cec hw module reset */
