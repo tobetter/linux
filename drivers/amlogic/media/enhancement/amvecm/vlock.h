@@ -23,7 +23,7 @@
 #include <linux/amlogic/media/vfm/vframe.h>
 #include "linux/amlogic/media/amvecm/ve.h"
 
-#define VLOCK_VER "Ref.2019/3/29a"
+#define VLOCK_VER "Ref.2019/4/02a"
 
 #define VLOCK_REG_NUM	33
 
