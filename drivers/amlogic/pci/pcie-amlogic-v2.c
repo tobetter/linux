@@ -57,7 +57,6 @@ struct amlogic_pcie {
 
 #define to_amlogic_pcie(x)	container_of(x, struct amlogic_pcie, pp)
 struct pcie_phy_aml_regs pcie_aml_regs_v2;
-struct pcie_phy		*g_pcie_phy_v2;
 
 static void amlogic_elb_writel(struct amlogic_pcie *amlogic_pcie, u32 val,
 								u32 reg)
@@ -673,6 +672,7 @@ static int __init amlogic_add_pcie_port(struct amlogic_pcie *amlogic_pcie,
 		dev_err(pp->dev, "link timeout, disable PCIE PLL\n");
 		clk_disable_unprepare(amlogic_pcie->bus_clk);
 		clk_disable_unprepare(amlogic_pcie->clk);
+		clk_disable_unprepare(amlogic_pcie->phy_clk);
 		dev_err(pp->dev, "power down pcie phy\n");
 		writel(0x1d, pcie_aml_regs_v2.pcie_phy_r[0]);
 		amlogic_pcie->phy->power_state = 0;
@@ -692,14 +692,14 @@ static void power_switch_to_pcie(struct pcie_phy *phy)
 	udelay(100);
 
 	val = readl((void __iomem *)(unsigned long)phy->reset_base);
-	writel((val & (~(0x1<<12))),
+	writel((val & (~(0x1<<phy->pcie_ctrl_a_rst_bit))),
 		(void __iomem *)(unsigned long)phy->reset_base);
 	udelay(100);
 
 	power_ctrl_iso(1, phy->pcie_ctrl_iso_shift);
 
 	val = readl((void __iomem *)(unsigned long)phy->reset_base);
-	writel((val | (0x1<<12)),
+	writel((val | (0x1<<phy->pcie_ctrl_a_rst_bit)),
 			(void __iomem	*)(unsigned long)phy->reset_base);
 	udelay(100);
 }
@@ -744,16 +744,6 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	pp->dev = dev;
 	port_num++;
 	amlogic_pcie->port_num = port_num;
-	if (amlogic_pcie->port_num == 1) {
-		phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
-		if (!phy) {
-			port_num--;
-			return -ENOMEM;
-		}
-		g_pcie_phy_v2 = phy;
-	}
-
-	amlogic_pcie->phy = g_pcie_phy_v2;
 
 	ret = of_property_read_u32(np, "pcie-apb-rst-bit", &pcie_apb_rst_bit);
 	if (ret)
@@ -767,6 +757,15 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 				&pcie_ctrl_a_rst_bit);
 	if (ret)
 		amlogic_pcie->rst_mod = 0;
+
+	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
+	if (!phy) {
+		port_num--;
+		return -ENOMEM;
+	}
+	phy->pcie_ctrl_a_rst_bit = pcie_ctrl_a_rst_bit;
+
+	amlogic_pcie->phy = phy;
 
 	ret = of_property_read_u32(np, "pcie-num", &pcie_num);
 	if (ret)
@@ -828,8 +827,8 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	if (!amlogic_pcie->phy->reset_base) {
 		reset_base = platform_get_resource_byname(
 			pdev, IORESOURCE_MEM, "reset");
-		amlogic_pcie->phy->reset_base = devm_ioremap_resource(
-			dev, reset_base);
+		amlogic_pcie->phy->reset_base = ioremap(reset_base->start,
+				resource_size(reset_base));
 		if (IS_ERR(amlogic_pcie->phy->reset_base)) {
 			ret = PTR_ERR(amlogic_pcie->phy->reset_base);
 			return ret;
@@ -901,10 +900,8 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 
 	if (!amlogic_pcie->phy->reset_state) {
 		rate = clk_get_rate(amlogic_pcie->bus_clk);
-		if (rate != PCIE_PLL_RATE) {
-			ret = -ENODEV;
-			goto fail_pcie;
-		}
+		if (rate != PCIE_PLL_RATE)
+			dev_info(dev, "pcie ref pll is 0x%lx\n", rate);
 	}
 
 	/*RESET0[6,7] = 1*/

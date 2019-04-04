@@ -13560,6 +13560,7 @@ F:	drivers/amlogic/esm/*
 AMLOGIC DWC_OTG USB
 M: Yue Wang <yue.wang@amlogic.com>
 F: drivers/amlogic/usb/*
+F: drivers/amlogic/usb/phy/phy-aml-new-otg.c
 F: drivers/usb/phy/phy-aml-new-usb.h
 F: drivers/usb/phy/phy-aml-new-usb.c
 F: drivers/usb/phy/phy-aml-new-usb2.c
@@ -13568,6 +13569,7 @@ F: drivers/usb/phy/phy-aml-new-usb-v2.h
 F: drivers/usb/phy/phy-aml-new-usb-v2.c
 F: drivers/usb/phy/phy-aml-new-usb2-v2.c
 F: drivers/usb/phy/phy-aml-new-usb3-v2.c
+F: drivers/amlogic/usb/phy/phy-aml-new-usb3-v3.c
 F: drivers/usb/phy/phy-aml-usb.h
 F: drivers/usb/phy/phy-aml-usb.c
 F: drivers/usb/phy/phy-aml-usb2.c

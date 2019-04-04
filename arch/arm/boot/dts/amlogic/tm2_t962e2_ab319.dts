@@ -1723,7 +1723,13 @@
 
 &usb3_phy_v2 {
 	status = "okay";
-	portnum = <0>;
+	portnum = <2>;
+	portconfig-30 = <1>;
+	portconfig-31 = <1>;
+};
+
+&usb_otg {
+	status = "okay";
 	otg = <0>;
 };
 
@@ -1731,6 +1737,17 @@
 	status = "okay";
 	/** 0: normal, 1: otg+dwc3 host only, 2: otg+dwc3 device only*/
 	controller-type = <1>;
+};
+
+&pcie_A {
+	reset-gpio = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
+	status = "disable";
+};
+
+&pcie_B {
+	/* pcie b reset gpio is the oe pad, must be changed */
+	reset-gpio = <&gpio GPIOH_22 GPIO_ACTIVE_HIGH>;
+	status = "disable";
 };
 
 &spicc0 {

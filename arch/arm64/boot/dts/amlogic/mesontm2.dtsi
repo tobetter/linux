@@ -24,6 +24,7 @@
 #include <dt-bindings/pwm/meson.h>
 #include <dt-bindings/clock/amlogic,tl1-clkc.h>
 #include <dt-bindings/clock/amlogic,tl1-audio-clk.h>
+#include <dt-bindings/phy/phy-amlogic-pcie.h>
 #include "mesong12a-bifrost.dtsi"
 #include <dt-bindings/iio/adc/amlogic-saradc.h>
 / {
@@ -398,6 +399,7 @@
 		clock-src = "usb3.0";
 		clocks = <&clkc CLKID_USB_GENERAL>;
 		clock-names = "dwc_general";
+		snps,quirk-frame-length-adjustment = <0x20>;
 	};
 
 	usb2_phy_v2: usb2phy@ffe09000 {
@@ -425,21 +427,42 @@
 	};
 
 	usb3_phy_v2: usb3phy@ffe09080 {
-		compatible = "amlogic, amlogic-new-usb3-v2";
+		compatible = "amlogic, amlogic-new-usb3-v3";
 		status = "disable";
-		reg = <0x0 0xffe09080 0x0 0x20
-			0x0 0xffd01008 0x0 0x100>;
-		phy-reg = <0xff646000>;
-		phy-reg-size = <0x2000>;
-		usb2-phy-reg = <0xffe09000>;
-		usb2-phy-reg-size = <0x80>;
-		interrupts = <0 16 4>;
+		reg = <0x0 0xffe09080 0x0 0x20>;
+		phy0-reg = <0xff646000>;
+		phy0-reg-size = <0x2000>;
+		phy1-reg = <0xff65c000>;
+		phy1-reg-size = <0x2000>;
+		reset-reg = <0xffd01008>;
+		reset-reg-size = <0x100>;
+		clocks = <&clkc CLKID_PCIE0_GATE
+				&clkc CLKID_PCIE_PLL
+				&clkc CLKID_PCIE1_GATE>;
+		clock-names = "pcie0_gate",
+				"pcie_refpll",
+				"pcie1_gate";
 		pwr-ctl = <1>;
-		u3-ctrl-sleep-shift = <18>;
-		u3-hhi-mem-pd-shift = <26>;
-		u3-hhi-mem-pd-mask = <0xf>;
-		u3-ctrl-iso-shift = <18>;
+		u30-ctrl-sleep-shift = <18>;
+		u30-hhi-mem-pd-shift = <26>;
+		u30-hhi-mem-pd-mask = <0xf>;
+		u30-ctrl-iso-shift = <18>;
+		usb30-ctrl-a-rst-bit = <12>;
+		u31-ctrl-sleep-shift = <20>;
+		u31-hhi-mem-pd-shift = <4>;
+		u31-hhi-mem-pd-mask = <0xf>;
+		u31-ctrl-iso-shift = <20>;
+		usb31-ctrl-a-rst-bit = <28>;
 	};
+
+	usb_otg: usbotg@ffe09080 {
+		compatible = "amlogic, amlogic-new-otg";
+		status = "disabled";
+		usb2-phy-reg = <0xffe09000>;
+		usb2-phy-reg-size = <0x100>;
+		interrupts = <0 16 4>;
+	};
+
 
 	dwc2_a: dwc2_a@ff400000 {
 		compatible = "amlogic, dwc2";
@@ -463,6 +486,7 @@
 		/** phy-interface: 0x0: amlogic-v1 phy, 0x1: synopsys phy **/
 		/**                0x2: amlogic-v2 phy                    **/
 		phy-interface = <0x2>;
+		phy-otg	= <0x1>;
 		clocks = <&clkc CLKID_USB_GENERAL
 					&clkc CLKID_USB1_TO_DDR>;
 		clock-names = "usb_general",
@@ -1124,6 +1148,92 @@
 		fifosize = < 64 >;
 		pinctrl-names = "default";
 		pinctrl-0 = <&c_uart_pins>;
+	};
+
+
+	pcie_A: pcieA@fc000000 {
+		compatible = "amlogic, amlogic-pcie-v2", "snps,dw-pcie";
+		reg = <0x0 0xfc000000 0x0 0x400000
+			0x0 0xff648000 0x0 0x2000
+			0x0 0xfc400000 0x0 0x200000
+			0x0 0xff646000 0x0 0x2000
+			0x0 0xffd01080 0x0 0x10>;
+		reg-names = "elbi", "cfg", "config", "phy", "reset";
+		interrupts = <0 221 0>;
+		#interrupt-cells = <1>;
+		bus-range = <0x0 0xff>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+		interrupt-map-mask = <0 0 0 0>;
+		interrupt-map = <0 0 0 0 &gic GIC_SPI 223 IRQ_TYPE_EDGE_RISING>;
+		device_type = "pci";
+		ranges = <0x81000000 0 0 0 0xfc600000 0x0 0x100000
+			/* downstream I/O */
+			0x82000000 0 0xfc700000 0x0 0xfc700000 0 0x1900000>;
+			/* non-prefetchable memory */
+		num-lanes = <1>;
+		pcie-num = <1>;
+
+		clocks = <&clkc CLKID_PCIE0_GATE
+			&clkc CLKID_PCIE1
+			&clkc CLKID_PCIE0PHY>;
+		clock-names = "pcie_refpll",
+				"pcie",
+				"pcie_phy";
+		/*reset-gpio-type 0:Shared pad(no reset)1:OD pad2:Normal pad*/
+		gpio-type = <2>;
+		pcie-apb-rst-bit = <15>;
+		pcie-phy-rst-bit = <14>;
+		pcie-ctrl-a-rst-bit = <12>;
+		pwr-ctl = <1>;
+		pcie-ctrl-sleep-shift = <18>;
+		pcie-hhi-mem-pd-shift = <26>;
+		pcie-hhi-mem-pd-mask = <0xf>;
+		pcie-ctrl-iso-shift = <18>;
+		status = "disabled";
+	};
+
+	pcie_B: pcieB@fc000000 {
+		compatible = "amlogic, amlogic-pcie-v2", "snps,dw-pcie";
+		reg = <0x0 0xfA000000 0x0 0x400000
+			0x0 0xff65E000 0x0 0x2000
+			0x0 0xfA400000 0x0 0x200000
+			0x0 0xff65C000 0x0 0x2000
+			0x0 0xffd01080 0x0 0x10>;
+		reg-names = "elbi", "cfg", "config", "phy",
+				"reset";
+		interrupts = <0 229 0>;
+		#interrupt-cells = <1>;
+		bus-range = <0x0 0xff>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+		interrupt-map-mask = <0 0 0 0>;
+		interrupt-map = <0 0 0 0 &gic GIC_SPI 231 IRQ_TYPE_EDGE_RISING>;
+		device_type = "pci";
+		ranges = <0x81000000 0 0 0 0xfA600000 0x0 0x100000
+			/* downstream I/O */
+			0x82000000 0 0xfA700000 0x0 0xfA700000 0 0x1900000>;
+			/* non-prefetchable memory */
+		num-lanes = <1>;
+		pcie-num = <1>;
+
+		clocks = <&clkc CLKID_PCIE1_GATE
+			&clkc CLKID_PCIE1
+			&clkc CLKID_PCIE1PHY>;
+		clock-names = "pcie_refpll",
+				"pcie",
+				"pcie_phy";
+		/*reset-gpio-type 0:Shared pad(no reset)1:OD pad2:Normal pad*/
+		gpio-type = <2>;
+		pcie-apb-rst-bit = <30>;
+		pcie-phy-rst-bit = <29>;
+		pcie-ctrl-a-rst-bit = <28>;
+		pwr-ctl = <1>;
+		pcie-ctrl-sleep-shift = <20>;
+		pcie-hhi-mem-pd-shift = <4>;
+		pcie-hhi-mem-pd-mask = <0xf>;
+		pcie-ctrl-iso-shift = <20>;
+		status = "disabled";
 	};
 
 	sd_emmc_c: emmc@ffe07000 {
