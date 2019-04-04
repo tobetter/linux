@@ -883,7 +883,7 @@ struct snd_soc_dai_driver aml_pdm_dai[] = {
 		.name = "PDM",
 		.capture = {
 			.channels_min =	PDM_CHANNELS_MIN,
-			.channels_max = PDM_CHANNELS_MAX,
+			.channels_max = PDM_CHANNELS_LB_MAX,
 			.rates        = PDM_RATES,
 			.formats      = PDM_FORMATS,
 		},
