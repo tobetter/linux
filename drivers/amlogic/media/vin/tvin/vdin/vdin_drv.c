@@ -296,8 +296,14 @@ static void vdin_game_mode_check(struct vdin_dev_s *devp)
 		(devp->parm.port != TVIN_PORT_CVBS3)) {
 		if (devp->h_active > 720 && ((devp->parm.info.fps == 50) ||
 			(devp->parm.info.fps == 60)))
-			devp->game_mode = (VDIN_GAME_MODE_0 | VDIN_GAME_MODE_1 |
-				VDIN_GAME_MODE_SWITCH_EN);
+			if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
+				devp->game_mode = (VDIN_GAME_MODE_0 |
+					VDIN_GAME_MODE_1 |
+					VDIN_GAME_MODE_SWITCH_EN);
+			} else {
+				devp->game_mode = (VDIN_GAME_MODE_0 |
+					VDIN_GAME_MODE_1);
+			}
 		else
 			devp->game_mode = VDIN_GAME_MODE_0;
 	} else if (game_mode == 2)/*for debug force game mode*/
@@ -591,7 +597,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	vdin_hw_enable(devp->addr_offset);
 	vdin_set_all_regs(devp);
 
-	if (is_meson_tl1_cpu()) {
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		if (devp->afbce_mode == 0)
 			vdin_write_mif_or_afbce(devp, VDIN_OUTPUT_TO_MIF);
 		else if (devp->afbce_mode == 1)
@@ -651,7 +657,8 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 				devp->index, jiffies_to_msecs(jiffies),
 				jiffies_to_msecs(jiffies)-devp->start_time);
 
-	if ((devp->afbce_mode == 1) && is_meson_tl1_cpu()) {
+	if ((devp->afbce_mode == 1) &&
+			(is_meson_tl1_cpu() || is_meson_tm2_cpu())) {
 		if ((devp->h_active >= 1920) && (devp->v_active >= 1080)) {
 			tl1_vdin1_preview_flag = 1;
 			tl1_vdin1_data_readied = 0;
@@ -696,7 +703,8 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	disable_irq_nosync(devp->irq);
 	afbc_init_flag[devp->index] = 0;
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
+			&& (devp->afbce_mode == 1)) {
 		while (i++ < afbc_write_down_timeout) {
 			if (vdin_afbce_read_writedown_flag())
 				break;
@@ -738,7 +746,8 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		vf_unreg_provider(&devp->vprov);
 	devp->dv.dv_config = 0;
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
+			&& (devp->afbce_mode == 1)) {
 		vdin_afbce_hw_disable();
 		vdin_afbce_soft_reset();
 	}
@@ -1418,7 +1427,8 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 
 	offset = devp->addr_offset;
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
+			&& (devp->afbce_mode == 1)) {
 		if (afbc_init_flag[devp->index] == 0) {
 			afbc_init_flag[devp->index] = 1;
 			/*set mem power on*/
@@ -1887,7 +1897,7 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 			vdin_vf_disp_mode_update(curr_wr_vfe, devp->vfp);
 	}
 	/*switch to game mode 2 from game mode 1,otherwise may appear blink*/
-	if (is_meson_tl1_cpu()) {
+	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
 		if (devp->game_mode & VDIN_GAME_MODE_SWITCH_EN) {
 			/* make sure phase lock for next few frames */
 			if (vlock_get_phlock_flag())
@@ -2293,7 +2303,8 @@ static int vdin_open(struct inode *inode, struct file *file)
 		return 0;
 	}
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+	if ((devp->afbce_mode == 1) &&
+		(is_meson_tl1_cpu() || is_meson_tm2_cpu()))
 		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_ON);
 
 	devp->flags |= VDIN_FLAG_FS_OPENED;
@@ -2342,7 +2353,8 @@ static int vdin_release(struct inode *inode, struct file *file)
 		return 0;
 	}
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+	if ((devp->afbce_mode == 1) &&
+		(is_meson_tl1_cpu() || is_meson_tm2_cpu()))
 		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_DOWN);
 
 	devp->flags &= (~VDIN_FLAG_FS_OPENED);
@@ -2991,7 +3003,11 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 		memset(&param, 0, sizeof(struct vdin_parm_s));
-		param.port = TVIN_PORT_VIU1;
+		if (is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+			is_meson_tm2_cpu())
+			param.port = TVIN_PORT_VIU1_WB0_VPP;
+		else
+			param.port = TVIN_PORT_VIU1;
 		param.reserved |= PARAM_STATE_HISTGRAM;
 		param.h_active = vdin_v4l2_param.width;
 		param.v_active = vdin_v4l2_param.height;
@@ -3277,7 +3293,10 @@ static int vdin_drv_probe(struct platform_device *pdev)
 		vdevp->afbce_mode = 0;
 		pr_info("no afbce mode found, use normal mode\n");
 	} else {
-		if ((is_meson_tl1_cpu()) && (vdevp->index == 0)) {
+		vdevp->afbce_mode = val & 0xf;
+		vdevp->afbce_lossy_en = (val>>4)&0xf;
+		if ((is_meson_tl1_cpu() || is_meson_tm2_cpu()) &&
+			(vdevp->index == 0)) {
 			/* just use afbce at vdin0 */
 			pr_info("afbce mode = %d\n", vdevp->afbce_mode);
 			vdevp->afbce_info = devm_kzalloc(vdevp->dev,
@@ -3309,12 +3328,15 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	if (is_meson_gxbb_cpu() && vdevp->index)
 		vdin_addr_offset[vdevp->index] = 0x70;
 	else if ((is_meson_g12a_cpu() || is_meson_g12b_cpu() ||
-		is_meson_tl1_cpu()) && vdevp->index)
+		is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tm2_cpu()) && vdevp->index)
 		vdin_addr_offset[vdevp->index] = 0x100;
 	vdevp->addr_offset = vdin_addr_offset[vdevp->index];
 	vdevp->flags = 0;
 	/*canvas align number*/
-	if (is_meson_g12a_cpu() || is_meson_g12b_cpu() || is_meson_tl1_cpu())
+	if (is_meson_g12a_cpu() || is_meson_g12b_cpu() ||
+		is_meson_tl1_cpu() || is_meson_sm1_cpu() ||
+		is_meson_tm2_cpu())
 		vdevp->canvas_align = 64;
 	else
 		vdevp->canvas_align = 32;
