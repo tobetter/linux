@@ -108,11 +108,15 @@ static long remote_ioctl(struct file *file, unsigned int cmd,
 			spin_lock_irqsave(&chip->slock, flags);
 			ptable = seek_map_tab(chip, ir_map->tab.custom_code);
 			if (ptable) {
+				dev_info(chip->dev, "remove custom_code 0x%08X from ir map table\n",
+					ir_map->tab.custom_code);
 				if (ptable == chip->cur_tab)
 					chip->cur_tab = ir_map;
 				list_del(&ptable->list);
 				ir_tab_free(ptable);
 			}
+			dev_info(chip->dev, "add custom_code 0x%08X to ir map table\n",
+				ir_map->tab.custom_code);
 			list_add_tail(&ir_map->list, &chip->map_tab_head);
 			spin_unlock_irqrestore(&chip->slock, flags);
 			chip->key_num.update_flag = false;

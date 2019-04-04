@@ -696,9 +696,7 @@ static int ir_get_devtree_pdata(struct platform_device *pdev)
 
 
 	/*create map table */
-	ret = get_custom_tables(pdev->dev.of_node, chip);
-	if (ret < 0)
-		return -1;
+	get_custom_tables(pdev->dev.of_node, chip);
 
 	return 0;
 }
