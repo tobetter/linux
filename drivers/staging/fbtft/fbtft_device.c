@@ -131,6 +131,31 @@ static void adafruit18_green_tab_set_addr_win(struct fbtft_par *par,
 		"D0 00 14 15 13 2C 42 43 4E 09 16 14 18 21\n" \
 		"D0 00 14 15 13 0B 43 55 53 0C 17 14 23 20"
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+static int odroid35_init_sequence[] = {
+	/* Fast SPI-LCD Init */
+	-1, 0xf1, 0x36, 0x04, 0x00, 0x3c, 0x0f, 0x8f,
+	-1, 0xf2, 0x18, 0xa3, 0x12, 0x02, 0xb2, 0x12, 0xff, 0x10, 0x00,
+	-1, 0xf8, 0x21, 0x04,
+	-1, 0xf9, 0x00, 0x08,
+	-1, 0x36, 0x08,
+	-1, 0xb4, 0x00,
+	-1, 0xc1, 0x41,
+	-1, 0xc5, 0x00, 0x91, 0x80, 0x00,
+	-1, 0xe0, 0x0f, 0x1f, 0x1c, 0x0c, 0x0f, 0x08, 0x48,
+	    0x98, 0x37, 0x0a, 0x13, 0x04, 0x11, 0x0d, 0x00,
+	-1, 0xe1, 0x0f, 0x32, 0x2e, 0x0b, 0x0d, 0x05, 0x47,
+	    0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00,
+	-1, 0x3a, 0x55,
+	-1, 0x11,
+	-1, 0x36, 0x28,
+	-2, 0xff,
+	-1, 0x29,
+	/* end marker */
+	-3,
+};
+#endif
+
 static int cberry28_init_sequence[] = {
 	/* turn off sleep mode */
 	-1, MIPI_DCS_EXIT_SLEEP_MODE,
@@ -920,6 +945,27 @@ static struct fbtft_device_display displays[] = {
 				.gpios = (const struct fbtft_gpio []) {
 					{ "reset", 480 },
 					{ "dc", 483 },
+					{},
+				},
+			}
+		}
+	}, {
+		.name = "odroid35",
+		.spi = &(struct spi_board_info) {
+			.modalias = "fb_ili9486",
+			.max_speed_hz = 150000000,
+			.mode = SPI_MODE_0,
+			.platform_data = &(struct fbtft_platform_data) {
+				.display = {
+					.regwidth = 16,
+					.buswidth = 8,
+					.backlight = 1,
+					.init_sequence = odroid35_init_sequence,
+				},
+				.bgr = true,
+				.gpios = (const struct fbtft_gpio []) {
+					{ "reset", 478 },
+					{ "dc", 477 },
 					{},
 				},
 			}

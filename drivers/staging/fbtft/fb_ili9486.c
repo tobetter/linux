@@ -25,6 +25,7 @@
 #define WIDTH		320
 #define HEIGHT		480
 
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 /* this init sequence matches PiScreen */
 static int default_init_sequence[] = {
 	/* Interface Mode Control */
@@ -51,6 +52,7 @@ static int default_init_sequence[] = {
 	/* end marker */
 	-3
 };
+#endif
 
 static void set_addr_win(struct fbtft_par *par, int xs, int ys, int xe, int ye)
 {
@@ -93,7 +95,9 @@ static struct fbtft_display display = {
 	.regwidth = 8,
 	.width = WIDTH,
 	.height = HEIGHT,
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 	.init_sequence = default_init_sequence,
+#endif
 	.fbtftops = {
 		.set_addr_win = set_addr_win,
 		.set_var = set_var,
