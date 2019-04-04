@@ -838,6 +838,9 @@ int binder_alloc_mmap_handler(struct binder_alloc *alloc,
 		goto err_get_vm_area_failed;
 	}
 	alloc->buffer = area->addr;
+#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
+	alloc->first_addr = area->addr;
+#endif
 	alloc->user_buffer_offset =
 		vma->vm_start - (uintptr_t)alloc->buffer;
 	mutex_unlock(&binder_alloc_mmap_lock);
@@ -958,6 +961,8 @@ void binder_alloc_deferred_release(struct binder_alloc *alloc)
 		vfree(alloc->buffer);
 	#ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
 		free_back_buffer(alloc);
+		if (alloc->first_addr && alloc->first_addr != alloc->buffer)
+			vfree(alloc->first_addr);
 	#endif
 	}
 	mutex_unlock(&alloc->mutex);

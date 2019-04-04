@@ -113,6 +113,7 @@ struct binder_alloc {
 #ifdef CONFIG_AMLOGIC_BINDER_VMALLOC
 	size_t mapped_size;
 	void *back_buffer[MAX_BUFFER];
+	void *first_addr;
 #endif /* CONFIG_AMLOGIC_BINDER_VMALLOC */
 	ptrdiff_t user_buffer_offset;
 	struct list_head buffers;
