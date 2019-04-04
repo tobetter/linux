@@ -120,6 +120,7 @@ static int high_priority_cmds[] = {
 	SCPI_CMD_SENSOR_CFG_BOUNDS,
 	SCPI_CMD_WAKEUP_REASON_GET,
 	SCPI_CMD_WAKEUP_REASON_CLR,
+	SCPI_CMD_INIT_DSP,
 };
 
 static struct scpi_dvfs_info *scpi_opps[MAX_DVFS_DOMAINS];
@@ -555,6 +556,29 @@ int scpi_clr_wakeup_reason(void)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(scpi_clr_wakeup_reason);
+
+int scpi_init_dsp_cfg0(u32 id, u32 addr, u32 cfg0)
+{
+	struct scpi_data_buf sdata;
+	struct mhu_data_buf mdata;
+	u32 temp = 0;
+	struct __packed {
+		u32 id;
+		u32 addr;
+		u32 cfg0;
+	} buf;
+	buf.id = id;
+	buf.addr = addr;
+	buf.cfg0 = cfg0;
+
+	SCPI_SETUP_DBUF(sdata, mdata, SCPI_CL_NONE,
+			SCPI_CMD_INIT_DSP, buf, temp);
+	if (scpi_execute_cmd(&sdata))
+		return -EPERM;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(scpi_init_dsp_cfg0);
 
 int scpi_get_cec_val(enum scpi_std_cmd index, u32 *p_cec)
 {
