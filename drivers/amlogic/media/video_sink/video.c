@@ -167,7 +167,7 @@ static DEFINE_MUTEX(omx_mutex);
 
 #define DURATION_GCD 750
 
-static bool bypass_cm;
+static bool bypass_cm = 1;
 
 static bool bypass_pps = true;
 /*For 3D usage ----0:  mbx   1: tv */

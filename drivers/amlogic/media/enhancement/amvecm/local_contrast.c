@@ -38,7 +38,7 @@ int amlc_debug;
 			pr_info("AMVE: " fmt, ## args);\
 	} while (0)
 
-int lc_en = 1;
+int lc_en;
 int lc_demo_mode;
 int lc_en_chflg = 0xff;
 static int lc_flag = 0xff;
