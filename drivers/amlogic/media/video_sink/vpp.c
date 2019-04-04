@@ -597,6 +597,10 @@ static unsigned int custom_ar;
 MODULE_PARM_DESC(custom_ar, "custom_ar");
 module_param(custom_ar, uint, 0664);
 
+static unsigned int force_no_compress;
+MODULE_PARM_DESC(force_no_compress, "force_no_compress");
+module_param(force_no_compress, uint, 0664);
+
 /*
  *test on txlx:
  *Time_out = (V_out/V_screen_total)/FPS_out;
@@ -886,6 +890,7 @@ static int vpp_set_filters_internal(
 	s32 vpp_zoom_center_x, vpp_zoom_center_y;
 	u32 crop_ratio = 1;
 	u32 crop_left, crop_right, crop_top, crop_bottom;
+	bool no_compress = false;
 
 	if (!input)
 		return VppFilter_Fail;
@@ -1424,9 +1429,17 @@ RESTART:
 
 	if ((vf->type & VIDTYPE_COMPRESS) &&
 		(vf->canvas0Addr != 0) &&
-		(next_frame_par->vscale_skip_count > 1) &&
 		(!next_frame_par->nocomp)) {
-		if (vpp_flags & VPP_FLAG_MORE_LOG)
+		if ((next_frame_par->vscale_skip_count > 1)
+			|| !input->afbc_support
+			|| force_no_compress)
+			no_compress = true;
+	} else
+		no_compress = false;
+
+	if (no_compress) {
+		if ((vpp_flags & VPP_FLAG_MORE_LOG)
+			&& input->afbc_support)
 			pr_info(
 			"layer%d: Try DW buffer for compressed frame scaling.\n",
 			input->layer_id);
@@ -2502,6 +2515,7 @@ static int vpp_set_filters_no_scaler_internal(
 	int ret = VppFilter_Success;
 	u32 crop_ratio = 1;
 	u32 crop_left, crop_right, crop_top, crop_bottom;
+	bool no_compress = false;
 
 	if (!input)
 		return VppFilter_Fail;
@@ -2818,9 +2832,17 @@ RESTART:
 
 	if ((vf->type & VIDTYPE_COMPRESS) &&
 		(vf->canvas0Addr != 0) &&
-		(next_frame_par->vscale_skip_count > 1) &&
 		(!next_frame_par->nocomp)) {
-		if (vpp_flags & VPP_FLAG_MORE_LOG)
+		if ((next_frame_par->vscale_skip_count > 1)
+			|| !input->afbc_support
+			|| force_no_compress)
+			no_compress = true;
+	} else
+		no_compress = false;
+
+	if (no_compress) {
+		if ((vpp_flags & VPP_FLAG_MORE_LOG)
+			&& input->afbc_support)
 			pr_info(
 			"layer%d: Try DW buffer for compressed frame scaling.\n",
 			input->layer_id);
@@ -2907,34 +2929,46 @@ int vpp_set_filters(
 	next_frame_par->VPP_post_blend_vd_h_start_ = 0;
 
 	next_frame_par->VPP_postproc_misc_ = 0x200;
-#ifdef TV_3D_FUNCTION_OPEN
 	next_frame_par->vscale_skip_count = 0;
 	next_frame_par->hscale_skip_count = 0;
+
+	if (vf->type & VIDTYPE_COMPRESS) {
+		src_width = vf->compWidth;
+		src_height = vf->compHeight;
+	} else {
+		src_width = vf->width;
+		src_height = vf->height;
+	}
+
+#ifdef TV_3D_FUNCTION_OPEN
 	/*
 	 *check 3d mode change in display buffer or 3d type
 	 *get the source size according to 3d mode
 	 */
-	if (process_3d_type & MODE_3D_ENABLE) {
-		vpp_get_video_source_size(&src_width, &src_height,
-			process_3d_type, vf, next_frame_par);
-	} else {
-		if (vf->type & VIDTYPE_COMPRESS) {
-			src_width = vf->compWidth;
-			src_height = vf->compHeight;
+	if (local_input.layer_id == 0) {
+		if (process_3d_type & MODE_3D_ENABLE) {
+			vpp_get_video_source_size(
+				&src_width, &src_height,
+				process_3d_type,
+				vf, next_frame_par);
 		} else {
-			src_width = vf->width;
-			src_height = vf->height;
+			next_frame_par->vpp_3d_mode =
+				VPP_3D_MODE_NULL;
+			next_frame_par->vpp_2pic_mode = 0;
+			next_frame_par->vpp_3d_scale = 0;
 		}
+		next_frame_par->trans_fmt = vf->trans_fmt;
+		get_vpp_3d_mode(process_3d_type,
+			next_frame_par->trans_fmt,
+			&next_frame_par->vpp_3d_mode);
+		if (local_input.vpp_3d_scale)
+			next_frame_par->vpp_3d_scale = 1;
+	} else {
 		next_frame_par->vpp_3d_mode = VPP_3D_MODE_NULL;
 		next_frame_par->vpp_2pic_mode = 0;
 		next_frame_par->vpp_3d_scale = 0;
+		next_frame_par->trans_fmt = vf->trans_fmt;
 	}
-	next_frame_par->trans_fmt = vf->trans_fmt;
-	get_vpp_3d_mode(process_3d_type,
-		next_frame_par->trans_fmt,
-		&next_frame_par->vpp_3d_mode);
-	if (local_input.vpp_3d_scale)
-		next_frame_par->vpp_3d_scale = 1;
 	amlog_mask(LOG_MASK_VPP, "%s: src_width %u,src_height %u.\n", __func__,
 		src_width, src_height);
 #endif
@@ -2970,15 +3004,6 @@ int vpp_set_filters(
 
 	if (vf->type & VIDTYPE_VSCALE_DISABLE)
 		vpp_flags |= VPP_FLAG_VSCALE_DISABLE;
-#ifndef TV_3D_FUNCTION_OPEN
-	if (vf->type & VIDTYPE_COMPRESS) {
-		src_width = vf->compWidth;
-		src_height = vf->compHeight;
-	} else {
-		src_width = vf->width;
-		src_height = vf->height;
-	}
-#endif
 
 	if ((vf->ratio_control & DISP_RATIO_ADAPTED_PICMODE)
 		&& !disable_adapted) {
@@ -3010,6 +3035,9 @@ int vpp_set_filters(
 		}
 	}
 
+	if (!local_input.pps_support)
+		wide_mode = VIDEO_WIDEOPTION_NORMAL;
+
 	/* don't restore the wide mode */
 	/* input->wide_mode = wide_mode; */
 	vpp_flags |= wide_mode | (aspect_ratio << VPP_FLAG_AR_BITS);
@@ -3024,10 +3052,16 @@ int vpp_set_filters(
 	next_frame_par->VPP_post_blend_vd_h_end_ = vinfo->width - 1;
 	next_frame_par->VPP_post_blend_h_size_ = vinfo->width;
 
-	ret = vpp_set_filters_internal(
-		&local_input, src_width, src_height,
-		vinfo->width, vinfo->height,
-		vinfo, vpp_flags, next_frame_par, vf);
+	if (local_input.pps_support)
+		ret = vpp_set_filters_internal(
+			&local_input, src_width, src_height,
+			vinfo->width, vinfo->height,
+			vinfo, vpp_flags, next_frame_par, vf);
+	else
+		ret = vpp_set_filters_no_scaler_internal(
+			&local_input, src_width, src_height,
+			vinfo->width, vinfo->height,
+			vinfo, vpp_flags, next_frame_par, vf);
 
 	/*config super scaler after set next_frame_par is calc ok for pps*/
 	if (local_input.layer_id == 0)
@@ -3039,93 +3073,6 @@ int vpp_set_filters(
 	return ret;
 }
 
-int vpp_set_filters_no_scaler(
-	struct disp_info_s *input,
-	struct vframe_s *vf,
-	struct vpp_frame_par_s *next_frame_par,
-	const struct vinfo_s *vinfo, u32 op_flag)
-{
-	u32 src_width = 0;
-	u32 src_height = 0;
-	u32 vpp_flags = 0;
-	u32 aspect_ratio = 0;
-	u32 wide_mode;
-	int ret = VppFilter_Fail;
-	struct disp_info_s local_input;
-
-	if (!input)
-		return ret;
-
-	WARN_ON(vinfo == NULL);
-
-	/* use local var to avoid the input data be overwriten */
-	memcpy(&local_input, input, sizeof(struct disp_info_s));
-	/* wide_mode = local_input.wide_mode; */
-	wide_mode = VIDEO_WIDEOPTION_NORMAL;
-	next_frame_par->VPP_post_blend_vd_v_start_ = 0;
-	next_frame_par->VPP_post_blend_vd_h_start_ = 0;
-
-	next_frame_par->VPP_postproc_misc_ = 0x200;
-	next_frame_par->vscale_skip_count = 0;
-	next_frame_par->hscale_skip_count = 0;
-	if (vf->type & VIDTYPE_COMPRESS) {
-		src_width = vf->compWidth;
-		src_height = vf->compHeight;
-	} else {
-		src_width = vf->width;
-		src_height = vf->height;
-	}
-#ifdef TV_3D_FUNCTION_OPEN
-	next_frame_par->vpp_3d_mode = VPP_3D_MODE_NULL;
-	next_frame_par->vpp_2pic_mode = 0;
-	next_frame_par->vpp_3d_scale = 0;
-	next_frame_par->trans_fmt = vf->trans_fmt;
-#endif
-
-	if (vf->type & VIDTYPE_INTERLACE)
-		vpp_flags = VPP_FLAG_INTERLACE_IN;
-
-	if ((vf->ratio_control & DISP_RATIO_ADAPTED_PICMODE)
-		&& !disable_adapted) {
-		if (vf->pic_mode.provider == PIC_MODE_PROVIDER_WSS) {
-			/* from wss, need add global setting */
-			local_input.crop_top += vf->pic_mode.vs;
-			local_input.crop_left += vf->pic_mode.hs;
-			local_input.crop_bottom += vf->pic_mode.ve;
-			local_input.crop_right += vf->pic_mode.he;
-		} else {
-			/* from PQ database, final setting */
-			local_input.crop_top = vf->pic_mode.vs;
-			local_input.crop_left = vf->pic_mode.hs;
-			local_input.crop_bottom = vf->pic_mode.ve;
-			local_input.crop_right = vf->pic_mode.he;
-		}
-	}
-
-	aspect_ratio =
-		(vf->ratio_control & DISP_RATIO_ASPECT_RATIO_MASK)
-		>> DISP_RATIO_ASPECT_RATIO_BIT;
-
-	/* don't restore the wide mode */
-	/* input->wide_mode = wide_mode; */
-	vpp_flags |= wide_mode | (aspect_ratio << VPP_FLAG_AR_BITS);
-
-	if (vinfo->field_height != vinfo->height)
-		vpp_flags |= VPP_FLAG_INTERLACE_OUT;
-
-	if (op_flag & 1)
-		vpp_flags |= VPP_FLAG_MORE_LOG;
-
-	next_frame_par->VPP_post_blend_vd_v_end_ = vinfo->field_height - 1;
-	next_frame_par->VPP_post_blend_vd_h_end_ = vinfo->width - 1;
-	next_frame_par->VPP_post_blend_h_size_ = vinfo->width;
-
-	ret = vpp_set_filters_no_scaler_internal(
-		&local_input, src_width, src_height,
-		vinfo->width, vinfo->height,
-		vinfo, vpp_flags, next_frame_par, vf);
-	return ret;
-}
 s32 vpp_set_nonlinear_factor(
 	struct disp_info_s *info, u32 f)
 {

@@ -188,6 +188,9 @@ struct disp_info_s {
 	u32 zorder;
 	u32 cur_sel_port;
 	u32 last_sel_port;
+
+	bool afbc_support;
+	bool pps_support;
 };
 
 enum select_scaler_path_e {
@@ -287,12 +290,6 @@ extern int vpp_set_filters(
 	struct vpp_frame_par_s *next_frame_par,
 	const struct vinfo_s *vinfo,
 	bool bypass_sr, u32 op_flag);
-
-extern int vpp_set_filters_no_scaler(
-	struct disp_info_s *input,
-	struct vframe_s *vf,
-	struct vpp_frame_par_s *next_frame_par,
-	const struct vinfo_s *vinfo, u32 op_flag);
 
 extern s32 vpp_set_nonlinear_factor(
 	struct disp_info_s *info, u32 f);
