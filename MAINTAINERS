@@ -14434,7 +14434,6 @@ F:	include/linux/amlogic/meson_cooldev.h
 AMLOGIC G12A Audio DRIVER
 M:	Xing Wang <xing.wang@amlogic.com>
 F:	sound/soc/amlogic/auge/*
-F:	sound/soc/codec/amlogic/*
 
 AMLOGIC G12A BL_EXTERN LP8556 DRIVER
 M:      Weiming Liu <weiming.liu@amlogic.com>

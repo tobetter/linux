@@ -132,6 +132,30 @@ struct tdm_chipinfo sm1_tdmc_chipinfo = {
 	.lane_cnt    = LANE_MAX1,
 };
 
+struct tdm_chipinfo tm2_tdma_chipinfo = {
+	.id          = TDM_A,
+	.sclk_ws_inv = true,
+	.oe_fn       = true,
+	.same_src_fn = true,
+	.lane_cnt    = LANE_MAX0,
+};
+
+struct tdm_chipinfo tm2_tdmb_chipinfo = {
+	.id          = TDM_B,
+	.sclk_ws_inv = true,
+	.oe_fn       = true,
+	.same_src_fn = true,
+	.lane_cnt    = LANE_MAX3,
+};
+
+struct tdm_chipinfo tm2_tdmc_chipinfo = {
+	.id          = TDM_C,
+	.sclk_ws_inv = true,
+	.oe_fn       = true,
+	.same_src_fn = true,
+	.lane_cnt    = LANE_MAX1,
+};
+
 static const struct of_device_id aml_tdm_device_id[] = {
 	{
 		.compatible = "amlogic, axg-snd-tdma",
@@ -180,6 +204,18 @@ static const struct of_device_id aml_tdm_device_id[] = {
 	{
 		.compatible = "amlogic, sm1-snd-tdmc",
 		.data		= &sm1_tdmc_chipinfo,
+	},
+	{
+		.compatible = "amlogic, tm2-snd-tdma",
+		.data		= &tm2_tdma_chipinfo,
+	},
+	{
+		.compatible = "amlogic, tm2-snd-tdmb",
+		.data		= &tm2_tdmb_chipinfo,
+	},
+	{
+		.compatible = "amlogic, tm2-snd-tdmc",
+		.data		= &tm2_tdmc_chipinfo,
 	},
 	{},
 };

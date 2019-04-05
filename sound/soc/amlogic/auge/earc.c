@@ -625,6 +625,9 @@ static const struct of_device_id earc_device_id[] = {
 	{
 		.compatible = "amlogic, sm1-snd-earc",
 	},
+	{
+		.compatible = "amlogic, tm2-snd-earc",
+	},
 	{},
 };
 
@@ -664,7 +667,7 @@ static int earc_platform_probe(struct platform_device *pdev)
 	if (IS_ERR(p_earc->clk_rx_gate)) {
 		dev_err(&pdev->dev,
 			"Can't get earc gate\n");
-		return PTR_ERR(p_earc->clk_rx_gate);
+		/*return PTR_ERR(p_earc->clk_rx_gate);*/
 	}
 	/* RX */
 	p_earc->clk_rx_cmdc = devm_clk_get(&pdev->dev, "rx_cmdc");

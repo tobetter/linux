@@ -23,7 +23,7 @@
 #include <dt-bindings/pwm/pwm.h>
 #include <dt-bindings/pwm/meson.h>
 #include <dt-bindings/clock/amlogic,tl1-clkc.h>
-#include <dt-bindings/clock/amlogic,tl1-audio-clk.h>
+#include <dt-bindings/clock/amlogic,tm2-audio-clk.h>
 #include <dt-bindings/phy/phy-amlogic-pcie.h>
 #include "mesong12a-bifrost.dtsi"
 #include <dt-bindings/iio/adc/amlogic-saradc.h>
@@ -634,7 +634,7 @@
 			ranges = <0x0 0xff600000 0x10000>;
 
 			clkaudio:audio_clocks {
-				compatible = "amlogic, tl1-audio-clocks";
+				compatible = "amlogic, tm2-audio-clocks";
 				#clock-cells = <1>;
 				reg = <0x0 0xb0>;
 			};
@@ -676,13 +676,22 @@
 				reg = <0xFF601400 0x400>;
 			};
 			eqdrc_base {
-				reg = <0xFF602000 0x2000>;
+				reg = <0xFF602000 0x1000>;
 			};
 			reset_base {
 				reg = <0xFFD01000 0x1000>;
 			};
 			vad_base {
-				reg = <0xFF601800 0x800>;
+				reg = <0xFF601800 0x400>;
+			};
+			earcrx_cdmc_base {
+				reg = <0xFF603800 0x30>;
+			};
+			earcrx_dmac_base {
+				reg = <0xFF603C00 0x20>;
+			};
+			earcrx_top_base {
+				reg = <0xFF603E00 0x10>;
 			};
 		};
 

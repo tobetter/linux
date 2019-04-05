@@ -406,7 +406,7 @@ void aml_toddr_set_fifos(struct toddr *to, unsigned int thresh)
 
 	if (to->chipinfo && to->chipinfo->ugt) {
 		reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL0, reg_base);
-		aml_audiobus_update_bits(actrl, reg, 0x0 << 0, 0x1 << 0);
+		aml_audiobus_update_bits(actrl, reg, 0x1, 0x1);
 	}
 }
 
@@ -1317,8 +1317,8 @@ void aml_frddr_set_fifos(struct frddr *fr,
 			(depth - 1)<<24 | (thresh - 1)<<16 | 2<<8);
 
 	if (fr->chipinfo && fr->chipinfo->ugt) {
-		reg = calc_toddr_address(EE_AUDIO_FRDDR_A_CTRL0, reg_base);
-		aml_audiobus_update_bits(actrl, reg, 0x0 << 0, 0x1 << 0);
+		reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL0, reg_base);
+		aml_audiobus_update_bits(actrl, reg, 0x1, 0x1);
 	}
 }
 

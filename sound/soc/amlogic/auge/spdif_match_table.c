@@ -92,6 +92,20 @@ struct spdif_chipinfo sm1_spdif_b_chipinfo = {
 	.eq_drc_en    = true,
 };
 
+struct spdif_chipinfo tm2_spdif_a_chipinfo = {
+	.id           = SPDIF_A,
+	.chnum_en     = true,
+	.hold_start   = true,
+	.eq_drc_en    = true,
+};
+
+struct spdif_chipinfo tm2_spdif_b_chipinfo = {
+	.id           = SPDIF_B,
+	.chnum_en     = true,
+	.hold_start   = true,
+	.eq_drc_en    = true,
+};
+
 static const struct of_device_id aml_spdif_device_id[] = {
 	{
 		.compatible = "amlogic, axg-snd-spdif",
@@ -120,6 +134,14 @@ static const struct of_device_id aml_spdif_device_id[] = {
 	{
 		.compatible = "amlogic, sm1-snd-spdif-b",
 		.data		= &sm1_spdif_b_chipinfo,
+	},
+	{
+		.compatible = "amlogic, tm2-snd-spdif-a",
+		.data		= &tm2_spdif_a_chipinfo,
+	},
+	{
+		.compatible = "amlogic, tm2-snd-spdif-b",
+		.data		= &tm2_spdif_b_chipinfo,
 	},
 	{},
 };

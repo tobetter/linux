@@ -877,6 +877,10 @@ static const struct of_device_id auge_of_match[] = {
 		.compatible = "amlogic, tl1-sound-card",
 		.data       = &tl1_chipset_info,
 	},
+	{
+		.compatible = "amlogic, tm2-sound-card",
+		.data       = &tl1_chipset_info,
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, auge_of_match);
@@ -919,9 +923,8 @@ static int aml_card_probe(struct platform_device *pdev)
 
 		ret = aml_card_parse_of(np, priv);
 		if (ret < 0) {
-			if (ret != -EPROBE_DEFER)
-				dev_err(dev, "%s, parse error %d\n",
-					__func__, ret);
+			dev_err(dev, "%s, parse error %d\n",
+			    __func__, ret);
 			goto err;
 		}
 

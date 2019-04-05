@@ -5,6 +5,7 @@ obj-$(CONFIG_AMLOGIC_SND_SOC_AUGE)	+= audio_controller.o \
 						g12a,clocks.o \
 						tl1,clocks.o \
 						sm1,clocks.o \
+						tm2,clocks.o \
 						card.o \
 						card_utils.o \
 						tdm.o \
