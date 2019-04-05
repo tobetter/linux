@@ -92,7 +92,7 @@ extern int *lc_hist;/*12*8*17*/
 extern struct ve_lc_curve_parm_s lc_curve_parm_load;
 extern struct lc_alg_param_s lc_alg_parm;
 
-extern void lc_init(void);
+extern void lc_init(int bitdepth);
 extern void lc_process(struct vframe_s *vf,
 	unsigned int sps_h_en,
 	unsigned int sps_v_en);

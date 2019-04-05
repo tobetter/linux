@@ -38,7 +38,7 @@ int amlc_debug;
 			pr_info("AMVE: " fmt, ## args);\
 	} while (0)
 
-int lc_en;
+int lc_en = 1;
 int lc_demo_mode;
 int lc_en_chflg = 0xff;
 static int lc_flag = 0xff;
@@ -119,7 +119,8 @@ static unsigned int lc_satur_off[63] = {
 /*local contrast begin*/
 static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
 	enum lc_mtx_csc_e mtx_csc,
-	int mtx_en)
+	int mtx_en,
+	int bitdepth)
 {
 	unsigned int matrix_coef00_01 = 0;
 	unsigned int matrix_coef02_10 = 0;
@@ -182,7 +183,16 @@ static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
 			WRITE_VPP_REG(matrix_coef11_12, 0xed601c2);
 			WRITE_VPP_REG(matrix_coef20_21, 0x01c20e87);
 			WRITE_VPP_REG(matrix_coef22, 0x0000fb7);
-			WRITE_VPP_REG(matrix_offset0_1, 0x00400200);
+			if (bitdepth == 10) {
+				WRITE_VPP_REG(matrix_offset0_1, 0x00400200);
+				WRITE_VPP_REG(matrix_clip, 0x3ff);
+			} else if (bitdepth == 12) {
+				WRITE_VPP_REG(matrix_offset0_1, 0x01000800);
+				WRITE_VPP_REG(matrix_clip, 0xfff);
+			} else {
+				WRITE_VPP_REG(matrix_offset0_1, 0x00400200);
+				WRITE_VPP_REG(matrix_clip, 0x3ff);
+			}
 		} else if (mtx_sel & STAT_MTX) {
 			WRITE_VPP_REG(matrix_coef00_01, 0x00bb0275);
 			WRITE_VPP_REG(matrix_coef02_10, 0x003f1f99);
@@ -202,7 +212,16 @@ static void lc_mtx_set(enum lc_mtx_sel_e mtx_sel,
 			WRITE_VPP_REG(matrix_coef11_12, 0xf9c0f30);
 			WRITE_VPP_REG(matrix_coef20_21, 0x12a0204);
 			WRITE_VPP_REG(matrix_coef22, 0x0);
-			WRITE_VPP_REG(matrix_pre_offset0_1, 0x00400200);
+			if (bitdepth == 10) {
+				WRITE_VPP_REG(matrix_pre_offset0_1, 0x00400200);
+				WRITE_VPP_REG(matrix_clip, 0x3ff);
+			} else if (bitdepth == 12) {
+				WRITE_VPP_REG(matrix_pre_offset0_1, 0x01000800);
+				WRITE_VPP_REG(matrix_clip, 0xfff);
+			} else {
+				WRITE_VPP_REG(matrix_pre_offset0_1, 0x00400200);
+				WRITE_VPP_REG(matrix_clip, 0x3ff);
+			}
 		} else if (mtx_sel & STAT_MTX) {
 			WRITE_VPP_REG(matrix_coef00_01, 0x04A80000);
 			WRITE_VPP_REG(matrix_coef02_10, 0x072C04A8);
@@ -356,7 +375,8 @@ static void lc_stts_en(int enable,
 	int eol_en,
 	int hist_mode,
 	int lpf_en,
-	int din_sel)
+	int din_sel,
+	int bitdepth)
 {
 	int data32;
 
@@ -369,7 +389,7 @@ static void lc_stts_en(int enable,
 	data32 = data32 | ((lpf_en & 0x1) << 21);
 	WRITE_VPP_REG(LC_STTS_HIST_REGION_IDX, data32);
 
-	lc_mtx_set(STAT_MTX, LC_MTX_YUV709L_RGB, enable);
+	lc_mtx_set(STAT_MTX, LC_MTX_YUV709L_RGB, enable, bitdepth);
 
 	WRITE_VPP_REG_BITS(LC_STTS_CTRL0, din_sel, 3, 3);
 	/*lc hist stts enable*/
@@ -459,7 +479,7 @@ static void lc_blk_bdry_config(unsigned int height, unsigned int width)
 }
 
 static void lc_top_config(int enable, int h_num, int v_num,
-	unsigned int height, unsigned int width)
+	unsigned int height, unsigned int width, int bitdepth)
 {
 	/*lcinput_ysel*/
 	WRITE_VPP_REG_BITS(SRSHARP1_LC_INPUT_MUX, 5, 4, 3);
@@ -481,8 +501,8 @@ static void lc_top_config(int enable, int h_num, int v_num,
 	WRITE_VPP_REG_BITS(SRSHARP1_LC_TOP_CTRL, 0, 16, 1);
 	/*lc enable need set at last*/
 	WRITE_VPP_REG_BITS(SRSHARP1_LC_TOP_CTRL, enable, 4, 1);
-	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
-	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
+	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1, bitdepth);
+	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1, bitdepth);
 }
 
 static void lc_disable(void)
@@ -499,7 +519,8 @@ static void lc_disable(void)
 static void lc_config(int enable,
 	struct vframe_s *vf,
 	unsigned int sps_h_en,
-	unsigned int sps_v_en)
+	unsigned int sps_v_en,
+	int bitdepth)
 {
 	int h_num, v_num;
 	unsigned int height, width;
@@ -529,14 +550,14 @@ static void lc_config(int enable,
 	vf_width = vf->width;
 
 	if (vf_height < 720) {
-		lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
-		lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
+		lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1, bitdepth);
+		lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1, bitdepth);
 	} else {
-		lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
-		lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
+		lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1, bitdepth);
+		lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1, bitdepth);
 	}
 
-	lc_top_config(enable, h_num, v_num, height, width);
+	lc_top_config(enable, h_num, v_num, height, width, bitdepth);
 
 	if (sps_h_en == 1)
 		width /= 2;
@@ -545,7 +566,7 @@ static void lc_config(int enable,
 
 	lc_curve_ctrl_config(enable, height, width);
 	lc_stts_blk_config(enable, height, width);
-	lc_stts_en(enable, height, width, 0, 0, 1, 1, 4);
+	lc_stts_en(enable, height, width, 0, 0, 1, 1, 4, bitdepth);
 }
 
 static void read_lc_curve(int blk_vnum, int blk_hnum)
@@ -1203,7 +1224,7 @@ static void lc_prt_curve(void)
 	}
 }
 
-void lc_init(void)
+void lc_init(int bitdepth)
 {
 	int h_num, v_num;
 	unsigned int height, width;
@@ -1240,9 +1261,7 @@ void lc_init(void)
 	if (!lc_en)
 		return;
 
-	lc_top_config(0, h_num, v_num, height, width);
-	lc_mtx_set(INP_MTX, LC_MTX_YUV709L_RGB, 1);
-	lc_mtx_set(OUTP_MTX, LC_MTX_RGB_YUV709L, 1);
+	lc_top_config(0, h_num, v_num, height, width, bitdepth);
 	WRITE_VPP_REG_BITS(LC_CURVE_RAM_CTRL, 0, 0, 1);
 
 	/*default LC low parameters*/
@@ -1285,9 +1304,18 @@ void lc_process(struct vframe_s *vf,
 	unsigned int sps_v_en)
 {
 	int blk_hnum, blk_vnum, dwTemp;
+	int bitdepth;
 
 	if (get_cpu_type() < MESON_CPU_MAJOR_ID_TL1)
 		return;
+
+	if (is_meson_tl1_cpu())
+		bitdepth = 10;
+	else if (is_meson_tm2_cpu())
+		bitdepth = 12;
+	else
+		bitdepth = 12;
+
 	if (!lc_en) {
 		lc_disable();
 		return;
@@ -1311,7 +1339,7 @@ void lc_process(struct vframe_s *vf,
 	dwTemp = READ_VPP_REG(LC_CURVE_HV_NUM);
 	blk_hnum = (dwTemp >> 8) & 0x1f;
 	blk_vnum = (dwTemp) & 0x1f;
-	lc_config(lc_en, vf, sps_h_en, sps_v_en);
+	lc_config(lc_en, vf, sps_h_en, sps_v_en, bitdepth);
 	/*get each block curve*/
 	read_lc_curve(blk_vnum, blk_hnum);
 	lc_read_region(blk_vnum, blk_hnum);
