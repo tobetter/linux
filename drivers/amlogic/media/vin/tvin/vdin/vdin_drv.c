@@ -79,7 +79,6 @@ static struct vdin_dev_s *vdin_devp[VDIN_MAX_DEVS];
 static unsigned long mem_start, mem_end;
 static unsigned int use_reserved_mem;
 static int afbc_init_flag[VDIN_MAX_DEVS];
-static int afbc_write_down_flag[VDIN_MAX_DEVS];
 static unsigned int pr_times;
 unsigned int tl1_vdin1_preview_flag;
 static unsigned int tl1_vdin1_data_readied;
@@ -107,8 +106,8 @@ static int tl1_vdin1_preview_ready_flag;
 static unsigned int vdin_afbc_force_drop_frame = 1;
 static struct vf_entry *vfe_drop_force;
 
-unsigned int vdin_afbc_preview_force_drop_frame_cnt = 1;
-unsigned int vdin_afbc_force_drop_frame_cnt = 2;
+unsigned int vdin_afbc_preview_force_drop_frame_cnt;
+unsigned int vdin_afbc_force_drop_frame_cnt;
 unsigned int max_ignore_frame_cnt = 2;
 unsigned int skip_frame_debug;
 
@@ -533,7 +532,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	}
 #endif
 
-	afbc_write_down_flag[devp->index] = 0;
 	/* h_active/v_active will be used by bellow calling */
 	if (devp->afbce_mode == 0) {
 		if (canvas_config_mode == 1)
@@ -682,7 +680,8 @@ void vdin_start_dec(struct vdin_dev_s *devp)
  */
 void vdin_stop_dec(struct vdin_dev_s *devp)
 {
-	int afbc_write_down_test_times = 7;
+	int afbc_write_down_timeout = 500; /* 50ms to cover a 24Hz vsync */
+	int i = 0;
 
 	/* avoid null pointer oops */
 	if (!devp || !devp->frontend)
@@ -693,16 +692,19 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		return;
 	}
 #endif
+
 	disable_irq_nosync(devp->irq);
 	afbc_init_flag[devp->index] = 0;
 
 	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
-		while (++afbc_write_down_flag[devp->index] <
-			afbc_write_down_test_times) {
-			if (vdin_afbce_read_writedown_flag() == 0)
-				usleep_range(5000, 5001);
-			else
+		while (i++ < afbc_write_down_timeout) {
+			if (vdin_afbce_read_writedown_flag())
 				break;
+			usleep_range(100, 105);
+		}
+		if (i >= afbc_write_down_timeout) {
+			pr_info("vdin.%d afbc write done timeout\n",
+				devp->index);
 		}
 	}
 	if (is_meson_tl1_cpu() && (tl1_vdin1_preview_flag == 1)) {
@@ -736,8 +738,10 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		vf_unreg_provider(&devp->vprov);
 	devp->dv.dv_config = 0;
 
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
 		vdin_afbce_hw_disable();
+		vdin_afbce_soft_reset();
+	}
 
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	vdin_dolby_addr_release(devp, devp->vfp->size);
@@ -1414,17 +1418,16 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 
 	offset = devp->addr_offset;
 
-	if (afbc_init_flag[devp->index] == 0) {
-		afbc_init_flag[devp->index] = 1;
-		/*set mem power on*/
-		if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+		if (afbc_init_flag[devp->index] == 0) {
+			afbc_init_flag[devp->index] = 1;
+			/*set mem power on*/
 			vdin_afbce_hw_enable(devp);
 			return IRQ_HANDLED;
-		}
-	} else if (afbc_init_flag[devp->index] == 1) {
-		afbc_init_flag[devp->index] = 2;
-		if (is_meson_tl1_cpu() && (devp->afbce_mode == 1))
+		} else if (afbc_init_flag[devp->index] == 1) {
+			afbc_init_flag[devp->index] = 2;
 			return IRQ_HANDLED;
+		}
 	}
 
 	isr_log(devp->vfp);
@@ -1436,8 +1439,13 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 	 */
 
 	spin_lock_irqsave(&devp->isr_lock, flags);
-	/* W_VCBUS_BIT(VDIN_MISC_CTRL, 0, 0, 2); */
-	devp->vdin_reset_flag = vdin_vsync_reset_mif(devp->index);
+	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+		/* no need reset mif under afbc mode */
+		devp->vdin_reset_flag = 0;
+	} else {
+		/* W_VCBUS_BIT(VDIN_MISC_CTRL, 0, 0, 2); */
+		devp->vdin_reset_flag = vdin_vsync_reset_mif(devp->index);
+	}
 	if ((devp->flags & VDIN_FLAG_DEC_STOP_ISR) &&
 		(!(isr_flag & VDIN_BYPASS_STOP_CHECK))) {
 		vdin_hw_disable(offset);

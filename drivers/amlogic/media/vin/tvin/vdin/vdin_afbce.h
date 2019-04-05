@@ -312,5 +312,6 @@ extern void vdin_afbce_clear_writedown_flag(struct vdin_dev_s *devp);
 extern int vdin_afbce_read_writedown_flag(void);
 extern void vdin_afbce_hw_disable(void);
 extern void vdin_afbce_hw_enable(struct vdin_dev_s *devp);
+extern void vdin_afbce_soft_reset(void);
 #endif
 

@@ -363,6 +363,7 @@ void vdin_afbce_cma_release(struct vdin_dev_s *devp)
 	devp->cma_mem_alloc = 0;
 }
 
+/*can not use RDMA, because vdin0/1 both use the register */
 void vdin_write_mif_or_afbce(struct vdin_dev_s *devp,
 	enum vdin_output_mif_e sel)
 {
@@ -370,37 +371,37 @@ void vdin_write_mif_or_afbce(struct vdin_dev_s *devp,
 
 	if (offset == 0) {
 		if (sel == VDIN_OUTPUT_TO_MIF) {
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN0_MIF_ENABLE_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN0_OUT_MIF_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				0, VDIN0_OUT_AFBCE_BIT, 1);
 		} else if (sel == VDIN_OUTPUT_TO_AFBCE) {
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN0_MIF_ENABLE_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				0, VDIN0_OUT_MIF_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN0_OUT_AFBCE_BIT, 1);
 		}
 	} else {
 		if (sel == VDIN_OUTPUT_TO_MIF) {
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN1_MIF_ENABLE_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN1_OUT_MIF_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				0, VDIN1_OUT_AFBCE_BIT, 1);
 		} else if (sel == VDIN_OUTPUT_TO_AFBCE) {
 			/*sel vdin1 afbce: not support in sw now,
 			 *just reserved interface
 			 */
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN1_MIF_ENABLE_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				0, VDIN1_OUT_MIF_BIT, 1);
-			rdma_write_reg_bits(devp->rdma_handle, VDIN_MISC_CTRL,
+			W_VCBUS_BIT(VDIN_MISC_CTRL,
 				1, VDIN1_OUT_AFBCE_BIT, 1);
 		}
 	}
@@ -693,4 +694,11 @@ void vdin_afbce_hw_enable(struct vdin_dev_s *devp)
 {
 	//enable afbce
 	rdma_write_reg_bits(devp->rdma_handle, AFBCE_ENABLE, 1, 8, 1);
+}
+
+void vdin_afbce_soft_reset(void)
+{
+	W_VCBUS_BIT(AFBCE_MODE, 0, 30, 1);
+	W_VCBUS_BIT(AFBCE_MODE, 1, 30, 1);
+	W_VCBUS_BIT(AFBCE_MODE, 0, 30, 1);
 }
