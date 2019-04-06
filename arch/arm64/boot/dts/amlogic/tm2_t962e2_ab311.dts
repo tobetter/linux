@@ -536,7 +536,7 @@
 		 * 0 -- afbce compression-lossy disable
 		 * 1 -- afbce compression-lossy enable
 		 */
-		afbce_bit_mode = <0x1>;
+		afbce_bit_mode = <0x0>;
 	};
 
 	vdin@1 {
