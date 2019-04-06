@@ -52,7 +52,9 @@
 #define TAS5805M_REG_29      (0x29)
 #define TAS5805M_REG_2A      (0x2a)
 #define TAS5805M_REG_2B      (0x2b)
+#define TAS5805M_SDOUT_SEL   (0x30)
 #define TAS5805M_REG_35      (0x35)
+#define TAS5805M_DIG_VAL_CTL (0x4c)
 #define TAS5805M_REG_7F      (0x7f)
 
 #define TAS5805M_PAGE_00     (0x00)
@@ -231,6 +233,7 @@ struct tas5805m_priv {
 	struct tas5805m_platform_data *pdata;
 	int vol;
 	int mute;
+	struct snd_soc_codec *codec;
 };
 
 const struct regmap_config tas5805m_regmap = {
@@ -303,6 +306,7 @@ static void tas5805m_set_volume(struct snd_soc_codec *codec, int vol)
 	uint8_t byte3;
 	uint8_t byte2;
 	uint8_t byte1;
+	pr_info("%s(), vol = %d\n", __func__, vol);
 
 	index = get_volume_index(vol);
 	volume_hex = tas5805m_volume[index];
@@ -339,7 +343,6 @@ static int tas5805m_vol_locked_put(struct snd_kcontrol *kcontrol,
 
 	tas5805m->vol = ucontrol->value.integer.value[0];
 	tas5805m_set_volume(codec, tas5805m->vol);
-
 
 	return 0;
 }
@@ -433,10 +436,13 @@ static int tas5805m_set_bias_level(struct snd_soc_codec *codec,
 
 static int tas5805m_snd_probe(struct snd_soc_codec *codec)
 {
+	struct tas5805m_priv *tas5805m = snd_soc_codec_get_drvdata(codec);
 	int ret;
 
-	ret = snd_soc_add_codec_controls(codec, tas5805m_vol_control, 2);
+	ret = snd_soc_add_codec_controls(codec, tas5805m_vol_control,
+		ARRAY_SIZE(tas5805m_vol_control));
 
+	tas5805m->codec = codec;
 	return ret;
 }
 
@@ -476,8 +482,41 @@ static struct snd_soc_codec_driver soc_codec_tas5805m = {
 	.set_bias_level = tas5805m_set_bias_level,
 };
 
+static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
+			       struct snd_soc_dai *codec_dai)
+{
+	struct tas5805m_priv *tas5805m = snd_soc_dai_get_drvdata(codec_dai);
+	struct snd_soc_codec *codec = tas5805m->codec;
+
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		switch (cmd) {
+		case SNDRV_PCM_TRIGGER_START:
+		case SNDRV_PCM_TRIGGER_RESUME:
+		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+			pr_debug("%s(), start\n", __func__);
+			snd_soc_write(codec, TAS5805M_REG_00, TAS5805M_PAGE_00);
+			snd_soc_write(codec, TAS5805M_REG_7F, TAS5805M_BOOK_00);
+			snd_soc_write(codec, TAS5805M_REG_00, TAS5805M_PAGE_00);
+			snd_soc_write(codec, TAS5805M_DIG_VAL_CTL, 0x30);
+			break;
+		case SNDRV_PCM_TRIGGER_STOP:
+		case SNDRV_PCM_TRIGGER_SUSPEND:
+		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+			pr_debug("%s(), stop\n", __func__);
+			snd_soc_write(codec, TAS5805M_REG_00, TAS5805M_PAGE_00);
+			snd_soc_write(codec, TAS5805M_REG_7F, TAS5805M_BOOK_00);
+			snd_soc_write(codec, TAS5805M_REG_00, TAS5805M_PAGE_00);
+			snd_soc_write(codec, TAS5805M_DIG_VAL_CTL, 0xff);
+			break;
+		}
+	}
+
+	return 0;
+}
+
 static const struct snd_soc_dai_ops tas5805m_dai_ops = {
 	//.digital_mute = tas5805m_mute,
+	.trigger = tas5805m_trigger,
 };
 
 static struct snd_soc_dai_driver tas5805m_dai = {

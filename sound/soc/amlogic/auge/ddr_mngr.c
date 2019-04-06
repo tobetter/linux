@@ -67,6 +67,12 @@ static struct frddr_attach attach_aed;
 static void aml_check_aed(bool enable, int dst);
 static bool aml_check_aed_module(int dst);
 
+static irqreturn_t aml_ddr_isr(int irq, void *devid)
+{
+	(void)devid;
+	return IRQ_WAKE_THREAD;
+}
+
 /* to DDRS */
 static struct toddr *register_toddr_l(struct device *dev,
 	struct aml_audio_controller *actrl,
@@ -88,8 +94,8 @@ static struct toddr *register_toddr_l(struct device *dev,
 	to = &toddrs[i];
 
 	/* irqs request */
-	ret = request_irq(to->irq, handler,
-		0, dev_name(dev), data);
+	ret = request_threaded_irq(to->irq, aml_ddr_isr, handler,
+		IRQF_SHARED, dev_name(dev), data);
 	if (ret) {
 		dev_err(dev, "failed to claim irq %u\n", to->irq);
 		return NULL;
@@ -834,8 +840,8 @@ static struct frddr *register_frddr_l(struct device *dev,
 			1<<31|1<<mask_bit, 1<<31|1<<mask_bit);
 
 	/* irqs request */
-	ret = request_irq(from->irq, handler,
-		0, dev_name(dev), data);
+	ret = request_threaded_irq(from->irq, aml_ddr_isr, handler,
+		IRQF_SHARED, dev_name(dev), data);
 	if (ret) {
 		dev_err(dev, "failed to claim irq %u\n", from->irq);
 		return NULL;

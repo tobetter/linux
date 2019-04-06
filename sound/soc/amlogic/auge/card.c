@@ -648,7 +648,7 @@ static int aml_card_dai_link_of(struct device_node *node,
 
 	dai_link->ops = &aml_card_ops;
 	dai_link->init = aml_card_dai_init;
-
+	dai_link->nonatomic = 1;
 	dev_dbg(dev, "\tname : %s\n", dai_link->stream_name);
 	dev_dbg(dev, "\tformat : %04x\n", dai_link->dai_fmt);
 	dev_dbg(dev, "\tcpu : %s / %d\n",
