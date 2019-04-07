@@ -972,8 +972,18 @@ static void hdmitx_set_clk_(struct hdmitx_dev *hdev)
 	struct hw_enc_clk_val_group *p_enc = NULL;
 	enum hdmi_vic vic = hdev->cur_VIC;
 	enum hdmi_color_space cs = hdev->para->cs;
-	enum hdmi_color_depth cd = hdev->para->cd;
+	enum hdmi_color_depth cd;
+	if (hdev->cur_video_param->color_depth && hdev->cur_video_param->color_depth > 0)
+		cd = hdev->cur_video_param->color_depth;
+	else
+		cd = hdev->para->cd;
 	struct hdmi_cea_timing *custom_timing;
+
+	frac_rate = hdev->frac_rate_policy;
+	if (hdev->para->cs == COLORSPACE_YUV420)
+		vic |= 256;
+	pr_info("hdmitx: set clk: VIC = %d  cd = %d  cs = %d frac_rate = %d\n", vic,
+			cd, hdev->para->cs, frac_rate);
 
 	/* YUV 422 always use 24B mode */
 	if (cs == COLORSPACE_YUV422)
