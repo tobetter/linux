@@ -6545,7 +6545,7 @@ static const struct vecm_match_data_s vecm_dt_tl1 = {
 	.vlk_support = true,
 	.vlk_new_fsm = 1,
 	.vlk_hwver = vlock_hw_ver2,
-	.vlk_phlock_en = false,
+	.vlk_phlock_en = true,
 };
 
 static const struct of_device_id aml_vecm_dt_match[] = {

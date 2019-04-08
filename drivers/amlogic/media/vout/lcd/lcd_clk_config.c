@@ -2228,6 +2228,33 @@ lcd_set_spread_spectrum_end:
 		LCDPR("%s\n", __func__);
 }
 
+/* design for vlock, don't save ss_level to clk_config */
+int lcd_ss_enable(unsigned int flag)
+{
+	unsigned int level;
+	unsigned long flags = 0;
+	int ret = -1;
+
+	spin_lock_irqsave(&lcd_clk_lock, flags);
+
+	if (clk_conf.data == NULL) {
+		LCDERR("%s: clk config data is null\n", __func__);
+		goto lcd_ss_enable_end;
+	}
+
+	if (clk_conf.data->set_ss_level) {
+		level = flag ? clk_conf.ss_level : 0;
+		clk_conf.data->set_ss_level(level);
+	}
+
+lcd_ss_enable_end:
+	spin_unlock_irqrestore(&lcd_clk_lock, flags);
+
+	if (lcd_debug_print_flag)
+		LCDPR("%s\n", __func__);
+	return ret;
+}
+
 int lcd_encl_clk_msr(void)
 {
 	unsigned int clk_mux;

@@ -75,12 +75,11 @@ static struct vlock_regs_s vlock_pll_setting[VLOCK_DEFAULT_REG_SIZE] = {
 
 #define VLOCK_PHASE_REG_SIZE 9
 static struct vlock_regs_s vlock_pll_phase_setting[VLOCK_PHASE_REG_SIZE] = {
-	{0x3004,     0x00620680},
+	{0x3004,	 0x00604680},
 	{0x3009,	 0x06000000},
 	{0x300a,	 0x00600000},
 	{0x300b,	 0x06000000},
 	{0x300c,	 0x00600000},
-
 	{0x3025,	 0x00002000},
 	{0x3027,	 0x00022002},
 	{0x3028,	 0x00001000},
