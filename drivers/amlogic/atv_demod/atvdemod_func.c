@@ -1798,7 +1798,8 @@ void atv_dmd_set_std(void)
 		gde_curve = 3;
 	} else if (((ptstd & V4L2_COLOR_STD_PAL)
 			|| (ptstd & V4L2_COLOR_STD_SECAM))
-			&& (ptstd & V4L2_STD_PAL_M)) {
+			&& ((ptstd & V4L2_STD_PAL_M)
+			|| (ptstd & V4L2_STD_NTSC_M))) {
 		amlatvdemod_devp->fre_offset = 2250000;
 		freq_hz_cvrt = AML_ATV_DEMOD_FREQ_60HZ_VERT;
 		broad_std = AML_ATV_DEMOD_VIDEO_MODE_PROP_PAL_M;
