@@ -221,11 +221,19 @@ static ssize_t store_pcie_cr_read(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	u32 reg;
 	u32 val;
+	int j;
 
 	if (kstrtouint(buf, 0, &reg) != 0)
 		return -EINVAL;
+
+	for (j = 0; j < 7; j++)
+		pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+			((unsigned long)amlogic_pcie->phy->phy_base
+			+ 4*j);
 
 	val = amlogic_phy_cr_readl(reg);
 	dev_info(dev, "reg 0x%x value is 0x%x\n", reg, val);
@@ -247,11 +255,14 @@ static ssize_t store_pcie_cr_write(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	unsigned int reg, val;
 	int ret = 0;
 	char *pstr;
 	char *pend;
 	char *strbuf;
+	int j;
 
 	if (count > 40)
 		return -EINVAL;
@@ -278,6 +289,12 @@ static ssize_t store_pcie_cr_write(struct device *dev,
 		ret = -EINVAL;
 		goto cr_end;
 	}
+
+	for (j = 0; j < 7; j++)
+		pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+			((unsigned long)amlogic_pcie->phy->phy_base
+			 + 4*j);
+
 	amlogic_phy_cr_writel(val, reg);
 	ret = count;
 cr_end:
@@ -640,6 +657,7 @@ static int __init amlogic_add_pcie_port(struct amlogic_pcie *amlogic_pcie,
 	struct pcie_port *pp = &amlogic_pcie->pp;
 	struct device *dev = pp->dev;
 	int ret;
+	int j;
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
 		pp->msi_irq = platform_get_irq(pdev, 0);
@@ -674,6 +692,10 @@ static int __init amlogic_add_pcie_port(struct amlogic_pcie *amlogic_pcie,
 		clk_disable_unprepare(amlogic_pcie->clk);
 		clk_disable_unprepare(amlogic_pcie->phy_clk);
 		dev_err(pp->dev, "power down pcie phy\n");
+		for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 		writel(0x1d, pcie_aml_regs_v2.pcie_phy_r[0]);
 		amlogic_pcie->phy->power_state = 0;
 	}
@@ -1068,6 +1090,7 @@ static int amlogic_pcie_suspend_noirq(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
+	int j;
 
 	if (!amlogic_pcie->pm_enable) {
 		dev_info(dev, "don't noirq suspend amlogic pcie\n");
@@ -1082,6 +1105,10 @@ static int amlogic_pcie_suspend_noirq(struct device *dev)
 	if (amlogic_pcie->device_attch == 0) {
 		dev_info(dev, "controller power off, no suspend noirq\n");
 		if (amlogic_pcie->pcie_num == 1) {
+			for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 			writel(0x1d, pcie_aml_regs_v2.pcie_phy_r[0]);
 			amlogic_pcie->phy->power_state = 0;
 		}
@@ -1108,6 +1135,7 @@ static int amlogic_pcie_resume_noirq(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	unsigned long rate = 100000000;
+	int j;
 
 	if (!amlogic_pcie->pm_enable) {
 		dev_info(dev, "don't noirq resume amlogic pcie\n");
@@ -1120,6 +1148,10 @@ static int amlogic_pcie_resume_noirq(struct device *dev)
 	}
 
 	if (amlogic_pcie->pcie_num == 1) {
+		for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 		writel(0x1c, pcie_aml_regs_v2.pcie_phy_r[0]);
 		amlogic_pcie->phy->power_state = 1;
 		udelay(500);
