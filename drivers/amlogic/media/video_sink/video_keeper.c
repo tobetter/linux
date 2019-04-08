@@ -990,6 +990,28 @@ static unsigned int vf_ge2d_keep_frame_locked(struct vframe_s *cur_dispbuf)
 	u32 cur_index;
 	u32 y_index, u_index, v_index;
 	struct canvas_s cs0, cs1, cs2, cd;
+	int ret;
+
+	if (!cur_dispbuf) {
+		pr_info("keep exit without cur_dispbuf\n");
+		return 0;
+	}
+
+	if (get_video_debug_flags() &
+		DEBUG_FLAG_TOGGLE_SKIP_KEEP_CURRENT) {
+		pr_info("keep exit is skip current\n");
+		return 0;
+	}
+
+	if (get_blackout_policy()) {
+		pr_info("keep exit is skip current\n");
+		return 0;
+	}
+
+	if (VSYNC_RD_MPEG_REG(DI_IF1_GEN_REG) & 0x1) {
+		pr_info("keep exit is di\n");
+		return 0;
+	}
 
 #ifdef CONFIG_AMLOGIC_MEDIA_MULTI_DEC
 	if (codec_mm_video_tvp_enabled()) {

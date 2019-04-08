@@ -593,9 +593,10 @@ static void vdec_h264_get_vf(struct vdec_h264_inst *inst, struct vdec_v4l2_buffe
 		return;
 	}
 
-	atomic_set(&vf->use_cnt, 1);
+	aml_vcodec_debug(inst, "%s() [%d], vf: %p, v4l_mem_handle: %lx, idx: %d\n",
+		__func__, __LINE__, vf, vf->v4l_mem_handle, vf->index);
 
-	fb = (struct vdec_v4l2_buffer *)vf->v4l_mem_handle;
+	fb = (struct vdec_fb *)vf->v4l_mem_handle;
 	fb->vf_handle = (unsigned long)vf;
 	fb->status = FB_ST_DISPLAY;
 
