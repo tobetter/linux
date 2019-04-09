@@ -1039,6 +1039,7 @@ static void vmjpeg_work(struct work_struct *work)
 			kfifo_len(&hw->display_q));
 	if (hw->dec_result == DEC_RESULT_DONE) {
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 	} else if (hw->dec_result == DEC_RESULT_AGAIN) {
 		/*
 			stream base: stream buf empty or timeout
@@ -1068,6 +1069,7 @@ static void vmjpeg_work(struct work_struct *work)
 		}
 		hw->eos = 1;
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 		vdec_clean_input(hw_to_vdec(hw));
 	}
 	if (hw->stat & STAT_VDEC_RUN) {
@@ -1136,6 +1138,7 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 
 	hw = (struct vdec_mjpeg_hw_s *)devm_kzalloc(&pdev->dev,
 		sizeof(struct vdec_mjpeg_hw_s), GFP_KERNEL);
+	hw =  vzalloc(sizeof(struct vdec_mjpeg_hw_s));
 	if (hw == NULL) {
 		pr_info("\nammvdec_mjpeg device data allocation failed\n");
 		return -ENOMEM;
@@ -1179,7 +1182,10 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 			1920, 1080, 60);
 	if (vmjpeg_init(pdata) < 0) {
 		pr_info("ammvdec_mjpeg init failed.\n");
-		devm_kfree(&pdev->dev, (void *)hw);
+		if (hw) {
+			vfree(hw);
+			hw = NULL;
+		}
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
@@ -1215,7 +1221,10 @@ static int ammvdec_mjpeg_remove(struct platform_device *pdev)
 			vdec->free_canvas_ex(hw->buffer_spec[i].v_canvas_index, vdec->id);
 		}
 	}
-
+	if (hw) {
+		vfree(hw);
+		hw = NULL;
+	}
 	pr_info("%s\n", __func__);
 	return 0;
 }
