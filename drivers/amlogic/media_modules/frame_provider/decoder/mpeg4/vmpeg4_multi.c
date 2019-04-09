@@ -934,6 +934,7 @@ static void vmpeg4_work(struct work_struct *work)
 			hw->ctx_valid = 1;
 
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 	} else if (hw->dec_result == DEC_RESULT_AGAIN
 	&& (hw_to_vdec(hw)->next_status !=
 		VDEC_STATUS_DISCONNECTED)) {
@@ -967,6 +968,7 @@ static void vmpeg4_work(struct work_struct *work)
 			hw->stat &= ~STAT_VDEC_RUN;
 		}
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 		vdec_clean_input(hw_to_vdec(hw));
 	}
 	if (hw->stat & STAT_VDEC_RUN) {

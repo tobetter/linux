@@ -260,8 +260,6 @@ struct vdec_mpeg12_hw_s {
 	u32 pre_parser_wr_ptr;
 	u8 next_again_flag;
 #endif
-
-
 	struct work_struct userdata_push_work;
 	struct mutex userdata_mutex;
 	struct mmpeg2_userdata_info_t userdata_info;
@@ -1287,7 +1285,6 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 				hw->pts_valid[index] = hw->chunk->pts_valid;
 				hw->pts[index] = hw->chunk->pts;
 				hw->pts64[index] = hw->chunk->pts64;
-
 		debug_print(DECODE_ID(hw), PRINT_FLAG_TIMEINFO,
 		"!!!cpts=%d,pts64=%lld,size=%d,offset=%d\n",
 			hw->pts[index], hw->pts64[index],
@@ -1731,8 +1728,8 @@ static void vmpeg12_work(struct work_struct *work)
 	if (hw->dec_result == DEC_RESULT_DONE) {
 		if (!hw->ctx_valid)
 			hw->ctx_valid = 1;
-
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 	} else if (hw->dec_result == DEC_RESULT_AGAIN
 	&& (hw_to_vdec(hw)->next_status !=
 		VDEC_STATUS_DISCONNECTED)) {
@@ -1764,6 +1761,7 @@ static void vmpeg12_work(struct work_struct *work)
 		READ_VREG(VLD_MEM_VIFIFO_WP),
 		READ_VREG(VLD_MEM_VIFIFO_RP));
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 		vdec_clean_input(hw_to_vdec(hw));
 		return;
 	} else if (hw->dec_result == DEC_RESULT_FORCE_EXIT) {
@@ -1784,6 +1782,7 @@ static void vmpeg12_work(struct work_struct *work)
 		}
 		hw->eos = 1;
 		vdec_vframe_dirty(hw_to_vdec(hw), hw->chunk);
+		hw->chunk = NULL;
 		vdec_clean_input(hw_to_vdec(hw));
 	}
 	if (hw->stat & STAT_VDEC_RUN) {
@@ -2267,7 +2266,6 @@ static int vmpeg12_hw_ctx_restore(struct vdec_mpeg12_hw_s *hw)
 #ifdef NV21
 	SET_VREG_MASK(MDEC_PIC_DC_CTRL, 1<<17);
 #endif
-
 	if (hw->chunk) {
 		/*frame based input*/
 		WRITE_VREG(MREG_INPUT,
@@ -2276,7 +2274,6 @@ static int vmpeg12_hw_ctx_restore(struct vdec_mpeg12_hw_s *hw)
 		/*stream based input*/
 		WRITE_VREG(MREG_INPUT, (hw->ctx_valid<<6));
 	}
-
 	return 0;
 }
 
@@ -2375,7 +2372,6 @@ static s32 vmpeg12_init(struct vdec_mpeg12_hw_s *hw)
 			USER_DATA_SIZE);
 
 	amvdec_enable();
-
 	init_timer(&hw->check_timer);
 	hw->check_timer.data = (unsigned long)hw;
 	hw->check_timer.function = check_timer_func;
@@ -2614,8 +2610,7 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	hw = (struct vdec_mpeg12_hw_s *)devm_kzalloc(&pdev->dev,
-		sizeof(struct vdec_mpeg12_hw_s), GFP_KERNEL);
+	hw = vzalloc(sizeof(struct vdec_mpeg12_hw_s));
 	if (hw == NULL) {
 		pr_info("\nammvdec_mpeg12 decoder driver alloc failed\n");
 		return -ENOMEM;
@@ -2659,7 +2654,10 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 
 	if (vmpeg12_init(hw) < 0) {
 		pr_info("ammvdec_mpeg12 init failed.\n");
-		devm_kfree(&pdev->dev, (void *)hw);
+		if (hw) {
+			vfree(hw);
+			hw = NULL;
+		}
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
@@ -2742,7 +2740,10 @@ static int ammvdec_mpeg12_remove(struct platform_device *pdev)
 		vfree(hw->fw);
 		hw->fw = NULL;
 	}
-
+	if (hw) {
+		vfree(hw);
+		hw = NULL;
+	}
 	pr_info("ammvdec_mpeg12 removed.\n");
 	memset(&gvs, 0x0, sizeof(gvs));
 
