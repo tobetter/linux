@@ -1513,7 +1513,7 @@ out:
 /* Helper function for filesystems that return a dent->d_type DT_UNKNOWN */
 static int is_directory(const char *base_path, const struct dirent *dent)
 {
-	char path[PATH_MAX];
+	char path[PATH_MAX + 256];
 	struct stat st;
 
 	sprintf(path, "%s/%s", base_path, dent->d_name);
