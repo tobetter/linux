@@ -6902,6 +6902,25 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 	return 0;
 }
 
+static void wait_vmh264_search_done(struct vdec_h264_hw_s *hw)
+{
+	u32 vld_rp = READ_VREG(VLD_MEM_VIFIFO_RP);
+	int count = 0;
+	do {
+		usleep_range(100, 500);
+		if (vld_rp == READ_VREG(VLD_MEM_VIFIFO_RP))
+			break;
+		if (count > 2000) {
+			dpb_print(DECODE_ID(hw),
+			PRINT_FLAG_ERROR, "%s timeout count %d vld_rp 0x%x VLD_MEM_VIFIFO_RP 0x%x\n",
+			 __func__, count, vld_rp, READ_VREG(VLD_MEM_VIFIFO_RP));
+			break;
+		} else
+			vld_rp = READ_VREG(VLD_MEM_VIFIFO_RP);
+		count++;
+	} while (1);
+}
+
 static void vh264_notify_work(struct work_struct *work)
 {
 	struct vdec_h264_hw_s *hw = container_of(work,
@@ -7705,7 +7724,6 @@ result_done:
 			}
 		decode_frame_count[DECODE_ID(hw)]++;
 		amvdec_stop();
-
 		if (!vdec_is_support_4k()) {
 			if (clk_adj_frame_count < VDEC_CLOCK_ADJUST_FRAME) {
 				clk_adj_frame_count++;
@@ -7769,6 +7787,7 @@ result_done:
 	del_timer_sync(&hw->check_timer);
 	hw->stat &= ~STAT_TIMER_ARM;
 
+	wait_vmh264_search_done(hw);
 	/* mark itself has all HW resource released and input released */
 
 #ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
