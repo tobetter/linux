@@ -67,6 +67,29 @@ static void set_addr_win(struct fbtft_par *par, int xs, int ys, int xe, int ye)
 
 static int set_var(struct fbtft_par *par)
 {
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	#define ILI9486_MADCTL_MV  0x20
+	#define ILI9486_MADCTL_MX  0x40
+	#define ILI9486_MADCTL_MY  0x80
+
+	u8 val = 0;
+
+	switch (par->info->var.rotate) {
+	case 270:
+		val = ILI9486_MADCTL_MV | ILI9486_MADCTL_MX;
+		break;
+	case 180:
+		val = ILI9486_MADCTL_MY | ILI9486_MADCTL_MX;
+		break;
+	case 90:
+		val = ILI9486_MADCTL_MV | ILI9486_MADCTL_MY;
+		break;
+	default:
+		break;
+	}
+	/* Memory Access Control  */
+	write_reg(par, MIPI_DCS_SET_ADDRESS_MODE, val | (par->bgr << 3));
+#else
 	switch (par->info->var.rotate) {
 	case 0:
 		write_reg(par, MIPI_DCS_SET_ADDRESS_MODE,
@@ -87,7 +110,7 @@ static int set_var(struct fbtft_par *par)
 	default:
 		break;
 	}
-
+#endif
 	return 0;
 }
 
