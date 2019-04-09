@@ -20,6 +20,7 @@
 #include <linux/types.h>
 
 #ifdef CONFIG_AMLOGIC_POWER
+bool is_support_power_ctrl(void);
 int power_ctrl_sleep(bool power_on, unsigned int shift);
 int power_ctrl_sleep_mask(bool power_on,
 			  unsigned int mask_val, unsigned int shift);
