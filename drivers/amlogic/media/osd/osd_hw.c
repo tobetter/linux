@@ -4688,7 +4688,8 @@ static void osd_update_disp_freescale_enable(u32 index)
 	else
 		vf_bank_len = 4;
 
-	if (osd_hw.hwc_enable && (index == OSD1))
+	output_index = get_output_device_id(index);
+	if (osd_hw.hwc_enable[output_index] && (index == OSD1))
 		shift_workaround = osd_hw.workaround_line;
 
 #ifndef NEW_PPS_PHASE
@@ -4745,7 +4746,6 @@ static void osd_update_disp_freescale_enable(u32 index)
 	else
 		vf_phase_step = (src_h << 20) / dst_h;
 
-	output_index = get_output_device_id(index);
 #ifdef NEW_PPS_PHASE
 	if (osd_hw.field_out_en[output_index]) {
 		struct osd_f2v_vphase_s vphase;
@@ -10166,6 +10166,7 @@ void osd_page_flip(struct osd_plane_map_s *plane_map)
 	osd_hw.buffer_alloc[index] = 1;
 	if (osd_hw.osd_fps_start[output_index])
 		osd_hw.osd_fps[output_index]++;
+	osd_enable = (plane_map->enable & 1) ? ENABLE : DISABLE;
 
 	if (output_index == VIU1)
 		vinfo = get_current_vinfo();
