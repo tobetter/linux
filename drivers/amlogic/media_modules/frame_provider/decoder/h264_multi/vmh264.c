@@ -81,6 +81,7 @@
 
 #define CHECK_INTERVAL        (HZ/100)
 
+#define SEI_DATA_SIZE			(8*1024)
 #define SEI_ITU_DATA_SIZE		(4*1024)
 
 #define RATE_MEASURE_NUM 8
@@ -354,14 +355,7 @@ static inline bool close_to(int a, int b, int m)
 /*#define V_BUF_ADDR_OFFSET             (0x13e000)*/
 u32 V_BUF_ADDR_OFFSET = 0x200000;
 #define DCAC_READ_MARGIN	(64 * 1024)
-#define PIC_SINGLE_FRAME        0
-#define PIC_TOP_BOT_TOP         1
-#define PIC_BOT_TOP_BOT         2
-#define PIC_DOUBLE_FRAME        3
-#define PIC_TRIPLE_FRAME        4
-#define PIC_TOP_BOT              5
-#define PIC_BOT_TOP              6
-#define PIC_INVALID              7
+
 
 #define EXTEND_SAR                      0xff
 #define BUFSPEC_POOL_SIZE		64
@@ -613,6 +607,11 @@ struct vdec_h264_hw_s {
 	u32 suffix_aux_size;
 	void *aux_addr;
 	dma_addr_t aux_phy_addr;
+
+	/* buffer for store all sei data */
+	void *sei_data_buf;
+	u32	sei_data_len;
+
 	/* buffer for storing one itu35 recored */
 	void *sei_itu_data_buf;
 	u32 sei_itu_data_len;
@@ -4949,6 +4948,211 @@ static bool is_buffer_available(struct vdec_s *vdec)
 	return buffer_available;
 }
 
+#define AUX_TAG_SEI				0x2
+
+#define SEI_BUFFERING_PERIOD	0
+#define SEI_PicTiming			1
+#define SEI_USER_DATA			4
+#define SEI_RECOVERY_POINT		6
+
+/*
+ *************************************************************************
+ * Function:Reads bits from the bitstream buffer
+ * Input:
+	byte buffer[]
+		containing sei message data bits
+	int totbitoffset
+		bit offset from start of partition
+	int bytecount
+		total bytes in bitstream
+	int numbits
+		number of bits to read
+ * Output:
+	int *info
+ * Return:
+	-1: failed
+	> 0: the count of bit read
+ * Attention:
+ *************************************************************************
+ */
+
+static int get_bits(unsigned char buffer[],
+					int totbitoffset,
+					int *info,
+					int bytecount,
+					int numbits)
+{
+	register int inf;
+	long byteoffset;
+	int bitoffset;
+
+	int bitcounter = numbits;
+
+	byteoffset = totbitoffset / 8;
+	bitoffset = 7 - (totbitoffset % 8);
+
+	inf = 0;
+	while (numbits) {
+		inf <<= 1;
+		inf |= (buffer[byteoffset] & (0x01 << bitoffset)) >> bitoffset;
+		numbits--;
+		bitoffset--;
+		if (bitoffset < 0) {
+			byteoffset++;
+			bitoffset += 8;
+			if (byteoffset > bytecount)
+				return -1;
+		}
+	}
+
+	*info = inf;
+
+
+	return bitcounter;
+}
+
+static int parse_one_sei_record(struct vdec_h264_hw_s *hw,
+							u8 *sei_data_buf,
+							u8 *sei_data_buf_end)
+{
+	int payload_type;
+	int payload_size;
+	u8 *p_sei;
+	int temp;
+	int bit_offset;
+	int read_size;
+	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
+
+	p_sei = sei_data_buf;
+	read_size = 0;
+	payload_type = 0;
+	do {
+		if (p_sei >= sei_data_buf_end)
+			return read_size;
+
+		payload_type += *p_sei;
+		read_size++;
+	} while (*p_sei++ == 255);
+
+
+	payload_size = 0;
+	do {
+		if (p_sei >= sei_data_buf_end)
+			return read_size;
+
+		payload_size += *p_sei;
+		read_size++;
+	} while (*p_sei++ == 255);
+
+
+	if (p_sei + payload_size > sei_data_buf_end) {
+		dpb_print(DECODE_ID(hw), 0,
+			"%s: payload_type = %d, payload_size = %d is over\n",
+			__func__, payload_type, payload_size);
+		return read_size;
+	}
+	bit_offset = 0;
+
+	if (payload_size <= 0) {
+		dpb_print(DECODE_ID(hw), 0,
+			"%s warning: this is a null sei message for payload_type = %d\n",
+			__func__, payload_type);
+		return read_size;
+	}
+	switch (payload_type) {
+	case SEI_BUFFERING_PERIOD:
+		break;
+	case SEI_PicTiming:
+		if (p_H264_Dpb->vui_status & 0xc) {
+			int cpb_removal_delay;
+			int dpb_output_delay;
+			u32 delay_len;
+
+			delay_len = p_H264_Dpb->dpb_param.l.data[DELAY_LENGTH];
+			cpb_removal_delay
+				= (delay_len & 0x1F) + 1;
+			dpb_output_delay
+				= ((delay_len >> 5) & 0x1F) + 1;
+
+			get_bits(p_sei, bit_offset,
+				&temp, payload_size,
+				dpb_output_delay+cpb_removal_delay);
+			bit_offset += dpb_output_delay+cpb_removal_delay;
+		}
+		if (p_H264_Dpb->vui_status & 0x10) {
+			get_bits(p_sei, bit_offset, &temp, payload_size, 4);
+			bit_offset += 4;
+			p_H264_Dpb->dpb_param.l.data[PICTURE_STRUCT] = temp;
+		}
+		break;
+	case SEI_USER_DATA:
+		if (enable_itu_t35) {
+			int i;
+			int j;
+			int data_len;
+			u8 *user_data_buf;
+
+			user_data_buf
+				= hw->sei_itu_data_buf + hw->sei_itu_data_len;
+			/* user data length should be align with 8 bytes,
+			if not, then padding with zero*/
+			for (i = 0; i < payload_size; i += 8) {
+				for (j = 0; j < 8; j++) {
+					int index;
+
+					index = i+7-j;
+					if (index >= payload_size)
+						user_data_buf[i+j] = 0;
+					else
+						user_data_buf[i+j]
+							= p_sei[i+7-j];
+				}
+			}
+
+			data_len = payload_size;
+			if (payload_size % 8)
+				data_len = ((payload_size + 8) >> 3) << 3;
+
+			hw->sei_itu_data_len += data_len;
+			/*
+			dpb_print(DECODE_ID(hw), 0,
+				"%s: user data, and len = %d:\n",
+				__func__, hw->sei_itu_data_len);
+			*/
+		}
+		break;
+	case SEI_RECOVERY_POINT:
+		p_H264_Dpb->dpb_param.l.data[RECOVERY_POINT] = 1;
+		break;
+	}
+
+	return read_size + payload_size;
+}
+
+static void parse_sei_data(struct vdec_h264_hw_s *hw,
+							u8 *sei_data_buf,
+							int len)
+{
+	char *p_sei;
+	char *p_sei_end;
+	int parsed_size;
+	int read_size;
+
+
+	p_sei = sei_data_buf;
+	p_sei_end = p_sei + len;
+	parsed_size = 0;
+	while (parsed_size < len) {
+		read_size = parse_one_sei_record(hw, p_sei, p_sei_end);
+		p_sei += read_size;
+		parsed_size += read_size;
+		if (*p_sei == 0x80) {
+			p_sei++;
+			parsed_size++;
+		}
+	}
+}
+
 static void check_decoded_pic_error(struct vdec_h264_hw_s *hw)
 {
 	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
@@ -5165,6 +5369,8 @@ static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 				hw->video_signal_from_vui,
 				data_low,
 				data_hight);*/
+
+		parse_sei_data(hw, hw->sei_data_buf, hw->sei_data_len);
 
 		if (hw->config_bufmgr_done == 0) {
 			hw->dec_result = DEC_RESULT_DONE;
@@ -5661,63 +5867,72 @@ send_again:
 		hw->dec_result = DEC_RESULT_DONE;
 		vdec_schedule_work(&hw->work);
 		return IRQ_HANDLED;
-	}
-
-	if (READ_VREG(AV_SCRATCH_G) == 1) {
+	} else if (dec_dpb_status == H264_SEI_DATA_READY) {
 		int aux_data_len;
 		aux_data_len =
 			(READ_VREG(H264_AUX_DATA_SIZE) >> 16) << 4;
-		if (aux_data_len > SEI_ITU_DATA_SIZE * 2) {
+
+		if (aux_data_len > SEI_DATA_SIZE) {
 				dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-					"itu data size more than 4K: %d, discarded it\n",
-					aux_data_len);
-				aux_data_len = 0;
+					"sei data size more than 4K: %d, discarded it\n",
+					hw->sei_itu_data_len);
+				hw->sei_itu_data_len = 0;
 		}
 
 		if (aux_data_len != 0) {
 			u8 *trans_data_buf;
 			u8 *sei_data_buf;
-			u32 temp;
-			u32 *pswap_data;
-			int new_size;
-			int bContinue;
+			u8 swap_byte;
 
 			dma_sync_single_for_cpu(
-			amports_get_dma_device(),
-			hw->aux_phy_addr,
-			hw->prefix_aux_size + hw->suffix_aux_size,
-			DMA_FROM_DEVICE);
+				amports_get_dma_device(),
+				hw->aux_phy_addr,
+				hw->prefix_aux_size + hw->suffix_aux_size,
+				DMA_FROM_DEVICE);
 #if 0
 			dump_aux_buf(hw);
 #endif
-
 			trans_data_buf = (u8 *)hw->aux_addr;
-			new_size = hw->sei_itu_data_len + aux_data_len / 2;
 
-			bContinue = 1;
-			if (new_size > SEI_ITU_DATA_SIZE) {
-				dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-						"itu data size over (0x%x, 0x%x), discarded it\n",
+			if (trans_data_buf[7] == AUX_TAG_SEI) {
+				int left_len;
+
+				sei_data_buf = (u8 *)hw->sei_data_buf
+							+ hw->sei_data_len;
+				left_len = SEI_DATA_SIZE - hw->sei_data_len;
+				if (aux_data_len/2 <= left_len) {
+					for (i = 0; i < aux_data_len/2; i++)
+						sei_data_buf[i]
+							= trans_data_buf[i*2];
+
+					aux_data_len = aux_data_len / 2;
+					for (i = 0; i < aux_data_len; i = i+4) {
+						swap_byte = sei_data_buf[i];
+						sei_data_buf[i]
+							= sei_data_buf[i+3];
+						sei_data_buf[i+3] = swap_byte;
+
+						swap_byte = sei_data_buf[i+1];
+						sei_data_buf[i+1]
+							= sei_data_buf[i+2];
+						sei_data_buf[i+2] = swap_byte;
+					}
+
+					for (i = aux_data_len-1; i >= 0; i--)
+						if (sei_data_buf[i] != 0)
+							break;
+
+					hw->sei_data_len += i+1;
+				} else
+					dpb_print(DECODE_ID(hw),
+						PRINT_FLAG_ERROR,
+						"sei data size %d and more than left space: %d, discarded it\n",
 						hw->sei_itu_data_len,
-						new_size);
-				bContinue = 0;
-			}
-
-			if (bContinue) {
-				sei_data_buf = (u8 *)hw->sei_itu_data_buf + hw->sei_itu_data_len;
-				for (i = 0; i < aux_data_len/2; i++)
-					sei_data_buf[i] = trans_data_buf[i*2];
-				hw->sei_itu_data_len += aux_data_len / 2;
-
-				pswap_data = (u32 *)sei_data_buf;
-				for (i = 0; i < aux_data_len/8; i = i+2) {
-					temp = pswap_data[i];
-					pswap_data[i] = pswap_data[i+1];
-					pswap_data[i+1] = temp;
-				}
+						left_len);
 			}
 		}
-		WRITE_VREG(AV_SCRATCH_G, 0);
+		WRITE_VREG(DPB_STATUS_REG, H264_SEI_DATA_DONE);
+
 		return IRQ_HANDLED;
 	}
 
@@ -6561,10 +6776,21 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			hw->aux_addr = NULL;
 			return -1;
 		}
+		hw->sei_data_buf = kmalloc(SEI_DATA_SIZE, GFP_KERNEL);
+		if (hw->sei_data_buf == NULL) {
+			pr_err("%s: failed to alloc sei itu data buffer\n",
+				__func__);
+			return -1;
+		}
 		hw->sei_itu_data_buf = kmalloc(SEI_ITU_DATA_SIZE, GFP_KERNEL);
 		if (hw->sei_itu_data_buf == NULL) {
 			pr_err("%s: failed to alloc sei itu data buffer\n",
 				__func__);
+			kfree(hw->aux_addr);
+			hw->aux_addr = NULL;
+			kfree(hw->sei_data_buf);
+			hw->sei_data_buf = NULL;
+
 			return -1;
 		}
 
@@ -6574,6 +6800,13 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 			if (!hw->sei_user_data_buffer) {
 				pr_info("%s: Can not allocate sei_data_buffer\n",
 					   __func__);
+				kfree(hw->aux_addr);
+				hw->aux_addr = NULL;
+				kfree(hw->sei_data_buf);
+				hw->sei_data_buf = NULL;
+				kfree(hw->sei_itu_data_buf);
+				hw->sei_itu_data_buf = NULL;
+
 				return -1;
 			}
 			hw->sei_user_data_wp = 0;
@@ -6640,6 +6873,10 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 			DMA_FROM_DEVICE);
 		kfree(hw->aux_addr);
 		hw->aux_addr = NULL;
+	}
+	if (hw->sei_data_buf != NULL) {
+		kfree(hw->sei_data_buf);
+		hw->sei_data_buf = NULL;
 	}
 	if (hw->sei_itu_data_buf != NULL) {
 		kfree(hw->sei_itu_data_buf);
@@ -7053,6 +7290,9 @@ static void vmh264_udc_fill_vpts(struct vdec_h264_hw_s *hw,
 	p_userdata_rec->rec_start = hw->userdata_info.last_wp;
 	p_userdata_rec->rec_len = data_length;
 	hw->userdata_info.last_wp = wp;
+
+	p_userdata_rec->meta_info.flags |=
+		p_H264_Dpb->mVideo.dec_picture->pic_struct << 12;
 
 	hw->wait_for_udr_send = 1;
 	schedule_work(&hw->user_data_ready_work);
@@ -7872,6 +8112,7 @@ static void run(struct vdec_s *vdec, unsigned long mask,
 	config_decode_mode(hw);
 	vdec_enable_input(vdec);
 	WRITE_VREG(NAL_SEARCH_CTL, 0);
+	hw->sei_data_len = 0;
 	if (enable_itu_t35)
 		WRITE_VREG(NAL_SEARCH_CTL, READ_VREG(NAL_SEARCH_CTL) | 0x1);
 	if (!hw->init_flag) {

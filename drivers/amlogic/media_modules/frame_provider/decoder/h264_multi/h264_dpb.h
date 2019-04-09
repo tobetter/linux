@@ -42,6 +42,14 @@
 #define DISABLE_ERROR_HANDLE          0x10000
 #define DEBUG_DUMP_STAT               0x80000
 
+#define PIC_SINGLE_FRAME			0
+#define PIC_TOP_BOT_TOP				1
+#define PIC_BOT_TOP_BOT				2
+#define PIC_DOUBLE_FRAME			3
+#define PIC_TRIPLE_FRAME			4
+#define PIC_TOP_BOT					5
+#define PIC_BOT_TOP					6
+#define PIC_INVALID					7
 
 #define MVC_EXTENSION_ENABLE 0
 #define PRINTREFLIST  0
@@ -77,6 +85,9 @@
 #define H264_FIND_NEXT_PIC_NAL              0x50
 #define H264_FIND_NEXT_DVEL_NAL             0x51
 #define H264_AUX_DATA_READY					0x52
+
+#define H264_SEI_DATA_READY					0x53
+#define H264_SEI_DATA_DONE					0x54
 
     /* 0x8x, search state*/
 #define H264_STATE_SEARCH_AFTER_SPS  0x80
@@ -515,6 +526,7 @@ struct Slice {
 	unsigned char dec_ref_pic_marking_buffer_valid;
 	struct DecRefPicMarking_s
 		dec_ref_pic_marking_buffer[DEC_REF_PIC_MARKING_BUFFER_NUM_MAX];
+	int pic_struct;
 };
 
 struct OldSliceParams {
@@ -693,6 +705,8 @@ struct StorablePicture {
 	u64         pts64;
 	u64         timestamp;
 	unsigned char data_flag;
+	int pic_struct;
+
 	/* picture qos infomation*/
 	int frame_size;
 	int max_qp;

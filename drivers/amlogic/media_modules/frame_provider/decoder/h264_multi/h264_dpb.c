@@ -385,6 +385,18 @@ void slice_prepare(struct h264_dpb_stru *p_H264_Dpb,
 	pSlice->structure = (p_H264_Dpb->
 		dpb_param.l.data[NEW_PICTURE_STRUCTURE] == 3) ?
 		FRAME : p_H264_Dpb->dpb_param.l.data[NEW_PICTURE_STRUCTURE];
+	if (pSlice->structure == FRAME) {
+		pSlice->field_pic_flag = 0;
+		pSlice->bottom_field_flag = 0;
+	} else {
+		pSlice->field_pic_flag = 1;
+		if (pSlice->structure == TOP_FIELD)
+			pSlice->bottom_field_flag = 0;
+		else
+			pSlice->bottom_field_flag = 1;
+	}
+	pSlice->pic_struct = p_H264_Dpb->dpb_param.l.data[PICTURE_STRUCT];
+
 	sps->num_ref_frames = p_H264_Dpb->
 		dpb_param.l.data[MAX_REFERENCE_FRAME_NUM];
 	sps->profile_idc =
@@ -1045,6 +1057,14 @@ static void init_picture(struct h264_dpb_stru *p_H264_Dpb,
 			currSlice->picture_structure_mmco);
 	}
 
+	if (currSlice->pic_struct >= 3)
+		dec_picture->pic_struct = currSlice->pic_struct + 2;
+	else if (currSlice->pic_struct == 1)
+		dec_picture->pic_struct = PIC_TOP_BOT;
+	else if (currSlice->pic_struct >= 2)
+		dec_picture->pic_struct = PIC_BOT_TOP;
+	else
+		dec_picture->pic_struct = PIC_INVALID;
 }
 
 void dump_pic(struct h264_dpb_stru *p_H264_Dpb)
