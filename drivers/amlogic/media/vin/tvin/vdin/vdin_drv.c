@@ -86,6 +86,8 @@ static unsigned int tl1_vdin1_canvas_addr;
 static unsigned int tl1_vdin1_height;
 static unsigned int tl1_vdin1_width;
 spinlock_t tl1_preview_lock;
+
+static unsigned int tl1_vdin1_capture_flag;
 /*
  * canvas_config_mode
  * 0: canvas_config in driver probe
@@ -657,9 +659,8 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 				devp->index, jiffies_to_msecs(jiffies),
 				jiffies_to_msecs(jiffies)-devp->start_time);
 
-	if ((devp->afbce_mode == 1) &&
-			(is_meson_tl1_cpu() || is_meson_tm2_cpu())) {
-		if ((devp->h_active >= 1920) && (devp->v_active >= 1080)) {
+	if (devp->afbce_mode == 1) {
+		if (is_meson_tl1_cpu()) {
 			tl1_vdin1_preview_flag = 1;
 			tl1_vdin1_data_readied = 0;
 			tl1_vdin1_preview_ready_flag = 0;
@@ -667,10 +668,6 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 				vdin_afbc_preview_force_drop_frame_cnt;
 			pr_info("vdin.%d tl1_vdin1_preview state init\n",
 				devp->index);
-		} else {
-			tl1_vdin1_preview_flag = 0;
-			vdin_afbc_force_drop_frame =
-				vdin_afbc_force_drop_frame_cnt;
 		}
 		vfe_drop_force = NULL;
 		max_ignore_frames[devp->index] = max_ignore_frame_cnt;
@@ -801,9 +798,10 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 	}
 
 	if (tl1_vdin1_preview_flag == 1) {
-		pr_err("[vdin]%s vdin%d use for preview, return.\n",
+		tl1_vdin1_capture_flag = 1;
+		pr_info("[vdin]%s vdin%d already enabled for preview.\n",
 				__func__, no);
-		return -1;
+		return 0;
 	}
 	fmt = devp->parm.info.fmt;
 	if (vdin_dbg_en) {
@@ -938,6 +936,13 @@ int stop_tvin_service(int no)
 {
 	struct vdin_dev_s *devp;
 	unsigned int end_time;
+
+	if (tl1_vdin1_preview_flag == 1) {
+		tl1_vdin1_capture_flag = 0;
+		pr_info("[vdin]%s vdin%d is used for preview.\n",
+				__func__, no);
+		return 0;
+	}
 
 	devp = vdin_devp[no];
 	if ((devp->parm.reserved & PARAM_STATE_HISTGRAM) &&
@@ -1551,7 +1556,8 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 			vdin_vf_disp_mode_update(devp->last_wr_vfe, devp->vfp);
 
 		devp->last_wr_vfe = NULL;
-		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1)) {
+		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1) &&
+			(tl1_vdin1_capture_flag == 0)) {
 			//if (vdin_dbg_en)
 			//pr_info("vdin1 preview dont notify receiver.\n");
 		} else {
@@ -1755,7 +1761,8 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 		}
 	}
 
-	if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1)) {
+	if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1) &&
+		(tl1_vdin1_capture_flag == 0)) {
 		//if (vdin_dbg_en)
 		//pr_info("vdin1 preview dont notify receiver.\n");
 	} else {
@@ -1961,7 +1968,8 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 	if (!(devp->flags&VDIN_FLAG_RDMA_ENABLE) ||
 		(devp->game_mode & VDIN_GAME_MODE_1)) {
 		/* not RDMA, or game mode 1 */
-		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1)) {
+		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1) &&
+			(tl1_vdin1_capture_flag == 0)) {
 			//if (vdin_dbg_en)
 			//pr_info("vdin1 preview dont notify receiver.\n");
 		} else {
@@ -2020,7 +2028,8 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 			}
 		spin_unlock_irqrestore(&tl1_preview_lock, flags1);
 		provider_vf_put(next_wr_vfe, devp->vfp);
-		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1)) {
+		if ((devp->index == 1) && (tl1_vdin1_preview_flag == 1) &&
+			(tl1_vdin1_capture_flag == 0)) {
 			//if (vdin_dbg_en)
 			//pr_info("vdin1 preview dont notify receiver.\n");
 		} else {
@@ -2994,6 +3003,10 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			pr_info("TVIN_IOC_S_VDIN_V4L2START cann't be used at vdin0\n");
 			break;
 		}
+		if ((tl1_vdin1_preview_flag) && (devp->index == 1)) {
+			pr_info("TVIN_IOC_S_VDIN_V4L2START ignore for vdin1 is already enabled\n");
+			break;
+		}
 		if (devp->flags & VDIN_FLAG_ISR_REQ)
 			free_irq(devp->irq, (void *)devp);
 
@@ -3033,6 +3046,10 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case TVIN_IOC_S_VDIN_V4L2STOP:
 		if (devp->index == 0) {
 			pr_info("TVIN_IOC_S_VDIN_V4L2STOP cann't be used at vdin0\n");
+			break;
+		}
+		if ((tl1_vdin1_preview_flag) && (devp->index == 1)) {
+			pr_info("TVIN_IOC_S_VDIN_V4L2STOP ignore for vdin1 used for preview\n");
 			break;
 		}
 		devp->parm.reserved &= ~PARAM_STATE_HISTGRAM;
