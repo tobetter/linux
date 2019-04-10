@@ -30,7 +30,7 @@ static void input_polldev_queue_work(struct input_polled_dev *dev)
 	if (delay >= HZ)
 		delay = round_jiffies_relative(delay);
 
-	queue_delayed_work(system_freezable_wq, &dev->work, delay);
+	queue_delayed_work(system_wq, &dev->work, delay);
 }
 
 static void input_polled_device_work(struct work_struct *work)

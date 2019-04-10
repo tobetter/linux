@@ -38,6 +38,7 @@
 #include <linux/iio/buffer.h>
 #include <linux/iio/kfifo_buf.h>
 #include <linux/slab.h>
+#include <linux/amlogic/pm.h>
 
 #define MESON_SAR_ADC_REG0					0x00
 	#define MESON_SAR_ADC_REG0_PANEL_DETECT			BIT(31)
@@ -1702,6 +1703,9 @@ static int __maybe_unused meson_sar_adc_suspend(struct device *dev)
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	int ret;
 
+	if (is_pm_freeze_mode())
+		return 0;
+
 	if (iio_buffer_enabled(indio_dev)) {
 		ret = meson_sar_adc_buffer_predisable(indio_dev);
 		if (ret)
@@ -1719,6 +1723,9 @@ static int __maybe_unused meson_sar_adc_resume(struct device *dev)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	int ret;
+
+	if (is_pm_freeze_mode())
+		return 0;
 
 	ret = meson_sar_adc_hw_enable(indio_dev);
 	if (ret)
