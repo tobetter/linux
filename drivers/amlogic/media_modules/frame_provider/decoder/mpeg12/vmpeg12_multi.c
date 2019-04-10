@@ -2425,9 +2425,9 @@ static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 				(parser_wr_ptr - hw->pre_parser_wr_ptr) <
 				again_threshold) {
 				int r = vdec_sync_input(vdec);
-				debug_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
-		"%s buf lelvel%x\n",
-		__func__, r);
+				debug_print(DECODE_ID(hw), PRINT_FLAG_RUN_FLOW,
+				"%s buf level%x\n",
+				__func__, r);
 				return 0;
 			}
 		}
