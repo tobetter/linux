@@ -3458,8 +3458,11 @@ static int hdmitx_set_current_vmode(enum vmode_e mode)
 	if ((vinfo != NULL) && (vinfo->name != NULL))
 		recalc_vinfo_sync_duration(vinfo,
 			hdmitx_device.frac_rate_policy);
-
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	if (!(mode & VMODE_INIT_BIT_MASK) && get_hpd_state())
+#else
 	if (!(mode & VMODE_INIT_BIT_MASK))
+#endif
 		set_disp_mode_auto();
 	else
 		pr_info("alread display in uboot\n");
