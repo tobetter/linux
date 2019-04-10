@@ -29,6 +29,14 @@
 #define CEC_PHY_PORT_NUM		4
 #define HR_DELAY(n)		(ktime_set(0, n * 1000 * 1000))
 
+enum cecaver {
+	/*first version*/
+	CECA_VER_0 = 0,
+
+	/*support multi logical address*/
+	CECA_VER_1 = 1,
+};
+
 enum cecbver {
 	/*first version*/
 	CECB_VER_0 = 0,
