@@ -30,6 +30,7 @@
 #include "amcm_regmap.h"
 #include <linux/amlogic/media/amdolbyvision/dolby_vision.h>
 #include "amcsc.h"
+#include "local_contrast.h"
 
 #define pr_amcm_dbg(fmt, args...)\
 	do {\
@@ -244,6 +245,14 @@ void am_set_regmap(struct am_regs_s *p)
 			} else {
 				if (p->am_reg[i].addr == 0x1d26)
 					break;
+				if (p->am_reg[i].addr == SRSHARP1_LC_TOP_CTRL) {
+					temp =
+					(p->am_reg[i].val & p->am_reg[i].mask)
+						>> 4;
+					temp &= 0x1;
+					if (!temp && lc_en)
+						lc_en = 0;
+				}
 				if (pq_reg_wr_rdma)
 					VSYNC_WR_MPEG_REG(p->am_reg[i].addr,
 					(aml_read_vcbus(p->am_reg[i].addr) &
