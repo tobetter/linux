@@ -1125,7 +1125,8 @@ static int sync_render_single_fence(u32 index, u32 yres,
 	kthread_queue_work(&buffer_toggle_worker[output_index],
 			   &buffer_toggle_work[output_index]);
 	request->out_fen_fd = out_fence_fd;
-	__close_fd(current->files, request->in_fen_fd);
+	if (request->in_fen_fd >= 0)
+		__close_fd(current->files, request->in_fen_fd);
 	return out_fence_fd;
 }
 
@@ -1192,8 +1193,10 @@ static int sync_render_layers_fence(u32 index, u32 yres,
 		fence_map->layer_map[index].in_fd,
 		fence_map->layer_map[index].out_fd);
 	request->out_fen_fd = out_fence_fd;
-	__close_fd(current->files, in_fence_fd);
-	__close_fd(current->files, request->shared_fd);
+	if (in_fence_fd >= 0)
+		__close_fd(current->files, in_fence_fd);
+	if (request->shared_fd >= 0)
+		__close_fd(current->files, request->shared_fd);
 	return out_fence_fd;
 }
 
@@ -1997,8 +2000,16 @@ void osd_wait_vsync_hw(void)
 
 		if (pxp_mode)
 			timeout = msecs_to_jiffies(50);
-		else
-		timeout = msecs_to_jiffies(1000);
+		else {
+			struct vinfo_s *vinfo;
+
+			vinfo = get_current_vinfo();
+			if (vinfo && (!strcmp(vinfo->name, "invalid") ||
+				!strcmp(vinfo->name, "null"))) {
+				timeout = msecs_to_jiffies(1);
+			} else
+				timeout = msecs_to_jiffies(1000);
+		}
 		wait_event_interruptible_timeout(
 				osd_vsync_wq, vsync_hit, timeout);
 	}
@@ -4024,6 +4035,14 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 
 	if (index >= OSD2)
 		goto out;
+	vinfo = get_current_vinfo();
+	if (vinfo && (!strcmp(vinfo->name, "invalid") ||
+			!strcmp(vinfo->name, "null")))
+		goto out;
+
+	osd_hw.vinfo_width[output_index] = vinfo->width;
+	osd_hw.vinfo_height[output_index] = vinfo->height;
+
 	if (timeline_created[output_index]) { /* out fence created success. */
 		ret = osd_wait_buf_ready(fence_map);
 		if (ret < 0)
@@ -4044,15 +4063,6 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 			osd_hw.osd_afbcd[index].inter_format =
 				 AFBC_EN | BLOCK_SPLIT |
 				 YUV_TRANSFORM | SUPER_BLOCK_ASPECT;
-		}
-		vinfo = get_current_vinfo();
-		if (vinfo) {
-			if ((strcmp(vinfo->name, "invalid")) &&
-				(strcmp(vinfo->name, "null"))) {
-				osd_hw.vinfo_width[output_index] = vinfo->width;
-				osd_hw.vinfo_height[output_index] =
-					vinfo->height;
-			}
 		}
 		/* Todo: */
 		if (fence_map->ext_addr && fence_map->width
@@ -4255,17 +4265,17 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 			osd_wait_vsync_hw();
 		}
 	}
+#ifdef CONFIG_AMLOGIC_MEDIA_FB_EXT
+		if (ret)
+			osd_ext_clone_pan(index);
+#endif
+out:
 	if (timeline_created[output_index]) {
 		if (ret)
 			osd_timeline_increase(output_index);
 		else
 			osd_log_err("------NOT signal out_fence ERROR\n");
 	}
-#ifdef CONFIG_AMLOGIC_MEDIA_FB_EXT
-	if (ret)
-		osd_ext_clone_pan(index);
-#endif
-out:
 	if (fence_map->in_fence)
 		osd_put_fenceobj(fence_map->in_fence);
 }
@@ -4467,15 +4477,17 @@ static void _osd_pan_display_layers_fence(
 	int ret;
 	int start_index = 0;
 	int backup_en = 0;
-	int osd_count;
+	int osd_count = 0;
 	/* osd_count need -1 when VIU2 enable */
 	struct layer_fence_map_s *layer_map = NULL;
 
-	if (vinfo && (strcmp(vinfo->name, "invalid") &&
-			strcmp(vinfo->name, "null"))) {
-		osd_hw.vinfo_width[output_index] = vinfo->width;
-		osd_hw.vinfo_height[output_index] = vinfo->field_height;
-	}
+	if (vinfo && (!strcmp(vinfo->name, "invalid") ||
+				!strcmp(vinfo->name, "null")))
+		/* vout is null, release fence */
+		goto out;
+
+	osd_hw.vinfo_width[output_index] = vinfo->width;
+	osd_hw.vinfo_height[output_index] = vinfo->field_height;
 	memcpy(&osd_hw.disp_info[output_index], &fence_map->disp_info,
 	       sizeof(struct display_flip_info_s));
 	if (output_index == VIU1) {
@@ -4521,6 +4533,7 @@ static void _osd_pan_display_layers_fence(
 	/* set hw regs */
 	if (osd_hw.osd_display_debug != OSD_DISP_DEBUG)
 		osd_setting_blend(output_index);
+out:
 	/* signal out fence */
 	if (timeline_created[output_index]) {
 		if (osd_hw.osd_debug.osd_single_step_mode) {
@@ -10482,12 +10495,14 @@ void osd_page_flip(struct osd_plane_map_s *plane_map)
 	else if (output_index == VIU2)
 		vinfo = get_current_vinfo2();
 #endif
-
-	if (vinfo && (strcmp(vinfo->name, "invalid") &&
-		strcmp(vinfo->name, "null"))) {
-		osd_hw.vinfo_width[output_index] = vinfo->width;
-		osd_hw.vinfo_height[output_index] = vinfo->height;
+	vinfo = get_current_vinfo();
+	if (vinfo && (!strcmp(vinfo->name, "invalid") ||
+				!strcmp(vinfo->name, "null"))) {
+		return;
 	}
+	osd_hw.vinfo_width[output_index] = vinfo->width;
+	osd_hw.vinfo_height[output_index] = vinfo->height;
+
 	osd_hw.osd_afbcd[index].enable =
 		(plane_map->afbc_inter_format & AFBC_EN) >> 31;
 	if (osd_hw.osd_meson_dev.osd_ver <= OSD_NORMAL) {
