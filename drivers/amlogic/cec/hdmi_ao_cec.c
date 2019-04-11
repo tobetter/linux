@@ -2673,8 +2673,12 @@ static ssize_t hdmitx_cec_write(struct file *f, const char __user *buf,
 	if (cec_cfg & CEC_FUNC_CFG_CEC_ON) {
 		/*cec module on*/
 		ret = cec_ll_tx(tempbuf, size);
+	}
+
+	if (ret == CEC_FAIL_NACK) {
+		return -1;
 	} else {
-		CEC_ERR("err:cec module disabled\n");
+		return size;
 	}
 
 	return ret;
