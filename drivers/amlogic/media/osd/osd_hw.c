@@ -3924,7 +3924,10 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 					.update_func(index);
 				osd_update_window_axis = false;
 			}
-			if ((osd_enable != osd_hw.enable[index])
+			if ((osd_enable != osd_hw.enable[index] ||
+				(osd_hw.osd_meson_dev.afbc_type
+					== MALI_AFBC &&
+				osd_hw.osd_afbcd[index].enable))
 				&& (skip == false)
 				&& (suspend_flag == false)) {
 				osd_hw.enable[index] = osd_enable;
@@ -4045,7 +4048,10 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 						.update_func(index);
 				osd_update_window_axis = false;
 			}
-			if ((osd_enable != osd_hw.enable[index])
+			if ((osd_enable != osd_hw.enable[index] ||
+				(osd_hw.osd_meson_dev.afbc_type
+					== MALI_AFBC &&
+				osd_hw.osd_afbcd[index].enable))
 				&& (skip == false)
 				&& (suspend_flag == false)) {
 				osd_hw.enable[index] = osd_enable;
@@ -4057,7 +4063,9 @@ static void osd_pan_display_single_fence(struct osd_fence_map_s *fence_map)
 				osd_mali_afbc_start();
 			spin_unlock_irqrestore(&osd_lock, lock_flags);
 			osd_wait_vsync_hw();
-		} else if ((osd_enable != osd_hw.enable[index])
+		} else if ((osd_enable != osd_hw.enable[index] ||
+			(osd_hw.osd_meson_dev.afbc_type == MALI_AFBC &&
+			osd_hw.osd_afbcd[index].enable))
 			&& (skip == false)) {
 			spin_lock_irqsave(&osd_lock, lock_flags);
 			if (suspend_flag == false) {
