@@ -2135,18 +2135,19 @@ static void reset_process_time(struct vdec_mpeg12_hw_s *hw)
 }
 static void start_process_time(struct vdec_mpeg12_hw_s *hw)
 {
-	hw->decode_timeout_count = 2;
+	hw->decode_timeout_count = 10;
 	hw->start_process_time = jiffies;
 }
 static void timeout_process(struct vdec_mpeg12_hw_s *hw)
 {
 	struct vdec_s *vdec = hw_to_vdec(hw);
+
+	reset_process_time(hw);
 	amvdec_stop();
 	debug_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
 	"%s decoder timeout, status=%d, level=%d\n",
 	__func__, vdec->status, READ_VREG(VLD_MEM_VIFIFO_LEVEL));
 	hw->dec_result = DEC_RESULT_DONE;
-	reset_process_time(hw);
 	hw->first_i_frame_ready = 0;
 	vdec_schedule_work(&hw->work);
 }
