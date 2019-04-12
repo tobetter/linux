@@ -1235,7 +1235,23 @@
 		pcie-ctrl-iso-shift = <20>;
 		status = "disabled";
 	};
-
+	galcore {
+		compatible = "amlogic, galcore";
+		dev_name = "galcore";
+		status = "disabled";
+		interrupts = <0 147 4>;
+		interrupt-names = "galcore";
+		reg = <0xff100000 0x800
+			/*reg base value:0xff100000 */
+			0xff000000 0x400000
+			/*Sram bse value:0xff000000*/
+			0xff63c118 0x0
+			0xff63c11c 0x0
+			/*0xff63c118,0xff63c11c :nanoq mem regs*/
+			0xffd01088 0x0
+			/*0xffd01088:reset reg*/
+			>;
+	};
 	sd_emmc_c: emmc@ffe07000 {
 		status = "disabled";
 		compatible = "amlogic, meson-mmc-tm2";
