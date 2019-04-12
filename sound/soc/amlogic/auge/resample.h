@@ -29,4 +29,6 @@ int set_resample_source(enum resample_idx id, enum toddr_src src);
 
 int resample_set_inner_rate(enum resample_idx id);
 
+struct audioresample *get_audioresample(enum resample_idx id);
+
 #endif

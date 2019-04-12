@@ -75,7 +75,7 @@ struct audioresample *s_resample_a;
 
 struct audioresample *s_resample_b;
 
-static struct audioresample *get_audioresample(enum resample_idx id)
+struct audioresample *get_audioresample(enum resample_idx id)
 {
 	struct audioresample *p_resample;
 
