@@ -7430,6 +7430,7 @@ static void osd_set_freescale_new(u32 index,
 	struct layer_blend_reg_s *blend_reg;
 	u32 width, height;
 	u32 src_height;
+	u32 output_index;
 
 	layer_blend = &(blending->layer_blend);
 	blend_reg = &(blending->blend_reg);
@@ -7437,6 +7438,7 @@ static void osd_set_freescale_new(u32 index,
 		osd_log_err("error osd index=%d\n", index);
 		return;
 	}
+	output_index = get_output_device_id(index);
 	osd_hw.free_scale_enable[index] = 0x10001;
 	osd_hw.free_scale[index].h_enable = 1;
 	osd_hw.free_scale[index].v_enable = 1;
@@ -7460,7 +7462,7 @@ static void osd_set_freescale_new(u32 index,
 		osd_hw.dst_data[index].y;
 	width = osd_hw.dst_data[index].w;
 	height = osd_hw.dst_data[index].h;
-	if (osd_hw.field_out_en) {
+	if (osd_hw.field_out_en[output_index]) {
 		height = height >> 1;
 		osd_hw.free_dst_data[index].y_start >>= 1;
 	}
