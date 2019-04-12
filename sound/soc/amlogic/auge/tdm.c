@@ -684,13 +684,11 @@ static int aml_tdm_set_lanes(struct aml_tdm *p_tdm,
 	unsigned int set_num = 0;
 	unsigned int i;
 
-	pr_debug("asoc channels:%d, slots:%d, lane_cnt:%d\n",
-	    channels, setting->slots, p_tdm->lane_cnt);
-
 	/* calc lanes by channels and slots */
 	lanes = (channels - 1) / setting->slots + 1;
 	if (lanes > p_tdm->lane_cnt) {
-		pr_err("lanes setting error\n");
+		pr_err("set lane error! asoc channels:%d, slots:%d, lane_cnt:%d\n",
+		channels, setting->slots, p_tdm->lane_cnt);
 		return -EINVAL;
 	}
 

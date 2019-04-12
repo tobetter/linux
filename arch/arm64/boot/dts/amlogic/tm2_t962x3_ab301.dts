@@ -325,7 +325,7 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = </*&ad82584f*/ &tl1_codec>;
+				sound-dai = <&tl1_codec &tas5805>;
 			};
 		};
 
@@ -1644,7 +1644,7 @@
 	};
 
 	tdmout_a: tdmout_a {
-		mux { /* GPIOZ_1, GPIOZ_2, GPIOZ_3 */
+		mux { /* GPIOZ_1, GPIOZ_2, GPIOZ_3*/
 			groups = "tdma_sclk_z",
 				"tdma_fs_z",
 				"tdma_dout0_z";
@@ -1763,12 +1763,13 @@
 	pinctrl-0=<&i2c2_z_pins>;
 	clock-frequency = <400000>;
 
-	tas5805: tas5805@36 {
+	tas5805: tas5805@5c {
 		compatible = "ti,tas5805";
 		#sound-dai-cells = <0>;
 		codec_name = "tas5805";
-		reg = <0x2d>;
-		status = "disable";
+		reg = <0x2e>;
+		reset_pin = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
 	};
 
 	ad82584f: ad82584f@62 {
