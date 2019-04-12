@@ -810,7 +810,7 @@ EXPORT_SYMBOL(amhevc_start);
 
 void amvdec_stop(void)
 {
-	ulong timeout = jiffies + HZ;
+	ulong timeout = jiffies + HZ/10;
 
 	WRITE_VREG(MPSR, 0);
 	WRITE_VREG(CPSR, 0);
@@ -820,7 +820,7 @@ void amvdec_stop(void)
 			break;
 	}
 
-	timeout = jiffies + HZ;
+	timeout = jiffies + HZ/10;
 	while (READ_VREG(LMEM_DMA_CTRL) & 0x8000) {
 		if (time_after(jiffies, timeout))
 			break;
@@ -859,7 +859,7 @@ EXPORT_SYMBOL(amvdec_stop);
 void amvdec2_stop(void)
 {
 	if (has_vdec2()) {
-		ulong timeout = jiffies + HZ;
+		ulong timeout = jiffies + HZ/10;
 
 		WRITE_VREG(VDEC2_MPSR, 0);
 		WRITE_VREG(VDEC2_CPSR, 0);
@@ -889,7 +889,7 @@ EXPORT_SYMBOL(amhcodec_stop);
 void amhevc_stop(void)
 {
 	if (has_hevc_vdec()) {
-		ulong timeout = jiffies + HZ;
+		ulong timeout = jiffies + HZ/10;
 
 		WRITE_VREG(HEVC_MPSR, 0);
 		WRITE_VREG(HEVC_CPSR, 0);
@@ -899,7 +899,7 @@ void amhevc_stop(void)
 				break;
 		}
 
-		timeout = jiffies + HZ;
+		timeout = jiffies + HZ/10;
 		while (READ_VREG(HEVC_LMEM_DMA_CTRL) & 0x8000) {
 			if (time_after(jiffies, timeout))
 				break;
