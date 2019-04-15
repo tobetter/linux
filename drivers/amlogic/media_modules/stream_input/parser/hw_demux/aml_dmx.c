@@ -1715,7 +1715,9 @@ static void stb_enable(struct aml_dvb *dvb)
 		WRITE_MPEG_REG(TS_HIU1_CONFIG,
 			       (demux_skipbyte << FILE_M2TS_SKIP_BYTES_HIU1) |
 			       (hiu << TS_HIU_ENABLE_HIU1) |
-			       (fec_clk << FEC_CLK_DIV_HIU1));
+			       (fec_clk << FEC_CLK_DIV_HIU1) |
+			       (0xBB << TS_PACKAGE_LENGTH_SUB_1_HIU1) |
+				   (0x47 << FEC_SYNC_BYTE_HIU1));
 	} else {
 		/* invert ts out clk  end */
 		WRITE_MPEG_REG(TS_FILE_CONFIG,
@@ -3140,9 +3142,15 @@ static int dmx_enable(struct aml_dmx *dmx)
 			      (7<<VIDEO_ENDIAN) |
 			      (7 << OTHER_ENDIAN) |
 			      (7 << BYPASS_ENDIAN) | (0 << SECTION_ENDIAN));
-		DMX_WRITE_REG(dmx->id, TS_HIU_CTL,
+		if (fec_sel != 8) {
+			DMX_WRITE_REG(dmx->id, TS_HIU_CTL,
 //			      (0 << LAST_BURST_THRESHOLD) |
 			   (hi_bsf << USE_HI_BSF_INTERFACE));
+		} else {
+			DMX_WRITE_REG(dmx->id, TS_HIU_CTL,
+				  (1 << PDTS_WR_SEL) |
+			   (hi_bsf << USE_HI_BSF_INTERFACE));
+		}
 
 		if (fec_sel == -1) {
 			dmx_cascade_set(dmx->id,dmx->source);
@@ -3189,7 +3197,6 @@ static int dmx_enable(struct aml_dmx *dmx)
 			(dmx->id != dmx->source-AM_TS_SRC_DMX0))
 			dmx_cascade_set(dmx->id,dmx->source);
 	}
-
 	return 0;
 }
 

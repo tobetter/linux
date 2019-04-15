@@ -758,8 +758,8 @@
 #define BYPASS_ENDIAN              3
 #define SECTION_ENDIAN             0
 
-/* Bit 15:8 -- last_burst_threshold*/
-/* Bit 7 -- use hi_bsf interface*/
+/* Bit 10:9 -- PDTS_wr_sel: 0 select video_PDTS_wr_ptr; 1 select video_PDTS_wr_ptr_parser_B; */
+/* Bit 7:8 -- use hi_bsf interface*/
 /* Bit 6:2 - fec_clk_div*/
 /* Bit 1 ts_source_sel */
 /* Bit 0 - Hiu TS generate enable */
@@ -770,7 +770,8 @@
 /*#define TS_HIU_CTL_3
  * (STB_CBUS_BASE + DEMUX_3_OFFSET + 0x25)  // 0x16c5*/
 /*----------- bit define -----------*/
-#define LAST_BURST_THRESHOLD       8
+//#define LAST_BURST_THRESHOLD       8
+#define PDTS_WR_SEL			       9
 #define USE_HI_BSF_INTERFACE       7
 
 /* bit 15:0 -- base address for section buffer start
