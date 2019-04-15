@@ -162,13 +162,31 @@ static void meson_i2c_write_tokens(struct meson_i2c *i2c)
 /*
  * Count = clk/freq  = H + L
  * Duty  = H/(H + L) = 1/2	-- duty 50%
+ * 1. register desription
+ * in I2C_CONTROL_REG , n = [28:29][21:12], control the high level time
+ *			n consists of 12bit, [21:12] is the low 10bit,
+ *			[28:29] is the bit 11 and 12.
+ * in I2C_SLAVE_ADDRESS, m = [27:16], control the low level time,
+ *			 bit 28 enable the function
+ *
+ * 2.I2C controller internal characteristic
  * H = n + delay
  * L = 2m
+ * (H:high clock counts equals n + 15 clocks which
+ *    cost by sampling and filtering
+ *  L:low clock counts equals m multiply by 2)
+ *
+ * 3.high level and low level relationship:
+ * H/L = (n + 15)/2m = 1/1
+ * H+L = 2m + n +15 = Count
+ * Count = 166M/freq = 166M/100k
  *
  * =>
  *
  * n = Count/2 - delay
  * m = Count/4
+ *
+ * n equals div_h, m equals div_l below
  * Standard Mode : 100k
  */
 static void meson_i2c_set_clk_div_std(struct meson_i2c *i2c)
