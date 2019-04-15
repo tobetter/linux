@@ -890,10 +890,10 @@ static ssize_t stb_store_source(struct class *class,
 		src = DMX_SOURCE_FRONT2;
 	else if (!strncmp("ts3", buf, 3))
 		src = DMX_SOURCE_FRONT3;
-	else if (!strncmp("hiu", buf, 3))
-		src = DMX_SOURCE_DVR0;
 	else if (!strncmp("hiu1", buf, 4))
 		src = DMX_SOURCE_DVR1;
+	else if (!strncmp("hiu", buf, 3))
+		src = DMX_SOURCE_DVR0;
 	else if (!strncmp("dmx0", buf, 4))
 		src = DMX_SOURCE_FRONT0 + 100;
 	else if (!strncmp("dmx1", buf, 4))
@@ -1150,10 +1150,10 @@ static ssize_t demux##i##_store_source(struct class *class,  \
 		src = DMX_SOURCE_FRONT1;\
 	} else if (!strncmp("ts2", buf, 3)) {\
 		src = DMX_SOURCE_FRONT2;\
+	} else if (!strncmp("hiu1", buf, 4)) {\
+		src = DMX_SOURCE_DVR1;\
 	} else if (!strncmp("hiu", buf, 3)) {\
 		src = DMX_SOURCE_DVR0;\
-	} else if (!strncmp("hiu1", buf, 3)) {\
-		src = DMX_SOURCE_DVR1;\
 	} else if (!strncmp("dmx0", buf, 4)) {\
 		src = DMX_SOURCE_FRONT0_OFFSET;\
 	} else if (!strncmp("dmx1", buf, 4)) {\
