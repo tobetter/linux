@@ -21,6 +21,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
@@ -29,7 +30,6 @@
 #include <linux/amlogic/iomap.h>
 #include <linux/amlogic/scpi_protocol.h>
 
-#include <linux/notifier.h>
 #include <linux/reboot.h>
 
 #include "hk-lirc-helper.h"
@@ -37,6 +37,7 @@
 #define DRIVER_NAME	"hk-lirc-helper"
 
 static u32 remotewakeup = 0xffffffff;
+static u32 remotewakeupmask = 0xffffffff;
 static int decode_type = IR_DECODE_NEC;
 void __iomem *ir_reg;
 
@@ -63,6 +64,10 @@ static int remote_handle_usrkey(void)
 {
 	scpi_send_usr_data(SCPI_CL_REMOTE, &remotewakeup,
 				sizeof(remotewakeup));
+	scpi_send_usr_data(SCPI_CL_IRPROTO, &decode_type,
+				sizeof(decode_type));
+	scpi_send_usr_data(SCPI_CL_REMOTE_MASK, &remotewakeupmask,
+				sizeof(remotewakeupmask));
 	return 0;
 }
 
@@ -90,28 +95,24 @@ static void remote_nec_convert_key(void)
 	remotewakeup |= (code_inverse << 16);
 }
 
-static int remote_handle_protocol(void)
+static int __init remote_wakeupmask_setup(char *str)
 {
-	const struct remote_reg_proto **reg_proto = remote_reg_proto_hk;
-	struct remote_reg_map *reg_map;
-	unsigned int size;
+	int ret;
 
-	while ((*reg_proto) != NULL) {
-		if (((*reg_proto)->decode_type) == decode_type)
-			break;
-		reg_proto++;
+	if (str == NULL) {
+		pr_info("%s no string\n", __func__);
+		return -EINVAL;
 	}
 
-	reg_map = (*reg_proto)->reg_map;
-	size = (*reg_proto)->reg_map_size;
-	while (size) {
-		writel(reg_map->val, (ir_reg + reg_map->reg));
-		reg_map++;
-		size--;
+	ret = kstrtouint(str, 16, &remotewakeupmask);
+	if (ret) {
+		remotewakeupmask = 0xffffffff;
+		return -EINVAL;
 	}
 
 	return 0;
 }
+__setup("remotewakeupmask=", remote_wakeupmask_setup);
 
 static int __init remote_irdecode_type(char *str)
 {
@@ -165,19 +166,6 @@ static int __init remote_wakeup_setup(char *str)
 }
 __setup("remotewakeup=", remote_wakeup_setup);
 
-static int hk_lirc_helper_notifier_sys(struct notifier_block *this,
-			unsigned long code, void *unused)
-{
-	if (code == SYS_POWER_OFF)
-		remote_handle_protocol();
-
-	return NOTIFY_DONE;
-}
-
-static struct notifier_block hk_lirc_helper_notifier = {
-	.notifier_call = hk_lirc_helper_notifier_sys,
-};
-
 static int hk_lirc_helper_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -197,17 +185,10 @@ static int hk_lirc_helper_probe(struct platform_device *pdev)
 		ir_reg = NULL;
 	}
 
-	ret = register_reboot_notifier(&hk_lirc_helper_notifier);
-	if (ret)
-		pr_err("%s register_reboot_notifier failed\n", __func__);
-
-	/* check user remote wakeup key */
-	if (decode_type == IR_DECODE_NEC)
-		remote_nec_convert_key();
 	remote_handle_usrkey();
 
-	pr_info("lirc_helper: wakeupkey 0x%x, protocol 0x%x\n",
-		remotewakeup, decode_type);
+	pr_info("lirc_helper: wakeupkey 0x%x, protocol 0x%x, mask 0x%x\n",
+		remotewakeup, decode_type, remotewakeupmask);
 
 	return 0;
 }
@@ -232,6 +213,13 @@ static struct platform_driver hk_lirc_helper_driver = {
 };
 
 module_platform_driver(hk_lirc_helper_driver);
+
+module_param(remotewakeup,uint,0660);
+MODULE_PARM_DESC(remotewakeup, "remotewakeup is the ir keycode to wakeup from suspend/poweroff");
+module_param(decode_type,int,0660);
+MODULE_PARM_DESC(decode_type, "decode_type is the ir decoding type. Default is 3 (NEC)");
+module_param(remotewakeupmask,uint,0660);
+MODULE_PARM_DESC(remotewakeupmask, "remotewakeupmask is the ir keycode mask for remotewakeup");
 
 MODULE_DESCRIPTION("Hardkernel LIRC helper driver");
 MODULE_AUTHOR("Joy Cho <joy.cho@hardkernel.com>");
