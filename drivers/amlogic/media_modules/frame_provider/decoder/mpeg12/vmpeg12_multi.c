@@ -268,6 +268,8 @@ struct vdec_mpeg12_hw_s {
 	u8 *user_data_buffer;
 	int wait_for_udr_send;
 	u32 ucode_cc_last_wp;
+	u32 notify_ucode_cc_last_wp;
+	u32 notify_data_cc_last_wp;
 
 #ifdef DUMP_USER_DATA
 #define MAX_USER_DATA_SIZE		1572864
@@ -807,6 +809,8 @@ static void user_data_ready_notify(struct vdec_mpeg12_hw_s *hw,
 		hw->wait_for_udr_send = 0;
 		hw->cur_ud_idx = 0;
 	}
+	hw->notify_ucode_cc_last_wp = hw->ucode_cc_last_wp;
+	hw->notify_data_cc_last_wp = hw->userdata_info.last_wp;
 }
 
 static int vmmpeg2_user_data_read(struct vdec_s *vdec,
@@ -1052,7 +1056,6 @@ static void userdata_push_do_work(struct work_struct *work)
 	struct vdec_mpeg12_hw_s *hw = container_of(work,
 					struct vdec_mpeg12_hw_s, userdata_push_work);
 
-
 	memset(&meta_info, 0, sizeof(meta_info));
 
 	meta_info.duration = hw->frame_dur;
@@ -1174,7 +1177,6 @@ static void userdata_push_do_work(struct work_struct *work)
 		if (pdata >= hw->userdata_info.data_buf_end)
 			pdata = hw->userdata_info.data_buf;
 	}
-
 	pcur_ud_rec = hw->ud_record + hw->cur_ud_idx;
 
 	pcur_ud_rec->meta_info = meta_info;
@@ -1201,6 +1203,17 @@ static void userdata_push_do_work(struct work_struct *work)
 
 	hw->cur_ud_idx++;
 	WRITE_VREG(AV_SCRATCH_J, 0);
+
+}
+
+
+void userdata_pushed_drop(struct vdec_mpeg12_hw_s *hw)
+{
+	hw->userdata_info.last_wp = hw->notify_data_cc_last_wp;
+	hw->ucode_cc_last_wp = hw->notify_ucode_cc_last_wp;
+	hw->cur_ud_idx = 0;
+	hw->wait_for_udr_send = 0;
+
 }
 
 
@@ -1251,6 +1264,7 @@ static irqreturn_t vmpeg12_isr_thread_fn(struct vdec_s *vdec, int irq)
 		else {
 			hw->dec_result = DEC_RESULT_AGAIN;
 			vdec_schedule_work(&hw->work);
+			userdata_pushed_drop(hw);
 		}
 		return IRQ_HANDLED;
 	} else {
@@ -1742,7 +1756,6 @@ static void vmpeg12_work(struct work_struct *work)
 			vdec_schedule_work(&hw->work);
 			return;
 		}
-
 #ifdef AGAIN_HAS_THRESHOLD
 	hw->next_again_flag = 1;
 #endif
