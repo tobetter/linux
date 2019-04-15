@@ -320,12 +320,12 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = </*&ad82584f*/ &tl1_codec>;
+				prefix-names = "AMP", "AMP1";
+				sound-dai = <&ad82584f &ad82584f1 &tl1_codec>;
 			};
 		};
 
 		aml-audio-card,dai-link@1 {
-			status = "disabled";
 
 			format = "i2s";
 			mclk-fs = <256>;
@@ -1417,8 +1417,8 @@
 
 		pinctrl-names = "spdif_pins",
 				"spdif_pins_mute";
-		pinctrl-0 = <&spdifout_a>;
-		pinctrl-1 = <&spdifout_a_mute>;
+		pinctrl-0 = <&spdifin_a>;
+		//pinctrl-1 = <&spdifout_a_mute>;
 
 		/*
 		 * whether do asrc for pcm and resample a or b
@@ -1727,12 +1727,19 @@
 	pinctrl-0=<&i2c3_h1_pins>;
 	clock-frequency = <400000>;
 
-	ad82584f: ad82584f@62 {
+	ad82584f: ad82584f@60 {
+		compatible = "ESMT, ad82584f";
+		#sound-dai-cells = <0>;
+		reg = <0x30>;
+		status = "okay";
+		reset_pin = <&gpio GPIOH_13 0>;
+		no_mclk;
+	};
+	ad82584f1: ad82584f@62 {
 		compatible = "ESMT, ad82584f";
 		#sound-dai-cells = <0>;
 		reg = <0x31>;
-		status = "disabled";
-		reset_pin = <&gpio GPIOH_13 0>;
+		status = "okay";
 		no_mclk;
 	};
 };
@@ -1833,8 +1840,8 @@
 
 &ethmac {
 	status = "okay";
-	pinctrl-names = "internal_eth_pins";
-	pinctrl-0 = <&internal_eth_pins>;
+	//pinctrl-names = "internal_eth_pins";
+	//pinctrl-0 = <&internal_eth_pins>;
 	mc_val = <0x4be04>;
 
 	internal_phy=<1>;
