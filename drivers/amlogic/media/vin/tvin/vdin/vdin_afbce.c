@@ -412,10 +412,76 @@ static void afbce_wr(uint32_t reg, const uint32_t val)
 	wr(0, reg, val);
 }
 */
+#define VDIN_AFBCE_HOLD_LINE_NUM    4
+void vdin_afbce_update(struct vdin_dev_s *devp)
+{
+	int hold_line_num = VDIN_AFBCE_HOLD_LINE_NUM;
+	int reg_format_mode;/* 0:444 1:422 2:420 */
+	int reg_fmt444_comb;
+	int sblk_num;
+	int uncmp_bits;
+	int uncmp_size;
+
+	if (devp->index != 0) {
+		pr_info("cat not use afbce on vdin1 at the moment\n");
+		return;
+	}
+
+#ifndef CONFIG_AMLOGIC_MEDIA_RDMA
+	pr_info("##############################################\n");
+	pr_info("vdin afbce must use RDMA,but it not be opened\n");
+	pr_info("##############################################\n");
+#endif
+
+	if ((devp->prop.dest_cfmt == TVIN_YUV444) && (devp->h_active > 2048))
+		reg_fmt444_comb = 1;
+	else
+		reg_fmt444_comb = 0;
+
+	if ((devp->prop.dest_cfmt == TVIN_NV12) ||
+		(devp->prop.dest_cfmt == TVIN_NV21)) {
+		reg_format_mode = 2;
+		sblk_num = 12;
+	} else if ((devp->prop.dest_cfmt == TVIN_YUV422) ||
+		(devp->prop.dest_cfmt == TVIN_YUYV422) ||
+		(devp->prop.dest_cfmt == TVIN_YVYU422) ||
+		(devp->prop.dest_cfmt == TVIN_UYVY422) ||
+		(devp->prop.dest_cfmt == TVIN_VYUY422)) {
+		reg_format_mode = 1;
+		sblk_num = 16;
+	} else {
+		reg_format_mode = 0;
+		sblk_num = 24;
+	}
+	uncmp_bits = devp->source_bitdepth;
+
+	/* bit size of uncompression mode */
+	uncmp_size = (((((16*uncmp_bits*sblk_num)+7)>>3)+31)/32)<<1;
+	/*
+	 *pr_info("%s: dest_cfmt=%d, reg_format_mode=%d, uncmp_bits=%d,
+	 *         sblk_num=%d, uncmp_size=%d\n",
+	 *	__func__, devp->prop.dest_cfmt, reg_format_mode,
+	 *	uncmp_bits, sblk_num, uncmp_size);
+	 */
+
+	rdma_write_reg(devp->rdma_handle, AFBCE_MODE,
+		(0 & 0x7) << 29 | (0 & 0x3) << 26 | (3 & 0x3) << 24 |
+		(hold_line_num & 0x7f) << 16 |
+		(2 & 0x3) << 14 | (reg_fmt444_comb & 0x1));
+
+	rdma_write_reg_bits(devp->rdma_handle,
+		AFBCE_MIF_SIZE, (uncmp_size & 0x1fff), 16, 5);/* uncmp_size */
+
+	rdma_write_reg(devp->rdma_handle, AFBCE_FORMAT,
+		(reg_format_mode  & 0x3) << 8 |
+		(uncmp_bits & 0xf) << 4 |
+		(uncmp_bits & 0xf));
+}
+
 void vdin_afbce_config(struct vdin_dev_s *devp)
 {
 	unsigned int offset = devp->addr_offset;
-	int hold_line_num = 4;
+	int hold_line_num = VDIN_AFBCE_HOLD_LINE_NUM;
 	int lbuf_depth = 256;
 	int lossy_luma_en = 0;
 	int lossy_chrm_en = 0;

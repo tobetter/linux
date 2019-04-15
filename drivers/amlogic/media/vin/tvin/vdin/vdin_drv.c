@@ -1655,8 +1655,13 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 		pre_prop = &devp->pre_prop;
 		if ((prop->color_format != pre_prop->color_format) ||
 			(prop->vdin_hdr_Flag != pre_prop->vdin_hdr_Flag) ||
-			(prop->color_fmt_range != pre_prop->color_fmt_range))
+			(prop->color_fmt_range != pre_prop->color_fmt_range)) {
 			vdin_set_matrix(devp);
+			if (skip_frame_debug) {
+				pr_info("vdin.%d color_format changed\n",
+					devp->index);
+			}
+		}
 		if (prop->dest_cfmt != pre_prop->dest_cfmt) {
 			vdin_set_bitdepth(devp);
 			vdin_source_bitdepth_reinit(devp);
@@ -1667,6 +1672,13 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 			vdin_set_top(devp->addr_offset, devp->parm.port,
 				devp->prop.color_format, devp->h_active,
 				devp->bt_path);
+			if (devp->afbce_mode)
+				vdin_afbce_update(devp);
+			if (skip_frame_debug) {
+				pr_info("vdin.%d dest_cfmt changed: %d->%d\n",
+					devp->index,
+					pre_prop->dest_cfmt, prop->dest_cfmt);
+			}
 		}
 		pre_prop->color_format = prop->color_format;
 		pre_prop->vdin_hdr_Flag = prop->vdin_hdr_Flag;

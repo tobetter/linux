@@ -116,6 +116,15 @@ static inline uint32_t R_APB_BIT(uint32_t reg,
 	return val;
 }
 
+static inline void W_VCBUS(uint32_t reg, const uint32_t value)
+{
+	aml_write_vcbus(reg, value);
+}
+
+static inline uint32_t R_VCBUS(uint32_t reg)
+{
+	return aml_read_vcbus(reg);
+}
 
 static inline void W_VCBUS_BIT(uint32_t reg,
 				    const uint32_t value,

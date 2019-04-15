@@ -304,6 +304,7 @@ extern void vdin_write_mif_or_afbce(struct vdin_dev_s *devp,
 	enum vdin_output_mif_e sel);
 extern unsigned int vdin_afbce_cma_alloc(struct vdin_dev_s *devp);
 extern void vdin_afbce_cma_release(struct vdin_dev_s *devp);
+extern void vdin_afbce_update(struct vdin_dev_s *devp);
 extern void vdin_afbce_config(struct vdin_dev_s *devp);
 extern void vdin_afbce_maptable_init(struct vdin_dev_s *devp);
 extern void vdin_afbce_set_next_frame(struct vdin_dev_s *devp,
