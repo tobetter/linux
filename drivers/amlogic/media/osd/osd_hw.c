@@ -4920,8 +4920,10 @@ static void osd_update_enable(u32 index)
 			notify_to_amvideo();
 			VSYNCOSD_CLR_MPEG_REG_MASK(VPP_MISC, temp_val);
 		}
-		VSYNCOSD_CLR_MPEG_REG_MASK(
-			osd_reg->osd_ctrl_stat, 1 << 0);
+		if (!(osd_hw.osd_meson_dev.cpu_id ==
+			__MESON_CPU_MAJOR_ID_G12B))
+			VSYNCOSD_CLR_MPEG_REG_MASK(
+				osd_reg->osd_ctrl_stat, 1 << 0);
 	}
 	if (osd_hw.osd_meson_dev.afbc_type == MESON_AFBC) {
 		if ((osd_hw.osd_afbcd[index].enable == ENABLE)
@@ -8534,13 +8536,11 @@ void osd_init_hw(u32 logo_loaded, u32 osd_probe,
 				osd_reg_set_bits(
 				hw_osd_reg_array[idx].osd_fifo_ctrl_stat,
 				1, 10, 2);
-				/* TODO: temp set at here,
-				 * need check for logo
-				 */
-				if (idx > 0)
-					osd_reg_set_bits(
-					hw_osd_reg_array[idx].osd_ctrl_stat,
-					0, 0, 1);
+				if (osd_hw.osd_meson_dev.cpu_id ==
+					__MESON_CPU_MAJOR_ID_G12B)
+					osd_reg_set_bits
+					(hw_osd_reg_array[idx].osd_ctrl_stat,
+					1, 0, 1);
 				osd_reg_set_bits(
 				hw_osd_reg_array[idx].osd_ctrl_stat,
 				0, 31, 1);
