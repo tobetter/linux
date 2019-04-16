@@ -2663,6 +2663,11 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			else
 				decoder_do_frame_check(hw_to_vdec(hw), vf);
 		}
+
+		vf->ratio_control |= (0x3FF << DISP_RATIO_ASPECT_RATIO_BIT);
+		vf->sar_width = vf->width;
+		vf->sar_height = vf->height;
+
 		kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
 		ATRACE_COUNTER(MODULE_NAME, vf->pts);
 		hw->vf_pre_count++;
