@@ -23,7 +23,6 @@
 inline int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation,
 	u32 util_gl_share, u32 util_cl_share[2])
 {
-    trace_printk("utilisation=%d, util_gl_share=%d\n", utilisation, util_gl_share);
     return 1;
 }
 
