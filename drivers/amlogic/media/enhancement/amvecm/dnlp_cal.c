@@ -637,6 +637,10 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 			p->param[ve_dnlp_whtext_ofst]) ||
 		(dnlp_alg_param.dnlp_bwext_div4x_min !=
 			p->param[ve_dnlp_bwext_div4x_min]) ||
+		(dnlp_alg_param.dnlp_iRgnBgn !=
+			p->param[ve_dnlp_iRgnBgn]) ||
+		(dnlp_alg_param.dnlp_iRgnEnd !=
+			p->param[ve_dnlp_iRgnEnd]) ||
 		(dnlp_alg_param.dnlp_blk_cctr !=
 			p->param[ve_dnlp_blk_cctr]) ||
 		(dnlp_alg_param.dnlp_brgt_ctrl !=
@@ -752,6 +756,8 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 	dnlp_alg_param.dnlp_blkext_ofst = p->param[ve_dnlp_blkext_ofst];
 	dnlp_alg_param.dnlp_whtext_ofst = p->param[ve_dnlp_whtext_ofst];
 	dnlp_alg_param.dnlp_bwext_div4x_min = p->param[ve_dnlp_bwext_div4x_min];
+	dnlp_alg_param.dnlp_iRgnBgn = p->param[ve_dnlp_iRgnBgn];
+	dnlp_alg_param.dnlp_iRgnEnd = p->param[ve_dnlp_iRgnEnd];
 
 	/* brightness_plus */
 	dnlp_alg_param.dnlp_blk_cctr = p->param[ve_dnlp_blk_cctr];
