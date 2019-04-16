@@ -330,6 +330,11 @@ void calc_lmv_base_mcinfo(unsigned int vf_height, unsigned short *mcinfo_vadr)
 	if (!lmv_lock_win_en)
 		return;
 
+	if (!cpu_after_eq(MESON_CPU_MAJOR_ID_G12A)) {
+		pr_debug("%s: only support G12A and after chips.\n", __func__);
+		return;
+	}
+
 	//tmp = di_vmap(mcinfo_adr, mcinfo_size, &bflg_vmap);
 	if (mcinfo_vadr == NULL) {
 		di_print("err:di_vmap failed\n");
@@ -992,6 +997,7 @@ void enable_afbc_input(struct vframe_s *vf)
 }
 #endif
 
+#define AFBC_DEC_SEL	(eAFBC_DEC1)
 
 u32 enable_afbc_input(struct vframe_s *vf)
 {
