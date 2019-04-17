@@ -1307,8 +1307,6 @@ static void vavs_notify_work(struct work_struct *work)
 
 static void avs_set_clk(struct work_struct *work)
 {
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
 
 		saved_resolution = frame_width * frame_height * fps;
@@ -1320,8 +1318,6 @@ static void avs_set_clk(struct work_struct *work)
 			vdec_source_changed(VFORMAT_AVS,
 			frame_width, frame_height, fps);
 		}
-
-	}
 }
 
 static void vavs_put_timer_func(unsigned long arg)
@@ -1414,7 +1410,9 @@ static void vavs_put_timer_func(unsigned long arg)
 
 	}
 
-	schedule_work(&set_clk_work);
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur))
+		schedule_work(&set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -1731,7 +1729,6 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 	cancel_work_sync(&userdata_push_work);
 
 	cancel_work_sync(&notify_work);
-	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
 		stat &= ~STAT_VDEC_RUN;
@@ -1820,6 +1817,7 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 	kfree(gvs);
 	gvs = NULL;
 
+	cancel_work_sync(&set_clk_work);
 	return 0;
 }
 

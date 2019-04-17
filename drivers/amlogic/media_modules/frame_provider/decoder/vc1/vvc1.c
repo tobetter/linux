@@ -992,14 +992,12 @@ static void vvc1_ppmgr_reset(void)
 
 static void vvc1_set_clk(struct work_struct *work)
 {
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
 
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_VC1,
 			frame_width, frame_height, fps);
-	}
+
 }
 
 static void error_do_work(struct work_struct *work)
@@ -1038,7 +1036,10 @@ static void vvc1_put_timer_func(unsigned long arg)
 			kfifo_put(&newframe_q, (const struct vframe_s *)vf);
 		}
 	}
-	schedule_work(&set_clk_work);
+
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur))
+		schedule_work(&set_clk_work);
 	timer->expires = jiffies + PUT_INTERVAL;
 
 	add_timer(timer);
@@ -1186,7 +1187,6 @@ static int amvdec_vc1_probe(struct platform_device *pdev)
 static int amvdec_vc1_remove(struct platform_device *pdev)
 {
 	cancel_work_sync(&error_wd_work);
-	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
 		stat &= ~STAT_VDEC_RUN;
@@ -1202,6 +1202,7 @@ static int amvdec_vc1_remove(struct platform_device *pdev)
 		stat &= ~STAT_TIMER_ARM;
 	}
 
+	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VF_HOOK) {
 		if (!is_reset)
 			vf_notify_receiver(PROVIDER_NAME,
