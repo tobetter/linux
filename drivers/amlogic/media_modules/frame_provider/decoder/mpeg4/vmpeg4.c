@@ -708,14 +708,11 @@ static void reset_do_work(struct work_struct *work)
 
 static void vmpeg4_set_clk(struct work_struct *work)
 {
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
 
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_MPEG4,
 			frame_width, frame_height, fps);
-	}
 }
 
 static void vmpeg_put_timer_func(unsigned long arg)
@@ -735,7 +732,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		}
 	}
 
-	schedule_work(&set_clk_work);
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur))
+		schedule_work(&set_clk_work);
 
 	if (READ_VREG(AV_SCRATCH_L)) {
 		pr_info("mpeg4 fatal error happened,need reset    !!\n");

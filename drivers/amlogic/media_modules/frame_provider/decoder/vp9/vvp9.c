@@ -7574,17 +7574,12 @@ static void vp9_set_clk(struct work_struct *work)
 	struct VP9Decoder_s *pbi = container_of(work,
 		struct VP9Decoder_s, work);
 
-	if (pbi->get_frame_dur && pbi->show_frame_num > 60 &&
-		pbi->frame_dur > 0 && pbi->saved_resolution !=
-		frame_width * frame_height *
-			(96000 / pbi->frame_dur)) {
 		int fps = 96000 / pbi->frame_dur;
 
 		if (hevc_source_changed(VFORMAT_VP9,
 			frame_width, frame_height, fps) > 0)
 			pbi->saved_resolution = frame_width *
 			frame_height * fps;
-	}
 }
 
 static void vvp9_put_timer_func(unsigned long arg)
@@ -7791,7 +7786,11 @@ static void vvp9_put_timer_func(unsigned long arg)
 		dbg_cmd = 0;
 	}
 	/*don't changed at start.*/
-	schedule_work(&pbi->set_clk_work);
+	if (pbi->get_frame_dur && pbi->show_frame_num > 60 &&
+		pbi->frame_dur > 0 && pbi->saved_resolution !=
+		frame_width * frame_height *
+			(96000 / pbi->frame_dur))
+		schedule_work(&pbi->set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 	add_timer(timer);
