@@ -315,10 +315,9 @@ static void vlock_enable(bool enable)
 {
 	unsigned int tmp_value;
 
-	amvecm_hiu_reg_read(HHI_HDMI_PLL_CNTL6, &tmp_value);
-
 	if (is_meson_gxtvbb_cpu()) {
 		if (vlock_mode & VLOCK_MODE_MANUAL_PLL) {
+			amvecm_hiu_reg_read(HHI_HDMI_PLL_CNTL6, &tmp_value);
 			amvecm_hiu_reg_write_bits(HHI_HDMI_PLL_CNTL6, 0, 20, 1);
 			/*vlsi suggest config:don't enable load signal,
 			 *on gxtvbb this load signal will effect SSG,
@@ -352,6 +351,9 @@ static void vlock_enable(bool enable)
 			/*WRITE_VPP_REG(VPU_VLOCK_CTRL, 0);*/
 		}
 	}
+
+	if (vlock_debug & VLOCK_DEBUG_INFO)
+		pr_info(">>>[%s] (%d)\n", __func__, enable);
 }
 static void vlock_hw_reinit(struct vlock_regs_s *vlock_regs, unsigned int len)
 {
@@ -361,6 +363,9 @@ static void vlock_hw_reinit(struct vlock_regs_s *vlock_regs, unsigned int len)
 		return;
 	for (i = 0; i < len; i++)
 		WRITE_VPP_REG(vlock_regs[i].addr, vlock_regs[i].val);
+
+	if (vlock_debug & VLOCK_DEBUG_INFO)
+		pr_info("[%s]\n", __func__);
 }
 static void vlock_setting(struct vframe_s *vf,
 		unsigned int input_hz, unsigned int output_hz)
@@ -568,19 +573,18 @@ static void vlock_setting(struct vframe_s *vf,
 	else if (vf->source_type == VFRAME_SOURCE_TYPE_HDMI)
 		/* Input Vsync source select from hdmi-rx */
 		WRITE_VPP_REG_BITS(VPU_VLOCK_CTRL, 1, 16, 3);
+
+	/*enable vlock*/
 	WRITE_VPP_REG_BITS(VPU_VLOCK_CTRL, 1, 31, 1);
 }
 void vlock_vmode_check(void)
 {
 	const struct vinfo_s *vinfo;
-	unsigned int t0, t1, hiu_reg_addr;
+	unsigned int t0, t1;
 
 	if (vlock_en == 0)
 		return;
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
-		hiu_reg_addr = HHI_HDMI_PLL_CNTL1;
-	else
-		hiu_reg_addr = HHI_HDMI_PLL_CNTL2;
+
 	vinfo = get_current_vinfo();
 	vlock_vmode_changed = 0;
 	if ((vlock_notify_event == VOUT_EVENT_MODE_CHANGE) ||
@@ -813,10 +817,13 @@ static void vlock_enable_step1(struct vframe_s *vf, struct vinfo_s *vinfo,
 	vlock_sync_limit_flag = 0;
 	vlock_vmode_changed = 0;
 	vlock_dis_cnt = 0;
-	vlock_state = VLOCK_STATE_ENABLE_STEP1_DONE;
+	/*vlock_state = VLOCK_STATE_ENABLE_STEP1_DONE;*/
 	vlock_pll_stable_cnt = 0;
 	vlock_log_cnt = 0;
 	vlock_enc_stable_flag = 0;
+
+	if (vlock_debug & VLOCK_DEBUG_INFO)
+		pr_info(">>>[%s]\n", __func__);
 }
 
 void vlock_log_start(void)
@@ -944,6 +951,8 @@ static void vlock_enable_step3_enc(void)
 		vlock_reg_get();
 		vlock_log_cnt++;
 	}
+	if (vlock_debug & VLOCK_DEBUG_INFO)
+		pr_info(">>>[%s]\n", __func__);
 }
 
 static void vlock_enable_step3_soft_enc(void)
@@ -1052,7 +1061,7 @@ static void vlock_enable_step3_soft_enc(void)
 		WRITE_VPP_REG(ENCL_VIDEO_MAX_LNCNT,
 			pre_enc_max_line + line_adj);
 	if (!(vlock_debug & VLOCK_DEBUG_ENC_PIXEL_ADJ_DIS))
-		WRITE_VPP_REG(ENCL_MAX_LINE_SWITCH_POINT,
+		WRITE_VPP_REG(enc_max_line_switch_addr,
 			pre_enc_max_pixel + pixel_adj);
 
 	last_i_vsync = READ_VPP_REG(0x3011);
@@ -1069,7 +1078,10 @@ static void vlock_enable_step3_soft_enc(void)
 		vlock_reg_get();
 		vlock_log_cnt++;
 	}
+	if (vlock_debug & VLOCK_DEBUG_INFO)
+		pr_info(">>>[%s]\n", __func__);
 }
+
 /*check pll adj value (0x3020),otherwise may cause blink*/
 static void vlock_pll_adj_limit_check(unsigned int *pll_val)
 {
@@ -1092,6 +1104,7 @@ static void vlock_pll_adj_limit_check(unsigned int *pll_val)
 		}
 	}
 }
+
 static void vlock_enable_step3_pll(void)
 {
 	unsigned int m_reg_value, tmp_value, abs_val;
@@ -2137,16 +2150,16 @@ void vlock_fsm_monitor(struct vframe_s *vf)
  */
 void vlock_process(struct vframe_s *vf)
 {
-	if (probe_ok == 0)
+	if (probe_ok == 0 || !vlock_en)
 		return;
 
 	if (vlock_debug & VLOCK_DEBUG_FSM_DIS)
 		return;
 
 	/* todo:vlock processs only for tv chip */
-	if (is_meson_gxtvbb_cpu() ||
-		is_meson_txl_cpu() || is_meson_txlx_cpu()
-		|| is_meson_txhd_cpu()) {
+	if (vlock.dtdata->vlk_new_fsm)
+		vlock_fsm_monitor(vf);
+	else {
 		if (vf != NULL)
 			amve_vlock_process(vf);
 		else
@@ -2216,6 +2229,7 @@ void vlock_status(void)
 	pr_info("vlock_debug:0x%x\n", vlock_debug);
 	pr_info("vlock_dynamic_adjust:%d\n", vlock_dynamic_adjust);
 	pr_info("vlock_state:%d\n", vlock_state);
+	pr_info("vecm_latch_flag:0x%x\n", vecm_latch_flag);
 	pr_info("vlock_sync_limit_flag:%d\n", vlock_sync_limit_flag);
 	pr_info("pre_hiu_reg_m:0x%x\n", pre_hiu_reg_m);
 	pr_info("pre_hiu_reg_frac:0x%x\n", pre_hiu_reg_frac);
@@ -2296,8 +2310,17 @@ void vlock_reg_dump(void)
 void vdin_vlock_input_sel(unsigned int type,
 	enum vframe_source_type_e source_type)
 {
+	if (vlock.dtdata->vlk_hwver >= vlock_hw_ver2)
+		return;
+	/*
+	 *1:fromhdmi rx ,
+	 *2:from tv-decoder,
+	 *3:from dvin,
+	 *4:from dvin,
+	 *5:from 2nd bt656
+	 */
 	vlock_intput_type = type & VIDTYPE_TYPEMASK;
-	if ((vlock_intput_type == 0) ||
+	if ((vlock_intput_type == VIDTYPE_PROGRESSIVE) ||
 		(vlock_mode & VLOCK_MODE_MANUAL_SOFT_ENC))
 		return;
 	if (vlock_intput_type == VIDTYPE_INTERLACE_TOP) {
@@ -2377,6 +2400,7 @@ void vlock_param_config(struct device_node *node)
 		vlock_mode &= ~VLOCK_MODE_MANUAL_MIX_PLL_ENC;
 		vlock_mode |= VLOCK_MODE_MANUAL_PLL;
 	}
+	pr_info("param_config vlock_en:%d\n", vlock_en);
 }
 
 int vlock_notify_callback(struct notifier_block *block, unsigned long cmd,
@@ -2424,6 +2448,20 @@ int vlock_notify_callback(struct notifier_block *block, unsigned long cmd,
 	}
 	return 0;
 }
+
+static int __init phlock_phase_config(char *str)
+{
+	unsigned char *ptr = str;
+
+	pr_info("%s: bootargs is %s.\n", __func__, str);
+	if (strstr(ptr, "1"))
+		vlock.phlock_percent = 99;
+	else
+		vlock.phlock_percent = 40;
+
+	return 0;
+}
+__setup("video_reverse=", phlock_phase_config);
 
 /*video lock end*/
 

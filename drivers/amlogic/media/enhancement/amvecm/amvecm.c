@@ -131,7 +131,7 @@ unsigned int atv_source_flg;
 static int vdj_mode_flg;
 struct am_vdj_mode_s vdj_mode_s;
 
-void __iomem *amvecm_hiu_reg_base;/* = *ioremap(0xc883c000, 0x2000); */
+/*void __iomem *amvecm_hiu_reg_base;*//* = *ioremap(0xc883c000, 0x2000); */
 
 static int debug_amvecm;
 module_param(debug_amvecm, int, 0664);
@@ -724,6 +724,7 @@ static ssize_t amvecm_vlock_store(struct class *cla,
 		sel = VLOCK_SUPPORT;
 	} else if (!strncmp(parm[0], "enable", 6)) {
 		vecm_latch_flag |= FLAG_VLOCK_EN;
+		vlock_set_en(true);
 	} else if (!strncmp(parm[0], "disable", 7)) {
 		vecm_latch_flag |= FLAG_VLOCK_DIS;
 	} else if (!strncmp(parm[0], "status", 6)) {
@@ -1110,7 +1111,8 @@ int amvecm_on_vs(
 	/* add some flag to trigger */
 	if (vf) {
 		/*gxlx sharpness adaptive setting*/
-		if (is_meson_gxlx_cpu())
+		if (is_meson_gxlx_cpu() || is_meson_g12a_cpu()
+		|| is_meson_g12b_cpu() || is_meson_sm1_cpu())
 			amve_sharpness_adaptive_setting(vf,
 				sps_h_en, sps_v_en);
 		amvecm_bricon_process(
@@ -6847,16 +6849,19 @@ static struct platform_driver aml_vecm_driver = {
 
 static int __init aml_vecm_init(void)
 {
-	unsigned int hiu_reg_base;
+	/*unsigned int hiu_reg_base;*/
 
 	pr_info("%s:module init\n", __func__);
+	#if 0
 	/* remap the hiu bus */
 	if (is_meson_txlx_cpu() || is_meson_txhd_cpu() ||
-		is_meson_g12a_cpu() || is_meson_g12b_cpu())
+		is_meson_g12a_cpu() || is_meson_g12b_cpu()
+		|| is_meson_tl1_cpu())
 		hiu_reg_base = 0xff63c000;
 	else
 		hiu_reg_base = 0xc883c000;
 	amvecm_hiu_reg_base = ioremap(hiu_reg_base, 0x2000);
+	#endif
 	if (platform_driver_register(&aml_vecm_driver)) {
 		pr_err("failed to register bl driver module\n");
 		return -ENODEV;
@@ -6868,7 +6873,7 @@ static int __init aml_vecm_init(void)
 static void __exit aml_vecm_exit(void)
 {
 	pr_info("%s:module exit\n", __func__);
-	iounmap(amvecm_hiu_reg_base);
+	/*iounmap(amvecm_hiu_reg_base);*/
 	platform_driver_unregister(&aml_vecm_driver);
 }
 
