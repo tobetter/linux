@@ -1520,12 +1520,74 @@ void vdec_clean_input(struct vdec_s *vdec)
 }
 EXPORT_SYMBOL(vdec_clean_input);
 
+
+static int vdec_input_read_restore(struct vdec_s *vdec)
+{
+	struct vdec_input_s *input = &vdec->input;
+
+	if (!vdec_stream_based(vdec))
+		return 0;
+
+	if (!input->swap_valid) {
+		if (input->target == VDEC_INPUT_TARGET_VLD) {
+			WRITE_VREG(VLD_MEM_VIFIFO_START_PTR,
+				input->start);
+			WRITE_VREG(VLD_MEM_VIFIFO_END_PTR,
+				input->start + input->size - 8);
+			WRITE_VREG(VLD_MEM_VIFIFO_CURR_PTR,
+				input->start);
+			WRITE_VREG(VLD_MEM_VIFIFO_CONTROL, 1);
+			WRITE_VREG(VLD_MEM_VIFIFO_CONTROL, 0);
+
+			/* set to manual mode */
+			WRITE_VREG(VLD_MEM_VIFIFO_BUF_CNTL, 2);
+			WRITE_VREG(VLD_MEM_VIFIFO_RP, input->start);
+		} else if (input->target == VDEC_INPUT_TARGET_HEVC) {
+				WRITE_VREG(HEVC_STREAM_START_ADDR,
+					input->start);
+				WRITE_VREG(HEVC_STREAM_END_ADDR,
+					input->start + input->size);
+				WRITE_VREG(HEVC_STREAM_RD_PTR,
+					input->start);
+		}
+		return 0;
+	}
+	if (input->target == VDEC_INPUT_TARGET_VLD) {
+		/* restore read side */
+		WRITE_VREG(VLD_MEM_SWAP_ADDR,
+			input->swap_page_phys);
+
+		/*swap active*/
+		WRITE_VREG(VLD_MEM_SWAP_CTL, 1);
+
+		/*wait swap busy*/
+		while (READ_VREG(VLD_MEM_SWAP_CTL) & (1<<7))
+			;
+
+		WRITE_VREG(VLD_MEM_SWAP_CTL, 0);
+	} else if (input->target == VDEC_INPUT_TARGET_HEVC) {
+		/* restore read side */
+		WRITE_VREG(HEVC_STREAM_SWAP_ADDR,
+			input->swap_page_phys);
+		WRITE_VREG(HEVC_STREAM_SWAP_CTRL, 1);
+
+		while (READ_VREG(HEVC_STREAM_SWAP_CTRL)
+			& (1<<7))
+			;
+		WRITE_VREG(HEVC_STREAM_SWAP_CTRL, 0);
+	}
+
+	return 0;
+}
+
+
 int vdec_sync_input(struct vdec_s *vdec)
 {
 	struct vdec_input_s *input = &vdec->input;
 	u32 rp = 0, wp = 0, fifo_len = 0;
 	int size;
 
+	vdec_input_read_restore(vdec);
 	vdec_sync_input_read(vdec);
 	vdec_sync_input_write(vdec);
 	if (input->target == VDEC_INPUT_TARGET_VLD) {
