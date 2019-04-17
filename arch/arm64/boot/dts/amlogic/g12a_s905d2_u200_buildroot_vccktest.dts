@@ -19,7 +19,7 @@
 
 #include "mesong12a.dtsi"
 #include "mesong12a_skt-panel.dtsi"
-
+#include "mesong12a_drm.dtsi"
 / {
 	model = "Amlogic";
 	compatible = "amlogic, g12a";
