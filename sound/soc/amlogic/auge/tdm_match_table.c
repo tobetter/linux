@@ -137,7 +137,8 @@ struct tdm_chipinfo tm2_tdma_chipinfo = {
 	.sclk_ws_inv = true,
 	.oe_fn       = true,
 	.same_src_fn = true,
-	.lane_cnt    = LANE_MAX1,
+	.adc_fn      = true,
+	.lane_cnt    = LANE_MAX3,
 };
 
 struct tdm_chipinfo tm2_tdmb_chipinfo = {
@@ -145,7 +146,8 @@ struct tdm_chipinfo tm2_tdmb_chipinfo = {
 	.sclk_ws_inv = true,
 	.oe_fn       = true,
 	.same_src_fn = true,
-	.lane_cnt    = LANE_MAX3,
+	.adc_fn      = true,
+	.lane_cnt    = LANE_MAX1,
 };
 
 struct tdm_chipinfo tm2_tdmc_chipinfo = {
@@ -153,6 +155,7 @@ struct tdm_chipinfo tm2_tdmc_chipinfo = {
 	.sclk_ws_inv = true,
 	.oe_fn       = true,
 	.same_src_fn = true,
+	.adc_fn      = true,
 	.lane_cnt    = LANE_MAX1,
 };
 

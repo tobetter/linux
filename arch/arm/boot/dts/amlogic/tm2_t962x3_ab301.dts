@@ -321,7 +321,8 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = <&tl1_codec &tas5805>;
+				prefix-names = "AMP";
+				sound-dai = <&tas5805 &tl1_codec>;
 			};
 		};
 

@@ -36,15 +36,15 @@ static const DECLARE_TLV_DB_SCALE(mvol_tlv, -10300, 50, 1);
 static const DECLARE_TLV_DB_SCALE(chvol_tlv, -10300, 50, 1);
 
 static const struct snd_kcontrol_new ad82584f_snd_controls[] = {
-	SOC_SINGLE_TLV("AMP Master Volume", MVOL, 0,
+	SOC_SINGLE_TLV("Master Volume", MVOL, 0,
 				0xff, 1, mvol_tlv),
-	SOC_SINGLE_TLV("AMP Ch1 Volume", C1VOL, 0,
+	SOC_SINGLE_TLV("Ch1 Volume", C1VOL, 0,
 				0xff, 1, chvol_tlv),
-	SOC_SINGLE_TLV("AMP Ch2 Volume", C2VOL, 0,
+	SOC_SINGLE_TLV("Ch2 Volume", C2VOL, 0,
 			0xff, 1, chvol_tlv),
 
-	SOC_SINGLE("AMP Ch1 Switch", MUTE, 5, 1, 1),
-	SOC_SINGLE("AMP Ch2 Switch", MUTE, 4, 1, 1),
+	SOC_SINGLE("Ch1 Switch", MUTE, 5, 1, 1),
+	SOC_SINGLE("Ch2 Switch", MUTE, 4, 1, 1),
 };
 
 static int ad82584f_reg_init(struct snd_soc_codec *codec);
@@ -827,8 +827,13 @@ static int ad82584f_init(struct snd_soc_codec *codec)
 	/* eq and drc */
 	ad82584f_set_eq_drc(codec);
 
-	/*unmute,default power-on is mute.*/
-	/*snd_soc_write(codec, 0x02, 0x00);*/
+	/* for de-pop */
+	udelay(100);
+
+	snd_soc_write(codec, MVOL, 0x11);
+
+	/* unmute, default power-on is mute. */
+	snd_soc_write(codec, MUTE, 0x00);
 
 	return 0;
 }
