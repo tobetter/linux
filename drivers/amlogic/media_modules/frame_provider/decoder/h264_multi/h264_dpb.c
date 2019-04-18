@@ -1509,6 +1509,7 @@ static void dpb_combine_field(struct h264_dpb_stru *p_H264_Dpb,
 	fs->frame->buf_spec_num = fs->top_field->buf_spec_num;
 	fs->frame->colocated_buf_index = fs->top_field->colocated_buf_index;
 	fs->frame->data_flag = fs->top_field->data_flag;
+	fs->frame->slice_type = fs->top_field->slice_type;
 	if (fs->bottom_field)
 		fs->frame->data_flag |= (fs->bottom_field->data_flag & 0xf0);
 #endif
@@ -1613,6 +1614,7 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	fs->buf_spec_num = p->buf_spec_num;
 	fs->colocated_buf_index = p->colocated_buf_index;
 #endif
+	p->slice_type = p_H264_Dpb->mSlice.slice_type;
 	switch (p->structure) {
 	case FRAME:
 		fs->frame = p;

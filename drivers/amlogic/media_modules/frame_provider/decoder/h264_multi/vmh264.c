@@ -2426,6 +2426,17 @@ static void fill_frame_info(struct vdec_h264_hw_s *hw, struct FrameStore *frame)
 	if (hw->frameinfo_enable)
 		vdec_fill_frame_info(vframe_qos, 1);
 }
+
+static int is_iframe(struct FrameStore *frame) {
+
+	if (frame->frame && frame->frame->slice_type == I_SLICE) {
+		return 1;
+	}
+	return 0;
+}
+
+
+
 int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 {
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)vdec->private;
@@ -2464,6 +2475,14 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			__func__, buffer_index,  frame->data_flag & ERROR_FLAG,
 			frame->poc, hw->data_flag & ERROR_FLAG,
 			error_proc_policy);
+	if (frame->frame == NULL &&
+			((frame->is_used == 1 && frame->top_field)
+			|| (frame->is_used == 2 && frame->bottom_field))) {
+			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERRORFLAG_DBG,
+				"%s Error  frame_num %d  used %d\n",
+					frame->frame_num, frame->is_used);
+			frame->data_flag |= ERROR_FLAG;
+	}
 
 	if ((frame->data_flag & NODISP_FLAG) ||
 		(frame->data_flag & NULL_FLAG) ||
@@ -2511,7 +2530,7 @@ int prepare_display_buf(struct vdec_s *vdec, struct FrameStore *frame)
 			return -1;
 		}
 		vf->duration_pulldown = 0;
-		if (!(frame->frame->slice_type == I_SLICE) && hw->unstable_pts) {
+		if (!(is_iframe(frame)) && hw->unstable_pts) {
 			vf->pts = 0;
 			vf->pts_us64 = 0;
 			vf->timestamp = 0;
