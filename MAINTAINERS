@@ -14059,6 +14059,13 @@ AMLOGIC AXG ADD AO CLK
 M:	Yun Cai <yun.cai@amlogic.com>
 F:	drivers/amlogic/clk/axg/axg_ao.c
 
+AMLOGIC Irblaster driver
+M: Zan Peng <zan.peng@amlogic.com>
+F: drivers/amlogic/irblaster/irblaster.c
+F: drivers/amlogic/irblaster/irblaster.h
+F: drivers/amlogic/irblaster/Kconfig
+F: drivers/amlogic/irblaster/Makefile
+
 AMLOGIC AXG ADD CLKMSR INTERFACE
 M:	wang xing <xing.wang@amlogic.com>
 F:	include/linux/amlogic/clk_measure.h
@@ -14414,9 +14421,9 @@ F:	drivers/amlogic/cpufreq/meson-cpufreq.c
 F:	drivers/amlogic/clk/clk-cpu-fclk-composite.c
 
 AMLOGIC Irblaster driver
-M: 	Bichao.Zheng <bichao.zheng@amlogic.com>
-F: 	drivers/amlogic/irblaster/*
-F: 	include/linux/amlogic/irblaster*
+M: yu.tu <yu.tu@amlogic.com>
+F: drivers/amlogic/irblaster/meson-irblaster.c
+F: drivers/amlogic/irblaster/meson-irblaster.h
 
 AMLOGIC THERMAL DRIVER
 M:	Huan Biao <huan.biao@amlogic.com>
