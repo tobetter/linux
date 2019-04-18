@@ -2554,6 +2554,7 @@ static int vdec_core_thread(void *data)
 {
 	struct vdec_core_s *core = (struct vdec_core_s *)data;
 	struct sched_param param = {.sched_priority = MAX_RT_PRIO/2};
+	unsigned long flags;
 	int i;
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
@@ -2629,6 +2630,7 @@ static int vdec_core_thread(void *data)
 		 */
 
 		/* check disconnected decoders */
+		flags = vdec_core_lock(vdec_core);
 		list_for_each_entry_safe(vdec, tmp,
 			&core->connected_vdec_list, list) {
 			if ((vdec->status == VDEC_STATUS_CONNECTED) &&
@@ -2644,6 +2646,7 @@ static int vdec_core_thread(void *data)
 				list_move(&vdec->list, &disconnecting_list);
 			}
 		}
+		vdec_core_unlock(vdec_core, flags);
 		mutex_unlock(&vdec_mutex);
 		/* elect next vdec to be scheduled */
 		vdec = core->last_vdec;
