@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-0401:TM2 bring up";
+static const char version_s[] = "2019-0419a:vscale_skip v is odd";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -4809,8 +4809,14 @@ de_post_process(void *arg, unsigned int zoom_start_x_lines,
 	di_height = di_height / (di_vscale_skip_count_real + 1);
 
 	/* make sure the height is even number */
-	if (di_height%2)
-		di_height++;
+	if (di_height%2) {
+		/*for skip mode,post only half line-1*/
+		if (((di_height > 150) && (di_height < 500)) &&
+			di_vscale_skip_count_real)
+			di_height = di_height - 3;
+		else
+			di_height++;
+	}
 
 	if (Rd(DI_POST_SIZE) != ((di_width - 1) | ((di_height - 1) << 16)) ||
 	    di_post_stru.buf_type != di_buf->di_buf_dup_p[0]->type ||
