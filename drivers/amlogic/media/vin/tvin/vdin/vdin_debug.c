@@ -2119,16 +2119,6 @@ start_chk:
 		} else {
 			pr_info("skip_frame_debug: %d\n", skip_frame_debug);
 		}
-	} else if (!strcmp(parm[0], "afbc_preview_drop_cnt")) {
-		if (parm[1] != NULL) {
-			if (kstrtouint(parm[1], 10,
-				&vdin_afbc_preview_force_drop_frame_cnt) == 0)
-				pr_info("set vdin_afbc_preview_force_drop_frame_cnt: %d\n",
-					vdin_afbc_preview_force_drop_frame_cnt);
-		} else {
-			pr_info("vdin_afbc_preview_force_drop_frame_cnt: %d\n",
-				vdin_afbc_preview_force_drop_frame_cnt);
-		}
 	} else if (!strcmp(parm[0], "afbc_drop_cnt")) {
 		if (parm[1] != NULL) {
 			if (kstrtouint(parm[1], 10,

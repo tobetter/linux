@@ -108,8 +108,7 @@ static int tl1_vdin1_preview_ready_flag;
 static unsigned int vdin_afbc_force_drop_frame = 1;
 static struct vf_entry *vfe_drop_force;
 
-unsigned int vdin_afbc_preview_force_drop_frame_cnt;
-unsigned int vdin_afbc_force_drop_frame_cnt;
+unsigned int vdin_afbc_force_drop_frame_cnt = 2;
 unsigned int max_ignore_frame_cnt = 2;
 unsigned int skip_frame_debug;
 
@@ -664,13 +663,12 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 			tl1_vdin1_preview_flag = 1;
 			tl1_vdin1_data_readied = 0;
 			tl1_vdin1_preview_ready_flag = 0;
-			vdin_afbc_force_drop_frame =
-				vdin_afbc_preview_force_drop_frame_cnt;
 			pr_info("vdin.%d tl1_vdin1_preview state init\n",
 				devp->index);
 		}
 		vfe_drop_force = NULL;
 		max_ignore_frames[devp->index] = max_ignore_frame_cnt;
+		vdin_afbc_force_drop_frame = vdin_afbc_force_drop_frame_cnt;
 	}
 }
 
