@@ -1920,7 +1920,9 @@ void vlock_fsm_check_lock_sts(struct stvlock_sig_sts *pvlock,
 
 	/*check frq lock*/
 	if (pvlock->frqlock_sts != frqlock_sts) {
-		pr_info("frq lock sts(%d,%d) cnt:%d\n", pvlock->frqlock_sts,
+		if (vlock_debug & VLOCK_DEBUG_INFO)
+			pr_info("frq lock sts(%d,%d) cnt:%d\n",
+			pvlock->frqlock_sts,
 			frqlock_sts, pvlock->frame_cnt_in);
 		pvlock->frqlock_sts = frqlock_sts;
 	}
@@ -1948,7 +1950,9 @@ void vlock_fsm_check_lock_sts(struct stvlock_sig_sts *pvlock,
 	/*check phase lock*/
 	if (pvlock->phlock_en &&
 		(pvlock->phlock_sts != phlock_sts)) {
-		pr_info("ph lock sts(%d,%d) cnt:%d\n", pvlock->phlock_sts,
+		if (vlock_debug & VLOCK_DEBUG_INFO)
+			pr_info("ph lock sts(%d,%d) cnt:%d\n",
+			pvlock->phlock_sts,
 			phlock_sts, pvlock->frame_cnt_in);
 		pvlock->phlock_sts = phlock_sts;
 		if (phlock_sts && !pvlock->ss_sts &&
@@ -1963,7 +1967,8 @@ void vlock_fsm_check_lock_sts(struct stvlock_sig_sts *pvlock,
 			pvlock->phlock_en) {
 		/*error check*/
 		if ((pvlock->frame_cnt_in >= 3500) && (!pvlock->ss_sts)) {
-			pr_info("vlock warning: set back ss on(%d, %d)\n",
+			if (vlock_debug & VLOCK_DEBUG_INFO)
+				pr_info("vlock warning: set back ss on(%d, %d)\n",
 				frqlock_sts, phlock_sts);
 			pvlock->pll_mode_pause = true;
 			pvlock->ss_sts = true;
