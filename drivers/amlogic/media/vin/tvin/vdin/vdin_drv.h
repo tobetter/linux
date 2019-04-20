@@ -329,6 +329,7 @@ struct vdin_dev_s {
 	 * 1: use afbce non-mmu mode: head/body addr set by code
 	 * 2: use afbce mmu mode: head set by code, body addr assigning by hw
 	 */
+	unsigned int afbce_flag;
 	unsigned int afbce_mode;
 	unsigned int canvas_config_mode;
 	bool	prehsc_en;

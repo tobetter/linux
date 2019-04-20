@@ -78,8 +78,10 @@ static unsigned int vdin_addr_offset[VDIN_MAX_DEVS] = {0, 0x80};
 static struct vdin_dev_s *vdin_devp[VDIN_MAX_DEVS];
 static unsigned long mem_start, mem_end;
 static unsigned int use_reserved_mem;
-static int afbc_init_flag[VDIN_MAX_DEVS];
 static unsigned int pr_times;
+
+/* afbce related */
+static int afbc_init_flag[VDIN_MAX_DEVS];
 unsigned int tl1_vdin1_preview_flag;
 static unsigned int tl1_vdin1_data_readied;
 static unsigned int tl1_vdin1_canvas_addr;
@@ -522,6 +524,17 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	vdin_wr_reverse(devp->addr_offset,
 				devp->parm.h_reverse,
 				devp->parm.v_reverse);
+
+	/* check if need enable afbce */
+	if (devp->afbce_flag == 1) {
+		if ((devp->h_active > 1920) && (devp->v_active > 1080))
+			devp->afbce_mode = 1;
+		else
+			devp->afbce_mode = 0;
+		pr_info("vdin%d afbce_mode: %d\n",
+			devp->index, devp->afbce_mode);
+	}
+
 #ifdef CONFIG_CMA
 	vdin_cma_malloc_mode(devp);
 	if (devp->afbce_mode == 1) {
@@ -598,12 +611,10 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	vdin_hw_enable(devp->addr_offset);
 	vdin_set_all_regs(devp);
 
-	if (is_meson_tl1_cpu() || is_meson_tm2_cpu()) {
-		if (devp->afbce_mode == 0)
-			vdin_write_mif_or_afbce(devp, VDIN_OUTPUT_TO_MIF);
-		else if (devp->afbce_mode == 1)
-			vdin_write_mif_or_afbce(devp, VDIN_OUTPUT_TO_AFBCE);
-	}
+	if (devp->afbce_mode == 0)
+		vdin_write_mif_or_afbce(devp, VDIN_OUTPUT_TO_MIF);
+	else if (devp->afbce_mode == 1)
+		vdin_write_mif_or_afbce(devp, VDIN_OUTPUT_TO_AFBCE);
 
 	if (!(devp->parm.flag & TVIN_PARM_FLAG_CAP) &&
 		(devp->frontend) &&
@@ -698,8 +709,7 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	disable_irq_nosync(devp->irq);
 	afbc_init_flag[devp->index] = 0;
 
-	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
-			&& (devp->afbce_mode == 1)) {
+	if (devp->afbce_mode == 1) {
 		while (i++ < afbc_write_down_timeout) {
 			if (vdin_afbce_read_writedown_flag())
 				break;
@@ -741,8 +751,7 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		vf_unreg_provider(&devp->vprov);
 	devp->dv.dv_config = 0;
 
-	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
-			&& (devp->afbce_mode == 1)) {
+	if (devp->afbce_mode == 1) {
 		vdin_afbce_hw_disable();
 		vdin_afbce_soft_reset();
 	}
@@ -1430,8 +1439,7 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 
 	offset = devp->addr_offset;
 
-	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu())
-			&& (devp->afbce_mode == 1)) {
+	if (devp->afbce_mode == 1) {
 		if (afbc_init_flag[devp->index] == 0) {
 			afbc_init_flag[devp->index] = 1;
 			/*set mem power on*/
@@ -1452,7 +1460,7 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 	 */
 
 	spin_lock_irqsave(&devp->isr_lock, flags);
-	if (is_meson_tl1_cpu() && (devp->afbce_mode == 1)) {
+	if (devp->afbce_mode == 1) {
 		/* no need reset mif under afbc mode */
 		devp->vdin_reset_flag = 0;
 	} else {
@@ -2322,8 +2330,7 @@ static int vdin_open(struct inode *inode, struct file *file)
 		return 0;
 	}
 
-	if ((devp->afbce_mode == 1) &&
-		(is_meson_tl1_cpu() || is_meson_tm2_cpu()))
+	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu()))
 		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_ON);
 
 	devp->flags |= VDIN_FLAG_FS_OPENED;
@@ -2372,8 +2379,7 @@ static int vdin_release(struct inode *inode, struct file *file)
 		return 0;
 	}
 
-	if ((devp->afbce_mode == 1) &&
-		(is_meson_tl1_cpu() || is_meson_tm2_cpu()))
+	if ((is_meson_tl1_cpu() || is_meson_tm2_cpu()))
 		switch_vpu_mem_pd_vmod(VPU_AFBCE, VPU_MEM_POWER_DOWN);
 
 	devp->flags &= (~VDIN_FLAG_FS_OPENED);
@@ -3317,21 +3323,21 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(pdev->dev.of_node,
 		"afbce_bit_mode", &vdevp->afbce_mode);
 	if (ret) {
-		vdevp->afbce_mode = 0;
-		pr_info("no afbce mode found, use normal mode\n");
+		vdevp->afbce_flag = 0;
 	} else {
-		vdevp->afbce_mode = val & 0xf;
+		vdevp->afbce_flag = val & 0xf;
 		vdevp->afbce_lossy_en = (val>>4)&0xf;
 		if ((is_meson_tl1_cpu() || is_meson_tm2_cpu()) &&
 			(vdevp->index == 0)) {
 			/* just use afbce at vdin0 */
-			pr_info("afbce mode = %d\n", vdevp->afbce_mode);
+			pr_info("afbce flag = %d\n", vdevp->afbce_flag);
+			pr_info("afbce loosy en = %d\n", vdevp->afbce_lossy_en);
 			vdevp->afbce_info = devm_kzalloc(vdevp->dev,
 				sizeof(struct vdin_afbce_s), GFP_KERNEL);
 			if (!vdevp->afbce_info)
 				goto fail_kzalloc_vdev;
 		} else {
-			vdevp->afbce_mode = 0;
+			vdevp->afbce_flag = 0;
 			pr_info("get afbce from dts, but chip cannot support\n");
 		}
 	}

@@ -828,6 +828,8 @@ static void vdin_dump_state(struct vdin_dev_s *devp)
 		devp->dv.dv_flag, devp->dv.dv_config, devp->prop.dolby_vision);
 	pr_info("size of struct vdin_dev_s: %d\n", devp->vdin_dev_ssize);
 
+	pr_info("afbce_flag: %d\n", devp->afbce_flag);
+	pr_info("afbce_mode: %d\n", devp->afbce_mode);
 	if (devp->afbce_mode == 1) {
 		for (i = 0; i < devp->vfmem_max_cnt; i++) {
 			pr_info("head(%d) addr:0x%lx, size:0x%x\n",
