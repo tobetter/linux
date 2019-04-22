@@ -271,18 +271,19 @@ int resample_set(enum resample_idx id, enum samplerate_index index)
 	struct audioresample *p_resample = get_audioresample(id);
 	int ret = 0;
 
+	if (!p_resample)
+		return 0;
+
 	pr_info("%s resample_%c to %s, last %s\n",
 		__func__,
 		(id == RESAMPLE_A) ? 'a' : 'b',
 		auge_resample_texts[index],
 		auge_resample_texts[p_resample->asrc_rate_idx]);
 
-	if (!p_resample)
+#if 0
+	if (index == p_resample->asrc_rate_idx)
 		return 0;
-
-	//if (index == p_resample->asrc_rate_idx)
-	//	return 0;
-
+#endif
 	p_resample->asrc_rate_idx = index;
 
 	resample_rate = resample_idx2rate(index);
@@ -443,7 +444,7 @@ static const struct snd_kcontrol_new asrc_a_controls[] = {
 			 mixer_audiobus_read, mixer_audiobus_write,
 			 NULL),
 	SOC_SINGLE_EXT_TLV("Hw resample pause thd",
-			 EE_AUDIO_RESAMPLEA_CTRL2, 0, 0xffffff, 0,
+			 EE_AUDIO_RESAMPLEA_CTRL2, 11, 0x1fff, 0,
 			 mixer_audiobus_read, mixer_audiobus_write,
 			 NULL),
 	SOC_ENUM_EXT("Hw resample module",
@@ -462,7 +463,7 @@ static const struct snd_kcontrol_new asrc_b_controls[] = {
 			 mixer_audiobus_read, mixer_audiobus_write,
 			 NULL),
 	SOC_SINGLE_EXT_TLV("Hw resample b pause thd",
-			 EE_AUDIO_RESAMPLEB_CTRL2, 0, 0xffffff, 0,
+			 EE_AUDIO_RESAMPLEB_CTRL2, 11, 0x1fff, 0,
 			 mixer_audiobus_read, mixer_audiobus_write,
 			 NULL),
 	SOC_ENUM_EXT("Hw resample b module",

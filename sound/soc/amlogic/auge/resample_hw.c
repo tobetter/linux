@@ -115,6 +115,7 @@ int resample_set_hw_param(enum resample_idx id,
 	reg = EE_AUDIO_RESAMPLEA_CTRL2 + offset * id;
 	audiobus_update_bits(reg,
 			1 << 25, 1 << 25);
+	resample_set_hw_pause_thd(id, 128);
 
 	return 0;
 }
@@ -159,4 +160,14 @@ void resample_ctrl_write(enum resample_idx id, int value)
 	int reg = EE_AUDIO_RESAMPLEA_CTRL0 + offset * id;
 
 	audiobus_write(reg, value);
+}
+
+int resample_set_hw_pause_thd(enum resample_idx id, unsigned int thd)
+{
+	int offset = EE_AUDIO_RESAMPLEB_CTRL2 - EE_AUDIO_RESAMPLEA_CTRL2;
+	int reg = EE_AUDIO_RESAMPLEA_CTRL2 + offset * id;
+
+	audiobus_write(reg, 1 << 24 | thd << 11);
+
+	return 0;
 }
