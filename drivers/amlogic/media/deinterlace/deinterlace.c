@@ -129,7 +129,7 @@ static di_dev_t *de_devp;
 static dev_t di_devno;
 static struct class *di_clsp;
 
-static const char version_s[] = "2019-0419a:vscale_skip v is odd";
+static const char version_s[] = "2019-0422b:vscale_skip v is odd";
 
 static int bypass_state = 1;
 static int bypass_all;
@@ -4811,7 +4811,7 @@ de_post_process(void *arg, unsigned int zoom_start_x_lines,
 	/* make sure the height is even number */
 	if (di_height%2) {
 		/*for skip mode,post only half line-1*/
-		if (((di_height > 150) && (di_height < 500)) &&
+		if (((di_height > 150) && (di_height < 1080)) &&
 			di_vscale_skip_count_real)
 			di_height = di_height - 3;
 		else
