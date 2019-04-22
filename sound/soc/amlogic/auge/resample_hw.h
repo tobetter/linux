@@ -41,6 +41,5 @@ extern void resample_format_set(enum resample_idx id, int ch_num, int bits);
 
 extern int resample_ctrl_read(enum resample_idx id);
 extern void resample_ctrl_write(enum resample_idx id, int value);
-int resample_set_hw_pause_thd(enum resample_idx id, unsigned int thd);
 
 #endif
