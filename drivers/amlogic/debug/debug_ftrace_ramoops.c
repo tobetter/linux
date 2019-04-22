@@ -33,7 +33,6 @@
 #include <linux/moduleparam.h>
 
 static DEFINE_PER_CPU(int, en);
-static DEFINE_PER_CPU(unsigned long, irq_flag);
 
 #define IRQ_D	1
 
@@ -122,17 +121,16 @@ void notrace pstore_ftrace_dump(struct pstore_ftrace_record *rec,
 }
 
 void notrace pstore_io_save(unsigned long reg, unsigned long val,
-			    unsigned long parant, unsigned int flag)
+			    unsigned long parant, unsigned int flag,
+			    unsigned long *irq_flag)
 {
 	struct pstore_ftrace_record rec;
-	int cpu = get_cpu();
 
-	put_cpu();
 	if (!ramoops_ftrace_en || !ramoops_io_en)
 		return;
 
 	if ((flag == PSTORE_FLAG_IO_R || flag == PSTORE_FLAG_IO_W) && IRQ_D)
-		local_irq_save(per_cpu(irq_flag, cpu));
+		local_irq_save(*irq_flag);
 
 	rec.ip = CALLER_ADDR0;
 	rec.parent_ip = parant;
@@ -141,9 +139,9 @@ void notrace pstore_io_save(unsigned long reg, unsigned long val,
 	rec.val2 = val;
 	pstore_ftrace_save(&rec);
 
-	if ((flag == PSTORE_FLAG_IO_R_END || flag == PSTORE_FLAG_IO_W_END)
-		&& IRQ_D)
-		local_irq_restore(per_cpu(irq_flag, cpu));
+	if ((flag == PSTORE_FLAG_IO_R_END || flag == PSTORE_FLAG_IO_W_END) &&
+		IRQ_D)
+		local_irq_restore(*irq_flag);
 }
 EXPORT_SYMBOL(pstore_io_save);
 

@@ -33,20 +33,23 @@ extern unsigned int dump_iomap;
 #define PSTORE_FLAG_MASK	0xF
 
 void notrace pstore_io_save(unsigned long reg, unsigned long val,
-			    unsigned long parant, unsigned int flag);
+			    unsigned long parant, unsigned int flag,
+			    unsigned long *irq_flag);
 
 //#define SKIP_IO_TRACE
 #if (defined CONFIG_AMLOGIC_DEBUG_FTRACE_PSTORE) && (!defined SKIP_IO_TRACE)
 #define pstore_ftrace_io_wr(reg, val)	\
-pstore_io_save(reg, val, CALLER_ADDR0, PSTORE_FLAG_IO_W)
+unsigned long irqflg;					\
+pstore_io_save(reg, val, CALLER_ADDR0, PSTORE_FLAG_IO_W, &irqflg)
 
 #define pstore_ftrace_io_wr_end(reg, val)	\
-pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_W_END)
+pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_W_END, &irqflg)
 
-#define pstore_ftrace_io_rd(reg)	\
-pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_R)
+#define pstore_ftrace_io_rd(reg)		\
+unsigned long irqflg;					\
+pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_R, &irqflg)
 #define pstore_ftrace_io_rd_end(reg)	\
-pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_R_END)
+pstore_io_save(reg, 0, CALLER_ADDR0, PSTORE_FLAG_IO_R_END, &irqflg)
 
 #define need_dump_iomap()		(ramoops_io_en | dump_iomap)
 
