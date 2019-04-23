@@ -111,6 +111,12 @@ module_param(verbose, uint, 0);
 MODULE_PARM_DESC(verbose,
 "0 silent, >0 show gpios, >1 show devices, >2 show devices before (default=3)");
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+static unsigned int force64b;
+module_param(force64b, uint, 0000);
+MODULE_PARM_DESC(force64b, "override force 64bits fb data");
+#endif
+
 struct fbtft_device_display {
 	char *name;
 	struct spi_board_info *spi;
@@ -985,7 +991,7 @@ static struct fbtft_device_display displays[] = {
 		.name = "odroid35",
 		.spi = &(struct spi_board_info) {
 			.modalias = "fb_ili9486",
-			.max_speed_hz = 150000000,
+			.max_speed_hz = 100000000,
 			.mode = SPI_MODE_0,
 			.platform_data = &(struct fbtft_platform_data) {
 				.display = {
@@ -1522,6 +1528,9 @@ static int fbtft_device_spi_device_register(struct spi_board_info *spi)
 		dev_err(&master->dev, "spi_new_device() returned NULL\n");
 		return -EPERM;
 	}
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	force64b_enable = force64b;
+#endif
 	return 0;
 }
 #else

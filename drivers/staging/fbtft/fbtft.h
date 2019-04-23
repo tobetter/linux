@@ -284,6 +284,7 @@ int fbtft_write_gpio16_wr_latched(struct fbtft_par *par, void *buf, size_t len);
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 int fbtft_write_reg_wr(struct fbtft_par *par, void *buf, size_t len);
+extern unsigned int force64b_enable;
 #endif
 
 /* fbtft-bus.c */

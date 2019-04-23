@@ -542,6 +542,11 @@
 			function = "gpio_periphs";
 		};
 	};
+	spicc0_pins_x: spicc0_pins_x {
+		mux {
+			drive-strength = <3>;
+		};
+	};
 	spicc0_to_gpiox: spicc0_gpiox {
 		mux {
 			groups = "GPIOX_8",
