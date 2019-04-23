@@ -31,7 +31,7 @@ bool atvdemod_mixer_tune_en;
 bool atvdemod_overmodulated_en;
 bool audio_det_en;
 bool atvdemod_det_snr_en = true;
-bool audio_thd_en = true;
+bool audio_thd_en;
 bool atvdemod_det_nonstd_en;
 bool atvaudio_det_outputmode_en = true;
 
