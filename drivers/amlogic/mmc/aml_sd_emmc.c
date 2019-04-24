@@ -3416,6 +3416,12 @@ static void meson_mmc_shutdown(struct platform_device *pdev)
 		}
 	}
 }
+
+static int meson_mmc_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	meson_mmc_shutdown(pdev);
+	return 0;
+}
 #endif
 
 static struct meson_mmc_data mmc_data_gxbb = {
@@ -3776,6 +3782,7 @@ static struct platform_driver meson_mmc_driver = {
 	.remove		= meson_mmc_remove,
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 	.shutdown	= meson_mmc_shutdown,
+	.suspend	= meson_mmc_suspend,
 #endif
 	.driver		= {
 		.name = "meson-aml-mmc",
