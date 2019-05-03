@@ -1,12 +1,31 @@
+/*
+* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*
+* Description:
+*/
 #include "firmware_type.h"
-#include <linux/amlogic/cpu_version.h>
+#include "../chips/decoder_cpu_ver_info.h"
 
 static const struct format_name_s format_name[] = {
 	{VIDEO_DEC_MPEG12,		"mpeg12"},
 	{VIDEO_DEC_MPEG12_MULTI,	"mpeg12_multi"},
-	{VIDEO_DEC_MPEG4_3,		"divx311"},
-	{VIDEO_DEC_MPEG4_4,		"divx4x"},
-	{VIDEO_DEC_MPEG4_4_MULTI,	"divx4x_multi"},
+	{VIDEO_DEC_MPEG4_3,		"mpeg4_3"},
+	{VIDEO_DEC_MPEG4_4,		"mpeg4_4"},
+	{VIDEO_DEC_MPEG4_4_MULTI,	"mpeg4_4_multi"},
 	{VIDEO_DEC_MPEG4_5,		"xvid"},
 	{VIDEO_DEC_MPEG4_5_MULTI,	"xvid_multi"},
 	{VIDEO_DEC_H263,		"h263"},
@@ -21,8 +40,6 @@ static const struct format_name_s format_name[] = {
 	{VIDEO_DEC_AVS_GXM,		"avs_gxm"},
 	{VIDEO_DEC_AVS_NOCABAC,		"avs_no_cabac"},
 	{VIDEO_DEC_H264,		"h264"},
-	{VIDEO_DEC_H264_4k2K,		"h264_4k2k"},
-	{VIDEO_DEC_H264_4k2K_SINGLE,	"h264_4k2k_single"},
 	{VIDEO_DEC_H264_MVC,		"h264_mvc"},
 	{VIDEO_DEC_H264_MVC_GXM,	"h264_mvc_gxm"},
 	{VIDEO_DEC_H264_MULTI,		"h264_multi"},
@@ -30,6 +47,7 @@ static const struct format_name_s format_name[] = {
 	{VIDEO_DEC_H264_MULTI_GXM,	"h264_multi_gxm"},
 	{VIDEO_DEC_HEVC,		"hevc"},
 	{VIDEO_DEC_HEVC_MMU,		"hevc_mmu"},
+	{VIDEO_DEC_HEVC_MMU_SWAP,	"hevc_mmu_swap"},
 	{VIDEO_DEC_HEVC_G12A,		"hevc_g12a"},
 	{VIDEO_DEC_VP9,			"vp9"},
 	{VIDEO_DEC_VP9_MMU,		"vp9_mmu"},
@@ -42,10 +60,19 @@ static const struct format_name_s format_name[] = {
 };
 
 static const struct cpu_type_s cpu_type[] = {
-	{MESON_CPU_MAJOR_ID_GXL,	"gxl"},
-	{MESON_CPU_MAJOR_ID_GXM,	"gxm"},
-	{MESON_CPU_MAJOR_ID_G12A,	"g12a"},
-	{MESON_CPU_MAJOR_ID_G12B,	"g12b"},
+	{AM_MESON_CPU_MAJOR_ID_GXL,	"gxl"},
+	{AM_MESON_CPU_MAJOR_ID_GXM,	"gxm"},
+	{AM_MESON_CPU_MAJOR_ID_TXL,	"txl"},
+	{AM_MESON_CPU_MAJOR_ID_TXLX,	"txlx"},
+	{AM_MESON_CPU_MAJOR_ID_AXG,	"axg"},
+	{AM_MESON_CPU_MAJOR_ID_GXLX,	"gxlx"},
+	{AM_MESON_CPU_MAJOR_ID_TXHD,	"txhd"},
+	{AM_MESON_CPU_MAJOR_ID_G12A,	"g12a"},
+	{AM_MESON_CPU_MAJOR_ID_G12B,	"g12b"},
+	{AM_MESON_CPU_MAJOR_ID_GXLX2,	"gxlx2"},
+	{AM_MESON_CPU_MAJOR_ID_SM1,	"sm1"},
+	{AM_MESON_CPU_MAJOR_ID_TL1,	"tl1"},
+	{AM_MESON_CPU_MAJOR_ID_TM2,	"tm2"},
 };
 
 const char *get_fw_format_name(unsigned int format)

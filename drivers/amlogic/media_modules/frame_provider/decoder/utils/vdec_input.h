@@ -28,12 +28,15 @@ struct vframe_block_list_s {
 	ulong start;
 	void *start_virt;
 	ulong addr;
+	bool is_mapped;
 	int type;
 	u32 size;
 	u32 wp;
 	u32 rp;
 	int data_size;
 	int chunk_count;
+	int is_out_buf;
+	u32 handle;
 	struct vdec_input_s *input;
 };
 
@@ -49,12 +52,16 @@ struct vframe_chunk_s {
 	u32 pading_size;
 	u64 pts64;
 	bool pts_valid;
+	u64 timestamp;
+	bool timestamp_valid;
 	u64 sequence;
 	struct vframe_block_list_s *block;
 };
 
 #define VDEC_INPUT_TARGET_VLD           0
 #define VDEC_INPUT_TARGET_HEVC          1
+#define VLD_PADDING_SIZE                1024
+#define HEVC_PADDING_SIZE               (1024*16)
 
 struct vdec_input_s {
 	struct list_head vframe_block_list;
@@ -156,9 +163,13 @@ extern void vdec_input_unlock(struct vdec_input_s *input, unsigned long lock);
 
 /* release all resource for decoder's input */
 extern void vdec_input_release(struct vdec_input_s *input);
+/* return block handle and free block */
+extern u32 vdec_input_get_freed_handle(struct vdec_s *vdec);
 int vdec_input_dump_chunks(struct vdec_input_s *input,
 	char *bufs, int size);
 int vdec_input_dump_blocks(struct vdec_input_s *input,
 	char *bufs, int size);
+
+int vdec_input_get_duration_u64(struct vdec_input_s *input);
 
 #endif /* VDEC_INPUT_H */

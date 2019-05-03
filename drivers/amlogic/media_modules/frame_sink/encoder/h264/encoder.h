@@ -149,6 +149,7 @@ enum amvenc_frame_fmt_e {
 	FMT_YUV422_12BIT,
 	FMT_YUV444_10BIT,
 	FMT_YUV422_10BIT,
+	FMT_BGR888,
 	MAX_FRAME_FMT
 };
 
@@ -258,6 +259,8 @@ struct encode_meminfo_s {
 
 	u32 cbr_info_ddr_start_addr;
 	u32 cbr_info_ddr_size;
+
+	u8 * cbr_info_ddr_virt_addr;
 
 	s32 dblk_buf_canvas;
 	s32 ref_buf_canvas;

@@ -47,6 +47,8 @@
 #include <linux/reset.h>
 #include "../amports/amports_priv.h"
 
+#define MAX_DRM_PACKAGE_SIZE 0x500000
+
 
 static const char tsdemux_fetch_id[] = "tsdemux-fetch-id";
 static const char tsdemux_irq_id[] = "tsdemux-irq-id";
@@ -111,7 +113,7 @@ int tsdemux_set_reset_flag(void)
 static int tsdemux_reset(void)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->reset) {
@@ -126,7 +128,7 @@ static int tsdemux_reset(void)
 static int tsdemux_request_irq(irq_handler_t handler, void *data)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->request_irq)
@@ -139,7 +141,7 @@ static int tsdemux_request_irq(irq_handler_t handler, void *data)
 static int tsdemux_free_irq(void)
 {
 	unsigned long flags;
-	int r;
+	int r = 0;
 
 	spin_lock_irqsave(&demux_ops_lock, flags);
 	if (demux_ops && demux_ops->free_irq)
@@ -664,12 +666,13 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 		}
 
 		curr_pcr_id = pcrid;
+		pcrscr_valid = reset_pcr_regs();
+
 		if ((pcrid < 0x1FFF) && (pcrid != vid) && (pcrid != aid)
 			&& (pcrid != sid))
 			tsdemux_set_pcrid(pcrid);
 	}
 
-	pcrscr_valid = reset_pcr_regs();
 	first_pcr = 0;
 
 	return 0;
@@ -747,6 +750,7 @@ void tsdemux_release(void)
 	amports_switch_gate("demux", 0);
 
 }
+EXPORT_SYMBOL(tsdemux_release);
 
 static int limited_delay_check(struct file *file,
 		struct stream_buf_s *vbuf,
@@ -820,7 +824,12 @@ ssize_t drm_tswrite(struct file *file,
 
 	if (drm->drm_flag == TYPE_DRMINFO && drm->drm_level == DRM_LEVEL1) {
 		/* buf only has drminfo not have esdata; */
-		realcount = drm->drm_pktsize;
+		if (drm->drm_pktsize <= MAX_DRM_PACKAGE_SIZE)
+			realcount = drm->drm_pktsize;
+		else {
+			pr_err("drm package size is error, size is %u\n", drm->drm_pktsize);
+			return -EINVAL;
+		}
 		realbuf = drm->drm_phy;
 		isphybuf = 1;
 	} else
@@ -1156,8 +1165,8 @@ u8 tsdemux_pcrvideo_valid(void)
 void tsdemux_pcr_set(unsigned int pcr)
 {
 	if (pcr_init_flag == 0) {
-		timestamp_pcrscr_set(pcr);
-		timestamp_pcrscr_enable(1);
+		/*timestamp_pcrscr_set(pcr);
+		timestamp_pcrscr_enable(1);*/
 		pcr_init_flag = 1;
 	}
 }

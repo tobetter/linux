@@ -154,8 +154,7 @@ static s32 vpu_alloc_dma_buffer(struct vpudrv_buffer_t *vb)
 		return -1;
 	}
 
-	vb->base = (ulong)(s_video_memory.base +
-		(vb->phys_addr - s_video_memory.phys_addr));
+	enc_pr(LOG_INFO, "vpu_alloc_dma_buffer: vb->phys_addr 0x%lx \n",vb->phys_addr);
 	return 0;
 }
 
@@ -163,8 +162,9 @@ static void vpu_free_dma_buffer(struct vpudrv_buffer_t *vb)
 {
 	if (!vb)
 		return;
+	enc_pr(LOG_INFO, "vpu_free_dma_buffer 0x%lx\n",vb->phys_addr);
 
-	if (vb->base)
+	if (vb->phys_addr)
 		vmem_free(&s_vmem, vb->phys_addr, 0);
 }
 
@@ -211,7 +211,7 @@ static s32 vpu_free_buffers(struct file *filp)
 	list_for_each_entry_safe(pool, n, &s_vbp_head, list) {
 		if (pool->filp == filp) {
 			vb = pool->vb;
-			if (vb.base) {
+			if (vb.phys_addr) {
 				vpu_free_dma_buffer(&vb);
 				list_del(&pool->list);
 				kfree(pool);
@@ -323,14 +323,8 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		s_video_memory.size = VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE;
 		s_video_memory.phys_addr =
 			(ulong)codec_mm_alloc_for_dma(VPU_DEV_NAME,
-			VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE >> PAGE_SHIFT, 0,
-			CODEC_MM_FLAGS_CPU);
-		if (s_video_memory.phys_addr)
-			s_video_memory.base =
-				(ulong)phys_to_virt(s_video_memory.phys_addr);
-		else
-			s_video_memory.base = 0;
-		if (s_video_memory.base) {
+			VPU_INIT_VIDEO_MEMORY_SIZE_IN_BYTE >> PAGE_SHIFT, 0, 0);
+		if (s_video_memory.phys_addr) {
 			enc_pr(LOG_DEBUG,
 				"allocating phys 0x%lx, virt addr 0x%lx, size %dk\n",
 				s_video_memory.phys_addr,
@@ -366,7 +360,7 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 			"No CMA and reserved memory for HevcEnc!!!\n");
 		r = -ENOMEM;
 #endif
-	} else if (!s_video_memory.base) {
+	} else if (!s_video_memory.phys_addr) {
 		enc_pr(LOG_ERROR,
 			"HevcEnc memory is not malloced!!!\n");
 		r = -ENOMEM;
@@ -383,6 +377,7 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 			if (err) {
 				enc_pr(LOG_ERROR,
 					"fail to register interrupt handler\n");
+				s_vpu_drv_context.open_count--;
 				return -EFAULT;
 			}
 			s_vpu_irq_requested = true;
@@ -390,7 +385,9 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		amports_switch_gate("vdec", 1);
 		spin_lock_irqsave(&s_vpu_lock, flags);
 		WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & ~(0x3<<24));
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+			(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+			? ~0x8 : ~(0x3<<24)));
 		udelay(10);
 
 		if (get_cpu_type() <= MESON_CPU_MAJOR_ID_TXLX) {
@@ -423,12 +420,16 @@ static s32 vpu_open(struct inode *inode, struct file *filp)
 		WRITE_VREG(DOS_MEM_PD_WAVE420L, 0x0);
 
 		WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-			READ_AOREG(AO_RTI_GEN_PWR_ISO0) & ~(0x3<<12));
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+			(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+			? ~0x8 : ~(0x3<<12)));
 		udelay(10);
 
 		spin_unlock_irqrestore(&s_vpu_lock, flags);
 	}
 Err:
+	if (r != 0)
+		s_vpu_drv_context.open_count--;
 	enc_pr(LOG_DEBUG, "[-] %s, ret: %d\n", __func__, r);
 	return r;
 }
@@ -491,6 +492,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY32:
 		{
 			struct vpudrv_buffer_pool_t *vbp;
@@ -519,8 +521,6 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				vbp->vb.cached = buf32.cached;
 				vbp->vb.phys_addr =
 					(ulong)buf32.phys_addr;
-				vbp->vb.base =
-					(ulong)buf32.base;
 				vbp->vb.virt_addr =
 					(ulong)buf32.virt_addr;
 				ret = vpu_alloc_dma_buffer(&(vbp->vb));
@@ -534,8 +534,6 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				buf32.size = vbp->vb.size;
 				buf32.phys_addr =
 					(compat_ulong_t)vbp->vb.phys_addr;
-				buf32.base =
-					(compat_ulong_t)vbp->vb.base;
 				buf32.virt_addr =
 					(compat_ulong_t)vbp->vb.virt_addr;
 
@@ -560,6 +558,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_ALLOCATE_PHYSICAL_MEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_FREE_PHYSICALMEMORY:
 		{
 			struct vpudrv_buffer_pool_t *vbp, *n;
@@ -577,25 +576,27 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 					return -EACCES;
 				}
 
-				if (vb.base)
+				if (vb.phys_addr)
 					vpu_free_dma_buffer(&vb);
 
 				spin_lock(&s_vpu_lock);
 				list_for_each_entry_safe(vbp, n,
 					&s_vbp_head, list) {
-					if (vbp->vb.base == vb.base) {
+					if (vbp->vb.phys_addr == vb.phys_addr) {
 						list_del(&vbp->list);
 						kfree(vbp);
 						break;
 					}
 				}
 				spin_unlock(&s_vpu_lock);
+
 				up(&s_vpu_sem);
 			}
 			enc_pr(LOG_ALL,
 				"[-]VDI_IOCTL_FREE_PHYSICALMEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_FREE_PHYSICALMEMORY32:
 		{
 			struct vpudrv_buffer_pool_t *vbp, *n;
@@ -617,12 +618,10 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				vb.size = buf32.size;
 				vb.phys_addr =
 					(ulong)buf32.phys_addr;
-				vb.base =
-					(ulong)buf32.base;
 				vb.virt_addr =
 					(ulong)buf32.virt_addr;
 
-				if (vb.base)
+				if (vb.phys_addr)
 					vpu_free_dma_buffer(&vb);
 
 				spin_lock(&s_vpu_lock);
@@ -642,11 +641,12 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_FREE_PHYSICALMEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO:
 		{
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO\n");
-			if (s_video_memory.base != 0) {
+			if (s_video_memory.phys_addr != 0) {
 				ret = copy_to_user((void __user *)arg,
 					&s_video_memory,
 					sizeof(struct vpudrv_buffer_t));
@@ -659,6 +659,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -669,11 +670,9 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			buf32.size = s_video_memory.size;
 			buf32.phys_addr =
 				(compat_ulong_t)s_video_memory.phys_addr;
-			buf32.base =
-				(compat_ulong_t)s_video_memory.base;
 			buf32.virt_addr =
 				(compat_ulong_t)s_video_memory.virt_addr;
-			if (s_video_memory.base != 0) {
+			if (s_video_memory.phys_addr != 0) {
 				ret = copy_to_user((void __user *)arg,
 					&buf32,
 					sizeof(struct compat_vpudrv_buffer_t));
@@ -686,6 +685,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_RESERVED_VIDEO_MEMORY_INFO32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_WAIT_INTERRUPT:
 		{
 			struct vpudrv_intr_info_t info;
@@ -706,6 +706,9 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				ret = -ETIME;
 				break;
 			}
+			enc_pr(LOG_INFO,
+			       "s_interrupt_flag(%d), reason(0x%08lx)\n",
+			       s_interrupt_flag, dev->interrupt_reason);
 			if (dev->interrupt_reason & (1 << W4_INT_ENC_PIC)) {
 				u32 start, end, size, core = 0;
 
@@ -804,6 +807,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_INSTANCE_POOL\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_INSTANCE_POOL32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -818,9 +822,6 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				buf32.phys_addr =
 					(compat_ulong_t)
 					s_instance_pool.phys_addr;
-				buf32.base =
-					(compat_ulong_t)
-					s_instance_pool.base;
 				buf32.virt_addr =
 					(compat_ulong_t)
 					s_instance_pool.virt_addr;
@@ -875,11 +876,12 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_INSTANCE_POOL32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_GET_COMMON_MEMORY:
 		{
 			enc_pr(LOG_ALL,
 				"[+]VDI_IOCTL_GET_COMMON_MEMORY\n");
-			if (s_common_memory.base != 0) {
+			if (s_common_memory.phys_addr != 0) {
 				ret = copy_to_user((void __user *)arg,
 					&s_common_memory,
 					sizeof(struct vpudrv_buffer_t));
@@ -907,6 +909,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_COMMON_MEMORY\n");
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_COMMON_MEMORY32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -918,13 +921,10 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			buf32.phys_addr =
 				(compat_ulong_t)
 				s_common_memory.phys_addr;
-			buf32.base =
-				(compat_ulong_t)
-				s_common_memory.base;
 			buf32.virt_addr =
 				(compat_ulong_t)
 				s_common_memory.virt_addr;
-			if (s_common_memory.base != 0) {
+			if (s_common_memory.phys_addr != 0) {
 				ret = copy_to_user((void __user *)arg,
 					&buf32,
 					sizeof(struct compat_vpudrv_buffer_t));
@@ -946,9 +946,6 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 					buf32.phys_addr =
 						(compat_ulong_t)
 						s_common_memory.phys_addr;
-					buf32.base =
-						(compat_ulong_t)
-						s_common_memory.base;
 					buf32.virt_addr =
 						(compat_ulong_t)
 						s_common_memory.virt_addr;
@@ -965,6 +962,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_GET_COMMON_MEMORY32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_OPEN_INSTANCE:
 		{
 			struct vpudrv_inst_info_t inst_info;
@@ -1133,6 +1131,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				s_vpu_register.size);
 		}
 		break;
+#ifdef CONFIG_COMPAT
 	case VDI_IOCTL_GET_REGISTER_INFO32:
 		{
 			struct compat_vpudrv_buffer_t buf32;
@@ -1144,9 +1143,6 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 			buf32.phys_addr =
 				(compat_ulong_t)
 				s_vpu_register.phys_addr;
-			buf32.base =
-				(compat_ulong_t)
-				s_vpu_register.base;
 			buf32.virt_addr =
 				(compat_ulong_t)
 				s_vpu_register.virt_addr;
@@ -1207,6 +1203,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 				"[-]VDI_IOCTL_FLUSH_BUFFER32\n");
 		}
 		break;
+#endif
 	case VDI_IOCTL_FLUSH_BUFFER:
 		{
 			struct vpudrv_buffer_pool_t *pool, *n;
@@ -1248,6 +1245,7 @@ static long vpu_ioctl(struct file *filp, u32 cmd, ulong arg)
 		{
 			enc_pr(LOG_ERROR,
 				"No such IOCTL, cmd is %d\n", cmd);
+			ret = -EFAULT;
 		}
 		break;
 	}
@@ -1341,18 +1339,24 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 		vpu_free_instances(filp);
 		s_vpu_drv_context.open_count--;
 		if (s_vpu_drv_context.open_count == 0) {
+			enc_pr(LOG_INFO,
+			       "vpu_release: s_interrupt_flag(%d), reason(0x%08lx)\n",
+			       s_interrupt_flag, s_vpu_drv_context.interrupt_reason);
+			s_vpu_drv_context.interrupt_reason = 0;
+			s_interrupt_flag = 0;
 			if (s_instance_pool.base) {
 				enc_pr(LOG_DEBUG, "free instance pool\n");
 				vfree((const void *)s_instance_pool.base);
 				s_instance_pool.base = 0;
 			}
-			if (s_common_memory.base) {
-				enc_pr(LOG_DEBUG, "free common memory\n");
+			if (s_common_memory.phys_addr) {
+				enc_pr(LOG_INFO, "vpu_release, s_common_memory 0x%lx\n",s_common_memory.phys_addr);
 				vpu_free_dma_buffer(&s_common_memory);
-				s_common_memory.base = 0;
+				s_common_memory.phys_addr = 0;
 			}
 
-			if (s_video_memory.base && !use_reserve) {
+			if (s_video_memory.phys_addr && !use_reserve) {
+				enc_pr(LOG_DEBUG, "vpu_release, s_video_memory 0x%lx\n",s_video_memory.phys_addr);
 				codec_mm_free_for_dma(
 					VPU_DEV_NAME,
 					(u32)s_video_memory.phys_addr);
@@ -1368,7 +1372,9 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 			}
 			spin_lock_irqsave(&s_vpu_lock, flags);
 			WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-				READ_AOREG(AO_RTI_GEN_PWR_ISO0) | (0x3<<12));
+				READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+				(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+				? 0x8 : (0x3<<12)));
 			udelay(10);
 
 			WRITE_VREG(DOS_MEM_PD_WAVE420L, 0xffffffff);
@@ -1376,7 +1382,9 @@ static s32 vpu_release(struct inode *inode, struct file *filp)
 			vpu_clk_config(0);
 #endif
 			WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | (0x3<<24));
+				READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+				(get_cpu_type() == MESON_CPU_MAJOR_ID_SM1
+				? 0x8 : (0x3<<24)));
 			udelay(10);
 			spin_unlock_irqrestore(&s_vpu_lock, flags);
 			amports_switch_gate("vdec", 0);
@@ -1563,18 +1571,8 @@ static s32 hevc_mem_device_init(
 	r = 0;
 	s_video_memory.size = rmem->size;
 	s_video_memory.phys_addr = (ulong)rmem->base;
-	s_video_memory.base =
-		(ulong)phys_to_virt(s_video_memory.phys_addr);
-	if (!s_video_memory.base) {
-		enc_pr(LOG_ERROR, "fail to remap video memory ");
-		enc_pr(LOG_ERROR,
-			"physical phys_addr=0x%lx, base=0x%lx, size=0x%x\n",
-			(ulong)s_video_memory.phys_addr,
-			(ulong)s_video_memory.base,
-			(u32)s_video_memory.size);
-		s_video_memory.phys_addr = 0;
-		r = -EFAULT;
-	}
+	enc_pr(LOG_DEBUG, "hevc_mem_device_init %d, 0x%lx\n ",s_video_memory.size,s_video_memory.phys_addr);
+
 	return r;
 }
 
@@ -1741,7 +1739,7 @@ ERROR_PROVE_DEVICE:
 		memset(&s_vpu_register, 0, sizeof(struct vpudrv_buffer_t));
 	}
 
-	if (s_video_memory.base) {
+	if (s_video_memory.phys_addr) {
 		vmem_exit(&s_vmem);
 		memset(&s_video_memory, 0, sizeof(struct vpudrv_buffer_t));
 		memset(&s_vmem, 0, sizeof(struct video_mm_t));
@@ -1769,16 +1767,17 @@ static s32 vpu_remove(struct platform_device *pdev)
 		s_instance_pool.base = 0;
 	}
 
-	if (s_common_memory.base) {
+	if (s_common_memory.phys_addr) {
 		vpu_free_dma_buffer(&s_common_memory);
-		s_common_memory.base = 0;
+		s_common_memory.phys_addr = 0;
 	}
 
-	if (s_video_memory.base) {
-		if (!use_reserve)
+	if (s_video_memory.phys_addr) {
+		if (!use_reserve) {
 			codec_mm_free_for_dma(
 			VPU_DEV_NAME,
 			(u32)s_video_memory.phys_addr);
+		}
 		vmem_exit(&s_vmem);
 		memset(&s_video_memory,
 			0, sizeof(struct vpudrv_buffer_t));
@@ -1880,72 +1879,73 @@ static s32 vpu_resume(struct platform_device *pdev)
 	enc_pr(LOG_DEBUG, "vpu_resume\n");
 
 	vpu_clk_config(1);
-
-	for (core = 0; core < MAX_NUM_VPU_CORE; core++) {
-		if (s_bit_firmware_info[core].size == 0)
-			continue;
-		code_base = s_common_memory.phys_addr;
-		/* ALIGN TO 4KB */
-		code_size = (s_common_memory.size & ~0xfff);
-		if (code_size < s_bit_firmware_info[core].size * 2)
-			goto DONE_WAKEUP;
-
-		/*---- LOAD BOOT CODE */
-		for (i = 0; i < 512; i += 2) {
-			val = s_bit_firmware_info[core].bit_code[i];
-			val |= (s_bit_firmware_info[core].bit_code[i+1] << 16);
-			WriteVpu(code_base+(i*2), val);
-		}
-
-		regVal = 0;
-		WriteVpuRegister(W4_PO_CONF, regVal);
-
-		/* Reset All blocks */
-		regVal = 0x7ffffff;
-		WriteVpuRegister(W4_VPU_RESET_REQ, regVal);
-
-		/* Waiting reset done */
-		while (ReadVpuRegister(W4_VPU_RESET_STATUS)) {
-			if (time_after(jiffies, timeout))
+	if (s_vpu_open_ref_count > 0) {
+		for (core = 0; core < MAX_NUM_VPU_CORE; core++) {
+			if (s_bit_firmware_info[core].size == 0)
+				continue;
+			code_base = s_common_memory.phys_addr;
+			/* ALIGN TO 4KB */
+			code_size = (s_common_memory.size & ~0xfff);
+			if (code_size < s_bit_firmware_info[core].size * 2)
 				goto DONE_WAKEUP;
-		}
 
-		WriteVpuRegister(W4_VPU_RESET_REQ, 0);
+			/*---- LOAD BOOT CODE */
+			for (i = 0; i < 512; i += 2) {
+				val = s_bit_firmware_info[core].bit_code[i];
+				val |= (s_bit_firmware_info[core].bit_code[i+1] << 16);
+				WriteVpu(code_base+(i*2), val);
+			}
 
-		/* remap page size */
-		remap_size = (code_size >> 12) & 0x1ff;
-		regVal = 0x80000000 | (W4_REMAP_CODE_INDEX<<12)
-			| (0 << 16) | (1<<11) | remap_size;
-		WriteVpuRegister(W4_VPU_REMAP_CTRL, regVal);
-		/* DO NOT CHANGE! */
-		WriteVpuRegister(W4_VPU_REMAP_VADDR, 0x00000000);
-		WriteVpuRegister(W4_VPU_REMAP_PADDR, code_base);
-		WriteVpuRegister(W4_ADDR_CODE_BASE, code_base);
-		WriteVpuRegister(W4_CODE_SIZE, code_size);
-		WriteVpuRegister(W4_CODE_PARAM, 0);
-		WriteVpuRegister(W4_INIT_VPU_TIME_OUT_CNT, timeout);
-		WriteVpuRegister(W4_HW_OPTION, hwOption);
+			regVal = 0;
+			WriteVpuRegister(W4_PO_CONF, regVal);
 
-		/* Interrupt */
-		regVal = (1 << W4_INT_DEC_PIC_HDR);
-		regVal |= (1 << W4_INT_DEC_PIC);
-		regVal |= (1 << W4_INT_QUERY_DEC);
-		regVal |= (1 << W4_INT_SLEEP_VPU);
-		regVal |= (1 << W4_INT_BSBUF_EMPTY);
-		regVal = 0xfffffefe;
-		WriteVpuRegister(W4_VPU_VINT_ENABLE, regVal);
-		Wave4BitIssueCommand(core, W4_CMD_INIT_VPU);
-		WriteVpuRegister(W4_VPU_REMAP_CORE_START, 1);
-		while (ReadVpuRegister(W4_VPU_BUSY_STATUS)) {
-			if (time_after(jiffies, timeout))
+			/* Reset All blocks */
+			regVal = 0x7ffffff;
+			WriteVpuRegister(W4_VPU_RESET_REQ, regVal);
+
+			/* Waiting reset done */
+			while (ReadVpuRegister(W4_VPU_RESET_STATUS)) {
+				if (time_after(jiffies, timeout))
+					goto DONE_WAKEUP;
+			}
+
+			WriteVpuRegister(W4_VPU_RESET_REQ, 0);
+
+			/* remap page size */
+			remap_size = (code_size >> 12) & 0x1ff;
+			regVal = 0x80000000 | (W4_REMAP_CODE_INDEX<<12)
+				| (0 << 16) | (1<<11) | remap_size;
+			WriteVpuRegister(W4_VPU_REMAP_CTRL, regVal);
+			/* DO NOT CHANGE! */
+			WriteVpuRegister(W4_VPU_REMAP_VADDR, 0x00000000);
+			WriteVpuRegister(W4_VPU_REMAP_PADDR, code_base);
+			WriteVpuRegister(W4_ADDR_CODE_BASE, code_base);
+			WriteVpuRegister(W4_CODE_SIZE, code_size);
+			WriteVpuRegister(W4_CODE_PARAM, 0);
+			WriteVpuRegister(W4_INIT_VPU_TIME_OUT_CNT, timeout);
+			WriteVpuRegister(W4_HW_OPTION, hwOption);
+
+			/* Interrupt */
+			regVal = (1 << W4_INT_DEC_PIC_HDR);
+			regVal |= (1 << W4_INT_DEC_PIC);
+			regVal |= (1 << W4_INT_QUERY_DEC);
+			regVal |= (1 << W4_INT_SLEEP_VPU);
+			regVal |= (1 << W4_INT_BSBUF_EMPTY);
+			regVal = 0xfffffefe;
+			WriteVpuRegister(W4_VPU_VINT_ENABLE, regVal);
+			Wave4BitIssueCommand(core, W4_CMD_INIT_VPU);
+			WriteVpuRegister(W4_VPU_REMAP_CORE_START, 1);
+			while (ReadVpuRegister(W4_VPU_BUSY_STATUS)) {
+				if (time_after(jiffies, timeout))
+					goto DONE_WAKEUP;
+			}
+
+			if (ReadVpuRegister(W4_RET_SUCCESS) == 0) {
+				enc_pr(LOG_ERROR,
+					"WAKEUP_VPU failed [0x%x]",
+					ReadVpuRegister(W4_RET_FAIL_REASON));
 				goto DONE_WAKEUP;
-		}
-
-		if (ReadVpuRegister(W4_RET_SUCCESS) == 0) {
-			enc_pr(LOG_ERROR,
-				"WAKEUP_VPU failed [0x%x]",
-				ReadVpuRegister(W4_RET_FAIL_REASON));
-			goto DONE_WAKEUP;
+			}
 		}
 	}
 
@@ -1988,7 +1988,8 @@ static s32 __init vpu_init(void)
 	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM)
 		&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12A)
 			&& (get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX)
-				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)) {
+				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_G12B)
+				&& (get_cpu_type() != MESON_CPU_MAJOR_ID_SM1)) {
 		enc_pr(LOG_DEBUG,
 			"The chip is not support hevc encoder\n");
 		return -1;
@@ -2010,8 +2011,16 @@ static s32 __init vpu_init(void)
 static void __exit vpu_exit(void)
 {
 	enc_pr(LOG_DEBUG, "vpu_exit\n");
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_GXM)
-		platform_driver_unregister(&vpu_driver);
+	if ((get_cpu_type() != MESON_CPU_MAJOR_ID_GXM) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12A) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_GXLX) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_G12B) &&
+		(get_cpu_type() != MESON_CPU_MAJOR_ID_SM1)) {
+		enc_pr(LOG_INFO,
+			"The chip is not support hevc encoder\n");
+		return;
+	}
+	platform_driver_unregister(&vpu_driver);
 }
 
 static const struct reserved_mem_ops rmem_hevc_ops = {

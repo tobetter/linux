@@ -41,6 +41,10 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/uaccess.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include <linux/amlogic/tee.h>
+
+#include <trace/events/meson_atrace.h>
+
 
 #ifdef CONFIG_AM_VDEC_MPEG12_LOG
 #define AMLOG
@@ -56,6 +60,7 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 #include "../utils/amvdec.h"
 #include "../utils/vdec.h"
 #include "../utils/firmware.h"
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define DRIVER_NAME "amvdec_mpeg12"
 #define MODULE_NAME "amvdec_mpeg12"
@@ -171,6 +176,7 @@ static int ccbuf_phyAddress_is_remaped_nocache;
 static u32 lastpts;
 static u32 fr_hint_status;
 static u32 last_offset;
+static u32 ratio_control;
 
 
 static DEFINE_SPINLOCK(lock);
@@ -193,6 +199,10 @@ static struct work_struct notify_work;
 static struct work_struct reset_work;
 static struct work_struct set_clk_work;
 static bool is_reset;
+
+static DEFINE_MUTEX(userdata_mutex);
+
+static void vmpeg12_create_userdata_manager(u8 *userdata_buf, int buf_len);
 
 struct mpeg12_userdata_recored_t {
 	struct userdata_meta_info_t meta_info;
@@ -285,6 +295,8 @@ static void set_frame_info(struct vframe_s *vf)
 
 	else
 		vf->ratio_control = 0;
+
+	ratio_control = vf->ratio_control;
 
 	amlog_level_if(first, LOG_LEVEL_INFO,
 		"mpeg2dec: w(%d), h(%d), dur(%d), dur-ES(%d)\n",
@@ -756,8 +768,8 @@ static void userdata_push_do_work(struct work_struct *work)
 			DMA_FROM_DEVICE);
 	}
 
-
-	if (p_userdata_mgr) {
+	mutex_lock(&userdata_mutex);
+	if (p_userdata_mgr && ccbuf_phyAddress_virt) {
 		int new_wp;
 
 		new_wp = reg & 0xffff;
@@ -769,6 +781,7 @@ static void userdata_push_do_work(struct work_struct *work)
 		memcpy(head_info, pdata, 8);
 	} else
 		memset(head_info, 0, 8);
+	mutex_unlock(&userdata_mutex);
 	aml_swap_data(head_info, 8);
 
 	wp = (head_info[0] << 8 | head_info[1]);
@@ -854,6 +867,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 	u32 reg, info, seqinfo, offset, pts, pts_valid = 0;
 	struct vframe_s *vf;
 	u64 pts_us64 = 0;
+	u32 frame_size;
 
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
@@ -870,7 +884,8 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 			first_i_frame_ready = 1;
 
 		if ((pts_lookup_offset_us64
-			 (PTS_TYPE_VIDEO, offset, &pts, 0, &pts_us64) == 0)
+			 (PTS_TYPE_VIDEO, offset, &pts,
+			 &frame_size, 0, &pts_us64) == 0)
 			&& (((info & PICINFO_TYPE_MASK) == PICINFO_TYPE_I)
 				|| ((info & PICINFO_TYPE_MASK) ==
 					PICINFO_TYPE_P)))
@@ -928,7 +943,9 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 			}
 
 			set_frame_info(vf);
-			vf->signal_type = 0;
+			/*pr_info("video signal type:0x%x\n",
+				READ_VREG(AV_SCRATCH_H));*/
+			vf->signal_type = READ_VREG(AV_SCRATCH_H);
 			vf->index = index;
 #ifdef NV21
 			vf->type =
@@ -986,6 +1003,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 						index);
 				kfifo_put(&display_q,
 						  (const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 				vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
 					NULL);
@@ -1071,6 +1089,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 						index);
 				kfifo_put(&display_q,
 						  (const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 				vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
 					NULL);
@@ -1123,6 +1142,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 						index);
 				kfifo_put(&display_q,
 					(const struct vframe_s *)vf);
+				ATRACE_COUNTER(MODULE_NAME, vf->pts);
 				vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
 					NULL);
@@ -1163,6 +1183,7 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 				} else {
 					kfifo_put(&display_q,
 						(const struct vframe_s *)vf);
+					ATRACE_COUNTER(MODULE_NAME, vf->pts);
 					vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
 						NULL);
@@ -1254,6 +1275,7 @@ static void vmpeg12_ppmgr_reset(void)
 #endif
 
 static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
+static void vmpeg12_wakeup_userdata_poll(struct vdec_s *vdec);
 
 static void reset_do_work(struct work_struct *work)
 {
@@ -1267,6 +1289,7 @@ static void reset_do_work(struct work_struct *work)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	vmpeg12_prot_init();
+	vmpeg12_create_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
 	vmpeg12_reset_userdata_fifo(vdec, 1);
 #ifdef DUMP_USER_DATA
 	last_wp = 0;
@@ -1277,8 +1300,7 @@ static void reset_do_work(struct work_struct *work)
 
 static void vmpeg12_set_clk(struct work_struct *work)
 {
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
+	 {
 		int fps = 96000 / frame_dur;
 
 		saved_resolution = frame_width * frame_height * fps;
@@ -1342,7 +1364,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		}
 	}
 
-	schedule_work(&set_clk_work);
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur))
+		schedule_work(&set_clk_work);
 
 	timer->expires = jiffies + PUT_INTERVAL;
 
@@ -1351,6 +1375,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 int vmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = frame_width;
 	vstatus->frame_height = frame_height;
 	if (frame_dur != 0)
@@ -1369,6 +1396,7 @@ int vmpeg12_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	vstatus->total_data = gvs->total_data;
 	vstatus->samp_cnt = gvs->samp_cnt;
 	vstatus->offset = gvs->offset;
+	vstatus->ratio_control = ratio_control;
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 
@@ -1381,10 +1409,10 @@ int vmpeg12_set_isreset(struct vdec_s *vdec, int isreset)
 	return 0;
 }
 
-static DEFINE_MUTEX(userdata_mutex);
 
 
-void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
+
+static void vmpeg12_create_userdata_manager(u8 *userdata_buf, int buf_len)
 {
 	mutex_lock(&userdata_mutex);
 
@@ -1400,7 +1428,7 @@ void vmpeg12_crate_userdata_manager(u8 *userdata_buf, int buf_len)
 	mutex_unlock(&userdata_mutex);
 }
 
-void vmpeg12_destroy_userdata_manager(void)
+static void vmpeg12_destroy_userdata_manager(void)
 {
 	mutex_lock(&userdata_mutex);
 
@@ -1473,13 +1501,12 @@ static int vmpeg12_user_data_read(struct vdec_s *vdec,
 	u8 *rec_data_start;
 	u8 *pdest_buf;
 	struct mpeg12_userdata_recored_t *p_userdata_rec;
-
-
 	u32 data_size;
 	u32 res;
 	int copy_ok = 1;
 
-	pdest_buf = (void *)(puserdata_para->pbuf_addr);
+	pdest_buf = puserdata_para->pbuf_addr;
+
 	mutex_lock(&userdata_mutex);
 
 	if (!p_userdata_mgr) {
@@ -1630,9 +1657,8 @@ static int vmpeg12_user_data_read(struct vdec_s *vdec,
 		}
 
 	}
-	res = (u32)copy_to_user((void *)&puserdata_para->meta_info,
-				(void *)&p_userdata_rec->meta_info,
-				sizeof(p_userdata_rec->meta_info));
+
+	puserdata_para->meta_info = p_userdata_rec->meta_info;
 
 	if (p_userdata_mgr->read_index <= p_userdata_mgr->write_index)
 		puserdata_para->meta_info.records_in_que =
@@ -1666,6 +1692,11 @@ static void vmpeg12_reset_userdata_fifo(struct vdec_s *vdec, int bInit)
 	}
 
 	mutex_unlock(&userdata_mutex);
+}
+
+static void vmpeg12_wakeup_userdata_poll(struct vdec_s *vdec)
+{
+	amstream_wakeup_userdata_poll(vdec);
 }
 
 static int vmpeg12_vdec_info_init(void)
@@ -1721,12 +1752,13 @@ static int vmpeg12_canvas_init(void)
 				= (u32)buf_start;
 
 				ccbuf_phyAddress_virt
-				= codec_mm_phys_to_virt(ccbuf_phyAddress);
+					= codec_mm_phys_to_virt(
+						ccbuf_phyAddress);
 				if (!ccbuf_phyAddress_virt) {
 					ccbuf_phyAddress_virt
-					= ioremap_nocache(
-					ccbuf_phyAddress,
-					CCBUF_SIZE);
+						= codec_mm_vmap(
+							ccbuf_phyAddress,
+							CCBUF_SIZE);
 					ccbuf_phyAddress_is_remaped_nocache = 1;
 				}
 			}
@@ -1767,13 +1799,13 @@ static int vmpeg12_canvas_init(void)
 static int vmpeg12_prot_init(void)
 {
 	int ret;
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		int save_reg = READ_VREG(POWER_CTL_VLD);
 
 		WRITE_VREG(DOS_SW_RESET0, (1 << 7) | (1 << 6) | (1 << 4));
 		WRITE_VREG(DOS_SW_RESET0, 0);
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8) {
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8) {
 
 			READ_VREG(DOS_SW_RESET0);
 			READ_VREG(DOS_SW_RESET0);
@@ -1875,10 +1907,20 @@ static void vmpeg12_local_init(void)
 
 	for (i = 0; i < DECODE_BUFFER_NUM_MAX; i++)
 		vfbuf_use[i] = 0;
-
 	if (mm_blk_handle) {
+		mutex_lock(&userdata_mutex);
+		if (p_userdata_mgr) {
+			vfree(p_userdata_mgr);
+			p_userdata_mgr = NULL;
+		}
+		if (ccbuf_phyAddress_is_remaped_nocache)
+			codec_mm_unmap_phyaddr(ccbuf_phyAddress_virt);
+		ccbuf_phyAddress_virt = NULL;
+		ccbuf_phyAddress = 0;
+		ccbuf_phyAddress_is_remaped_nocache = 0;
 		decoder_bmmu_box_free(mm_blk_handle);
 		mm_blk_handle = NULL;
+		mutex_unlock(&userdata_mutex);
 	}
 
 		mm_blk_handle = decoder_bmmu_box_alloc_box(
@@ -1921,11 +1963,12 @@ static s32 vmpeg12_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_MPEG12, NULL, buf) < 0) {
+	ret = amvdec_loadmc_ex(VFORMAT_MPEG12, "mpeg12", buf);
+	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
+		pr_err("MPEG12: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -1957,13 +2000,14 @@ static s32 vmpeg12_init(void)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	if (vmpeg12_amstream_dec_info.rate != 0) {
-		if (!is_reset)
+		if (!is_reset) {
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_FR_HINT,
 				(void *)
 				((unsigned long)
 				vmpeg12_amstream_dec_info.rate));
-		fr_hint_status = VDEC_HINTED;
+			fr_hint_status = VDEC_HINTED;
+		}
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
 
@@ -2015,7 +2059,7 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 
 	pdata->user_data_read = vmpeg12_user_data_read;
 	pdata->reset_userdata_fifo = vmpeg12_reset_userdata_fifo;
-
+	pdata->wakeup_userdata_poll = vmpeg12_wakeup_userdata_poll;
 	is_reset = 0;
 
 	vmpeg12_vdec_info_init();
@@ -2025,14 +2069,14 @@ static int amvdec_mpeg12_probe(struct platform_device *pdev)
 		amlog_level(LOG_LEVEL_ERROR, "amvdec_mpeg12 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
-
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 	vdec = pdata;
 #ifdef DUMP_USER_DATA
 	amvdec_mpeg12_init_userdata_dump();
 #endif
-	vmpeg12_crate_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
+	vmpeg12_create_userdata_manager(ccbuf_phyAddress_virt, CCBUF_SIZE);
 
 	INIT_WORK(&userdata_push_work, userdata_push_do_work);
 	INIT_WORK(&notify_work, vmpeg12_notify_work);
@@ -2055,7 +2099,6 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 	cancel_work_sync(&userdata_push_work);
 	cancel_work_sync(&notify_work);
 	cancel_work_sync(&reset_work);
-	cancel_work_sync(&set_clk_work);
 
 	if (stat & STAT_VDEC_RUN) {
 		amvdec_stop();
@@ -2072,8 +2115,9 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 		stat &= ~STAT_TIMER_ARM;
 	}
 
+	cancel_work_sync(&set_clk_work);
 	if (stat & STAT_VF_HOOK) {
-		if (fr_hint_status == VDEC_HINTED && !is_reset)
+		if (fr_hint_status == VDEC_HINTED)
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
 		fr_hint_status = VDEC_NO_NEED_HINT;
@@ -2084,7 +2128,7 @@ static int amvdec_mpeg12_remove(struct platform_device *pdev)
 
 	amvdec_disable();
 	if (ccbuf_phyAddress_is_remaped_nocache)
-		iounmap(ccbuf_phyAddress_virt);
+		codec_mm_unmap_phyaddr(ccbuf_phyAddress_virt);
 
 	ccbuf_phyAddress_virt = NULL;
 	ccbuf_phyAddress = 0;
