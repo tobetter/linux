@@ -1864,6 +1864,12 @@
 	cpu_ver_name {
 		compatible = "amlogic, cpu-major-id-g12a";
 	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
 };/* end of / */
 
 &pinctrl_aobus {

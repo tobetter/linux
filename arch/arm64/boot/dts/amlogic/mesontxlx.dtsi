@@ -948,6 +948,10 @@
 		compatible = "amlogic, defendkey";
 		reg = <0x0 0xff634500 0x0 0x4>; /*RNG_USR_DATA*/
 		mem_size = <0x0 0x100000>;
+	};
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
 		status = "okay";
 	};
 }; /* end of / */

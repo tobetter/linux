@@ -555,6 +555,12 @@
 		mem_size = <0x0 0x100000>;
 		status = "okay";
 	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
 }; /* end of root */
 
 &pinctrl_aobus {

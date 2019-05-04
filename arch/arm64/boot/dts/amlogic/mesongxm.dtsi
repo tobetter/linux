@@ -681,6 +681,12 @@
 		compatible = "amlogic, vdac-gxm";
 		status = "okay";
 	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
 }; /* end of root */
 
 &pinctrl_aobus {
