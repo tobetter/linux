@@ -271,8 +271,8 @@
 #define RC6_START_BIT_PAUSE_LEN_MAX             ((uint_fast8_t)(F_INTERRUPTS * RC6_START_BIT_PAUSE_TIME * MAX_TOLERANCE_10 + 0.5) + 1)
 #define RC6_TOGGLE_BIT_LEN_MIN                  ((uint_fast8_t)(F_INTERRUPTS * RC6_TOGGLE_BIT_TIME * MIN_TOLERANCE_10 + 0.5) - 1)
 #define RC6_TOGGLE_BIT_LEN_MAX                  ((uint_fast8_t)(F_INTERRUPTS * RC6_TOGGLE_BIT_TIME * MAX_TOLERANCE_10 + 0.5) + 1)
-#define RC6_BIT_PULSE_LEN_MIN                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MIN_TOLERANCE_10 + 0.5) - 1)
-#define RC6_BIT_PULSE_LEN_MAX                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MAX_TOLERANCE_60 + 0.5) + 1)       // pulses: 300 - 800
+#define RC6_BIT_PULSE_LEN_MIN                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MIN_TOLERANCE_60 + 0.5) - 1)
+#define RC6_BIT_PULSE_LEN_MAX                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MAX_TOLERANCE_20 + 0.5) + 1)       // pulses: 300 - 800
 #define RC6_BIT_PAUSE_LEN_MIN                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MIN_TOLERANCE_10 + 0.5) - 1)
 #define RC6_BIT_PAUSE_LEN_MAX                   ((uint_fast8_t)(F_INTERRUPTS * RC6_BIT_TIME * MAX_TOLERANCE_20 + 0.5) + 1)       // pauses: 300 - 600
 
@@ -2344,8 +2344,8 @@ irmp_init (void)
 #elif defined(__MBED__)
     gpio_init_in_ex(&gpioIRin, IRMP_PIN, IRMP_PINMODE);                 // initialize input for IR diode
 
-#elif defined(_CHIBIOS_HAL_)
-    // ChibiOS HAL automatically initializes all pins according to the board config file, no need to repeat here
+#elif defined(_CHIBIOS_HAL_) || defined(IRMP_PULSE_IR_DECODER)
+    // ChibiOS HAL or pulses method automatically initializes all pins according to the board config file, no need to repeat here
 
 #else                                                                   // AVR
     IRMP_PORT &= ~(1<<IRMP_BIT);                                        // deactivate pullup
@@ -2395,7 +2395,9 @@ irmp_get_data (IRMP_DATA * irmp_data_p)
             case IRMP_NEC_PROTOCOL:
                 if ((irmp_command >> 8) == (~irmp_command & 0x00FF))
                 {
+#if !defined(U_BOOT_COMPATIBLE)
                     irmp_command &= 0xff;
+#endif
                     rtc = TRUE;
                 }
                 else if (irmp_address == 0x87EE)
@@ -2451,7 +2453,9 @@ irmp_get_data (IRMP_DATA * irmp_data_p)
 #endif
 #if IRMP_SUPPORT_RC5_PROTOCOL == 1
             case IRMP_RC5_PROTOCOL:
+#if !defined(U_BOOT_COMPATIBLE)
                 irmp_address &= ~0x20;                              // clear toggle bit
+#endif
                 rtc = TRUE;
                 break;
 #endif
@@ -2887,13 +2891,22 @@ irmp_store_bit2 (uint_fast8_t value)
  *  @details  ISR routine, called 10000 times per second
  *---------------------------------------------------------------------------------------------------------------------------------------------------
  */
+#if !defined(IRMP_PULSE_IR_DECODER)
 uint_fast8_t
 irmp_ISR (void)
+#else
+uint_fast8_t
+irmp_ISR (uint_fast16_t duration)
+#endif
 {
     static uint_fast8_t     irmp_start_bit_detected;                                // flag: start bit detected
     static uint_fast8_t     wait_for_space;                                         // flag: wait for data bit space
     static uint_fast8_t     wait_for_start_space;                                   // flag: wait for start bit space
+#if !defined(IRMP_PULSE_IR_DECODER)
     static uint_fast8_t     irmp_pulse_time;                                        // count bit time for pulse
+#else
+    static uint_fast16_t    irmp_pulse_time;                                        // count bit time for pulse
+#endif
     static PAUSE_LEN        irmp_pause_time;                                        // count bit time for pause
     static uint_fast16_t    last_irmp_address = 0xFFFF;                             // save last irmp address to recognize key repetition
     static uint_fast16_t    last_irmp_command = 0xFFFF;                             // save last irmp command to recognize key repetition
@@ -2915,7 +2928,12 @@ irmp_ISR (void)
 #if IRMP_SUPPORT_RCII_PROTOCOL == 1
     static uint_fast8_t     waiting_for_2nd_pulse = 0;
 #endif
+#if !defined(IRMP_PULSE_IR_DECODER)
     uint_fast8_t            irmp_input;                                             // input value
+#else
+    if (!duration)                                                                  // empty duration == timeout
+        duration = IRMP_TIMEOUT_LEN + 1;
+#endif
 
 #ifdef ANALYZE
 
@@ -2935,6 +2953,7 @@ irmp_ISR (void)
     time_counter++;
 #endif // ANALYZE
 
+#if !defined(IRMP_PULSE_IR_DECODER)
 #if defined(__SDCC_stm8)
     irmp_input = input(IRMP_GPIO_STRUCT->IDR)
 #elif defined(__MBED__)
@@ -2958,11 +2977,13 @@ irmp_ISR (void)
 #endif // IRMP_USE_CALLBACK == 1
 
     irmp_log(irmp_input);                                                       // log ir signal, if IRMP_LOGGING defined
+#endif
 
     if (! irmp_ir_detected)                                                     // ir code already detected?
     {                                                                           // no...
         if (! irmp_start_bit_detected)                                          // start bit detected?
         {                                                                       // no...
+#if !defined(IRMP_PULSE_IR_DECODER)
             if (! irmp_input)                                                   // receiving burst?
             {                                                                   // yes...
 //              irmp_busy_flag = TRUE;
@@ -2977,6 +2998,10 @@ irmp_ISR (void)
             else
             {                                                                   // no...
                 if (irmp_pulse_time)                                            // it's dark....
+#else
+                irmp_pulse_time = duration;                                     // increment counter
+                if (irmp_pulse_time && irmp_pulse_time < IRMP_TIMEOUT_LEN)      // it's dark....
+#endif
                 {                                                               // set flags for counting the time of darkness...
                     irmp_start_bit_detected = 1;
                     wait_for_start_space    = 1;
@@ -3008,12 +3033,28 @@ irmp_ISR (void)
                 {
                     if (key_repetition_len < 0xFFFF)                            // avoid overflow of counter
                     {
+#if !defined(IRMP_PULSE_IR_DECODER)
                         key_repetition_len++;
+#else
+                        if ((uint32_t)(key_repetition_len) + duration >= 0xFFFF)
+                            key_repetition_len = 0xFFFF;
+                        else
+                            key_repetition_len += duration;
+#endif
+
 
 #if IRMP_SUPPORT_DENON_PROTOCOL == 1
                         if (denon_repetition_len < 0xFFFF)                      // avoid overflow of counter
                         {
+#if !defined(IRMP_PULSE_IR_DECODER)
                             denon_repetition_len++;
+#else
+                            if ((uint32_t)(denon_repetition_len) + duration >= 0xFFFF)
+                              denon_repetition_len = 0xFFFF;
+                            else
+                              denon_repetition_len += duration;
+#endif
+
 
                             if (denon_repetition_len >= DENON_AUTO_REPETITION_PAUSE_LEN && last_irmp_denon_command != 0)
                             {
@@ -3028,15 +3069,21 @@ irmp_ISR (void)
 #endif // IRMP_SUPPORT_DENON_PROTOCOL == 1
                     }
                 }
+#if !defined(IRMP_PULSE_IR_DECODER)
             }
+#endif
         }
         else
         {
             if (wait_for_start_space)                                           // we have received start bit...
             {                                                                   // ...and are counting the time of darkness
+#if !defined(IRMP_PULSE_IR_DECODER)
                 if (irmp_input)                                                 // still dark?
                 {                                                               // yes
                     irmp_pause_time++;                                          // increment counter
+#else
+                    irmp_pause_time = duration;                                 // increment counter
+#endif
 
 #if IRMP_SUPPORT_NIKON_PROTOCOL == 1
                     if (((irmp_pulse_time < NIKON_START_BIT_PULSE_LEN_MIN || irmp_pulse_time > NIKON_START_BIT_PULSE_LEN_MAX) && irmp_pause_time > IRMP_TIMEOUT_LEN) ||
@@ -3063,8 +3110,10 @@ irmp_ISR (void)
                         irmp_pulse_time         = 0;
                         irmp_pause_time         = 0;
                     }
+#if !defined(IRMP_PULSE_IR_DECODER)
                 }
                 else
+#endif
                 {                                                               // receiving first data pulse!
                     IRMP_PARAMETER * irmp_param_p;
                     irmp_param_p = (IRMP_PARAMETER *) 0;
@@ -3147,7 +3196,6 @@ irmp_ISR (void)
                                             NEC_START_BIT_PULSE_LEN_MIN, NEC_START_BIT_PULSE_LEN_MAX,
                                             NEC_REPEAT_START_BIT_PAUSE_LEN_MIN, NEC_REPEAT_START_BIT_PAUSE_LEN_MAX);
 #endif // ANALYZE
-
                             irmp_param_p = (IRMP_PARAMETER *) &nec_rep_param;
                         }
                     }
@@ -4006,9 +4054,16 @@ irmp_ISR (void)
             }
             else if (wait_for_space)                                            // the data section....
             {                                                                   // counting the time of darkness....
+#if !defined(IRMP_PULSE_IR_DECODER)
                 uint_fast8_t got_light = FALSE;
 
                 if (irmp_input)                                                 // still dark?
+#else
+                uint_fast8_t got_light = duration > IRMP_TIMEOUT_LEN ? FALSE : TRUE;
+                irmp_pause_time = duration;                                     // increment counter
+
+                if (duration > IRMP_TIMEOUT_LEN)
+#endif
                 {                                                               // yes...
                     if (irmp_bit == irmp_param.complete_len && irmp_param.stop_bit == 1)
                     {
@@ -4042,7 +4097,12 @@ irmp_ISR (void)
                     }
                     else
                     {
+#if !defined(IRMP_PULSE_IR_DECODER)
                         irmp_pause_time++;                                                          // increment counter
+
+#else
+                        irmp_pause_time = duration;                                                 // increment counter
+#endif
 
 #if IRMP_SUPPORT_SIRCS_PROTOCOL == 1
                         if (irmp_param.protocol == IRMP_SIRCS_PROTOCOL &&                           // Sony has a variable number of bits:
@@ -4518,15 +4578,55 @@ irmp_ISR (void)
                                 ANALYZE_PRINTF ("Switching to RC6A protocol\n");
 #endif // ANALYZE
                                 irmp_param.complete_len = RC6_COMPLETE_DATA_LEN_LONG;
+#if !defined(U_BOOT_COMPATIBLE)
                                 irmp_param.address_offset = 5;
                                 irmp_param.address_end = irmp_param.address_offset + 15;
                                 irmp_param.command_offset = irmp_param.address_end + 1;                                 // skip 1 system bit, changes like a toggle bit
                                 irmp_param.command_end = irmp_param.command_offset + 16 - 1;
+#else
+                                irmp_param.address_offset = 4;
+                                irmp_param.address_end = irmp_param.address_offset + 16;
+                                irmp_param.command_offset = irmp_param.address_end + 1;
+                                irmp_param.command_end = irmp_param.command_offset + 16 - 1;
+#endif
                                 irmp_tmp_address = 0;
                             }
 #endif // IRMP_SUPPORT_RC6_PROTOCOL == 1
 
                             irmp_store_bit (manchester_value);
+
+#if defined(IRMP_PULSE_IR_DECODER)
+                            if (irmp_bit == irmp_param.complete_len && irmp_param.stop_bit == 1)
+                            {
+                                if (
+#if IRMP_SUPPORT_MANCHESTER == 1
+                                    (irmp_param.flags & IRMP_PARAM_FLAG_IS_MANCHESTER) ||
+#endif
+#if IRMP_SUPPORT_SERIAL == 1
+                                    (irmp_param.flags & IRMP_PARAM_FLAG_IS_SERIAL) ||
+#endif
+                                    (irmp_pulse_time >= irmp_param.pulse_0_len_min && irmp_pulse_time <= irmp_param.pulse_0_len_max))
+                                {
+#ifdef ANALYZE
+                                    if (!(irmp_param.flags & IRMP_PARAM_FLAG_IS_MANCHESTER))
+                                    {
+                                        ANALYZE_PRINTF("stop bit detected\n");
+                                    }
+#endif // ANALYZE
+                                    irmp_param.stop_bit = 0;
+                                }
+                                else
+                                {
+#ifdef ANALYZE
+                                    ANALYZE_PRINTF("error: stop bit timing wrong, irmp_bit = %d, irmp_pulse_time = %d, pulse_0_len_min = %d, pulse_0_len_max = %d\n",
+                                        irmp_bit, irmp_pulse_time, irmp_param.pulse_0_len_min, irmp_param.pulse_0_len_max);
+#endif // ANALYZE
+                                    irmp_start_bit_detected = 0;                        // wait for another start bit...
+                                    irmp_pulse_time = 0;
+                                    irmp_pause_time = 0;
+                                }
+                            }
+#endif
                         }
                         else
                         {
@@ -4977,12 +5077,16 @@ irmp_ISR (void)
             }
             else
             {                                                                       // counting the pulse length ...
+#if !defined(IRMP_PULSE_IR_DECODER)
                 if (! irmp_input)                                                   // still light?
                 {                                                                   // yes...
                     irmp_pulse_time++;                                              // increment counter
                 }
                 else
                 {                                                                   // now it's dark!
+#else
+                    irmp_pulse_time = duration;                                     // increment counter
+#endif
                     wait_for_space  = 1;                                            // let's count the time (see above)
                     irmp_pause_time = 1;                                            // set pause counter to 1, not 0
 
@@ -5004,7 +5108,9 @@ irmp_ISR (void)
                         waiting_for_2nd_pulse = 0;
                     }
 #endif
+#if !defined(IRMP_PULSE_IR_DECODER)
                 }
+#endif
             }
 
             if (irmp_start_bit_detected && irmp_bit == irmp_param.complete_len && irmp_param.stop_bit == 0)    // enough bits received?
