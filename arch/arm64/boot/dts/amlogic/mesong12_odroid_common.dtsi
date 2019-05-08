@@ -518,8 +518,8 @@
 		};
 	};
 	spdifout: spdifout {
-		mux {/* GPIOA_11 */
-			groups = "spdif_out_a11";
+		mux {/* GPIOA_13 */
+			groups = "spdif_out_a13";
 			function = "spdif_out";
 		};
 	};
