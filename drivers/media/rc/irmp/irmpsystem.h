@@ -72,11 +72,16 @@
 #include "gpio_api.h"
 #elif defined(IRMP_CHIBIOS_HAL)                                                     // ChibiOS HAL
 #  include "hal.h"
+#elif defined(IRMP_PULSE_IR_DECODER)                                                // use measured pulses
 #else
 #  define ATMEL_AVR                                                                 // ATMEL AVR
 #endif
 
+#if !defined(IRMP_PULSE_IR_DECODER)
 #include <string.h>
+#else
+#include <linux/string.h>
+#endif
 
 #ifdef UNIX_OR_WINDOWS                                                              // Analyze on Unix/Linux or Windows
 #  include <stdio.h>
@@ -161,17 +166,25 @@ typedef unsigned short                  uint16_t;
 #  define PROGMEM
 #  define memcpy_P                      memcpy
 
+#elif defined(IRMP_PULSE_IR_DECODER)
+#  define PROGMEM
+#  define memcpy_P                      memcpy
+
 #else
 #  define PROGMEM
 #  define memcpy_P                      memcpy
 
 #endif
 
-#if defined(PIC_CCS) || defined(PIC_C18)
+#if defined(PIC_CCS) || defined(PIC_C18) || defined(IRMP_PULSE_IR_DECODER)
 typedef unsigned char                   uint8_t;
 typedef unsigned short                  uint16_t;
 typedef unsigned char                   uint_fast8_t;
 typedef unsigned short                  uint_fast16_t;
+#endif
+
+#if defined(IRMP_PULSE_IR_DECODER)
+typedef unsigned int                    uint32_t;
 #endif
 
 #if defined (PIC_C18)                                                               // PIC C18 or XC8 compiler

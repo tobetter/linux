@@ -100,7 +100,11 @@ typedef uint16_t    PAUSE_LEN;
 #  if (F_INTERRUPTS * IRMP_TIMEOUT_TIME_MS) / 1000000 >= 254
 typedef uint16_t    PAUSE_LEN;
 #  else
+#if !defined(IRMP_PULSE_IR_DECODER)
 typedef uint8_t     PAUSE_LEN;
+#else
+typedef uint16_t    PAUSE_LEN;
+#endif
 #  endif
 #endif
 
@@ -364,9 +368,15 @@ typedef uint8_t     PAUSE_LEN;
 #define RC5_BIT_TIME                             889.0e-6                       // 889 usec pulse/pause
 #define RC5_FRAME_REPEAT_PAUSE_TIME               88.9e-3                       // frame repeat after 88.9ms
 
+#if !defined(U_BOOT_COMPATIBLE)
 #define RC5_ADDRESS_OFFSET                      1                               // skip 1 bit (2nd start)
 #define RC5_ADDRESS_LEN                         6                               // read 1 toggle bit (for key repetition detection) + 5 address bits
 #define RC5_COMMAND_OFFSET                      7                               // skip 5 bits (2nd start + 1 toggle + 5 address)
+#else
+#define RC5_ADDRESS_OFFSET                      0                               // skip 0 bit
+#define RC5_ADDRESS_LEN                         7                               // read 2nd start, 1 toggle bit (for key repetition detection) + 5 address bits
+#define RC5_COMMAND_OFFSET                      7                               // skip 8 bits (2nd start + 1 toggle + 5 address)
+#endif
 #define RC5_COMMAND_LEN                         6                               // read 6 command bits
 #define RC5_COMPLETE_DATA_LEN                   13                              // complete length
 #define RC5_STOP_BIT                            0                               // has no stop bit
@@ -439,8 +449,13 @@ typedef uint8_t     PAUSE_LEN;
 #define RC6_BIT_2_TIME                           889.0e-6                       // 889 usec pulse/pause
 #define RC6_BIT_3_TIME                          1333.0e-6                       // 1333 usec pulse/pause
 #define RC6_FRAME_REPEAT_PAUSE_TIME               45.0e-3                       // frame repeat after 45ms
+#if !defined(U_BOOT_COMPATIBLE)
 #define RC6_ADDRESS_OFFSET                      5                               // skip "1" + 3 mode bits + 1 toggle bit
 #define RC6_ADDRESS_LEN                         8                               // read 8 address bits
+#else
+#define RC6_ADDRESS_OFFSET                      0                               // skip 0 bit
+#define RC6_ADDRESS_LEN                         13                              // read "1" + 3 mode bits + 1 toggle bit + 8 address bits
+#endif
 #define RC6_COMMAND_OFFSET                      13                              // skip 12 bits ("1" + 3 mode + 1 toggle + 8 address)
 #define RC6_COMMAND_LEN                         8                               // read 8 command bits
 #define RC6_COMPLETE_DATA_LEN_SHORT             21                              // complete length
