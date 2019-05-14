@@ -12,6 +12,15 @@ menuconfig RC_DECODERS
 	default y
 
 if RC_DECODERS
+config IR_IRMP_DECODER
+	tristate "Enable IR raw decoder for IRMP"
+	depends on RC_CORE
+	default y
+
+	---help---
+	   Enable this option if to include the software
+	   IR decoder IRMP.
+
 config LIRC
 	tristate "LIRC interface driver"
 	depends on RC_CORE
