@@ -554,11 +554,10 @@ static int set_disp_mode_auto(void)
 			hdev->HWOp.CntlConfig(hdev, CONF_HDMI_DVI_MODE,
 				DVI_MODE);
 			pr_info(SYS "change to DVI mode\n");
-		} else if (hdev->RXCap.IEEEOUI == 0) {
+		} else if (hdev->RXCap.ieeeoui == 0) {
 #else
 		if (hdev->RXCap.ieeeoui == 0) {
 #endif
-		if (hdev->RXCap.ieeeoui == 0) {
 			/* DVI case judgement. In uboot, directly output HDMI
 			 * mode
 			 */

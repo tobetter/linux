@@ -194,6 +194,7 @@ static void set_hpll_hclk_dongle_5940m(void)
 
 void set_g12a_hpll_clk_out(unsigned int frac_rate, unsigned int clk)
 {
+	unsigned int m, m1, m2;
 	struct hdmitx_dev *hdev = get_hdmitx_device();
 
 	switch (clk) {
