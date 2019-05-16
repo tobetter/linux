@@ -1583,6 +1583,9 @@ start_chk:
 		} else if (!strcmp(parm[1], "video")) {
 			param.port = TVIN_PORT_VIU1_VIDEO;
 			pr_info(" port is TVIN_PORT_VIU_VIDEO\n");
+		} else if (!strcmp(parm[1], "viu_wb0_vpp")) {
+			param.port = TVIN_PORT_VIU1_WB0_VPP;
+			pr_info(" port is TVIN_PORT_VIU1_WB0_VPP\n");
 		} else if (!strcmp(parm[1], "viu_wb0_vd1")) {
 			param.port = TVIN_PORT_VIU1_WB0_VD1;
 			pr_info(" port is TVIN_PORT_VIU_WB0_VD1\n");
@@ -1598,6 +1601,9 @@ start_chk:
 		} else if (!strcmp(parm[1], "viu_wb0_post_blend")) {
 			param.port = TVIN_PORT_VIU1_WB0_POST_BLEND;
 			pr_info(" port is TVIN_PORT_VIU_WB0_POST_BLEND\n");
+		} else if (!strcmp(parm[1], "viu_wb1_vpp")) {
+			param.port = TVIN_PORT_VIU1_WB1_VPP;
+			pr_info(" port is TVIN_PORT_VIU1_WB1_VPP\n");
 		} else if (!strcmp(parm[1], "viu_wb1_vd1")) {
 			param.port = TVIN_PORT_VIU1_WB1_VD1;
 			pr_info(" port is TVIN_PORT_VIU_WB1_VD1\n");
@@ -1619,6 +1625,9 @@ start_chk:
 		} else if (!strcmp(parm[1], "video2")) {
 			param.port = TVIN_PORT_VIU2_VIDEO;
 			pr_info(" port is TVIN_PORT_VIU_VIDEO\n");
+		} else if (!strcmp(parm[1], "viu2_wb0_vpp")) {
+			param.port = TVIN_PORT_VIU2_WB0_VPP;
+			pr_info(" port is TVIN_PORT_VIU2_WB0_VPP\n");
 		} else if (!strcmp(parm[1], "viu2_wb0_vd1")) {
 			param.port = TVIN_PORT_VIU2_WB0_VD1;
 			pr_info(" port is TVIN_PORT_VIU_WB0_VD1\n");
@@ -1634,6 +1643,9 @@ start_chk:
 		} else if (!strcmp(parm[1], "viu2_wb0_post_blend")) {
 			param.port = TVIN_PORT_VIU2_WB0_POST_BLEND;
 			pr_info(" port is TVIN_PORT_VIU_WB0_POST_BLEND\n");
+		} else if (!strcmp(parm[1], "viu2_wb1_vpp")) {
+			param.port = TVIN_PORT_VIU2_WB1_VPP;
+			pr_info(" port is TVIN_PORT_VIU2_WB1_VPP\n");
 		} else if (!strcmp(parm[1], "viu2_wb1_vd1")) {
 			param.port = TVIN_PORT_VIU2_WB1_VD1;
 			pr_info(" port is TVIN_PORT_VIU_WB1_VD1\n");

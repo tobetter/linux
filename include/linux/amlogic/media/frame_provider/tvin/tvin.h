@@ -64,11 +64,13 @@ enum tvin_port_e {
 	TVIN_PORT_VIU1_WB0_VD2,
 	TVIN_PORT_VIU1_WB0_OSD1,
 	TVIN_PORT_VIU1_WB0_OSD2,
+	TVIN_PORT_VIU1_WB0_VPP,
 	TVIN_PORT_VIU1_WB0_POST_BLEND,
 	TVIN_PORT_VIU1_WB1_VD1,
 	TVIN_PORT_VIU1_WB1_VD2,
 	TVIN_PORT_VIU1_WB1_OSD1,
 	TVIN_PORT_VIU1_WB1_OSD2,
+	TVIN_PORT_VIU1_WB1_VPP,
 	TVIN_PORT_VIU1_WB1_POST_BLEND,
 	TVIN_PORT_VIU2 = 0x0000C000,
 	TVIN_PORT_VIU2_VIDEO,
@@ -76,11 +78,13 @@ enum tvin_port_e {
 	TVIN_PORT_VIU2_WB0_VD2,
 	TVIN_PORT_VIU2_WB0_OSD1,
 	TVIN_PORT_VIU2_WB0_OSD2,
+	TVIN_PORT_VIU2_WB0_VPP,
 	TVIN_PORT_VIU2_WB0_POST_BLEND,
 	TVIN_PORT_VIU2_WB1_VD1,
 	TVIN_PORT_VIU2_WB1_VD2,
 	TVIN_PORT_VIU2_WB1_OSD1,
 	TVIN_PORT_VIU2_WB1_OSD2,
+	TVIN_PORT_VIU2_WB1_VPP,
 	TVIN_PORT_VIU2_WB1_POST_BLEND,
 	TVIN_PORT_MIPI = 0x00010000,
 	TVIN_PORT_ISP = 0x00020000,
@@ -461,17 +465,11 @@ struct tvafe_pin_mux_s {
 #define TVIN_IOC_G_VDIN_HIST       _IOW(_TM_T, 0x24, struct vdin_hist_s)
 #define TVIN_IOC_S_VDIN_V4L2START  _IOW(_TM_T, 0x25, struct vdin_v4l2_param_s)
 #define TVIN_IOC_S_VDIN_V4L2STOP   _IO(_TM_T, 0x26)
+#define TVIN_IOC_S_AFE_SONWCFG     _IOW(_TM_T, 0x27, unsigned int)
 
 /*
  *function defined applied for other driver
  */
-
-/*
- *adc pll ctl, atv demod & tvafe use the same adc module
- * module index: atv demod:0x01; tvafe:0x2
- */
-
-/* extern void adc_set_pll_cntl(bool on, unsigned int module_sel);*/
 
 struct dfe_adcpll_para {
 	unsigned int adcpllctl;
@@ -501,8 +499,24 @@ struct rx_audio_stat_s {
 	int aud_type;
 	/* indicate if audio fifo start threshold is crossed */
 	bool afifo_thres_pass;
+	/*
+	 * 0 [ch1 ch2]
+	 * 1,2,3 [ch1 ch2 ch3 ch4]
+	 * 4,8 [ch1 ch2 ch5 ch6]
+	 * 5,6,7,9,10,11 [ch1 ch2 ch3 ch4 ch5 ch6]
+	 * 12,16,24,28 [ch1 ch2 ch5 ch6 ch7 ch8]
+	 * 20 [ch1 ch2 ch7 ch8]
+	 * 21,22,23[ch1 ch2 ch3 ch4 ch7 ch8]
+	 * all others [all of 8ch]
+	 */
+	int aud_alloc;
 };
 
+extern void adc_pll_down(void);
+/*ADC_EN_ATV_DEMOD	0x1*/
+/*ADC_EN_TVAFE		0x2*/
+/*ADC_EN_DTV_DEMOD	0x4*/
+/*ADC_EN_DTV_DEMODPLL	0x8*/
 extern int adc_set_pll_cntl(bool on, unsigned int module_sel, void *pDtvPara);
 extern void tvafe_set_ddemod_default(void);/* add for dtv demod*/
 extern void rx_get_audio_status(struct rx_audio_stat_s *aud_sts);

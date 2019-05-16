@@ -541,6 +541,8 @@ void vdin_get_format_convert(struct vdin_dev_s *devp)
 				format_convert = VDIN_FORMAT_CONVERT_YUV_NV21;
 			else if (devp->prop.dest_cfmt == TVIN_NV12)
 				format_convert = VDIN_FORMAT_CONVERT_YUV_NV12;
+			else if (devp->prop.dest_cfmt == TVIN_YUV444)
+				format_convert = VDIN_FORMAT_CONVERT_YUV_YUV444;
 			else
 				format_convert = VDIN_FORMAT_CONVERT_YUV_YUV422;
 			break;
@@ -1552,9 +1554,10 @@ static void vdin_set_color_matrix0_g12a(unsigned int offset,
 			VDIN_MATRIX_COEF_INDEX_BIT, VDIN_MATRIX_COEF_INDEX_WID);
 
 		wr(offset,
-			VDIN_MATRIX_PRE_OFFSET0_1, matrix_tbl->pre_offset0_1);
+			VDIN_HDR2_MATRIXI_PRE_OFFSET0_1,
+				matrix_tbl->pre_offset0_1);
 		wr(offset,
-			VDIN_MATRIX_PRE_OFFSET2, matrix_tbl->pre_offset2);
+			VDIN_HDR2_MATRIXI_PRE_OFFSET2, matrix_tbl->pre_offset2);
 		wr(offset, VDIN_HDR2_MATRIXI_COEF00_01, matrix_tbl->coef00_01);
 		wr(offset, VDIN_HDR2_MATRIXI_COEF02_10, matrix_tbl->coef02_10);
 		wr(offset, VDIN_HDR2_MATRIXI_COEF11_12, matrix_tbl->coef11_12);
@@ -2043,7 +2046,7 @@ void vdin_set_wr_ctrl_vsync(struct vdin_dev_s *devp,
 		hconv_mode = 2;
 		swap_cbcr = 0;
 	}
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	if (rdma_enable) {
 		rdma_write_reg_bits(devp->rdma_handle,
 			VDIN_WR_CTRL+devp->addr_offset,
@@ -2137,9 +2140,10 @@ unsigned int vdin_get_total_v(unsigned int offset)
 void vdin_set_canvas_id(struct vdin_dev_s *devp, unsigned int rdma_enable,
 			unsigned int canvas_id)
 {
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	if (rdma_enable) {
-		if (is_meson_g12a_cpu() || is_meson_g12b_cpu()) {
+		if (is_meson_g12a_cpu() || is_meson_g12b_cpu() ||
+			is_meson_sm1_cpu()) {
 			rdma_write_reg_bits(devp->rdma_handle,
 				VDIN_COM_CTRL0+devp->addr_offset, 1,
 				VDIN_FORCEGOLINE_EN_BIT, 1);
@@ -2163,7 +2167,7 @@ unsigned int vdin_get_canvas_id(unsigned int offset)
 void vdin_set_chma_canvas_id(struct vdin_dev_s *devp, unsigned int rdma_enable,
 		unsigned int canvas_id)
 {
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	if (rdma_enable)
 		rdma_write_reg_bits(devp->rdma_handle,
 				VDIN_WR_CTRL2+devp->addr_offset,
@@ -4195,6 +4199,14 @@ u32 vdin_get_curr_field_type(struct vdin_dev_s *devp)
 		type &= (~VIDTYPE_VIU_SINGLE_PLANE);
 
 	}
+
+	if (devp->afbce_mode == 1) {
+		type |= VIDTYPE_COMPRESS;
+		type |= VIDTYPE_SCATTER;
+		if (devp->afbce_lossy_en == 1)
+			type |= VIDTYPE_COMPRESS_LOSS;
+	}
+
 	return type;
 }
 

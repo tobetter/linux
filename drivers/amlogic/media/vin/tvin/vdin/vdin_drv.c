@@ -133,6 +133,10 @@ MODULE_PARM_DESC(dv_work_delby, "dv_work_delby");
 
 module_param(game_mode_switch_frames, int, 0664);
 MODULE_PARM_DESC(game_mode_switch_frames, "game mode switch <n> frames");
+
+module_param(game_mode_phlock_switch_frames, int, 0664);
+MODULE_PARM_DESC(game_mode_phlock_switch_frames,
+		"game mode switch <n> frames for phase_lock");
 #endif
 
 bool vdin_dbg_en;
@@ -318,6 +322,9 @@ static void vdin_game_mode_check(struct vdin_dev_s *devp)
 			VDIN_GAME_MODE_SWITCH_EN);
 	else
 		devp->game_mode = 0;
+
+	pr_info("%s: game_mode flag=%d, game_mode=%d\n",
+		__func__, game_mode, devp->game_mode);
 }
 /*
  *based on the bellow parameters:
@@ -368,17 +375,24 @@ static void vdin_vf_init(struct vdin_dev_s *devp)
 		/*if output fmt is nv21 or nv12 ,
 		 * use the two continuous canvas for one field
 		 */
-		if ((devp->prop.dest_cfmt == TVIN_NV12) ||
-			(devp->prop.dest_cfmt == TVIN_NV21)) {
-			chromaid =
+		if (devp->afbce_mode == 0) {
+			if ((devp->prop.dest_cfmt == TVIN_NV12) ||
+				(devp->prop.dest_cfmt == TVIN_NV21)) {
+				chromaid =
 				(vdin_canvas_ids[index][(vf->index<<1)+1])<<8;
-			addr =
-				vdin_canvas_ids[index][vf->index<<1] |
-				chromaid;
-		} else
-			addr = vdin_canvas_ids[index][vf->index];
+				addr =
+					vdin_canvas_ids[index][vf->index<<1] |
+					chromaid;
+			} else
+				addr = vdin_canvas_ids[index][vf->index];
 
-		vf->canvas0Addr = vf->canvas1Addr = addr;
+			vf->canvas0Addr = vf->canvas1Addr = addr;
+		} else if (devp->afbce_mode == 1) {
+			vf->compHeadAddr = devp->afbce_info->fm_head_paddr[i];
+			vf->compBodyAddr = devp->afbce_info->fm_body_paddr[i];
+			vf->compWidth  = devp->h_active;
+			vf->compHeight = devp->v_active;
+		}
 
 		/* set source type & mode */
 		vdin_set_source_type(devp, vf);
@@ -414,7 +428,7 @@ static void vdin_vf_init(struct vdin_dev_s *devp)
 	}
 }
 
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 static void vdin_rdma_irq(void *arg)
 {
 	struct vdin_dev_s *devp = arg;
@@ -623,7 +637,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 		devp->frontend->dec_ops->start(devp->frontend,
 				devp->parm.info.fmt);
 
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	/*it is better put after all reg init*/
 	if (devp->rdma_enable && devp->rdma_handle > 0)
 		devp->flags |= VDIN_FLAG_RDMA_ENABLE;
@@ -661,6 +675,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	devp->irq_cnt = 0;
 	devp->rdma_irq_cnt = 0;
 	devp->frame_cnt = 0;
+	phase_lock_flag = 0;
 
 	if (time_en)
 		pr_info("vdin.%d start time: %ums, run time:%ums.\n",
@@ -772,7 +787,7 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 	switch_vpu_mem_pd_vmod(devp->addr_offset?VPU_VIU_VDIN1:VPU_VIU_VDIN0,
 			VPU_MEM_POWER_DOWN);
 	memset(&devp->prop, 0, sizeof(struct tvin_sig_property_s));
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	rdma_clear(devp->rdma_handle);
 #endif
 	devp->flags &= (~VDIN_FLAG_RDMA_ENABLE);
@@ -1957,19 +1972,20 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 
 	/* prepare for next input data */
 	next_wr_vfe = provider_vf_get(devp->vfp);
-	if (devp->afbce_mode == 0)
+	if (devp->afbce_mode == 0) {
 		vdin_set_canvas_id(devp, (devp->flags&VDIN_FLAG_RDMA_ENABLE),
 			(next_wr_vfe->vf.canvas0Addr&0xff));
-	else if (devp->afbce_mode == 1)
+
+		/* prepare for chroma canvas*/
+		if ((devp->prop.dest_cfmt == TVIN_NV12) ||
+			(devp->prop.dest_cfmt == TVIN_NV21))
+			vdin_set_chma_canvas_id(devp,
+				(devp->flags&VDIN_FLAG_RDMA_ENABLE),
+				(next_wr_vfe->vf.canvas0Addr>>8)&0xff);
+	} else if (devp->afbce_mode == 1) {
 		vdin_afbce_set_next_frame(devp,
 			(devp->flags&VDIN_FLAG_RDMA_ENABLE), next_wr_vfe);
-
-	/* prepare for chroma canvas*/
-	if ((devp->prop.dest_cfmt == TVIN_NV12) ||
-		(devp->prop.dest_cfmt == TVIN_NV21))
-		vdin_set_chma_canvas_id(devp,
-			(devp->flags&VDIN_FLAG_RDMA_ENABLE),
-			(next_wr_vfe->vf.canvas0Addr>>8)&0xff);
+	}
 
 	devp->curr_wr_vfe = next_wr_vfe;
 	/* debug for video latency */
@@ -2075,7 +2091,7 @@ irq_handled:
 		vdin_vf_disp_mode_skip(devp->vfp);
 
 	spin_unlock_irqrestore(&devp->isr_lock, flags);
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	if (devp->flags & VDIN_FLAG_RDMA_ENABLE)
 		rdma_config(devp->rdma_handle,
 			(devp->rdma_enable&1) ?
@@ -2233,18 +2249,19 @@ irqreturn_t vdin_v4l2_isr(int irq, void *dev_id)
 
 	/* prepare for next input data */
 	next_wr_vfe = provider_vf_get(devp->vfp);
-	if (devp->afbce_mode == 0)
+	if (devp->afbce_mode == 0) {
 		vdin_set_canvas_id(devp, (devp->flags&VDIN_FLAG_RDMA_ENABLE),
 			(next_wr_vfe->vf.canvas0Addr&0xff));
-	else if (devp->afbce_mode == 1)
-		vdin_afbce_set_next_frame(devp,
-			(devp->flags&VDIN_FLAG_RDMA_ENABLE), next_wr_vfe);
 
 	if ((devp->prop.dest_cfmt == TVIN_NV12) ||
 			(devp->prop.dest_cfmt == TVIN_NV21))
 		vdin_set_chma_canvas_id(devp,
 				(devp->flags&VDIN_FLAG_RDMA_ENABLE),
 				(next_wr_vfe->vf.canvas0Addr>>8)&0xff);
+	} else if (devp->afbce_mode == 1) {
+		vdin_afbce_set_next_frame(devp,
+			(devp->flags&VDIN_FLAG_RDMA_ENABLE), next_wr_vfe);
+	}
 
 	devp->curr_wr_vfe = next_wr_vfe;
 	vf_notify_receiver(devp->name, VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -2252,7 +2269,7 @@ irqreturn_t vdin_v4l2_isr(int irq, void *dev_id)
 
 irq_handled:
 	spin_unlock_irqrestore(&devp->isr_lock, flags);
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	if (devp->flags & VDIN_FLAG_RDMA_ENABLE)
 		rdma_config(devp->rdma_handle,
 			(devp->rdma_enable&1) ?
@@ -2594,7 +2611,8 @@ static long vdin_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 			devp_vdin1->debug.scaler4w = 1280;
 			devp_vdin1->debug.scaler4h = 720;
-			devp_vdin1->debug.dest_cfmt = TVIN_YUV422;
+			/* vdin1 follow vdin0 afbc dest_cfmt */
+			devp_vdin1->debug.dest_cfmt = devp->prop.dest_cfmt;
 			devp_vdin1->flags |= VDIN_FLAG_MANUAL_CONVERSION;
 
 			vdin_start_dec(devp_vdin1);
@@ -3174,6 +3192,7 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct vdin_dev_s *vdevp;
 	struct resource *res;
+	unsigned int val;
 	unsigned int urgent_en = 0;
 	unsigned int bit_mode = VDIN_WR_COLOR_DEPTH_8BIT;
 	/* const void *name; */
@@ -3304,7 +3323,7 @@ static int vdin_drv_probe(struct platform_device *pdev)
 	spin_lock_init(&tl1_preview_lock);
 	/*set afbce mode*/
 	ret = of_property_read_u32(pdev->dev.of_node,
-		"afbce_bit_mode", &vdevp->afbce_mode);
+		"afbce_bit_mode", &val);
 	if (ret) {
 		vdevp->afbce_flag = 0;
 	} else {
@@ -3486,7 +3505,7 @@ static int vdin_drv_remove(struct platform_device *pdev)
 	vdevp = platform_get_drvdata(pdev);
 
 	ret = cancel_delayed_work(&vdevp->vlock_dwork);
-#ifdef CONFIG_AML_RDMA
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
 	rdma_unregister(vdevp->rdma_handle);
 #endif
 	mutex_destroy(&vdevp->fe_lock);
