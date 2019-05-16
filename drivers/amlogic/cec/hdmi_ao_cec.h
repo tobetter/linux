@@ -23,7 +23,7 @@
 #define CEC_DRIVER_VERSION	"Ver 2019/3/25\n"
 
 #define CEC_FRAME_DELAY		msecs_to_jiffies(400)
-#define CEC_DEV_NAME		"aocec"
+#define CEC_DEV_NAME		"cec"
 
 #define CEC_EARLY_SUSPEND	(1 << 0)
 #define CEC_DEEP_SUSPEND	(1 << 1)
@@ -494,7 +494,8 @@ extern uint32_t hdmirx_rd_dwc(uint16_t addr);
 extern void hdmirx_wr_dwc(uint16_t addr, uint32_t data);
 extern unsigned int rd_reg_hhi(unsigned int offset);
 extern void wr_reg_hhi(unsigned int offset, unsigned int val);
-
+extern int cec_set_dev_info(uint8_t dev_idx);
+int __attribute__((weak))cec_set_dev_info(uint8_t dev_idx);
 #else
 static inline unsigned long hdmirx_rd_top(unsigned long addr)
 {
