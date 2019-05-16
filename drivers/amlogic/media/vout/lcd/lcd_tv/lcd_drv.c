@@ -588,7 +588,6 @@ static void lcd_vbyone_cdr_training_hold(struct vbyone_config_s *vx1_conf,
 
 static void lcd_vbyone_control_set(struct lcd_config_s *pconf)
 {
-	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	int lane_count, byte_mode, region_num, hsize, vsize, color_fmt;
 	int vin_color, vin_bpp;
 
@@ -670,17 +669,7 @@ static void lcd_vbyone_control_set(struct lcd_config_s *pconf)
 	/* Mux pads in combo-phy: 0 for dsi; 1 for lvds or vbyone; 2 for edp */
 	/*lcd_hiu_write(HHI_DSI_LVDS_EDP_CNTL0, 0x1);*/
 
-	switch (lcd_drv->data->chip_type) {
-	case LCD_CHIP_TL1:
-		lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_L, 0xff);
-		lcd_vcbus_write(VBO_INFILTER_TICK_PERIOD_H, 0x0);
-		lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 8, 4);
-		lcd_vcbus_setb(VBO_INSGN_CTRL, 0x7, 12, 4);
-		break;
-	default:
-		lcd_vcbus_write(VBO_INFILTER_CTRL, 0xff77);
-		break;
-	}
+	lcd_vbyone_hw_filter(0);
 	lcd_vcbus_setb(VBO_INSGN_CTRL, 0, 2, 2);
 	lcd_vcbus_setb(VBO_CTRL_L, 1, 0, 1);
 
@@ -1416,7 +1405,7 @@ static void lcd_p2p_config_set(struct lcd_config_s *pconf)
 		break;
 	}
 
-	pconf->lcd_control.p2p_config->bit_rate = bit_rate * 1000;
+	pconf->lcd_timing.bit_rate = bit_rate * 1000;
 
 	if (lcd_debug_print_flag) {
 		LCDPR("lane_num=%u, bit_rate=%u.%03uMHz, pclk=%u.%03uMhz\n",

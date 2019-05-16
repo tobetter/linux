@@ -344,7 +344,7 @@ enum p2p_type_e {
 	P2P_CMPI,
 	P2P_ISP,
 	P2P_EPI,
-	P2P_CHPI = 10, /* low common mode */
+	P2P_CHPI = 0x10, /* low common mode */
 	P2P_CSPI,
 	P2P_USIT,
 	P2P_MAX,
@@ -359,8 +359,6 @@ struct p2p_config_s {
 	unsigned int bit_swap; /* MSB/LSB reverse */
 	unsigned int phy_vswing;
 	unsigned int phy_preem;
-	/* internal used */
-	unsigned int bit_rate; /* Hz */
 };
 
 struct lcd_control_config_s {

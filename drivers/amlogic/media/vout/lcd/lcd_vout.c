@@ -137,7 +137,6 @@ static struct p2p_config_s lcd_p2p_config = {
 	.bit_swap = 0,
 	.phy_vswing = 0,
 	.phy_preem = 0,
-	.bit_rate = 0,
 };
 
 static unsigned char dsi_init_on_table[DSI_INIT_ON_MAX] = {0xff, 0xff};
@@ -260,7 +259,8 @@ static void lcd_power_ctrl(int status)
 #ifdef CONFIG_AMLOGIC_LCD_EXTERN
 	struct aml_lcd_extern_driver_s *ext_drv;
 #endif
-	unsigned int i, index, value, temp;
+	unsigned int i, index, wait, temp;
+	int value = -1;
 	int ret = 0;
 
 	LCDPR("%s: %d\n", __func__, status);
@@ -313,6 +313,19 @@ static void lcd_power_ctrl(int status)
 			break;
 #endif
 		case LCD_POWER_TYPE_WAIT_GPIO:
+			index = power_step->index;
+			lcd_cpu_gpio_set(index, LCD_GPIO_INPUT);
+			LCDPR("lcd_power_type_wait_gpio wait\n");
+			for (wait = 0; wait < power_step->delay; wait++) {
+				value = lcd_cpu_gpio_get(index);
+				if (value == power_step->value) {
+					LCDPR("wait_gpio %d ok\n", value);
+					break;
+				}
+				mdelay(1);
+			}
+			if (wait == power_step->delay)
+				LCDERR("wait_gpio %d timeout!\n", value);
 			break;
 		case LCD_POWER_TYPE_CLK_SS:
 			temp = lcd_driver->lcd_config->lcd_timing.ss_level;
@@ -1300,57 +1313,6 @@ static int lcd_config_probe(struct platform_device *pdev)
 	}
 
 	return 0;
-}
-
-static int lcd_vsync_irq_init(void)
-{
-	if (lcd_driver->res_vsync_irq) {
-		if (request_irq(lcd_driver->res_vsync_irq->start,
-			lcd_vsync_isr, IRQF_SHARED,
-			"lcd_vsync", (void *)"lcd_vsync")) {
-			LCDERR("can't request lcd_vsync_irq\n");
-		} else {
-			if (lcd_debug_print_flag)
-				LCDPR("request lcd_vsync_irq successful\n");
-		}
-	}
-
-	if (lcd_driver->res_vsync2_irq) {
-		if (request_irq(lcd_driver->res_vsync2_irq->start,
-			lcd_vsync2_isr, IRQF_SHARED,
-			"lcd_vsync2", (void *)"lcd_vsync2")) {
-			LCDERR("can't request lcd_vsync2_irq\n");
-		} else {
-			if (lcd_debug_print_flag)
-				LCDPR("request lcd_vsync2_irq successful\n");
-		}
-	}
-
-	/* add timer to monitor hpll frequency */
-	init_timer(&lcd_vsync_none_timer);
-	/* lcd_vsync_none_timer.data = NULL; */
-	lcd_vsync_none_timer.function = lcd_vsync_none_timer_handler;
-	lcd_vsync_none_timer.expires = jiffies + LCD_VSYNC_NONE_INTERVAL;
-	/*add_timer(&lcd_vsync_none_timer);*/
-	/*LCDPR("add lcd_vsync_none_timer handler\n"); */
-
-	return 0;
-}
-
-static void lcd_vsync_irq_remove(void)
-{
-	if (lcd_driver->res_vsync_irq)
-		free_irq(lcd_driver->res_vsync_irq->start, (void *)"lcd_vsync");
-
-	if (lcd_driver->res_vsync2_irq) {
-		free_irq(lcd_driver->res_vsync2_irq->start,
-			(void *)"lcd_vsync");
-	}
-
-	if (lcd_driver->vsync_none_timer_flag) {
-		del_timer_sync(&lcd_vsync_none_timer);
-		lcd_driver->vsync_none_timer_flag = 0;
-	}
 }
 
 #ifdef CONFIG_OF

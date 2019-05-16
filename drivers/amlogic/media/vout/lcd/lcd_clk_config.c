@@ -1129,7 +1129,6 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 		}
 		break;
 	case LCD_MLVDS:
-		bit_rate = pconf->lcd_control.mlvds_config->bit_rate / 1000;
 		/* must go through div4 for clk phase */
 		for (tcon_div_sel = 3; tcon_div_sel < 5; tcon_div_sel++) {
 			pll_fvco = bit_rate * tcon_div_table[tcon_div_sel];
@@ -1175,7 +1174,6 @@ static void lcd_clk_generate_txl(struct lcd_config_s *pconf)
 		}
 		break;
 	case LCD_P2P:
-		bit_rate = pconf->lcd_control.p2p_config->bit_rate / 1000;
 		for (tcon_div_sel = 0; tcon_div_sel < 5; tcon_div_sel++) {
 			pll_fvco = bit_rate * tcon_div_table[tcon_div_sel];
 			done = check_pll_vco(cConf, pll_fvco);
