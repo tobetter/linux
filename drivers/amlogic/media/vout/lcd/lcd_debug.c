@@ -470,7 +470,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 
 	n = lcd_debug_info_len(len + offset);
 	len += snprintf((buf+len), n,
-		"p2p_type          %d\n"
+		"p2p_type          0x%x\n"
 		"lane_num          %d\n"
 		"channel_sel0      0x%08x\n"
 		"channel_sel1      0x%08x\n"
@@ -485,7 +485,7 @@ static int lcd_info_print_p2p(char *buf, int offset)
 		pconf->lcd_control.p2p_config->channel_sel1,
 		pconf->lcd_control.p2p_config->pn_swap,
 		pconf->lcd_control.p2p_config->bit_swap,
-		pconf->lcd_control.p2p_config->bit_rate,
+		pconf->lcd_timing.bit_rate,
 		pconf->lcd_control.p2p_config->phy_vswing,
 		pconf->lcd_control.p2p_config->phy_preem);
 
@@ -2060,7 +2060,7 @@ static ssize_t lcd_debug_change_store(struct class *class,
 		break;
 	case 'p':
 		p2p_conf = pconf->lcd_control.p2p_config;
-		ret = sscanf(buf, "p2p %d %d %x %x %d %d",
+		ret = sscanf(buf, "p2p %x %d %x %x %d %d",
 			&val[0], &val[1], &val[2], &val[3], &val[4], &val[5]);
 		if (ret == 6) {
 			p2p_conf->p2p_type = val[0];
@@ -2070,7 +2070,7 @@ static ssize_t lcd_debug_change_store(struct class *class,
 			p2p_conf->pn_swap = val[4];
 			p2p_conf->bit_swap = val[5];
 			pr_info("change p2p config:\n"
-				"p2p_type=%d, lane_num=%d,\n"
+				"p2p_type=0x%x, lane_num=%d,\n"
 				"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 				"pn_swap=%d, bit_swap=%d\n",
 				p2p_conf->p2p_type, p2p_conf->lane_num,
@@ -3592,13 +3592,13 @@ static ssize_t lcd_p2p_debug_store(struct class *class,
 	struct p2p_config_s *p2p_conf;
 
 	p2p_conf = lcd_drv->lcd_config->lcd_control.p2p_config;
-	ret = sscanf(buf, "%d %d %x %x %d %d",
+	ret = sscanf(buf, "%x %d %x %x %d %d",
 		&p2p_conf->p2p_type, &p2p_conf->lane_num,
 		&p2p_conf->channel_sel0, &p2p_conf->channel_sel1,
 		&p2p_conf->pn_swap, &p2p_conf->bit_swap);
 	if (ret == 6) {
 		pr_info("set p2p config:\n"
-			"p2p_type=%d, lane_num=%d,\n"
+			"p2p_type=0x%x, lane_num=%d,\n"
 			"channel_sel0=0x%08x, channel_sel1=0x%08x,\n"
 			"pn_swap=%d, bit_swap=%d\n",
 			p2p_conf->p2p_type, p2p_conf->lane_num,
