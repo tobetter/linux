@@ -688,6 +688,16 @@
 				status = "disabled";
 			};
 
+			spifc: spifc@14000 {
+				status = "disabled";
+				compatible = "amlogic,aml-spi-nor";
+				reg = <0x0 0x14000 0x0 0x80>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&spifc_all_pins>;
+				clocks = <&clkc CLKID_CLK81>;
+				clock-names = "core";
+			};
+
 			spicc1: spi@15000 {
 				compatible = "amlogic,meson-g12b-spicc",
 					     "amlogic,meson-g12a-spicc";
@@ -2435,6 +2445,17 @@
 				 "spi0_clk_x";
 			function = "spi0";
 			drive-strength = <1>;
+		};
+	};
+
+	spifc_all_pins: spifc_all_pins {
+		mux {
+			groups = "nor_d",
+				 "nor_q",
+				 "nor_c";
+			function = "nor";
+			input-enable;
+			bias-pull-up;
 		};
 	};
 

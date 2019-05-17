@@ -17,7 +17,7 @@
 
 /dts-v1/;
 
-#include "mesong12b.dtsi"
+#include "mesong12b_a.dtsi"
 #include "mesong12_odroid_common.dtsi"
 
 / {
@@ -39,8 +39,7 @@
 			reg = <0x0 0x07400000 0x0 0x00100000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
-			ftrace-size = <0x0>;
-			pmsg-size = <0x8000>;
+			ftrace-size = <0x20000>;
 		};
 
 		secmon_reserved:linux,secmon {
@@ -49,6 +48,7 @@
 			size = <0x0 0x400000>;
 			alignment = <0x0 0x400000>;
 			alloc-ranges = <0x0 0x05000000 0x0 0x400000>;
+			clear-map;
 		};
 
 		secos_reserved:linux,secos {
@@ -95,11 +95,6 @@
 			size = <0x0 0x02800000>;
 			alignment = <0x0 0x400000>;
 		};
-		/*  POST PROCESS MANAGER */
-		ppmgr_reserved:linux,ppmgr {
-			compatible = "shared-dma-pool";
-			size = <0x0 0x0>;
-		};
 		codec_mm_cma:linux,codec_mm_cma {
 			compatible = "shared-dma-pool";
 			reusable;
@@ -107,6 +102,7 @@
 			size = <0x0 0x13400000>;
 			alignment = <0x0 0x400000>;
 			linux,contiguous-region;
+			clear-map;
 		};
 		/* codec shared reserved */
 		codec_mm_reserved:linux,codec_mm_reserved {
@@ -133,6 +129,17 @@
 			size = <0x0 0x04000000>;
 			alignment = <0x0 0x400000>;
 		};
+		galcore_reserved:linux,galcore {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x1000000>;
+			alignment = <0x400000>;
+			linux,contiguous-region;
+		};
+	};
+	galcore {
+		status = "okay";
+		memory-region = <&galcore_reserved>;
 	};
 
 	cvbsout {
