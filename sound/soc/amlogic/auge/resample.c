@@ -286,13 +286,10 @@ int resample_set(enum resample_idx id, enum samplerate_index index)
 #endif
 	p_resample->asrc_rate_idx = index;
 
-	pr_info("%s resample_%c %s\n",
-		__func__,
-		(id == 0) ? 'a' : 'b',
-		auge_resample_texts[index]);
-
-	if (audio_resample_set(p_resample, (bool)index, resample_rate))
-		return 0;
+	resample_rate = resample_idx2rate(index);
+	ret = audio_resample_set(p_resample, (bool)index, resample_rate);
+	if (ret)
+		return ret;
 
 	if (index == RATE_OFF)
 		resample_disable(p_resample->id);

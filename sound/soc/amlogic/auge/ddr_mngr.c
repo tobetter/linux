@@ -494,8 +494,9 @@ unsigned int aml_toddr_read1(struct toddr *to)
 	unsigned int reg_base = to->reg_base;
 	unsigned int reg;
 
-	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL0, reg_base);
-	aml_audiobus_update_bits(actrl,	reg, 1<<30, enable<<30);
+	reg = calc_toddr_address(EE_AUDIO_TODDR_A_CTRL1, reg_base);
+
+	return aml_audiobus_read(actrl, reg);
 }
 
 void aml_toddr_write1(struct toddr *to, unsigned int val)
@@ -577,7 +578,7 @@ static void aml_resample_enable(
 	pr_info("toddr %d selects data to %s resample_%c for module:%s\n",
 		to->fifo_id,
 		enable ? "enable" : "disable",
-		(p_attach_resample->id == 0) ? 'a' : 'b',
+		(p_attach_resample->id == RESAMPLE_A) ? 'a' : 'b',
 		toddr_src_get_str(p_attach_resample->attach_module)
 		);
 
@@ -1010,8 +1011,8 @@ int aml_check_sharebuffer_valid(struct frddr *fr, int ss_sel)
 			&& (frddrs[i].fifo_id != current_fifo_id)
 			&& (frddrs[i].dest == ss_sel)) {
 
-			pr_info(" frddr:%d, ss_sel:%d used, invalid for share buffer\n",
-				i,
+			pr_debug("%s, ss_sel:%d used, not for share buffer at same time\n",
+				__func__,
 				ss_sel);
 			ret = 0;
 			break;
@@ -1239,69 +1240,14 @@ void aml_frddr_select_dst(struct frddr *fr, enum frddr_dest dst)
 void aml_frddr_select_dst_ss(struct frddr *fr,
 	enum frddr_dest dst, int sel, bool enable)
 {
-	struct aml_audio_controller *actrl = fr->actrl;
-	unsigned int reg_base = fr->reg_base;
-	unsigned int reg, ss_valid;
-
-	ss_valid = aml_check_sharebuffer_valid(fr, dst);
+	unsigned int ss_valid = aml_check_sharebuffer_valid(fr, dst);
 
 	/* same source en */
 	if (fr->chipinfo
 		&& fr->chipinfo->same_src_fn
-		&& ss_valid) {
-		int s_v = 0, s_m = 0;
-
-			if (fr->chipinfo
-				&& fr->chipinfo->src_sel_ctrl) {
-				reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL2,
-						reg_base);
-
-				switch (sel) {
-				case 1:
-					s_m = 0x17 << 8;
-					s_v = enable ?
-						(dst << 8 | 1 << 12) : 0 << 8;
-					break;
-				case 2:
-					s_m = 0x17 << 16;
-					s_v = enable ?
-						(dst << 16 | 1 << 20) : 0 << 16;
-					break;
-				default:
-					pr_warn_once("sel :%d is not supported for same source\n",
-						sel);
-					break;
-				}
-				s_m |= 0xff << 24;
-				if (enable)
-					s_v |= (fr->channels - 1) << 24;
-				else
-					s_v |= 0x0 << 24;
-			} else {
-				reg = calc_frddr_address(EE_AUDIO_FRDDR_A_CTRL0,
-						reg_base);
-
-				switch (sel) {
-				case 1:
-					s_m = 0xf << 4;
-					s_v = enable ?
-						(dst << 4 | 1 << 7) : 0 << 4;
-					break;
-				case 2:
-					s_m = 0xf << 8;
-					s_v = enable ?
-						(dst << 8 | 1 << 11) : 0 << 8;
-					break;
-				default:
-					pr_warn_once("sel :%d is not supported for same source\n",
-						sel);
-					break;
-				}
-			}
-			pr_debug("%s sel:%d, dst_src:%d\n",
-				__func__, sel, dst);
-			aml_audiobus_update_bits(actrl, reg, s_m, s_v);
-	}
+		&& ss_valid
+	)
+		frddr_set_sharebuffer_enable(fr, dst, sel, enable);
 }
 
 void aml_frddr_set_fifos(struct frddr *fr,
@@ -1482,7 +1428,7 @@ static const char *const toddr_src_sel_texts[] = {
 	"TDMIN_A", "TDMIN_B", "TDMIN_C", "SPDIFIN",
 	"PDMIN", "FRATV", "TDMIN_LB", "LOOPBACK_A",
 	"FRHDMIRX", "LOOPBACK_B", "SPDIFIN_LB",
-	"EARCRX_DMAC", "RESERVED", "RESERVED", "RESERVED",
+	"EARCRX_DMAC", "RESERVED_0", "RESERVED_1", "RESERVED_2",
 	"VAD"
 };
 

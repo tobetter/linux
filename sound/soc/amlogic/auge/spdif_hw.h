@@ -78,8 +78,8 @@ extern void aml_spdifout_get_aed_info(int spdifout_id,
 extern void spdifout_to_hdmitx_ctrl(int spdif_index);
 
 extern void spdifout_samesource_set(int spdif_index, int fifo_id,
-	int bitwidth, int channels, bool is_enable);
-extern void spdifout_enable(int spdif_id, bool is_enable);
+	int bitwidth, int channels, bool is_enable, int lane_i2s);
+extern void spdifout_enable(int spdif_id, bool is_enable, bool reenable);
 
 extern int spdifin_get_sample_rate(void);
 

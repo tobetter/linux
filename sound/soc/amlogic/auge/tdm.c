@@ -120,7 +120,7 @@ static const struct snd_pcm_hardware aml_tdm_hardware = {
 	    SNDRV_PCM_FMTBIT_S32_LE,
 
 	.period_bytes_min = 64,
-	.period_bytes_max = 256 * 1024 * 2,
+	.period_bytes_max = 256 * 1024,
 	.periods_min = 2,
 	.periods_max = 1024,
 	.buffer_bytes_max = 1024 * 1024,
@@ -131,6 +131,35 @@ static const struct snd_pcm_hardware aml_tdm_hardware = {
 	.channels_max = 32,
 };
 
+static int tdm_clk_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_tdm *p_tdm = snd_soc_dai_get_drvdata(cpu_dai);
+
+	ucontrol->value.enumerated.item[0] = clk_get_rate(p_tdm->mclk);
+	return 0;
+}
+
+static int tdm_clk_set(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_tdm *p_tdm = snd_soc_dai_get_drvdata(cpu_dai);
+
+	int mclk_rate = p_tdm->last_mclk_freq;
+	int value = ucontrol->value.enumerated.item[0];
+
+	if (value > 2000000 || value < 0) {
+		pr_err("Fine tdm clk setting range (0~2000000), %d\n", value);
+		return 0;
+	}
+	mclk_rate += (value - 1000000);
+
+	aml_dai_set_tdm_sysclk(cpu_dai, 0, mclk_rate, 0);
+
+	return 0;
+}
 
 static int tdmin_clk_get(struct snd_kcontrol *kcontrol,
 			struct snd_ctl_elem_value *ucontrol)
@@ -172,8 +201,14 @@ static const struct soc_enum i2sin_clk_enum[] = {
 static const struct snd_kcontrol_new snd_tdm_controls[] = {
 	SOC_ENUM_EXT("I2SIn CLK", i2sin_clk_enum,
 				tdmin_clk_get,
-				NULL)
+				NULL),
+
+	SOC_SINGLE_EXT("TDM MCLK Fine Setting",
+				0, 0, 2000000, 0,
+				tdm_clk_get,
+				tdm_clk_set),
 };
+
 
 
 static irqreturn_t aml_tdm_ddr_isr(int irq, void *devid)
@@ -435,8 +470,6 @@ static int aml_dai_tdm_prepare(struct snd_pcm_substream *substream,
 			i2s_to_hdmitx_ctrl(p_tdm->id);
 			aout_notifier_call_chain(AOUT_EVENT_IEC_60958_PCM,
 				substream);
-		} else {
-			i2s_to_hdmitx_disable();
 		}
 
 		fifo_id = aml_frddr_get_fifo_id(fr);
@@ -580,14 +613,6 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "tdm playback enable\n");
-			/* share buffer trigger */
-			if (p_tdm->chipinfo
-				&& p_tdm->chipinfo->same_src_fn
-				&& (p_tdm->samesource_sel >= 0)
-				&& (aml_check_sharebuffer_valid(p_tdm->fddr,
-						p_tdm->samesource_sel))) {
-				sharebuffer_trigger(cmd, p_tdm->samesource_sel);
-			}
 			aml_frddr_enable(p_tdm->fddr, 1);
 			aml_tdm_enable(p_tdm->actrl,
 				substream->stream, p_tdm->id, true);
@@ -622,9 +647,6 @@ static int aml_dai_tdm_trigger(struct snd_pcm_substream *substream, int cmd,
 
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "tdm playback stop\n");
-			memset(substream->runtime->dma_area,
-				0, substream->runtime->dma_bytes);
-			mdelay(3);
 			aml_frddr_enable(p_tdm->fddr, 0);
 			aml_tdm_mute_playback(p_tdm->actrl, p_tdm->id,
 					true, p_tdm->lane_cnt);

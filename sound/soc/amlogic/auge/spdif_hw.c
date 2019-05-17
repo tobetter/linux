@@ -420,13 +420,18 @@ static void spdifout_clk_ctrl(int spdif_id, bool is_enable)
 }
 #endif
 static void spdifout_fifo_ctrl(int spdif_id,
-	int fifo_id, int bitwidth, int channels)
+	int fifo_id, int bitwidth, int channels, int lane_i2s)
 {
 	unsigned int frddr_type = spdifout_get_frddr_type(bitwidth);
 	unsigned int offset, reg, i, chmask = 0;
+	unsigned int swap_masks = 0;
 
-	for (i = 0; i < channels; i++)
-		chmask |= (1 << i);
+	/* spdif always masks two channel */
+	if (lane_i2s * 2 >= channels) {
+		pr_err("invalid lane(%d) and channels(%d)\n",
+				lane_i2s, channels);
+		return;
+	}
 
 	for (i = 0; i < channels; i++)
 		chmask |= (1 << i);
@@ -445,8 +450,8 @@ static void spdifout_fifo_ctrl(int spdif_id,
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL0 - EE_AUDIO_SPDIFOUT_CTRL0;
 	reg = EE_AUDIO_SPDIFOUT_CTRL0 + offset * spdif_id;
 	audiobus_update_bits(reg,
-		0x3<<21|0x1<<20|0x1<<19|0xff<<4,
-		0x0<<21|0<<20|0<<19|chmask<<4);
+		0x1<<20|0x1<<19|0xff<<4,
+		0<<20|0<<19|chmask<<4);
 
 	offset = EE_AUDIO_SPDIFOUT_B_CTRL1 - EE_AUDIO_SPDIFOUT_CTRL1;
 	reg = EE_AUDIO_SPDIFOUT_CTRL1 + offset * spdif_id;
@@ -500,7 +505,7 @@ void spdifout_enable(int spdif_id, bool is_enable, bool reenable)
 }
 
 void spdifout_samesource_set(int spdif_index, int fifo_id,
-	int bitwidth, int channels, bool is_enable)
+	int bitwidth, int channels, bool is_enable, int lane_i2s)
 {
 	int spdif_id;
 
@@ -510,7 +515,8 @@ void spdifout_samesource_set(int spdif_index, int fifo_id,
 		spdif_id = 0;
 
 	if (is_enable)
-		spdifout_fifo_ctrl(spdif_id, fifo_id, bitwidth, channels);
+		spdifout_fifo_ctrl(spdif_id,
+			fifo_id, bitwidth, channels, lane_i2s);
 }
 
 int spdifin_get_sample_rate(void)
@@ -666,7 +672,7 @@ void spdifout_play_with_zerodata(unsigned int spdif_id, bool reenable)
 
 		/* spdif ctrl */
 		spdifout_fifo_ctrl(spdif_id,
-			frddr_index, bitwidth, runtime.channels);
+			frddr_index, bitwidth, runtime.channels, 0);
 
 		/* channel status info */
 		spdif_get_channel_status_info(&chsts, sample_rate);

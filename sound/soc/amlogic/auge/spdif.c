@@ -39,7 +39,6 @@
 #include "audio_utils.h"
 #include "resample.h"
 #include "resample_hw.h"
-#include "spdif.h"
 
 #define DRV_NAME "snd_spdif"
 
@@ -80,7 +79,7 @@ struct aml_spdif {
 	/* external connect */
 	struct extcon_dev *edev;
 
-	enum SPDIF_ID id;
+	unsigned int id;
 	struct spdif_chipinfo *chipinfo;
 	unsigned int clk_cont; /* CONTINUOUS CLOCK */
 
@@ -157,20 +156,6 @@ static const char *const spdifin_samplerate[] = {
 	"176400",
 	"192000"
 };
-
-struct aml_spdif *spdif_priv[SPDIF_ID_CNT];
-int spdif_set_audio_clk(enum SPDIF_ID id,
-		struct clk *clk_src, int rate, bool same)
-{
-	if (spdif_priv[id]->on && same) {
-		pr_debug("spdif priority");
-		return 0;
-	}
-
-	clk_set_parent(spdif_priv[id]->clk_spdifout, clk_src);
-	clk_set_rate(spdif_priv[id]->clk_spdifout, rate);
-	return 0;
-}
 
 static int spdifin_samplerate_get_enum(struct snd_kcontrol *kcontrol,
 			struct snd_ctl_elem_value *ucontrol)
@@ -686,7 +671,6 @@ static void spdifin_status_event(struct aml_spdif *p_spdif)
 				resample_set(p_spdif->asrc_id, RATE_OFF);
 #endif
 #endif
-#endif
 		}
 		if (intrpt_status & 0x10)
 			pr_info("Pd changed\n");
@@ -763,7 +747,6 @@ static int aml_spdif_open(struct snd_pcm_substream *substream)
 	snd_soc_set_runtime_hwparams(substream, &aml_spdif_hardware);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		p_spdif->on = 1;
 		p_spdif->fddr = aml_audio_register_frddr(dev,
 			p_spdif->actrl,
 			aml_spdif_ddr_isr, substream);
@@ -809,7 +792,6 @@ static int aml_spdif_close(struct snd_pcm_substream *substream)
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		aml_audio_unregister_frddr(p_spdif->dev, substream);
-		p_spdif->on = 0;
 	} else {
 		aml_audio_unregister_toddr(p_spdif->dev, substream);
 		free_irq(p_spdif->irq_spdifin, p_spdif);
@@ -823,7 +805,7 @@ static int aml_spdif_close(struct snd_pcm_substream *substream)
 		}
 
 		/* clear extcon status */
-		if (p_spdif->id == SPDIF_A) {
+		if (p_spdif->id == 0) {
 			extcon_set_state(p_spdif->edev,
 				EXTCON_SPDIFIN_SAMPLERATE, 0);
 
@@ -969,7 +951,7 @@ static int aml_spdif_new(struct snd_soc_pcm_runtime *rtd)
 
 	pr_debug("%s spdif_%s, clk continuous:%d\n",
 		__func__,
-		(p_spdif->id == SPDIF_A) ? "a":"b",
+		(p_spdif->id == 0) ? "a":"b",
 		p_spdif->clk_cont);
 
 	/* keep frddr when probe, after spdif_frddr_init done
@@ -1025,7 +1007,7 @@ static int aml_dai_spdif_startup(
 
 		if (p_spdif->clk_cont) {
 			pr_info("spdif_%s keep clk continuous\n",
-				(p_spdif->id == SPDIF_A) ? "a":"b");
+				(p_spdif->id == 0) ? "a":"b");
 			return 0;
 		}
 		/* enable clock gate */
@@ -1098,7 +1080,7 @@ static void aml_dai_spdif_shutdown(
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (p_spdif->clk_cont) {
 			pr_info("spdif_%s keep clk continuous\n",
-				(p_spdif->id == SPDIF_A) ? "a":"b");
+				(p_spdif->id == 0) ? "a":"b");
 			return;
 		}
 
@@ -1109,7 +1091,7 @@ static void aml_dai_spdif_shutdown(
 #ifdef __SPDIFIN_AUDIO_TYPE_HW__
 		/* resample disabled, by hw */
 		if (!spdifin_check_audiotype_by_sw(p_spdif))
-			resample_set(p_spdif->asrc_id, 0);
+			resample_set(p_spdif->asrc_id, RATE_OFF);
 #endif
 		clk_disable_unprepare(p_spdif->clk_spdifin);
 		clk_disable_unprepare(p_spdif->fixed_clk);
@@ -1135,10 +1117,10 @@ static int aml_dai_spdif_prepare(
 		struct iec958_chsts chsts;
 
 		switch (p_spdif->id) {
-		case SPDIF_A:
+		case 0:
 			dst = SPDIFOUT_A;
 			break;
-		case SPDIF_B:
+		case 1:
 			dst = SPDIFOUT_B;
 			break;
 		default:
@@ -1287,9 +1269,6 @@ static int aml_dai_spdif_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			dev_info(substream->pcm->card->dev, "S/PDIF Playback disable\n");
-			memset(substream->runtime->dma_area,
-				0, substream->runtime->dma_bytes);
-			mdelay(3);
 			aml_frddr_enable(p_spdif->fddr, 0);
 		} else {
 			dev_info(substream->pcm->card->dev, "S/PDIF Capture disable\n");
@@ -1360,10 +1339,8 @@ static void aml_set_spdifclk(struct aml_spdif *p_spdif)
 		mpll_freq = p_spdif->sysclk_freq * 58 / 2; /* 96k */
 #endif
 		clk_set_rate(p_spdif->sysclk, mpll_freq);
-		//clk_set_rate(p_spdif->clk_spdifout,
-		//	p_spdif->sysclk_freq);
-		spdif_set_audio_clk(p_spdif->id,
-				p_spdif->sysclk, p_spdif->sysclk_freq, 0);
+		clk_set_rate(p_spdif->clk_spdifout,
+			p_spdif->sysclk_freq);
 
 		ret = clk_prepare_enable(p_spdif->sysclk);
 		if (ret) {
@@ -1458,7 +1435,7 @@ static int aml_spdif_parse_of(struct platform_device *pdev)
 	int ret = 0;
 
 	/* clock for spdif in */
-	if (p_spdif->id == SPDIF_A) {
+	if (p_spdif->id == 0) {
 		/* clock gate */
 		p_spdif->gate_spdifin = devm_clk_get(dev, "gate_spdifin");
 		if (IS_ERR(p_spdif->gate_spdifin)) {
@@ -1592,7 +1569,6 @@ static int aml_spdif_platform_probe(struct platform_device *pdev)
 		dev_warn_once(dev,
 			"check whether to update spdif chipinfo\n");
 
-	spdif_priv[aml_spdif->id] = aml_spdif;
 	pr_debug("%s, spdif ID = %u\n", __func__, aml_spdif->id);
 
 	/* get audio controller */
