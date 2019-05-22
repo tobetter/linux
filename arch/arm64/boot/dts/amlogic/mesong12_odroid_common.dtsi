@@ -46,6 +46,13 @@
 		status = "okay";
 	};
 
+        ppmgr {
+                compatible = "amlogic, ppmgr";
+                memory-region = <&ppmgr_reserved>;
+                dev_name = "ppmgr";
+                status = "okay";
+        };
+
 	ionvideo {
 		compatible = "amlogic, ionvideo";
 		dev_name = "ionvideo";
