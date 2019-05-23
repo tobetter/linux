@@ -9914,12 +9914,18 @@ static void vh265_set_clk(struct work_struct *work)
 	struct hevc_state_s *hevc = container_of(work,
 		struct hevc_state_s, work);
 
-		int fps = 96000 / hevc->frame_dur;
-
-		if (hevc_source_changed(VFORMAT_HEVC,
-			hevc->frame_width, hevc->frame_height, fps) > 0)
-			hevc->saved_resolution = hevc->frame_width *
-			hevc->frame_height * fps;
+	if (hevc->m_ins_flag == 0 &&
+	        hevc->get_frame_dur && hevc->show_frame_num > 60 &&
+	        hevc->frame_dur > 0 && hevc->saved_resolution !=
+	        hevc->frame_width * hevc->frame_height *
+	                (96000 / hevc->frame_dur)) {
+	        int fps = 96000 / hevc->frame_dur;
+	
+	        if (hevc_source_changed(VFORMAT_HEVC,
+	                hevc->frame_width, hevc->frame_height, fps) > 0)
+	                hevc->saved_resolution = hevc->frame_width *
+	                hevc->frame_height * fps;
+	}
 }
 
 static void vh265_check_timer_func(unsigned long arg)
