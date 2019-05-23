@@ -17,7 +17,6 @@
 
 #ifndef UCODE_MANAGER_HEADER
 #define UCODE_MANAGER_HEADER
-#include "../firmware/firmware.h"
 #include "../media_clock/clk/clk_priv.h"
 
 struct chip_vdec_info_s {

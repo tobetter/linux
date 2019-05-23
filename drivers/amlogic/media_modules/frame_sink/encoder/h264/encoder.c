@@ -47,6 +47,7 @@
 #include "../../../frame_provider/decoder/utils/amvdec.h"
 #include <linux/amlogic/media/utils/amlog.h>
 #include "../../../stream_input/amports/amports_priv.h"
+#include "../../../frame_provider/decoder/utils/firmware.h"
 #include <linux/of_reserved_mem.h>
 #ifdef CONFIG_AM_JPEG_ENCODER
 #include "jpegenc.h"

@@ -29,7 +29,7 @@
 #include <linux/amlogic/cpu_version.h>
 #include "../../stream_input/amports/amports_priv.h"
 #include "../../frame_provider/decoder/utils/vdec.h"
-#include "firmware.h"
+#include "firmware_priv.h"
 #include "../chips/chips.h"
 #include <linux/string.h>
 #include <linux/amlogic/media/utils/log.h>

@@ -52,6 +52,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/decoder_mmu_box.h"
 #include "../utils/decoder_bmmu_box.h"
+#include "../utils/firmware.h"
 
 #undef pr_info
 #define pr_info printk
@@ -658,6 +659,7 @@ struct vdec_h264_hw_s {
 	u32 ucode_pause_pos;
 
 	u8 reset_bufmgr_flag;
+	struct firmware_s *fw;
 };
 
 
@@ -4347,47 +4349,51 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	*/
 	if (!firmwareloaded) {
 		int ret = 0, size = -1;
-		char *buf = vmalloc(0x1000 * 16);
-		if (IS_ERR_OR_NULL(buf))
-			return -ENOMEM;
+		int fw_size = 0x1000 * 16;
+		struct firmware_s *fw = NULL;
 
 		pr_info("start load orignal firmware ...\n");
 
-		size = get_firmware_data(VIDEO_DEC_H264_MULTI, buf);
+		fw = vmalloc(sizeof(struct firmware_s) + fw_size);
+		if (IS_ERR_OR_NULL(fw))
+			return -ENOMEM;
+
+		size = get_firmware_data(VIDEO_DEC_H264_MULTI, fw->data);
 		if (size < 0) {
 			pr_err("get firmware fail.\n");
-			vfree(buf);
+			vfree(fw);
 			return -1;
 		}
+
+		fw->len = size;
+		hw->fw = fw;
 
 		/*ret = amvdec_loadmc_ex(VFORMAT_H264, NULL, buf);*/
 
 		/*header*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_HEADER,
-			buf + 0x4000, MC_SWAP_SIZE);
+			fw->data + 0x4000, MC_SWAP_SIZE);
 		/*data*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_DATA,
-			buf + 0x2000, MC_SWAP_SIZE);
+			fw->data + 0x2000, MC_SWAP_SIZE);
 		/*mmco*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MMCO,
-			buf + 0x6000, MC_SWAP_SIZE);
+			fw->data + 0x6000, MC_SWAP_SIZE);
 		/*list*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_LIST,
-			buf + 0x3000, MC_SWAP_SIZE);
+			fw->data + 0x3000, MC_SWAP_SIZE);
 		/*slice*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_SLICE,
-			buf + 0x5000, MC_SWAP_SIZE);
+			fw->data + 0x5000, MC_SWAP_SIZE);
 		/*main*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN,
-			buf, 0x2000);
+			fw->data, 0x2000);
 		/*data*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN + 0x2000,
-			buf + 0x2000, 0x1000);
+			fw->data + 0x2000, 0x1000);
 		/*slice*/
 		memcpy((u8 *) hw->mc_cpu_addr + MC_OFFSET_MAIN + 0x3000,
-			buf + 0x5000, 0x1000);
-
-		vfree(buf);
+			fw->data + 0x5000, 0x1000);
 
 		if (ret < 0) {
 			dpb_print(DECODE_ID(hw), PRINT_FLAG_ERROR,
@@ -4531,6 +4537,9 @@ static int vh264_stop(struct vdec_h264_hw_s *hw)
 		hw->sei_user_data_buffer = NULL;
 	}
 	/* amvdec_disable(); */
+
+	vfree(hw->fw);
+	hw->fw = NULL;
 
 	dpb_print(DECODE_ID(hw), 0,
 		"%s\n",
@@ -4805,10 +4814,7 @@ static void run(struct vdec_s *vdec,
 {
 	struct vdec_h264_hw_s *hw =
 		(struct vdec_h264_hw_s *)vdec->private;
-	int size, firmware_size;
-	char *buf = vmalloc(0x1000 * 16);
-	if (IS_ERR_OR_NULL(buf))
-		return;
+	int size;
 
 	run_count[DECODE_ID(hw)]++;
 
@@ -4834,7 +4840,6 @@ static void run(struct vdec_s *vdec,
 			"vdec_prepare_input: Insufficient data\n");
 
 		vdec_schedule_work(&hw->work);
-		vfree(buf);
 		return;
 	}
 	input_empty[DECODE_ID(hw)] = 0;
@@ -4897,25 +4902,15 @@ static void run(struct vdec_s *vdec,
 
 	start_process_time(hw);
 
-	firmware_size = get_firmware_data(VIDEO_DEC_H264_MULTI, buf);
-	if (firmware_size < 0) {
-		pr_err("get firmware fail.\n");
-		vfree(buf);
-		return;
-	}
-
-	if (amvdec_vdec_loadmc_ex(vdec, NULL, buf) < 0) {
+	if (amvdec_vdec_loadmc_ex(vdec, NULL, hw->fw->data) < 0) {
 		amvdec_enable_flag = false;
 		amvdec_disable();
 			if (mmu_enable)
 				amhevc_disable();
-		vfree(buf);
 		pr_info("%s: Error amvdec_vdec_loadmc fail\n",
 			__func__);
 		return;
 	}
-
-	vfree(buf);
 
 	if (vh264_hw_ctx_restore(hw) < 0) {
 		vdec_schedule_work(&hw->work);

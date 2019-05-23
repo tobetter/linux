@@ -54,6 +54,7 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 
 #include "../utils/amvdec.h"
 #include "../utils/vdec.h"
+#include "../utils/firmware.h"
 
 #define DRIVER_NAME "amvdec_mpeg12"
 #define MODULE_NAME "amvdec_mpeg12"

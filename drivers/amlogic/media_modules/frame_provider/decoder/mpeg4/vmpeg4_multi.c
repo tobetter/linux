@@ -16,6 +16,7 @@
 */
 
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/types.h>
 #include <linux/errno.h>
 #include <linux/interrupt.h>
@@ -40,6 +41,7 @@
 #include "../utils/amvdec.h"
 #include "../utils/vdec_input.h"
 #include "../utils/vdec.h"
+#include "../utils/firmware.h"
 
 #define DRIVER_NAME "ammvdec_mpeg4"
 #define MODULE_NAME "ammvdec_mpeg4"
@@ -180,7 +182,7 @@ struct vdec_mpeg4_hw_s {
 
 	void (*vdec_cb)(struct vdec_s *, void *);
 	void *vdec_cb_arg;
-
+	struct firmware_s *fw;
 };
 static void vmpeg4_local_init(struct vdec_mpeg4_hw_s *hw);
 static int vmpeg4_hw_ctx_restore(struct vdec_mpeg4_hw_s *hw);
@@ -1044,6 +1046,43 @@ static void vmpeg4_local_init(struct vdec_mpeg4_hw_s *hw)
 static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 {
 	int trickmode_fffb = 0;
+	int size = -1, fw_size = 0x1000 * 16;
+	struct firmware_s *fw = NULL;
+
+	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
+	if (IS_ERR_OR_NULL(fw))
+		return -ENOMEM;
+
+	if (hw->vmpeg4_amstream_dec_info.format ==
+		VIDEO_DEC_FORMAT_MPEG4_3) {
+		size = get_firmware_data(VIDEO_DEC_MPEG4_3, fw->data);
+
+		pr_info("load VIDEO_DEC_FORMAT_MPEG4_3\n");
+	} else if (hw->vmpeg4_amstream_dec_info.format ==
+			VIDEO_DEC_FORMAT_MPEG4_4) {
+		size = get_firmware_data(VIDEO_DEC_MPEG4_4, fw->data);
+
+		pr_info("load VIDEO_DEC_FORMAT_MPEG4_4\n");
+	} else if (hw->vmpeg4_amstream_dec_info.format ==
+			VIDEO_DEC_FORMAT_MPEG4_5) {
+		size = get_firmware_data(VIDEO_DEC_MPEG4_5, fw->data);
+
+		pr_info("load VIDEO_DEC_FORMAT_MPEG4_5\n");
+	} else if (hw->vmpeg4_amstream_dec_info.format ==
+			VIDEO_DEC_FORMAT_H263) {
+		size = get_firmware_data(VIDEO_DEC_H263, fw->data);
+
+		pr_info("load VIDEO_DEC_FORMAT_H263\n");
+	}
+
+	if (size < 0) {
+		pr_err("get firmware fail.");
+		vfree(fw);
+		return -1;
+	}
+
+	fw->len = size;
+	hw->fw = fw;
 
 	query_video_status(0, &trickmode_fffb);
 
@@ -1071,10 +1110,7 @@ static void run(struct vdec_s *vdec, void (*callback)(struct vdec_s *, void *),
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
 	int save_reg = READ_VREG(POWER_CTL_VLD);
-	int ret = -1,size = -1;
-	char *buf = vmalloc(0x1000 * 16);
-	if (IS_ERR_OR_NULL(buf))
-		return;
+	int ret = -1;
 
 	/* reset everything except DOS_TOP[1] and APB_CBUS[0] */
 	WRITE_VREG(DOS_SW_RESET0, 0xfffffff0);
@@ -1089,7 +1125,6 @@ static void run(struct vdec_s *vdec, void (*callback)(struct vdec_s *, void *),
 		pr_debug("amvdec_mpeg4: Input not ready\n");
 		hw->dec_result = DEC_RESULT_AGAIN;
 		schedule_work(&hw->work);
-		vfree(buf);
 		return;
 	}
 
@@ -1101,42 +1136,11 @@ static void run(struct vdec_s *vdec, void (*callback)(struct vdec_s *, void *),
 
 	hw->dec_result = DEC_RESULT_NONE;
 
-	if (hw->vmpeg4_amstream_dec_info.format ==
-		VIDEO_DEC_FORMAT_MPEG4_3) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_3, buf);
-
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_3\n");
-	} else if (hw->vmpeg4_amstream_dec_info.format ==
-			VIDEO_DEC_FORMAT_MPEG4_4) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_4, buf);
-
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_4\n");
-	} else if (hw->vmpeg4_amstream_dec_info.format ==
-			VIDEO_DEC_FORMAT_MPEG4_5) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_5, buf);
-
-		pr_info("load VIDEO_DEC_FORMAT_MPEG4_5\n");
-	} else if (hw->vmpeg4_amstream_dec_info.format ==
-			VIDEO_DEC_FORMAT_H263) {
-		size = get_firmware_data(VIDEO_DEC_H263, buf);
-
-		pr_info("load VIDEO_DEC_FORMAT_H263\n");
-	}
-
-	if (size < 0) {
-		pr_err("get firmware fail.");
-		vfree(buf);
-		return;
-	}
-
-	if (amvdec_vdec_loadmc_buf_ex(vdec, buf, size) < 0) {
+	if (amvdec_vdec_loadmc_buf_ex(vdec, hw->fw->data, hw->fw->len) < 0) {
 		hw->dec_result = DEC_RESULT_ERROR;
 		schedule_work(&hw->work);
-		vfree(buf);
 		return;
 	}
-
-	vfree(buf);
 
 	if (vmpeg4_hw_ctx_restore(hw) < 0) {
 		hw->dec_result = DEC_RESULT_ERROR;
@@ -1245,6 +1249,9 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 		codec_mm_free_for_dma(MEM_NAME, hw->cma_alloc_addr);
 		hw->cma_alloc_count = 0;
 	}
+
+	vfree(hw->fw);
+	hw->fw = NULL;
 
 	pr_info("pts hit %d, pts missed %d, i hit %d, missed %d\n", hw->pts_hit,
 		   hw->pts_missed, hw->pts_i_hit, hw->pts_i_missed);

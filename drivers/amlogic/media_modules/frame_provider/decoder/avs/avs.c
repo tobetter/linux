@@ -39,6 +39,7 @@
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../utils/decoder_mmu_box.h"
 #include "../utils/decoder_bmmu_box.h"
+#include "../utils/firmware.h"
 
 #define DRIVER_NAME "amvdec_avs"
 #define MODULE_NAME "amvdec_avs"

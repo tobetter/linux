@@ -75,7 +75,6 @@
 #include <linux/libfdt_env.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/reset.h>
-#include "../../common/firmware/firmware.h"
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
 #endif

@@ -20,7 +20,6 @@
 #include "../parser/streambuf.h"
 #include "../../common/media_clock/switch/amports_gate.h"
 #include <linux/amlogic/media/vfm/vframe.h>
-#include "../../common/firmware/firmware.h"
 #include <linux/amlogic/media/registers/register.h>
 #include <linux/amlogic/media/utils/log.h>
 

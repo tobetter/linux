@@ -40,6 +40,7 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include "../utils/firmware.h"
 
 #define MEM_NAME "codec_mmjpeg"
 
@@ -139,6 +140,7 @@ struct vdec_mjpeg_hw_s {
 	struct work_struct work;
 	void (*vdec_cb)(struct vdec_s *, void *);
 	void *vdec_cb_arg;
+	struct firmware_s *fw;
 };
 
 static void set_frame_info(struct vdec_mjpeg_hw_s *hw, struct vframe_s *vf)
@@ -499,8 +501,24 @@ static void vmjpeg_hw_ctx_restore(struct vdec_s *vdec, int index)
 static s32 vmjpeg_init(struct vdec_s *vdec)
 {
 	int i;
+	int size = -1, fw_size = 0x1000 * 16;
+	struct firmware_s *fw = NULL;
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)vdec->private;
+
+	fw = vmalloc(sizeof(struct firmware_s) + fw_size);
+	if (IS_ERR_OR_NULL(fw))
+		return -ENOMEM;
+
+	size = get_firmware_data(VIDEO_DEC_MJPEG_MULTI, fw->data);
+	if (size < 0) {
+		pr_err("get firmware fail.");
+		vfree(fw);
+		return -1;
+	}
+
+	fw->len = size;
+	hw->fw = fw;
 
 	hw->frame_width = hw->vmjpeg_amstream_dec_info.width;
 	hw->frame_height = hw->vmjpeg_amstream_dec_info.height;
@@ -548,10 +566,7 @@ static void run(struct vdec_s *vdec,
 {
 	struct vdec_mjpeg_hw_s *hw =
 		(struct vdec_mjpeg_hw_s *)vdec->private;
-	int i,ret = -1,size = -1;
-	char *buf = vmalloc(0x1000 * 16);
-	if (IS_ERR_OR_NULL(buf))
-		return;
+	int i,ret = -1;
 
 	hw->vdec_cb_arg = arg;
 	hw->vdec_cb = callback;
@@ -576,20 +591,10 @@ static void run(struct vdec_s *vdec,
 
 	hw->dec_result = DEC_RESULT_NONE;
 
-	size = get_firmware_data(VIDEO_DEC_MJPEG_MULTI, buf);
-	if (size < 0) {
-		pr_err("get firmware fail.");
-		vfree(buf);
-		return;
-	}
-
-	if (amvdec_vdec_loadmc_buf_ex(vdec, buf, size) < 0) {
+	if (amvdec_vdec_loadmc_buf_ex(vdec, hw->fw->data, hw->fw->len) < 0) {
 		pr_err("%s: Error amvdec_loadmc fail\n", __func__);
-		vfree(buf);
 		return;
 	}
-
-	vfree(buf);
 
 	vmjpeg_hw_ctx_restore(vdec, i);
 
@@ -675,6 +680,9 @@ static int amvdec_mjpeg_remove(struct platform_device *pdev)
 		decoder_bmmu_box_free(hw->mm_blk_handle);
 		hw->mm_blk_handle = NULL;
 	}
+
+	vfree(hw->fw);
+	hw->fw = NULL;
 
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 

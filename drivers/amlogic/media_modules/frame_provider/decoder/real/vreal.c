@@ -51,6 +51,7 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include "../utils/firmware.h"
 
 #define DRIVER_NAME "amvdec_real"
 #define MODULE_NAME "amvdec_real"
