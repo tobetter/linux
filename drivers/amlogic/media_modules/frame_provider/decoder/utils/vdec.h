@@ -29,6 +29,8 @@
 #include <linux/amlogic/media/vfm/vframe_provider.h>
 #include <linux/amlogic/media/vfm/vframe_receiver.h>
 
+/*#define CONFIG_AM_VDEC_DV*/
+
 #include "vdec_input.h"
 
 s32 vdec_dev_register(void);
@@ -41,6 +43,8 @@ struct device *get_vdec_device(void);
 int vdec_module_init(void);
 void vdec_module_exit(void);
 
+#define VDEC_DEBUG_SUPPORT
+
 #define DEC_FLAG_HEVC_WORKAROUND 0x01
 
 #define VDEC_FIFO_ALIGN 8
@@ -50,8 +54,17 @@ enum vdec_type_e {
 	VDEC_HCODEC,
 	VDEC_2,
 	VDEC_HEVC,
+	VDEC_HEVCB,
 	VDEC_MAX
 };
+
+#define CORE_MASK_VDEC_1 (1 << VDEC_1)
+#define CORE_MASK_HCODEC (1 << VDEC_HCODEC)
+#define CORE_MASK_VDEC_2 (1 << VDEC_2)
+#define CORE_MASK_HEVC (1 << VDEC_HEVC)
+#define CORE_MASK_HEVC_FRONT (1 << VDEC_HEVC)
+#define CORE_MASK_HEVC_BACK (1 << VDEC_HEVCB)
+#define CORE_MASK_COMBINE (1UL << 31)
 
 extern void vdec2_power_mode(int level);
 extern void vdec_poweron(enum vdec_type_e core);
@@ -81,6 +94,7 @@ enum vdec_irq_num {
 	VDEC_IRQ_0,
 	VDEC_IRQ_1,
 	VDEC_IRQ_2,
+	VDEC_IRQ_HEVC_BACK,
 	VDEC_IRQ_MAX,
 };
 
@@ -144,6 +158,9 @@ enum vformat_t;
 struct vdec_s {
 	u32 magic;
 	struct list_head list;
+	unsigned long core_mask;
+	unsigned long active_mask;
+	unsigned long sched_mask;
 	int id;
 
 	struct vdec_s *master;
@@ -203,16 +220,30 @@ struct vdec_s {
 	int (*set_trickmode)(struct vdec_s *vdec, unsigned long trickmode);
 	int (*set_isreset)(struct vdec_s *vdec, int isreset);
 
-	bool (*run_ready)(struct vdec_s *vdec);
-	void (*run)(struct vdec_s *vdec,
+	unsigned long (*run_ready)(struct vdec_s *vdec, unsigned long mask);
+	void (*run)(struct vdec_s *vdec, unsigned long mask,
 			void (*callback)(struct vdec_s *, void *), void *);
 	void (*reset)(struct vdec_s *vdec);
 	void (*dump_state)(struct vdec_s *vdec);
-	irqreturn_t (*irq_handler)(struct vdec_s *);
-	irqreturn_t (*threaded_irq_handler)(struct vdec_s *);
+	irqreturn_t (*irq_handler)(struct vdec_s *vdec, int irq);
+	irqreturn_t (*threaded_irq_handler)(struct vdec_s *vdec, int irq);
+
+	int (*user_data_read)(struct vdec_s *vdec,
+			struct userdata_param_t *puserdata_para);
+	void (*reset_userdata_fifo)(struct vdec_s *vdec, int bInit);
 
 	/* private */
 	void *private;       /* decoder per instance specific data */
+#ifdef VDEC_DEBUG_SUPPORT
+	u64 profile_start_clk[VDEC_MAX];
+	u64 total_clk[VDEC_MAX];
+	u32 check_count[VDEC_MAX];
+	u32 not_run_ready_count[VDEC_MAX];
+	u32 input_underrun_count[VDEC_MAX];
+	u32 run_count[VDEC_MAX];
+	u64 run_clk[VDEC_MAX];
+	u64 start_run_clk[VDEC_MAX];
+#endif
 };
 
 /* common decoder vframe provider name to use default vfm path */
@@ -352,6 +383,29 @@ extern bool vdec_need_more_data(struct vdec_s *vdec);
 extern void hevc_reset_core(struct vdec_s *vdec);
 
 extern void vdec_set_suspend_clk(int mode, int hevc);
+
+extern unsigned long vdec_ready_to_run(struct vdec_s *vdec, unsigned long mask);
+
+extern void vdec_prepare_run(struct vdec_s *vdec, unsigned long mask);
+
+extern int vdec_core_request(struct vdec_s *vdec, unsigned long mask);
+
+extern int vdec_core_release(struct vdec_s *vdec, unsigned long mask);
+
+extern const bool vdec_core_with_input(unsigned long mask);
+
+extern void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask);
+
+#ifdef VDEC_DEBUG_SUPPORT
+extern void vdec_set_step_mode(void);
+#endif
+
+int vdec_read_user_data(struct vdec_s *vdec,
+				struct userdata_param_t *p_userdata_param);
+
+int vdec_wakeup_userdata_poll(struct vdec_s *vdec);
+
+void vdec_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
 
 int vdec_get_debug_flags(void);
 

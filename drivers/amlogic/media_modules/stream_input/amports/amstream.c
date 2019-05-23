@@ -78,6 +78,9 @@
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
 #include "../../frame_provider/decoder/utils/firmware.h"
+#include "../../common/chips/chips.h"
+
+#define G12A_BRINGUP_DEBUG
 
 #define CONFIG_AM_VDEC_REAL //DEBUG_TMP
 
@@ -605,6 +608,9 @@ static int video_port_init(struct port_priv_s *priv,
 		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX
 				&& port->vformat == VFORMAT_H264) {
 			amports_switch_gate("clk_hevc_mux", 1);
+			if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+				amports_switch_gate("clk_hevcb_mux", 1);
+
 			vdec_poweron(VDEC_HEVC);
 		}
 	} else {
@@ -869,6 +875,15 @@ static int amstream_port_init(struct port_priv_s *priv)
 
 	mutex_lock(&amstream_mutex);
 
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+		r = check_efuse_chip(port->vformat);
+		if (r) {
+			pr_info("No support video format %d.\n", port->vformat);
+			mutex_unlock(&amstream_mutex);
+			return 0;
+		}
+	}
+
 	/* try to reload the fw.*/
 	r = firmware_reload(FW_LOAD_TRY);
 	if (r)
@@ -897,6 +912,7 @@ static int amstream_port_init(struct port_priv_s *priv)
 		pvbuf->for_4k = 0;
 		if (has_hevc_vdec()) {
 			if (port->vformat == VFORMAT_HEVC ||
+				port->vformat == VFORMAT_AVS2 ||
 				port->vformat == VFORMAT_VP9)
 				pvbuf = &bufs[BUF_TYPE_HEVC];
 		}
@@ -923,6 +939,7 @@ static int amstream_port_init(struct port_priv_s *priv)
 			(port->flag & PORT_FLAG_SID) ? port->sid : 0xffff,
 			(port->pcr_inited == 1) ? port->pcrid : 0xffff,
 			(port->vformat == VFORMAT_HEVC) ||
+			(port->vformat == VFORMAT_AVS2) ||
 			(port->vformat == VFORMAT_VP9),
 			vdec);
 		} else {
@@ -1002,6 +1019,7 @@ static int amstream_port_release(struct port_priv_s *priv)
 
 	if (has_hevc_vdec()) {
 		if (port->vformat == VFORMAT_HEVC
+			|| port->vformat == VFORMAT_AVS2
 			|| port->vformat == VFORMAT_VP9)
 			pvbuf = &bufs[BUF_TYPE_HEVC];
 	}
@@ -1158,6 +1176,7 @@ static ssize_t amstream_mpts_write(struct file *file, const char *buf,
 
 	if (has_hevc_vdec()) {
 		pvbuf =	(port->vformat == VFORMAT_HEVC ||
+					port->vformat == VFORMAT_AVS2 ||
 					port->vformat == VFORMAT_VP9) ?
 			&bufs[BUF_TYPE_HEVC] : &bufs[BUF_TYPE_VIDEO];
 	} else
@@ -1251,8 +1270,7 @@ static ssize_t amstream_sub_read(struct file *file, char __user *buf,
 				stbuf_sub_rp_set(sub_rp + data_size - res);
 
 			return data_size - res;
-		}
-		{
+		} else {
 			if (first_num > 0) {
 				res = copy_to_user((void *)buf,
 				(void *)(codec_mm_phys_to_virt(sub_rp)),
@@ -1534,7 +1552,15 @@ static int amstream_open(struct inode *inode, struct file *file)
 	struct stream_port_s *s;
 	struct stream_port_s *port = &ports[iminor(inode)];
 	struct port_priv_s *priv;
-
+#ifdef G12A_BRINGUP_DEBUG
+	if (vdec_get_debug_flags() & 0xff0000) {
+		pr_info("%s force open port %d\n",
+			__func__,
+			((vdec_get_debug_flags() >> 16) & 0xff) - 1);
+		port = &ports[((vdec_get_debug_flags() >> 16) & 0xff) - 1];
+	}
+	pr_info("%s, port name %s\n", __func__, port->name);
+#endif
 	if (iminor(inode) >= amstream_port_num)
 		return -ENODEV;
 
@@ -1593,6 +1619,8 @@ static int amstream_open(struct inode *inode, struct file *file)
 				if (port->type &
 					(PORT_TYPE_MPTS | PORT_TYPE_HEVC)) {
 					amports_switch_gate("clk_hevc_mux", 1);
+					if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A)
+						amports_switch_gate("clk_hevcb_mux", 1);
 					vdec_poweron(VDEC_HEVC);
 				}
 
@@ -1726,7 +1754,8 @@ static int amstream_release(struct inode *inode, struct file *file)
 				&& bufs[BUF_TYPE_VIDEO].for_4k)
 				vdec_poweroff(VDEC_HEVC);
 
-			 if ((port->vformat == VFORMAT_HEVC
+			if ((port->vformat == VFORMAT_HEVC
+					|| port->vformat == VFORMAT_AVS2
 					|| port->vformat == VFORMAT_VP9)) {
 					vdec_poweroff(VDEC_HEVC);
 				} else {
@@ -2242,6 +2271,7 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 			struct stream_buf_s *buf = NULL;
 
 			buf = (this->vformat == VFORMAT_HEVC ||
+				this->vformat == VFORMAT_AVS2 ||
 				this->vformat == VFORMAT_VP9) ?
 				&bufs[BUF_TYPE_HEVC] :
 				&bufs[BUF_TYPE_VIDEO];
@@ -2302,8 +2332,7 @@ static long amstream_ioctl_get_ex(struct port_priv_s *priv, ulong arg)
 		if ((this->type & PORT_TYPE_VIDEO) == 0) {
 			pr_err("no video\n");
 			return -EINVAL;
-		}
-		{
+		} else {
 			struct vdec_info vstatus;
 			struct am_ioctl_parm_ex *p = &parm;
 
@@ -2628,6 +2657,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			struct stream_buf_s *buf = NULL;
 
 			buf = (this->vformat == VFORMAT_HEVC ||
+					this->vformat == VFORMAT_AVS2 ||
 					this->vformat == VFORMAT_VP9) ?
 				&bufs[BUF_TYPE_HEVC] :
 				&bufs[BUF_TYPE_VIDEO];
@@ -2821,7 +2851,7 @@ static long amstream_do_ioctl_old(struct port_priv_s *priv,
 			return -EINVAL;
 		if (amstream_adec_status == NULL)
 			return -ENODEV;
-		{
+		else {
 			struct adec_status astatus;
 			struct am_io_param para;
 			struct am_io_param *p = &para;

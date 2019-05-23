@@ -55,17 +55,33 @@ static const char *event_name[VDEC_PROFILE_MAX_EVENT] = {
 	"info"
 };
 
-static u64 get_us_time(void)
+#if 0 /* get time from hardware. */
+static u64 get_us_time_hw(void)
 {
 	u32 lo, hi1, hi2;
+	int offset = 0;
+
+	/* txlx, g12a isa register base is 0x3c00 */
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX)
+		offset = 0x1600;
 
 	do {
-		hi1 = READ_MPEG_REG(ISA_TIMERE_HI);
-		lo = READ_MPEG_REG(ISA_TIMERE);
-		hi2 = READ_MPEG_REG(ISA_TIMERE_HI);
+		hi1 = READ_MPEG_REG(ISA_TIMERE_HI + offset);
+		lo = READ_MPEG_REG(ISA_TIMERE + offset);
+		hi2 = READ_MPEG_REG(ISA_TIMERE_HI + offset);
 	} while (hi1 != hi2);
 
 	return (((u64)hi1) << 32) | lo;
+}
+#endif
+
+static u64 get_us_time_system(void)
+{
+	struct timeval tv;
+
+	do_gettimeofday(&tv);
+
+	return div64_u64(timeval_to_ns(&tv), 1000);
 }
 
 void vdec_profile_more(struct vdec_s *vdec, int event, int para1, int para2)
@@ -73,7 +89,7 @@ void vdec_profile_more(struct vdec_s *vdec, int event, int para1, int para2)
 	mutex_lock(&vdec_profile_mutex);
 
 	recs[rec_wp].vdec = vdec;
-	recs[rec_wp].timestamp = get_us_time();
+	recs[rec_wp].timestamp = get_us_time_system();
 	recs[rec_wp].event = event;
 	recs[rec_wp].para1 = para1;
 	recs[rec_wp].para2 = para2;
@@ -208,6 +224,8 @@ err:
 
 int vdec_profile_init_debugfs(void)
 {
+	struct dentry *root, *event;
+
 	root = debugfs_create_dir("vdec_profile", NULL);
 	if (IS_ERR(root) || !root)
 		goto err;

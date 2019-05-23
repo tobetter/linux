@@ -31,11 +31,152 @@
 #include <linux/amlogic/media/registers/register_ops.h>
 #include "../switch/amports_gate.h"
 #define MHz (1000000)
+#define debug_print pr_info
+
+//#define  NO_CLKTREE
+
+/* set gp0 648M vdec use gp0 clk*/
+#define VDEC1_648M() \
+	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  (6 << 9) | (0), 0, 16)
+
+#define HEVC_648M() \
+	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, (6 << 9) | (0), 16, 16)
+
+/*set gp0 1296M vdec use gp0 clk div2*/
+#define VDEC1_648M_DIV() \
+	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  (6 << 9) | (1), 0, 16)
+
+#define HEVC_648M_DIV() \
+	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, (6 << 9) | (1), 16, 16)
+
+#define VDEC1_WITH_GP_PLL() \
+	((READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0xe00) == 0xc00)
+#define HEVC_WITH_GP_PLL() \
+	((READ_HHI_REG(HHI_VDEC2_CLK_CNTL) & 0xe000000) == 0xc000000)
+
+#define VDEC1_CLOCK_ON()  \
+	do { if (is_meson_m8_cpu()) { \
+		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 8, 1); \
+		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x3ff, 0, 10); \
+		} else { \
+		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 8, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 0, 15, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 0, 8, 1); \
+		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x3ff, 0, 10); \
+		} \
+	} while (0)
+
+#define VDEC2_CLOCK_ON()   do {\
+		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 1, 8, 1); \
+		WRITE_VREG(DOS_GCLK_EN1, 0x3ff);\
+	} while (0)
+
+#define HCODEC_CLOCK_ON()  do {\
+		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 24, 1); \
+		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x7fff, 12, 15);\
+	} while (0)
+#define HEVC_CLOCK_ON()    do {\
+		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 1, 24, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 1, 8, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 0, 31, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 0, 15, 1); \
+		WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 0, 24, 1); \
+		WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);\
+	} while (0)
+#define VDEC1_SAFE_CLOCK() do {\
+	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, \
+		READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0x7f, 0, 7); \
+	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 1, 8, 1); \
+	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 1, 15, 1);\
+	} while (0)
+
+#define VDEC1_CLOCK_OFF()  \
+	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  0, 8, 1)
+#define VDEC2_CLOCK_OFF()  \
+	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 0, 8, 1)
+#define HCODEC_CLOCK_OFF() \
+	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 0, 24, 1)
+#define HEVC_SAFE_CLOCK()  do { \
+	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, \
+		(READ_HHI_REG(HHI_VDEC2_CLK_CNTL) >> 16) & 0x7f, 16, 7);\
+	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, \
+		(READ_HHI_REG(HHI_VDEC2_CLK_CNTL) >> 25) & 0x7f, 25, 7);\
+	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 1, 24, 1); \
+	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 1, 31, 1);\
+	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 1, 15, 1);\
+	} while (0)
+
+#define HEVC_CLOCK_OFF()  do {\
+	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 0, 24, 1);\
+	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 0, 8, 1);\
+}while(0)
+
+static int clock_real_clk[VDEC_MAX + 1];
+
+static unsigned int set_frq_enable, vdec_frq, hevc_frq, hevcb_frq;
+
+#ifdef NO_CLKTREE
+static struct gp_pll_user_handle_s *gp_pll_user_vdec, *gp_pll_user_hevc;
+static bool is_gp0_div2 = true;
+
+static int gp_pll_user_cb_vdec(struct gp_pll_user_handle_s *user,
+			int event)
+{
+	debug_print("gp_pll_user_cb_vdec call\n");
+	if (event == GP_PLL_USER_EVENT_GRANT) {
+		struct clk *clk = clk_get(NULL, "gp0_pll");
+		if (!IS_ERR(clk)) {
+			if (is_gp0_div2)
+				clk_set_rate(clk, 1296000000UL);
+			else
+				clk_set_rate(clk, 648000000UL);
+			VDEC1_SAFE_CLOCK();
+			VDEC1_CLOCK_OFF();
+			if (is_gp0_div2)
+				VDEC1_648M_DIV();
+			else
+				VDEC1_648M();
+
+			VDEC1_CLOCK_ON();
+			debug_print("gp_pll_user_cb_vdec call set\n");
+		}
+	}
+	return 0;
+}
+
+static int gp_pll_user_cb_hevc(struct gp_pll_user_handle_s *user,
+			int event)
+{
+	debug_print("gp_pll_user_cb_hevc callback\n");
+	if (event == GP_PLL_USER_EVENT_GRANT) {
+		struct clk *clk = clk_get(NULL, "gp0_pll");
+		if (!IS_ERR(clk)) {
+			if (is_gp0_div2)
+				clk_set_rate(clk, 1296000000UL);
+			else
+				clk_set_rate(clk, 648000000UL);
+//			HEVC_SAFE_CLOCK();
+			HEVC_CLOCK_OFF();
+			if (is_gp0_div2)
+				HEVC_648M_DIV();
+			else
+				HEVC_648M();
+			HEVC_CLOCK_ON();
+			debug_print("gp_pll_user_cb_hevc callback2\n");
+		}
+	}
+
+	return 0;
+}
+
+
+#endif
 
 struct clk_mux_s {
 	struct gate_switch_node *vdec_mux_node;
 	struct gate_switch_node *hcodec_mux_node;
 	struct gate_switch_node *hevc_mux_node;
+	struct gate_switch_node *hevc_back_mux_node;
 };
 
 struct clk_mux_s gclk;
@@ -61,11 +202,19 @@ void vdec2_set_clk(int source, int div)
 }
 EXPORT_SYMBOL(vdec2_set_clk);
 
+//extern uint force_hevc_clock_cntl;
+uint force_hevc_clock_cntl = 0;
 void hevc_set_clk(int source, int div)
 {
-	pr_debug("hevc_set_clk %d, %d\n", source, div);
-	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL,
-		(source << 9) | (div - 1), 16, 16);
+	if (force_hevc_clock_cntl) {
+		pr_info("%s, write force clock cntl %x\n", __func__, force_hevc_clock_cntl);
+		WRITE_HHI_REG(HHI_VDEC2_CLK_CNTL, force_hevc_clock_cntl);
+	} else {
+		pr_debug("hevc_set_clk %d, %d\n", source, div);
+		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL,
+			(source << 9) | (div - 1), 16, 16);
+		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, (source << 9) | (div - 1), 0, 16);
+	}
 }
 EXPORT_SYMBOL(hevc_set_clk);
 
@@ -119,77 +268,6 @@ void vdec_get_clk_source(int clk, int *source, int *div, int *rclk)
 }
 EXPORT_SYMBOL(vdec_get_clk_source);
 
-/* set gp0 648M vdec use gp0 clk*/
-#define VDEC1_648M() \
-	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  (6 << 9) | (0), 0, 16)
-
-#define HEVC_648M() \
-	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, (6 << 9) | (0), 16, 16)
-
-/*set gp0 1296M vdec use gp0 clk div2*/
-#define VDEC1_648M_DIV() \
-	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  (6 << 9) | (1), 0, 16)
-
-#define HEVC_648M_DIV() \
-	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, (6 << 9) | (1), 16, 16)
-
-#define VDEC1_WITH_GP_PLL() \
-	((READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0xe00) == 0xc00)
-#define HEVC_WITH_GP_PLL() \
-	((READ_HHI_REG(HHI_VDEC2_CLK_CNTL) & 0xe000000) == 0xc000000)
-
-#define VDEC1_CLOCK_ON()  \
-	do { if (is_meson_m8_cpu()) { \
-		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 8, 1); \
-		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x3ff, 0, 10); \
-		} else { \
-		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 8, 1); \
-		WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 0, 15, 1); \
-		WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 0, 8, 1); \
-		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x3ff, 0, 10); \
-		} \
-	} while (0)
-
-#define VDEC2_CLOCK_ON()   do {\
-		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 1, 8, 1); \
-		WRITE_VREG(DOS_GCLK_EN1, 0x3ff);\
-	} while (0)
-
-#define HCODEC_CLOCK_ON()  do {\
-		WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 24, 1); \
-		WRITE_VREG_BITS(DOS_GCLK_EN0, 0x7fff, 12, 15);\
-	} while (0)
-#define HEVC_CLOCK_ON()    do {\
-		WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 1, 24, 1); \
-		WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 0, 31, 1); \
-		WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 0, 24, 1); \
-		WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);\
-	} while (0)
-#define VDEC1_SAFE_CLOCK() do {\
-	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, \
-		READ_HHI_REG(HHI_VDEC_CLK_CNTL) & 0x7f, 0, 7); \
-	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 1, 8, 1); \
-	WRITE_HHI_REG_BITS(HHI_VDEC3_CLK_CNTL, 1, 15, 1);\
-	} while (0)
-
-#define VDEC1_CLOCK_OFF()  \
-	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL,  0, 8, 1)
-#define VDEC2_CLOCK_OFF()  \
-	WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 0, 8, 1)
-#define HCODEC_CLOCK_OFF() \
-	WRITE_HHI_REG_BITS(HHI_VDEC_CLK_CNTL, 0, 24, 1)
-#define HEVC_SAFE_CLOCK()  do { \
-	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, \
-		(READ_HHI_REG(HHI_VDEC2_CLK_CNTL) >> 16) & 0x7f, 16, 7);\
-	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, \
-		(READ_HHI_REG(HHI_VDEC2_CLK_CNTL) >> 25) & 0x7f, 25, 7);\
-	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 1, 24, 1); \
-	WRITE_HHI_REG_BITS(HHI_VDEC4_CLK_CNTL, 1, 31, 1);\
-	} while (0)
-
-#define HEVC_CLOCK_OFF()   WRITE_HHI_REG_BITS(HHI_VDEC2_CLK_CNTL, 0, 24, 1)
-
-static int clock_real_clk[VDEC_MAX + 1];
 
 /*
  *enum vformat_e {
@@ -335,10 +413,27 @@ void set_clock_gate(struct gate_switch_node *nodes, int num)
 			gclk.hcodec_mux_node = node;
 		else if (!strcmp(node->name, "clk_hevc_mux"))
 			gclk.hevc_mux_node = node;
-	} while (--num);
+		else if (!strcmp(node->name, "clk_hevcb_mux"))
+			gclk.hevc_back_mux_node = node;
+	} while(--num);
 }
 EXPORT_SYMBOL(set_clock_gate);
+#ifdef NO_CLKTREE
+int vdec_set_clk(int dec, int source, int div)
+{
 
+	if (dec == VDEC_1)
+		vdec1_set_clk(source, div);
+	else if (dec == VDEC_2)
+		vdec2_set_clk(source, div);
+	else if (dec == VDEC_HEVC)
+		hevc_set_clk(source, div);
+	else if (dec == VDEC_HCODEC)
+		hcodec_set_clk(source, div);
+	return 0;
+}
+
+#else
 static int vdec_set_clk(int dec, int rate)
 {
 	struct clk *clk = NULL;
@@ -364,6 +459,11 @@ static int vdec_set_clk(int dec, int rate)
 		WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);
 		break;
 
+	case VDEC_HEVCB:
+		clk = gclk.hevc_back_mux_node->clk;
+		WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);
+		break;
+
 	case VDEC_MAX:
 		break;
 
@@ -386,6 +486,197 @@ static int vdec_clock_init(void)
 	return 0;
 }
 
+#endif
+#ifdef NO_CLKTREE
+static int vdec_clock_init(void)
+{
+	gp_pll_user_vdec = gp_pll_user_register("vdec", 0,
+		gp_pll_user_cb_vdec);
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
+		is_gp0_div2 = false;
+	else
+		is_gp0_div2 = true;
+
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+		pr_info("used fix clk for vdec clk source!\n");
+		//update_vdec_clk_config_settings(1);
+	}
+	return (gp_pll_user_vdec) ? 0 : -ENOMEM;
+}
+
+
+
+static void update_clk_with_clk_configs(
+	int clk, int *source, int *div, int *rclk)
+{
+	unsigned int config = 0;//get_vdec_clk_config_settings();
+
+	if (!config)
+		return;
+	if (config >= 10) {
+		int wantclk;
+		wantclk = config;
+		vdec_get_clk_source(wantclk, source, div, rclk);
+	}
+	return;
+}
+#define NO_GP0_PLL 0//(get_vdec_clk_config_settings() == 1)
+#define ALWAYS_GP0_PLL 0//(get_vdec_clk_config_settings() == 2)
+
+#define NO_GP0_PLL 0//(get_vdec_clk_config_settings() == 1)
+#define ALWAYS_GP0_PLL 0//(get_vdec_clk_config_settings() == 2)
+
+static int vdec_clock_set(int clk)
+{
+	int use_gpll = 0;
+	int source, div, rclk;
+	int clk_seted = 0;
+	int gp_pll_wait = 0;
+	if (clk == 1)
+		clk = 200;
+	else if (clk == 2) {
+		if (clock_real_clk[VDEC_1] != 648)
+			clk = 500;
+		else
+			clk = 648;
+	} else if (clk == 0) {
+		/*used for release gp pull.
+		   if used, release it.
+		   if not used gp pll
+		   do nothing.
+		 */
+		if (clock_real_clk[VDEC_1] == 667 ||
+		    (clock_real_clk[VDEC_1] == 648) ||
+			clock_real_clk[VDEC_1] <= 0)
+			clk = 200;
+		else
+			clk = clock_real_clk[VDEC_1];
+	}
+	vdec_get_clk_source(clk, &source, &div, &rclk);
+	update_clk_with_clk_configs(clk, &source, &div, &rclk);
+
+	if (clock_real_clk[VDEC_1] == rclk)
+		return rclk;
+	if (NO_GP0_PLL) {
+		use_gpll = 0;
+		clk_seted = 0;
+	} else if ((rclk > 500 && clk != 667) || ALWAYS_GP0_PLL) {
+		if (clock_real_clk[VDEC_1] == 648)
+			return 648;
+		use_gpll = 1;
+		gp_pll_request(gp_pll_user_vdec);
+		while (!VDEC1_WITH_GP_PLL() && gp_pll_wait++ < 1000000)
+			udelay(1);
+		if (VDEC1_WITH_GP_PLL()) {
+			clk_seted = 1;
+			rclk = 648;
+		} else {
+			use_gpll = 0;
+			rclk = 667;
+			/*gp_pull request failed,used default 500Mhz*/
+			pr_info("get gp pll failed used fix pull\n");
+		}
+	}
+	if (!clk_seted) {/*if 648 not set,*/
+		VDEC1_SAFE_CLOCK();
+		VDEC1_CLOCK_OFF();
+		vdec_set_clk(VDEC_1, source, div);
+		VDEC1_CLOCK_ON();
+	}
+
+	if (!use_gpll)
+		gp_pll_release(gp_pll_user_vdec);
+	clock_real_clk[VDEC_1] = rclk;
+	debug_print("vdec_clock_set 2 to %d\n", rclk);
+	return rclk;
+}
+static int hevc_clock_init(void)
+{
+	gp_pll_user_hevc = gp_pll_user_register("hevc", 0,
+		gp_pll_user_cb_hevc);
+
+	return (gp_pll_user_hevc) ? 0 : -ENOMEM;
+}
+static int hevc_clock_set(int clk)
+{
+	int use_gpll = 0;
+	int source, div, rclk;
+	int gp_pll_wait = 0;
+	int clk_seted = 0;
+
+	debug_print("hevc_clock_set 1 to clk %d\n", clk);
+	if (clk == 1)
+		clk = 200;
+	else if (clk == 2) {
+		if (clock_real_clk[VDEC_HEVC] != 648)
+			clk = 500;
+		else
+			clk = 648;
+	} else if (clk == 0) {
+		/*used for release gp pull.
+		   if used, release it.
+		   if not used gp pll
+		   do nothing.
+		 */
+		if ((clock_real_clk[VDEC_HEVC] == 667) ||
+			(clock_real_clk[VDEC_HEVC] == 648) ||
+			(clock_real_clk[VDEC_HEVC] <= 0))
+			clk = 200;
+		else
+			clk = clock_real_clk[VDEC_HEVC];
+	}
+	vdec_get_clk_source(clk, &source, &div, &rclk);
+	update_clk_with_clk_configs(clk, &source, &div, &rclk);
+
+	if (rclk == clock_real_clk[VDEC_HEVC])
+		return rclk;/*clk not changed,*/
+	if (NO_GP0_PLL) {
+		use_gpll = 0;
+		clk_seted = 0;
+	} else if ((rclk > 500 && clk != 667) || ALWAYS_GP0_PLL) {
+		if (clock_real_clk[VDEC_HEVC] == 648)
+			return 648;
+		use_gpll = 1;
+		gp_pll_request(gp_pll_user_hevc);
+		while (!HEVC_WITH_GP_PLL() && gp_pll_wait++ < 1000000)
+			udelay(1);
+		if (HEVC_WITH_GP_PLL()) {
+			clk_seted = 1;
+			rclk = 648;
+		} else {
+			rclk = 667;
+			/*gp_pull request failed,used default 500Mhz*/
+			pr_info("get gp pll failed used fix pull\n");
+		}
+	}
+	if (!clk_seted) {/*if 648 not set,*/
+//		HEVC_SAFE_CLOCK();
+		HEVC_CLOCK_OFF();
+		vdec_set_clk(VDEC_HEVC, source, div);
+		HEVC_CLOCK_ON();
+	}
+	if (!use_gpll)
+		gp_pll_release(gp_pll_user_hevc);
+	clock_real_clk[VDEC_HEVC] = rclk;
+	/*debug_print("hevc_clock_set 2 to rclk=%d, configs=%d\n",
+		rclk,
+		get_vdec_clk_config_settings());*/ //DEBUG_TMP
+	return rclk;
+}
+
+static int hcodec_clock_set(int clk)
+{
+	int source, div, rclk;
+	HCODEC_CLOCK_OFF();
+	vdec_get_clk_source(200, &source, &div, &rclk);
+	vdec_set_clk(VDEC_HCODEC, source, div);
+	HCODEC_CLOCK_ON();
+	clock_real_clk[VDEC_HCODEC] = rclk;
+	return rclk;
+}
+
+
+#else
 static int vdec_clock_set(int clk)
 {
 	if (clk == 1)
@@ -410,6 +701,11 @@ static int vdec_clock_set(int clk)
 		clk = 667;
 	}
 
+	if (set_frq_enable && vdec_frq) {
+		pr_info("Set the vdec frq is %u MHz\n", vdec_frq);
+		clk = vdec_frq;
+	}
+
 	vdec_set_clk(VDEC_1, clk * MHz);
 
 	clock_real_clk[VDEC_1] = clk;
@@ -423,6 +719,56 @@ static int vdec_clock_set(int clk)
 static int hevc_clock_init(void)
 {
 	return 0;
+}
+
+static int hevc_back_clock_init(void)
+{
+	return 0;
+}
+
+static int hevc_back_clock_set(int clk)
+{
+	if (clk == 1)
+		clk = 200;
+	else if (clk == 2) {
+		if (clock_real_clk[VDEC_HEVCB] != 648)
+			clk = 500;
+		else
+			clk = 648;
+	} else if (clk == 0) {
+		if (clock_real_clk[VDEC_HEVCB] == 667 ||
+			(clock_real_clk[VDEC_HEVCB] == 648) ||
+			clock_real_clk[VDEC_HEVCB] <= 0)
+			clk = 200;
+		else
+			clk = clock_real_clk[VDEC_HEVCB];
+	}
+
+	if ((clk > 500 && clk != 667)) {
+		if (clock_real_clk[VDEC_HEVCB] == 648)
+		return 648;
+		clk = 667;
+	}
+
+	if (set_frq_enable && hevcb_frq) {
+		pr_info("Set the hevcb frq is %u MHz\n", hevcb_frq);
+		clk = hevcb_frq;
+	}
+
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+		if ((READ_EFUSE_REG(EFUSE_LIC1) >> 28 & 0x1) && clk > 333) {
+			pr_info("The hevcb clock limit to 333MHz.\n");
+			clk = 333;
+		}
+	}
+
+	vdec_set_clk(VDEC_HEVCB, clk * MHz);
+
+	clock_real_clk[VDEC_HEVCB] = clk;
+	pr_debug("hevc back mux clock is %lu Hz\n",
+		clk_get_rate(gclk.hevc_back_mux_node->clk));
+
+	return clk;
 }
 
 static int hevc_clock_set(int clk)
@@ -447,6 +793,11 @@ static int hevc_clock_set(int clk)
 		if (clock_real_clk[VDEC_HEVC] == 648)
 			return 648;
 		clk = 667;
+	}
+
+	if (set_frq_enable && hevc_frq) {
+		pr_info("Set the hevc frq is %u MHz\n", hevc_frq);
+		clk = hevc_frq;
 	}
 
 	vdec_set_clk(VDEC_HEVC, clk * MHz);
@@ -492,6 +843,7 @@ static int hcodec_clock_set(int clk)
 
 	return clk;
 }
+#endif
 
 static void vdec_clock_on(void)
 {
@@ -580,6 +932,36 @@ static void hevc_clock_off(void)
 		gclk.hevc_mux_node->ref_count);
 }
 
+static void hevc_back_clock_on(void)
+{
+	mutex_lock(&gclk.hevc_back_mux_node->mutex);
+	if (!gclk.hevc_back_mux_node->ref_count)
+		clk_prepare_enable(gclk.hevc_back_mux_node->clk);
+
+	gclk.hevc_back_mux_node->ref_count++;
+	WRITE_VREG(DOS_GCLK_EN3, 0xffffffff);
+	mutex_unlock(&gclk.hevc_back_mux_node->mutex);
+
+	pr_debug("the %-15s clock on, ref cnt: %d\n",
+		gclk.hevc_back_mux_node->name,
+		gclk.hevc_back_mux_node->ref_count);
+}
+
+static void hevc_back_clock_off(void)
+{
+	mutex_lock(&gclk.hevc_back_mux_node->mutex);
+	gclk.hevc_back_mux_node->ref_count--;
+	if (!gclk.hevc_back_mux_node->ref_count)
+		clk_disable_unprepare(gclk.hevc_back_mux_node->clk);
+
+	clock_real_clk[VDEC_HEVC] = 0;
+	mutex_unlock(&gclk.hevc_back_mux_node->mutex);
+
+	pr_debug("the %-15s clock off, ref cnt: %d\n",
+		gclk.hevc_back_mux_node->name,
+		gclk.hevc_back_mux_node->ref_count);
+}
+
 static int vdec_clock_get(enum vdec_type_e core)
 {
 	if (core >= VDEC_MAX)
@@ -601,8 +983,22 @@ static int vdec_clock_get(enum vdec_type_e core)
 	MESON_CPU_MAJOR_ID_GXM,\
 	MESON_CPU_MAJOR_ID_TXL,\
 	MESON_CPU_MAJOR_ID_TXLX,\
+	MESON_CPU_MAJOR_ID_G12A,\
 	0}
 #include "clk.h"
+
+module_param(set_frq_enable, uint, 0664);
+MODULE_PARM_DESC(set_frq_enable, "\n set frequency enable\n");
+
+module_param(vdec_frq, uint, 0664);
+MODULE_PARM_DESC(vdec_frq, "\n set vdec frequency\n");
+
+module_param(hevc_frq, uint, 0664);
+MODULE_PARM_DESC(hevc_frq, "\n set hevc frequency\n");
+
+module_param(hevcb_frq, uint, 0664);
+MODULE_PARM_DESC(hevcb_frq, "\n set hevcb frequency\n");
+
 ARCH_VDEC_CLK_INIT();
 ARCH_VDEC_CLK_EXIT();
 

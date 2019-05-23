@@ -1,5 +1,5 @@
 /*
- * drivers/amlogic/amports/vvp9.h
+ * drivers/amlogic/amports/vavs2.h
  *
  * Copyright (C) 2015 Amlogic, Inc. All rights reserved.
  *
@@ -13,11 +13,14 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
  *
- */
+*/
 
-#ifndef VVP9_H
-#define VVP9_H
-#define VP9_10B_MMU
+#ifndef VAVS2_H
+#define VAVS2_H
+
+#define AVS2_10B_MMU
+#define MV_USE_FIXED_BUF
+
 void adapt_coef_probs(int pic_count, int prev_kf, int cur_kf, int pre_fc,
 unsigned int *prev_prob, unsigned int *cur_prob, unsigned int *count);
 #endif

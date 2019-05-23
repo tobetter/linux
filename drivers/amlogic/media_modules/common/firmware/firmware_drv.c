@@ -43,7 +43,7 @@
 #define DEV_NAME	"firmware_vdec"
 #define DIR		"video"
 #define FRIMWARE_SIZE	(128 * 1024) /*128k*/
-#define BUFF_SIZE	(1024 * 1024)
+#define BUFF_SIZE	(1024 * 1024 * 2)
 
 #define FW_LOAD_FORCE	(0x1)
 #define FW_LOAD_TRY	(0X2)

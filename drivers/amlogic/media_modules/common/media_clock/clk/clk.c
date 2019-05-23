@@ -38,6 +38,7 @@
 #define p_vdec2() (get_current_vdec_chip()->clk_mgr[VDEC_2])
 #define p_vdec_hcodec() (get_current_vdec_chip()->clk_mgr[VDEC_HCODEC])
 #define p_vdec_hevc() (get_current_vdec_chip()->clk_mgr[VDEC_HEVC])
+#define p_vdec_hevc_back() (get_current_vdec_chip()->clk_mgr[VDEC_HEVCB])
 
 static int clock_source_wxhxfps_saved[VDEC_MAX + 1];
 
@@ -186,6 +187,31 @@ void hcodec_clock_off(void)
 }
 EXPORT_SYMBOL(hcodec_clock_off);
 
+int hevc_back_clock_init(void)
+{
+	if (p_vdec_hevc_back() && p_vdec_hevc_back()->clock_init)
+		return p_vdec_hevc_back()->clock_init();
+	else
+		return 0;
+}
+EXPORT_SYMBOL(hevc_back_clock_init);
+
+int hevc_back_clock_set(int clk)
+{
+	pr_debug("%s-----%d\n", __func__, clk);
+	if (p_vdec_hevc_back() && p_vdec_hevc_back()->clock_set)
+		return p_vdec_hevc_back()->clock_set(clk);
+	else
+		return -1;
+}
+EXPORT_SYMBOL(hevc_back_clock_set);
+
+void hevc_back_clock_enable(void)
+{
+	hevc_back_clock_set(1);
+}
+EXPORT_SYMBOL(hevc_back_clock_enable);
+
 int hevc_clock_init(void)
 {
 	if (p_vdec_hevc() && p_vdec_hevc()->clock_init)
@@ -216,6 +242,19 @@ void hevc_clock_hi_enable(void)
 	hevc_clock_set(2);
 }
 EXPORT_SYMBOL(hevc_clock_hi_enable);
+
+void hevc_back_clock_on(void)
+{
+	IF_HAVE_RUN(p_vdec_hevc_back(), clock_on);
+}
+EXPORT_SYMBOL(hevc_back_clock_on);
+
+void hevc_back_clock_off(void)
+{
+	IF_HAVE_RUN(p_vdec_hevc_back(), clock_off);
+	clock_source_wxhxfps_saved[VDEC_HEVCB] = 0;
+}
+EXPORT_SYMBOL(hevc_back_clock_off);
 
 void hevc_clock_on(void)
 {
@@ -287,9 +326,14 @@ int vdec_source_changed_for_clk_set(int format, int width, int height, int fps)
 	 *changed to default  min clk.
 	 */
 
-	if (format == VFORMAT_HEVC || format == VFORMAT_VP9) {
+	if (format == VFORMAT_HEVC || format == VFORMAT_VP9
+		|| format == VFORMAT_AVS2) {
 		ret_clk = hevc_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HEVC] = width * height * fps;
+		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
+			ret_clk = hevc_back_clock_set(clk);
+			clock_source_wxhxfps_saved[VDEC_HEVCB] = width * height * fps;
+		}
 	} else if (format == VFORMAT_H264_ENC || format == VFORMAT_JPEG_ENC) {
 		ret_clk = hcodec_clock_set(clk);
 		clock_source_wxhxfps_saved[VDEC_HCODEC] = width * height * fps;

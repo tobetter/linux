@@ -52,6 +52,9 @@ struct gate_switch_node gates[] = {
 	{
 		.name = "clk_hevc_mux",
 	},
+	{
+		.name = "clk_hevcb_mux",
+	},
 };
 
 /*
@@ -64,13 +67,15 @@ struct gate_switch_node gates[] = {
  *		&clkc CLKID_DOS
  *		&clkc CLKID_VDEC_MUX
  *		&clkc CLKID_HCODEC_MUX
+ *		&clkc CLKID_HEVCF_MUX
  *		&clkc CLKID_HEVC_MUX>;
  *	clock-names = "parser_top",
  *		"demux",
  *		"vdec",
  *		"clk_vdec_mux",
  *		"clk_hcodec_mux",
- *		"clk_hevc_mux";
+ *		"clk_hevc_mux",
+ *		"clk_hevcb_mux";
  *};
  */
 

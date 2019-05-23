@@ -108,7 +108,7 @@
 
 #define H264_MMU
 static int mmu_enable;
-static int force_enable_mmu = 1;
+static int force_enable_mmu = 0;
 unsigned int h264_debug_flag; /* 0xa0000000; */
 unsigned int h264_debug_mask = 0xff;
 	/*
@@ -3377,7 +3377,7 @@ static void check_decoded_pic_error(struct vdec_h264_hw_s *hw)
 	}
 }
 
-static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec)
+static irqreturn_t vh264_isr_thread_fn(struct vdec_s *vdec, int irq)
 {
 	int i;
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)(vdec->private);
@@ -3990,7 +3990,7 @@ send_again:
 	/**/
 	return IRQ_HANDLED;
 }
-static irqreturn_t vh264_isr(struct vdec_s *vdec)
+static irqreturn_t vh264_isr(struct vdec_s *vdec, int irq)
 {
 	struct vdec_h264_hw_s *hw = (struct vdec_h264_hw_s *)(vdec->private);
 	struct h264_dpb_stru *p_H264_Dpb = &hw->dpb;
@@ -4673,8 +4673,7 @@ static s32 vh264_init(struct vdec_h264_hw_s *hw)
 	if (!hw->lmem_addr) {
 		pr_info("%s: failed to alloc lmem_addr\n", __func__);
 		return -ENOMEM;
-	}
-	{
+	} else {
 		hw->lmem_addr_remap = dma_map_single(
 				amports_get_dma_device(),
 				(void *)hw->lmem_addr,
@@ -5049,11 +5048,13 @@ result_done:
 		vdec_set_next_sched(vdec, vdec);
 #endif
 
+	/* mark itself has all HW resource released and input released */
+	vdec_core_finish_run(vdec, CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 	if (hw->vdec_cb)
 		hw->vdec_cb(hw_to_vdec(hw), hw->vdec_cb_arg);
 }
 
-static bool run_ready(struct vdec_s *vdec)
+static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 {
 	bool ret = 0;
 	struct vdec_h264_hw_s *hw =
@@ -5061,7 +5062,7 @@ static bool run_ready(struct vdec_s *vdec)
 
 #ifndef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_DOLBYVISION
 	if (vdec->master)
-		return false;
+		return 0;
 #endif
 	if (hw->eos)
 		return 0;
@@ -5086,7 +5087,7 @@ static bool run_ready(struct vdec_s *vdec)
 		not_run_ready[DECODE_ID(hw)] = 0;
 	else
 		not_run_ready[DECODE_ID(hw)]++;
-	return ret;
+	return ret ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
 static unsigned char get_data_check_sum
@@ -5101,7 +5102,7 @@ static unsigned char get_data_check_sum
 	return sum;
 }
 
-static void run(struct vdec_s *vdec,
+static void run(struct vdec_s *vdec, unsigned long mask,
 	void (*callback)(struct vdec_s *, void *), void *arg)
 {
 	struct vdec_h264_hw_s *hw =
@@ -5616,6 +5617,9 @@ static int ammvdec_h264_probe(struct platform_device *pdev)
 
 	vdec_set_prepare_level(pdata, start_decode_buf_level);
 
+	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+				| CORE_MASK_COMBINE);
+
 	atomic_set(&hw->vh264_active, 1);
 
 	return 0;
@@ -5643,6 +5647,8 @@ static int ammvdec_h264_remove(struct platform_device *pdev)
 	/* vdec_source_changed(VFORMAT_H264, 0, 0, 0); */
 
 	atomic_set(&hw->vh264_active, 0);
+
+	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_DISCONNECTED);
 	ammvdec_h264_mmu_release(hw);

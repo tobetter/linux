@@ -342,7 +342,7 @@ static inline void vmpeg4_save_hw_context(struct vdec_mpeg4_hw_s *hw)
 	hw->reg_rv_ai_mb_count = READ_VREG(RV_AI_MB_COUNT);
 }
 
-static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
+static irqreturn_t vmpeg4_isr(struct vdec_s *vdec, int irq)
 {
 	u32 reg;
 	struct vframe_s *vf = NULL;
@@ -387,8 +387,7 @@ static irqreturn_t vmpeg4_isr(struct vdec_s *vdec)
 		schedule_work(&hw->work);
 
 		return IRQ_HANDLED;
-	}
-	{
+	} else {
 		picture_type = (reg >> 3) & 7;
 		repeat_cnt = READ_VREG(MP4_NOT_CODED_CNT);
 		vop_time_inc = READ_VREG(MP4_VOP_TIME_INC);
@@ -737,7 +736,7 @@ static void vmpeg4_work(struct work_struct *work)
 	}
 
 	/* mark itself has all HW resource released and input released */
-	vdec_set_status(hw_to_vdec(hw), VDEC_STATUS_CONNECTED);
+	vdec_core_finish_run(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	if (hw->vdec_cb)
 		hw->vdec_cb(hw_to_vdec(hw), hw->vdec_cb_arg);
@@ -1097,18 +1096,18 @@ static s32 vmpeg4_init(struct vdec_mpeg4_hw_s *hw)
 	return 0;
 }
 
-static bool run_ready(struct vdec_s *vdec)
+static unsigned long run_ready(struct vdec_s *vdec, unsigned long mask)
 {
 	int index;
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
 
 	index = find_buffer(hw);
 
-	return index >= 0;
+	return (index >= 0) ? (CORE_MASK_VDEC_1 | CORE_MASK_HEVC) : 0;
 }
 
-static void run(struct vdec_s *vdec, void (*callback)(struct vdec_s *, void *),
-		void *arg)
+static void run(struct vdec_s *vdec, unsigned long mask,
+		void (*callback)(struct vdec_s *, void *), void *arg)
 {
 	struct vdec_mpeg4_hw_s *hw = (struct vdec_mpeg4_hw_s *)vdec->private;
 	int save_reg = READ_VREG(POWER_CTL_VLD);
@@ -1235,6 +1234,9 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	vdec_core_request(pdata, CORE_MASK_VDEC_1 | CORE_MASK_HEVC
+				| CORE_MASK_COMBINE);
+
 	return 0;
 }
 
@@ -1244,6 +1246,8 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 		(struct vdec_mpeg4_hw_s *)
 		(((struct vdec_s *)(platform_get_drvdata(pdev)))->private);
 
+
+	vdec_core_release(hw_to_vdec(hw), CORE_MASK_VDEC_1 | CORE_MASK_HEVC);
 
 	amvdec_disable();
 

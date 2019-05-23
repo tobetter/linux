@@ -30,6 +30,7 @@
 #include "../../frame_provider/decoder/utils/vdec.h"
 #include "chips.h"
 #include <linux/amlogic/media/utils/log.h>
+#include <linux/amlogic/media/utils/vdec_reg.h>
 
 #define VIDEO_FIRMWARE_FATHER_NAME "video"
 
@@ -69,6 +70,7 @@ static const struct type_name cpu_type_name[] = {
 	{MESON_CPU_MAJOR_ID_GXM, "gxm"},
 	{MESON_CPU_MAJOR_ID_TXL, "txl"},
 	{MESON_CPU_MAJOR_ID_TXLX, "txlx"},
+	{MESON_CPU_MAJOR_ID_TXLX, "g12a"},
 	{0, NULL},
 };
 
@@ -117,6 +119,7 @@ EXPORT_SYMBOL(get_cpu_type_name);
  *	VFORMAT_H264_ENC,
  *	VFORMAT_JPEG_ENC,
  *	VFORMAT_VP9,
+*	VFORMAT_AVS2,
  *	VFORMAT_MAX
  *};
  */
@@ -136,6 +139,7 @@ static const struct type_name vformat_type_name[] = {
 	{VFORMAT_H264_ENC, "h264_enc"},
 	{VFORMAT_JPEG_ENC, "jpeg_enc"},
 	{VFORMAT_VP9, "vp9"},
+	{VFORMAT_AVS2, "avs2"},
 	{VFORMAT_YUV, "yuv"},
 	{0, NULL},
 };
@@ -156,4 +160,23 @@ struct chip_vdec_info_s *get_current_vdec_chip(void)
 	return &current_chip_info;
 }
 EXPORT_SYMBOL(get_current_vdec_chip);
+
+bool check_efuse_chip(int vformat)
+{
+	unsigned int status, i = 0;
+	int type[] = {15, 14, 11, 2}; /* avs2, vp9, h265, h264 */
+
+	status =  (READ_EFUSE_REG(EFUSE_LIC2) >> 8 & 0xf);
+	if (!status)
+		return false;
+
+	do {
+		if ((status & 1) && (type[i] == vformat))
+			return true;
+		i++;
+	} while (status >>= 1);
+
+	return false;
+}
+EXPORT_SYMBOL(check_efuse_chip);
 
