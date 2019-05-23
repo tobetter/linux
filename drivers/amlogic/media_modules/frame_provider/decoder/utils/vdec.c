@@ -3936,6 +3936,11 @@ static struct platform_driver vdec_driver = {
 	}
 };
 
+static struct codec_profile_t amvdec_input_profile = {
+	.name = "vdec_input",
+	.profile = "drm_framemode"
+};
+
 int vdec_module_init(void)
 {
 	if (platform_driver_register(&vdec_driver)) {
@@ -3944,6 +3949,7 @@ int vdec_module_init(void)
 	}
 	INIT_REG_NODE_CONFIGS("media.decoder", &vdec_node,
 		"vdec", vdec_configs, CONFIG_FOR_RW);
+	vcodec_profile_register(&amvdec_input_profile);
 	return 0;
 }
 EXPORT_SYMBOL(vdec_module_init);
