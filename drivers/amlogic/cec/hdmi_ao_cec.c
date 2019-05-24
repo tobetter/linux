@@ -65,7 +65,7 @@ static struct early_suspend aocec_suspend_handler;
 
 
 #define CEC_FRAME_DELAY		msecs_to_jiffies(400)
-#define CEC_DEV_NAME		"cec"
+#define CEC_DEV_NAME		"aocec"
 
 #define CEC_POWER_ON		(0 << 0)
 #define CEC_EARLY_SUSPEND	(1 << 0)
@@ -2110,7 +2110,8 @@ static void cec_task(struct work_struct *work)
 	cec_cfg = cec_config(0, 0);
 	if (cec_cfg & CEC_FUNC_CFG_CEC_ON) {
 		/*cec module on*/
-		if (cec_dev && (/*!wake_ok || */cec_service_suspended()))
+		if (cec_dev && (/*!wake_ok || */cec_service_suspended())
+			&& !(cec_dev->hal_flag & (1 << HDMI_OPTION_SYSTEM_CEC_CONTROL)))
 			cec_rx_process();
 
 		/*for check rx buffer for old chip version, cec rx irq process*/
@@ -3061,9 +3062,7 @@ static char *aml_cec_class_devnode(struct device *dev, umode_t *mode)
 {
 	if (mode) {
 		*mode = 0666;
-		CEC_INFO("mode is %x\n", *mode);
-	} else
-		CEC_INFO("mode is null\n");
+	}
 	return NULL;
 }
 
