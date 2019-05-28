@@ -592,12 +592,14 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 	if (of_property_read_u32(np, "clock-latency", &transition_latency))
 		policy->cpuinfo.transition_latency = CPUFREQ_ETERNAL;
 
-	cpufreq_data->freq_transition = meson_cpufreq_notifier_block;
-	ret = cpufreq_register_notifier(&cpufreq_data->freq_transition,
-					CPUFREQ_TRANSITION_NOTIFIER);
-	if (ret) {
-		dev_err(cpu_dev, "failed to register cpufreq notifier!\n");
-		goto fail_cpufreq_unregister;
+	if (dsu_clk && dsu_pre_parent) {
+		cpufreq_data->freq_transition = meson_cpufreq_notifier_block;
+		ret = cpufreq_register_notifier(&cpufreq_data->freq_transition,
+						CPUFREQ_TRANSITION_NOTIFIER);
+		if (ret) {
+			dev_err(cpu_dev, "failed to register cpufreq notifier!\n");
+			goto fail_cpufreq_unregister;
+		}
 	}
 
 	cpufreq_data->cpu_dev = cpu_dev;
@@ -626,8 +628,10 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 	dev_info(cpu_dev, "%s: CPU %d initialized\n", __func__, policy->cpu);
 	return ret;
 fail_cpufreq_unregister:
+	if (dsu_clk && dsu_pre_parent) {
 		cpufreq_unregister_notifier(&cpufreq_data->freq_transition,
 				CPUFREQ_TRANSITION_NOTIFIER);
+	}
 free_opp_table:
 	if (policy->freq_table != NULL) {
 		dev_pm_opp_free_cpufreq_table(cpu_dev,
