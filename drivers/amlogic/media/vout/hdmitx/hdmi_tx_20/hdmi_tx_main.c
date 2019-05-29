@@ -462,9 +462,6 @@ static int set_disp_mode_auto(void)
 	unsigned char mode[32];
 	enum hdmi_vic vic = HDMI_Unknown;
 	enum hdmi_color_depth stream_cur_cd;
-	char* pix_fmt[] = {"RGB","YUV422","YUV444","YUV420"};
-	char* eotf[] = {"SDR","HDR","HDR10","HLG"};
-	char* range[] = {"default","limited","full"};
 
 	/* vic_ready got from IP */
 	enum hdmi_vic vic_ready = hdev->HWOp.GetState(
@@ -481,7 +478,7 @@ static int set_disp_mode_auto(void)
 	stream_cur_cd = hdev->para->cd;
 
 	if (hdev->cur_video_param != NULL){
-		pr_info("hdmitx: display colourdepth was %d in cur_param 0x%08x (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
+		pr_info("hdmitx: display colourdepth was %d in cur_param 0x%p (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
 			hdev->cur_video_param,  hdev->cur_video_param->VIC);
 	}
 
@@ -551,11 +548,11 @@ static int set_disp_mode_auto(void)
 	if (hdev->cur_video_param != NULL){
 		if (strstr(hdmitx_device.fmt_attr,"bit") != NULL){
 			hdev->cur_video_param->color_depth = para->cd;
-			pr_info("hdmitx: display colourdepth set by attr to %d in cur_param 0x%08x (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
+			pr_info("hdmitx: display colourdepth set by attr to %d in cur_param 0x%p (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
 					hdev->cur_video_param,  hdev->cur_video_param->VIC);
 		} else {
 			hdev->cur_video_param->color_depth = COLORDEPTH_30B;
-			pr_info("hdmitx: display colourdepth is %d in cur_param 0x%08x (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
+			pr_info("hdmitx: display colourdepth is %d in cur_param 0x%p (VIC: %d)\n",hdev->cur_video_param->color_depth * 2,
 					hdev->cur_video_param,  hdev->cur_video_param->VIC);
 		}
 		if (hdev->cur_video_param->color_depth > COLORDEPTH_24B){
@@ -4216,7 +4213,7 @@ static int get_dt_vend_init_data(struct device_node *np,
 		pr_info(SYS "not find product desc\n");
 	return 0;
 }
-
+#if 0
 static void hdmitx_init_fmt_attr(struct hdmitx_dev *hdev)
 {
 	if (strlen(hdev->fmt_attr) >= 8) {
@@ -4262,7 +4259,7 @@ static void hdmitx_init_fmt_attr(struct hdmitx_dev *hdev)
 	}
 	pr_info(SYS "fmt_attr %s\n", hdev->fmt_attr);
 }
-
+#endif
 /* for notify to cec */
 static BLOCKING_NOTIFIER_HEAD(hdmitx_event_notify_list);
 int hdmitx_event_notifier_regist(struct notifier_block *nb)
@@ -4790,7 +4787,7 @@ static int amhdmitx_probe(struct platform_device *pdev)
 	HDMITX_Meson_Init(&hdmitx_device);
 
 	/* update fmt_attr */
-	/*hdmitx_init_fmt_attr(&hdmitx_device); /**/
+	/*hdmitx_init_fmt_attr(&hdmitx_device); */
 
 	hdmitx_device.task = kthread_run(hdmi_task_handle,
 		&hdmitx_device, "kthread_hdmi");
@@ -5054,7 +5051,8 @@ static  int __init hdmitx_boot_para_setup(char *s)
 				&& (strncmp(token, "off", token_len) == 0)) {
 				init_flag |= INIT_FLAG_NOT_LOAD;
 			} else if (strncmp(token, "cec", 3) == 0) {
-				kstrtoul(token+3, 16, &list);
+				int ret;
+				ret = kstrtoul(token+3, 16, &list);
 				if ((list >= 0) && (list <= 0xff))
 					hdmitx_device.cec_func_config = list;
 				pr_info("HDMI hdmi_cec_func_config:0x%x\n",

@@ -104,12 +104,8 @@ static int hdmitx_cntl_misc(struct hdmitx_dev *hdev, unsigned int cmd,
 
 /* store downstream ksv lists */
 static char *rptx_ksvs;
-static char rptx_ksv_prbuf[1271]; /* 127 * 5 * 2 + 1 */
 MODULE_PARM_DESC(rptx_ksvs, "\n downstream ksvs\n");
 module_param(rptx_ksvs, charp, 0444);
-static int rptx_ksv_no;
-static int rptx_ksvlist_retry;
-static char rptx_ksv_buf[635];
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 static int dvi_mode = VOUTMODE_NOINIT;

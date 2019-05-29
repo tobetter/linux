@@ -952,7 +952,7 @@ static void vvc1_local_init(void)
 	vvc1_ratio = 0x100;
 
 	avi_flag = (unsigned long) vvc1_amstream_dec_info.param & 0x1;
-	keyframe_pts_only = (u32)vvc1_amstream_dec_info.param & 0x100;
+	keyframe_pts_only = (unsigned long)vvc1_amstream_dec_info.param & 0x100;
 
 	total_frame = 0;
 

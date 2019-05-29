@@ -6577,11 +6577,12 @@ static irqreturn_t vsync_isr_in(int irq, void *dev_id)
 		}
 	}
 	if (omx_secret_mode == true) {
+		int diff = 0;
+		unsigned long delta1 = 0;
+
 		u32 system_time = timestamp_pcrscr_get();
 		video_notify_flag |= VIDEO_NOTIFY_TRICK_WAIT;
 		atomic_set(&trickmode_framedone, 1);
-		int diff = 0;
-		unsigned long delta1 = 0;
 
 		diff = system_time - omx_pts;
 		if (time_setomxpts.tv_sec > 0) {

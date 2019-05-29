@@ -976,7 +976,7 @@ static void vmpeg4_local_init(void)
 		(((unsigned long) vmpeg4_amstream_dec_info.param)
 			>> 16) & 0xffff;
 
-	keyframe_pts_only = (u32)vmpeg4_amstream_dec_info.param & 0x100;
+	keyframe_pts_only = ((u32)vmpeg4_amstream_dec_info.param) & 0x100;
 
 	frame_width = frame_height = frame_dur = frame_prog = 0;
 
