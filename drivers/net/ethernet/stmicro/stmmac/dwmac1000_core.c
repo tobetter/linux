@@ -127,13 +127,6 @@ static void dwmac1000_get_umac_addr(struct mac_device_info *hw,
 				    unsigned int reg_n)
 {
 	void __iomem *ioaddr = hw->pcsr;
-
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	odroid_get_ether_addr(addr);
-	if (is_valid_ether_addr(addr))
-		return;
-#endif
-
 	stmmac_get_mac_addr(ioaddr, addr, GMAC_ADDR_HIGH(reg_n),
 			    GMAC_ADDR_LOW(reg_n));
 }

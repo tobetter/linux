@@ -229,19 +229,6 @@ static int odroid_provision(struct odroid_efuse_t *fuse)
 
 	return 0;
 }
-
-#include <linux/if_ether.h>
-
-void odroid_get_ether_addr(unsigned char *addr)
-{
-	loff_t pos = 0x46;
-	int ret;
-
-	ret = efuse_read_usr(addr, ETH_ALEN, &pos);
-	if (ret < 0)
-		memset(addr, 0, ETH_ALEN);
-}
-EXPORT_SYMBOL(odroid_get_ether_addr);
 #endif
 
 static long efuse_unlocked_ioctl(struct file *file, unsigned int cmd,
