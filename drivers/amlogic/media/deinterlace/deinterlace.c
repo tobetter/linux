@@ -1994,9 +1994,15 @@ static unsigned int di_cma_alloc(struct di_dev_s *devp)
 						buf_p->mcinfo_vaddr =
 							(unsigned short *)tmp;
 					else {
-						buf_p->mcinfo_vaddr = NULL;
-						pr_err("DI: %s vmap fail\n",
-							__func__);
+						if (tmp == NULL) {
+							buf_p->mcinfo_vaddr =
+								NULL;
+							pr_err("DI: %s vmap fail\n",
+								__func__);
+						} else {
+							buf_p->mcinfo_vaddr =
+								(unsigned short *)tmp;
+						}
 					}
 			}
 		}
@@ -2285,9 +2291,15 @@ static int di_init_buf(int width, int height, unsigned char prog_flag)
 						di_buf->mcinfo_vaddr =
 						(unsigned short *)tmp;
 					else {
-						di_buf->mcinfo_vaddr = NULL;
-						pr_err("DI: %s vmap fail\n",
-							__func__);
+						if (tmp == NULL) {
+							di_buf->mcinfo_vaddr =
+								NULL;
+							pr_err("DI: %s vmap fail\n",
+								__func__);
+						} else {
+							di_buf->mcinfo_vaddr =
+								(unsigned short *)tmp;
+						}
 					}
 					}
 				}
