@@ -170,6 +170,10 @@ enum {
 	RATE_MEASURE_END_PTS,
 	RATE_MEASURE_DONE
 };
+
+struct VC1Decoder_s {
+	u32 ratio_control;
+};
 #define RATE_MEASURE_NUM 8
 #define RATE_CORRECTION_THRESHOLD 5
 #define RATE_24_FPS  3755	/* 23.97 */
@@ -756,6 +760,9 @@ static int vvc1_event_cb(int type, void *data, void *private_data)
 
 int vvc1_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	struct VC1Decoder_s *vc1 =
+		(struct VC1Decoder_s *)vdec->private;
+
 	if (!(stat & STAT_VDEC_RUN))
 		return -1;
 
@@ -780,6 +787,7 @@ int vvc1_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 
+	vstatus->ratio_control = vc1->ratio_control;
 	return 0;
 }
 
@@ -1174,11 +1182,19 @@ static s32 vvc1_init(void)
 static int amvdec_vc1_probe(struct platform_device *pdev)
 {
 	struct vdec_s *pdata = *(struct vdec_s **)pdev->dev.platform_data;
+	struct VC1Decoder_s *pbi;
 
 	if (pdata == NULL) {
 		pr_info("amvdec_vc1 memory resource undefined.\n");
 		return -EFAULT;
 	}
+
+	pbi = vmalloc(sizeof(struct VC1Decoder_s));
+	if (pbi == NULL) {
+		pr_info("\namvdec_vc1 device data allocation failed\n");
+		return -ENOMEM;
+	}
+	pdata->private = pbi;
 
 	if (pdata->sys_info) {
 		vvc1_amstream_dec_info = *pdata->sys_info;

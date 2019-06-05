@@ -1111,6 +1111,7 @@ struct VP9Decoder_s {
 	struct firmware_s *fw;
 	int max_pic_w;
 	int max_pic_h;
+	u32 ratio_control;
 #ifdef SUPPORT_FB_DECODING
 	int dec_s1_result;
 	int s1_test_cmd;
@@ -6417,6 +6418,7 @@ static void set_frame_info(struct VP9Decoder_s *pbi, struct vframe_s *vf)
 
 	ar = min_t(u32, pbi->frame_ar, DISP_RATIO_ASPECT_RATIO_MAX);
 	vf->ratio_control = (ar << DISP_RATIO_ASPECT_RATIO_BIT);
+	pbi->ratio_control = vf->ratio_control;
 
 }
 
@@ -7827,6 +7829,7 @@ int vvp9_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 	snprintf(vstatus->vdec_name, sizeof(vstatus->vdec_name),
 		"%s", DRIVER_NAME);
 #endif
+	vstatus->ratio_control = vp9->ratio_control;
 	return 0;
 }
 
