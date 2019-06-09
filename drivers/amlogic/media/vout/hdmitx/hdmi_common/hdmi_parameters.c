@@ -3092,7 +3092,7 @@ struct hdmi_audio_fs_ncts aud_48k_para = {
 		.n = 6864,
 		.cts = 28125,
 		.n_36bit = 9152,
-		.cts_36bit = 58250,
+		.cts_36bit = 56250,
 		.n_48bit = 6864,
 		.cts_48bit = 56250,
 	},
