@@ -249,4 +249,12 @@ config ARCH_MESON64_ODROIDN2
 	  This enables support for the board ODROID-N2 of Hardkernel
 	  which is based on ARMv8 SoC of AMLogic, Inc.
 
+config ARCH_MESON64_ODROIDN2_SPIBIOS
+	bool "Hardkkernel's ODROID-N2 SPI BIOS"
+	select ARCH_MESON64_ODROIDN2
+	select ARCH_MESON64_ODROID_COMMON
+	help
+	  This enables support for the board ODROID-N2 of Hardkernel
+	  which is based on ARMv8 SoC of AMLogic, Inc.
+
 endmenu

@@ -127,4 +127,6 @@ obj-$(CONFIG_AMLOGIC_DEFENDKEY) += defendkey/
 
 obj-$(CONFIG_MTD_SPI_NOR) += spi-nor/
 
+ifneq ($(CONFIG_ARCH_MESON64_ODROIDN2_SPIBIOS),y)
 obj-y	+= media_modules/
+endif

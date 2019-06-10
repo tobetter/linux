@@ -10,4 +10,4 @@ endif
 dtb-$(CONFIG_ARCH_MESON64_ODROIDC3) += meson64_odroidc3.dtb
 dtb-$(CONFIG_ARCH_MESON64_ODROIDN2) += meson64_odroidn2.dtb
 dtb-$(CONFIG_ARCH_MESON64_ODROIDN2) += meson64_odroidn2_drm.dtb
-dtb-$(CONFIG_ARCH_MESON64_ODROIDN2) += meson64_odroidn2_spibios.dtb
+dtb-$(CONFIG_ARCH_MESON64_ODROIDN2_SPIBIOS) += meson64_odroidn2_spibios.dtb
