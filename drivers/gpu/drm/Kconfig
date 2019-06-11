@@ -300,4 +300,9 @@ config DRM_SAVAGE
 	  Choose this option if you have a Savage3D/4/SuperSavage/Pro/Twister
 	  chipset. If M is selected the module will be called savage.
 
+config DRM_BIFROST
+	bool
+	depends on HAS_IOMEM && DRM_LEGACY && DRM
+	help
+
 endif # DRM_LEGACY
