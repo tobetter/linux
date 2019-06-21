@@ -496,8 +496,8 @@ static inline void lcd_vsync_handler(void)
 	if (lcd_driver == NULL)
 		return;
 
-	pconf = lcd_driver->lcd_config;
 #ifdef CONFIG_AMLOGIC_LCD_TABLET
+	pconf = lcd_driver->lcd_config;
 	if (pconf->lcd_control.mipi_config->dread) {
 		if (pconf->lcd_control.mipi_config->dread->flag) {
 			lcd_mipi_test_read(
