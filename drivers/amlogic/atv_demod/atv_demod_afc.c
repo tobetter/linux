@@ -107,7 +107,6 @@ void atv_demod_afc_do_work(struct work_struct *work)
 	int freq_offset = 100;
 	int tmp = 0;
 	int field_lock = 0;
-	static int audio_overmodul;
 
 	if (afc->state == false)
 		return;
@@ -124,13 +123,6 @@ void atv_demod_afc_do_work(struct work_struct *work)
 	}
 
 	afc->pre_step = 0;
-
-	if (afc->lock) {
-		if (0 == ((audio_overmodul++) % 10)) {
-			aml_audio_overmodulation(1);
-			audio_overmodul = 0;
-		}
-	}
 
 	retrieve_frequency_offset(&freq_offset);
 
@@ -158,7 +150,8 @@ void atv_demod_afc_do_work(struct work_struct *work)
 		return;
 	}
 
-	if (!afc->lock || (afc->lock && !field_lock)) {
+	/* add "(lock && !field_lock)", horizontal synchronization test NG */
+	if (!afc->lock/* || (afc->lock && !field_lock)*/) {
 		afc->status = AFC_LOCK_STATUS_POST_UNLOCK;
 		afc->pre_lock_cnt = 0;
 		param->frequency -= afc->offset * 1000;
@@ -263,6 +256,7 @@ static void atv_demod_afc_enable(struct atv_demod_afc *afc)
 		afc->offset = 0;
 		afc->no_sig_cnt = 0;
 		afc->pre_step = 0;
+		afc->timer_delay_cnt = 20;
 		afc->status = AFC_LOCK_STATUS_NULL;
 		add_timer(&afc->timer);
 		afc->state = true;

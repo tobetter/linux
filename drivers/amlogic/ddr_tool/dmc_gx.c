@@ -29,6 +29,7 @@
 #include <linux/irqreturn.h>
 #include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/highmem.h>
 
 #include <linux/cpu.h>
 #include <linux/smp.h>
@@ -80,12 +81,31 @@ static size_t gx_dmc_dump_reg(char *buf)
 	return sz;
 }
 
+static void show_violation_mem(unsigned long addr)
+{
+	struct page *page;
+	unsigned long *p, *q;
+
+	if (!pfn_valid(__phys_to_pfn(addr)))
+		return;
+
+	page = phys_to_page(addr);
+	p = kmap_atomic(page);
+	if (!p)
+		return;
+
+	q = p + ((addr & (PAGE_SIZE - 1)) / sizeof(*p));
+	pr_info(DMC_TAG "[%08lx]:%016lx, f:%8lx, m:%p, a:%ps\n",
+		(unsigned long)q, *q, page->flags & 0xffffffff,
+		page->mapping,
+		(void *)get_page_trace(page));
+	kunmap_atomic(p);
+}
+
 static void check_violation(struct dmc_monitor *mon)
 {
 	int i, port, subport;
 	unsigned long addr, status;
-	struct page *page;
-	unsigned long *p;
 	char id_str[4];
 
 	for (i = 1; i < 8; i += 2) {
@@ -109,16 +129,7 @@ static void check_violation(struct dmc_monitor *mon)
 		pr_info(DMC_TAG", addr:%08lx, s:%08lx, ID:%s, sub:%s, c:%ld\n",
 			addr, status, to_ports(port),
 			to_sub_ports(port, subport, id_str), mon->same_page);
-		if (pfn_valid(__phys_to_pfn(addr))) {
-			page = phys_to_page(addr);
-			p = (page_address(page) + (addr & (PAGE_SIZE - 1)));
-#if defined(CONFIG_AMLOGIC_PAGE_TRACE)
-			pr_info(DMC_TAG" [%08lx]:%016lx, f:%8lx, m:%p, a:%pf\n",
-				addr, *p, page->flags & 0xffffffff,
-				page->mapping,
-				(void *)get_page_trace(page));
-#endif
-		}
+		show_violation_mem(addr);
 		if (!port) /* dump stack for CPU write */
 			dump_stack();
 

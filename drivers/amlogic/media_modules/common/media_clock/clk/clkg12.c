@@ -30,8 +30,11 @@
 
 #include <linux/amlogic/media/registers/register_ops.h>
 #include "../switch/amports_gate.h"
+#include "../../chips/decoder_cpu_ver_info.h"
+
 #define MHz (1000000)
 #define debug_print pr_info
+#define TL1_HEVC_MAX_CLK  (800)
 
 //#define  NO_CLKTREE
 
@@ -395,6 +398,11 @@ static struct clk_set_setting clks_for_formats[] = {
 						630}, {INT_MAX, 630},
 				}
 		},
+	{/*VFORMAT_AVS2*/
+		{{1280*720*30, 100}, {1920*1080*30, 100},
+		{1920*1080*60, 166}, {4096*2048*30, 333},
+		{4096*2048*60, 630}, {INT_MAX, 630},}
+	},
 
 };
 
@@ -492,12 +500,12 @@ static int vdec_clock_init(void)
 {
 	gp_pll_user_vdec = gp_pll_user_register("vdec", 0,
 		gp_pll_user_cb_vdec);
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL)
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_GXL)
 		is_gp0_div2 = false;
 	else
 		is_gp0_div2 = true;
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXL) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_GXL) {
 		pr_info("used fix clk for vdec clk source!\n");
 		//update_vdec_clk_config_settings(1);
 	}
@@ -597,6 +605,16 @@ static int hevc_clock_init(void)
 
 	return (gp_pll_user_hevc) ? 0 : -ENOMEM;
 }
+static int hevc_back_clock_init(void)
+{
+	return 0;
+}
+
+static int hevc_back_clock_set(int clk)
+{
+	return 0;
+}
+
 static int hevc_clock_set(int clk)
 {
 	int use_gpll = 0;
@@ -701,6 +719,10 @@ static int vdec_clock_set(int clk)
 		clk = 667;
 	}
 
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1 &&
+		get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_TL1)
+		clk = 800;
+
 	if (set_frq_enable && vdec_frq) {
 		pr_info("Set the vdec frq is %u MHz\n", vdec_frq);
 		clk = vdec_frq;
@@ -747,7 +769,10 @@ static int hevc_back_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVCB] == 648)
 		return 648;
-		clk = 667;
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
+			clk = TL1_HEVC_MAX_CLK;
+		else
+			clk = 667;
 	}
 
 	if (set_frq_enable && hevcb_frq) {
@@ -755,7 +780,7 @@ static int hevc_back_clock_set(int clk)
 		clk = hevcb_frq;
 	}
 
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_TXLX) {
+	if (get_cpu_major_id() >= MESON_CPU_MAJOR_ID_TXLX) {
 		if ((READ_EFUSE_REG(EFUSE_LIC1) >> 28 & 0x1) && clk > 333) {
 			pr_info("The hevcb clock limit to 333MHz.\n");
 			clk = 333;
@@ -792,7 +817,10 @@ static int hevc_clock_set(int clk)
 	if ((clk > 500 && clk != 667)) {
 		if (clock_real_clk[VDEC_HEVC] == 648)
 			return 648;
-		clk = 667;
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1)
+			clk = TL1_HEVC_MAX_CLK;
+		else
+			clk = 667;
 	}
 
 	if (set_frq_enable && hevc_frq) {
@@ -977,14 +1005,17 @@ static int vdec_clock_get(enum vdec_type_e core)
 #define VDEC_HAS_VDEC_HCODEC
 #define VDEC_HAS_CLK_SETTINGS
 #define CLK_FOR_CPU {\
-	MESON_CPU_MAJOR_ID_GXBB,\
-	MESON_CPU_MAJOR_ID_GXTVBB,\
-	MESON_CPU_MAJOR_ID_GXL,\
-	MESON_CPU_MAJOR_ID_GXM,\
-	MESON_CPU_MAJOR_ID_TXL,\
-	MESON_CPU_MAJOR_ID_TXLX,\
-	MESON_CPU_MAJOR_ID_G12A,\
-	MESON_CPU_MAJOR_ID_G12B,\
+	AM_MESON_CPU_MAJOR_ID_GXBB,\
+	AM_MESON_CPU_MAJOR_ID_GXTVBB,\
+	AM_MESON_CPU_MAJOR_ID_GXL,\
+	AM_MESON_CPU_MAJOR_ID_GXM,\
+	AM_MESON_CPU_MAJOR_ID_TXL,\
+	AM_MESON_CPU_MAJOR_ID_TXLX,\
+	AM_MESON_CPU_MAJOR_ID_G12A,\
+	AM_MESON_CPU_MAJOR_ID_G12B,\
+	AM_MESON_CPU_MAJOR_ID_SM1,\
+	AM_MESON_CPU_MAJOR_ID_TL1,\
+	AM_MESON_CPU_MAJOR_ID_TM2,\
 	0}
 #include "clk.h"
 

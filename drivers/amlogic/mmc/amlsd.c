@@ -675,6 +675,9 @@ static int aml_is_sduart(struct amlsd_platform *pdata)
 	struct amlsd_host *host = pdata->host;
 	struct sd_emmc_status *ista = (struct sd_emmc_status *)&vstat;
 
+	if (pdata->no_sduart)
+		return 0;
+
 	mutex_lock(&host->pinmux_lock);
 	pc = aml_devm_pinctrl_get_select(host, "sd_to_ao_uart_pins");
 
@@ -750,16 +753,22 @@ void jtag_set_state(unsigned int state, unsigned int select)
 
 void jtag_select_ao(void)
 {
+	struct cpumask org_cpumask;
+
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
 	jtag_set_state(AMLOGIC_JTAG_STATE_ON, AMLOGIC_JTAG_APAO);
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 }
 
 void jtag_select_sd(void)
 {
+	struct cpumask org_cpumask;
+
+	cpumask_copy(&org_cpumask, &current->cpus_allowed);
 	set_cpus_allowed_ptr(current, cpumask_of(0));
 	jtag_set_state(AMLOGIC_JTAG_STATE_ON, AMLOGIC_JTAG_APEE);
-	set_cpus_allowed_ptr(current, cpu_all_mask);
+	set_cpus_allowed_ptr(current, &org_cpumask);
 }
 #endif
 
@@ -852,7 +861,8 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			return 1;
 		pdata->is_in = true;
 		pdata->gpio_cd_sta = true;
-		if (aml_is_sduart(pdata)) {
+		if ((host->data->chip_type < MMC_CHIP_TL1)
+				&& aml_is_sduart(pdata)) {
 			aml_uart_switch(pdata, 1);
 			pr_info("Uart in\n");
 			mmc->caps &= ~MMC_CAP_4_BIT_DATA;
@@ -867,8 +877,10 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			}
 		} else {
 			pr_info("normal card in\n");
-			aml_uart_switch(pdata, 0);
-			aml_jtag_switch_ao(pdata);
+			if (host->data->chip_type < MMC_CHIP_TL1) {
+				aml_uart_switch(pdata, 0);
+				aml_jtag_switch_ao(pdata);
+			}
 			if (host->data->chip_type == MMC_CHIP_G12A)
 				host->is_sduart = 0;
 			if (pdata->caps & MMC_CAP_4_BIT_DATA)
@@ -890,8 +902,10 @@ int aml_sd_uart_detect(struct amlsd_platform *pdata)
 			host->is_sduart = 0;
 		if (mmc && mmc->card)
 			mmc_card_set_removed(mmc->card);
-		aml_uart_switch(pdata, 0);
-		aml_jtag_switch_ao(pdata);
+		if (host->data->chip_type < MMC_CHIP_TL1) {
+			aml_uart_switch(pdata, 0);
+			aml_jtag_switch_ao(pdata);
+		}
 		/* switch to 3.3V */
 		aml_sd_voltage_switch(mmc,
 				MMC_SIGNAL_VOLTAGE_330);

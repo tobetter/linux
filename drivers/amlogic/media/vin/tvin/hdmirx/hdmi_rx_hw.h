@@ -1171,6 +1171,7 @@ extern void rx_hpd_to_esm_handle(struct work_struct *work);
 extern void rx_hdcp14_resume(void);
 extern void hdmirx_load_firm_reset(int type);
 extern unsigned int hdmirx_packet_fifo_rst(void);
+extern void rx_afifo_store_all_subpkt(bool all_pkt);
 extern unsigned int hdmirx_audio_fifo_rst(void);
 extern void hdmirx_phy_init(void);
 extern void hdmirx_hw_config(void);

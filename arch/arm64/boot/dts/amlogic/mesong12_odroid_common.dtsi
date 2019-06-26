@@ -46,12 +46,12 @@
 		status = "okay";
 	};
 
-	ppmgr {
-		compatible = "amlogic, ppmgr";
-		memory-region = <&ppmgr_reserved>;
-		dev_name = "ppmgr";
-		status = "okay";
-	};
+        ppmgr {
+                compatible = "amlogic, ppmgr";
+                memory-region = <&ppmgr_reserved>;
+                dev_name = "ppmgr";
+                status = "okay";
+        };
 
 	ionvideo {
 		compatible = "amlogic, ionvideo";
@@ -189,6 +189,8 @@
 		write_cmd = <0x82000031>;
 		get_max_cmd = <0x82000033>;
 		key = <&efusekey>;
+		clocks = <&clkc CLKID_EFUSE>;
+		clock-names = "efuse_clk";
 		status = "okay";
 	};
 
@@ -525,8 +527,8 @@
 		};
 	};
 	spdifout: spdifout {
-		mux {/* GPIOA_11 */
-			groups = "spdif_out_a11";
+		mux {/* GPIOA_13 */
+			groups = "spdif_out_a13";
 			function = "spdif_out";
 		};
 	};

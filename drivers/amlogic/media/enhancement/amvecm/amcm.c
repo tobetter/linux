@@ -30,6 +30,7 @@
 #include "amcm_regmap.h"
 #include <linux/amlogic/media/amdolbyvision/dolby_vision.h>
 #include "amcsc.h"
+#include "local_contrast.h"
 
 #define pr_amcm_dbg(fmt, args...)\
 	do {\
@@ -161,8 +162,8 @@ void am_set_regmap(struct am_regs_s *p)
 
 			if (!cm_en) {
 				if (p->am_reg[i].addr == 0x208) {
-					if (get_cpu_type() ==
-						MESON_CPU_MAJOR_ID_TL1)
+					if (get_cpu_type() >=
+						MESON_CPU_MAJOR_ID_G12A)
 						p->am_reg[i].val =
 						p->am_reg[i].val & 0xfffffffe;
 					else
@@ -244,6 +245,14 @@ void am_set_regmap(struct am_regs_s *p)
 			} else {
 				if (p->am_reg[i].addr == 0x1d26)
 					break;
+				if (p->am_reg[i].addr == SRSHARP1_LC_TOP_CTRL) {
+					temp =
+					(p->am_reg[i].val & p->am_reg[i].mask)
+						>> 4;
+					temp &= 0x1;
+					if (!temp && lc_en)
+						lc_en = 0;
+				}
 				if (pq_reg_wr_rdma)
 					VSYNC_WR_MPEG_REG(p->am_reg[i].addr,
 					(aml_read_vcbus(p->am_reg[i].addr) &
@@ -270,7 +279,7 @@ void amcm_disable(void)
 
 	WRITE_VPP_REG(VPP_CHROMA_ADDR_PORT, 0x208);
 	temp = READ_VPP_REG(VPP_CHROMA_DATA_PORT);
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
 		if (temp & 0x1) {
 			WRITE_VPP_REG(VPP_CHROMA_ADDR_PORT,
 				0x208);
@@ -296,7 +305,7 @@ void amcm_enable(void)
 		WRITE_VPP_REG_BITS(VPP_MISC, 1, 28, 1);
 	WRITE_VPP_REG(VPP_CHROMA_ADDR_PORT, 0x208);
 	temp = READ_VPP_REG(VPP_CHROMA_DATA_PORT);
-	if (get_cpu_type() == MESON_CPU_MAJOR_ID_TL1) {
+	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_G12A) {
 		if (!(temp & 0x1)) {
 			WRITE_VPP_REG(VPP_CHROMA_ADDR_PORT,
 				0x208);
@@ -422,7 +431,10 @@ void cm_latch_process(void)
 	} while (0);
 	if (cm_en && (cm_level_last != cm_level)) {
 		cm_level_last = cm_level;
-		if ((!is_meson_gxtvbb_cpu()) && (!is_meson_txl_cpu()))
+		if ((!is_meson_gxtvbb_cpu()) &&
+			(!is_meson_txl_cpu()) &&
+			(!is_meson_txlx_cpu()) &&
+			(!is_meson_tl1_cpu()))
 			amcm_level_sel(cm_level);
 		amcm_enable();
 		pr_amcm_dbg("\n[amcm..] set cm2 load OK!!!\n");

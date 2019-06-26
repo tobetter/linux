@@ -14,7 +14,7 @@
  * more details.
  *
  */
-
+#define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -44,6 +44,7 @@
 #include <linux/amlogic/media/utils/amports_config.h>
 #include "firmware.h"
 #include <linux/amlogic/tee.h>
+#include "../../../common/chips/decoder_cpu_ver_info.h"
 
 #define MC_SIZE (4096 * 16)
 
@@ -73,14 +74,14 @@ static void amvdec_pg_enable(bool enable)
 		/* AMVDEC_CLK_GATE_ON(VLD_CLK); */
 		AMVDEC_CLK_GATE_ON(AMRISC);
 		/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6TVD */
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M8)
+		if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M8)
 			WRITE_VREG(GCLK_EN, 0x3ff);
 		/* #endif */
 		CLEAR_VREG_MASK(MDEC_PIC_DC_CTRL, 1 << 31);
 	} else {
 
 		AMVDEC_CLK_GATE_OFF(AMRISC);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(MDEC_PIC_DC_STATUS) != 0) {
 			if (time_after(jiffies, timeout)) {
@@ -94,7 +95,7 @@ static void amvdec_pg_enable(bool enable)
 		}
 
 		AMVDEC_CLK_GATE_OFF(MDEC_CLK_PIC_DC);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(DBLK_STATUS) & 1) {
 			if (time_after(jiffies, timeout)) {
@@ -107,7 +108,7 @@ static void amvdec_pg_enable(bool enable)
 			}
 		}
 		AMVDEC_CLK_GATE_OFF(MDEC_CLK_DBLK);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 
 		while (READ_VREG(MC_STATUS0) & 1) {
 			if (time_after(jiffies, timeout)) {
@@ -120,7 +121,7 @@ static void amvdec_pg_enable(bool enable)
 			}
 		}
 		AMVDEC_CLK_GATE_OFF(MC_CLK);
-		timeout = jiffies + HZ / 10;
+		timeout = jiffies + HZ / 100;
 		while (READ_VREG(DCAC_DMA_CTRL) & 0x8000) {
 			if (time_after(jiffies, timeout))
 				break;
@@ -266,7 +267,7 @@ static s32 am_vdec_loadmc_ex(struct vdec_s *vdec,
 		pr_err("loading firmware %s to vdec ram  failed!\n", name);
 		return err;
 	}
-	pr_debug("loading firmware %s to vdec ram  ok!\n", name);
+
 	return err;
 }
 
@@ -285,7 +286,7 @@ static s32 am_vdec_loadmc_buf_ex(struct vdec_s *vdec,
 		pr_err("loading firmware to vdec ram  failed!\n");
 		return err;
 	}
-	pr_debug("loading firmware to vdec ram  ok!\n");
+
 	return err;
 }
 
@@ -311,10 +312,11 @@ static s32 am_loadmc_ex(enum vformat_e type,
 	err = (*load)((u32 *) pmc_addr);
 	if (err < 0) {
 		pr_err("loading firmware %s to vdec ram  failed!\n", name);
+		vfree(mc_addr);
 		return err;
 	}
 	vfree(mc_addr);
-	pr_debug("loading firmware %s to vdec ram  ok!\n", name);
+
 	return err;
 }
 
@@ -379,6 +381,7 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 	unsigned int format = FIRMWARE_MAX;
 	unsigned int vdec = OPTEE_VDEC_LEGENCY;
 	char *name = __getname();
+	bool is_swap = false;
 
 	sprintf(name, "%s", fw_name ? fw_name : "null");
 
@@ -395,11 +398,17 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_MPEG12:
-		format = VIDEO_DEC_MPEG12;
+		if (!strcmp(name, "mpeg12"))
+			format = VIDEO_DEC_MPEG12;
+		else if (!strcmp(name, "mmpeg12"))
+			format = VIDEO_DEC_MPEG12_MULTI;
 		break;
 
 	case VFORMAT_MJPEG:
-		format = VIDEO_DEC_MJPEG;
+		if (!strcmp(name, "mmjpeg"))
+			format = VIDEO_DEC_MJPEG_MULTI;
+		else
+			format = VIDEO_DEC_MJPEG;
 		break;
 
 	case VFORMAT_VP9:
@@ -415,10 +424,14 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_HEVC:
-		if (!strcmp(name, "vh265_mc"))
-			format = VIDEO_DEC_HEVC;
-		else
+		if (!strcmp(name, "h265_mmu"))
 			format = VIDEO_DEC_HEVC_MMU;
+		else if (!strcmp(name, "hevc_mmu_swap")) {
+			format = VIDEO_DEC_HEVC_MMU_SWAP;
+			vdec = OPTEE_VDEC_HEVC;
+			is_swap = true;
+		} else
+			format = VIDEO_DEC_HEVC;
 		break;
 
 	case VFORMAT_REAL:
@@ -429,30 +442,53 @@ s32 optee_load_fw(enum vformat_e type, const char *fw_name)
 		break;
 
 	case VFORMAT_MPEG4:
-		if (!strcmp(name, "vmpeg4_mc_311"))
-			format = VIDEO_DEC_MPEG4_3;
-		else if (!strcmp(name, "vmpeg4_mc_4"))
-			format = VIDEO_DEC_MPEG4_4;
+		if (!strcmp(name, "mmpeg4_mc_5"))
+			format = VIDEO_DEC_MPEG4_5_MULTI;
+		else if ((!strcmp(name, "mh263_mc")))
+			format = VIDEO_DEC_H263_MULTI;
 		else if (!strcmp(name, "vmpeg4_mc_5"))
 			format = VIDEO_DEC_MPEG4_5;
 		else if (!strcmp(name, "h263_mc"))
-			format = VIDEO_DEC_FORMAT_H263;
+			format = VIDEO_DEC_H263;
+		/*not support now*/
+		else if (!strcmp(name, "vmpeg4_mc_311"))
+			format = VIDEO_DEC_MPEG4_3;
+		else if (!strcmp(name, "vmpeg4_mc_4"))
+			format = VIDEO_DEC_MPEG4_4;
+		break;
+
+	case VFORMAT_H264_4K2K:
+		if (!strcmp(name, "single_core"))
+			format = VIDEO_DEC_H264_4k2K_SINGLE;
+		else
+			format = VIDEO_DEC_H264_4k2K;
+		break;
+
+	case VFORMAT_H264MVC:
+		format = VIDEO_DEC_H264_MVC;
+		break;
+
+	case VFORMAT_H264:
+		if (!strcmp(name, "mh264"))
+			format = VIDEO_DEC_H264_MULTI;
+		else if (!strcmp(name, "mh264_mmu")) {
+			format = VIDEO_DEC_H264_MULTI_MMU;
+			vdec = OPTEE_VDEC_HEVC;
+		} else
+			format = VIDEO_DEC_H264;
 		break;
 
 	default:
-		if (!strcmp(name, "vh265_mc"))
-			format = VIDEO_DEC_HEVC;
-		else if (!strcmp(name, "vh265_mc_mmu"))
-			format = VIDEO_DEC_HEVC_MMU;
-		else if (!strcmp(name, "vmmjpeg_mc"))
-			format = VIDEO_DEC_MJPEG_MULTI;
-		else
-			pr_info("unknow dec format\n");
+		pr_info("Unknow vdec format!\n");
 		break;
 	}
 
-	if (format < FIRMWARE_MAX)
-		ret = tee_load_video_fw(format, vdec);
+	if (format < FIRMWARE_MAX) {
+		if (is_swap)
+			ret = tee_load_video_fw_swap(format, vdec, is_swap);
+		else
+			ret = tee_load_video_fw(format, vdec);
+	}
 
 	__putname(name);
 
@@ -469,18 +505,23 @@ s32 amvdec_loadmc_ex(enum vformat_e type, const char *name, char *def)
 }
 EXPORT_SYMBOL(amvdec_loadmc_ex);
 
-s32 amvdec_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
+s32 amvdec_vdec_loadmc_ex(enum vformat_e type, const char *name,
+	struct vdec_s *vdec, char *def)
 {
 	if (tee_enabled())
-		return optee_load_fw(FIRMWARE_MAX, name);
+		return optee_load_fw(type, name);
 	else
-	return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
+		return am_vdec_loadmc_ex(vdec, name, def, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_ex);
 
-s32 amvdec_vdec_loadmc_buf_ex(struct vdec_s *vdec, char *buf, int size)
+s32 amvdec_vdec_loadmc_buf_ex(enum vformat_e type, const char *name,
+	struct vdec_s *vdec, char *buf, int size)
 {
-	return am_vdec_loadmc_buf_ex(vdec, buf, size, &amvdec_loadmc);
+	if (tee_enabled())
+		return optee_load_fw(type, name);
+	else
+		return am_vdec_loadmc_buf_ex(vdec, buf, size, &amvdec_loadmc);
 }
 EXPORT_SYMBOL(amvdec_vdec_loadmc_buf_ex);
 
@@ -659,19 +700,20 @@ s32 amhevc_loadmc_ex(enum vformat_e type, const char *name, char *def)
 		else
 			return am_loadmc_ex(type, name, def, &amhevc_loadmc);
 	else
-		return 0;
+		return -1;
 }
 EXPORT_SYMBOL(amhevc_loadmc_ex);
 
-s32 amhevc_vdec_loadmc_ex(struct vdec_s *vdec, const char *name, char *def)
+s32 amhevc_vdec_loadmc_ex(enum vformat_e type, struct vdec_s *vdec,
+	const char *name, char *def)
 {
 	if (has_hevc_vdec())
 		if (tee_enabled())
-			return optee_load_fw(FIRMWARE_MAX, name);
+			return optee_load_fw(type, name);
 		else
-		return am_vdec_loadmc_ex(vdec, name, def, &amhevc_loadmc);
+			return am_vdec_loadmc_ex(vdec, name, def, &amhevc_loadmc);
 	else
-		return 0;
+		return -1;
 }
 EXPORT_SYMBOL(amhevc_vdec_loadmc_ex);
 
@@ -682,7 +724,7 @@ void amvdec_start(void)
 #endif
 
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
@@ -768,7 +810,7 @@ EXPORT_SYMBOL(amhevc_start);
 
 void amvdec_stop(void)
 {
-	ulong timeout = jiffies + HZ;
+	ulong timeout = jiffies + HZ/10;
 
 	WRITE_VREG(MPSR, 0);
 	WRITE_VREG(CPSR, 0);
@@ -778,8 +820,14 @@ void amvdec_stop(void)
 			break;
 	}
 
+	timeout = jiffies + HZ/10;
+	while (READ_VREG(LMEM_DMA_CTRL) & 0x8000) {
+		if (time_after(jiffies, timeout))
+			break;
+	}
+
 	/* #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6 */
-	if (get_cpu_type() >= MESON_CPU_MAJOR_ID_M6) {
+	if (get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_M6) {
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
 		READ_VREG(DOS_SW_RESET0);
@@ -811,7 +859,7 @@ EXPORT_SYMBOL(amvdec_stop);
 void amvdec2_stop(void)
 {
 	if (has_vdec2()) {
-		ulong timeout = jiffies + HZ;
+		ulong timeout = jiffies + HZ/10;
 
 		WRITE_VREG(VDEC2_MPSR, 0);
 		WRITE_VREG(VDEC2_CPSR, 0);
@@ -841,12 +889,18 @@ EXPORT_SYMBOL(amhcodec_stop);
 void amhevc_stop(void)
 {
 	if (has_hevc_vdec()) {
-		ulong timeout = jiffies + HZ;
+		ulong timeout = jiffies + HZ/10;
 
 		WRITE_VREG(HEVC_MPSR, 0);
 		WRITE_VREG(HEVC_CPSR, 0);
 
 		while (READ_VREG(HEVC_IMEM_DMA_CTRL) & 0x8000) {
+			if (time_after(jiffies, timeout))
+				break;
+		}
+
+		timeout = jiffies + HZ/10;
+		while (READ_VREG(HEVC_LMEM_DMA_CTRL) & 0x8000) {
 			if (time_after(jiffies, timeout))
 				break;
 		}

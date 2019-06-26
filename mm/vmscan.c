@@ -1315,6 +1315,9 @@ static int filecache_need_migrate(struct page *page)
 	if (!PageActive(page) && page_mapcount(page) >= INACTIVE_MIGRATE)
 		return 1;
 
+	if (PageUnevictable(page))
+		return 0;
+
 	return 0;
 }
 #endif

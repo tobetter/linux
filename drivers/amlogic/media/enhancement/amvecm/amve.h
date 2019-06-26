@@ -110,6 +110,8 @@ extern void ve_lcd_gamma_process(void);
 extern void lvds_freq_process(void);
 extern void ve_dnlp_param_update(void);
 extern void ve_new_dnlp_param_update(void);
+extern void ve_lc_curve_update(void);
+extern void ve_lc_latch_process(void);
 extern void ve_ogo_param_update(void);
 extern void am_set_regmap(struct am_regs_s *p);
 extern void sharpness_process(struct vframe_s *vf);
@@ -155,6 +157,7 @@ extern void amve_sharpness_adaptive_setting(struct vframe_s *vf,
 extern void amve_sharpness_init(void);
 extern struct am_regs_s sr1reg_sd_scale;
 extern struct am_regs_s sr1reg_hd_scale;
+extern struct am_regs_s sr0reg_cvbs;
 extern struct am_regs_s sr1reg_cvbs;
 extern struct am_regs_s sr1reg_hv_noscale;
 extern void amvecm_fresh_overscan(struct vframe_s *vf);

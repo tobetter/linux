@@ -3736,6 +3736,21 @@ void get_hdr_source_type(void)
 		hdr_source_type = SDR_SOURCE;
 }
 
+enum color_primary_e get_color_primary(void)
+{
+	enum color_primary_e color_pri;
+
+	if (signal_color_primaries == 1)
+		color_pri = VPP_COLOR_PRI_BT709;
+	else if (signal_color_primaries == 3)
+		color_pri = VPP_COLOR_PRI_BT601;
+	else if (signal_color_primaries == 9)
+		color_pri = VPP_COLOR_PRI_BT2020;
+	else
+		color_pri = VPP_COLOR_PRI_NULL;
+	return color_pri;
+}
+
 static void cal_out_curve(uint panel_luma)
 {
 	int index;
@@ -6521,9 +6536,8 @@ int amvecm_matrix_process(
 			toggle_frame = 0;
 		/* when sdr mode change */
 		if ((vinfo->hdr_info.hdr_support & 0x4) &&
-			((get_cpu_type() == MESON_CPU_MAJOR_ID_GXL) ||
-			(get_cpu_type() == MESON_CPU_MAJOR_ID_GXM) ||
-			(get_cpu_type() == MESON_CPU_MAJOR_ID_G12A)))
+			((cpu_after_eq(MESON_CPU_MAJOR_ID_GXL)) &&
+			(vinfo->viu_color_fmt != COLOR_FMT_RGB444)))
 			if (((sdr_process_mode != 1) && (sdr_mode > 0))
 				|| ((sdr_process_mode > 0) && (sdr_mode == 0)))
 				null_vf_cnt = toggle_frame;

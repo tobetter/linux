@@ -17,7 +17,11 @@
 
 #ifndef __TVIN_VDIN_CTL_H
 #define __TVIN_VDIN_CTL_H
-
+#include <linux/highmem.h>
+#include <linux/page-flags.h>
+#include <linux/vmalloc.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-contiguous.h>
 #include "vdin_drv.h"
 
 #define DV_SWAP_EN	(1 << 0)
@@ -111,10 +115,16 @@ struct ldim_max_s {
 #endif
 
 extern unsigned int game_mode;
+extern bool vdin_dbg_en;
 
 /* ************************************************************************ */
 /* ******** GLOBAL FUNCTION CLAIM ******** */
 /* ************************************************************************ */
+extern u8 *vdin_vmap(ulong addr, u32 size);
+extern void vdin_unmap_phyaddr(u8 *vaddr);
+extern void vdin_dma_flush(struct vdin_dev_s *devp, void *vaddr,
+		int size, enum dma_data_direction dir);
+
 extern void vdin_set_vframe_prop_info(struct vframe_s *vf,
 		struct vdin_dev_s *devp);
 extern void LDIM_Initial_2(int pic_h, int pic_v, int BLK_Vnum,

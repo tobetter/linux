@@ -71,6 +71,7 @@
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
 #include <linux/workqueue.h>
+#include <linux/amlogic/cpu_version.h>
 #ifdef CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND
 #include <linux/amlogic/pm.h>
 #endif
@@ -957,6 +958,7 @@ static int dwc_otg_driver_probe(struct platform_device *pdev)
 	unsigned int p_ctrl_reg_addr = 0;
 	unsigned int phy_reg_addr_size = 0;
 	unsigned int phy_interface = 1;
+	unsigned int phy_otg = 0;
 	const char *s_clock_name = NULL;
 	const char *cpu_type = NULL;
 	const char *gpio_name = NULL;
@@ -1058,6 +1060,15 @@ static int dwc_otg_driver_probe(struct platform_device *pdev)
 			if (prop)
 				phy_interface = of_read_ulong(prop, 1);
 
+			prop = of_get_property(of_node, "phy-otg", NULL);
+			if (prop)
+				phy_otg = of_read_ulong(prop, 1);
+
+			if (is_meson_g12b_cpu()) {
+				if (!is_meson_rev_a())
+					phy_interface = 2;
+			}
+
 			dwc_otg_module_params.host_rx_fifo_size = dwc_otg_module_params.data_fifo_size / 2;
 			DWC_PRINTF("dwc_otg: %s: type: %d speed: %d, ",
 				s_clock_name, port_type, port_speed);
@@ -1156,6 +1167,7 @@ static int dwc_otg_driver_probe(struct platform_device *pdev)
 	dwc_otg_device->core_if->usb_peri_reg = (usb_peri_reg_t *)phy_reg_addr;
 	dwc_otg_device->core_if->controller_type = controller_type;
 	dwc_otg_device->core_if->phy_interface = phy_interface;
+	dwc_otg_device->core_if->phy_otg = phy_otg;
 	/*
 	* Attempt to ensure this device is really a DWC_otg Controller.
 	* Read and verify the SNPSID register contents. The value should be
@@ -1401,10 +1413,14 @@ static int dwc_otg_driver_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_AMLOGIC_USB3PHY
 	if (dwc_otg_device->core_if->controller_type == USB_OTG) {
-		if (dwc_otg_device->core_if->phy_interface == 1)
+		if (dwc_otg_device->core_if->phy_interface == 1) {
 			aml_new_usb_init();
-		else
-			aml_new_usb_v2_init();
+		} else {
+			if (dwc_otg_device->core_if->phy_otg)
+				aml_new_otg_init();
+			else
+				aml_new_usb_v2_init();
+		}
 	}
 #endif
 

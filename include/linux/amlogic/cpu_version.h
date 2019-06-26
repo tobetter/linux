@@ -15,6 +15,9 @@
  *
  */
 
+/*
+ * All of these api should be call after early_initcall stage
+ */
 #ifndef __PLAT_MESON_CPU_H
 #define __PLAT_MESON_CPU_H
 
@@ -31,8 +34,10 @@
 
 #define MESON_CPU_MAJOR_ID_G12A		0x28
 #define MESON_CPU_MAJOR_ID_G12B		0x29
+#define MESON_CPU_MAJOR_ID_SM1		0x2B
 
 #define MESON_CPU_MAJOR_ID_TL1		0x2E
+#define MESON_CPU_MAJOR_ID_TM2		0x2F
 
 #define MESON_CPU_VERSION_LVL_MAJOR	0
 #define MESON_CPU_VERSION_LVL_MINOR	1
@@ -150,6 +155,11 @@ static inline bool is_meson_txl_cpu(void)
 	return get_cpu_type() == MESON_CPU_MAJOR_ID_TXL;
 }
 
+static inline bool is_meson_txl_package_950(void)
+{
+	return is_meson_txl_cpu() && package_id_is(0x20);
+}
+
 static inline bool is_meson_txlx_cpu(void)
 {
 	return get_cpu_type() == MESON_CPU_MAJOR_ID_TXLX;
@@ -185,6 +195,15 @@ static inline bool is_meson_tl1_cpu(void)
 	return get_cpu_type() == MESON_CPU_MAJOR_ID_TL1;
 }
 
+static inline bool is_meson_sm1_cpu(void)
+{
+	return get_cpu_type() == MESON_CPU_MAJOR_ID_SM1;
+}
+static inline bool is_meson_tm2_cpu(void)
+{
+	return get_cpu_type() == MESON_CPU_MAJOR_ID_TM2;
+}
+
 static inline bool cpu_after_eq(unsigned int id)
 {
 	return get_cpu_type() >= id;
@@ -199,4 +218,20 @@ static inline bool is_meson_txlx_package_962E(void)
 {
 	return is_meson_txlx_cpu() && package_id_is(0x20);
 }
+
+static inline bool is_meson_rev_a(void)
+{
+	return (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MINOR) == 0xA);
+}
+
+static inline bool is_meson_rev_b(void)
+{
+	return (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MINOR) == 0xB);
+}
+
+static inline bool is_meson_rev_c(void)
+{
+	return (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MINOR) == 0xC);
+}
+
 #endif

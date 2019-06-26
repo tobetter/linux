@@ -43,8 +43,10 @@ void DI_VSYNC_WR_MPEG_REG_BITS(unsigned int addr,
 	unsigned int val, unsigned int start, unsigned int len);
 
 #define HHI_VPU_CLKB_CNTL	0x83
-#define VPU_WRARB_REQEN_SLV_L1C1	((0x2795)) /* << 2) + 0xd0100000) */
-#define VPU_ARB_DBG_STAT_L1C1		((0x27b4)) /* << 2) + 0xd0100000) */
+
+#define DI_WRARB_REQEN_SLV_L1C1_OLD	0x2795
+#define DI_RDARB_REQEN_SLV_L1C1_OLD	0x2791
+#define DI_ARB_DBG_STAT_L1C1_OLD		0x27b4
 
 #define VIUB_SW_RESET					0x2001
 #define VIUB_SW_RESET0					0x2002
@@ -210,6 +212,15 @@ void DI_VSYNC_WR_MPEG_REG_BITS(unsigned int addr,
 #define DI_HSC_INI_PAT_CTRL				0x376b
 #define DI_SC_GCLK_CTRL					0x376c
 #define DI_SC_HOLD_LINE					0x376d
+
+/* DI H DOWN SCALER */
+#define DI_VIU_HSC_WIDTHM1				0x37b0
+#define DI_VIU_HSC_PHASE_STEP				0x37b1
+#define DI_VIU_HSC_CTRL					0x37b2
+#define DI_VIU_HSC_PHASE_CTRL				0x37b3
+#define DI_VIU_HSC_COEF					0x37b4
+#define DI_VIU_HSC_COEF_IDX				0x37b5
+
 /* NR DOWNSAMPLE */
 #define NRDSWR_X						0x37f9
 #define NRDSWR_Y						0x37fa

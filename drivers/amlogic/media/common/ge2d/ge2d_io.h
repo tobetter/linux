@@ -21,6 +21,8 @@
 #include <linux/io.h>
 #include <linux/amlogic/iomap.h>
 #include <linux/amlogic/cpu_version.h>
+#include <linux/amlogic/media/registers/regs/ao_regs.h>
+#include <linux/amlogic/power_ctrl.h>
 
 #include "ge2d_log.h"
 
@@ -129,5 +131,56 @@ static inline void ge2d_reg_set_bits(uint32_t reg,
 			      (((value) & ((1L << (len)) - 1)) << (start))));
 }
 
+static void ge2d_hiu_setb(unsigned int _reg, unsigned int _value,
+		unsigned int _start, unsigned int _len)
+{
+	aml_write_hiubus(_reg, ((aml_read_hiubus(_reg) &
+			~(((1L << (_len))-1) << (_start))) |
+			(((_value)&((1L<<(_len))-1)) << (_start))));
+}
 
+static void ge2d_ao_setb(unsigned int _reg, unsigned int _value,
+		unsigned int _start, unsigned int _len)
+{
+	aml_write_aobus(_reg, ((aml_read_aobus(_reg) &
+			~(((1L << (_len))-1) << (_start))) |
+			(((_value)&((1L<<(_len))-1)) << (_start))));
+}
+
+static void ge2d_c_setb(unsigned int _reg, unsigned int _value,
+		unsigned int _start, unsigned int _len)
+{
+	aml_write_cbus(_reg, ((aml_read_cbus(_reg) &
+			~(((1L << (_len))-1) << (_start))) |
+			(((_value)&((1L<<(_len))-1)) << (_start))));
+}
+
+static inline void ge2d_set_pwr_tbl_bits(unsigned int table_type,
+			unsigned int reg, unsigned int val,
+			unsigned int start, unsigned int len)
+{
+	switch (table_type) {
+	case CBUS_BASE:
+		ge2d_c_setb(reg, val, start, len);
+	break;
+	case AOBUS_BASE:
+		ge2d_ao_setb(reg, val, start, len);
+	break;
+	case HIUBUS_BASE:
+		ge2d_hiu_setb(reg, val, start, len);
+	break;
+	case GEN_PWR_SLEEP0:
+		power_ctrl_sleep(val ? 0 : 1, start);
+	break;
+	case GEN_PWR_ISO0:
+		power_ctrl_iso(val ? 0 : 1, start);
+	break;
+	case MEM_PD_REG0:
+		power_ctrl_mempd0(val ? 0 : 1, 0xFF, start);
+	break;
+	default:
+		ge2d_log_err("unsupported bus type\n");
+	break;
+	}
+}
 #endif

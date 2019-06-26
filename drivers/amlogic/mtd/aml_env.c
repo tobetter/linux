@@ -189,6 +189,10 @@ ssize_t uboot_env_read(struct file *file,
 	u8 *env_ptr = NULL;
 	ssize_t read_size = 0;
 	int ret = 0;
+	struct nand_chip *chip = &aml_chip_env->chip;
+	struct mtd_info *mtd = aml_chip_env->mtd;
+	loff_t addr;
+	int chipnr;
 
 	if (*ppos == CONFIG_ENV_SIZE)
 		return 0;
@@ -201,7 +205,11 @@ ssize_t uboot_env_read(struct file *file,
 	env_ptr = vmalloc(CONFIG_ENV_SIZE + 2048);
 	if (env_ptr == NULL)
 		return -ENOMEM;
-	mutex_lock(&env_mutex);
+
+	addr = *ppos;
+	nand_get_device(mtd, FL_READING);
+	chipnr = (int)(addr >> chip->chip_shift);
+	chip->select_chip(mtd, chipnr);
 
 	/*amlnand_get_device(aml_chip_env, CHIP_READING);*/
 	ret = amlnf_env_read((u8 *)env_ptr, CONFIG_ENV_SIZE);
@@ -220,7 +228,8 @@ ssize_t uboot_env_read(struct file *file,
 	ret = copy_to_user(buf, (env_ptr + *ppos), read_size);
 	*ppos += read_size;
 exit:
-	mutex_unlock(&env_mutex);
+	chip->select_chip(mtd, -1);
+	nand_release_device(mtd);
 	/*amlnand_release_device(aml_chip_env);*/
 	vfree(env_ptr);
 	return read_size;
@@ -233,6 +242,10 @@ ssize_t uboot_env_write(struct file *file,
 	u8 *env_ptr = NULL;
 	ssize_t write_size = 0;
 	int ret = 0;
+	struct nand_chip *chip = &aml_chip_env->chip;
+	struct mtd_info *mtd = aml_chip_env->mtd;
+	loff_t addr;
+	int chipnr;
 
 	if (*ppos == CONFIG_ENV_SIZE)
 		return 0;
@@ -246,7 +259,10 @@ ssize_t uboot_env_write(struct file *file,
 	if (env_ptr == NULL)
 		return -ENOMEM;
 
-	mutex_lock(&env_mutex);
+	addr = *ppos;
+	nand_get_device(mtd, FL_WRITING);
+	chipnr = (int)(addr >> chip->chip_shift);
+	chip->select_chip(mtd, chipnr);
 
 	if ((*ppos + count) > CONFIG_ENV_SIZE)
 		write_size = CONFIG_ENV_SIZE - *ppos;
@@ -264,7 +280,8 @@ ssize_t uboot_env_write(struct file *file,
 
 	*ppos += write_size;
 exit:
-	mutex_unlock(&env_mutex);
+	chip->select_chip(mtd, -1);
+	nand_release_device(mtd);
 	vfree(env_ptr);
 	return write_size;
 }

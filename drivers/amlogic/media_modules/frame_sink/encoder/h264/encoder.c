@@ -762,6 +762,9 @@ static void avc_buffspec_init(struct encode_wq_s *wq)
 		wq->mem.buf_start + wq->mem.bufspec.cbr_info.buf_start;
 	wq->mem.cbr_info_ddr_size =
 		wq->mem.bufspec.cbr_info.buf_size;
+	wq->mem.cbr_info_ddr_virt_addr =
+		codec_mm_vmap(wq->mem.cbr_info_ddr_start_addr,
+		            wq->mem.bufspec.cbr_info.buf_size);
 
 	wq->mem.dblk_buf_canvas =
 		((ENC_CANVAS_OFFSET + 2) << 16) |
@@ -1059,6 +1062,9 @@ static int scale_frame(struct encode_wq_s *wq,
 			|| (request->fmt == FMT_NV12)) {
 			src_canvas = src_addr & 0xffff;
 			input_format = GE2D_FORMAT_M24_NV21;
+		} else if (request->fmt == FMT_BGR888) {
+			src_canvas = src_addr & 0xffffff;
+			input_format = GE2D_FORMAT_S24_RGB; //Opposite color after ge2d
 		} else {
 			src_canvas = src_addr & 0xffffff;
 			input_format = GE2D_FORMAT_M24_YUV420;
@@ -1082,6 +1088,16 @@ static int scale_frame(struct encode_wq_s *wq,
 				((ENC_CANVAS_OFFSET + 10) << 8)
 				| (ENC_CANVAS_OFFSET + 9);
 			input_format = GE2D_FORMAT_M24_NV21;
+		} else if (request->fmt == FMT_BGR888) {
+			src_canvas_w =
+				((request->src_w + 31) >> 5) << 5;
+			canvas_config(ENC_CANVAS_OFFSET + 9,
+				src_addr,
+				src_canvas_w * 3, src_h,
+				CANVAS_ADDR_NOWRAP,
+				CANVAS_BLKMODE_LINEAR);
+			src_canvas = ENC_CANVAS_OFFSET + 9;
+			input_format = GE2D_FORMAT_S24_RGB; //Opposite color after ge2d
 		} else {
 			src_canvas_w =
 				((request->src_w + 63) >> 6) << 6;
@@ -1169,6 +1185,7 @@ static int scale_frame(struct encode_wq_s *wq,
 	ge2d_config->dst_para.height = dst_h;
 	ge2d_config->dst_para.x_rev = 0;
 	ge2d_config->dst_para.y_rev = 0;
+
 	if (ge2d_context_config_ex(context, ge2d_config) < 0) {
 		pr_err("++ge2d configing error.\n");
 		return -1;
@@ -2401,7 +2418,11 @@ static s32 avc_poweron(u32 clock)
 	/* Powerup HCODEC */
 	/* [1:0] HCODEC */
 	WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-		(READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) & (~0x3)));
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) &
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			 get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? ~0x1 : ~0x3));
+
 	udelay(10);
 
 	WRITE_VREG(DOS_SW_RESET1, 0xffffffff);
@@ -2415,7 +2436,11 @@ static s32 avc_poweron(u32 clock)
 
 	/* Remove HCODEC ISO */
 	WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-		(READ_AOREG(AO_RTI_GEN_PWR_ISO0) & (~0x30)));
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) &
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? ~0x1 : ~0x30));
+
 	udelay(10);
 	/* Disable auto-clock gate */
 	WRITE_VREG(DOS_GEN_CTRL0,
@@ -2437,7 +2462,11 @@ static s32 avc_poweroff(void)
 
 	/* enable HCODEC isolation */
 	WRITE_AOREG(AO_RTI_GEN_PWR_ISO0,
-		READ_AOREG(AO_RTI_GEN_PWR_ISO0) | 0x30);
+			READ_AOREG(AO_RTI_GEN_PWR_ISO0) |
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? 0x1 : 0x30));
+
 	/* power off HCODEC memories */
 	WRITE_VREG(DOS_MEM_PD_HCODEC, 0xffffffffUL);
 
@@ -2446,7 +2475,10 @@ static s32 avc_poweroff(void)
 
 	/* HCODEC power off */
 	WRITE_AOREG(AO_RTI_GEN_PWR_SLEEP0,
-		READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) | 0x3);
+			READ_AOREG(AO_RTI_GEN_PWR_SLEEP0) |
+			((get_cpu_type() == MESON_CPU_MAJOR_ID_SM1 ||
+			  get_cpu_type() >= MESON_CPU_MAJOR_ID_TM2)
+			? 0x1 : 0x3));
 
 	spin_unlock_irqrestore(&lock, flags);
 
@@ -3236,11 +3268,10 @@ static s32 encode_process_request(struct encode_manager_s *manager,
 	if (request->cmd == ENCODER_IDR || request->cmd == ENCODER_NON_IDR) {
 		if (request->flush_flag & AMVENC_FLUSH_FLAG_CBR
 			&& get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
-			void *vaddr =
-				phys_to_virt(wq->mem.cbr_info_ddr_start_addr);
+			void *vaddr = wq->mem.cbr_info_ddr_virt_addr;
 			ConvertTable2Risc(vaddr, 0xa00);
 			buf_start = getbuffer(wq, ENCODER_BUFFER_CBR);
-			dma_flush(buf_start, wq->mem.cbr_info_ddr_size);
+			codec_mm_dma_flush(vaddr, wq->mem.cbr_info_ddr_size, DMA_TO_DEVICE);
 		}
 	}
 #endif
@@ -3526,6 +3557,10 @@ s32 destroy_encode_work_queue(struct encode_wq_s *encode_work_queue)
 		spin_unlock(&encode_manager.event.sem_lock);
 #ifdef CONFIG_CMA
 		if (encode_work_queue->mem.buf_start) {
+			if (wq->mem.cbr_info_ddr_virt_addr != NULL) {
+				codec_mm_unmap_phyaddr(wq->mem.cbr_info_ddr_virt_addr);
+				wq->mem.cbr_info_ddr_virt_addr = NULL;
+			}
 			codec_mm_free_for_dma(
 				ENCODE_NAME,
 				encode_work_queue->mem.buf_start);

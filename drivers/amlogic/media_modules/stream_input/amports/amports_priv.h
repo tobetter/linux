@@ -26,6 +26,7 @@
 struct port_priv_s {
 	struct vdec_s *vdec;
 	struct stream_port_s *port;
+	struct mutex mutex;
 };
 
 struct stream_buf_s *get_buf_by_type(u32 type);
@@ -44,6 +45,7 @@ int amstream_request_firmware_from_sys(const char *file_name,
 void set_vsync_pts_inc_mode(int inc);
 
 void set_real_audio_info(void *arg);
+void amstream_wakeup_userdata_poll(struct vdec_s *vdec);
 #define dbg() pr_info("on %s,line %d\n", __func__, __LINE__);
 
 struct device *amports_get_dma_device(void);

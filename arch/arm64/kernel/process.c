@@ -268,6 +268,23 @@ static void show_user_data(unsigned long addr, int nbytes, const char *name)
 		pr_cont("\n");
 	}
 }
+
+static void show_vmalloc_pfn(struct pt_regs *regs)
+{
+	int i;
+	struct page *page;
+
+	for (i = 0; i < 16; i++) {
+		if (is_vmalloc_or_module_addr((void *)regs->regs[i])) {
+			page = vmalloc_to_page((void *)regs->regs[i]);
+			if (!page)
+				continue;
+			pr_info("R%-2d : %016llx, PFN:%5lx\n",
+				i, regs->regs[i], page_to_pfn(page));
+		}
+	}
+
+}
 #endif /* CONFIG_AMLOGIC_USER_FAULT */
 
 static void show_extra_register_data(struct pt_regs *regs, int nbytes)
@@ -443,6 +460,7 @@ void __show_regs(struct pt_regs *regs)
 		show_vma(current->mm, instruction_pointer(regs));
 		show_vma(current->mm, lr);
 	}
+	show_vmalloc_pfn(regs);
 #endif /* CONFIG_AMLOGIC_USER_FAULT */
 	printk("pc : [<%016llx>] lr : [<%016llx>] pstate: %08llx\n",
 	       regs->pc, lr, regs->pstate);

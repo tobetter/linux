@@ -20,7 +20,7 @@
 #define V1_5
 #define V2_4
 /*  driver version */
-#define DRIVER_VER "20181009"
+#define DRIVER_VER "20181220"
 
 #include <linux/types.h>
 
@@ -526,6 +526,7 @@ enum cpuID_e {
 	_CPU_MAJOR_ID_GXM,
 	_CPU_MAJOR_ID_TXLX,
 	_CPU_MAJOR_ID_G12,
+	_CPU_MAJOR_ID_TM2,
 	_CPU_MAJOR_ID_UNKNOWN,
 };
 
@@ -624,14 +625,14 @@ struct dolby_vision_func_s {
 extern int register_dv_functions(const struct dolby_vision_func_s *func);
 extern int unregister_dv_functions(void);
 #ifndef CONFIG_AMLOGIC_MEDIA_VSYNC_RDMA
-#define VSYNC_WR_MPEG_REG(adr, val) WRITE_VPP_REG(adr, val)
-#define VSYNC_RD_MPEG_REG(adr) READ_VPP_REG(adr)
-#define VSYNC_WR_MPEG_REG_BITS(adr, val, start, len) \
+#define _VSYNC_WR_MPEG_REG(adr, val) WRITE_VPP_REG(adr, val)
+#define _VSYNC_RD_MPEG_REG(adr) READ_VPP_REG(adr)
+#define _VSYNC_WR_MPEG_REG_BITS(adr, val, start, len) \
 	WRITE_VPP_REG_BITS(adr, val, start, len)
 #else
-extern int VSYNC_WR_MPEG_REG_BITS(u32 adr, u32 val, u32 start, u32 len);
-extern u32 VSYNC_RD_MPEG_REG(u32 adr);
-extern int VSYNC_WR_MPEG_REG(u32 adr, u32 val);
+extern int _VSYNC_WR_MPEG_REG_BITS(u32 adr, u32 val, u32 start, u32 len);
+extern u32 _VSYNC_RD_MPEG_REG(u32 adr);
+extern int _VSYNC_WR_MPEG_REG(u32 adr, u32 val);
 #endif
 
 #endif

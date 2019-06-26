@@ -36,6 +36,7 @@
 #ifdef CONFIG_OF
 #include <linux/of.h>
 #endif
+#include <linux/amlogic/pm.h>
 #include <linux/amlogic/cpu_version.h>
 #include <linux/amlogic/media/vout/vinfo.h>
 #include <linux/amlogic/media/vout/vout_notify.h>
@@ -47,6 +48,7 @@
 #endif
 #include "lcd_reg.h"
 #include "lcd_common.h"
+#include "lcd_clk_config.h"
 
 #define LCD_CDEV_NAME  "lcd"
 
@@ -102,7 +104,6 @@ static struct vbyone_config_s lcd_vbyone_config = {
 	.byte_mode = 4,
 	.color_fmt = 4,
 	.phy_div = 1,
-	.bit_rate = 0,
 	.phy_vswing = VX1_PHY_VSWING_DFT,
 	.phy_preem = VX1_PHY_PREEM_DFT,
 	.intr_en = 1,
@@ -112,6 +113,30 @@ static struct vbyone_config_s lcd_vbyone_config = {
 	.power_on_reset_delay = VX1_PWR_ON_RESET_DLY_DFT,
 	.hpd_data_delay = VX1_HPD_DATA_DELAY_DFT,
 	.cdr_training_hold = VX1_CDR_TRAINING_HOLD_DFT,
+};
+
+static struct mlvds_config_s lcd_mlvds_config = {
+	.channel_num = 6,
+	.channel_sel0 = 0x76543210,
+	.channel_sel1 = 0,
+	.clk_phase = 0,
+	.pn_swap = 0,
+	.bit_swap = 0,
+	.phy_vswing = 0,
+	.phy_preem = 0,
+
+	.pi_clk_sel = 0,
+};
+
+static struct p2p_config_s lcd_p2p_config = {
+	.p2p_type = P2P_MAX,
+	.lane_num = 12,
+	.channel_sel0 = 0x76543210,
+	.channel_sel1 = 0xba98,
+	.pn_swap = 0,
+	.bit_swap = 0,
+	.phy_vswing = 0,
+	.phy_preem = 0,
 };
 
 static unsigned char dsi_init_on_table[DSI_INIT_ON_MAX] = {0xff, 0xff};
@@ -176,6 +201,7 @@ static struct lcd_config_s lcd_config_dft = {
 		.clk_auto = 1,
 		.ss_level = 0,
 		.fr_adjust_type = 0,
+		.bit_rate = 0,
 	},
 	.optical_info = {
 		.hdr_support = 0,
@@ -196,6 +222,8 @@ static struct lcd_config_s lcd_config_dft = {
 		.ttl_config = &lcd_ttl_config,
 		.lvds_config = &lcd_lvds_config,
 		.vbyone_config = &lcd_vbyone_config,
+		.mlvds_config = &lcd_mlvds_config,
+		.p2p_config = &lcd_p2p_config,
 		.mipi_config = &lcd_mipi_config,
 		.vlock_param = vlock_param,
 	},
@@ -231,7 +259,8 @@ static void lcd_power_ctrl(int status)
 #ifdef CONFIG_AMLOGIC_LCD_EXTERN
 	struct aml_lcd_extern_driver_s *ext_drv;
 #endif
-	int i, index;
+	unsigned int i, index, wait, temp;
+	int value = -1;
 	int ret = 0;
 
 	LCDPR("%s: %d\n", __func__, status);
@@ -246,8 +275,8 @@ static void lcd_power_ctrl(int status)
 			break;
 		if (lcd_debug_print_flag) {
 			LCDPR("power_ctrl: %d, step %d\n", status, i);
-			LCDPR("type=%d, index=%d, value=%d, delay=%d\n",
-				power_step->type, power_step->index,
+			LCDPR("%s: type=%d, index=%d, value=%d, delay=%d\n",
+				__func__, power_step->type, power_step->index,
 				power_step->value, power_step->delay);
 		}
 		switch (power_step->type) {
@@ -260,7 +289,7 @@ static void lcd_power_ctrl(int status)
 			break;
 		case LCD_POWER_TYPE_SIGNAL:
 			if (status)
-				ret = lcd_driver->driver_init();
+				lcd_driver->driver_init();
 			else
 				lcd_driver->driver_disable();
 			break;
@@ -283,14 +312,42 @@ static void lcd_power_ctrl(int status)
 			}
 			break;
 #endif
+		case LCD_POWER_TYPE_WAIT_GPIO:
+			index = power_step->index;
+			lcd_cpu_gpio_set(index, LCD_GPIO_INPUT);
+			LCDPR("lcd_power_type_wait_gpio wait\n");
+			for (wait = 0; wait < power_step->delay; wait++) {
+				value = lcd_cpu_gpio_get(index);
+				if (value == power_step->value) {
+					LCDPR("wait_gpio %d ok\n", value);
+					break;
+				}
+				mdelay(1);
+			}
+			if (wait == power_step->delay)
+				LCDERR("wait_gpio %d timeout!\n", value);
+			break;
+		case LCD_POWER_TYPE_CLK_SS:
+			temp = lcd_driver->lcd_config->lcd_timing.ss_level;
+			value = (power_step->value) & 0xff;
+			ret = lcd_set_ss(0xff,
+				(value >> LCD_CLK_SS_BIT_FREQ) & 0xf,
+				(value >> LCD_CLK_SS_BIT_MODE) & 0xf);
+			if (ret == 0) {
+				temp &= ~(0xff << 8);
+				temp |= (value << 8);
+				lcd_driver->lcd_config->lcd_timing.ss_level =
+					temp;
+			}
+			break;
 		default:
 			break;
 		}
-		if (power_step->delay)
+		if ((power_step->type != LCD_POWER_TYPE_WAIT_GPIO) &&
+			(power_step->delay > 0))
 			mdelay(power_step->delay);
 		i++;
 	}
-
 	if (lcd_debug_print_flag)
 		LCDPR("%s: %d finished\n", __func__, status);
 }
@@ -406,15 +463,41 @@ static void lcd_resume_work(struct work_struct *p_work)
 	mutex_unlock(&lcd_driver->power_mutex);
 }
 
+static struct delayed_work lcd_test_delayed_work;
+static void lcd_auto_test_delayed(struct work_struct *work)
+{
+	LCDPR("%s\n", __func__);
+	mutex_lock(&lcd_driver->power_mutex);
+	aml_lcd_notifier_call_chain(LCD_EVENT_POWER_ON, NULL);
+	mutex_unlock(&lcd_driver->power_mutex);
+}
+
+static void lcd_auto_test(unsigned char flag)
+{
+	lcd_driver->lcd_test_state = flag;
+	if (lcd_driver->workqueue) {
+		queue_delayed_work(lcd_driver->workqueue,
+			&lcd_test_delayed_work,
+			msecs_to_jiffies(20000));
+	} else {
+		schedule_delayed_work(&lcd_test_delayed_work,
+			msecs_to_jiffies(20000));
+	}
+}
+
 static int lcd_vsync_print_cnt;
 static inline void lcd_vsync_handler(void)
 {
 	int flag;
 #ifdef CONFIG_AMLOGIC_LCD_TABLET
-	struct lcd_config_s *pconf = lcd_driver->lcd_config;
+	struct lcd_config_s *pconf;
 #endif
 
+	if (lcd_driver == NULL)
+		return;
+
 #ifdef CONFIG_AMLOGIC_LCD_TABLET
+	pconf = lcd_driver->lcd_config;
 	if (pconf->lcd_control.mipi_config->dread) {
 		if (pconf->lcd_control.mipi_config->dread->flag) {
 			lcd_mipi_test_read(
@@ -460,6 +543,9 @@ static inline void lcd_vsync_handler(void)
 
 static irqreturn_t lcd_vsync_isr(int irq, void *dev_id)
 {
+	if (lcd_driver == NULL)
+		return IRQ_HANDLED;
+
 	if ((lcd_driver->lcd_status & LCD_STATUS_ENCL_ON) == 0)
 		return IRQ_HANDLED;
 
@@ -473,6 +559,9 @@ static irqreturn_t lcd_vsync_isr(int irq, void *dev_id)
 
 static irqreturn_t lcd_vsync2_isr(int irq, void *dev_id)
 {
+	if (lcd_driver == NULL)
+		return IRQ_HANDLED;
+
 	if ((lcd_driver->lcd_status & LCD_STATUS_ENCL_ON) == 0)
 		return IRQ_HANDLED;
 
@@ -506,6 +595,9 @@ static void lcd_wait_vsync(void)
 
 static void lcd_vsync_none_timer_handler(unsigned long arg)
 {
+	if (lcd_driver == NULL)
+		return;
+
 	if ((lcd_driver->lcd_status & LCD_STATUS_ENCL_ON) == 0)
 		goto lcd_vsync_none_timer_handler_end;
 
@@ -915,7 +1007,8 @@ static int lcd_fops_create(void)
 		return -1;
 	}
 
-	LCDPR("%s OK\n", __func__);
+	if (lcd_debug_print_flag)
+		LCDPR("%s OK\n", __func__);
 	return 0;
 }
 
@@ -927,6 +1020,57 @@ static void lcd_fops_remove(void)
 	lcd_cdev = NULL;
 }
 /* ************************************************************* */
+
+static int lcd_vsync_irq_init(void)
+{
+	if (lcd_driver->res_vsync_irq) {
+		if (request_irq(lcd_driver->res_vsync_irq->start,
+			lcd_vsync_isr, IRQF_SHARED,
+			"lcd_vsync", (void *)"lcd_vsync")) {
+			LCDERR("can't request lcd_vsync_irq\n");
+		} else {
+			if (lcd_debug_print_flag)
+				LCDPR("request lcd_vsync_irq successful\n");
+		}
+	}
+
+	if (lcd_driver->res_vsync2_irq) {
+		if (request_irq(lcd_driver->res_vsync2_irq->start,
+			lcd_vsync2_isr, IRQF_SHARED,
+			"lcd_vsync2", (void *)"lcd_vsync2")) {
+			LCDERR("can't request lcd_vsync2_irq\n");
+		} else {
+			if (lcd_debug_print_flag)
+				LCDPR("request lcd_vsync2_irq successful\n");
+		}
+	}
+
+	/* add timer to monitor hpll frequency */
+	init_timer(&lcd_vsync_none_timer);
+	/* lcd_vsync_none_timer.data = NULL; */
+	lcd_vsync_none_timer.function = lcd_vsync_none_timer_handler;
+	lcd_vsync_none_timer.expires = jiffies + LCD_VSYNC_NONE_INTERVAL;
+	/*add_timer(&lcd_vsync_none_timer);*/
+	/*LCDPR("add lcd_vsync_none_timer handler\n"); */
+
+	return 0;
+}
+
+static void lcd_vsync_irq_remove(void)
+{
+	if (lcd_driver->res_vsync_irq)
+		free_irq(lcd_driver->res_vsync_irq->start, (void *)"lcd_vsync");
+
+	if (lcd_driver->res_vsync2_irq) {
+		free_irq(lcd_driver->res_vsync2_irq->start,
+			(void *)"lcd_vsync");
+	}
+
+	if (lcd_driver->vsync_none_timer_flag) {
+		del_timer_sync(&lcd_vsync_none_timer);
+		lcd_driver->vsync_none_timer_flag = 0;
+	}
+}
 
 static void lcd_init_vout(void)
 {
@@ -964,15 +1108,22 @@ static int lcd_mode_probe(struct device *dev)
 		LCDERR("invalid lcd mode: %d\n", lcd_driver->lcd_mode);
 		break;
 	}
+	lcd_tcon_probe(lcd_driver);
+	if (lcd_driver->lcd_status & LCD_STATUS_ENCL_ON)
+		lcd_clk_gate_switch(1);
 
 	lcd_debug_probe();
 	lcd_fops_create();
 
 	lcd_notifier_register();
+	lcd_vsync_irq_init();
 
 	/* add notifier for video sync_duration info refresh */
 	vout_notifier_call_chain(VOUT_EVENT_MODE_CHANGE,
 		&lcd_driver->lcd_info->mode);
+
+	if (lcd_driver->lcd_auto_test)
+		lcd_auto_test(lcd_driver->lcd_auto_test);
 
 	return 0;
 }
@@ -1010,16 +1161,22 @@ static void lcd_config_probe_delayed(struct work_struct *work)
 	int i = 0;
 	int ret;
 
-	if (lcd_driver->lcd_key_valid) {
+	key_init_flag = key_unify_get_init_flag();
+	while (key_init_flag == 0) {
+		if (i++ >= LCD_UNIFYKEY_WAIT_TIMEOUT)
+			break;
+		msleep(LCD_UNIFYKEY_RETRY_INTERVAL);
 		key_init_flag = key_unify_get_init_flag();
-		while (key_init_flag == 0) {
-			if (i++ >= LCD_UNIFYKEY_WAIT_TIMEOUT)
-				break;
-			msleep(20);
-			key_init_flag = key_unify_get_init_flag();
-		}
-		LCDPR("key_init_flag=%d, i=%d\n", key_init_flag, i);
 	}
+	LCDPR("key_init_flag=%d, i=%d\n", key_init_flag, i);
+
+	if (key_init_flag == 0) {
+		kfree(lcd_driver);
+		lcd_driver = NULL;
+		LCDERR("key is not ready, probe exit\n");
+		return;
+	}
+
 	ret = lcd_mode_probe(lcd_driver->dev);
 	if (ret) {
 		kfree(lcd_driver);
@@ -1112,29 +1269,14 @@ static int lcd_config_probe(struct platform_device *pdev)
 		LCDPR("detect lcd_auto_test: %d\n", lcd_driver->lcd_auto_test);
 	}
 
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 0, &str);
-	if (ret == 0) {
-		lcd_driver->res_vsync_irq = platform_get_resource(pdev,
-			IORESOURCE_IRQ, 0);
-	}
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 1, &str);
-	if (ret == 0) {
-		if (strcmp(str, "vbyone") == 0) {
-			lcd_driver->res_vx1_irq =
-				platform_get_resource(pdev, IORESOURCE_IRQ, 1);
-		} else if (strcmp(str, "vsync2") == 0) {
-			lcd_driver->res_vsync2_irq =
-				platform_get_resource(pdev, IORESOURCE_IRQ, 1);
-		}
-	}
-	ret = of_property_read_string_index(lcd_driver->dev->of_node,
-		"interrupt-names", 2, &str);
-	if (ret == 0) {
-		lcd_driver->res_tcon_irq = platform_get_resource(pdev,
-			IORESOURCE_IRQ, 2);
-	}
+	lcd_driver->res_vsync_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vsync");
+	lcd_driver->res_vsync2_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vsync2");
+	lcd_driver->res_vx1_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "vbyone");
+	lcd_driver->res_tcon_irq = platform_get_resource_byname(pdev,
+		IORESOURCE_IRQ, "tcon");
 
 	lcd_driver->lcd_info = &lcd_vinfo;
 	lcd_driver->lcd_config = &lcd_config_dft;
@@ -1171,55 +1313,6 @@ static int lcd_config_probe(struct platform_device *pdev)
 	}
 
 	return 0;
-}
-
-static int lcd_vsync_irq_init(void)
-{
-	if (lcd_driver->res_vsync_irq) {
-		if (request_irq(lcd_driver->res_vsync_irq->start,
-			lcd_vsync_isr, IRQF_SHARED,
-			"lcd_vsync", (void *)"lcd_vsync")) {
-			LCDERR("can't request lcd_vsync_irq\n");
-		} else {
-			LCDPR("request lcd_vsync_irq successful\n");
-		}
-	}
-
-	if (lcd_driver->res_vsync2_irq) {
-		if (request_irq(lcd_driver->res_vsync2_irq->start,
-			lcd_vsync2_isr, IRQF_SHARED,
-			"lcd_vsync2", (void *)"lcd_vsync2")) {
-			LCDERR("can't request lcd_vsync2_irq\n");
-		} else {
-			LCDPR("request lcd_vsync2_irq successful\n");
-		}
-	}
-
-	/* add timer to monitor hpll frequency */
-	init_timer(&lcd_vsync_none_timer);
-	/* lcd_vsync_none_timer.data = NULL; */
-	lcd_vsync_none_timer.function = lcd_vsync_none_timer_handler;
-	lcd_vsync_none_timer.expires = jiffies + LCD_VSYNC_NONE_INTERVAL;
-	/*add_timer(&lcd_vsync_none_timer);*/
-	/*LCDPR("add lcd_vsync_none_timer handler\n"); */
-
-	return 0;
-}
-
-static void lcd_vsync_irq_remove(void)
-{
-	if (lcd_driver->res_vsync_irq)
-		free_irq(lcd_driver->res_vsync_irq->start, (void *)"lcd_vsync");
-
-	if (lcd_driver->res_vsync2_irq) {
-		free_irq(lcd_driver->res_vsync2_irq->start,
-			(void *)"lcd_vsync");
-	}
-
-	if (lcd_driver->vsync_none_timer_flag) {
-		del_timer_sync(&lcd_vsync_none_timer);
-		lcd_driver->vsync_none_timer_flag = 0;
-	}
 }
 
 #ifdef CONFIG_OF
@@ -1272,6 +1365,18 @@ static struct lcd_data_s lcd_data_tl1 = {
 	.reg_map_table = &lcd_reg_tl1[0],
 };
 
+static struct lcd_data_s lcd_data_sm1 = {
+	.chip_type = LCD_CHIP_SM1,
+	.chip_name = "sm1",
+	.reg_map_table = &lcd_reg_axg[0],
+};
+
+static struct lcd_data_s lcd_data_tm2 = {
+	.chip_type = LCD_CHIP_TM2,
+	.chip_name = "tm2",
+	.reg_map_table = &lcd_reg_tl1[0],
+};
+
 static const struct of_device_id lcd_dt_match_table[] = {
 	{
 		.compatible = "amlogic, lcd-gxl",
@@ -1305,31 +1410,17 @@ static const struct of_device_id lcd_dt_match_table[] = {
 		.compatible = "amlogic, lcd-tl1",
 		.data = &lcd_data_tl1,
 	},
+	{
+		.compatible = "amlogic, lcd-sm1",
+		.data = &lcd_data_sm1,
+	},
+	{
+		.compatible = "amlogic, lcd-tm2",
+		.data = &lcd_data_tm2,
+	},
 	{},
 };
 #endif
-
-static struct delayed_work lcd_test_delayed_work;
-static void lcd_auto_test_delayed(struct work_struct *work)
-{
-	LCDPR("%s\n", __func__);
-	mutex_lock(&lcd_driver->power_mutex);
-	aml_lcd_notifier_call_chain(LCD_EVENT_POWER_ON, NULL);
-	mutex_unlock(&lcd_driver->power_mutex);
-}
-
-static void lcd_auto_test(unsigned char flag)
-{
-	lcd_driver->lcd_test_state = flag;
-	if (lcd_driver->workqueue) {
-		queue_delayed_work(lcd_driver->workqueue,
-			&lcd_test_delayed_work,
-			msecs_to_jiffies(20000));
-	} else {
-		schedule_delayed_work(&lcd_test_delayed_work,
-			msecs_to_jiffies(20000));
-	}
-}
 
 static int lcd_probe(struct platform_device *pdev)
 {
@@ -1376,32 +1467,29 @@ static int lcd_probe(struct platform_device *pdev)
 
 	lcd_ioremap(pdev);
 	ret = lcd_config_probe(pdev);
-	lcd_vsync_irq_init();
 
 	LCDPR("%s %s\n", __func__, (ret ? "failed" : "ok"));
-
-	if (lcd_driver->lcd_auto_test)
-		lcd_auto_test(lcd_driver->lcd_auto_test);
 
 	return 0;
 }
 
 static int lcd_remove(struct platform_device *pdev)
 {
+	if (lcd_driver == NULL)
+		return 0;
+
 	cancel_delayed_work(&lcd_driver->lcd_probe_delayed_work);
 	cancel_work_sync(&(lcd_driver->lcd_resume_work));
 	if (lcd_driver->workqueue)
 		destroy_workqueue(lcd_driver->workqueue);
 
-	if (lcd_driver) {
-		lcd_vsync_irq_remove();
-		lcd_fops_remove();
-		lcd_debug_remove();
-		lcd_config_remove(lcd_driver->dev);
+	lcd_vsync_irq_remove();
+	lcd_fops_remove();
+	lcd_debug_remove();
+	lcd_config_remove(lcd_driver->dev);
 
-		kfree(lcd_driver);
-		lcd_driver = NULL;
-	}
+	kfree(lcd_driver);
+	lcd_driver = NULL;
 
 	LCDPR("%s\n", __func__);
 	return 0;
@@ -1409,6 +1497,16 @@ static int lcd_remove(struct platform_device *pdev)
 
 static int lcd_resume(struct platform_device *pdev)
 {
+	if (lcd_debug_print_flag)
+		LCDPR("resume method: %d\n", get_resume_method());
+
+	if ((get_resume_method() == RTC_WAKEUP) ||
+		(get_resume_method() == AUTO_WAKEUP) ||
+		(get_resume_method() == UDEFINED_WAKEUP))
+		return 0;
+
+	if (lcd_driver == NULL)
+		return 0;
 	if ((lcd_driver->lcd_status & LCD_STATUS_VMODE_ACTIVE) == 0)
 		return 0;
 
@@ -1435,6 +1533,9 @@ static int lcd_resume(struct platform_device *pdev)
 
 static int lcd_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	if (lcd_driver == NULL)
+		return 0;
+
 	mutex_lock(&lcd_driver->power_mutex);
 	if (lcd_driver->lcd_status & LCD_STATUS_ENCL_ON) {
 		aml_lcd_notifier_call_chain(LCD_EVENT_POWER_OFF, NULL);
@@ -1450,6 +1551,8 @@ static void lcd_shutdown(struct platform_device *pdev)
 	if (lcd_debug_print_flag)
 		LCDPR("%s\n", __func__);
 
+	if (lcd_driver == NULL)
+		return;
 	if (lcd_driver->lcd_status & LCD_STATUS_ENCL_ON)
 		aml_lcd_notifier_call_chain(LCD_EVENT_POWER_OFF, NULL);
 }

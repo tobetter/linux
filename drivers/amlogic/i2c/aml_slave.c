@@ -229,7 +229,7 @@ static int i2c_slave_probe(struct platform_device *pdev)
 
 	return 0;
 }
-
+#if 0
 static int __init i2c_auto_test_setup(char *s)
 {
 	if (s != NULL)
@@ -238,7 +238,7 @@ static int __init i2c_auto_test_setup(char *s)
 	return 0;
 }
 __setup("i2c_auto_test=", i2c_auto_test_setup);
-
+#endif
 static int i2c_slave_remove(struct platform_device *pdev)
 {
 	struct aml_i2c_slave *slave;

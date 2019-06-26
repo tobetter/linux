@@ -32,6 +32,8 @@
 	MESON_CPU_MAJOR_ID_G12A, \
 	MESON_CPU_MAJOR_ID_G12B, \
 	MESON_CPU_MAJOR_ID_TL1, \
+	MESON_CPU_MAJOR_ID_SM1, \
+	MESON_CPU_MAJOR_ID_TM2, \
 			0}
 #define REGISTER_FOR_GXCPU {\
 	MESON_CPU_MAJOR_ID_GXBB, \
@@ -44,21 +46,9 @@
 	MESON_CPU_MAJOR_ID_G12A, \
 	MESON_CPU_MAJOR_ID_G12B, \
 	MESON_CPU_MAJOR_ID_TL1, \
+	MESON_CPU_MAJOR_ID_SM1, \
+	MESON_CPU_MAJOR_ID_TM2, \
 			0}
-int codec_apb_read(unsigned int reg)
-{
-	unsigned int val = 0;
-
-	aml_reg_read(IO_APB_BUS_BASE, reg << 2, &val);
-	return val;
-}
-EXPORT_SYMBOL(codec_apb_read);
-
-void codec_apb_write(unsigned int reg, unsigned int val)
-{
-	aml_reg_write(IO_APB_BUS_BASE, reg << 2, val);
-}
-EXPORT_SYMBOL(codec_apb_write);
 
 static struct chip_register_ops m8_ops[] __initdata = {
 	{IO_DOS_BUS, 0, codecio_read_dosbus, codecio_write_dosbus},

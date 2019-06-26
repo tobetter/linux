@@ -42,6 +42,7 @@
 #define MESON_CPU_ID_TXHD		9
 #define MESON_CPU_ID_G12A		10
 #define MESON_CPU_ID_G12B		11
+#define MESON_CPU_ID_SM1		12
 
 
 /*****************************
@@ -93,9 +94,9 @@ struct rx_cap {
 	unsigned char AUD_count;
 	unsigned char RxSpeakerAllocation;
 	/*vendor*/
-	unsigned int IEEEOUI;
+	unsigned int ieeeoui;
 	unsigned char Max_TMDS_Clock1; /* HDMI1.4b TMDS_CLK */
-	unsigned int HF_IEEEOUI;	/* For HDMI Forum */
+	unsigned int hf_ieeeoui;	/* For HDMI Forum */
 	unsigned int Max_TMDS_Clock2; /* HDMI2.0 TMDS_CLK */
 	/* CEA861-F, Table 56, Colorimetry Data Block */
 	unsigned int colorimetry_data;
@@ -109,6 +110,11 @@ struct rx_cap {
 	unsigned int dc_30bit_420:1;
 	unsigned int dc_36bit_420:1;
 	unsigned int dc_48bit_420:1;
+	unsigned int max_frl_rate:4;
+	unsigned int fpap_start_loc:1;
+	unsigned int allm:1;
+	unsigned int mdelta:1;
+	unsigned int fva:1;
 	unsigned int hdr_sup_eotf_sdr:1;
 	unsigned int hdr_sup_eotf_hdr:1;
 	unsigned int hdr_sup_eotf_smpte_st_2084:1;
@@ -130,10 +136,10 @@ struct rx_cap {
 	unsigned char edid_version;
 	unsigned char edid_revision;
 	unsigned char ColorDeepSupport;
-	unsigned int Video_Latency;
-	unsigned int Audio_Latency;
-	unsigned int Interlaced_Video_Latency;
-	unsigned int Interlaced_Audio_Latency;
+	unsigned int vLatency;
+	unsigned int aLatency;
+	unsigned int i_vLatency;
+	unsigned int i_aLatency;
 	unsigned int threeD_present;
 	unsigned int threeD_Multi_present;
 	unsigned int hdmi_vic_LEN;
@@ -300,9 +306,8 @@ struct hdmitx_dev {
 	struct pinctrl_state *pinctrl_default;
 	struct delayed_work work_hpd_plugin;
 	struct delayed_work work_hpd_plugout;
-	struct delayed_work work_aud_hpd_plug;
 	struct delayed_work work_rxsense;
-	struct work_struct work_internal_intr;
+	struct delayed_work work_internal_intr;
 	struct work_struct work_hdr;
 	struct delayed_work work_do_hdcp;
 #ifdef CONFIG_AML_HDMI_TX_14
@@ -322,6 +327,12 @@ struct hdmitx_dev {
 	unsigned int lstore;
 	struct {
 		void (*SetPacket)(int type, unsigned char *DB,
+			unsigned char *HB);
+		/* In original SetPacket, there are many policys, like
+		 *  if ((DB[4] >> 4) == T3D_FRAME_PACKING)
+		 * Need a only pure data packet to call
+		 */
+		void (*SetDataPacket)(int type, unsigned char *DB,
 			unsigned char *HB);
 		void (*SetAudioInfoFrame)(unsigned char *AUD_DB,
 			unsigned char *CHAN_STAT_BUF);
@@ -409,6 +420,8 @@ struct hdmitx_dev {
 	/* 0.1% clock shift, 1080p60hz->59.94hz */
 	unsigned int frac_rate_policy;
 	unsigned int rxsense_policy;
+	/* allm_mode: 1/game, 2/graphcis, 3/photo, 4/cinema */
+	unsigned int allm_mode;
 	unsigned int sspll;
 	/* configure for I2S: 8ch in, 2ch out */
 	/* 0: default setting  1:ch0/1  2:ch2/3  3:ch4/5  4:ch6/7 */
@@ -433,7 +446,9 @@ struct hdmitx_dev {
 	unsigned int flag_3dfp:1;
 	unsigned int flag_3dtb:1;
 	unsigned int flag_3dss:1;
+	unsigned int dongle_mode:1;
 	unsigned int drm_feature;/*Direct Rander Management*/
+	unsigned int cec_func_config;
 };
 
 #define CMD_DDC_OFFSET          (0x10 << 24)
@@ -494,6 +509,13 @@ struct hdmitx_dev {
 	#define YCC_RANGE_LIM		0
 	#define YCC_RANGE_FUL		1
 	#define YCC_RANGE_RSVD		2
+#define CONF_ALLM_MODE		(CMD_CONF_OFFSET + 0X2000 + 0x04)
+	#define SET_ALLM_GRAPHICS	0
+	#define SET_ALLM_PHOTO		1
+	#define SET_ALLM_CINEMA		2
+	#define SET_ALLM_GAME		3
+	#define CLEAR_ALLM_MODE		0xf
+	#define GET_ALLM_MODE		0x10
 #define CONF_VIDEO_MUTE_OP      (CMD_CONF_OFFSET + 0x1000 + 0x04)
 #define VIDEO_MUTE          0x1
 #define VIDEO_UNMUTE        0x2
@@ -595,6 +617,42 @@ extern void hdmitx_edid_ram_buffer_clear(struct hdmitx_dev *hdmitx_device);
 extern void hdmitx_edid_buf_compare_print(struct hdmitx_dev *hdmitx_device);
 
 extern const char *hdmitx_edid_get_native_VIC(struct hdmitx_dev *hdmitx_device);
+
+/* VSIF: Vendor Specific InfoFrame
+ * It has multiple purposes:
+ * 1. HDMI1.4 4K, HDMI_VIC=1/2/3/4, 2160p30/25/24hz, smpte24hz, AVI.VIC=0
+ *    In CTA-861-G, matched with AVI.VIC=95/94/93/98
+ * 2. 3D application, TB/SS/FP
+ * 3. DolbyVision, with Len=0x18
+ * 4. HDR10plus
+ * 5. HDMI20 3D OSD disparity / 3D dual-view / 3D independent view / ALLM
+ * Some functions are exclusive, but some may compound.
+ * Consider various state transitions carefully, such as play 3D under HDMI14
+ * 4K, exit 3D under 4K, play DV under 4K, enable ALLM under 3D dual-view
+ */
+enum vsif_type {
+	/* Below 4 functions are exclusive */
+	VT_HDMI14_4K = 1,
+	VT_T3D_VIDEO,
+	VT_DOLBYVISION,
+	VT_HDR10PLUS,
+	/* Maybe compound 3D dualview + ALLM */
+	VT_T3D_OSD_DISPARITY = 0x10,
+	VT_T3D_DUALVIEW,
+	VT_T3D_INDEPENDVEW,
+	VT_ALLM,
+	/* default: if non-HDMI4K, no any vsif; if HDMI4k, = VT_HDMI14_4K */
+	VT_DEFAULT,
+	VT_MAX,
+};
+int hdmitx_construct_vsif(struct hdmitx_dev *hdev, enum vsif_type type, int on,
+	void *param);
+
+/* if vic is 93 ~ 95, or 98 (HDMI14 4K), return 1 */
+bool is_hdmi14_4k(enum hdmi_vic vic);
+
+/* set vic to AVI.VIC */
+void hdmitx_set_avi_vic(enum hdmi_vic vic);
 
 /*
  * HDMI Repeater TX I/F

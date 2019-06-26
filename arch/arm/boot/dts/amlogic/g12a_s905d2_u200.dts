@@ -23,6 +23,7 @@
 
 / {
 	model = "Amlogic";
+	amlogic-dt-id = "g12a_u200_2g";
 	compatible = "amlogic, g12a";
 	interrupt-parent = <&gic>;
 	#address-cells = <1>;
@@ -45,7 +46,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x000000 0x80000000>;
+		linux,usable-memory = <0x100000 0x7ff00000>;
 	};
 
 	reserved-memory {
@@ -58,8 +59,7 @@
 			reg = <0x07400000 0x00100000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
-			ftrace-size = <0x0>;
-			pmsg-size = <0x8000>;
+			ftrace-size = <0x20000>;
 		};
 
 		secmon_reserved:linux,secmon {
@@ -154,8 +154,8 @@
 		vm0_cma_reserved:linux,vm0_cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x2000000>;
-			alignment = <0x400000>;
+			size = <0x0 0x2000000>;
+			alignment = <0x0 0x400000>;
 		};
 	};
 
@@ -167,8 +167,6 @@
 			label="sys_led";
 			gpios=<&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
 			default-state ="on";
-			retain-state-suspended;
-			linux,default-trigger="cpu0";
 		};
 	};
 
@@ -247,10 +245,25 @@
 		};
 	};
 
+	picdec_cma_reserved:linux,picdec {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0x0>;
+		alignment = <0x0>;
+		linux,contiguous-region;
+	};
+
 	codec_mm {
 		compatible = "amlogic, codec, mm";
 		memory-region = <&codec_mm_cma &codec_mm_reserved>;
 		dev_name = "codec_mm";
+		status = "okay";
+	};
+
+	picdec {
+		compatible = "amlogic, picdec";
+		memory-region = <&picdec_cma_reserved>;
+		dev_name = "picdec";
 		status = "okay";
 	};
 
@@ -303,7 +316,7 @@
 		compatible = "amlogic, amvdec_656in";
 		dev_name = "amvdec_656in";
 		status = "disabled";
-		reg = <0xffe02000 0x7c>;
+		reg = <0x0 0xffe02000 0x0 0x7c>;
 		clocks = <&clkc CLKID_BT656_COMP>,
 		      <&clkc CLKID_BT656>;
 		clock-names = "cts_bt656_clk1",
@@ -795,6 +808,122 @@
 		};
 	};
 
+	cpu_opp_table1: cpu_opp_table1 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp00 {
+			opp-hz = /bits/ 64 <100000000>;
+			opp-microvolt = <731000>;
+		};
+		opp01 {
+			opp-hz = /bits/ 64 <250000000>;
+			opp-microvolt = <731000>;
+		};
+		opp02 {
+			opp-hz = /bits/ 64 <500000000>;
+			opp-microvolt = <731000>;
+		};
+		opp03 {
+			opp-hz = /bits/ 64 <667000000>;
+			opp-microvolt = <731000>;
+		};
+		opp04 {
+			opp-hz = /bits/ 64 <1000000000>;
+			opp-microvolt = <731000>;
+		};
+		opp05 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <731000>;
+		};
+		opp06 {
+			opp-hz = /bits/ 64 <1398000000>;
+			opp-microvolt = <761000>;
+		};
+		opp07 {
+			opp-hz = /bits/ 64 <1512000000>;
+			opp-microvolt = <791000>;
+		};
+		opp08 {
+			opp-hz = /bits/ 64 <1608000000>;
+			opp-microvolt = <831000>;
+		};
+		opp09 {
+			opp-hz = /bits/ 64 <1704000000>;
+			opp-microvolt = <861000>;
+		};
+		opp10 {
+			opp-hz = /bits/ 64 <1800000000>;
+			opp-microvolt = <981000>;
+		};
+		opp11 {
+			opp-hz = /bits/ 64 <1908000000>;
+			opp-microvolt = <991000>;
+		};
+	};
+
+	cpu_opp_table2: cpu_opp_table2 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp00 {
+			opp-hz = /bits/ 64 <100000000>;
+			opp-microvolt = <731000>;
+		};
+		opp01 {
+			opp-hz = /bits/ 64 <250000000>;
+			opp-microvolt = <731000>;
+		};
+		opp02 {
+			opp-hz = /bits/ 64 <500000000>;
+			opp-microvolt = <731000>;
+		};
+		opp03 {
+			opp-hz = /bits/ 64 <667000000>;
+			opp-microvolt = <731000>;
+		};
+		opp04 {
+			opp-hz = /bits/ 64 <1000000000>;
+			opp-microvolt = <731000>;
+		};
+		opp05 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <731000>;
+		};
+		opp06 {
+			opp-hz = /bits/ 64 <1398000000>;
+			opp-microvolt = <761000>;
+		};
+		opp07 {
+			opp-hz = /bits/ 64 <1512000000>;
+			opp-microvolt = <791000>;
+		};
+		opp08 {
+			opp-hz = /bits/ 64 <1608000000>;
+			opp-microvolt = <831000>;
+		};
+		opp09 {
+			opp-hz = /bits/ 64 <1704000000>;
+			opp-microvolt = <861000>;
+		};
+		opp10 {
+			opp-hz = /bits/ 64 <1800000000>;
+			opp-microvolt = <981000>;
+		};
+		opp11 {
+			opp-hz = /bits/ 64 <1908000000>;
+			opp-microvolt = <991000>;
+		};
+		opp12 {
+			opp-hz = /bits/ 64 <2016000000>;
+			opp-microvolt = <1011000>;
+		};
+		opp13 {
+			opp-hz = /bits/ 64 <2100000000>;
+			opp-microvolt = <1011000>;
+		};
+	};
+
 	cpufreq-meson {
 		compatible = "amlogic, cpufreq-meson";
 		pinctrl-names = "default";
@@ -803,6 +932,50 @@
 	};
 
 }; /* end of / */
+
+&CPU0 {
+	/*set differents table cpufreq max*/
+	diff_tables_supply;
+	hispeed_cpufreq_max = <2100>;
+	medspeed_cpufreq_max = <1908>;
+	lospeed_cpufreq_max = <1800>;
+	operating-points-v2 = <&cpu_opp_table0>,
+			<&cpu_opp_table1>,
+			<&cpu_opp_table2>;
+};
+
+&CPU1 {
+	/*set differents table cpufreq max*/
+	diff_tables_supply;
+	hispeed_cpufreq_max = <2100>;
+	medspeed_cpufreq_max = <1908>;
+	lospeed_cpufreq_max = <1800>;
+	operating-points-v2 = <&cpu_opp_table0>,
+			<&cpu_opp_table1>,
+			<&cpu_opp_table2>;
+};
+
+&CPU2 {
+	/*set differents table cpufreq max*/
+	diff_tables_supply;
+	hispeed_cpufreq_max = <2100>;
+	medspeed_cpufreq_max = <1908>;
+	lospeed_cpufreq_max = <1800>;
+	operating-points-v2 = <&cpu_opp_table0>,
+			<&cpu_opp_table1>,
+			<&cpu_opp_table2>;
+};
+
+&CPU3 {
+	/*set differents table cpufreq max*/
+	diff_tables_supply;
+	hispeed_cpufreq_max = <2100>;
+	medspeed_cpufreq_max = <1908>;
+	lospeed_cpufreq_max = <1800>;
+	operating-points-v2 = <&cpu_opp_table0>,
+			<&cpu_opp_table1>,
+			<&cpu_opp_table2>;
+};
 
 &meson_fb {
 	status = "okay";
@@ -911,8 +1084,10 @@
 		dai-tdm-clk-sel = <1>;
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_B
 				&clkc CLKID_MPLL1
-				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll", "samesource_sysclk";
+				&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_SPDIFOUT_CTRL>;
+		clock-names = "mclk", "clk_srcpll",
+			"samesource_srcpll", "samesource_clk";
 		pinctrl-names = "tdm_pins";
 		pinctrl-0 = <&tdmb_mclk &tdmout_b &tdmin_b>;
 		/*
@@ -970,8 +1145,10 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 
 		interrupt-names = "irq_spdifin";
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+					"spdif_pins_mute";
 		pinctrl-0 = <&spdifout &spdifin>;
+		pinctrl-1 = <&spdifout_a_mute>;
 		status = "okay";
 	};
 	aml_spdif_b: spdif_b {
@@ -1218,6 +1395,13 @@
 		mux { /* gpiao_10 */
 			groups = "spdif_out_ao";
 			function = "spdif_out_ao";
+		};
+	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* gpiao_10 */
+			groups = "GPIOAO_10";
+			function = "gpio_aobus";
 		};
 	};
 };  /* end of pinctrl_aobus */

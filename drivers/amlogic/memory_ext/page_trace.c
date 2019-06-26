@@ -38,7 +38,11 @@
 #define DEBUG_PAGE_TRACE	0
 #endif
 
+#ifdef CONFIG_NUMA
+#define COMMON_CALLER_SIZE	64	/* more function names if NUMA */
+#else
 #define COMMON_CALLER_SIZE	32
+#endif
 
 /*
  * this is a driver which will hook during page alloc/free and
@@ -95,6 +99,14 @@ static struct fun_symbol common_func[] __initdata = {
 	{"vmalloc",			1},
 	{"__alloc_page_frag",		1},
 	{"kmalloc_order",		0},
+#ifdef CONFIG_NUMA
+	{"alloc_pages_current",		1},
+	{"alloc_page_interleave",	1},
+	{"kmalloc_large_node",		1},
+	{"kmem_cache_alloc_node",	1},
+	{"__kmalloc_node",		1},
+	{"alloc_pages_vma",		1},
+#endif
 #ifdef CONFIG_SLUB	/* for some static symbols not exported in headfile */
 	{"new_slab",			0},
 	{"slab_alloc",			0},
@@ -1065,8 +1077,9 @@ void __init page_trace_mem_init(void)
 	 * flags, you should disable AMLOGIC_PAGE_TRACE or reduce some page
 	 * flags.
 	 */
-	BUILD_BUG_ON((__NR_PAGEFLAGS + ZONES_WIDTH) > 32);
-	BUILD_BUG_ON(NODES_WIDTH > 0);
+	BUILD_BUG_ON((__NR_PAGEFLAGS + ZONES_WIDTH +
+		      NODES_WIDTH + SECTIONS_WIDTH +
+		      LAST_CPUPID_SHIFT) > 32);
 #else
 	if (page_trace_disable)
 		return;

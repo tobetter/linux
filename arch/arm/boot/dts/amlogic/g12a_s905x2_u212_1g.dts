@@ -22,7 +22,7 @@
 
 / {
 	model = "Amlogic";
-	amlogic-dt-id = "g12a_s905x2_u212_1g";
+	amlogic-dt-id = "g12a_u212_1g";
 	compatible = "amlogic, g12a";
 	interrupt-parent = <&gic>;
 	#address-cells = <1>;
@@ -45,7 +45,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x000000 0x40000000>;
+		linux,usable-memory = <0x100000 0x3ff00000>;
 
 	};
 
@@ -59,8 +59,7 @@
 			reg = <0x07400000 0x00100000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
-			ftrace-size = <0x0>;
-			pmsg-size = <0x8000>;
+			ftrace-size = <0x20000>;
 		};
 
 		secmon_reserved:linux,secmon {
@@ -168,17 +167,17 @@
 
 	gpioleds {
 		compatible = "gpio-leds";
-		status = "okay";
+		status = "disabled";
 
 		net_red {
 			label="net_red";
-			gpios=<&gpio GPIOA_14 GPIO_ACTIVE_LOW>;
+			/*gpios=<&gpio GPIOA_14 GPIO_ACTIVE_LOW>;*/
 			default-state ="on";
 		};
 
 		net_green {
 			label="net_green";
-			gpios=<&gpio GPIOA_15 GPIO_ACTIVE_HIGH>;
+			/*gpios=<&gpio GPIOA_15 GPIO_ACTIVE_HIGH>;*/
 			default-state ="on";
 		};
 
@@ -193,8 +192,6 @@
 			label="sys_led";
 			gpios=<&gpio_ao GPIOAO_11 GPIO_ACTIVE_LOW>;
 			default-state ="on";
-			retain-state-suspended;
-			linux,default-trigger="cpu0";
 		};
 	};
 
@@ -261,10 +258,25 @@
 		};
 	};
 
+	picdec_cma_reserved:linux,picdec {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0x0>;
+		alignment = <0x0>;
+		linux,contiguous-region;
+	};
+
 	codec_mm {
 		compatible = "amlogic, codec, mm";
 		memory-region = <&codec_mm_cma &codec_mm_reserved>;
 		dev_name = "codec_mm";
+		status = "okay";
+	};
+
+	picdec {
+		compatible = "amlogic, picdec";
+		memory-region = <&picdec_cma_reserved>;
+		dev_name = "picdec";
 		status = "okay";
 	};
 
@@ -304,43 +316,47 @@
 		dev_name = "ionvideo";
 		status = "okay";
 	};
-	/*dvb {
-	 *	compatible = "amlogic, dvb";
-	 *	dev_name = "dvb";
-	 *
-	 *	fe0_mode = "external";
-	 *	fe0_demod = "Atbm8881";
-	 *	fe0_i2c_adap_id = <&i2c2>;
-	 *	fe0_demod_i2c_addr = <0xc0>;
-	 *	fe0_ts = <1>;
-	 *	fe0_reset_value = <0>;
-	 *	fe0_reset_gpio = <&gpio GPIOZ_1 GPIO_ACTIVE_HIGH>;
-	 *
-	 *	ts1 = "parallel";
-	 *	ts1_control = <0>;
-	 *	ts1_invert = <0>;
-	 *	interrupts = <0 23 1
-	 *	0 5 1
-	 *	0 21 1
-	 *	0 19 1
-	 *	0 25 1
-	 *	0 18 1
-	 *	0 24 1>;
-	 *	interrupt-names = "demux0_irq",
-	 *	"demux1_irq",
-	 *	"demux2_irq",
-	 *	"dvr0_irq",
-	 *	"dvr1_irq",
-	 *	"dvrfill0_fill",
-	 *	"dvrfill1_flush";
-	 *	pinctrl-names = "p_ts1";
-	 *	pinctrl-0 = <&dvb_p_ts1_pins>;
-	 *	clocks = <&clkc CLKID_DEMUX
-	 *	&clkc CLKID_AHB_ARB0
-	 *	&clkc CLKID_DOS_PARSER>;
-	 *	clock-names = "demux", "ahbarb0", "parser_top";
-	 *};
-	 */
+	dvb {
+		compatible = "amlogic, dvb";
+		dev_name = "dvb";
+		status = "ok";
+
+		ts0 = "serial";
+		ts0_control = <0x800>;
+		ts0_invert = <0>;
+		pinctrl-names = "s_ts0";
+		pinctrl-0 = <&dvb_s_ts0_pins>;
+
+		interrupts = <0 23 1
+		0 5 1
+		0 53 1
+		0 19 1
+		0 25 1
+		0 18 1
+		0 24 1>;
+		interrupt-names = "demux0_irq",
+		"demux1_irq",
+		"demux2_irq",
+		"dvr0_irq",
+		"dvr1_irq",
+		"dvrfill0_fill",
+		"dvrfill1_flush";
+	};
+	dvbfe {
+		compatible = "amlogic, dvbfe";
+		dev_name = "dvbfe";
+		dtv_demod0 = "Avl6762";
+		dtv_demod0_i2c_adap = <&i2c3>;
+		dtv_demod0_i2c_addr = <0x14>;
+		dtv_demod0_reset_value = <0>;
+		dtv_demod0_reset_gpio = <&gpio GPIOZ_10 GPIO_ACTIVE_HIGH>;
+		dtv_demod0_ant_poweron_value = <0>;
+		dtv_demod0_ant_power_gpio = <&gpio GPIOH_5 GPIO_ACTIVE_HIGH>;
+		dtv_demod0_tuner_type = <52>;
+		fe0_dtv_demod = <0>;
+		fe0_ts  = <0>;
+		fe0_dev = <0>;
+	};
 	unifykey{
 		compatible = "amlogic, unifykey";
 		status = "ok";
@@ -826,7 +842,7 @@
  */
 
 &i2c3 {
-	status = "disabled";
+	status = "okay";
 	pinctrl-names="default";
 	pinctrl-0=<&i2c3_master_pins2>;
 	clock-frequency = <100000>; /* default 100k */
@@ -878,8 +894,10 @@
 		dai-tdm-clk-sel = <1>;
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_B
 				&clkc CLKID_MPLL1
-				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll", "samesource_sysclk";
+				&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_SPDIFOUT_CTRL>;
+		clock-names = "mclk", "clk_srcpll",
+			"samesource_srcpll", "samesource_clk";
 		pinctrl-names = "tdm_pins";
 		pinctrl-0 = <&tdmb_mclk &tdmout_b &tdmin_b>;
 		/*
@@ -937,8 +955,10 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 
 		interrupt-names = "irq_spdifin";
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+				"spdif_pins_mute";
 		pinctrl-0 = <&spdifout>;
+		pinctrl-1 = <&spdifout_a_mute>;
 		status = "okay";
 	};
 	aml_spdif_b: spdif_b {
@@ -1128,6 +1148,13 @@
 		mux {
 			groups = "spdif_out_h";
 			function = "spdif_out";
+		};
+	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* GPIOH_4 */
+			groups = "GPIOH_4";
+			function = "gpio_periphs";
 		};
 	};
 
@@ -1375,4 +1402,15 @@
 
 &saradc {
 	status = "disabled";
+};
+&pinctrl_aobus {
+	dvb_s_ts0_pins: dvb_s_ts0_pins {
+		tsin_a {
+			groups = "tsin_a_sop_ao",
+				"tsin_a_valid_ao",
+				"tsin_a_clk_ao",
+				"tsin_a_din0_ao";
+			function = "tsin_a_ao";
+		};
+	};
 };

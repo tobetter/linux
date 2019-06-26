@@ -117,7 +117,7 @@
 #define HHI_SYS1_PLL_CNTL5        0x394 /* 0xe5 offset in data sheet */
 #define HHI_SYS1_PLL_CNTL6        0x398 /* 0xe6 offset in data sheet */
 /*****************/
-
+#define HHI_BT656_CLK_CNTL		0x3d4 /* 0xf5 offset in data sheet */
 #define HHI_SPICC_CLK_CNTL      0x3dc /* 0xf7 offset in data sheet */
 /* AO registers*/
 #define AO_RTI_PWR_CNTL_REG0 0x10 /* 0x4 offset in data sheet */
@@ -143,8 +143,11 @@ static const struct pll_rate_table g12a_pll_rate_table[] = {
 	PLL_RATE(1104000000ULL, 184, 1, 2), /*DCO=4416M*/
 	PLL_RATE(1200000000ULL, 200, 1, 2), /*DCO=4800M*/
 	PLL_RATE(1296000000ULL, 216, 1, 2), /*DCO=5184M*/
+	PLL_RATE(1302000000ULL, 217, 1, 2), /*DCO=5208M*/
 	PLL_RATE(1398000000ULL, 233, 1, 2), /*DCO=5592M*/
+	PLL_RATE(1404000000ULL, 234, 1, 2), /*DCO=5616M*/
 	PLL_RATE(1494000000ULL, 249, 1, 2), /*DCO=5976M*/
+	PLL_RATE(1500000000ULL, 125, 1, 1), /*DCO=3000M*/
 	PLL_RATE(1512000000ULL, 126, 1, 1), /*DCO=3024M*/
 	PLL_RATE(1608000000ULL, 134, 1, 1), /*DCO=3216M*/
 	PLL_RATE(1704000000ULL, 142, 1, 1), /*DCO=3408M*/
@@ -153,17 +156,14 @@ static const struct pll_rate_table g12a_pll_rate_table[] = {
 	PLL_RATE(1896000000ULL, 158, 1, 1), /*DCO=3792M*/
 	PLL_RATE(1908000000ULL, 159, 1, 1), /*DCO=3816M*/
 	PLL_RATE(1920000000ULL, 160, 1, 1), /*DCO=3840M*/
-	PLL_RATE(1932000000ULL, 161, 1, 1), /*DCO=3864M*/
-	PLL_RATE(1944000000ULL, 162, 1, 1), /*DCO=3888M*/
-	PLL_RATE(1956000000ULL, 163, 1, 1), /*DCO=3912M*/
-	PLL_RATE(1968000000ULL, 164, 1, 1), /*DCO=3936M*/
-	PLL_RATE(1980000000ULL, 165, 1, 1), /*DCO=3960M*/
 	PLL_RATE(1992000000ULL, 166, 1, 1), /*DCO=3984M*/
 	PLL_RATE(2004000000ULL, 167, 1, 1), /*DCO=4008M*/
 	PLL_RATE(2016000000ULL, 168, 1, 1), /*DCO=4032M*/
 	PLL_RATE(2100000000ULL, 175, 1, 1), /*DCO=4200M*/
 	PLL_RATE(2196000000ULL, 183, 1, 1), /*DCO=4392M*/
+	PLL_RATE(2208000000ULL, 184, 1, 1), /*DCO=4416M*/
 	PLL_RATE(2292000000ULL, 191, 1, 1), /*DCO=4584M*/
+	PLL_RATE(2304000000ULL, 192, 1, 1), /*DCO=4608M*/
 	PLL_RATE(2400000000ULL, 200, 1, 1), /*DCO=4800M*/
 	PLL_RATE(2496000000ULL, 208, 1, 1), /*DCO=4992M*/
 	PLL_RATE(2592000000ULL, 216, 1, 1), /*DCO=5184M*/
@@ -222,5 +222,9 @@ static const struct fclk_rate_table fclk_pll_rate_table[] = {
 static const struct pll_rate_table g12a_pcie_pll_rate_table[] = {
 	PLL_RATE(100000000, 150, 0, 9),
 	{ /* sentinel */ },
+};
+
+static const struct pll_rate_table g12a_hifi_pll_rate_table[] = {
+	PLL_RATE(666000000ULL,	222, 1, 3), /*DCO=5328M*/
 };
 #endif /* __G12A_H */

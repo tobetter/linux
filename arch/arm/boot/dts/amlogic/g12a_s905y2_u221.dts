@@ -44,7 +44,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x000000 0x80000000>;
+		linux,usable-memory = <0x100000 0x7ff00000>;
 	};
 
 	reserved-memory {
@@ -212,10 +212,25 @@
 		};
 	};
 
+	picdec_cma_reserved:linux,picdec {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0x0>;
+		alignment = <0x0>;
+		linux,contiguous-region;
+	};
+
 	codec_mm {
 		compatible = "amlogic, codec, mm";
 		memory-region = <&codec_mm_cma &codec_mm_reserved>;
 		dev_name = "codec_mm";
+		status = "okay";
+	};
+
+	picdec {
+		compatible = "amlogic, picdec";
+		memory-region = <&picdec_cma_reserved>;
+		dev_name = "picdec";
 		status = "okay";
 	};
 
@@ -669,18 +684,20 @@
 			opp-hz = /bits/ 64 <1512000000>;
 			opp-microvolt = <831000>;
 		};
-		opp08 {
-			opp-hz = /bits/ 64 <1608000000>;
-			opp-microvolt = <871000>;
-		};
-		opp09 {
-			opp-hz = /bits/ 64 <1704000000>;
-			opp-microvolt = <921000>;
-		};
-		opp10 {
-			opp-hz = /bits/ 64 <1800000000>;
-			opp-microvolt = <981000>;
-		};
+/*
+ *		opp08 {
+ *		        opp-hz = /bits/ 64 <1608000000>;
+ *		        opp-microvolt = <871000>;
+ *		};
+ *		opp09 {
+ *		        opp-hz = /bits/ 64 <1704000000>;
+ *		        opp-microvolt = <921000>;
+ *		};
+ *		opp10 {
+ *		        opp-hz = /bits/ 64 <1800000000>;
+ *		        opp-microvolt = <981000>;
+ *		};
+ */
 	};
 
 	cpufreq-meson {
@@ -784,8 +801,10 @@
 		dai-tdm-clk-sel = <1>;
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_B
 				&clkc CLKID_MPLL1
-				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll", "samesource_sysclk";
+				&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_SPDIFOUT_CTRL>;
+		clock-names = "mclk", "clk_srcpll",
+			"samesource_srcpll", "samesource_clk";
 		pinctrl-names = "tdm_pins";
 		pinctrl-0 = <&tdmb_mclk &tdmout_b &tdmin_b>;
 		/*
@@ -843,8 +862,10 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 
 		interrupt-names = "irq_spdifin";
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+					"spdif_pins_mute";
 		pinctrl-0 = <&spdifout &spdifin>;
+		pinctrl-1 = <&spdifout_a_mute>;
 		status = "okay";
 	};
 	aml_spdif_b: spdif_b {
@@ -1057,6 +1078,13 @@
 		mux { /* gpiao_10 */
 			groups = "spdif_out_ao";
 			function = "spdif_out_ao";
+		};
+	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* gpiao_10 */
+			groups = "GPIOAO_10";
+			function = "gpio_aobus";
 		};
 	};
 };  /* end of pinctrl_aobus */
@@ -1287,3 +1315,13 @@
 	status = "okay";
 };
 
+&gpu{
+	/*max gpu is 500MHz*/
+	tbl = <&dvfs285_cfg
+		&dvfs400_cfg
+		&dvfs500_cfg>;
+};
+
+&amhdmitx {
+	dongle_mode = <1>;
+};

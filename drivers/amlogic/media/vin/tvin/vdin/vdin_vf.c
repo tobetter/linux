@@ -1018,7 +1018,10 @@ void vdin_vf_disp_mode_update(struct vf_entry *vfe, struct vf_pool *p)
 		p->disp_index[0] = 0;
 	vfe->vf.index_disp = p->disp_index[0];
 
-	p->disp_mode[p->disp_index[p->skip_vf_num]] = VFRAME_DISP_MODE_OK;
+	if (p->disp_mode[p->disp_index[p->skip_vf_num]] !=
+		VFRAME_DISP_MODE_SKIP)
+		p->disp_mode[p->disp_index[p->skip_vf_num]] =
+			VFRAME_DISP_MODE_OK;
 	for (i = p->skip_vf_num - 1; i < VFRAME_DISP_MAX_NUM; i--)
 		p->disp_mode[p->disp_index[i]] = VFRAME_DISP_MODE_UNKNOWN;
 }
@@ -1030,8 +1033,7 @@ void vdin_vf_disp_mode_update(struct vf_entry *vfe, struct vf_pool *p)
 void vdin_vf_disp_mode_skip(struct vf_pool *p)
 {
 	unsigned int i;
-
-	for (i = p->skip_vf_num - 1; i < VFRAME_DISP_MAX_NUM; i--)
-		p->disp_mode[i] = VFRAME_DISP_MODE_SKIP;
+	for (i = 0; i <= p->skip_vf_num; i++)
+		p->disp_mode[p->disp_index[i]] = VFRAME_DISP_MODE_SKIP;
 }
 

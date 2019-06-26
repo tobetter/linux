@@ -90,6 +90,59 @@
 #define AMSTREAM_IOC_GLOBAL_GET_VIDEO_OUTPUT  _IOR((_A_M), 0x21, int)
 #define AMSTREAM_IOC_GLOBAL_SET_VIDEO_OUTPUT  _IOW((_A_M), 0x22, int)
 #define AMSTREAM_IOC_GET_VIDEO_LAYER1_ON  _IOR((_A_M), 0x23, int)
+/*video pip IOCTL command list*/
+#define AMSTREAM_IOC_CLEAR_VIDEOPIP _IOW((_A_M), 0x24, int)
+#define AMSTREAM_IOC_CLEAR_PIP_VBUF _IO((_A_M), 0x25)
+
+#define AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT  _IOR((_A_M), 0x2b, int)
+#define AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT  _IOW((_A_M), 0x2c, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_DISABLE  _IOR((_A_M), 0x2d, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_DISABLE  _IOW((_A_M), 0x2e, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_AXIS   _IOR((_A_M), 0x2f, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_AXIS   _IOW((_A_M), 0x30, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_CROP   _IOR((_A_M), 0x31, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_CROP   _IOW((_A_M), 0x32, int)
+#define AMSTREAM_IOC_GET_PIP_SCREEN_MODE _IOR((_A_M), 0x33, int)
+#define AMSTREAM_IOC_SET_PIP_SCREEN_MODE _IOW((_A_M), 0x34, int)
+#define AMSTREAM_IOC_GET_PIP_ZORDER  _IOW((_A_M), 0x35, unsigned int)
+#define AMSTREAM_IOC_SET_PIP_ZORDER  _IOW((_A_M), 0x36, unsigned int)
+
+#define AMSTREAM_IOC_GET_ZORDER  _IOW((_A_M), 0x37, unsigned int)
+#define AMSTREAM_IOC_SET_ZORDER  _IOW((_A_M), 0x38, unsigned int)
+
+#define AMSTREAM_IOC_QUERY_LAYER  _IOW((_A_M), 0x39, unsigned int)
+#define AMSTREAM_IOC_ALLOC_LAYER  _IOW((_A_M), 0x3a, unsigned int)
+#define AMSTREAM_IOC_FREE_LAYER  _IOW((_A_M), 0x3b, unsigned int)
+
+/* VPP.3D IOCTL command list^M */
+#define  AMSTREAM_IOC_SET_3D_TYPE  _IOW((_A_M), 0x3c, unsigned int)
+#define  AMSTREAM_IOC_GET_3D_TYPE  _IOW((_A_M), 0x3d, unsigned int)
+#define  AMSTREAM_IOC_GET_SOURCE_VIDEO_3D_TYPE  _IOW((_A_M), 0x3e, unsigned int)
+
+#define AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT  _IOR((_A_M), 0x2b, int)
+#define AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT  _IOW((_A_M), 0x2c, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_DISABLE  _IOR((_A_M), 0x2d, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_DISABLE  _IOW((_A_M), 0x2e, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_AXIS   _IOR((_A_M), 0x2f, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_AXIS   _IOW((_A_M), 0x30, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_CROP   _IOR((_A_M), 0x31, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_CROP   _IOW((_A_M), 0x32, int)
+#define AMSTREAM_IOC_GET_PIP_SCREEN_MODE _IOR((_A_M), 0x33, int)
+#define AMSTREAM_IOC_SET_PIP_SCREEN_MODE _IOW((_A_M), 0x34, int)
+#define AMSTREAM_IOC_GET_PIP_ZORDER  _IOW((_A_M), 0x35, unsigned int)
+#define AMSTREAM_IOC_SET_PIP_ZORDER  _IOW((_A_M), 0x36, unsigned int)
+
+#define AMSTREAM_IOC_GET_ZORDER  _IOW((_A_M), 0x37, unsigned int)
+#define AMSTREAM_IOC_SET_ZORDER  _IOW((_A_M), 0x38, unsigned int)
+
+#define AMSTREAM_IOC_QUERY_LAYER  _IOW((_A_M), 0x39, unsigned int)
+#define AMSTREAM_IOC_ALLOC_LAYER  _IOW((_A_M), 0x3a, unsigned int)
+#define AMSTREAM_IOC_FREE_LAYER  _IOW((_A_M), 0x3b, unsigned int)
+
+/* VPP.3D IOCTL command list^M */
+#define  AMSTREAM_IOC_SET_3D_TYPE  _IOW((_A_M), 0x3c, unsigned int)
+#define  AMSTREAM_IOC_GET_3D_TYPE  _IOW((_A_M), 0x3d, unsigned int)
+#define  AMSTREAM_IOC_GET_SOURCE_VIDEO_3D_TYPE  _IOW((_A_M), 0x3e, unsigned int)
 
 #define AMSTREAM_IOC_APTS             _IOR((_A_M), 0x40, int)
 #define AMSTREAM_IOC_VPTS             _IOR((_A_M), 0x41, int)
@@ -108,11 +161,6 @@
 #define AMSTREAM_IOC_SET_VIDEO_CROP   _IOW((_A_M), 0x4e, int)
 #define AMSTREAM_IOC_PCRID        _IOW((_A_M), 0x4f, int)
 
-/* VPP.3D IOCTL command list^M */
-#define  AMSTREAM_IOC_SET_3D_TYPE  _IOW((_A_M), 0x3c, unsigned int)
-#define  AMSTREAM_IOC_GET_3D_TYPE  _IOW((_A_M), 0x3d, unsigned int)
-#define  AMSTREAM_IOC_GET_SOURCE_VIDEO_3D_TYPE  _IOW((_A_M), 0x3e, unsigned int)
-
 #define AMSTREAM_IOC_SUB_NUM	_IOR((_A_M), 0x50, int)
 #define AMSTREAM_IOC_SUB_INFO	_IOR((_A_M), 0x51, int)
 #define AMSTREAM_IOC_GET_BLACKOUT_POLICY   _IOR((_A_M), 0x52, int)
@@ -121,20 +169,26 @@
 #define AMSTREAM_IOC_UD_POC _IOR((_A_M), 0x55, int)
 #define AMSTREAM_IOC_UD_FLUSH_USERDATA _IOR((_A_M), 0x56, int)
 
-#define AMSTREAM_IOC_UD_BUF_READ _IOR((_A_M), 0x57, struct userdata_param_t)
+#define AMSTREAM_IOC_UD_BUF_READ _IOR((_A_M), 0x57, int)
 
 #define AMSTREAM_IOC_GET_SCREEN_MODE _IOR((_A_M), 0x58, int)
 #define AMSTREAM_IOC_SET_SCREEN_MODE _IOW((_A_M), 0x59, int)
 #define AMSTREAM_IOC_GET_VIDEO_DISCONTINUE_REPORT _IOR((_A_M), 0x5a, int)
 #define AMSTREAM_IOC_SET_VIDEO_DISCONTINUE_REPORT _IOW((_A_M), 0x5b, int)
 
+#define AMSTREAM_IOC_UD_AVAILABLE_VDEC      _IOR((_A_M), 0x5c, unsigned int)
+#define AMSTREAM_IOC_GET_VDEC_ID			_IOR((_A_M), 0x5d, int)
+
 /*
  * #define AMSTREAM_IOC_UD_BUF_STATUS _IOR((_A_M),
  * 0x5c, struct userdata_buf_state_t)
  */
 
-
 #define AMSTREAM_IOC_VF_STATUS  _IOR((_A_M), 0x60, int)
+
+#define AMSTREAM_IOC_GET_BLACKOUT_PIP_POLICY   _IOR((_A_M), 0x62, int)
+#define AMSTREAM_IOC_SET_BLACKOUT_PIP_POLICY   _IOW((_A_M), 0x63, int)
+
 #define AMSTREAM_IOC_CLEAR_VBUF _IO((_A_M), 0x80)
 
 #define AMSTREAM_IOC_APTS_LOOKUP    _IOR((_A_M), 0x81, int)
@@ -192,6 +246,9 @@
 #define AMSTREAM_IOC_SET_EX _IOW((_A_M), 0xc4, struct am_ioctl_parm_ex)
 #define AMSTREAM_IOC_GET_PTR _IOWR((_A_M), 0xc5, struct am_ioctl_parm_ptr)
 #define AMSTREAM_IOC_SET_PTR _IOW((_A_M), 0xc6, struct am_ioctl_parm_ptr)
+#define AMSTREAM_IOC_GET_AVINFO _IOR((_A_M), 0xc7, struct av_param_info_t)
+#define AMSTREAM_IOC_GET_QOSINFO _IOR((_A_M), 0xc8, struct av_param_qosinfo_t)
+
 
 #define TRICKMODE_NONE       0x00
 #define TRICKMODE_I          0x01
@@ -271,12 +328,20 @@ struct buf_status {
 
 #define DECODER_ERROR_MASK	(0xffff<<16)
 
+
+enum E_ASPECT_RATIO {
+	ASPECT_RATIO_4_3,
+	ASPECT_RATIO_16_9,
+	ASPECT_UNDEFINED = 255
+};
+
 struct vdec_status {
 	unsigned int width;
 	unsigned int height;
 	unsigned int fps;
 	unsigned int error_count;
 	unsigned int status;
+	enum E_ASPECT_RATIO euAspectRatio;
 };
 
 struct vdec_info {
@@ -296,6 +361,7 @@ struct vdec_info {
 	unsigned long long total_data;
 	unsigned int samp_cnt;
 	unsigned int offset;
+	unsigned int ratio_control;
 	char reserved[32];
 };
 
@@ -471,7 +537,7 @@ struct userdata_param_t {
 	uint32_t instance_id; /*input, 0~9*/
 	uint32_t buf_len; /*input*/
 	uint32_t data_size; /*output*/
-	unsigned long long pbuf_addr; /*input*/
+	void *pbuf_addr; /*input*/
 	struct userdata_meta_info_t meta_info; /*output*/
 };
 
@@ -652,6 +718,65 @@ struct am_ioctl_parm_ptr {
 	u32 cmd;
 	u32 len; /*char reserved[4]; */
 };
+
+struct vframe_qos_s {
+	int num;
+	int type;
+	int size;
+	int pts;
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
+	int decode_buffer;
+} /*vframe_qos */;
+
+enum FRAME_FORMAT {
+	FRAME_FORMAT_UNKNOWN,
+	FRAME_FORMAT_PROGRESS,
+	FRAME_FORMAT_INTERLACE,
+};
+
+#define QOS_FRAME_NUM 60
+struct av_info_t {
+	/*auido info*/
+	int sample_rate;
+	int channels;
+	int aformat_type;
+	unsigned int apts;
+	unsigned int apts_err;
+	/*video info*/
+	unsigned int width;
+	unsigned int height;
+	unsigned int dec_error_count;
+	unsigned int first_pic_coming;
+	unsigned int fps;
+	unsigned int current_fps;
+	unsigned int vpts;
+	unsigned int vpts_err;
+	unsigned int ts_error;
+	unsigned int first_vpts;
+	int vformat_type;
+	enum FRAME_FORMAT frame_format;
+	unsigned int toggle_frame_count;/*toggle frame count*/
+	unsigned int dec_err_frame_count;/*vdec error frame count*/
+	unsigned int dec_frame_count;/*vdec frame count*/
+	unsigned int dec_drop_frame_count;/*drop frame num*/
+	int tsync_mode;
+};
+
+struct av_param_info_t {
+	struct av_info_t av_info;
+};
+struct av_param_qosinfo_t {
+	struct vframe_qos_s vframe_qos[QOS_FRAME_NUM];
+};
+
 
 #define SUPPORT_VDEC_NUM	(20)
 int vcodec_profile_register(const struct codec_profile_t *vdec_profile);

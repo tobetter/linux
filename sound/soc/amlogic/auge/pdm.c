@@ -30,6 +30,7 @@
 
 #include "pdm.h"
 #include "pdm_hw.h"
+#include "pdm_match_table.c"
 #include "audio_io.h"
 #include "iomap.h"
 #include "regs.h"
@@ -54,7 +55,7 @@ static struct snd_pcm_hardware aml_pdm_hardware = {
 	.rate_max			=	96000,
 
 	.channels_min		=	PDM_CHANNELS_MIN,
-	.channels_max		=	PDM_CHANNELS_MAX,
+	.channels_max		=	PDM_CHANNELS_LB_MAX,
 
 	.buffer_bytes_max	=	512 * 1024,
 	.period_bytes_max	=	256 * 1024,
@@ -166,6 +167,46 @@ static int pdm_dclk_set_enum(
 	return 0;
 }
 
+static const char *const pdm_train_texts[] = {
+	"Disabled",
+	"Enable",
+};
+
+static const struct soc_enum pdm_train_enum =
+	SOC_ENUM_SINGLE(SND_SOC_NOPM, 0, ARRAY_SIZE(pdm_train_texts),
+			pdm_train_texts);
+
+static int pdm_train_get_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_pdm *p_pdm = snd_soc_dai_get_drvdata(cpu_dai);
+
+	ucontrol->value.enumerated.item[0] = p_pdm->train_en;
+
+	return 0;
+}
+
+static int pdm_train_set_enum(
+	struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dai *cpu_dai = snd_kcontrol_chip(kcontrol);
+	struct aml_pdm *p_pdm = snd_soc_dai_get_drvdata(cpu_dai);
+
+	if (!p_pdm->chipinfo ||
+		!p_pdm->chipinfo->train ||
+		(p_pdm->train_en == ucontrol->value.enumerated.item[0]))
+		return 0;
+
+	p_pdm->train_en = ucontrol->value.enumerated.item[0];
+
+	if (p_pdm->clk_on)
+		pdm_train_en(p_pdm->train_en);
+
+	return 0;
+}
 
 static const struct snd_kcontrol_new snd_pdm_controls[] = {
 	/* which set */
@@ -184,8 +225,14 @@ static const struct snd_kcontrol_new snd_pdm_controls[] = {
 		     pdm_dclk_enum,
 		     pdm_dclk_get_enum,
 		     pdm_dclk_set_enum),
+
+	SOC_ENUM_EXT("PDM Train",
+		     pdm_train_enum,
+		     pdm_train_get_enum,
+		     pdm_train_set_enum),
 };
 
+#if 0
 static int pdm_mute_val_info(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_info *uinfo)
 {
@@ -327,15 +374,23 @@ __error:
 
 	return err;
 }
-
+#endif
 static irqreturn_t aml_pdm_isr_handler(int irq, void *data)
 {
 	struct snd_pcm_substream *substream =
 		(struct snd_pcm_substream *)data;
+	int train_sts = pdm_train_sts();
 
 	pr_debug("%s\n", __func__);
 
 	snd_pcm_period_elapsed(substream);
+
+	if (train_sts) {
+		pr_debug("%s train result:0x%x\n",
+			__func__,
+			train_sts);
+		pdm_train_clr();
+	}
 
 	return IRQ_HANDLED;
 }
@@ -626,6 +681,7 @@ static int aml_pdm_dai_prepare(
 		struct toddr *to = p_pdm->tddr;
 		struct toddr_fmt fmt;
 		unsigned int osr = 192;
+		struct pdm_info info;
 
 		/* to ddr pdmin */
 		fmt.type      = toddr_type;
@@ -639,8 +695,12 @@ static int aml_pdm_dai_prepare(
 		aml_toddr_set_format(to, &fmt);
 		aml_toddr_set_fifos(to, 0x40);
 
-		aml_pdm_ctrl(p_pdm->actrl,
-			bitwidth, runtime->channels);
+		info.bitdepth   = bitwidth;
+		info.channels   = runtime->channels;
+		info.lane_masks = p_pdm->lane_mask_in;
+		info.dclk_idx   = pdm_dclk;
+		info.bypass     = p_pdm->bypass;
+		aml_pdm_ctrl(&info);
 
 		/* filter for pdm */
 		if (pdm_dclk == 1) {
@@ -830,12 +890,15 @@ int aml_pdm_dai_startup(struct snd_pcm_substream *substream,
 		pr_err("Can't enable pcm clk_pdm_dclk clock: %d\n", ret);
 		goto err;
 	}
-
+#if 0
 	if (p_pdm->chipinfo && p_pdm->chipinfo->mute_fn) {
 		struct snd_card *card = cpu_dai->component->card->snd_card;
 
 		pdm_running_create_controls(card, p_pdm);
 	}
+#endif
+
+	p_pdm->clk_on = true;
 
 	return 0;
 err:
@@ -847,12 +910,15 @@ void aml_pdm_dai_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai)
 {
 	struct aml_pdm *p_pdm = snd_soc_dai_get_drvdata(cpu_dai);
-
+#if 0
 	if (p_pdm->chipinfo && p_pdm->chipinfo->mute_fn) {
 		struct snd_card *card = cpu_dai->component->card->snd_card;
 
 		pdm_running_destroy_controls(card, p_pdm);
 	}
+#endif
+
+	p_pdm->clk_on = false;
 
 	/* disable clock and gate */
 	clk_disable_unprepare(p_pdm->clk_pdm_dclk);
@@ -877,7 +943,7 @@ struct snd_soc_dai_driver aml_pdm_dai[] = {
 		.name = "PDM",
 		.capture = {
 			.channels_min =	PDM_CHANNELS_MIN,
-			.channels_max = PDM_CHANNELS_MAX,
+			.channels_max = PDM_CHANNELS_LB_MAX,
 			.rates        = PDM_RATES,
 			.formats      = PDM_FORMATS,
 		},
@@ -891,31 +957,25 @@ static const struct snd_soc_component_driver aml_pdm_component = {
 	.name = DRV_NAME,
 };
 
-static struct pdm_chipinfo g12a_pdm_chipinfo = {
-	.mute_fn         = true,
-	.truncate_data   = false,
-};
+static int snd_soc_of_get_slot_mask(
+	struct device_node *np,
+	const char *prop_name,
+	unsigned int *mask)
+{
+	u32 val;
+	const __be32 *of_slot_mask = of_get_property(np, prop_name, &val);
+	int i;
 
-static struct pdm_chipinfo tl1_pdm_chipinfo = {
-	.mute_fn         = true,
-	.truncate_data   = false,
-};
+	if (!of_slot_mask)
+		return -EINVAL;
 
-static const struct of_device_id aml_pdm_device_id[] = {
-	{
-		.compatible = "amlogic, axg-snd-pdm",
-	},
-	{
-		.compatible = "amlogic, g12a-snd-pdm",
-		.data       = &g12a_pdm_chipinfo,
-	},
-	{
-		.compatible = "amlogic, tl1-snd-pdm",
-		.data       = &tl1_pdm_chipinfo,
-	},
-	{}
-};
-MODULE_DEVICE_TABLE(of, aml_pdm_device_id);
+	val /= sizeof(u32);
+	for (i = 0; i < val; i++)
+		if (be32_to_cpup(&of_slot_mask[i]))
+			*mask |= (1 << i);
+
+	return val;
+}
 
 static int aml_pdm_platform_probe(struct platform_device *pdev)
 {
@@ -1021,6 +1081,12 @@ static int aml_pdm_platform_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	ret = snd_soc_of_get_slot_mask(node, "lane-mask-in",
+			&p_pdm->lane_mask_in);
+	if (ret < 0) {
+		pr_warn("default set lane_mask_in as all lanes.\n");
+		p_pdm->lane_mask_in = 0xf;
+	}
 
 	ret = of_property_read_u32(node, "filter_mode",
 			&p_pdm->filter_mode);

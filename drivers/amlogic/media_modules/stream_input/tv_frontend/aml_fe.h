@@ -1,3 +1,22 @@
+/*
+* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*
+* Description:
+*/
 #ifndef _AML_FE_H_
 #define _AML_FE_H_
 
@@ -42,6 +61,7 @@
 #include "../parser/hw_demux/aml_dvb.h"
 
 enum aml_tuner_type_t {
+	AM_TUNER_NONE = 0,
 	AM_TUNER_SI2176 = 1,
 	AM_TUNER_SI2196 = 2,
 	AM_TUNER_FQ1216 = 3,
@@ -51,7 +71,10 @@ enum aml_tuner_type_t {
 	AM_TUNER_R840   = 7,
 	AM_TUNER_SI2157 = 8,
 	AM_TUNER_SI2151 = 9,
-	AM_TUNER_MXL661 = 10
+	AM_TUNER_MXL661 = 10,
+	AM_TUNER_MXL608 = 11,
+	AM_TUNER_SI2159 = 12,
+	AM_TUNER_R842 = 13,
 };
 
 enum aml_atv_demod_type_t {

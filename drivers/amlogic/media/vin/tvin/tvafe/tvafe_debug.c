@@ -31,6 +31,7 @@
 #include "tvafe_regs.h"
 #include "tvafe_debug.h"
 #include "tvafe.h"
+#include "../vdin/vdin_ctl.h"
 
 bool disableapi;
 bool force_stable;
@@ -256,6 +257,18 @@ static ssize_t tvafe_store(struct device *dev,
 		}
 	} else if (!strncmp(buff, "afe_ver", strlen("afe_ver"))) {
 		tvafe_pr_info("tvafe version :  %s\n", TVAFE_VER);
+	} else if (!strncmp(buff, "snowcfg", strlen("snowcfg"))) {
+		if (kstrtoul(parm[1], 10, &val) < 0) {
+			kfree(buf_orig);
+			return -EINVAL;
+		}
+		if (val) {
+			tvafe_set_snow_cfg(true);
+			tvafe_pr_info("[tvafe..]hadware snow cfg en\n");
+		} else {
+			tvafe_set_snow_cfg(false);
+			tvafe_pr_info("[tvafe..]hadware snow cfg dis\n");
+		}
 	} else if (!strncmp(buff, "snowon", strlen("snowon"))) {
 		if (kstrtoul(parm[1], 10, &val) < 0) {
 			kfree(buf_orig);
@@ -371,6 +384,9 @@ static ssize_t tvafe_dumpmem_store(struct device *dev,
 	struct tvafe_dev_s *devp;
 	char delim1[3] = " ";
 	char delim2[2] = "\n";
+	unsigned int highmem_flag = 0;
+	unsigned long highaddr;
+	int i;
 
 	strcat(delim1, delim2);
 	if (!buff)
@@ -403,15 +419,34 @@ static ssize_t tvafe_dumpmem_store(struct device *dev,
 				kfree(buf_orig);
 				return len;
 			}
-			if (devp->cma_config_flag == 1)
-				buf = codec_mm_phys_to_virt(devp->mem.start);
-			else
+			highmem_flag =
+				PageHighMem(phys_to_page(devp->mem.start));
+			pr_info("highmem_flag:%d\n", highmem_flag);
+			if (devp->cma_config_flag == 1 &&
+				highmem_flag != 0) {
+				/*tvafe dts config 5M memory*/
+				for (i = 0;
+					i < devp->cma_mem_size / SZ_1M;
+					i++) {
+					highaddr = devp->mem.start + i * SZ_1M;
+					buf = vdin_vmap(highaddr, SZ_1M);
+					if (!buf) {
+						pr_info("vdin_vmap error\n");
+						return len;
+					}
+					pr_info("buf:0x%p\n", buf);
+		/*vdin_dma_flush(devp, buf, SZ_1M, DMA_FROM_DEVICE);*/
+					vfs_write(filp, buf, SZ_1M, &pos);
+					vdin_unmap_phyaddr(buf);
+				}
+			} else {
 				buf = phys_to_virt(devp->mem.start);
-			vfs_write(filp, buf, devp->mem.size, &pos);
-			tvafe_pr_info("write buffer %2d of %s.\n",
-				devp->mem.size, parm[1]);
-			tvafe_pr_info("devp->mem.start   %x .\n",
-				devp->mem.start);
+				vfs_write(filp, buf, devp->mem.size, &pos);
+				tvafe_pr_info("write buffer %2d of %s.\n",
+					devp->mem.size, parm[1]);
+				tvafe_pr_info("devp->mem.start   %x .\n",
+					devp->mem.start);
+			}
 			vfs_fsync(filp, 0);
 			filp_close(filp, NULL);
 			set_fs(old_fs);
@@ -450,10 +485,9 @@ static ssize_t tvafereg_store(struct device *dev,
 		struct device_attribute *attr, const char *buff, size_t count)
 {
 	struct tvafe_dev_s *devp;
-	unsigned int argn = 0, addr = 0, value = 0, end = 0;
+	unsigned int argn = 0, addr = 0, value = 0, end = 0, tmp = 0;
 	char *p, *para, *buf_work, cmd = 0;
 	char *argv[3];
-	long tmp = 0;
 
 	devp = dev_get_drvdata(dev);
 
@@ -485,7 +519,7 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 2) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
@@ -499,11 +533,11 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 3) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					value = tmp;
 				else
 					break;
-				if (kstrtol(argv[2], 16, &tmp) == 0)
+				if (kstrtouint(argv[2], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
@@ -517,11 +551,11 @@ static ssize_t tvafereg_store(struct device *dev,
 			if (argn < 3) {
 				tvafe_pr_err("syntax error.\n");
 			} else{
-				if (kstrtol(argv[1], 16, &tmp) == 0)
+				if (kstrtouint(argv[1], 16, &tmp) == 0)
 					addr = tmp;
 				else
 					break;
-				if (kstrtol(argv[2], 16, &tmp) == 0)
+				if (kstrtouint(argv[2], 16, &tmp) == 0)
 					end = tmp;
 				else
 					break;

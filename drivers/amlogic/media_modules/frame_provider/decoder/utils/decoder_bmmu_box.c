@@ -32,6 +32,7 @@
 #include <linux/amlogic/media/video_sink/video_keeper.h>
 #include "decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
+#include <linux/amlogic/media/codec_mm/codec_mm_keeper.h>
 
 struct decoder_bmmu_box {
 	int max_mm_num;
@@ -133,19 +134,28 @@ int decoder_bmmu_box_alloc_idx(void *handle, int idx, int size, int aligned_2n,
 	mm = box->mm_list[idx];
 	if (mm) {
 		int invalid = 0;
+		int keeped = 0;
 
-		if (mm->page_count * PAGE_SIZE < size) {
-			/*size is small. */
-			invalid = 1;
-		} else if (box->change_size_on_need_smaller &&
-				   (mm->buffer_size > (size << 1))) {
-			/*size is too large. */
-			invalid = 2;
-		} else if (mm->phy_addr & ((1 << align) - 1)) {
-			/*addr is not align */
-			invalid = 4;
-		}
-		if (invalid) {
+		keeped = is_codec_mm_keeped(mm);
+		if (!keeped) {
+			if (mm->page_count * PAGE_SIZE < size) {
+				/*size is small. */
+				invalid = 1;
+			} else if (box->change_size_on_need_smaller &&
+					   (mm->buffer_size > (size << 1))) {
+				/*size is too large. */
+				invalid = 2;
+			} else if (mm->phy_addr & ((1 << align) - 1)) {
+				/*addr is not align */
+				invalid = 4;
+			}
+			if (invalid) {
+				box->total_size -= mm->buffer_size;
+				codec_mm_release(mm, box->name);
+				box->mm_list[idx] = NULL;
+				mm = NULL;
+			}
+		} else {
 			box->total_size -= mm->buffer_size;
 			codec_mm_release(mm, box->name);
 			box->mm_list[idx] = NULL;
@@ -173,7 +183,7 @@ int decoder_bmmu_box_free_idx(void *handle, int idx)
 	if (!box || idx < 0 || idx >= box->max_mm_num) {
 		pr_err("can't free idx of box(%p),idx:%d  in (%d-%d)\n",
 				box, idx, 0,
-			   box->max_mm_num - 1);
+			   box ? (box->max_mm_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -289,15 +299,29 @@ int decoder_bmmu_box_alloc_idx_wait(
 {
 	int have_space;
 	int ret = -1;
+	int keeped = 0;
 
-	if (decoder_bmmu_box_get_mem_size(handle, idx) >= size)
-		return 0;/*have alloced memery before.*/
+	if (decoder_bmmu_box_get_mem_size(handle, idx) >= size) {
+		struct decoder_bmmu_box *box = handle;
+		struct codec_mm_s *mm;
+		mutex_lock(&box->mutex);
+		mm = box->mm_list[idx];
+		keeped = is_codec_mm_keeped(mm);
+		mutex_unlock(&box->mutex);
+
+		if (!keeped)
+			return 0;/*have alloced memery before.*/
+	}
 	have_space = decoder_bmmu_box_check_and_wait_size(
 					size,
 					wait_flags);
 	if (have_space) {
 		ret = decoder_bmmu_box_alloc_idx(handle,
 				idx, size, aligned_2n, mem_flags);
+		if (ret == -ENOMEM) {
+			pr_info("bmmu alloc idx fail, try free keep video.\n");
+			try_free_keep_video(1);
+		}
 	} else {
 		try_free_keep_video(1);
 		ret = -ENOMEM;
@@ -335,7 +359,7 @@ int decoder_bmmu_box_alloc_buf_phy(
 		 *	driver_name, idx, *buf_phy_addr, size);
 		 */
 		} else {
-		pr_info("%s malloc failed  %d\n", driver_name, idx);
+			pr_info("%s malloc failed  %d\n", driver_name, idx);
 			return -ENOMEM;
 	}
 
@@ -353,7 +377,7 @@ static int decoder_bmmu_box_dump(struct decoder_bmmu_box *box, void *buf,
 	int i;
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 #define BUFPRINT(args...) \
 	do {\
@@ -397,7 +421,7 @@ static int decoder_bmmu_box_dump_all(void *buf, int size)
 	struct list_head *head, *list;
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 #define BUFPRINT(args...) \
 	do {\

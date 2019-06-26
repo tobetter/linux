@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 9
-SUBLEVEL = 180
+SUBLEVEL = 182
 EXTRAVERSION =
 NAME = Roaring Lionus
 
@@ -764,7 +764,7 @@ ifdef CONFIG_CC_STACKPROTECTOR_REGULAR
   stackp-flag := -fstack-protector
   stackp-name := REGULAR
 else
-ifdef CONFIG_CC_STACKPROTECTOR_STRONG
+ifdef CONFIG_CC_STACKPROTECTOR_STRONG_AMLOGIC
   stackp-flag := -fstack-protector-strong
   stackp-name := STRONG
 else

@@ -2175,6 +2175,54 @@ static struct hdmi_format_para fmt_para_480x320p60_4x3 = {
 	},
 };
 
+static struct hdmi_format_para fmt_para_480x272p60_4x3 = {
+	.vic = HDMI_480x272p60_4x3,
+	.name = "480x272p60hz",
+	.sname = "480x272p60hz",
+	.pixel_repetition_factor = 0,
+	.progress_mode = 1,
+	.scrambler_en = 0,
+	.tmds_clk_div40 = 0,
+	.tmds_clk = 25200,
+	.timing = {
+		.pixel_freq = 25200,
+		.frac_freq = 25200,
+		.h_freq = 31500,
+		.v_freq = 60000,
+		.vsync_polarity = 0, /* -VSync */
+		.hsync_polarity = 0, /* -HSync */
+		.h_active = 480,
+		.h_total = 800,
+		.h_blank = 320,
+		.h_front = 120,
+		.h_sync = 100,
+		.h_back = 100,
+		.v_active = 272,
+		.v_total = 525,
+		.v_blank = 253,
+		.v_front = 8,
+		.v_sync = 7,
+		.v_back = 238,
+		.v_sync_ln = 1,
+	},
+	.hdmitx_vinfo = {
+		.name              = "480x272p60hz",
+		.mode              = VMODE_HDMI,
+		.width             = 480,
+		.height            = 272,
+		.field_height      = 272,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk         = 25200000,
+		.htotal            = 800,
+		.vtotal            = 525,
+		.viu_color_fmt     = COLOR_FMT_YUV444,
+		.viu_mux           = VIU_MUX_ENCP,
+	},
+};
+
 static struct hdmi_format_para fmt_para_480x800p60_4x3 = {
 	.vic = HDMI_480x800p60_4x3,
 	.name = "480x800p60hz",
@@ -2343,6 +2391,7 @@ static struct hdmi_format_para *all_fmt_paras[] = {
 	&fmt_para_800x480p60_5x3,
 	&fmt_para_640x480p60_4x3,
 	&fmt_para_480x320p60_4x3,
+	&fmt_para_480x272p60_4x3,
 	&fmt_para_480x800p60_4x3,
 	&fmt_para_custombuilt,
 	&fmt_para_null_hdmi_fmt,
@@ -2704,6 +2753,24 @@ struct vinfo_s *hdmi_get_valid_vinfo(char *mode)
 		/* the string of mode contains char NF */
 		memset(mode_, 0, sizeof(mode_));
 		strncpy(mode_, mode, sizeof(mode_));
+
+		/* skip "f", 1080fp60hz -> 1080p60hz for 3d */
+		mode_[31] = '\0';
+		if (strstr(mode_, "fp")) {
+			int i = 0;
+
+			for (; mode_[i]; i++) {
+				if ((mode_[i] == 'f') &&
+					(mode_[i + 1] == 'p')) {
+					do {
+						mode_[i] = mode_[i + 1];
+						i++;
+					} while (mode_[i]);
+					break;
+				}
+			}
+		}
+
 		for (i = 0; i < sizeof(mode_); i++)
 			if (mode_[i] == 10)
 				mode_[i] = 0;
@@ -3025,7 +3092,7 @@ struct hdmi_audio_fs_ncts aud_48k_para = {
 		.n = 6864,
 		.cts = 28125,
 		.n_36bit = 9152,
-		.cts_36bit = 58250,
+		.cts_36bit = 56250,
 		.n_48bit = 6864,
 		.cts_48bit = 56250,
 	},
@@ -3249,5 +3316,24 @@ unsigned int hdmi_get_csc_coef(
 	*coef_length = 0;
 
 	return 1;
+}
+
+bool is_hdmi14_4k(enum hdmi_vic vic)
+{
+	bool ret = 0;
+
+	switch (vic) {
+	case HDMI_3840x2160p24_16x9:
+	case HDMI_3840x2160p25_16x9:
+	case HDMI_3840x2160p30_16x9:
+	case HDMI_4096x2160p24_256x135:
+		ret = 1;
+		break;
+	default:
+		ret = 0;
+		break;
+	}
+
+	return ret;
 }
 

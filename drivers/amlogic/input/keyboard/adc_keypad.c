@@ -576,6 +576,8 @@ static int meson_adc_kp_remove(struct platform_device *pdev)
 static int meson_adc_kp_suspend(struct platform_device *pdev,
 				pm_message_t state)
 {
+	if (is_pm_freeze_mode())
+		return 0;
 	return 0;
 }
 
@@ -583,6 +585,9 @@ static int meson_adc_kp_resume(struct platform_device *pdev)
 {
 	struct adc_key *key;
 	struct meson_adc_kp *kp = platform_get_drvdata(pdev);
+
+	if (is_pm_freeze_mode())
+		return 0;
 
 	if (get_resume_method() == POWER_KEY_WAKEUP) {
 		list_for_each_entry(key, &kp->adckey_head, list) {

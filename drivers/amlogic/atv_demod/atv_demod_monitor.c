@@ -29,11 +29,13 @@ static DEFINE_MUTEX(monitor_mutex);
 
 bool atvdemod_mixer_tune_en;
 bool atvdemod_overmodulated_en;
+bool atv_audio_overmodulated_en;
 bool audio_det_en;
 bool atvdemod_det_snr_en = true;
-bool audio_thd_en = true;
+bool audio_thd_en;
 bool atvdemod_det_nonstd_en;
 bool atvaudio_det_outputmode_en = true;
+bool audio_carrier_offset_det_en;
 
 unsigned int atvdemod_timer_delay = 100; /* 1s */
 unsigned int atvdemod_timer_delay2 = 10; /* 100ms */
@@ -43,11 +45,21 @@ bool atvdemod_timer_en = true;
 
 static void atv_demod_monitor_do_work(struct work_struct *work)
 {
+	int vpll_lock = 0, line_lock = 0;
 	struct atv_demod_monitor *monitor =
 			container_of(work, struct atv_demod_monitor, work);
 
 	if (!monitor->state)
 		return;
+
+	retrieve_vpll_carrier_lock(&vpll_lock);
+	retrieve_vpll_carrier_line_lock(&line_lock);
+	if ((vpll_lock != 0) || (line_lock != 0)) {
+		monitor->lock_cnt = 0;
+		return;
+	}
+
+	monitor->lock_cnt++;
 
 	if (atvdemod_mixer_tune_en)
 		atvdemod_mixer_tune();
@@ -55,15 +67,22 @@ static void atv_demod_monitor_do_work(struct work_struct *work)
 	if (atvdemod_overmodulated_en)
 		atvdemod_video_overmodulated();
 
+	if (atv_audio_overmodulated_en) {
+		if (monitor->lock_cnt % 10 == 0)
+			aml_audio_overmodulation(1);
+	}
+
 	if (atvdemod_det_snr_en)
 		atvdemod_det_snr_serice();
 
 	if (audio_thd_en)
 		audio_thd_det();
 
-	if (atvaudio_det_outputmode_en &&
-		(is_meson_txlx_cpu() || is_meson_txhd_cpu()))
+	if (atvaudio_det_outputmode_en)
 		atvauddemod_set_outputmode();
+
+	if (audio_carrier_offset_det_en)
+		audio_carrier_offset_det();
 
 	if (atvdemod_det_nonstd_en)
 		atv_dmd_non_std_set(true);
@@ -103,6 +122,7 @@ static void atv_demod_monitor_enable(struct atv_demod_monitor *monitor)
 				ATVDEMOD_INTERVAL * atvdemod_timer_delay;
 		add_timer(&monitor->timer);
 		monitor->state = true;
+		monitor->lock_cnt = 0;
 	}
 
 	mutex_unlock(&monitor->mtx);
@@ -134,6 +154,7 @@ void atv_demod_monitor_init(struct atv_demod_monitor *monitor)
 
 	monitor->state = false;
 	monitor->lock = false;
+	monitor->lock_cnt = 0;
 	monitor->disable = atv_demod_monitor_disable;
 	monitor->enable = atv_demod_monitor_enable;
 

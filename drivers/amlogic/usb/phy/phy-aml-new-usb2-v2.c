@@ -27,6 +27,8 @@
 #include <linux/delay.h>
 #include <linux/usb/phy.h>
 #include <linux/amlogic/usb-v2.h>
+#include <linux/amlogic/cpu_version.h>
+#include <linux/amlogic/power_ctrl.h>
 #include "phy-aml-new-usb-v2.h"
 
 struct amlogic_usb_v2	*g_phy2_v2;
@@ -38,6 +40,10 @@ void set_usb_phy_host_tuning(int port, int default_val)
 
 	if (!g_phy2_v2)
 		return;
+
+	if (g_phy2_v2->phy_version)
+		return;
+
 	if (port > g_phy2_v2->portnum)
 		return;
 	if (default_val == g_phy2_v2->phy_cfg_state[port])
@@ -63,6 +69,10 @@ void set_usb_phy_device_tuning(int port, int default_val)
 
 	if (!g_phy2_v2)
 		return;
+
+	if (g_phy2_v2->phy_version)
+		return;
+
 	if (port > g_phy2_v2->portnum)
 		return;
 	if (default_val == g_phy2_v2->phy_cfg_state[port])
@@ -82,7 +92,6 @@ void set_usb_phy_device_tuning(int port, int default_val)
 	g_phy2_v2->phy_cfg_state[port] = default_val;
 }
 
-
 void set_usb_pll(struct amlogic_usb_v2 *phy, void __iomem	*reg)
 {
 	/* TO DO set usb  PLL */
@@ -93,11 +102,24 @@ void set_usb_pll(struct amlogic_usb_v2 *phy, void __iomem	*reg)
 	writel((0x10000000 | (phy->pll_setting[0])), reg + 0x40);
 
 	/* PHY Tune */
-	writel(phy->pll_setting[3], reg + 0x50);
-	writel(phy->pll_setting[4], reg + 0x10);
-	/* Recovery analog status */
-	writel(0, reg + 0x38);
-	writel(phy->pll_setting[5], reg + 0x34);
+	if (g_phy2_v2) {
+		if (g_phy2_v2->phy_version == 2) {
+		/**g12b revB don't need set 0x10 ,0x38 and 0x34**/
+			writel(phy->pll_setting[3], reg + 0x50);
+			writel(0x2a, reg + 0x54);
+			writel(0x70000, reg + 0x34);
+		} else {
+			writel(phy->pll_setting[3], reg + 0x50);
+			writel(phy->pll_setting[4], reg + 0x10);
+			writel(0, reg + 0x38);
+			writel(phy->pll_setting[5], reg + 0x34);
+		}
+	} else {
+		writel(phy->pll_setting[3], reg + 0x50);
+		writel(phy->pll_setting[4], reg + 0x10);
+		writel(0, reg + 0x38);
+		writel(phy->pll_setting[5], reg + 0x34);
+	}
 
 	writel(TUNING_DISCONNECT_THRESHOLD, reg + 0xC);
 }
@@ -111,10 +133,15 @@ static int amlogic_new_usb2_init(struct usb_phy *x)
 	union u2p_r0_v2 reg0;
 	union u2p_r1_v2 reg1;
 	u32 val;
+	u32 temp = 0;
+	u32 portnum = phy->portnum;
+
+	while (portnum--)
+		temp = temp | (1 << (16 + portnum));
 
 	val = readl((void __iomem *)
 		((unsigned long)phy->reset_regs + (0x21 * 4 - 0x8)));
-	writel((val | (0x3 << 16)), (void __iomem *)
+	writel((val | temp), (void __iomem *)
 		((unsigned long)phy->reset_regs + (0x21 * 4 - 0x8)));
 
 	amlogic_new_usbphy_reset_v2(phy);
@@ -183,14 +210,37 @@ static void amlogic_new_usb2phy_shutdown(struct usb_phy *x)
 {
 	struct amlogic_usb_v2 *phy = phy_to_amlusb(x);
 	u32 val;
+	u32 temp = 0;
+	u32 cnt = phy->portnum;
+
+	while (cnt--)
+		temp = temp | (1 << (16 + cnt));
 
 	/* set usb phy to low power mode */
 	val = readl((void __iomem		*)
 		((unsigned long)phy->reset_regs + (0x21 * 4 - 0x8)));
-	writel((val & (~(0x3 << 16))), (void __iomem	*)
+	writel((val & (~temp)), (void __iomem	*)
 		((unsigned long)phy->reset_regs + (0x21 * 4 - 0x8)));
 
 	phy->suspend_flag = 1;
+}
+
+void power_switch_to_usb(struct amlogic_usb_v2	*phy)
+{
+	/* Powerup usb_comb */
+	power_ctrl_sleep(1, phy->u2_ctrl_sleep_shift);
+	power_ctrl_mempd0(1, phy->u2_hhi_mem_pd_mask, phy->u2_hhi_mem_pd_shift);
+	udelay(100);
+
+	writel((readl(phy->reset_regs + (0x21 * 4 - 0x8)) & ~(0x1 << 2)),
+		phy->reset_regs + (0x21 * 4 - 0x8));
+
+	udelay(100);
+	power_ctrl_iso(1, phy->u2_ctrl_iso_shift);
+
+	writel((readl(phy->reset_regs + (0x21 * 4 - 0x8)) | (0x1 << 2)),
+		phy->reset_regs + (0x21 * 4 - 0x8));
+	udelay(100);
 }
 
 static int amlogic_new_usb2_probe(struct platform_device *pdev)
@@ -204,10 +254,16 @@ static int amlogic_new_usb2_probe(struct platform_device *pdev)
 	void __iomem	*reset_base = NULL;
 	void __iomem	*phy_cfg_base[4];
 	int portnum = 0;
+	int phy_version = 0;
 	const void *prop;
 	int i = 0;
 	int retval;
 	u32 pll_setting[8];
+	u32 pwr_ctl = 0;
+	u32 u2_ctrl_sleep_shift = 0;
+	u32 u2_hhi_mem_pd_shift = 0;
+	u32 u2_hhi_mem_pd_mask = 0;
+	u32 u2_ctrl_iso_shift = 0;
 
 	prop = of_get_property(dev->of_node, "portnum", NULL);
 	if (prop)
@@ -216,6 +272,17 @@ static int amlogic_new_usb2_probe(struct platform_device *pdev)
 	if (!portnum) {
 		dev_err(&pdev->dev, "This phy has no usb port\n");
 		return -ENOMEM;
+	}
+
+	prop = of_get_property(dev->of_node, "version", NULL);
+	if (prop)
+		phy_version = of_read_ulong(prop, 1);
+	else
+		phy_version = 0;
+
+	if (is_meson_g12b_cpu()) {
+		if (!is_meson_rev_a())
+			phy_version = 2;
 	}
 
 	phy_mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -240,6 +307,42 @@ static int amlogic_new_usb2_probe(struct platform_device *pdev)
 			if (IS_ERR(phy_cfg_base[i]))
 				return PTR_ERR(phy_cfg_base[i]);
 		}
+	}
+
+	prop = of_get_property(dev->of_node, "pwr-ctl", NULL);
+	if (prop)
+		pwr_ctl = of_read_ulong(prop, 1);
+	else
+		pwr_ctl = 0;
+
+	if (pwr_ctl) {
+		prop = of_get_property(dev->of_node,
+			"u2-ctrl-sleep-shift", NULL);
+		if (prop)
+			u2_ctrl_sleep_shift = of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"u2-hhi-mem-pd-shift", NULL);
+		if (prop)
+			u2_hhi_mem_pd_shift = of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"u2-hhi-mem-pd-mask", NULL);
+		if (prop)
+			u2_hhi_mem_pd_mask = of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"u2-ctrl-iso-shift", NULL);
+		if (prop)
+			u2_ctrl_iso_shift = of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
 	}
 
 	phy = devm_kzalloc(&pdev->dev, sizeof(*phy), GFP_KERNEL);
@@ -308,10 +411,20 @@ static int amlogic_new_usb2_probe(struct platform_device *pdev)
 	phy->pll_setting[6] = pll_setting[6];
 	phy->pll_setting[7] = pll_setting[7];
 	phy->suspend_flag = 0;
+	phy->phy_version = phy_version;
+	phy->pwr_ctl = pwr_ctl;
 	for (i = 0; i < portnum; i++) {
 		phy->phy_cfg[i] = phy_cfg_base[i];
 		/* set port default tuning state */
 		phy->phy_cfg_state[i] = 1;
+	}
+
+	if (pwr_ctl) {
+		phy->u2_ctrl_sleep_shift = u2_ctrl_sleep_shift;
+		phy->u2_hhi_mem_pd_shift = u2_hhi_mem_pd_shift;
+		phy->u2_hhi_mem_pd_mask = u2_hhi_mem_pd_mask;
+		phy->u2_ctrl_iso_shift = u2_ctrl_iso_shift;
+		power_switch_to_usb(phy);
 	}
 
 	usb_add_phy_dev(&phy->phy);

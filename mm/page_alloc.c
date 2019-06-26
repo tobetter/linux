@@ -3007,8 +3007,21 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 	 * are not met, then a high-order request also cannot go ahead
 	 * even if a suitable page happened to be free.
 	 */
+#ifdef CONFIG_AMLOGIC_CMA
+	if (free_pages <= min + z->lowmem_reserve[classzone_idx]) {
+		/* do not using cma until water mark is low */
+		if (unlikely(!cma_first_wm_low && free_pages > 0)) {
+			cma_first_wm_low = true;
+			pr_info("Now can use cma, free:%ld, wm:%ld\n",
+				free_pages,
+				min + z->lowmem_reserve[classzone_idx]);
+		}
+		return false;
+	}
+#else
 	if (free_pages <= min + z->lowmem_reserve[classzone_idx])
 		return false;
+#endif
 
 	/* If this is an order-0 request then the watermark is fine */
 	if (!order)

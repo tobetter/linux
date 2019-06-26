@@ -48,5 +48,6 @@ int threadrw_alloc_more_buffer_size(
 	struct stream_buf_s *stbuf,
 	int size);
 int threadrw_support_more_buffers(struct stream_buf_s *stbuf);
-
+void threadrw_update_buffer_level(struct stream_buf_s *stbuf,
+	int parsed_size);
 #endif

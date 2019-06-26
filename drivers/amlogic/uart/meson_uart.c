@@ -15,6 +15,7 @@
  *
  */
 
+#define SKIP_IO_TRACE
 #include <linux/clk.h>
 #include <linux/console.h>
 #include <linux/delay.h>
@@ -640,7 +641,7 @@ static void meson_uart_set_termios(struct uart_port *port,
 	writel(val, port->membase + AML_UART_CONTROL);
 	spin_unlock_irqrestore(&port->lock, flags);
 
-	baud = uart_get_baud_rate(port, termios, old, 9600, 4000000);
+	baud = uart_get_baud_rate(port, termios, old, 2400, 4000000);
 	meson_uart_change_speed(port, baud);
 
 	port->read_status_mask = AML_UART_RX_FIFO_OVERFLOW;
@@ -956,6 +957,7 @@ static int __init meson_early_console_setup(struct earlycon_device *device,
 	return 0;
 }
 EARLYCON_DECLARE(aml_uart, meson_early_console_setup);
+EARLYCON_DECLARE_COMP(aml-uart, meson_early_console_setup);
 
 static struct console meson_serial_console = {
 	.name = AML_UART_DEV_NAME,

@@ -75,6 +75,16 @@
 #endif
 #endif
 
+#define IS_VDIN_SRC(src) ( \
+	(src == VFRAME_SOURCE_TYPE_TUNER) || \
+	(src == VFRAME_SOURCE_TYPE_CVBS) || \
+	(src == VFRAME_SOURCE_TYPE_COMP) || \
+	(src == VFRAME_SOURCE_TYPE_HDMI))
+
+#define IS_I_SRC(vftype) (vftype & VIDTYPE_INTERLACE_BOTTOM)
+
+#define IS_COMP_MODE(vftype) (vftype & VIDTYPE_COMPRESS)
+
 enum process_fun_index_e {
 	PROCESS_FUN_NULL = 0,
 	PROCESS_FUN_DI,
@@ -117,6 +127,8 @@ struct di_buf_s {
 	int cnt_canvas_idx;
 	unsigned long mcinfo_adr;
 	int mcinfo_canvas_idx;
+	unsigned short *mcinfo_vaddr;
+	bool bflg_vmap;
 	unsigned long mcvec_adr;
 	int mcvec_canvas_idx;
 	struct mcinfo_pre_s {
@@ -235,6 +247,7 @@ struct di_dev_s {
 	unsigned int       post_wr_support;
 	unsigned int nrds_enable;
 	unsigned int pps_enable;
+	u32 h_sc_down_en;/*sm1, tm2 ...*/
 	/*struct	mutex      cma_mutex;*/
 	unsigned int	   flag_cma;
 	struct page			*total_pages;
@@ -287,6 +300,7 @@ struct di_pre_stru_s {
 	int	reg_req_flag;
 	int	reg_req_flag_irq;
 	int	reg_req_flag_cnt;
+	int	reg_irq_busy;
 	int	force_unreg_req_flag;
 	int	disable_req_flag;
 	/* current source info */
@@ -374,6 +388,7 @@ struct di_post_stru_s {
 	bool		toggle_flag;
 	bool		vscale_skip_flag;
 	uint		start_pts;
+	u64		start_pts_us64;
 	int		buf_type;
 	int de_post_process_done;
 	int post_de_busy;

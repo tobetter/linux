@@ -18,10 +18,6 @@
 
 #ifdef CONFIG_CPU_V7
 
-#ifdef CONFIG_AMLOGIC_MODIFY
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-#endif
-
 #include <asm/cp15.h>
 #include <asm/cputype.h>
 #include <asm/irq_regs.h>
@@ -33,17 +29,8 @@
 #include <linux/platform_device.h>
 
 #ifdef CONFIG_AMLOGIC_MODIFY
-#include <linux/of.h>
-#include <linux/of_irq.h>
-#include <linux/of_device.h>
-#include <linux/irq.h>
-#include <asm/irq.h>
-#include <linux/interrupt.h>
-#include <linux/irqdesc.h>
-#include <linux/of_address.h>
-#include <linux/delay.h>
+#include <asm/perf_event.h>
 #endif
-
 
 /*
  * Common ARMv7 event types
@@ -963,160 +950,13 @@ static void armv7pmu_disable_event(struct perf_event *event)
 }
 
 #ifdef CONFIG_AMLOGIC_MODIFY
-static struct amlpmu_fixup_context amlpmu_fixup_ctx;
-
-static enum hrtimer_restart amlpmu_relax_timer_func(struct hrtimer *timer)
-{
-	struct amlpmu_fixup_cpuinfo *ci;
-
-	ci = per_cpu_ptr(amlpmu_fixup_ctx.cpuinfo, 0);
-
-	pr_alert("enable cpu0_irq %d again, irq cnt = %lu\n",
-		ci->irq_num,
-		ci->irq_cnt);
-	enable_irq(ci->irq_num);
-
-	return HRTIMER_NORESTART;
-}
-
-
-static void amlpmu_relax_timer_start(int other_cpu)
-{
-	struct amlpmu_fixup_cpuinfo *ci;
-	int cpu;
-
-	cpu = smp_processor_id();
-	WARN_ON(cpu != 0);
-
-	ci = per_cpu_ptr(amlpmu_fixup_ctx.cpuinfo, 0);
-
-	pr_alert("wait cpu %d fixup done timeout, main cpu irq cnt = %lu\n",
-			other_cpu,
-			ci->irq_cnt);
-
-	if (hrtimer_active(&amlpmu_fixup_ctx.relax_timer)) {
-		pr_alert("relax_timer already active, return!\n");
-		return;
-	}
-
-	disable_irq_nosync(ci->irq_num);
-
-	hrtimer_start(&amlpmu_fixup_ctx.relax_timer,
-		ns_to_ktime(amlpmu_fixup_ctx.relax_timer_ns),
-		HRTIMER_MODE_REL);
-}
+#include <linux/perf/arm_pmu.h>
 
 static irqreturn_t armv7pmu_handle_irq(int irq_num, void *dev);
 
-void armv8pmu_handle_irq_ipi(void)
+void amlpmu_handle_irq_ipi(void *arg)
 {
-	int cpu = smp_processor_id();
-
-	WARN_ON(cpu == 0);
-	WARN_ON(!amlpmu_fixup_ctx.dev);
-
-	armv7pmu_handle_irq(-1, amlpmu_fixup_ctx.dev);
-}
-
-static int aml_pmu_fix(void)
-{
-	int i;
-	int cpu;
-	int pmuirq_val;
-	struct amlpmu_fixup_cpuinfo *ci;
-
-	int max_wait_cnt = amlpmu_fixup_ctx.max_wait_cnt;
-
-	pmuirq_val = readl(amlpmu_fixup_ctx.sys_cpu_status0);
-	pmuirq_val &= amlpmu_fixup_ctx.sys_cpu_status0_pmuirq_mask;
-
-	for (cpu = 0; cpu < num_possible_cpus(); cpu++) {
-		if (pmuirq_val & (1<<cpu)) {
-			if (cpu == 0) {
-				pr_debug("cpu0 shouldn't fix pmuirq = 0x%x\n",
-					pmuirq_val);
-			} else {
-				pr_debug("fix pmu irq cpu %d, pmuirq = 0x%x\n",
-					cpu,
-					pmuirq_val);
-
-				ci = per_cpu_ptr(amlpmu_fixup_ctx.cpuinfo,
-					cpu);
-
-				ci->fix_done = 0;
-
-				/* aml pmu IPI will set fix_done to 1 */
-				mb();
-
-				smp_send_aml_pmu(cpu);
-
-				for (i = 0; i < max_wait_cnt; i++) {
-					if (READ_ONCE(ci->fix_done))
-						break;
-
-					udelay(1);
-				}
-
-				if (i == amlpmu_fixup_ctx.max_wait_cnt)
-					amlpmu_relax_timer_start(cpu);
-
-				return 0;
-			}
-		}
-	}
-
-	return 1;
-}
-
-static void aml_pmu_fix_stat_account(int is_empty_irq)
-{
-	int freq;
-	unsigned long time = jiffies;
-	struct amlpmu_fixup_cpuinfo *ci;
-
-	ci = this_cpu_ptr(amlpmu_fixup_ctx.cpuinfo);
-
-	ci->irq_cnt++;
-	ci->irq_time = time;
-	if (!ci->last_irq_cnt) {
-		ci->last_irq_cnt = ci->irq_cnt;
-		ci->last_irq_time = ci->irq_time;
-	}
-
-	if (is_empty_irq) {
-		ci->empty_irq_cnt++;
-		ci->empty_irq_time = time;
-		if (!ci->last_empty_irq_cnt) {
-			ci->last_empty_irq_cnt = ci->empty_irq_cnt;
-			ci->last_empty_irq_time = ci->empty_irq_time;
-		}
-	}
-
-	if (time_after(ci->irq_time, ci->last_irq_time + HZ)) {
-		freq = ci->irq_cnt - ci->last_irq_cnt;
-		freq = freq * HZ / (ci->irq_time - ci->last_irq_time);
-		pr_debug("irq_cnt = %lu, irq_last_cnt = %lu, freq = %d\n",
-			ci->irq_cnt,
-			ci->last_irq_cnt,
-			freq);
-
-		ci->last_irq_cnt = ci->irq_cnt;
-		ci->last_irq_time = ci->irq_time;
-	}
-
-	if (is_empty_irq &&
-		time_after(ci->empty_irq_time, ci->last_empty_irq_time + HZ)) {
-
-		freq = ci->empty_irq_cnt - ci->last_empty_irq_cnt;
-		freq *= HZ;
-		freq /= (ci->empty_irq_time - ci->last_empty_irq_time);
-		pr_debug("empty_irq_cnt = %lu, freq = %d\n",
-			ci->empty_irq_cnt,
-			freq);
-
-		ci->last_empty_irq_cnt = ci->empty_irq_cnt;
-		ci->last_empty_irq_time = ci->empty_irq_time;
-	}
+	armv7pmu_handle_irq(-1, amlpmu_ctx.pmu);
 }
 #endif
 
@@ -1129,47 +969,25 @@ static irqreturn_t armv7pmu_handle_irq(int irq_num, void *dev)
 	struct pt_regs *regs;
 	int idx;
 
-#ifdef CONFIG_AMLOGIC_MODIFY
-	int cpu;
-	int is_empty_irq = 0;
-	struct amlpmu_fixup_cpuinfo *ci;
-
-	ci = this_cpu_ptr(amlpmu_fixup_ctx.cpuinfo);
-	ci->irq_num = irq_num;
-	amlpmu_fixup_ctx.dev = dev;
-	cpu = smp_processor_id();
-#endif
-
 	/*
 	 * Get and reset the IRQ flags
 	 */
 	pmnc = armv7_pmnc_getreset_flags();
 
 #ifdef CONFIG_AMLOGIC_MODIFY
-	ci->fix_done = 1;
-#endif
-
+	/* amlpmu have routed the interrupt successfully, return IRQ_HANDLED */
+	if (amlpmu_handle_irq(cpu_pmu,
+			      irq_num,
+			      armv7_pmnc_has_overflowed(pmnc)))
+		return IRQ_HANDLED;
+#else
 	/*
 	 * Did an overflow occur?
 	 */
-#ifdef CONFIG_AMLOGIC_MODIFY
-	if (!armv7_pmnc_has_overflowed(pmnc)) {
-		is_empty_irq = 1;
-
-		if (cpu == 0)
-			is_empty_irq = aml_pmu_fix();
-	}
-
-	aml_pmu_fix_stat_account(is_empty_irq);
-
-	/* txlx have some empty pmu irqs, so return IRQ_HANDLED */
-	if (is_empty_irq)
-		return IRQ_HANDLED;
-#else
 	if (!armv7_pmnc_has_overflowed(pmnc))
 		return IRQ_NONE;
-
 #endif
+
 	/*
 	 * Handle the counter(s) overflow(s)
 	 */
@@ -2225,76 +2043,74 @@ static const struct pmu_probe_info armv7_pmu_probe_table[] = {
 };
 
 #ifdef CONFIG_AMLOGIC_MODIFY
-static int amlpmu_fixup_init(struct platform_device *pdev)
+#if 0
+static int read_pmuserenr(void)
 {
-	int ret;
-	void __iomem *base;
+	int val = -1;
 
-	amlpmu_fixup_ctx.cpuinfo = __alloc_percpu(
-		sizeof(struct amlpmu_fixup_cpuinfo), 2 * sizeof(void *));
-	if (!amlpmu_fixup_ctx.cpuinfo) {
-		pr_err("alloc percpu failed\n");
-		return -ENOMEM;
+	asm volatile("mrc p15, 0, %0, c9, c14, 0" : "=r" (val):: "memory");
+	return val;
+}
+#endif
+
+void enable_pmuserenr(void)
+{
+	//pr_emerg("enable_pmuserenr() start, val = %d\n", read_pmuserenr());
+	asm volatile("mcr p15, 0, %0, c9, c14, 0" : : "r" (1) : "memory");
+	//pr_emerg("enable_pmuserenr() end, val = %d\n", read_pmuserenr());
+}
+
+static void enable_pmuserenr_single(void *info)
+{
+	enable_pmuserenr();
+}
+
+static void enable_pmuserenr_all(void)
+{
+	pr_info("enable_pmuserenr_all() start\n");
+
+	enable_pmuserenr_single(NULL);
+	smp_call_function_many(cpu_possible_mask,
+				enable_pmuserenr_single,
+				NULL,
+				1);
+
+	pr_info("enable_pmuserenr_all() end\n");
+}
+
+static int pmu_user_callback(struct notifier_block *nfb,
+			     unsigned long action,
+			     void *hcpu)
+{
+	switch (action) {
+	case CPU_ONLINE:
+	case CPU_ONLINE_FROZEN:
+		pr_debug("cpu online callback\n");
+		enable_pmuserenr();
+		break;
+	default:
+		break;
 	}
+	return NOTIFY_OK;
+}
 
-	base = of_iomap(pdev->dev.of_node, 0);
-	if (IS_ERR(base)) {
-		pr_err("of_iomap() failed, base = %p\n", base);
-		return PTR_ERR(base);
-	}
+static struct notifier_block pmu_user_notify = {
+	&pmu_user_callback,
+	NULL,
+	0
+};
 
-	ret = of_property_read_u32(pdev->dev.of_node,
-		"sys_cpu_status0_offset",
-		&amlpmu_fixup_ctx.sys_cpu_status0_offset);
-	if (ret) {
-		pr_err("read sys_cpu_status0_offset failed, ret = %d\n", ret);
-		return 1;
-	}
-	pr_debug("sys_cpu_status0_offset = 0x%0x\n",
-		amlpmu_fixup_ctx.sys_cpu_status0_offset);
+static int armv7_pmu_resume(struct platform_device *pdev)
+{
+	pr_debug("armv7_pmu_resume()\n");
+	enable_pmuserenr();
+	return 0;
+}
 
-	ret = of_property_read_u32(pdev->dev.of_node,
-		"sys_cpu_status0_pmuirq_mask",
-		&amlpmu_fixup_ctx.sys_cpu_status0_pmuirq_mask);
-	if (ret) {
-		pr_err("read sys_cpu_status0_pmuirq_mask failed, ret = %d\n",
-			ret);
-		return 1;
-	}
-	pr_debug("sys_cpu_status0_pmuirq_mask = 0x%0x\n",
-		amlpmu_fixup_ctx.sys_cpu_status0_pmuirq_mask);
-
-
-	ret = of_property_read_u32(pdev->dev.of_node,
-		"relax_timer_ns",
-		&amlpmu_fixup_ctx.relax_timer_ns);
-	if (ret) {
-		pr_err("read prop relax_timer_ns failed, ret = %d\n", ret);
-		return 1;
-	}
-	pr_debug("relax_timer_ns = %u\n", amlpmu_fixup_ctx.relax_timer_ns);
-
-
-	ret = of_property_read_u32(pdev->dev.of_node,
-		"max_wait_cnt",
-		&amlpmu_fixup_ctx.max_wait_cnt);
-	if (ret) {
-		pr_err("read prop max_wait_cnt failed, ret = %d\n", ret);
-		return 1;
-	}
-	pr_debug("max_wait_cnt = %u\n", amlpmu_fixup_ctx.max_wait_cnt);
-
-
-	base += (amlpmu_fixup_ctx.sys_cpu_status0_offset << 2);
-	amlpmu_fixup_ctx.sys_cpu_status0 = base;
-	pr_debug("sys_cpu_status0 = %p\n", amlpmu_fixup_ctx.sys_cpu_status0);
-
-
-	hrtimer_init(&amlpmu_fixup_ctx.relax_timer,
-		CLOCK_MONOTONIC,
-		HRTIMER_MODE_REL);
-	amlpmu_fixup_ctx.relax_timer.function = amlpmu_relax_timer_func;
-
+static int armv7_pmu_suspend(struct platform_device *pdev,
+	pm_message_t state)
+{
+	pr_debug("armv7_pmu_suspend()\n");
 	return 0;
 }
 #endif
@@ -2302,8 +2118,8 @@ static int amlpmu_fixup_init(struct platform_device *pdev)
 static int armv7_pmu_device_probe(struct platform_device *pdev)
 {
 #ifdef CONFIG_AMLOGIC_MODIFY
-	if (amlpmu_fixup_init(pdev))
-		return 1;
+		enable_pmuserenr_all();
+		__register_cpu_notifier(&pmu_user_notify);
 #endif
 
 	return arm_pmu_device_probe(pdev, armv7_pmu_of_device_ids,
@@ -2316,6 +2132,10 @@ static struct platform_driver armv7_pmu_driver = {
 		.of_match_table = armv7_pmu_of_device_ids,
 	},
 	.probe		= armv7_pmu_device_probe,
+#ifdef CONFIG_AMLOGIC_MODIFY
+	.suspend	= armv7_pmu_suspend,
+	.resume		= armv7_pmu_resume,
+#endif
 };
 
 static int __init register_armv7_pmu_driver(void)

@@ -119,23 +119,18 @@
 		bit_mode=<12>;
 		bit_resolution=<0>;
 	};
+
 	arm_pmu {
 		compatible = "arm,armv8-pmuv3";
-		interrupts = <0 137 4>;
-		reg = <0x0 0xff634400 0 0x1000>;
-
-		/* addr = base + offset << 2 */
-		sys_cpu_status0_offset = <0xa0>;
-
-		sys_cpu_status0_pmuirq_mask = <0xf>;
-
+		/* clusterb-enabled; */
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0x0 0xff634680 0x0 0x4>;
+		cpumasks = <0xf>;
 		/* default 10ms */
-		relax_timer_ns = <10000000>;
-
+		relax-timer-ns = <10000000>;
 		/* default 10000us */
-		max_wait_cnt = <10000>;
+		max-wait-cnt = <10000>;
 	};
-
 
 	gic: interrupt-controller@2c001000 {
 		compatible = "arm,cortex-a15-gic", "arm,cortex-a9-gic";
@@ -152,14 +147,13 @@
 		method = "smc";
 	};
 
-	meson_suspend:pm {
+	aml_pm {
 		compatible = "amlogic, pm";
 		device_name = "aml_pm";
 		status = "okay";
-		reg = <0x0 0xff8000a8 0x0 0x4>,
-			<0x0 0xff80023c 0x0 0x4>;
+		debug_reg = <0xff8000a8>;
+		exit_reg = <0xff80023c>;
 	};
-
 
 	secmon {
 		compatible = "amlogic, secmon";
@@ -285,6 +279,18 @@
 	ram-dump {
 		compatible = "amlogic, ram_dump";
 		status = "okay";
+		reg = <0x0 0xFF6345E0 0x0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
+	};
+
+	jtag {
+		compatible = "amlogic, jtag";
+		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
 	};
 
 	pinctrl_aobus: pinctrl@ff800014{
@@ -462,6 +468,16 @@
 				clocks = <&clkc CLKID_I2C>;
 				clock-names = "clk_i2c";
 				clock-frequency = <100000>;
+			};
+
+			irblaster: meson-irblaster@c0 {
+				compatible = "amlogic, aml_irblaster";
+				reg = <0x0 0xc0 0x0 0xc>,
+					<0x0 0x40 0x0 0x4>;
+				#irblaster-cells = <2>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&irblaster_pins>;
+				status = "disabled";
 			};
 		};/* end of aobus */
 
@@ -738,16 +754,6 @@
 		};
 	};
 
-	irblaster: meson-irblaster {
-		compatible = "amlogic, meson_irblaster";
-		reg = <0x0 0xff8000c0 0x0 0x10>,
-			<0x0 0xff800040 0x0 0x4>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&irblaster_pins>;
-		interrupts = <0 198 1>;
-		status = "disabled";
-	};
-
 	saradc:saradc {
 		compatible = "amlogic,meson-axg-saradc";
 		status = "okay";
@@ -820,6 +826,12 @@
 	cpu_ver_name{
 		compatible = "amlogic, cpu-major-id-axg";
 	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
 };/* end of / */
 
 &pinctrl_aobus {
@@ -885,6 +897,15 @@
 		};
 	};
 
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "jtag_ao_tdi",
+			"jtag_ao_tdo",
+			"jtag_ao_clk",
+			"jtag_ao_tms";
+			function = "jtag_ao";
+		};
+	};
 }; /* end of pinctrl_aobus */
 
 &pinctrl_periphs {
@@ -1146,5 +1167,14 @@
 		};
 	};
 
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "jtag_tdo_x",
+			"jtag_tdi_x",
+			"jtag_clk_x",
+			"jtag_tms_x";
+			function = "jtag_ee";
+		};
+	};
 }; /* end of pinctrl_periphs */
 

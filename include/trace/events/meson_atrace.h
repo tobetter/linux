@@ -1,5 +1,18 @@
 /*
- * meson_atrace.h
+ * include/trace/events/meson_atrace.h
+ *
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
  */
 
 /*
@@ -53,13 +66,18 @@ TRACE_EVENT(tracing_mark_write,
 		print_flags_delim(__entry->flags),
 		__get_str(name), __entry->value)
 );
-
+#ifdef CONFIG_AMLOGIC_DEBUG_ATRACE
 #define ATRACE_COUNTER(name, value) \
 	trace_tracing_mark_write(name, (1 << KERNEL_ATRACE_COUNTER), value)
 #define ATRACE_BEGIN(name) \
 	trace_tracing_mark_write(name, (1 << KERNEL_ATRACE_BEGIN), 0)
 #define ATRACE_END(name) \
 	trace_tracing_mark_write("", (1 << KERNEL_ATRACE_END), 1)
+#else
+#define ATRACE_COUNTER(name, value)
+#define ATRACE_BEGIN(name)
+#define ATRACE_END(name)
+#endif
 
 #endif /* _TRACE_MESON_BASE_H */
 

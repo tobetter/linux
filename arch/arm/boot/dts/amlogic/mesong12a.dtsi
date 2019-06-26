@@ -155,21 +155,17 @@
 		bit_mode=<12>;
 		bit_resolution=<0>;
 	};
+
 	arm_pmu {
 		compatible = "arm,cortex-a15-pmu";
-		interrupts = <0 137 4>;
-		reg = <0xff634400 0x1000>;
-
-		/* addr = base + offset << 2 */
-		sys_cpu_status0_offset = <0xa0>;
-
-		sys_cpu_status0_pmuirq_mask = <0xf>;
-
+		/* clusterb-enabled; */
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0xff634680 0x4>;
+		cpumasks = <0xf>;
 		/* default 10ms */
-		relax_timer_ns = <10000000>;
-
+		relax-timer-ns = <10000000>;
 		/* default 10000us */
-		max_wait_cnt = <10000>;
+		max-wait-cnt = <10000>;
 	};
 
 	gic: interrupt-controller@2c001000 {
@@ -187,12 +183,12 @@
 		method = "smc";
 	};
 
-	meson_suspend:pm {
+	aml_pm {
 		compatible = "amlogic, pm";
 		status = "okay";
 		device_name = "aml_pm";
-		reg = <0xff8000a8 0x4>,
-			<0xff80023c 0x4>;
+		debug_reg = <0xff8000a8>;
+		exit_reg = <0xff80023c>;
 	};
 
 	secmon {
@@ -446,20 +442,18 @@
 	ram-dump {
 		compatible = "amlogic, ram_dump";
 		status = "okay";
+		reg = <0xFF6345E0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	jtag {
 		compatible = "amlogic, jtag";
 		status = "okay";
-		select = "apao"; /* disable/apao/apee */
-		jtagao-gpios = <&gpio_ao    GPIOAO_6    0
-				&gpio_ao    GPIOAO_7    0
-				&gpio_ao    GPIOAO_8    0
-				&gpio_ao    GPIOAO_9    0>;
-		jtagee-gpios = <&gpio       GPIOC_0     0
-				&gpio       GPIOC_1     0
-				&gpio       GPIOC_4     0
-				&gpio       GPIOC_5     0>;
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
 	};
 
 	saradc:saradc {
@@ -753,6 +747,17 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <&ao_b_uart_pins>;
 			};
+
+			irblaster: meson-irblaster@14c {
+				compatible = "amlogic, meson_irblaster";
+				reg = <0x14c 0x10>,
+					<0x40 0x4>;
+				#irblaster-cells = <2>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&irblaster_pins>;
+				interrupts = <GIC_SPI 198 IRQ_TYPE_EDGE_RISING>;
+				status = "disabled";
+			};
 		};/* end of aobus */
 
 		periphs: periphs@ff634400 {
@@ -1032,9 +1037,9 @@
 		interrupt-map-mask = <0 0 0 0>;
 		interrupt-map = <0 0 0 0 &gic GIC_SPI 223 IRQ_TYPE_EDGE_RISING>;
 		device_type = "pci";
-		ranges = <0x81000000 0 0 0 0xfc600000 0x0 0x100000
+		ranges = <0x81000000 0 0 0xfc600000 0x0 0x100000
 			/* downstream I/O */
-			0x82000000 0 0xfc700000 0x0 0xfc700000 0 0x1900000>;
+			0x82000000 0xfc700000 0x0 0xfc700000 0 0x1900000>;
 			/* non-prefetchable memory */
 		num-lanes = <1>;
 		pcie-num = <1>;
@@ -1079,11 +1084,18 @@
 		 * 10:G12A
 		 */
 		ic_type = <10>;
+		dongle_mode = <0>;
 		vend_data: vend_data{ /* Should modified by Customer */
 			vendor_name = "Amlogic"; /* Max Chars: 8 */
 			/* standards.ieee.org/develop/regauth/oui/oui.txt */
 			vendor_id = <0x000000>;
 		};
+	};
+
+	amprime_sl:amprime_sl {
+		compatible = "amlogic, prime_sl_g12";
+		dev_name = "amprime_sl";
+		status = "disabled";
 	};
 
 	aocec: aocec {
@@ -1329,15 +1341,6 @@
 		clocks = <&clkc CLKID_VPU_CLKC_MUX>;
 		clock-names = "vpu_clkc";
 	};
-	irblaster: meson-irblaster {
-		compatible = "amlogic, meson_irblaster";
-		reg = <0xff80014c 0x10>,
-			<0xff800040 0x4>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&irblaster_pins>;
-		interrupts = <0 198 1>;
-		status = "okay";
-	};
 
 	sd_emmc_c: emmc@ffe07000 {
 		status = "disabled";
@@ -1372,7 +1375,7 @@
 			calc_f = <1>;
 			max_req_size = <0x20000>; /**128KB*/
 			gpio_dat3 = <&gpio BOOT_3 GPIO_ACTIVE_HIGH>;
-			hw_reset = <&gpio BOOT_9 GPIO_ACTIVE_HIGH>;
+			hw_reset = <&gpio BOOT_12 GPIO_ACTIVE_HIGH>;
 			card_type = <1>;
 			/* 1:mmc card(include eMMC),
 			 * 2:sd card(include tSD)
@@ -1820,6 +1823,12 @@
 			dev_name = "aml_sha_dma";
 			status = "okay";
 		};
+
+		aml_tdes {
+			compatible = "amlogic,tdes_dma";
+			dev_name = "aml_tdes_dma";
+			status = "okay";
+		};
 	};
 
 	rng {
@@ -1982,6 +1991,16 @@
 		mux {
 			groups = "cec_ao_b";
 			function = "cec_ao";
+		};
+	};
+
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "jtag_a_tdi",
+			"jtag_a_tdo",
+			"jtag_a_clk",
+			"jtag_a_tms";
+			function = "jtag_a";
 		};
 	};
 };
@@ -2556,6 +2575,16 @@
 			"eth_txd3_rgmii";
 			function = "eth";
 			drive-strength = <3>;
+		};
+	};
+
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "jtag_b_tdi",
+			"jtag_b_tdo",
+			"jtag_b_clk",
+			"jtag_b_tms";
+			function = "jtag_b";
 		};
 	};
 };

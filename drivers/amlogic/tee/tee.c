@@ -21,8 +21,6 @@
 #include <linux/platform_device.h>
 
 #include <linux/amlogic/tee.h>
-#include <linux/delay.h>
-#include <linux/amlogic/cpu_version.h>
 #include <asm/cputype.h>
 
 #define DRIVER_NAME "tee_info"
@@ -32,7 +30,7 @@
 #define TEE_MSG_UID_1         0xe7f811e3
 #define TEE_MSG_UID_2         0xaf630002
 #define TEE_MSG_UID_3         0xa5d5c51b
-static int disable_flag;
+static int disable_flag = 1;
 #define TEE_SMC_FUNCID_CALLS_REVISION 0xFF03
 #define TEE_SMC_CALLS_REVISION \
 	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL, ARM_SMCCC_SMC_32, \
@@ -73,25 +71,12 @@ static int tee_msg_os_revision(uint32_t *major, uint32_t *minor)
 		struct arm_smccc_res smccc;
 		struct tee_smc_calls_revision_result result;
 	} res;
-	long cpu;
-
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B) {
-		set_cpus_allowed_ptr(current, cpumask_of(0));
-		cpu = read_cpuid_mpidr();
-		cpu &= 0xfff;
-		if (cpu != 0x0)
-			usleep_range(10, 20);
-	}
 
 	arm_smccc_smc(TEE_SMC_CALL_GET_OS_REVISION,
 			0, 0, 0, 0, 0, 0, 0, &res.smccc);
 	*major = res.result.major;
 	*minor = res.result.minor;
 
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B)
-		set_cpus_allowed_ptr(current, cpu_all_mask);
 	return 0;
 }
 
@@ -101,25 +86,12 @@ static int tee_msg_api_revision(uint32_t *major, uint32_t *minor)
 		struct arm_smccc_res smccc;
 		struct tee_smc_calls_revision_result result;
 	} res;
-	long cpu;
-
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B) {
-		set_cpus_allowed_ptr(current, cpumask_of(0));
-		cpu = read_cpuid_mpidr();
-		cpu &= 0xfff;
-		if (cpu != 0x0)
-			usleep_range(10, 20);
-	}
 
 	arm_smccc_smc(TEE_SMC_CALLS_REVISION,
 			0, 0, 0, 0, 0, 0, 0, &res.smccc);
 	*major = res.result.major;
 	*minor = res.result.minor;
 
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B)
-		set_cpus_allowed_ptr(current, cpu_all_mask);
 	return 0;
 }
 
@@ -162,52 +134,36 @@ static CLASS_ATTR(api_version, 0644, tee_api_version_show,
  * index: firmware index
  * vdec:  vdec type(0: compatible, 1: legency vdec, 2: HEVC vdec)
  */
-int tee_load_video_fw(uint32_t index, uint32_t vdec)
+static int tee_load_firmware(uint32_t index, uint32_t vdec, bool is_swap)
 {
 	struct arm_smccc_res res;
-	long cpu;
-
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B) {
-		set_cpus_allowed_ptr(current, cpumask_of(0));
-		cpu = read_cpuid_mpidr();
-		cpu &= 0xfff;
-		if (cpu != 0x0)
-			usleep_range(10, 20);
-	}
 
 	arm_smccc_smc(TEE_SMC_LOAD_VIDEO_FW,
-			index, vdec, 0, 0, 0, 0, 0, &res);
+			index, vdec, is_swap, 0, 0, 0, 0, &res);
 
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B)
-		set_cpus_allowed_ptr(current, cpu_all_mask);
 	return res.a0;
 }
+
+int tee_load_video_fw(uint32_t index, uint32_t vdec)
+{
+	return tee_load_firmware(index, vdec, false);
+}
 EXPORT_SYMBOL(tee_load_video_fw);
+
+int tee_load_video_fw_swap(uint32_t index, uint32_t vdec, bool is_swap)
+{
+	return tee_load_firmware(index, vdec, is_swap);
+}
+EXPORT_SYMBOL(tee_load_video_fw_swap);
 
 bool tee_enabled(void)
 {
 	struct arm_smccc_res res;
-	long cpu;
 	if (disable_flag == 1)
 		return false;
 	/*return false;*/ /*disable tee load temporary*/
 
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B) {
-		set_cpus_allowed_ptr(current, cpumask_of(0));
-		cpu = read_cpuid_mpidr();
-		cpu &= 0xfff;
-		if (cpu != 0x0)
-			usleep_range(10, 20);
-	}
-
 	arm_smccc_smc(TEE_SMC_CALLS_UID, 0, 0, 0, 0, 0, 0, 0, &res);
-
-	if (get_meson_cpu_version(MESON_CPU_VERSION_LVL_MAJOR)
-			== MESON_CPU_MAJOR_ID_G12B)
-		set_cpus_allowed_ptr(current, cpu_all_mask);
 
 	if (res.a0 == TEE_MSG_UID_0 && res.a1 == TEE_MSG_UID_1 &&
 	    res.a2 == TEE_MSG_UID_2 && res.a3 == TEE_MSG_UID_3)

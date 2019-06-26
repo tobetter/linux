@@ -31,6 +31,7 @@
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 #include <linux/of_reserved_mem.h>
+#include <linux/dma-mapping.h>
 #include <linux/of_irq.h>
 
 /* #include <linux/mutex.h> */
@@ -87,6 +88,7 @@ module_param(vbi_wakeup_interval, uint, 0664);
 static unsigned int vcnt = 1;
 static unsigned int wakeup_cnt;
 static unsigned int init_cc_data_flag;
+static bool vbi_pr_en;
 
 static void vbi_hw_reset(struct vbi_dev_s *devp)
 {
@@ -131,7 +133,7 @@ static void vbi_data_type_set(struct vbi_dev_s *devp)
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE23, vbi_data_type);
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE24, vbi_data_type);
 	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE25, vbi_data_type);
-	W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE26, vbi_data_type);
+	/*W_VBI_APB_REG(CVD2_VBI_DATA_TYPE_LINE26, vbi_data_type);*/
 }
 
 static void vbi_dto_set(struct vbi_dev_s *devp)
@@ -378,10 +380,12 @@ static irqreturn_t vbi_isr(int irq, void *dev_id)
 		spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
 		return IRQ_HANDLED;
 	}
+
 	if (devp->vbi_start == false) {
 		spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
 		return IRQ_HANDLED;
 	}
+
 	if (devp->tasklet_enable)
 		tasklet_schedule(&devp->tsklt_slicer);
 	spin_unlock_irqrestore(&devp->vbi_isr_lock, flags);
@@ -501,7 +505,8 @@ static void force_set_vcnt(unsigned char *rptr)
 	l_val = *rptr & 0xff;
 	h_val = *(rptr+1) & 0xff;
 	vcnt = (h_val << 8) | l_val;
-	tvafe_pr_info("force set vcnt:0x%x\n", vcnt);
+	if (vbi_pr_en)
+		tvafe_pr_info("force set vcnt:0x%x\n", vcnt);
 }
 
 static void set_vbi_new_vcnt(struct vbi_dev_s *devp, unsigned char *rptr)
@@ -539,7 +544,8 @@ static void set_vbi_new_vcnt(struct vbi_dev_s *devp, unsigned char *rptr)
 	}
 
 	vcnt = (h_val << 8) | l_val;
-	tvafe_pr_info("pre vcnt=0x%x, current vcnt=0x%x\n", temp, vcnt);
+	if (vbi_pr_en)
+		tvafe_pr_info("pre vcnt=0x%x, current vcnt=0x%x\n", temp, vcnt);
 	if (vcnt > 0xffff)
 		vcnt = temp;
 }
@@ -559,8 +565,8 @@ static unsigned char *search_vbi_new_addr(struct vbi_dev_s *devp)
 	vaddr = devp->pac_addr_start + paddr - devp->mem_start;
 	temp = (unsigned long)vaddr;
 	vaddr = (unsigned char *)((temp >> 4) << 4);
-
-	tvafe_pr_info("vbi search new addr\n");
+	if (vbi_pr_en)
+		tvafe_pr_info("vbi search new addr\n");
 	return vaddr;
 }
 
@@ -599,10 +605,12 @@ static int check_if_sync_cc_data(struct vbi_dev_s *devp, unsigned char *addr)
 			field_data_flag = 0;
 			set_vbi_new_vcnt(devp, new_addr);
 		}
-		tvafe_pr_info("not find vbi data.\n");
+		if (vbi_pr_en)
+			tvafe_pr_info("not find vbi data.\n");
 		return -1;
 	} else if (addr > devp->pac_addr_end) {
-		tvafe_pr_info("vbi ret_addr error.\n");
+		if (vbi_pr_en)
+			tvafe_pr_info("vbi ret_addr error.\n");
 		return -1;
 	}
 
@@ -634,7 +642,8 @@ static void vbi_slicer_task(unsigned long arg)
 	ret = init_cc_data_sync(devp);
 	if (!ret)
 		return;
-
+	if (vbi_dbg_en & 2)
+		tvafe_pr_info("pac_addr:%p\n", devp->pac_addr);
 	if (devp->pac_addr > devp->pac_addr_end)
 		devp->pac_addr = devp->pac_addr_start;
 
@@ -1299,7 +1308,6 @@ static void vbi_dump_mem(char *path, struct vbi_dev_s *devp)
 {
 	struct file *filp = NULL;
 	loff_t pos = 0;
-	void *buf = NULL;
 	mm_segment_t old_fs = get_fs();
 
 	set_fs(KERNEL_DS);
@@ -1309,15 +1317,10 @@ static void vbi_dump_mem(char *path, struct vbi_dev_s *devp)
 		tvafe_pr_info("create %s error.\n", path);
 		return;
 	}
-	buf = phys_to_virt(devp->mem_start);
-	if (buf == NULL) {
-		tvafe_pr_info("buf is null!!!.\n");
-		return;
-	}
 
-	vfs_write(filp, buf, devp->mem_size, &pos);
+	vfs_write(filp, devp->pac_addr_start, devp->mem_size, &pos);
 	tvafe_pr_info("write buffer addr:0x%p size: %2u  to %s.\n",
-			buf, devp->mem_size, path);
+			devp->pac_addr_start, devp->mem_size, path);
 	vfs_fsync(filp, 0);
 	filp_close(filp, NULL);
 	set_fs(old_fs);
@@ -1378,7 +1381,7 @@ static ssize_t vbi_store(struct device *dev,
 	struct vbi_dev_s *devp = dev_get_drvdata(dev);
 	struct vbi_slicer_s *vbi_slicer;
 	struct vbi_ringbuffer_s *vbi_buffer;
-	long val;
+	unsigned int val;
 	int ret = 0;
 
 	if (!buff || !devp)
@@ -1418,19 +1421,29 @@ static ssize_t vbi_store(struct device *dev,
 				vbi_buffer->pread, vbi_buffer->pwrite,
 				vbi_buffer->data_wmode);
 		tvafe_pr_info("dump satus done!!\n");
+	} else if (!strncmp(parm[0], "vbi_pr_en",
+		strlen("vbi_pr_en"))) {
+		if (kstrtouint(parm[1], 10, &val) < 0)
+			return -EINVAL;
+		vbi_pr_en = val;
+		tvafe_pr_info("vbi_pr_en:%d\n", vbi_pr_en);
 	} else if (!strncmp(parm[0], "enable_tasklet",
 		strlen("enable_tasklet"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		devp->tasklet_enable = val;
 		tvafe_pr_info("tasklet_enable:%d\n", devp->tasklet_enable);
 	} else if (!strncmp(parm[0], "data_wmode",
 		strlen("data_wmode"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
 		vbi_buffer->data_wmode = val;
 		tvafe_pr_info("data_wmode:%d\n", vbi_buffer->data_wmode);
 	} else if (!strncmp(parm[0], "start", strlen("start"))) {
+		W_APB_REG(ACD_REG_22, 0x07080000);
+		/* manuel reset vbi */
+		W_APB_REG(ACD_REG_22, 0x87080000);
+		W_APB_REG(ACD_REG_22, 0x04080000);
 		vbi_hw_init(devp);
 		vbi_slicer_start(devp);
 		/* enable data capture function */
@@ -1439,10 +1452,11 @@ static ssize_t vbi_store(struct device *dev,
 		devp->vs_delay = VBI_VS_DELAY;
 		tvafe_pr_info("start done!!!\n");
 	} else if (!strncmp(parm[0], "stop", strlen("stop"))) {
-		vbi_slicer_stop(vbi_slicer);
 		/* disable data capture function */
 		devp->tasklet_enable = false;
 		devp->vbi_start = false;
+		init_cc_data_flag = 0;
+		vbi_slicer_stop(vbi_slicer);
 		/* manuel reset vbi */
 		/* vbi reset release, vbi agent enable*/
 		W_VBI_APB_REG(ACD_REG_22, 0x06080000);
@@ -1450,19 +1464,20 @@ static ssize_t vbi_store(struct device *dev,
 		tvafe_pr_info(" disable vbi function\n");
 		tvafe_pr_info("stop done!!!\n");
 	} else if (!strncmp(parm[0], "set_size", strlen("set_size"))) {
-		if (kstrtol(parm[1], 10, &val) < 0)
+		if (kstrtouint(parm[1], 10, &val) < 0)
 			return -EINVAL;
-		vbi_set_buffer_size(devp, (unsigned int)val);
+		vbi_set_buffer_size(devp, val);
 		tvafe_pr_info(" set buf size to %d\n",
 			vbi_slicer->buffer.size);
 	} else if (!strncmp(parm[0], "set_type", strlen("set_type"))) {
-		if (kstrtol(parm[1], 16, &val) < 0)
+		if (kstrtouint(parm[1], 16, &val) < 0)
 			return -EINVAL;
 		vbi_slicer->type = val;
 		vbi_slicer_set(devp, vbi_slicer);
 		tvafe_pr_info(" set slicer type to %d\n",
 			vbi_slicer->type);
 	} else if (!strncmp(parm[0], "open", strlen("open"))) {
+		tasklet_enable(&devp->tsklt_slicer);
 		vbi_ringbuffer_init(vbi_buffer, NULL,
 			VBI_DEFAULT_BUFFER_PACKAGE_NUM);
 		devp->slicer->type = VBI_TYPE_NULL;
@@ -1478,6 +1493,7 @@ static ssize_t vbi_store(struct device *dev,
 			tvafe_pr_err("request_irq fail\n");
 		tvafe_pr_info(" open ok.\n");
 	} else if (!strncmp(parm[0], "release", strlen("release"))) {
+		tasklet_disable(&devp->tsklt_slicer);
 		ret = vbi_slicer_free(devp, vbi_slicer);
 		devp->tasklet_enable = false;
 		devp->vbi_start = false;  /*disable data capture function*/
@@ -1502,6 +1518,7 @@ static int vbi_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct resource *res;
 	struct vbi_dev_s *vbi_dev;
+	dma_addr_t vbi_dma_addr;
 
 	/* allocate memory for the per-device structure */
 	vbi_dev = kzalloc(sizeof(struct vbi_dev_s), GFP_KERNEL);
@@ -1509,7 +1526,7 @@ static int vbi_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto fail_kzalloc_mem;
 	}
-		memset(vbi_dev, 0, sizeof(struct vbi_dev_s));
+	memset(vbi_dev, 0, sizeof(struct vbi_dev_s));
 	vbi_mem_start = 0;
 
 	/* connect the file operations with cdev */
@@ -1536,34 +1553,27 @@ static int vbi_probe(struct platform_device *pdev)
 		goto fail_create_dbg_file;
 	}
 
-	/* get device memory */
-	res = &vbi_memobj;
-	ret = of_reserved_mem_device_init(&pdev->dev);
-	if (ret == 0)
-		tvafe_pr_info("\n vbi memory resource done.\n");
-	else
-		tvafe_pr_info("vbi: can't get memory resource\n");
-	vbi_dev->mem_start = res->start;
-	vbi_dev->mem_size = res->end - res->start + 1;
-	if (vbi_dev->mem_size > DECODER_VBI_SIZE)
-		vbi_dev->mem_size = DECODER_VBI_SIZE;
-	tvafe_pr_info(": start_addr is:0x%x, size is:0x%x\n",
-			vbi_dev->mem_start, vbi_dev->mem_size);
+	/*vbi memory alloc*/
+	vbi_dev->mem_size = DECODER_VBI_SIZE;
+	vbi_dev->pac_addr_start = dma_alloc_coherent(&pdev->dev,
+		vbi_dev->mem_size, &vbi_dma_addr, GFP_KERNEL);
+	vbi_dev->mem_start = (unsigned int)vbi_dma_addr;
+	if (vbi_dev->pac_addr_start == NULL) {
+		tvafe_pr_err(": dma_alloc_coherent failed!!!\n");
+		goto fail_alloc_mem;
+	}
+	tvafe_pr_info("vbi: dma_alloc phy start_addr is:0x%x, size is:0x%x\n",
+		vbi_dev->mem_start, vbi_dev->mem_size);
 
-	/* remap the package vbi hardware address for our conversion */
-	vbi_dev->pac_addr_start = phys_to_virt(vbi_dev->mem_start);
-	/*ioremap_nocache(vbi_dev->mem_start, vbi_dev->mem_size);*/
 	memset(vbi_dev->pac_addr_start, 0, vbi_dev->mem_size);
 	vbi_dev->mem_size = vbi_dev->mem_size/2;
 	vbi_dev->mem_size >>= 4;
 	vbi_dev->mem_size <<= 4;
 	vbi_mem_start = vbi_dev->mem_start;
 	vbi_dev->pac_addr_end = vbi_dev->pac_addr_start + vbi_dev->mem_size - 1;
-	if (vbi_dev->pac_addr_start == NULL)
-		tvafe_pr_err(": ioremap error!!!\n");
-	else
-		tvafe_pr_info(": vbi_dev->pac_addr_start=0x%p, end:0x%p, size:0x%x .......\n",
-	vbi_dev->pac_addr_start, vbi_dev->pac_addr_end, vbi_dev->mem_size);
+	tvafe_pr_info(": vbi_dev->pac_addr_start=0x%p, end:0x%p, size:0x%x\n",
+		vbi_dev->pac_addr_start, vbi_dev->pac_addr_end,
+		vbi_dev->mem_size);
 	vbi_dev->pac_addr = vbi_dev->pac_addr_start;
 
 	mutex_init(&vbi_dev->mutex);
@@ -1632,7 +1642,9 @@ static int vbi_remove(struct platform_device *pdev)
 	mutex_destroy(&vbi_dev->mutex);
 	tasklet_kill(&vbi_dev->tsklt_slicer);
 	if (vbi_dev->pac_addr_start)
-		iounmap(vbi_dev->pac_addr_start);
+		dma_free_coherent(vbi_dev->dev, vbi_dev->mem_size,
+			vbi_dev->pac_addr_start,
+			(dma_addr_t)&vbi_dev->mem_start);
 	vfree(vbi_dev->slicer);
 	device_destroy(vbi_clsp, MKDEV(MAJOR(vbi_id), 0));
 	cdev_del(&vbi_dev->cdev);

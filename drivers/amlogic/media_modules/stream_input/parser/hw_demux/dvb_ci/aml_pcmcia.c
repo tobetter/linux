@@ -61,7 +61,6 @@ static int pcmcia_unplug(struct aml_pcmcia *pc)
 static irqreturn_t pcmcia_irq_handler(int irq, void *dev_id)
 {
 	struct aml_pcmcia *pc = (struct aml_pcmcia *)dev_id;
-
 	pr_dbg("pcmcia_irq_handler--into--\r\n");
 	disable_irq_nosync(pc->irq);
 	schedule_work(&pc->pcmcia_work);
@@ -96,7 +95,6 @@ static struct aml_pcmcia *pc_cur;
 int aml_pcmcia_init(struct aml_pcmcia *pc)
 {
 	int err = 0;
-
 	pr_dbg("aml_pcmcia_init start pc->irq=%d\r\n", pc->irq);
 	pc->rst(pc, AML_L);
 	/*power on*/
@@ -144,7 +142,7 @@ int aml_pcmcia_reset(struct aml_pcmcia *pc)
 EXPORT_SYMBOL(aml_pcmcia_reset);
 
 
-
+#if 0
 static ssize_t aml_pcmcia_test_cmd(struct class *class,
 struct class_attribute *attr, const char *buf, size_t size)
 {
@@ -167,7 +165,7 @@ struct class_attribute *attr, const char *buf, size_t size)
 }
 
 static struct class_attribute aml_pcmcia_class_attrs[] = {
-	__ATTR(cmd,  0644, NULL, aml_pcmcia_test_cmd),
+	__ATTR(cmd,  S_IRUGO | S_IWUSR, NULL, aml_pcmcia_test_cmd),
 	__ATTR_NULL
 };
 
@@ -198,3 +196,4 @@ module_init(aml_pcmcia_mod_init);
 module_exit(aml_pcmcia_mod_exit);
 
 MODULE_LICENSE("GPL");
+#endif

@@ -32,7 +32,7 @@
 #define FLAG_VADJ1_COLOR        (1 << 30)
 #define FLAG_VE_DNLP            (1 << 29)
 #define FLAG_VE_NEW_DNLP        (1 << 28)
-#define FLAG_RSV27              (1 << 27)
+#define FLAG_VE_LC_CURV         (1 << 27)
 #define FLAG_RSV26              (1 << 26)
 #define FLAG_3D_BLACK_DIS       (1 << 25)
 #define FLAG_3D_BLACK_EN        (1 << 24)
@@ -135,9 +135,6 @@ enum pq_table_name_e {
 	TABLE_NAME_MAX,
 };
 
-/*check pq_table length copy_from_user*/
-#define PQ_TABLE_MAX_LENGTH		10000
-
 #define _VE_CM  'C'
 
 #define AMVECM_IOC_G_HIST_AVG   _IOW(_VE_CM, 0x22, struct ve_hist_s)
@@ -146,11 +143,11 @@ enum pq_table_name_e {
 #define AMVECM_IOC_VE_NEW_DNLP  _IOW(_VE_CM, 0x25, struct ve_dnlp_curve_param_s)
 #define AMVECM_IOC_G_HIST_BIN   _IOW(_VE_CM, 0x26, struct vpp_hist_param_s)
 #define AMVECM_IOC_G_HDR_METADATA _IOW(_VE_CM, 0x27, struct hdr_metadata_info_s)
-
+/*vpp get color primary*/
+#define AMVECM_IOC_G_COLOR_PRI _IOR(_VE_CM, 0x28, enum color_primary_e)
 
 /* VPP.CM IOCTL command list */
 #define AMVECM_IOC_LOAD_REG  _IOW(_VE_CM, 0x30, struct am_regs_s)
-
 
 /* VPP.GAMMA IOCTL command list */
 #define AMVECM_IOC_GAMMA_TABLE_EN  _IO(_VE_CM, 0x40)
@@ -214,6 +211,15 @@ enum pc_mode_e {
 #define AMVECM_IOC_G_PIC_MODE _IOR(_VE_CM, 0x59, struct am_vdj_mode_s)
 #define AMVECM_IOC_S_PIC_MODE _IOW(_VE_CM, 0x60, struct am_vdj_mode_s)
 
+
+/*HDR TYPE command list*/
+#define AMVECM_IOC_G_HDR_TYPE _IOR(_VE_CM, 0x61, enum hdr_type_e)
+
+
+/*Local contrast command list*/
+#define AMVECM_IOC_S_LC_CURVE _IOW(_VE_CM, 0x62, struct ve_lc_curve_parm_s)
+
+
 struct am_vdj_mode_s {
 	int flag;
 	int brightness;
@@ -222,6 +228,14 @@ struct am_vdj_mode_s {
 	int saturation_hue_post;
 	int contrast;
 	int contrast2;
+};
+
+enum color_primary_e {
+	VPP_COLOR_PRI_NULL = 0,
+	VPP_COLOR_PRI_BT601,
+	VPP_COLOR_PRI_BT709,
+	VPP_COLOR_PRI_BT2020,
+	VPP_COLOR_PRI_MAX,
 };
 
 enum vpp_matrix_csc_e {
@@ -255,6 +269,14 @@ enum vpp_matrix_csc_e {
 	VPP_MATRIX_DEFAULT_CSCTYPE = 0xffff,
 };
 
+enum hdr_type_e {
+	HDRTYPE_NONE = 0,
+	HDRTYPE_SDR = 0x1,
+	HDRTYPE_HDR10 = 0x2,
+	HDRTYPE_HLG = 0x4,
+	HDRTYPE_MAX,
+};
+
 enum vpp_transfer_characteristic_e {
 	VPP_ST_NULL = 0,
 	VPP_ST709 = 0x1,
@@ -284,12 +306,47 @@ enum ve_source_input_e {
 	SOURCE_MAX,
 };
 
+/*pq_timing:
+ *SD/HD/FHD/UHD for DTV/MEPG,
+ *NTST_M/NTST_443/PAL_I/PAL_M/PAL_60/PAL_CN/SECAM/NTST_50 for AV/ATV
+ */
 enum ve_pq_timing_e {
 	TIMING_SD = 0,
 	TIMING_HD,
 	TIMING_FHD,
 	TIMING_UHD,
+	TIMING_NTST_M,
+	TIMING_NTST_443,
+	TIMING_PAL_I,
+	TIMING_PAL_M,
+	TIMING_PAL_60,
+	TIMING_PAL_CN,
+	TIMING_SECAM,
+	TIMING_NTSC_50,
 	TIMING_MAX,
+};
+
+enum vlock_hw_ver_e {
+	/*gxtvbb*/
+	vlock_hw_org,
+	/*
+	 *txl
+	 *txlx
+	 */
+	vlock_hw_ver1,
+	/* tl1 later
+	 * fix bug:i problem
+	 * fix bug:affect ss function
+	 * add: phase lock
+	 */
+	vlock_hw_ver2,
+};
+
+struct vecm_match_data_s {
+	u32 vlk_support;
+	u32 vlk_new_fsm;
+	enum vlock_hw_ver_e vlk_hwver;
+	u32 vlk_phlock_en;
 };
 
 /*overscan:
@@ -354,7 +411,6 @@ struct am_pq_parm_s {
 /* READ_CBUS_REG_BITS(x,start,length) */
 /* #endif */
 
-
 static inline void WRITE_VPP_REG(uint32_t reg,
 		const uint32_t value)
 {
@@ -389,7 +445,10 @@ static inline uint32_t READ_VPP_REG_BITS(uint32_t reg,
 
 extern signed int vd1_brightness, vd1_contrast;
 extern bool gamma_en;
-extern unsigned int hdr_source_type;
+
+extern unsigned int atv_source_flg;
+
+extern enum hdr_type_e hdr_source_type;
 
 #define CSC_FLAG_TOGGLE_FRAME	1
 #define CSC_FLAG_CHECK_OUTPUT	2
@@ -415,11 +474,11 @@ struct hdr_metadata_info_s {
 extern void vpp_vd_adj1_saturation_hue(signed int sat_val,
 	signed int hue_val, struct vframe_s *vf);
 extern void amvecm_sharpness_enable(int sel);
-
 extern int metadata_read_u32(uint32_t *value);
 extern int metadata_wait(struct vframe_s *vf);
 extern int metadata_sync(uint32_t frame_id, uint64_t pts);
 extern void amvecm_wakeup_queue(void);
+extern void lc_load_curve(struct ve_lc_curve_parm_s *p);
 
 #ifndef CONFIG_AMLOGIC_MEDIA_VSYNC_RDMA
 #define VSYNC_WR_MPEG_REG(adr, val) WRITE_VPP_REG(adr, val)

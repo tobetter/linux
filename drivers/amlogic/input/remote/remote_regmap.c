@@ -88,7 +88,7 @@ static struct remote_reg_map regs_default_nec_sw[] = {
 	{ REG_LDR_IDLE,     0},
 	{ REG_LDR_REPEAT,   0},
 	{ REG_BIT_0,        0},
-	{ REG_REG0,        ((3 << 28) | (0xFA0 << 12) | (9))},
+	{ REG_REG0,        ((7 << 28) | (0xFA0 << 12) | (9))},
 	{ REG_STATUS,       0},
 	{ REG_REG1,         0x8574},
 	{ REG_REG2,         0x02},
@@ -108,9 +108,9 @@ static struct remote_reg_map regs_default_rc5[] = {
 	/*bit[0-3]: RC5; bit[8]: MSB first mode; bit[11]: compare frame method*/
 	{ REG_REG2,         ((1 << 13) | (1 << 11) | (1 << 8) | 0x7)},
 	/*Half bit for RC5 format: 888.89us*/
-	{ REG_DURATN2,      ((49 << 16) | (40 << 0))},
+	{ REG_DURATN2,      ((53 << 16) | (38 << 0))},
 	/*RC5 typically 1777.78us for whole bit*/
-	{ REG_DURATN3,      ((94 << 16) | (83 << 0))},
+	{ REG_DURATN3,      ((99 << 16) | (81 << 0))},
 	{ REG_REG3,         0}
 };
 
@@ -133,6 +133,53 @@ static struct remote_reg_map regs_default_rc6[] = {
 	{REG_DURATN2,      ((28 << 16) | (16 << 0))},
 	{REG_DURATN3,      ((51 << 16) | (38 << 0))},
 };
+
+static struct remote_reg_map regs_default_toshiba[] = {
+	{ REG_LDR_ACTIVE,	(280 << 16) | (180 << 0)},
+	{ REG_LDR_IDLE,		(280 << 16) | (180 << 0)},
+	{ REG_LDR_REPEAT,	(150 << 16) | (60 << 0)},
+	{ REG_BIT_0,		(72 << 16) | (40 << 0)},
+	{ REG_REG0,		(7 << 28) | (0xFA0 << 12) | 0x13},
+	{ REG_STATUS,		(134 << 20) | (90 << 10)},
+	{ REG_REG1,		0x9f00},
+	{ REG_REG2,		(0x05) | (1 << 24) | (23 << 11)},
+	{ REG_DURATN2,		0x00},
+	{ REG_DURATN3,		0x00},
+	{ REG_REPEAT_DET,	(1 << 31) | (0xFA0 << 16) | (10 << 0)},
+	{ REG_REG3,		0x2AF8},
+};
+
+static int ir_toshiba_get_scancode(struct remote_chip *chip)
+{
+	int  code = 0;
+	int decode_status = 0;
+	int status = 0;
+
+	remote_reg_read(chip, MULTI_IR_ID, REG_STATUS, &decode_status);
+	if (decode_status & 0x01)
+		status |= REMOTE_REPEAT;
+	chip->decode_status = status; /*set decode status*/
+	remote_reg_read(chip, MULTI_IR_ID, REG_FRAME, &code);
+	remote_dbg(chip->dev, "framecode=0x%x\n", code);
+	chip->r_dev->cur_hardcode = code;
+	code = (code >> 16) & 0xff;
+	return code;
+
+}
+
+static int ir_toshiba_get_decode_status(struct remote_chip *chip)
+{
+	int status = chip->decode_status;
+	return status;
+}
+
+static u32 ir_toshiba_get_custom_code(struct remote_chip *chip)
+{
+	u32 custom_code;
+
+	custom_code = (chip->r_dev->cur_hardcode) & 0xffff;
+	return custom_code;
+}
 
 void set_hardcode(struct remote_chip *chip, int code)
 {
@@ -499,6 +546,15 @@ static struct aml_remote_reg_proto reg_rc6 = {
 	.get_custom_code   = ir_rc6_get_custom_code,
 };
 
+static struct aml_remote_reg_proto reg_toshiba = {
+	.protocol = REMOTE_TYPE_TOSHIBA,
+	.name     = "TOSHIBA",
+	.reg_map      = regs_default_toshiba,
+	.reg_map_size = ARRAY_SIZE(regs_default_toshiba),
+	.get_scancode      = ir_toshiba_get_scancode,
+	.get_decode_status = ir_toshiba_get_decode_status,
+	.get_custom_code   = ir_toshiba_get_custom_code,
+};
 
 const struct aml_remote_reg_proto *remote_reg_proto[] = {
 	&reg_nec,
@@ -509,8 +565,14 @@ const struct aml_remote_reg_proto *remote_reg_proto[] = {
 	&reg_rc5,
 	&reg_rc6,
 	&reg_legacy_nec,
+	&reg_toshiba,
 	NULL
 };
+
+const struct aml_remote_reg_proto **ir_get_proto_reg(void)
+{
+	return remote_reg_proto;
+}
 
 static int ir_contr_init(struct remote_chip *chip, int type, unsigned char id)
 {
@@ -565,6 +627,11 @@ static int ir_contr_init(struct remote_chip *chip, int type, unsigned char id)
 	chip->ir_contr[id].proto_name        = (*reg_proto)->name;
 	chip->ir_contr[id].get_custom_code   = (*reg_proto)->get_custom_code;
 	chip->ir_contr[id].set_custom_code   = (*reg_proto)->set_custom_code;
+
+	if (chip->r_dev->ir_learning_on && chip->r_dev->use_fifo)
+		remote_reg_write(chip, id, REG_FIFO, FIFO_REG_VAL);
+	else
+		remote_reg_write(chip, id, REG_FIFO, 0);
 
 	return 0;
 }

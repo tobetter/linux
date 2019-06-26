@@ -1,3 +1,20 @@
+/*
+ * include/linux/amlogic/media/amdolbyvision/dolby_vision.h
+ *
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ */
+
 #ifndef _DV_H_
 #define _DV_H_
 
@@ -31,9 +48,14 @@ extern int dolby_vision_update_setting(void);
 extern bool is_dolby_vision_stb_mode(void);
 extern bool is_meson_g12(void);
 extern bool is_meson_gxm(void);
+extern bool is_meson_box(void);
 extern bool is_meson_txlx(void);
 extern bool is_meson_txlx_tvmode(void);
 extern bool is_meson_txlx_stbmode(void);
+extern bool is_meson_tm2(void);
+extern bool is_meson_tm2_tvmode(void);
+extern bool is_meson_tm2_stbmode(void);
+extern bool is_meson_tvmode(void);
 extern void tv_dolby_vision_crc_clear(int flag);
 extern char *tv_dolby_vision_get_crc(u32 *len);
 extern void tv_dolby_vision_insert_crc(bool print);

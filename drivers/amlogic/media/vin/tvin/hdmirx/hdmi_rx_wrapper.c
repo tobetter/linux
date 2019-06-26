@@ -444,6 +444,11 @@ static int hdmi_rx_ctrl_irq_handler(void)
 			if (log_level & 0x100)
 				rx_pr("[irq] OVERFL\n");
 			rx.irq_flag |= IRQ_AUD_FLAG;
+			/* when afifo overflow in multi-channel case(VG-877),
+			 * then store all subpkts into afifo, 8ch in and 8ch out
+			 */
+			if (rx.aud_info.auds_layout)
+				rx_afifo_store_all_subpkt(true);
 			//if (rx.aud_info.real_sr != 0)
 				//error |= hdmirx_audio_fifo_rst();
 		}
@@ -2257,6 +2262,7 @@ void rx_main_state_machine(void)
 				rx_get_audinfo(&rx.aud_info);
 				hdmirx_config_audio();
 				rx_aud_pll_ctl(1);
+				rx_afifo_store_all_subpkt(false);
 				hdmirx_audio_fifo_rst();
 				rx.stable_timestamp = rx.timestamp;
 				rx_pr("Sig ready\n");

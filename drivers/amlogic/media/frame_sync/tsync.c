@@ -829,6 +829,29 @@ void tsync_avevent_locked(enum avevent_e event, u32 param)
 			t = timestamp_apts_get();
 		else
 			t = timestamp_pcrscr_get();
+		if (tsdemux_pcrscr_valid_cb && tsdemux_pcrscr_valid_cb() == 1) {
+			if (abs(param - oldpts) > tsync_av_threshold_min) {
+				vpts_discontinue = 1;
+				if (apts_discontinue == 1) {
+					apts_discontinue = 0;
+					vpts_discontinue = 0;
+					pr_info("set apts->pcrsrc,pcrsrc %x to %x,diff %d\n",
+						timestamp_pcrscr_get(),
+						timestamp_apts_get(),
+						timestamp_apts_get()
+						- timestamp_pcrscr_get());
+					timestamp_pcrscr_set(param);
+				} else {
+					pr_info("set para->pcrsrc,pcrsrc %x to %x,diff %d\n",
+						timestamp_pcrscr_get(), param,
+						param-timestamp_pcrscr_get());
+					timestamp_pcrscr_set(
+						timestamp_vpts_get());
+				}
+			}
+			timestamp_vpts_set(param);
+			break;
+		}
 		/*
 		 *amlog_level(LOG_LEVEL_ATTENTION,
 		 *"VIDEO_TSTAMP_DISCONTINUITY, 0x%x, 0x%x\n", t, param);
@@ -860,6 +883,29 @@ void tsync_avevent_locked(enum avevent_e event, u32 param)
 		amlog_level(LOG_LEVEL_ATTENTION,
 				"audio discontinue, reset apts, 0x%x\n",
 				param);
+		if (tsdemux_pcrscr_valid_cb && tsdemux_pcrscr_valid_cb() == 1) {
+			if (abs(param - oldpts) > tsync_av_threshold_min) {
+				apts_discontinue = 1;
+				if (vpts_discontinue == 1) {
+					pr_info("set para->pcrsrc,pcrsrc from %x to %x,diff %d\n",
+						timestamp_pcrscr_get(), param,
+						param-timestamp_pcrscr_get());
+					apts_discontinue = 0;
+					vpts_discontinue = 0;
+					timestamp_pcrscr_set(param);
+				} else {
+					pr_info("set vpts->pcrsrc,pcrsrc from %x to %x,diff %d\n",
+						timestamp_pcrscr_get(),
+						timestamp_vpts_get(),
+						timestamp_vpts_get()
+						- timestamp_pcrscr_get());
+					timestamp_pcrscr_set(
+						timestamp_vpts_get());
+				}
+			}
+			timestamp_apts_set(param);
+			break;
+		}
 		timestamp_apts_set(param);
 		if (!tsync_enable) {
 			timestamp_apts_set(param);
@@ -1132,6 +1178,15 @@ void tsync_set_sync_vdiscont(int syncdiscont)
 }
 EXPORT_SYMBOL(tsync_set_sync_vdiscont);
 
+int tsync_set_video_runmode(void)
+{
+	if (tsdemux_pcrscr_valid_cb && tsdemux_pcrscr_valid_cb() == 1) {
+		if (vpts_discontinue == 1 || apts_discontinue == 1)
+			return 1;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(tsync_set_video_runmode);
 void tsync_set_automute_on(int automute_on)
 {
 	tsync_automute_on = automute_on;
@@ -1155,8 +1210,20 @@ int tsync_set_apts(unsigned int pts)
 		t = timestamp_vpts_get();
 	else
 		t = timestamp_pcrscr_get();
+	if (tsdemux_pcrscr_valid_cb && tsdemux_pcrscr_valid_cb() == 1) {
+		timestamp_apts_set(pts);
+		if ((int)(timestamp_apts_get() - timestamp_pcrscr_get())
+			> 30 * TIME_UNIT90K / 1000
+			|| (int)(timestamp_pcrscr_get() - timestamp_apts_get())
+			> 80 * TIME_UNIT90K / 1000) {
+			timestamp_pcrscr_set(pts);
+			set_pts_realign();
+		}
+		return 0;
+	}
+	/* do not switch tsync mode until first video toggled. */
 	if ((abs(oldpts - pts) > tsync_av_threshold_min) &&
-		(!get_vsync_pts_inc_mode())) {	/* is discontinue */
+		(timestamp_firstvpts_get() > 0)) {	/* is discontinue */
 		apts_discontinue = 1;
 		tsync_mode_switch('A', abs(pts - t),
 				pts - oldpts);	/*if in VMASTER ,just wait */
@@ -1170,7 +1237,7 @@ int tsync_set_apts(unsigned int pts)
 		t = timestamp_pcrscr_get();
 
 	if (tsync_mode == TSYNC_MODE_AMASTER) {
-		/* special used for Dobly Certification AVSync test */
+		/* special used for Dolby Certification AVSync test */
 		if (dobly_avsync_test) {
 			if (get_vsync_pts_inc_mode()
 				&&
@@ -1932,12 +1999,33 @@ static ssize_t show_startsync_mode(struct class *class,
 	return sprintf(buf, "0x%x\n", tsync_get_startsync_mode());
 }
 
+static ssize_t show_latency(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", timestamp_get_pcrlatency());
+}
+
+static ssize_t store_latency(struct class *class,
+	struct class_attribute *attr,
+	const char *buf, size_t size)
+{
+	unsigned int latency = 0;
+	ssize_t r;
+
+	r = kstrtoint(buf, 0, &latency);
+	if (r != 0)
+		return -EINVAL;
+	timestamp_set_pcrlatency(latency);
+	return size;
+}
 
 static ssize_t show_apts_lookup(struct class *class,
 	struct class_attribute *attrr, char *buf)
 {
+	u32 frame_size;
 	unsigned int  pts = 0xffffffff;
-	pts_lookup_offset(PTS_TYPE_AUDIO, apts_lookup_offset, &pts, 300);
+	pts_lookup_offset(PTS_TYPE_AUDIO, apts_lookup_offset,
+		&pts, &frame_size, 300);
 	return sprintf(buf, "0x%x\n", pts);
 }
 
@@ -2019,6 +2107,7 @@ static struct class_attribute tsync_class_attrs[] = {
 	NULL),
 	__ATTR(checkin_firstapts, 0644, show_checkin_firstapts,
 	NULL),
+	__ATTR(pts_latency, 0664, show_latency, store_latency),
 	__ATTR_NULL
 };
 

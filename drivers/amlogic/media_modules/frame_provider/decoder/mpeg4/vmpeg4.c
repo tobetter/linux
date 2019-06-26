@@ -40,6 +40,10 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include <linux/amlogic/tee.h>
+
+#include <trace/events/meson_atrace.h>
+
 
 /* #define CONFIG_AM_VDEC_MPEG4_LOG */
 #ifdef CONFIG_AM_VDEC_MPEG4_LOG
@@ -116,6 +120,8 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 
 #define DUR2PTS(x) ((x) - ((x) >> 4))
 
+#define MAX_MPEG4_SUPPORT_SIZE (1920*1088)
+
 static struct vframe_s *vmpeg_vf_peek(void *);
 static struct vframe_s *vmpeg_vf_get(void *);
 static void vmpeg_vf_put(struct vframe_s *, void *);
@@ -159,6 +165,7 @@ static u64 vmpeg4_ratio64;
 static u32 rate_detect;
 static u32 vmpeg4_rotation;
 static u32 fr_hint_status;
+static u32 keyframe_pts_only;
 
 static u32 total_frame;
 static u32 last_vop_time_inc, last_duration;
@@ -287,6 +294,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 	u32 pts, pts_valid = 0, offset = 0;
 	u64 pts_us64 = 0;
 	u32 rate, vop_time_inc, repeat_cnt, duration = 3200;
+	u32 frame_size;
 
 	reg = READ_VREG(MREG_BUFFEROUT);
 
@@ -371,7 +379,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 		}
 
 		if ((picture_type == I_PICTURE) ||
-				(picture_type == P_PICTURE)) {
+				((P_PICTURE == picture_type) && (keyframe_pts_only == 0))) {
 			offset = READ_VREG(MP4_OFFSET_REG);
 			/*2500-->3000,because some mpeg4
 			 *video may checkout failed;
@@ -379,7 +387,8 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 			 *263 may need small?
 			 */
 			if (pts_lookup_offset_us64
-				(PTS_TYPE_VIDEO, offset, &pts, 3000,
+				(PTS_TYPE_VIDEO, offset, &pts,
+				&frame_size, 3000,
 				 &pts_us64) == 0) {
 				pts_valid = 1;
 				last_anch_pts = pts;
@@ -489,6 +498,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -535,6 +545,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 				vmpeg4_amstream_dec_info.rate, picture_type);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -582,6 +593,7 @@ static irqreturn_t vmpeg4_isr(int irq, void *dev_id)
 					buffer_index);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -697,14 +709,11 @@ static void reset_do_work(struct work_struct *work)
 
 static void vmpeg4_set_clk(struct work_struct *work)
 {
-	if (frame_dur > 0 && saved_resolution !=
-		frame_width * frame_height * (96000 / frame_dur)) {
 		int fps = 96000 / frame_dur;
 
 		saved_resolution = frame_width * frame_height * fps;
 		vdec_source_changed(VFORMAT_MPEG4,
 			frame_width, frame_height, fps);
-	}
 }
 
 static void vmpeg_put_timer_func(unsigned long arg)
@@ -715,8 +724,7 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		struct vframe_s *vf;
 
 		if (kfifo_get(&recycle_q, &vf)) {
-			if ((vf->index >= 0)
-				&& (vf->index < DECODE_BUFFER_NUM_MAX)
+			if ((vf->index < DECODE_BUFFER_NUM_MAX)
 				&& (--vfbuf_use[vf->index] == 0)) {
 				WRITE_VREG(MREG_BUFFERIN, ~(1 << vf->index));
 				vf->index = DECODE_BUFFER_NUM_MAX;
@@ -725,7 +733,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 		}
 	}
 
-	schedule_work(&set_clk_work);
+	if (frame_dur > 0 && saved_resolution !=
+		frame_width * frame_height * (96000 / frame_dur))
+		schedule_work(&set_clk_work);
 
 	if (READ_VREG(AV_SCRATCH_L)) {
 		pr_info("mpeg4 fatal error happened,need reset    !!\n");
@@ -740,6 +750,9 @@ static void vmpeg_put_timer_func(unsigned long arg)
 
 int vmpeg4_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = vmpeg4_amstream_dec_info.width;
 	vstatus->frame_height = vmpeg4_amstream_dec_info.height;
 	if (0 != vmpeg4_amstream_dec_info.rate)
@@ -963,6 +976,8 @@ static void vmpeg4_local_init(void)
 		(((unsigned long) vmpeg4_amstream_dec_info.param)
 			>> 16) & 0xffff;
 
+	keyframe_pts_only = ((u32)vmpeg4_amstream_dec_info.param) & 0x100;
+
 	frame_width = frame_height = frame_dur = frame_prog = 0;
 
 	total_frame = 0;
@@ -1010,45 +1025,29 @@ static void vmpeg4_local_init(void)
 
 static s32 vmpeg4_init(void)
 {
-	int r;
 	int trickmode_fffb = 0;
-	int size = -1;
+	int size = -1, ret = -1;
+	char fw_name[32] = {0};
 	char *buf = vmalloc(0x1000 * 16);
 
 	if (IS_ERR_OR_NULL(buf))
 		return -ENOMEM;
-
-	query_video_status(0, &trickmode_fffb);
-
 	amlog_level(LOG_LEVEL_INFO, "vmpeg4_init\n");
-	init_timer(&recycle_timer);
 
-	stat |= STAT_TIMER_INIT;
-
-	amvdec_enable();
-
-	vmpeg4_local_init();
-
-	if (vmpeg4_amstream_dec_info.format == VIDEO_DEC_FORMAT_MPEG4_3) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_3, buf);
-
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_3\n");
-	} else if (vmpeg4_amstream_dec_info.format ==
-				VIDEO_DEC_FORMAT_MPEG4_4) {
-		size = get_firmware_data(VIDEO_DEC_MPEG4_4, buf);
-
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_4\n");
-	} else if (vmpeg4_amstream_dec_info.format ==
+	if (vmpeg4_amstream_dec_info.format ==
 				VIDEO_DEC_FORMAT_MPEG4_5) {
 		size = get_firmware_data(VIDEO_DEC_MPEG4_5, buf);
+		strncpy(fw_name, "vmpeg4_mc_5", sizeof(fw_name));
 
 		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_MPEG4_5\n");
 	} else if (vmpeg4_amstream_dec_info.format == VIDEO_DEC_FORMAT_H263) {
 		size = get_firmware_data(VIDEO_DEC_H263, buf);
+		strncpy(fw_name, "h263_mc", sizeof(fw_name));
 
-		amlog_level(LOG_LEVEL_INFO, "load VIDEO_DEC_FORMAT_H263\n");
+		pr_info("load VIDEO_DEC_FORMAT_H263\n");
 	} else
-		amlog_level(LOG_LEVEL_ERROR, "not supported MPEG4 format\n");
+		pr_err("unsupport mpeg4 sub format %d\n",
+				vmpeg4_amstream_dec_info.format);
 
 	if (size < 0) {
 		pr_err("get firmware fail.");
@@ -1056,32 +1055,39 @@ static s32 vmpeg4_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_MPEG4, NULL, buf) < 0) {
+	ret = amvdec_loadmc_ex(VFORMAT_MPEG4, fw_name, buf);
+	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
+		pr_err("%s: the %s fw loading failed, err: %x\n",
+			fw_name, tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
 	vfree(buf);
-
 	stat |= STAT_MC_LOAD;
+	query_video_status(0, &trickmode_fffb);
 
-	/* enable AMRISC side protocol */
-	r = vmpeg4_prot_init();
-	if (r < 0)
-		return r;
+	init_timer(&recycle_timer);
+	stat |= STAT_TIMER_INIT;
 
 	if (vdec_request_irq(VDEC_IRQ_1, vmpeg4_isr,
 			"vmpeg4-irq", (void *)vmpeg4_dec_id)) {
-		amvdec_disable();
-
 		amlog_level(LOG_LEVEL_ERROR, "vmpeg4 irq register error.\n");
 		return -ENOENT;
 	}
-
 	stat |= STAT_ISR_REG;
+	vmpeg4_local_init();
+	/* enable AMRISC side protocol */
+	ret = vmpeg4_prot_init();
+	if (ret < 0) 	 {
+		if (mm_blk_handle) {
+			decoder_bmmu_box_free(mm_blk_handle);
+			mm_blk_handle = NULL;
+		}
+		return ret;
+	}
+	amvdec_enable();
 	fr_hint_status = VDEC_NO_NEED_HINT;
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER
 	vf_provider_init(&vmpeg_vf_prov, PROVIDER_NAME, &vmpeg_vf_provider,
@@ -1094,13 +1100,14 @@ static s32 vmpeg4_init(void)
 	vf_reg_provider(&vmpeg_vf_prov);
 #endif
 	if (vmpeg4_amstream_dec_info.rate != 0) {
-		if (!is_reset)
+		if (!is_reset) {
 			vf_notify_receiver(PROVIDER_NAME,
 						VFRAME_EVENT_PROVIDER_FR_HINT,
 						(void *)
 						((unsigned long)
 						vmpeg4_amstream_dec_info.rate));
-		fr_hint_status = VDEC_HINTED;
+			fr_hint_status = VDEC_HINTED;
+		}
 	} else
 		fr_hint_status = VDEC_NEED_HINT;
 
@@ -1131,9 +1138,17 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	if (pdata->sys_info)
+	if (pdata->sys_info) {
 		vmpeg4_amstream_dec_info = *pdata->sys_info;
-
+		if ((vmpeg4_amstream_dec_info.height != 0) &&
+			(vmpeg4_amstream_dec_info.width >
+			(MAX_MPEG4_SUPPORT_SIZE/vmpeg4_amstream_dec_info.height))) {
+			pr_info("amvdec_mpeg4: oversize, unsupport: %d*%d\n",
+				vmpeg4_amstream_dec_info.width,
+				vmpeg4_amstream_dec_info.height);
+			return -EFAULT;
+		}
+	}
 	pdata->dec_status = vmpeg4_dec_status;
 	pdata->set_isreset = vmpeg4_set_isreset;
 	is_reset = 0;
@@ -1148,6 +1163,7 @@ static int amvdec_mpeg4_probe(struct platform_device *pdev)
 		amlog_level(LOG_LEVEL_ERROR, "amvdec_mpeg4 init failed.\n");
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 
@@ -1172,7 +1188,7 @@ static int amvdec_mpeg4_remove(struct platform_device *pdev)
 	}
 
 	if (stat & STAT_VF_HOOK) {
-		if (fr_hint_status == VDEC_HINTED && !is_reset)
+		if (fr_hint_status == VDEC_HINTED)
 			vf_notify_receiver(PROVIDER_NAME,
 				VFRAME_EVENT_PROVIDER_FR_END_HINT, NULL);
 		fr_hint_status = VDEC_NO_NEED_HINT;

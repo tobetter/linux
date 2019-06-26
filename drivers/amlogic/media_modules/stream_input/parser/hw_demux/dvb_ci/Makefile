@@ -1,9 +1,15 @@
-obj-m	+=	aml_hardware_spi.o aml_hardware_pcmcia.o aml_hardware_ci.o
+obj-m += ci.o cimax-usb.o
 
-ccflags-y += -I$(srctree)/drivers/media/dvb-core -I$(srctree)/drivers/gpio -I$(srctree)/include
+ci-objs = $(amlci-objs) $(cimax-objs)
 
-aml_hardware_spi-objs += aml_spi.o
+amlci-objs = aml_pcmcia.o  aml_ci.o
+cimax-objs = cimax/dvb_ca_en50221_cimax.o cimax/aml_cimax.o  cimax/dvb_ringbuffer.o
+cimax-usb-objs += cimax/usb/SRC/cimax+usb-driver.o cimax/usb/SRC/cimax+usb_fw.o
+cimax-usb-objs += cimax/usb/SRC/cimax+usb_config.o
+cimax-objs += cimax/aml_cimax_usb.o
 
-aml_hardware_pcmcia-objs += aml_pcmcia.o
+ccflags-y += -I$(srctree)/
+ccflags-y += -I$(srctree)/include
+ccflags-y += -I$(srctree)/drivers/gpio
+ccflags-y += -I$(srctree)/drivers/media/dvb-core
 
-aml_hardware_ci-objs += aml_ci.o

@@ -215,9 +215,19 @@
 		bit_mode=<12>;
 		bit_resolution=<0>;
 	};
+
 	arm_pmu {
 		compatible = "arm,armv8-pmuv3";
-		interrupts = <0 137 4>;
+		clusterb-enabled;
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 171 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0x0 0xff634680 0x0 0x4>,
+			<0x0 0xff6347c0 0x0 0x04>;
+		cpumasks = <0x3 0x3C>;
+		/* default 10ms */
+		relax-timer-ns = <10000000>;
+		/* default 10000us */
+		max-wait-cnt = <10000>;
 	};
 
 	gic: interrupt-controller@2c001000 {
@@ -235,12 +245,12 @@
 		method = "smc";
 	};
 
-	meson_suspend:pm {
+	aml_pm {
 		compatible = "amlogic, pm";
 		status = "okay";
 		device_name = "aml_pm";
-		reg = <0x0 0xff8000a8 0x0 0x4>,
-			<0x0 0xff80023c 0x0 0x4>;
+		debug_reg = <0xff8000a8>;
+		exit_reg = <0xff80023c>;
 	};
 
 	secmon {
@@ -309,6 +319,14 @@
 		clock-frequency = <24000000>;
 		clock-output-names = "xtal";
 		#clock-cells = <0>;
+	};
+
+	rtc{
+		compatible = "amlogic, aml_vrtc";
+		alarm_reg_addr = <0xff8000a8>;
+		timer_e_addr = <0xffd0f188>;
+		init_date = "2019/01/01";
+		status = "okay";
 	};
 
 	cpu_info {
@@ -484,6 +502,15 @@
 		clocks = <&xtal>;
 	};
 
+	jtag {
+		compatible = "amlogic, jtag";
+		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
+	};
+
 	saradc:saradc {
 		compatible = "amlogic,meson-g12a-saradc";
 		status = "disabled";
@@ -528,6 +555,14 @@
 		clocks = <&clkc CLKID_TS_COMP>; /* CLKID_TS_COMP>;*/
 		clock-names = "ts_comp";
 		#thermal-sensor-cells = <1>;
+	};
+
+	ram-dump {
+		compatible = "amlogic, ram_dump";
+		status = "okay";
+		reg = <0x0 0xFF6345E0 0x0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	soc {
@@ -786,6 +821,15 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <&ao_b_uart_pins>;
 			};
+
+			irblaster: meson-irblaster@14c {
+				compatible = "amlogic, meson_irblaster";
+				reg = <0x0 0x14c 0x0 0x10>,
+					<0x0 0x40 0x0 0x4>;
+				#irblaster-cells = <2>;
+				interrupts = <GIC_SPI 198 IRQ_TYPE_EDGE_RISING>;
+				status = "disabled";
+			};
 		};/* end of aobus */
 
 		periphs: periphs@ff634400 {
@@ -848,165 +892,42 @@
 			};
 		};/* end of audiobus*/
 
+		aml_dma {
+			compatible = "amlogic,aml_txlx_dma";
+			reg = <0x0 0xff63e000 0x0 0x48>;
+			interrupts = <0 180 1>;
+
+			aml_aes {
+				compatible = "amlogic,aes_g12a_dma";
+				dev_name = "aml_aes_dma";
+				status = "okay";
+			};
+
+			aml_sha {
+				compatible = "amlogic,sha_dma";
+				dev_name = "aml_sha_dma";
+				status = "okay";
+			};
+
+			aml_tdes {
+				compatible = "amlogic,tdes_dma";
+				dev_name = "aml_tdes_dma";
+				status = "okay";
+			};
+		};
 	}; /* end of soc*/
 
-	remote:rc@0xff808040 {
+	meson-remote {
 		compatible = "amlogic, aml_remote";
 		dev_name = "meson-remote";
 		reg = <0x0 0xff808040 0x00 0x44>, /*Multi-format IR controller*/
 			<0x0 0xff808000 0x00 0x20>; /*Legacy IR controller*/
-		status = "okay";
+		status = "disabled";
 		protocol = <REMOTE_TYPE_NEC>;
 		interrupts = <0 196 1>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&remote_pins>;
-		map = <&custom_maps>;
 		max_frame_time = <200>; /*set software decoder max frame time*/
-	};
-
-	custom_maps:custom_maps {
-		mapnum = <3>;
-		map0 = <&map_0>;
-		map1 = <&map_1>;
-		map2 = <&map_2>;
-		map_0: map_0{
-			mapname = "amlogic-remote-1";
-			customcode = <0xfb04>;
-			release_delay = <80>;
-			size  = <50>;   /*keymap size*/
-			keymap = <REMOTE_KEY(0x47, KEY_0)
-				REMOTE_KEY(0x13, KEY_1)
-				REMOTE_KEY(0x10, KEY_2)
-				REMOTE_KEY(0x11, KEY_3)
-				REMOTE_KEY(0x0F, KEY_4)
-				REMOTE_KEY(0x0C, KEY_5)
-				REMOTE_KEY(0x0D, KEY_6)
-				REMOTE_KEY(0x0B, KEY_7)
-				REMOTE_KEY(0x08, KEY_8)
-				REMOTE_KEY(0x09, KEY_9)
-				REMOTE_KEY(0x5C, KEY_RIGHTCTRL)
-				REMOTE_KEY(0x51, KEY_F3)
-				REMOTE_KEY(0x50, KEY_F4)
-				REMOTE_KEY(0x40, KEY_F5)
-				REMOTE_KEY(0x4d, KEY_F6)
-				REMOTE_KEY(0x43, KEY_F7)
-				REMOTE_KEY(0x17, KEY_F8)
-				REMOTE_KEY(0x00, KEY_F9)
-				REMOTE_KEY(0x01, KEY_F10)
-				REMOTE_KEY(0x16, KEY_F11)
-				REMOTE_KEY(0x49, KEY_BACKSPACE)
-				REMOTE_KEY(0x06, KEY_PROPS)
-				REMOTE_KEY(0x14, KEY_UNDO)
-				REMOTE_KEY(0x44, KEY_UP)
-				REMOTE_KEY(0x1D, KEY_DOWN)
-				REMOTE_KEY(0x1C, KEY_LEFT)
-				REMOTE_KEY(0x48, KEY_RIGHT)
-				REMOTE_KEY(0x53, KEY_LEFTMETA)
-				REMOTE_KEY(0x45, KEY_PAGEUP)
-				REMOTE_KEY(0x19, KEY_PAGEDOWN)
-				REMOTE_KEY(0x52, KEY_PAUSE)
-				REMOTE_KEY(0x05, KEY_HANGEUL)
-				REMOTE_KEY(0x59, KEY_HANJA)
-				REMOTE_KEY(0x1b, KEY_SCALE)
-				REMOTE_KEY(0x04, KEY_KPCOMMA)
-				REMOTE_KEY(0x1A, KEY_POWER)
-				REMOTE_KEY(0x0A, KEY_TAB)
-				REMOTE_KEY(0x0e, KEY_MUTE)
-				REMOTE_KEY(0x1F, KEY_HOME)
-				REMOTE_KEY(0x1e, KEY_FRONT)
-				REMOTE_KEY(0x07, KEY_COPY)
-				REMOTE_KEY(0x12, KEY_OPEN)
-				REMOTE_KEY(0x54, KEY_PASTE)
-				REMOTE_KEY(0x02, KEY_FIND)
-				REMOTE_KEY(0x4f, KEY_A)
-				REMOTE_KEY(0x42, KEY_B)
-				REMOTE_KEY(0x5d, KEY_C)
-				REMOTE_KEY(0x4c, KEY_D)
-				REMOTE_KEY(0x58, KEY_CUT)
-				REMOTE_KEY(0x55, KEY_CALC)>;
-		};
-		map_1: map_1{
-			mapname = "amlogic-remote-2";
-			customcode = <0xfe01>;
-			release_delay = <80>;
-			size  = <53>;
-			keymap = <REMOTE_KEY(0x01, KEY_1)
-				REMOTE_KEY(0x02, KEY_2)
-				REMOTE_KEY(0x03, KEY_3)
-				REMOTE_KEY(0x04, KEY_4)
-				REMOTE_KEY(0x05, KEY_5)
-				REMOTE_KEY(0x06, KEY_6)
-				REMOTE_KEY(0x07, KEY_7)
-				REMOTE_KEY(0x08, KEY_8)
-				REMOTE_KEY(0x09, KEY_9)
-				REMOTE_KEY(0x0a, KEY_0)
-				REMOTE_KEY(0x1F, KEY_FN_F1)
-				REMOTE_KEY(0x15, KEY_MENU)
-				REMOTE_KEY(0x16, KEY_TAB)
-				REMOTE_KEY(0x0c, KEY_CHANNELUP)
-				REMOTE_KEY(0x0d, KEY_CHANNELDOWN)
-				REMOTE_KEY(0x0e, KEY_VOLUMEUP)
-				REMOTE_KEY(0x0f, KEY_VOLUMEDOWN)
-				REMOTE_KEY(0x11, KEY_HOME)
-				REMOTE_KEY(0x1c, KEY_RIGHT)
-				REMOTE_KEY(0x1b, KEY_LEFT)
-				REMOTE_KEY(0x19, KEY_UP)
-				REMOTE_KEY(0x1a, KEY_DOWN)
-				REMOTE_KEY(0x1d, KEY_ENTER)
-				REMOTE_KEY(0x17, KEY_MUTE)
-				REMOTE_KEY(0x49, KEY_FINANCE)
-				REMOTE_KEY(0x43, KEY_BACK)
-				REMOTE_KEY(0x12, KEY_FN_F4)
-				REMOTE_KEY(0x14, KEY_FN_F5)
-				REMOTE_KEY(0x18, KEY_FN_F6)
-				REMOTE_KEY(0x59, KEY_INFO)
-				REMOTE_KEY(0x5a, KEY_STOPCD)
-				REMOTE_KEY(0x10, KEY_POWER)
-				REMOTE_KEY(0x42, KEY_PREVIOUSSONG)
-				REMOTE_KEY(0x44, KEY_NEXTSONG)
-				REMOTE_KEY(0x1e, KEY_REWIND)
-				REMOTE_KEY(0x4b, KEY_FASTFORWARD)
-				REMOTE_KEY(0x58, KEY_PLAYPAUSE)
-				REMOTE_KEY(0x46, KEY_PROPS)
-				REMOTE_KEY(0x40, KEY_UNDO)
-				REMOTE_KEY(0x38, KEY_SCROLLLOCK)
-				REMOTE_KEY(0x57, KEY_FN)
-				REMOTE_KEY(0x5b, KEY_FN_ESC)
-				REMOTE_KEY(0x54, KEY_RED)
-				REMOTE_KEY(0x4c, KEY_GREEN)
-				REMOTE_KEY(0x4e, KEY_YELLOW)
-				REMOTE_KEY(0x55, KEY_BLUE)
-				REMOTE_KEY(0x53, KEY_BLUETOOTH)
-				REMOTE_KEY(0x52, KEY_WLAN)
-				REMOTE_KEY(0x39, KEY_CAMERA)
-				REMOTE_KEY(0x41, KEY_SOUND)
-				REMOTE_KEY(0x0b, KEY_QUESTION)
-				REMOTE_KEY(0x00, KEY_CHAT)
-				REMOTE_KEY(0x13, KEY_SEARCH)>;
-		};
-		map_2: map_2{
-			mapname = "amlogic-remote-3";
-			customcode = <0xbd02>;
-			release_delay = <80>;
-			size  = <17>;
-			keymap = <REMOTE_KEY(0xca,103)
-			REMOTE_KEY(0xd2,108)
-			REMOTE_KEY(0x99,105)
-			REMOTE_KEY(0xc1,106)
-			REMOTE_KEY(0xce,97)
-			REMOTE_KEY(0x45,116)
-			REMOTE_KEY(0xc5,133)
-			REMOTE_KEY(0x80,113)
-			REMOTE_KEY(0xd0,15)
-			REMOTE_KEY(0xd6,125)
-			REMOTE_KEY(0x95,102)
-			REMOTE_KEY(0xdd,104)
-			REMOTE_KEY(0x8c,109)
-			REMOTE_KEY(0x89,131)
-			REMOTE_KEY(0x9c,130)
-			REMOTE_KEY(0x9a,120)
-			REMOTE_KEY(0xcd,121)>;
-		};
 	};
 
 	uart_A: serial@ffd24000 {
@@ -1122,6 +1043,12 @@
 		};
 	};
 
+	amprime_sl: amprime_sl {
+		compatible = "amlogic, prime_sl_g12";
+		dev_name = "amprime_sl";
+		status = "disabled";
+	};
+
 	galcore {
 		compatible = "amlogic, galcore";
 		dev_name = "galcore";
@@ -1130,7 +1057,7 @@
 			<&clkc CLKID_VNANOQ_CORE_CLK_COMP>;
 		clock-names = "cts_vipnanoq_axi_clk_composite",
 			"cts_vipnanoq_core_clk_composite";
-		interrupts = <0 147 1>;
+		interrupts = <0 147 4>;
 		interrupt-names = "galcore";
 		reg = <0x0 0xff100000 0x0 0x800
 		       0x0 0xff000000 0x0 0x400000>;
@@ -1318,6 +1245,13 @@
 			"clk_hevcb_mux";
 	};
 
+	amvideocap {
+		compatible = "amlogic, amvideocap";
+		dev_name = "amvideocap.0";
+		status = "okay";
+		max_size = <8>;//8M
+	};
+
 	vdec {
 		compatible = "amlogic, vdec";
 		dev_name = "vdec.0";
@@ -1360,7 +1294,7 @@
 	};
 
 	rdma{
-		compatible = "amlogic, meson, rdma";
+		compatible = "amlogic, meson-g12b, rdma";
 		dev_name = "amlogic-rdma";
 		status = "okay";
 		interrupts = <0 89 1>;
@@ -1385,15 +1319,6 @@
 		clocks = <&clkc CLKID_VPU_CLKC_MUX>;
 		clock-names = "vpu_clkc";
 	};
-	irblaster: meson-irblaster {
-		compatible = "amlogic, meson_irblaster";
-		reg = <0x0 0xff80014c 0x0 0x10>,
-			<0x0 0xff800040 0x0 0x4>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&irblaster_pins>;
-		interrupts = <0 198 1>;
-		status = "disabled";
-	};
 
 	sd_emmc_c: emmc@ffe07000 {
 		status = "disabled";
@@ -1406,9 +1331,9 @@
 		clocks = <&clkc CLKID_SD_EMMC_C>,
 			   <&clkc CLKID_SD_EMMC_C_P0_COMP>,
 			   <&clkc CLKID_FCLK_DIV2>,
-			   <&clkc CLKID_FCLK_DIV5>,
+			   <&clkc CLKID_FCLK_DIV2P5>,
 			   <&xtal>;
-		clock-names = "core", "clkin0", "clkin1", "clkin2", "xtal";
+		clock-names = "core","clkin0","clkin1","clkin2","xtal";
 
 		bus-width = <8>;
 		cap-sd-highspeed;
@@ -1572,20 +1497,11 @@
 					node_name = "cpufreq_cool1";
 					device_type = "cpufreq";
 				};
-				cpucore_cool_cluster0 {
+				cpucore_cool_cluster {
 					min_state = <1>;
 					dyn_coeff = <0>;
-					cluster_id = <0>;
 					gpu_pp = <2>;
-					node_name = "cpucore_cool0";
-					device_type = "cpucore";
-				};
-				cpucore_cool_cluster1 {
-					min_state = <0>;
-					dyn_coeff = <0>;
-					cluster_id = <1>;
-					gpu_pp = <2>;
-					node_name = "cpucore_cool1";
+					node_name = "cpucore_cool";
 					device_type = "cpucore";
 				};
 				gpufreq_cool {
@@ -1611,10 +1527,7 @@
 			cpufreq_cool1:cpufreq_cool1 {
 				#cooling-cells = <2>; /* min followed by max */
 			};
-			cpucore_cool0:cpucore_cool0 {
-				#cooling-cells = <2>; /* min followed by max */
-			};
-			cpucore_cool1:cpucore_cool1 {
+			cpucore_cool:cpucore_cool {
 				#cooling-cells = <2>; /* min followed by max */
 			};
 			gpufreq_cool0:gpufreq_cool0 {
@@ -1634,7 +1547,7 @@
 			thermal-sensors = <&p_tsensor 0>;
 			trips {
 				pswitch_on: trip-point@0 {
-					temperature = <65000>;
+					temperature = <60000>;
 					hysteresis = <5000>;
 					type = "passive";
 				};
@@ -1644,7 +1557,7 @@
 					type = "passive";
 				};
 				phot: trip-point@2 {
-					temperature = <95000>;
+					temperature = <85000>;
 					hysteresis = <5000>;
 					type = "hot";
 				};
@@ -1668,12 +1581,7 @@
 				};
 				cpucore_cooling_map0 {
 					trip = <&pcontrol>;
-					cooling-device = <&cpucore_cool0 0 1>;
-					contribution = <1024>;
-				};
-				cpucore_cooling_map1 {
-					trip = <&pcontrol>;
-					cooling-device = <&cpucore_cool1 0 4>;
+					cooling-device = <&cpucore_cool 0 5>;
 					contribution = <1024>;
 				};
 				gpufreq_cooling_map {
@@ -1886,6 +1794,7 @@
 		reg-names = "adapter";
 		interrupts = <0 179 0>;
 		interrupt-names = "adapter-irq";
+		mem_alloc = <48>;
 	};
 
 	phycsi: phy-csi@ff650000 {
@@ -1916,6 +1825,12 @@
 		compatible = "amlogic, defendkey";
 		reg = <0x0 0xff630218 0x0 0x4>; /*RNG_USR_DATA*/
 		mem_size = <0x0 0x100000>;
+		status = "okay";
+	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
 		status = "okay";
 	};
 };/* end of / */
@@ -2045,6 +1960,16 @@
 		mux {
 			groups = "pwm_a_e2";
 			function = "pwm_a_gpioe";
+		};
+	};
+
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "jtag_a_tdi",
+			"jtag_a_tdo",
+			"jtag_a_clk",
+			"jtag_a_tms";
+			function = "jtag_a";
 		};
 	};
 };
@@ -2563,6 +2488,16 @@
 		mux {
 			groups = "remote_out_z";
 			function = "remote_out";
+		};
+	};
+
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "jtag_b_tdi",
+			"jtag_b_tdo",
+			"jtag_b_clk",
+			"jtag_b_tms";
+			function = "jtag_b";
 		};
 	};
 };

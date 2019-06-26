@@ -1045,7 +1045,7 @@ static inline void *aml_slub_alloc_large(size_t size, gfp_t flags, int order)
 		unsigned long total_pages = 1 << order;
 		unsigned long saved = 0;
 	#ifdef CONFIG_AMLOGIC_PAGE_TRACE
-		unsigned long fun;
+		unsigned long fun = 0;
 	#endif
 		int i;
 

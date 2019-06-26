@@ -245,5 +245,15 @@
 #define OSD1_BLEND_SRC_CTRL 0x1dfd
 #define OSD2_BLEND_SRC_CTRL 0x1dfe
 
+#define VPP_POST_BLEND_BLEND_DUMMY_DATA 0x3968
+#define VPP_POST_BLEND_DUMMY_ALPHA 0x3969
+
+/* after g12b */
+#define SRSHARP0_SHARP_SYNC_CTRL 0x3eb0
+#define SRSHARP1_SHARP_SYNC_CTRL 0x3fb0
+
+#define VPU_RDARB_MODE_L2C1          0x279d
+#define VPU_WRARB_MODE_L2C1          0x27a2
+
 #endif
 

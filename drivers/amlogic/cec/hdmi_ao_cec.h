@@ -19,7 +19,8 @@
 #define __AO_CEC_H__
 
 
-#define CEC_DRIVER_VERSION	"Ver 2019/1/7\n"
+
+#define CEC_DRIVER_VERSION	"Ver 2019/3/25\n"
 
 #define CEC_FRAME_DELAY		msecs_to_jiffies(400)
 #define CEC_DEV_NAME		"aocec"
@@ -28,6 +29,14 @@
 #define CEC_DEEP_SUSPEND	(1 << 1)
 #define CEC_PHY_PORT_NUM		4
 #define HR_DELAY(n)		(ktime_set(0, n * 1000 * 1000))
+
+enum cecaver {
+	/*first version*/
+	CECA_VER_0 = 0,
+
+	/*support multi logical address*/
+	CECA_VER_1 = 1,
+};
 
 enum cecbver {
 	/*first version*/
@@ -485,7 +494,8 @@ extern uint32_t hdmirx_rd_dwc(uint16_t addr);
 extern void hdmirx_wr_dwc(uint16_t addr, uint32_t data);
 extern unsigned int rd_reg_hhi(unsigned int offset);
 extern void wr_reg_hhi(unsigned int offset, unsigned int val);
-
+extern int cec_set_dev_info(uint8_t dev_idx);
+int __attribute__((weak))cec_set_dev_info(uint8_t dev_idx);
 #else
 static inline unsigned long hdmirx_rd_top(unsigned long addr)
 {
@@ -538,4 +548,6 @@ extern void cec_restore_logical_addr(unsigned int cec_sel,
 	unsigned int addr_en);
 extern void cec_logicaddr_add(unsigned int cec_sel, unsigned int l_add);
 extern void cec_clear_all_logical_addr(unsigned int cec_sel);
+extern int dump_cecrx_reg(char *b);
+
 #endif	/* __AO_CEC_H__ */

@@ -24,6 +24,8 @@ void *decoder_mmu_box_alloc_box(const char *name,
 	int min_size_M,
 	int mem_flags);
 
+int decoder_mmu_box_sc_check(void *handle, int is_tvp);
+
 int decoder_mmu_box_alloc_idx(
 	void *handle, int idx, int num_pages,
 	unsigned int *mmu_index_adr);

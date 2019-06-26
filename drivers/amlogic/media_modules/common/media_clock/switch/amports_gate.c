@@ -191,14 +191,9 @@ int amports_clock_gate_init(struct device *dev)
 }
 EXPORT_SYMBOL(amports_clock_gate_init);
 
-static int amports_switch_gate(struct gate_switch_node *gate_node, int enable)
-{
-	return 0;
-}
 
 int amports_switch_gate(const char *name, int enable)
 {
-	amports_switch_gate(0, 0);
 	return 0;
 }
 EXPORT_SYMBOL(amports_switch_gate);

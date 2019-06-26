@@ -36,6 +36,10 @@
 #include "../utils/decoder_bmmu_box.h"
 #include <linux/amlogic/media/codec_mm/codec_mm.h>
 #include <linux/amlogic/media/codec_mm/configs.h>
+#include <linux/amlogic/tee.h>
+
+#include <trace/events/meson_atrace.h>
+
 
 #ifdef CONFIG_AM_VDEC_MJPEG_LOG
 #define AMLOG
@@ -166,6 +170,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 	u32 reg, offset, pts, pts_valid = 0;
 	struct vframe_s *vf = NULL;
 	u64 pts_us64;
+	u32 frame_size;
 
 	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 
@@ -175,7 +180,8 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 		offset = READ_VREG(MREG_FRAME_OFFSET);
 
 		if (pts_lookup_offset_us64
-			(PTS_TYPE_VIDEO, offset, &pts, 0, &pts_us64) == 0)
+			(PTS_TYPE_VIDEO, offset, &pts,
+			&frame_size, 0, &pts_us64) == 0)
 			pts_valid = 1;
 
 		if ((reg & PICINFO_INTERLACE) == 0) {
@@ -218,6 +224,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vdec_count_info(gvs, 0, offset);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -275,6 +282,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vfbuf_use[index]++;
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 #else
 			/* send whole frame by weaving top & bottom field */
 #ifdef NV21
@@ -303,6 +311,7 @@ static irqreturn_t vmjpeg_isr(int irq, void *dev_id)
 			vdec_count_info(gvs, 0, offset);
 
 			kfifo_put(&display_q, (const struct vframe_s *)vf);
+			ATRACE_COUNTER(MODULE_NAME, vf->pts);
 
 			vf_notify_receiver(PROVIDER_NAME,
 					VFRAME_EVENT_PROVIDER_VFRAME_READY,
@@ -398,8 +407,7 @@ static void vmjpeg_put_timer_func(unsigned long arg)
 		struct vframe_s *vf;
 
 		if (kfifo_get(&recycle_q, &vf)) {
-			if ((vf->index >= 0)
-				&& (vf->index < DECODE_BUFFER_NUM_MAX)
+			if ((vf->index < DECODE_BUFFER_NUM_MAX)
 				&& (--vfbuf_use[vf->index] == 0)) {
 				WRITE_VREG(MREG_TO_AMRISC, vf->index + 1);
 				vf->index = DECODE_BUFFER_NUM_MAX;
@@ -418,6 +426,9 @@ static void vmjpeg_put_timer_func(unsigned long arg)
 
 int vmjpeg_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 {
+	if (!(stat & STAT_VDEC_RUN))
+		return -1;
+
 	vstatus->frame_width = frame_width;
 	vstatus->frame_height = frame_height;
 	if (0 != frame_dur)
@@ -746,11 +757,12 @@ static s32 vmjpeg_init(void)
 		return -1;
 	}
 
-	if (size == 1)
-		pr_info ("tee load ok");
-	else if (amvdec_loadmc_ex(VFORMAT_MJPEG, NULL, buf) < 0) {
+	ret = amvdec_loadmc_ex(VFORMAT_MJPEG, NULL, buf);
+	if (ret < 0) {
 		amvdec_disable();
 		vfree(buf);
+		pr_err("MJPEG: the %s fw loading failed, err: %x\n",
+			tee_enabled() ? "TEE" : "local", ret);
 		return -EBUSY;
 	}
 
@@ -840,6 +852,7 @@ static int amvdec_mjpeg_probe(struct platform_device *pdev)
 		mutex_unlock(&vmjpeg_mutex);
 		kfree(gvs);
 		gvs = NULL;
+		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
 

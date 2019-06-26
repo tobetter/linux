@@ -46,7 +46,6 @@
 #include <linux/mm.h>
 #include <linux/amlogic/media/ppmgr/ppmgr.h>
 #include <linux/amlogic/media/ppmgr/ppmgr_status.h>
-#include <linux/amlogic/media/video_sink/video_prot.h>
 /*#include "../amports/video.h"*/
 #include <linux/amlogic/media/video_sink/video.h>
 /*#include "../amports/vdec_reg.h"*/
@@ -178,9 +177,11 @@ static u32 tb_buffer_len = TB_DETECT_BUFFER_MAX_SIZE;
 static atomic_t tb_reset_flag;
 static u32 tb_init_mute;
 static atomic_t tb_skip_flag;
+static atomic_t tb_run_flag;
 static bool tb_quit_flag;
 static struct TB_DetectFuncPtr *gfunc;
 static int tb_buffer_init(void);
+static int tb_buffer_uninit(void);
 #endif
 
 const struct vframe_receiver_op_s *vf_ppmgr_reg_provider(void);
@@ -2755,7 +2756,6 @@ static int process_vf_adjust(struct vframe_s *vf,
 /* extern int get_tv_process_type(struct vframe_s *vf); */
 /* #endif */
 static struct task_struct *task;
-/* extern int video_property_notify(int flag); */
 /* extern struct vframe_s *get_cur_dispbuf(void); */
 /* extern enum platform_type_t get_platform_type(void); */
 
@@ -2835,7 +2835,10 @@ static int ppmgr_task(void *data)
 				continue;
 
 			process_vf_change(vf, context, &ge2d_config);
-			video_property_notify(2);
+			vf_notify_receiver(
+				PROVIDER_NAME,
+				VFRAME_EVENT_PROVIDER_PROPERTY_CHANGED,
+				NULL);
 			vfq_lookup_start(&q_ready);
 			vf = vfq_peek(&q_ready);
 
@@ -3075,7 +3078,9 @@ static int ppmgr_task(void *data)
 					/* wait tb task done */
 					while ((tb_buff_wptr >= 5)
 						&& (tb_buff_rptr
-						<= tb_buff_wptr - 5))
+						<= tb_buff_wptr - 5)
+						&& (atomic_read(&tb_run_flag)
+						== 1))
 						usleep_range(
 							4000, 5000);
 					atomic_set(&detect_status,
@@ -3165,7 +3170,9 @@ static int ppmgr_task(void *data)
 						"tb detect skip case1\n");
 					goto SKIP_DETECT;
 				}
-				if (tb_buff_wptr < tb_buffer_len) {
+				if ((tb_buff_wptr < tb_buffer_len)
+					&& (atomic_read(&tb_run_flag)
+						== 1)) {
 					ret = process_vf_tb_detect(
 						vf, context, &ge2d_config);
 				} else {
@@ -3247,7 +3254,7 @@ SKIP_DETECT:
 			vf_local_init();
 			vf_light_unreg_provider(&ppmgr_vf_prov);
 			msleep(30);
-			vf_reg_provider(&ppmgr_vf_prov);
+			vf_light_reg_provider(&ppmgr_vf_prov);
 			ppmgr_blocking = false;
 			up(&thread_sem);
 			PPMGRVPP_WARN("ppmgr rebuild from light-unregister\n");
@@ -3262,6 +3269,9 @@ SKIP_DETECT:
 	}
 
 	destroy_ge2d_work_queue(context);
+#ifdef PPMGR_TB_DETECT
+	tb_buffer_uninit();
+#endif
 	ppmgr_buffer_uninit();
 	while (!kthread_should_stop()) {
 		/* may not call stop, wait..
@@ -3626,7 +3636,8 @@ void stop_ppmgr_task(void)
 static int tb_buffer_init(void)
 {
 	int i;
-	int flags = CODEC_MM_FLAGS_DMA_CPU | CODEC_MM_FLAGS_CMA_CLEAR;
+	//int flags = CODEC_MM_FLAGS_DMA_CPU | CODEC_MM_FLAGS_CMA_CLEAR;
+	int flags = 0;
 
 	if (tb_buffer_status)
 		return tb_buffer_status;
@@ -3675,7 +3686,8 @@ static int tb_buffer_init(void)
 			detect_buf[i].paddr = tb_buffer_start +
 				TB_DETECT_H * TB_DETECT_W * i;
 			detect_buf[i].vaddr =
-				(ulong)phys_to_virt(detect_buf[i].paddr);
+				(ulong)codec_mm_vmap(detect_buf[i].paddr,
+				TB_DETECT_H * TB_DETECT_W);
 			if (ppmgr_device.tb_detect & 0xc) {
 				PPMGRVPP_INFO(
 					"detect buff(%d) paddr: %lx, vaddr: %lx\n",
@@ -3691,6 +3703,7 @@ static int tb_buffer_init(void)
 
 static int tb_buffer_uninit(void)
 {
+	int i;
 	if (tb_src_canvas) {
 		if (tb_src_canvas & 0xff)
 			canvas_pool_map_free_canvas(
@@ -3711,6 +3724,13 @@ static int tb_buffer_uninit(void)
 		PPMGRVPP_INFO("tb cma free addr is %x, size is %x\n",
 			(unsigned int)tb_buffer_start,
 			(unsigned int)tb_buffer_size);
+		for (i = 0; i < tb_buffer_len; i++) {
+			if (detect_buf[i].vaddr) {
+				codec_mm_unmap_phyaddr(
+					(u8 *)detect_buf[i].vaddr);
+				detect_buf[i].vaddr = 0;
+			}
+		}
 		codec_mm_free_for_dma(
 			"tb_detect",
 			tb_buffer_start);
@@ -3731,6 +3751,7 @@ static void tb_detect_init(void)
 	atomic_set(&tb_detect_flag, TB_DETECT_NC);
 	atomic_set(&tb_reset_flag, 0);
 	atomic_set(&tb_skip_flag, 0);
+	atomic_set(&tb_run_flag, 1);
 	tb_detect_last_flag = TB_DETECT_NC;
 	tb_buff_wptr = 0;
 	tb_buff_rptr = 0;
@@ -3829,9 +3850,9 @@ static int tb_task(void *data)
 			atomic_set(&detect_status, tb_done);
 		}
 	}
+	atomic_set(&tb_run_flag, 0);
 	while (!kthread_should_stop())
 		usleep_range(9000, 10000);
-	tb_buffer_uninit();
 	return 0;
 }
 

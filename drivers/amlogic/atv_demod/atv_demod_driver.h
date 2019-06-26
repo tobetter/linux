@@ -38,18 +38,20 @@ struct aml_atvdemod_parameters {
 	unsigned int reserved;
 };
 
+struct aml_tuner {
+	struct tuner_config cfg;
+	unsigned int i2c_adapter_id;
+	struct i2c_adapter *i2c_adp;
+};
+
 struct aml_atvdemod_device {
 	char *name;
 	struct class cls;
 	struct device *dev;
 
-	unsigned int tuner_id;
-	unsigned int tuner_xtal;
-	unsigned int tuner_xtal_mode;
-	unsigned int tuner_xtal_cap;
-	unsigned int i2c_addr;
-	unsigned int i2c_adapter_id;
-	struct i2c_adapter *i2c_adp;
+	unsigned int tuner_num;
+	int tuner_cur;
+	struct aml_tuner *tuners;
 
 	unsigned int if_freq;
 	unsigned int if_inv;
@@ -66,10 +68,10 @@ struct aml_atvdemod_device {
 	bool tuner_attached;
 
 	void __iomem *demod_reg_base;
-	void __iomem *audio_reg_base;
+	void __iomem *audiodemod_reg_base;
 	void __iomem *hiu_reg_base;
 	void __iomem *periphs_reg_base;
-	void __iomem *audio_demod_reg_base;
+	void __iomem *audio_reg_base;
 
 	unsigned int reg_23cf; /* IIR filter */
 	int btsc_sap_mode; /*0: off 1:monitor 2:auto */
@@ -94,6 +96,7 @@ struct aml_atvdemod_device {
 
 extern struct aml_atvdemod_device *amlatvdemod_devp;
 
-extern int aml_attach_demod_tuner(struct aml_atvdemod_device *dev);
+extern int aml_attach_demod(struct aml_atvdemod_device *dev);
+extern int aml_attach_tuner(struct aml_atvdemod_device *dev);
 
 #endif /* __ATV_DEMOD_DRIVER_H__ */

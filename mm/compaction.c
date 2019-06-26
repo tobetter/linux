@@ -434,14 +434,34 @@ static unsigned long isolate_freepages_block(struct compact_control *cc,
 		 * contention, to give chance to IRQs. Abort if fatal signal
 		 * pending or async compaction detects need_resched()
 		 */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!(blockpfn % SWAP_CLUSTER_MAX)
+		    && compact_unlock_should_abort(&cc->zone->lock, flags,
+								&locked, cc)) {
+			if (strict)
+				cma_debug(1, page, "abort, blk:%lx, swap:%ld\n",
+					  blockpfn, SWAP_CLUSTER_MAX);
+			break;
+		}
+	#else
 		if (!(blockpfn % SWAP_CLUSTER_MAX)
 		    && compact_unlock_should_abort(&cc->zone->lock, flags,
 								&locked, cc))
 			break;
+	#endif
 
 		nr_scanned++;
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!pfn_valid_within(blockpfn)) {
+			if (strict)
+				cma_debug(1, page, "invalid pfn:%lx\n",
+					  blockpfn);
+			goto isolate_fail;
+		}
+	#else
 		if (!pfn_valid_within(blockpfn))
 			goto isolate_fail;
+	#endif
 
 		if (!valid_page)
 			valid_page = page;
@@ -459,12 +479,25 @@ static unsigned long isolate_freepages_block(struct compact_control *cc,
 				blockpfn += (1UL << comp_order) - 1;
 				cursor += (1UL << comp_order) - 1;
 			}
-
+		#ifdef CONFIG_AMLOGIC_CMA
+			if (strict)
+				cma_debug(1, page, "compound page:%lx\n",
+					  page_to_pfn(page));
+		#endif
 			goto isolate_fail;
 		}
 
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!PageBuddy(page)) {
+			if (strict)
+				cma_debug(1, page, " NO buddy page1:%lx\n",
+					  page_to_pfn(page));
+			goto isolate_fail;
+		}
+	#else
 		if (!PageBuddy(page))
 			goto isolate_fail;
+	#endif
 
 		/*
 		 * If we already hold the lock, we can skip some rechecking.
@@ -484,19 +517,44 @@ static unsigned long isolate_freepages_block(struct compact_control *cc,
 			 */
 			locked = compact_trylock_irqsave(&cc->zone->lock,
 								&flags, cc);
+		#ifdef CONFIG_AMLOGIC_CMA
+			if (!locked) {
+				if (strict)
+					cma_debug(1, page, " lock failed:%lx\n",
+						  page_to_pfn(page));
+				break;
+			}
+			/* Recheck this is a buddy page under lock */
+			if (!PageBuddy(page)) {
+				if (strict)
+					cma_debug(1, page, " No buddy2:%lx\n",
+						  page_to_pfn(page));
+				goto isolate_fail;
+			}
+		#else
 			if (!locked)
 				break;
 
 			/* Recheck this is a buddy page under lock */
 			if (!PageBuddy(page))
 				goto isolate_fail;
+		#endif
 		}
 
 		/* Found a free page, will break it into order-0 pages */
 		order = page_order(page);
 		isolated = __isolate_free_page(page, order);
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!isolated) {
+			if (strict)
+				cma_debug(1, page, "iso free fail:%lx, o:%d\n",
+					  page_to_pfn(page), order);
+			break;
+		}
+	#else
 		if (!isolated)
 			break;
+	#endif
 		set_page_private(page, order);
 
 		total_isolated += isolated;
@@ -599,9 +657,17 @@ isolate_freepages_range(struct compact_control *cc,
 			block_end_pfn = min(block_end_pfn, end_pfn);
 		}
 
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!pageblock_pfn_to_page(block_start_pfn,
+					block_end_pfn, cc->zone)) {
+			cma_debug(1, NULL, " no page block\n");
+			break;
+		}
+	#else
 		if (!pageblock_pfn_to_page(block_start_pfn,
 					block_end_pfn, cc->zone))
 			break;
+	#endif
 
 		isolated = isolate_freepages_block(cc, &isolate_start_pfn,
 						block_end_pfn, &freelist, true);
@@ -611,8 +677,15 @@ isolate_freepages_range(struct compact_control *cc,
 		 * there are any holes in the block (ie. invalid PFNs or
 		 * non-free pages).
 		 */
+	#ifdef CONFIG_AMLOGIC_CMA
+		if (!isolated) {
+			cma_debug(1, NULL, " isolate free page failed\n");
+			break;
+		}
+	#else
 		if (!isolated)
 			break;
+	#endif
 
 		/*
 		 * If we managed to isolate pages, it is always (1 << n) *
@@ -626,6 +699,10 @@ isolate_freepages_range(struct compact_control *cc,
 
 	if (pfn < end_pfn) {
 		/* Loop terminated early, cleanup. */
+	#ifdef CONFIG_AMLOGIC_CMA
+		cma_debug(1, NULL, "pfn:%lx, end:%lx, start:%lx\n",
+			  pfn, end_pfn, start_pfn);
+	#endif
 		release_freepages(&freelist);
 		return 0;
 	}

@@ -1,0 +1,5 @@
+#include "meson64_odroidn2.dts"
+
+/{
+	coreelec-dt-id = "g12b_a311d_odroid_n2";
+};

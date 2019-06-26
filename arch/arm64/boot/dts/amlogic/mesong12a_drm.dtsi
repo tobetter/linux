@@ -107,3 +107,24 @@
 	};
 };
 
+&gpu{
+	/*gpu max freq is 850M*/
+	def_clk = <1>;
+	tbl = <&dvfs285_cfg &dvfs666_cfg &dvfs850_cfg &dvfs850_cfg>;
+
+	dvfs285_cfg:dvfs285_cfg {
+		 keep_count = <2>;
+		 threshold = <100 200>;
+	};
+
+	dvfs666_cfg:dvfs666_cfg {
+		 keep_count = <1>;
+		 threshold = <85 200>;
+	};
+
+	dvfs850_cfg:dvfs850_cfg {
+		 keep_count = <1>;
+		 threshold = <179 255>;
+	};
+
+};

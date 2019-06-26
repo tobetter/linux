@@ -32,7 +32,7 @@
 /* vbi start line: unit is hcount value */
 #define VBI_START_CC	0x54
 #define VBI_START_WSS	0x54
-#define VBI_START_TT	0x82
+#define VBI_START_TT	0x64
 #define VBI_START_VPS	0x82
 
 /* cvd2 function enable/disable defines*/

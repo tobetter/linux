@@ -44,6 +44,10 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/list.h>
+#ifdef CONFIG_AMLOGIC_VMAP
+#include <linux/amlogic/vmap_stack.h>
+#include <asm/irq.h>
+#endif
 
 #include <asm/stacktrace.h>
 #include <asm/traps.h>
@@ -93,7 +97,7 @@ extern const struct unwind_idx __start_unwind_idx[];
 static const struct unwind_idx *__origin_unwind_idx;
 extern const struct unwind_idx __stop_unwind_idx[];
 
-static DEFINE_RAW_SPINLOCK(unwind_lock);
+static DEFINE_SPINLOCK(unwind_lock);
 static LIST_HEAD(unwind_tables);
 
 /* Convert a prel31 symbol to an absolute address */
@@ -201,7 +205,7 @@ static const struct unwind_idx *unwind_find_idx(unsigned long addr)
 		/* module unwind tables */
 		struct unwind_table *table;
 
-		raw_spin_lock_irqsave(&unwind_lock, flags);
+		spin_lock_irqsave(&unwind_lock, flags);
 		list_for_each_entry(table, &unwind_tables, list) {
 			if (addr >= table->begin_addr &&
 			    addr < table->end_addr) {
@@ -213,7 +217,7 @@ static const struct unwind_idx *unwind_find_idx(unsigned long addr)
 				break;
 			}
 		}
-		raw_spin_unlock_irqrestore(&unwind_lock, flags);
+		spin_unlock_irqrestore(&unwind_lock, flags);
 	}
 
 	pr_debug("%s: idx = %p\n", __func__, idx);
@@ -242,8 +246,21 @@ static unsigned long unwind_get_byte(struct unwind_ctrl_block *ctrl)
 }
 
 /* Before poping a register check whether it is feasible or not */
+#ifdef CONFIG_AMLOGIC_KASAN32
+/*
+ * If enabled KASAN and unwind_frame is called under IRQ routine,
+ * an value-less kasan report will trigger. Because IRQ is using
+ * thread context and don't initialized shadow memory when irq_svc
+ * saving irq context. Since it's hard to guess reserved memory for
+ * shadow in stack by compiler, so we just tell compiler do not
+ * sanitize for this function
+ */
+int __no_sanitize_address unwind_pop_register(struct unwind_ctrl_block *ctrl,
+				unsigned long **vsp, unsigned int reg)
+#else
 static int unwind_pop_register(struct unwind_ctrl_block *ctrl,
 				unsigned long **vsp, unsigned int reg)
+#endif
 {
 	if (unlikely(ctrl->check_each_pop))
 		if (*vsp >= (unsigned long *)ctrl->sp_high)
@@ -403,7 +420,13 @@ int unwind_frame(struct stackframe *frame)
 
 	idx = unwind_find_idx(frame->pc);
 	if (!idx) {
+	#ifdef CONFIG_AMLOGIC_KASAN32
+		/* avoid FUCKING close source ko print too many here */
+		if (frame->pc > PAGE_OFFSET)
+			pr_warn("unwind: Index not found %08lx\n", frame->pc);
+	#else
 		pr_warn("unwind: Index not found %08lx\n", frame->pc);
+	#endif
 		return -URC_FAILURE;
 	}
 
@@ -468,6 +491,20 @@ int unwind_frame(struct stackframe *frame)
 	return URC_OK;
 }
 
+#ifdef CONFIG_AMLOGIC_VMAP
+static void dump_backtrace_entry_fp(unsigned long where, unsigned long fp,
+				    unsigned long sp)
+{
+	signed long fp_size = 0;
+
+	fp_size = fp - sp + 4;
+	if (fp_size < 0 || !fp)
+		fp_size = 0;
+	pr_info("[%08lx+%4ld][<%08lx>] %pS\n",
+		fp, fp_size, where, (void *)where);
+}
+#endif
+
 void unwind_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 {
 	struct stackframe frame;
@@ -504,9 +541,44 @@ void unwind_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 		unsigned long where = frame.pc;
 
 		urc = unwind_frame(&frame);
+	#ifdef CONFIG_AMLOGIC_VMAP
+		if (urc < 0) {
+			int keep = 0;
+			int cpu;
+			unsigned long addr;
+			struct pt_regs *pt_regs;
+
+			cpu = raw_smp_processor_id();
+			/* continue search for irq stack */
+			if (on_irq_stack(frame.sp, cpu)) {
+				unsigned long sp_irq;
+
+				keep = 1;
+				sp_irq = (unsigned long)irq_stack[cpu];
+				addr = *((unsigned long *)(sp_irq +
+					THREAD_INFO_OFFSET - 8 -
+					sizeof(addr) - 12));
+				pt_regs = (struct pt_regs *)addr;
+				frame.fp = pt_regs->ARM_fp;
+				frame.sp = pt_regs->ARM_sp;
+				frame.lr = pt_regs->ARM_lr;
+				frame.pc = pt_regs->ARM_pc;
+			}
+			if (!keep)
+				break;
+		}
+		where = frame.pc;
+		/*
+		 * The last "where" may be an invalid one,
+		 * rechecking it
+		 */
+		if (kernel_text_address(where))
+			dump_backtrace_entry_fp(where, frame.fp, frame.sp);
+	#else
 		if (urc < 0)
 			break;
 		dump_backtrace_entry(where, frame.pc, frame.sp - 4);
+	#endif
 	}
 }
 
@@ -529,9 +601,9 @@ struct unwind_table *unwind_table_add(unsigned long start, unsigned long size,
 	tab->begin_addr = text_addr;
 	tab->end_addr = text_addr + text_size;
 
-	raw_spin_lock_irqsave(&unwind_lock, flags);
+	spin_lock_irqsave(&unwind_lock, flags);
 	list_add_tail(&tab->list, &unwind_tables);
-	raw_spin_unlock_irqrestore(&unwind_lock, flags);
+	spin_unlock_irqrestore(&unwind_lock, flags);
 
 	return tab;
 }
@@ -543,9 +615,9 @@ void unwind_table_del(struct unwind_table *tab)
 	if (!tab)
 		return;
 
-	raw_spin_lock_irqsave(&unwind_lock, flags);
+	spin_lock_irqsave(&unwind_lock, flags);
 	list_del(&tab->list);
-	raw_spin_unlock_irqrestore(&unwind_lock, flags);
+	spin_unlock_irqrestore(&unwind_lock, flags);
 
 	kfree(tab);
 }

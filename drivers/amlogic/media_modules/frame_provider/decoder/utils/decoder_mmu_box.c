@@ -74,6 +74,16 @@ static int decoder_mmu_box_mgr_del_box(struct decoder_mmu_box *box)
 	return 0;
 }
 
+int decoder_mmu_box_sc_check(void *handle, int is_tvp)
+{
+	struct decoder_mmu_box *box = handle;
+	if (!box) {
+			pr_err("mmu box NULL !!!\n");
+			return 0;
+	}
+	return codec_mm_scatter_size(is_tvp);
+}
+EXPORT_SYMBOL(decoder_mmu_box_sc_check);
 
 
 void *decoder_mmu_box_alloc_box(const char *name,
@@ -152,7 +162,6 @@ int decoder_mmu_box_alloc_idx(
 
 	for (i = 0; i < num_pages; i++)
 		mmu_index_adr[i] = PAGE_INDEX(sc->pages_list[i]);
-	mmu_index_adr[num_pages] = 0;
 
 	mutex_unlock(&box->mutex);
 
@@ -170,7 +179,7 @@ int decoder_mmu_box_free_idx_tail(
 	if (!box || idx < 0 || idx >= box->max_sc_num) {
 		pr_err("can't free tail mmu box(%p),idx:%d in (%d-%d)\n",
 			box, idx, 0,
-			box->max_sc_num - 1);
+			box ? (box->max_sc_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -191,7 +200,7 @@ int decoder_mmu_box_free_idx(void *handle, int idx)
 	if (!box || idx < 0 || idx >= box->max_sc_num) {
 		pr_err("can't free idx of box(%p),idx:%d  in (%d-%d)\n",
 			box, idx, 0,
-			box->max_sc_num - 1);
+			box ? (box->max_sc_num - 1) : 0);
 		return -1;
 	}
 	mutex_lock(&box->mutex);
@@ -251,7 +260,7 @@ static int decoder_mmu_box_dump(struct decoder_mmu_box *box,
 
 	if (!buf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 	#define BUFPRINT(args...) \
 	do {\
@@ -288,7 +297,7 @@ static int decoder_mmu_box_dump_all(void *buf, int size)
 
 	if (!pbuf) {
 		pbuf = sbuf;
-		size = 100000;
+		size = 512;
 	}
 
 	#define BUFPRINT(args...) \

@@ -33,10 +33,6 @@
 #include <asm/compiler.h>
 #include <linux/kdebug.h>
 #include <linux/arm-smccc.h>
-#ifdef CONFIG_AMLOGIC_RAMDUMP
-#include <linux/amlogic/ramdump.h>
-#define RAMDUMP_REPLACE_MSG	"ramdump disabled, replase panic to normal\n"
-#endif /* CONFIG_AMLOGIC_RAMDUMP */
 
 static u32 psci_function_id_restart;
 static u32 psci_function_id_poweroff;
@@ -72,15 +68,7 @@ static u32 parse_reason(const char *cmd)
 	} else {
 		if (kernel_panic) {
 			if (strcmp(kernel_panic, "kernel_panic") == 0) {
-			#ifdef CONFIG_AMLOGIC_RAMDUMP
-				if (ramdump_disabled()) {
-					reboot_reason = MESON_NORMAL_BOOT;
-					pr_info(RAMDUMP_REPLACE_MSG);
-				} else
-					reboot_reason = MESON_KERNEL_PANIC;
-			#else
 				reboot_reason = MESON_KERNEL_PANIC;
-			#endif
 			}
 		}
 
@@ -154,7 +142,21 @@ static int aml_restart_probe(struct platform_device *pdev)
 	}
 
 	ret = register_die_notifier(&panic_notifier);
-	return ret;
+	if (ret != 0) {
+		pr_err("%s,register die notifier failed,ret =%d!\n",
+			__func__, ret);
+		return ret;
+	}
+
+	/* Register a call for panic conditions. */
+	ret = atomic_notifier_chain_register(&panic_notifier_list,
+			&panic_notifier);
+	if (ret != 0) {
+		pr_err("%s,register panic notifier failed,ret =%d!\n",
+			__func__, ret);
+		return ret;
+	}
+	return 0;
 }
 
 static const struct of_device_id of_aml_restart_match[] = {

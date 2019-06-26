@@ -367,8 +367,10 @@ void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 	/* // configure min symbol_rate fb = 6.95M*/
 	qam_write_reg(0x12, (qam_read_reg(0x12) & ~(0xff<<8)) | 3400 * 256);
 
+	#if 0
 	if (is_ic_ver(IC_VER_TL1))
 		qam_write_reg(0x51, (qam_read_reg(0x51)&~(0x1<<28)));
+	#endif
 	/* configure min symbol_rate fb = 6.95M */
 
 	/*dvbc_write_reg(QAM_BASE+0x0c0, 0xffffff68); // threshold */
@@ -432,40 +434,43 @@ void dvbc_reg_initial(struct aml_demod_sta *demod_sta)
 
 	/* enable irq */
 	qam_write_reg(0x34, 0x7fff << 3);
-#if 1
+
 	/*if (is_meson_txlx_cpu()) {*/
-	if (is_ic_ver(IC_VER_TXLX)) {
+	if (is_ic_ver(IC_VER_TXLX) || (is_ic_ver(IC_VER_TL1))) {
 		/*my_tool setting j83b mode*/
 		qam_write_reg(0x7, 0x10f33);
-		/*j83b filter para*/
-		qam_write_reg(0x40, 0x3f010201);
-		qam_write_reg(0x41, 0x0a003a3b);
-		qam_write_reg(0x42, 0xe1ee030e);
-		qam_write_reg(0x43, 0x002601f2);
-		qam_write_reg(0x44, 0x009b006b);
-		qam_write_reg(0x45, 0xb3a1905);
-		qam_write_reg(0x46, 0x1c396e07);
-		qam_write_reg(0x47, 0x3801cc08);
-		qam_write_reg(0x48, 0x10800a2);
-		qam_write_reg(0x12, 0x50e1000);
-		qam_write_reg(0x30, 0x41f2f69);
-		/*j83b_symbolrate(please see register doc)*/
-		qam_write_reg(0x4d, 0x23d125f7);
-		/*for phase noise case 256qam*/
-		qam_write_reg(0x9c, 0x2a232100);
-		qam_write_reg(0x57, 0x606040d);
-		/*for phase noise case 64qam*/
-		qam_write_reg(0x54, 0x606050d);
-		qam_write_reg(0x52, 0x346dc);
+
+		if (demod_sta->dvb_mode == Gxtv_Atsc ||
+			is_ic_ver(IC_VER_TXLX)) {
+			/*j83b filter para*/
+			qam_write_reg(0x40, 0x3f010201);
+			qam_write_reg(0x41, 0x0a003a3b);
+			qam_write_reg(0x42, 0xe1ee030e);
+			qam_write_reg(0x43, 0x002601f2);
+			qam_write_reg(0x44, 0x009b006b);
+			qam_write_reg(0x45, 0xb3a1905);
+			qam_write_reg(0x46, 0x1c396e07);
+			qam_write_reg(0x47, 0x3801cc08);
+			qam_write_reg(0x48, 0x10800a2);
+			qam_write_reg(0x12, 0x50e1000);
+			qam_write_reg(0x30, 0x41f2f69);
+			/*j83b_symbolrate(please see register doc)*/
+			qam_write_reg(0x4d, 0x23d125f7);
+			/*for phase noise case 256qam*/
+			qam_write_reg(0x9c, 0x2a232100);
+			qam_write_reg(0x57, 0x606040d);
+			/*for phase noise case 64qam*/
+			qam_write_reg(0x54, 0x606050d);
+			qam_write_reg(0x52, 0x346dc);
+		}
+
 		qam_auto_scan(1);
 	}
-#endif
-	if (!is_ic_ver(IC_VER_TL1)) {
-		qam_write_reg(0x7, 0x10f23);
-		qam_write_reg(0x3a, 0x0);
-		qam_write_reg(0x7, 0x10f33);
-		qam_write_reg(0x3a, 0x4);
-	}
+
+	qam_write_reg(0x7, 0x10f23);
+	qam_write_reg(0x3a, 0x0);
+	qam_write_reg(0x7, 0x10f33);
+	qam_write_reg(0x3a, 0x4);
 /*auto track*/
 	/*      dvbc_set_auto_symtrack(); */
 }

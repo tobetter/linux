@@ -25,10 +25,55 @@
 #include <linux/amlogic/cpu_version.h>
 #include <linux/pm_wakeup.h>
 #include <linux/amlogic/scpi_protocol.h>
+#include <linux/debugfs.h>
+#include <linux/input.h>
+#include <linux/amlogic/pm.h>
 
 static void __iomem *alarm_reg_vaddr;
 static void __iomem *timere_low_vaddr, *timere_high_vaddr;
 static unsigned int vrtc_init_date;
+static int wakeup;
+static int wakeup_time;
+static struct input_dev *vinput_dev;
+
+static void send_power_btn_wakeup(void)
+{
+	if ((get_resume_method() == RTC_WAKEUP) ||
+		(get_resume_method() == AUTO_WAKEUP)) {
+		input_event(vinput_dev, EV_KEY, KEY_POWER, 1);
+		input_sync(vinput_dev);
+		input_event(vinput_dev, EV_KEY, KEY_POWER, 0);
+		input_sync(vinput_dev);
+	}
+}
+
+static int vinput_dev_init(struct platform_device *pdev)
+{
+	int r;
+
+	vinput_dev = input_allocate_device();
+	if (!vinput_dev)
+		return -ENOMEM;
+
+	vinput_dev->name = "aml_vkeypad";
+	vinput_dev->phys = "keypad/input0";
+	vinput_dev->id.vendor = 0x0001;
+	vinput_dev->id.product = 0x0001;
+	vinput_dev->id.version = 0x0100;
+	set_bit(EV_KEY, vinput_dev->evbit);
+	set_bit(KEY_POWER, vinput_dev->keybit);
+
+	vinput_dev->dev.parent = &pdev->dev;
+	device_init_wakeup(&vinput_dev->dev, 1);
+
+	r = input_register_device(vinput_dev);
+	if (r) {
+		pr_err("failed to register power button: %d\n", r);
+		input_free_device(vinput_dev);
+	}
+
+	return r;
+}
 
 #define TIME_LEN 10
 static int parse_init_date(const char *date)
@@ -204,12 +249,19 @@ static int aml_vrtc_probe(struct platform_device *pdev)
 		return -1;
 	platform_set_drvdata(pdev, vrtc);
 
+	vinput_dev_init(pdev);
+
+	debugfs_create_u32("wakeup", 0644, NULL, &wakeup);
+	debugfs_create_u32("wakeup_time", 0644, NULL, &wakeup_time);
+
 	return 0;
 }
 
 static int aml_vrtc_remove(struct platform_device *dev)
 {
 	struct rtc_device *vrtc = platform_get_drvdata(dev);
+
+	input_unregister_device(vinput_dev);
 
 	rtc_device_unregister(vrtc);
 
@@ -227,12 +279,22 @@ static int aml_vrtc_resume(struct platform_device *pdev)
 		if (!scpi_get_vrtc(&vrtc_init_date))
 			pr_debug("get vrtc: %us\n", vrtc_init_date);
 
+	if (wakeup > 0) {
+		pr_info("aml_vrtc_suspend wakeup=%d\n", wakeup);
+		send_power_btn_wakeup();
+	}
+
 	return 0;
 }
 
 static int aml_vrtc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	u32 vrtc_val;
+
+	if (wakeup_time > 0) {
+		pr_info("aml_vrtc_suspend wakeup_time=%d\n", wakeup_time);
+		set_wakeup_time(wakeup_time);
+	}
 
 	vrtc_val = read_te();
 

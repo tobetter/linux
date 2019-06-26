@@ -1,3 +1,19 @@
+/*
+ * drivers/amlogic/media/enhancement/amvecm/dnlp_cal.h
+ *
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ */
 
 #ifndef __AM_DNLP_CAL_H
 #define __AM_DNLP_CAL_H
@@ -60,6 +76,26 @@ struct dnlp_alg_param_s {
 	unsigned int dnlp_scurv_hgh1_th;
 	unsigned int dnlp_scurv_hgh2_th;
 	unsigned int dnlp_mtdrate_adp_en;
+	unsigned int dnlp_clahe_method;
+	unsigned int dnlp_ble_en;
+	unsigned int dnlp_norm;
+	unsigned int dnlp_scn_chg_th;
+	unsigned int dnlp_step_th;
+	unsigned int dnlp_iir_step_mux;
+	unsigned int dnlp_single_bin_bw;
+	unsigned int dnlp_single_bin_method;
+	unsigned int dnlp_reg_max_slop_1st;
+	unsigned int dnlp_reg_max_slop_mid;
+	unsigned int dnlp_reg_max_slop_fin;
+	unsigned int dnlp_reg_min_slop_1st;
+	unsigned int dnlp_reg_min_slop_mid;
+	unsigned int dnlp_reg_min_slop_fin;
+	unsigned int dnlp_reg_trend_wht_expand_mode;
+	unsigned int dnlp_reg_trend_blk_expand_mode;
+	unsigned int dnlp_ve_hist_cur_gain;
+	unsigned int dnlp_ve_hist_cur_gain_precise;
+	unsigned int dnlp_reg_mono_binrang_st;
+	unsigned int dnlp_reg_mono_binrang_ed;
 };
 
 struct dnlp_parse_cmd_s {
@@ -92,6 +128,11 @@ extern int *dnlp_scurv_hgh1_copy;
 extern int *dnlp_scurv_hgh2_copy;
 extern int *gain_var_lut49_copy;
 extern int *wext_gain_copy;
+extern int *adp_thrd_copy;
+extern int *reg_blk_boost_12_copy;
+extern int *reg_adp_ofset_20_copy;
+extern int *reg_mono_protect_copy;
+extern int *reg_trend_wht_expand_lut8_copy;
 
 extern int *ro_luma_avg4_copy;
 extern int *ro_var_d8_copy;

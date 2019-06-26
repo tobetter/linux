@@ -56,7 +56,7 @@
 static unsigned int dc_level_adj = 4;
 
 /*0:635mv; 1:686mv; 2:733mv; 3:776mv; 4:816mv; 5:853mv; 6:887mv; 7:919mv*/
-static unsigned int comp_level_adj = 5;
+static unsigned int comp_level_adj;
 
 /*0:use internal VDC to bias CVBS_in*/
 /*1:use ground to bias CVBS_in*/

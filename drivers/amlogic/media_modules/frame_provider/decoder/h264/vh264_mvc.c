@@ -476,15 +476,14 @@ static struct vframe_s *vh264mvc_vf_get(void *op_arg)
 
 	INCPTR(get_ptr);
 
-	if (vf) {
-		if (frame_width == 0)
-			frame_width = vh264mvc_amstream_dec_info.width;
-		if (frame_height == 0)
-			frame_height = vh264mvc_amstream_dec_info.height;
+	if (frame_width == 0)
+		frame_width = vh264mvc_amstream_dec_info.width;
+	if (frame_height == 0)
+		frame_height = vh264mvc_amstream_dec_info.height;
 
-		vf->width = frame_width;
-		vf->height = frame_height;
-	}
+	vf->width = frame_width;
+	vf->height = frame_height;
+
 	if ((no_dropping_cnt < DROPPING_FIRST_WAIT) && (vf->frame_dirty == 0))
 		no_dropping_cnt++;
 	return vf;
@@ -892,6 +891,7 @@ static void vh264mvc_isr(void)
 	struct vframe_s *vf;
 	unsigned int pts, pts_valid = 0;
 	u64 pts_us64;
+	u32 frame_size;
 	int ret = READ_VREG(MAILBOX_COMMAND);
 	/* pr_info("vh264mvc_isr, cmd =%x\n", ret); */
 	switch (ret & 0xff) {
@@ -1003,6 +1003,11 @@ static void vh264mvc_isr(void)
 						VF_BUFFER_IDX(display_buff_id));
 
 				} else if (display_view_id == 1) {
+					vf->mem_head_handle =
+					decoder_bmmu_box_get_mem_handle(
+						mm_blk_handle,
+						VF_BUFFER_IDX(display_buff_id));
+
 					vf->mem_handle =
 					decoder_bmmu_box_get_mem_handle(
 						mm_blk_handle,
@@ -1020,6 +1025,7 @@ static void vh264mvc_isr(void)
 				if (pts_lookup_offset_us64
 					(PTS_TYPE_VIDEO,
 					 vfpool_idx[slot].stream_offset, &pts,
+					 &frame_size,
 					 0x10000, &pts_us64) == 0)
 					pts_valid = 1;
 				else
@@ -1376,8 +1382,10 @@ static int vh264mvc_local_init(void)
 		vfpool_idx[i].view1_drop = 0;
 		vfpool_idx[i].used = 0;
 	}
-	for (i = 0; i < VF_POOL_SIZE; i++)
+	for (i = 0; i < VF_POOL_SIZE; i++) {
 		memset(&vfpool[i], 0, sizeof(struct vframe_s));
+		vfpool[i].index = i;
+	}
 	init_vf_buf();
 
 	if (mm_blk_handle) {
@@ -1402,10 +1410,10 @@ static int vh264mvc_local_init(void)
 
 static s32 vh264mvc_init(void)
 {
-	int ret = -1, size = -1;
+	int ret = -1;
 	char *buf = vmalloc(0x1000 * 16);
 
-	if (IS_ERR_OR_NULL(buf))
+	if (buf == NULL)
 		return -ENOMEM;
 
 	pr_info("\nvh264mvc_init\n");
@@ -1414,20 +1422,26 @@ static s32 vh264mvc_init(void)
 	stat |= STAT_TIMER_INIT;
 
 	ret = vh264mvc_vdec_info_init();
-	if (0 != ret)
+	if (0 != ret) {
+		vfree(buf);
 		return -ret;
+	}
 
 	ret = vh264mvc_local_init();
-	if (ret < 0)
+	if (ret < 0) {
+		vfree(buf);
 		return ret;
+	}
 
 	amvdec_enable();
 
 	if (tee_enabled()) {
-		pr_info("the video fw from the teeload.\n");
-		ret = tee_load_video_fw((u32)VIDEO_DEC_H264_MVC, 0);
+		ret = amvdec_loadmc_ex(VFORMAT_H264MVC, NULL, buf);
 		if (ret != 0) {
 			amvdec_disable();
+			vfree(buf);
+			pr_err("H264_MVC: the %s fw loading failed, err: %x\n",
+				tee_enabled() ? "TEE" : "local", ret);
 			return -1;
 		}
 	} else {
@@ -1443,8 +1457,7 @@ static s32 vh264mvc_init(void)
 
 		WRITE_VREG(UCODE_START_ADDR, mc_dma_handle);
 
-		size = get_firmware_data(VIDEO_DEC_H264_MVC, buf);
-		if (size < 0) {
+		if (get_firmware_data(VIDEO_DEC_H264_MVC, buf) < 0) {
 			pr_err("get firmware fail.");
 			vfree(buf);
 			return -1;
@@ -1459,8 +1472,6 @@ static s32 vh264mvc_init(void)
 		/*slice*/
 		memcpy((u8 *) mc_cpu_addr + 0x3000, buf + 0x4000, 0x3000);
 
-		vfree(buf);
-
 		if (ret < 0) {
 			amvdec_disable();
 
@@ -1471,6 +1482,8 @@ static s32 vh264mvc_init(void)
 			return -EBUSY;
 		}
 	}
+	vfree(buf);
+
 	stat |= STAT_MC_LOAD;
 
 	/* enable AMRISC side protocol */
@@ -1704,13 +1717,13 @@ module_param(view_mode, uint, 0664);
 MODULE_PARM_DESC(view_mode, "\n amvdec_h264mvc view mode\n");
 
 module_param(dbg_cmd, uint, 0664);
-MODULE_PARM_DESC(dbg_mode, "\n amvdec_h264mvc cmd mode\n");
+MODULE_PARM_DESC(dbg_cmd, "\n amvdec_h264mvc cmd mode\n");
 
 module_param(drop_rate, uint, 0664);
-MODULE_PARM_DESC(dbg_mode, "\n amvdec_h264mvc drop rate\n");
+MODULE_PARM_DESC(drop_rate, "\n amvdec_h264mvc drop rate\n");
 
 module_param(drop_thread_hold, uint, 0664);
-MODULE_PARM_DESC(dbg_mode, "\n amvdec_h264mvc drop thread hold\n");
+MODULE_PARM_DESC(drop_thread_hold, "\n amvdec_h264mvc drop thread hold\n");
 module_init(amvdec_h264mvc_driver_init_module);
 module_exit(amvdec_h264mvc_driver_remove_module);
 

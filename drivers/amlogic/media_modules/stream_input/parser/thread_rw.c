@@ -254,7 +254,6 @@ static int do_write_work_in(struct threadrw_write_task *task)
 	if (write_len > 0) {
 		spin_lock_irqsave(&task->lock, flags);
 		task->passed_data_len += write_len;
-		task->buffered_data_size -= write_len;
 		spin_unlock_irqrestore(&task->lock, flags);
 	}
 	return need_re_write;
@@ -444,6 +443,22 @@ err1:
 /*
  *fifo data size;
  */
+
+void threadrw_update_buffer_level(struct stream_buf_s *stbuf,
+	int parsed_size)
+{
+	struct threadrw_write_task *task = stbuf->write_thread;
+	unsigned long flags;
+
+	if (task)
+	{
+		spin_lock_irqsave(&task->lock, flags);
+		task->buffered_data_size -= parsed_size;
+		spin_unlock_irqrestore(&task->lock, flags);
+	}
+
+}
+EXPORT_SYMBOL(threadrw_update_buffer_level);
 
 int threadrw_buffer_level(struct stream_buf_s *stbuf)
 {

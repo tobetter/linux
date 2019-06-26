@@ -104,9 +104,11 @@ struct drm_info {
 	u32 drm_vir;
 	u32 drm_remap;
 	u32 data_offset;
-	u32 extpad[8];
+	u32 handle;
+	u32 extpad[7];
 } /*drminfo_t */;
 
+#define TYPE_DRMINFO_V2  0x100
 #define TYPE_DRMINFO   0x80
 #define TYPE_PATTERN   0x40
 

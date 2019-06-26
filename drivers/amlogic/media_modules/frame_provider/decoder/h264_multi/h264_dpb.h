@@ -1,3 +1,22 @@
+/*
+* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*
+* Description:
+*/
 #ifndef H264_DPB_H_
 #define H264_DPB_H_
 
@@ -19,14 +38,26 @@
 #define RRINT_FLAG_RPM                0x0400
 #define DEBUG_DISABLE_RUNREADY_RMBUF  0x0800
 #define PRINT_FLAG_DUMP_BUFSPEC       0x1000
+#define PRINT_FLAG_V4L_DETAIL         0x8000
 #define DISABLE_ERROR_HANDLE          0x10000
 #define DEBUG_DUMP_STAT               0x80000
 
+#define PIC_SINGLE_FRAME			0
+#define PIC_TOP_BOT_TOP				1
+#define PIC_BOT_TOP_BOT				2
+#define PIC_DOUBLE_FRAME			3
+#define PIC_TRIPLE_FRAME			4
+#define PIC_TOP_BOT					5
+#define PIC_BOT_TOP					6
+#define PIC_INVALID					7
 
 #define MVC_EXTENSION_ENABLE 0
 #define PRINTREFLIST  0
 
 #define MAX_LIST_SIZE 33
+
+#define H264_OUTPUT_MODE_NORMAL 0x4
+#define H264_OUTPUT_MODE_FAST   0x8
 
 #define FALSE 0
 
@@ -47,9 +78,16 @@
 #define H264_SEARCH_BUFEMPTY        0x22
 #define H264_DECODE_OVER_SIZE       0x23
 
+#define VIDEO_SIGNAL_LOW						0x26
+#define VIDEO_SIGNAL_HIGHT						0x27
+
+
 #define H264_FIND_NEXT_PIC_NAL              0x50
 #define H264_FIND_NEXT_DVEL_NAL             0x51
 #define H264_AUX_DATA_READY					0x52
+
+#define H264_SEI_DATA_READY					0x53
+#define H264_SEI_DATA_DONE					0x54
 
     /* 0x8x, search state*/
 #define H264_STATE_SEARCH_AFTER_SPS  0x80
@@ -100,8 +138,19 @@ union param {
 #define BUFFER_SIZE_HI							0X69
 #define CROPPING_LEFT_RIGHT						0X6A
 #define CROPPING_TOP_BOTTOM						0X6B
+#if 1
+ /* sps_flags2:
+ *bit 3, bitstream_restriction_flag
+ *bit 2, pic_struct_present_flag
+ *bit 1, vcl_hrd_parameters_present_flag
+ *bit 0, nal_hrd_parameters_present_flag
+ */
+#define SPS_FLAGS2						0x6c
+#define NUM_REORDER_FRAMES				0x6d
+#else
 #define POC_SELECT_NEED_SWAP						0X6C
 #define POC_SELECT_SWAP							0X6D
+#endif
 #define MAX_BUFFER_FRAME						0X6E
 
 #define NON_CONFORMING_STREAM						0X70
@@ -398,6 +447,13 @@ enum ProfileIDC {
 	STEREO_HIGH    = 128   /*!< YUV 4:2:0/8  "Stereo High"*/
 };
 
+enum FirstInsertFrm_State {
+	FirstInsertFrm_IDLE = 0,
+	FirstInsertFrm_OUT = 1,
+	FirstInsertFrm_SKIPDONE = 2,
+};
+
+
 struct SPSParameters {
 	unsigned int profile_idc;
 	int pic_order_cnt_type;
@@ -470,6 +526,7 @@ struct Slice {
 	unsigned char dec_ref_pic_marking_buffer_valid;
 	struct DecRefPicMarking_s
 		dec_ref_pic_marking_buffer[DEC_REF_PIC_MARKING_BUFFER_NUM_MAX];
+	int pic_struct;
 };
 
 struct OldSliceParams {
@@ -646,7 +703,21 @@ struct StorablePicture {
 
 	u32         pts;
 	u64         pts64;
+	u64         timestamp;
 	unsigned char data_flag;
+	int pic_struct;
+
+	/* picture qos infomation*/
+	int frame_size;
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
 };
 
 struct FrameStore {
@@ -709,6 +780,22 @@ struct FrameStore {
 
 	u32       pts;
 	u64       pts64;
+	u64       timestamp;
+
+
+	/* picture qos infomation*/
+	int slice_type;
+	int frame_size;
+
+	int max_qp;
+	int avg_qp;
+	int min_qp;
+	int max_skip;
+	int avg_skip;
+	int min_skip;
+	int max_mv;
+	int min_mv;
+	int avg_mv;
 };
 
 
@@ -790,10 +877,15 @@ struct h264_dpb_stru {
 	unsigned int aspect_ratio_idc;
 	unsigned int aspect_ratio_sar_width;
 	unsigned int aspect_ratio_sar_height;
+	u8 bitstream_restriction_flag;
+	u16 num_reorder_frames;
+	u16 max_dec_frame_buffering;
 
 	unsigned int dec_dpb_status;
 	unsigned char buf_alloc_fail;
 	unsigned int dpb_error_flag;
+	unsigned int first_insert_frame;
+	int first_output_poc;
 };
 
 

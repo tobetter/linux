@@ -363,101 +363,42 @@ void lcd_vbyone_pinmux_set(int status)
 	pconf->pinmux_flag = index;
 }
 
+static char *lcd_tcon_pinmux_str[] = {
+	"tcon",
+	"tcon_off",
+	"none",
+};
+
 void lcd_tcon_pinmux_set(int status)
 {
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
 	struct lcd_config_s *pconf;
+	unsigned int index;
 
 	if (lcd_debug_print_flag)
 		LCDPR("%s: %d\n", __func__, status);
 
 	pconf = lcd_drv->lcd_config;
-	if (status) {
-		if (pconf->pinmux_flag == 0) {
-			pconf->pinmux_flag = 1;
-			/* request pinmux */
-			pconf->pin = devm_pinctrl_get_select(lcd_drv->dev,
-				"tcon");
-			if (IS_ERR(pconf->pin))
-				LCDERR("set tcon pinmux error\n");
-		} else {
-			LCDPR("tcon pinmux is already selected\n");
-		}
+	index = (status) ? 0 : 1;
+
+	if (pconf->pinmux_flag == index) {
+		LCDPR("pinmux %s is already selected\n",
+			lcd_tcon_pinmux_str[index]);
+		return;
+	}
+
+	pconf->pin = devm_pinctrl_get_select(lcd_drv->dev,
+		lcd_tcon_pinmux_str[index]);
+	if (IS_ERR(pconf->pin)) {
+		LCDERR("set tcon pinmux %s error\n",
+			lcd_tcon_pinmux_str[index]);
 	} else {
-		if (pconf->pinmux_flag) {
-			pconf->pinmux_flag = 0;
-			/* release pinmux */
-			devm_pinctrl_put(pconf->pin);
-		} else {
-			LCDPR("tcon pinmux is already released\n");
+		if (lcd_debug_print_flag) {
+			LCDPR("set tcon pinmux %s: %p\n",
+				lcd_tcon_pinmux_str[index], pconf->pin);
 		}
 	}
-}
-
-unsigned int lcd_lvds_channel_on_value(struct lcd_config_s *pconf)
-{
-	unsigned int channel_on = 0;
-
-	if (pconf->lcd_control.lvds_config->dual_port == 0) {
-		if (pconf->lcd_control.lvds_config->lane_reverse == 0) {
-			switch (pconf->lcd_basic.lcd_bits) {
-			case 6:
-				channel_on = 0xf;
-				break;
-			case 8:
-				channel_on = 0x1f;
-				break;
-			case 10:
-			default:
-				channel_on = 0x3f;
-				break;
-			}
-		} else {
-			switch (pconf->lcd_basic.lcd_bits) {
-			case 6:
-				channel_on = 0x3c;
-				break;
-			case 8:
-				channel_on = 0x3e;
-				break;
-			case 10:
-			default:
-				channel_on = 0x3f;
-				break;
-			}
-		}
-		if (pconf->lcd_control.lvds_config->port_swap == 1)
-			channel_on = (channel_on << 6); /* use channel B */
-	} else {
-		if (pconf->lcd_control.lvds_config->lane_reverse == 0) {
-			switch (pconf->lcd_basic.lcd_bits) {
-			case 6:
-				channel_on = 0x3cf;
-				break;
-			case 8:
-				channel_on = 0x7df;
-				break;
-			case 10:
-			default:
-				channel_on = 0xfff;
-				break;
-			}
-		} else {
-			switch (pconf->lcd_basic.lcd_bits) {
-			case 6:
-				channel_on = 0xf3c;
-				break;
-			case 8:
-				channel_on = 0xfbe;
-				break;
-			case 10:
-			default:
-				channel_on = 0xfff;
-				break;
-			}
-		}
-	}
-	return channel_on;
+	pconf->pinmux_flag = index;
 }
 
 int lcd_power_load_from_dts(struct lcd_config_s *pconf,
@@ -469,6 +410,9 @@ int lcd_power_load_from_dts(struct lcd_config_s *pconf,
 	struct lcd_power_ctrl_s *lcd_power = pconf->lcd_power;
 	int i, j;
 	unsigned int index;
+
+	if (lcd_debug_print_flag)
+		LCDPR("%s\n", __func__);
 
 	if (child == NULL) {
 		LCDPR("error: failed to get %s\n", pconf->lcd_propname);
@@ -506,6 +450,7 @@ int lcd_power_load_from_dts(struct lcd_config_s *pconf,
 			index = lcd_power->power_on_step[i].index;
 			switch (lcd_power->power_on_step[i].type) {
 			case LCD_POWER_TYPE_CPU:
+			case LCD_POWER_TYPE_WAIT_GPIO:
 				if (index < LCD_CPU_GPIO_NUM_MAX)
 					lcd_cpu_gpio_probe(index);
 				break;
@@ -560,6 +505,7 @@ int lcd_power_load_from_dts(struct lcd_config_s *pconf,
 			index = lcd_power->power_off_step[i].index;
 			switch (lcd_power->power_off_step[i].type) {
 			case LCD_POWER_TYPE_CPU:
+			case LCD_POWER_TYPE_WAIT_GPIO:
 				if (index < LCD_CPU_GPIO_NUM_MAX)
 					lcd_cpu_gpio_probe(index);
 				break;
@@ -605,8 +551,6 @@ int lcd_power_load_from_unifykey(struct lcd_config_s *pconf,
 
 	/* power: (5byte * n) */
 	p = buf + len;
-	if (lcd_debug_print_flag)
-		LCDPR("power_on step:\n");
 	i = 0;
 	while (i < LCD_PWR_STEP_MAX) {
 		pconf->lcd_power->power_on_step_max = i;
@@ -634,6 +578,7 @@ int lcd_power_load_from_unifykey(struct lcd_config_s *pconf,
 		index = pconf->lcd_power->power_on_step[i].index;
 		switch (pconf->lcd_power->power_on_step[i].type) {
 		case LCD_POWER_TYPE_CPU:
+		case LCD_POWER_TYPE_WAIT_GPIO:
 			if (index < LCD_CPU_GPIO_NUM_MAX)
 				lcd_cpu_gpio_probe(index);
 			break;
@@ -686,6 +631,7 @@ int lcd_power_load_from_unifykey(struct lcd_config_s *pconf,
 		index = pconf->lcd_power->power_off_step[j].index;
 		switch (pconf->lcd_power->power_off_step[j].type) {
 		case LCD_POWER_TYPE_CPU:
+		case LCD_POWER_TYPE_WAIT_GPIO:
 			if (index < LCD_CPU_GPIO_NUM_MAX)
 				lcd_cpu_gpio_probe(index);
 			break;
@@ -806,8 +752,8 @@ void lcd_timing_init_config(struct lcd_config_s *pconf)
 	vsync_bp = pconf->lcd_timing.vsync_bp;
 	vsync_width = pconf->lcd_timing.vsync_width;
 
-	de_hstart = h_period - h_active - 1;
-	de_vstart = v_period - v_active;
+	de_hstart = hsync_bp + hsync_width;
+	de_vstart = vsync_bp + vsync_width;
 
 	pconf->lcd_timing.video_on_pixel = de_hstart - h_delay;
 	pconf->lcd_timing.video_on_line = de_vstart;
@@ -1064,9 +1010,24 @@ int lcd_vmode_change(struct lcd_config_s *pconf)
 }
 #endif
 
+void lcd_clk_change(struct lcd_config_s *pconf)
+{
+	switch (pconf->lcd_timing.clk_change) {
+	case LCD_CLK_PLL_CHANGE:
+		lcd_clk_generate_parameter(pconf);
+		lcd_clk_set(pconf);
+		break;
+	case LCD_CLK_FRAC_UPDATE:
+		lcd_clk_update(pconf);
+		break;
+	default:
+		break;
+	}
+}
+
 void lcd_venc_change(struct lcd_config_s *pconf)
 {
-	unsigned int htotal, vtotal;
+	unsigned int htotal, vtotal, frame_rate;
 
 	htotal = lcd_vcbus_read(ENCL_VIDEO_MAX_PXCNT) + 1;
 	vtotal = lcd_vcbus_read(ENCL_VIDEO_MAX_LNCNT) + 1;
@@ -1084,8 +1045,10 @@ void lcd_venc_change(struct lcd_config_s *pconf)
 			pconf->lcd_basic.v_period);
 	}
 
-	if (pconf->lcd_basic.v_period != vtotal)
-		aml_lcd_notifier_call_chain(LCD_EVENT_BACKLIGHT_UPDATE, NULL);
+	frame_rate = (pconf->lcd_timing.sync_duration_num * 100) /
+		pconf->lcd_timing.sync_duration_den;
+	frame_rate = (frame_rate + 50) / 100;
+	aml_lcd_notifier_call_chain(LCD_EVENT_BACKLIGHT_UPDATE, &frame_rate);
 }
 
 void lcd_if_enable_retry(struct lcd_config_s *pconf)

@@ -26,6 +26,7 @@
 #include <dt-bindings/pwm/pwm.h>
 #include <dt-bindings/pwm/meson.h>
 #include "mesongxm-gpu-t82x.dtsi"
+#include "gxm-sched-energy.dtsi"
 / {
 	cpus:cpus {
 		#address-cells = <1>;
@@ -69,6 +70,8 @@
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53_HS
+						&CLUSTER_COST_A53_HS>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -83,6 +86,8 @@
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53_HS
+						&CLUSTER_COST_A53_HS>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -97,6 +102,8 @@
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53_HS
+						&CLUSTER_COST_A53_HS>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -111,6 +118,8 @@
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53_HS
+						&CLUSTER_COST_A53_HS>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -125,6 +134,8 @@
 			clocks = <&scpi_dvfs 1>;
 			clock-names = "cpu-cluster.1";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53
+						&CLUSTER_COST_A53>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -139,6 +150,8 @@
 			clocks = <&scpi_dvfs 1>;
 			clock-names = "cpu-cluster.1";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53
+						&CLUSTER_COST_A53>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -152,6 +165,8 @@
 			clocks = <&scpi_dvfs 1>;
 			clock-names = "cpu-cluster.1";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53
+						&CLUSTER_COST_A53>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -166,6 +181,8 @@
 			clocks = <&scpi_dvfs 1>;
 			clock-names = "cpu-cluster.1";
 			cpu-idle-states = <&SYSTEM_SLEEP_0>;
+			sched-energy-costs = <&CPU_COST_A53
+						&CLUSTER_COST_A53>;
 /*
  *		cpu-idle-states = <&CPU_SLEEP_0 &CLUSTER_SLEEP_0
  *				&SYSTEM_SLEEP_0>;
@@ -205,7 +222,7 @@
 	};
 
 	timer {
-		compatible = "arm,armv8-timer";
+		compatible = "arm,armv7-timer";
 		interrupts = <GIC_PPI 13 0xff08>,
 				<GIC_PPI 14 0xff08>,
 				<GIC_PPI 11 0xff08>,
@@ -223,12 +240,17 @@
 		bit_mode=<12>;
 		bit_resolution=<0>;
 	};
+
 	arm_pmu {
-		compatible = "arm,armv8-pmuv3";
-		interrupts = <0 137 4>,
-			     <0 138 4>,
-			     <0 153 4>,
-			     <0 154 4>;
+		compatible = "arm,cortex-a15-pmu";
+		/* clusterb-enabled; */
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0xc8834680 0x4>;
+		cpumasks = <0xf>;
+		/* default 10ms */
+		relax-timer-ns = <10000000>;
+		/* default 10000us */
+		max-wait-cnt = <10000>;
 	};
 
 	gic: interrupt-controller@2c001000 {
@@ -258,14 +280,21 @@
 	ram-dump {
 		compatible = "amlogic, ram_dump";
 		status = "okay";
+		reg = <0xC88345E0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
 	jtag {
 		compatible = "amlogic, jtag";
-		status = "disabled";
+		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		/* both sets of jtags for the GXM platform */
+		/* are in the ee domain, this is named apao */
+		/* just to match the jtag driver */
 		pinctrl-names = "jtag_apao_pins", "jtag_apee_pins";
-		pinctrl-0 = <&jtag_apao_pins>;
-		pinctrl-1 = <&jtag_apee_pins>;
+		pinctrl-0 = <&jtag_a_pins>;
+		pinctrl-1 = <&jtag_b_pins>;
 	};
 
 	psci {
@@ -273,11 +302,12 @@
 		method = "smc";
 	};
 
-	meson_suspend:pm{
+	aml_pm {
 		compatible = "amlogic, pm";
+		status = "okay";
 		device_name = "aml_pm";
-		reg = <0xc81000a8 0x4>,
-			<0xc810023c 0x4>;
+		debug_reg = <0xc81000a8>;
+		exit_reg = <0xc810023c>;
 	};
 
 	secmon {
@@ -601,6 +631,14 @@
 				clocks = <&clkc CLKID_I2C>;
 				clock-names = "clk_i2c";
 			};
+
+			irblaster: meson-irblaster@c0 {
+				compatible = "amlogic, aml_irblaster";
+				reg = <0xc0 0xc>,
+					<0x40 0x4>;
+				#irblaster-cells = <2>;
+				status = "disabled";
+			};
 		};
 
 		periphs: periphs@c8834000 {
@@ -706,6 +744,20 @@
 			function = "ee_cec";
 		};
 	};
+
+	irblaster_pins:irblaster_pin {
+		mux {
+			groups = "ir_out_ao7";
+			function = "ir_out";
+		};
+	};
+
+	irblaster_pins1:irblaster_pin1 {
+		mux {
+			groups = "ir_out_ao9";
+			function = "ir_out";
+		};
+	};
 }; /* end of pinctrl_aobus*/
 
 &pinctrl_periphs {
@@ -729,23 +781,23 @@
 		};
 	};
 
-	jtag_apao_pins:jtag_apao_pin {
+	jtag_a_pins:jtag_a_pin {
 		mux {
-			groups = "jtag_tdi_0",
-				"jtag_tdo_0",
-				"jtag_clk_0",
-				"jtag_tms_0";
-			function = "jtag";
+			groups = "GPIOH_6",
+				"GPIOH_7",
+				"GPIOH_8",
+				"GPIOH_9";
+			function = "gpio_periphs";
 		};
 	};
 
-	jtag_apee_pins:jtag_apee_pin {
+	jtag_b_pins:jtag_b_pin {
 		mux {
-			groups ="jtag_tdi_1",
-				"jtag_tdo_1",
-				"jtag_clk_1",
-				"jtag_tms_1";
-			function = "jtag";
+			groups = "CARD_0",
+				"CARD_1",
+				"CARD_2",
+				"CARD_3";
+			function = "gpio_periphs";
 		};
 	};
 

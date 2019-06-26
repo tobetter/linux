@@ -648,7 +648,7 @@ static int aml_card_dai_link_of(struct device_node *node,
 
 	dai_link->ops = &aml_card_ops;
 	dai_link->init = aml_card_dai_init;
-
+	dai_link->nonatomic = 1;
 	dev_dbg(dev, "\tname : %s\n", dai_link->stream_name);
 	dev_dbg(dev, "\tformat : %04x\n", dai_link->dai_fmt);
 	dev_dbg(dev, "\tcpu : %s / %d\n",
@@ -877,6 +877,10 @@ static const struct of_device_id auge_of_match[] = {
 		.compatible = "amlogic, tl1-sound-card",
 		.data       = &tl1_chipset_info,
 	},
+	{
+		.compatible = "amlogic, tm2-sound-card",
+		.data       = &tl1_chipset_info,
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, auge_of_match);
@@ -919,9 +923,8 @@ static int aml_card_probe(struct platform_device *pdev)
 
 		ret = aml_card_parse_of(np, priv);
 		if (ret < 0) {
-			if (ret != -EPROBE_DEFER)
-				dev_err(dev, "%s, parse error %d\n",
-					__func__, ret);
+			dev_err(dev, "%s, parse error %d\n",
+			    __func__, ret);
 			goto err;
 		}
 

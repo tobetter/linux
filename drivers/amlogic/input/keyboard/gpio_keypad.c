@@ -343,6 +343,9 @@ static int meson_gpio_kp_suspend(struct platform_device *dev,
 {
 	struct gpio_keypad *pdata;
 
+	if (is_pm_freeze_mode())
+		return 0;
+
 	pdata = (struct gpio_keypad *)platform_get_drvdata(dev);
 	if (!pdata->use_irq)
 		del_timer(&(pdata->polling_timer));
@@ -353,6 +356,9 @@ static int meson_gpio_kp_resume(struct platform_device *dev)
 {
 	int i;
 	struct gpio_keypad *pdata;
+
+	if (is_pm_freeze_mode())
+		return 0;
 
 	pdata = (struct gpio_keypad *)platform_get_drvdata(dev);
 	if (!pdata->use_irq)

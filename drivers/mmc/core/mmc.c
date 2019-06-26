@@ -1131,7 +1131,10 @@ static int mmc_select_hs400(struct mmc_card *card)
 	unsigned int max_dtr;
 	int err = 0;
 	u8 val;
-
+#ifdef CONFIG_AMLOGIC_MMC
+	u8 raw_driver_strength = card->ext_csd.raw_driver_strength;
+	u8 ds = (host->caps >> 23) & 0x7;
+#endif
 	/*
 	 * HS400 mode requires 8-bit bus width
 	 */
@@ -1175,13 +1178,25 @@ static int mmc_select_hs400(struct mmc_card *card)
 
 	/* Switch card to HS400 */
 #ifdef CONFIG_AMLOGIC_MMC
-	if (card->ext_csd.raw_driver_strength & (1 << 4)) {
+	if (ds) {
+		if (ds & (1 << 0)) {
+			raw_driver_strength &= (1 << 0);
+			pr_info("%s:use ds type0\n",
+				mmc_hostname(host));
+	/*3 -> type4 -> MMC_CAP_DRIVER_TYPED*/
+		} else if (ds & (1 << 2)) {
+			raw_driver_strength &= ~(1 << 1);
+			pr_info("%s:use ds type4\n",
+				mmc_hostname(host));
+		}
+	}
+	if (raw_driver_strength & (1 << 1)) {
 		val =
 			(0x4 << EXT_CSD_DRV_STR_SHIFT)
 			| EXT_CSD_TIMING_HS400;
 		pr_info("%s: support driver strength type 4\n",
 				mmc_hostname(host));
-	} else if (card->ext_csd.raw_driver_strength & (1 << 1)) {
+	} else if (raw_driver_strength & (1 << 4)) {
 		val =
 			(0x1 << EXT_CSD_DRV_STR_SHIFT)
 			| EXT_CSD_TIMING_HS400;
@@ -1192,15 +1207,20 @@ static int mmc_select_hs400(struct mmc_card *card)
 		pr_info("%s: no support driver strength type 1 and 4\n",
 				mmc_hostname(host));
 	}
+	err = __mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
+			   EXT_CSD_HS_TIMING, val,
+			   card->ext_csd.generic_cmd6_time,
+			   true, true, true);
 #else
 	val = EXT_CSD_TIMING_HS400 |
 	      card->drive_strength << EXT_CSD_DRV_STR_SHIFT;
-#endif
 
 	err = __mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
 			   EXT_CSD_HS_TIMING, val,
 			   card->ext_csd.generic_cmd6_time,
 			   true, false, true);
+#endif
+
 	if (err) {
 		pr_err("%s: switch to hs400 failed, err:%d\n",
 			 mmc_hostname(host), err);
@@ -1211,9 +1231,11 @@ static int mmc_select_hs400(struct mmc_card *card)
 	mmc_set_timing(host, MMC_TIMING_MMC_HS400);
 	mmc_set_bus_speed(card);
 
+#ifndef	CONFIG_AMLOGIC_MMC
 	err = mmc_switch_status(card);
 	if (err)
 		goto out_err;
+#endif
 
 	return 0;
 

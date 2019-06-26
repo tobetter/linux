@@ -66,7 +66,9 @@ static void osd_debug_dump_value(void)
 
 	osd_log_info("--- OSD ---\n");
 	osd_log_info("bot_type: %d\n", hwpara->bot_type);
-	osd_log_info("field_out_en: %d\n", hwpara->field_out_en);
+	osd_log_info("field_out_en: %d\n", hwpara->field_out_en[VIU1]);
+	if (osd_hw.osd_meson_dev.has_viu2)
+		osd_log_info("field_out_en: %d\n", hwpara->field_out_en[VIU2]);
 
 	if (hwpara->osd_meson_dev.osd_ver == OSD_HIGH_ONE) {
 		struct hw_osd_blending_s *blend_para = NULL;

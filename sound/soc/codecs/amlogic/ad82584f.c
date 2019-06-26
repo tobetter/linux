@@ -36,15 +36,15 @@ static const DECLARE_TLV_DB_SCALE(mvol_tlv, -10300, 50, 1);
 static const DECLARE_TLV_DB_SCALE(chvol_tlv, -10300, 50, 1);
 
 static const struct snd_kcontrol_new ad82584f_snd_controls[] = {
-	SOC_SINGLE_TLV("AMP Master Volume", MVOL, 0,
+	SOC_SINGLE_TLV("Master Volume", MVOL, 0,
 				0xff, 1, mvol_tlv),
-	SOC_SINGLE_TLV("AMP Ch1 Volume", C1VOL, 0,
+	SOC_SINGLE_TLV("Ch1 Volume", C1VOL, 0,
 				0xff, 1, chvol_tlv),
-	SOC_SINGLE_TLV("AMP Ch2 Volume", C2VOL, 0,
+	SOC_SINGLE_TLV("Ch2 Volume", C2VOL, 0,
 			0xff, 1, chvol_tlv),
 
-	SOC_SINGLE("AMP Ch1 Switch", MUTE, 5, 1, 1),
-	SOC_SINGLE("AMP Ch2 Switch", MUTE, 4, 1, 1),
+	SOC_SINGLE("Ch1 Switch", MUTE, 5, 1, 1),
+	SOC_SINGLE("Ch2 Switch", MUTE, 4, 1, 1),
 };
 
 static int ad82584f_reg_init(struct snd_soc_codec *codec);
@@ -728,7 +728,7 @@ static struct snd_soc_dai_driver ad82584f_dai = {
 	.playback = {
 		.stream_name = "HIFI Playback",
 		.channels_min = 2,
-		.channels_max = 8,
+		.channels_max = 16,
 		.rates = AD82584F_RATES,
 		.formats = AD82584F_FORMATS,
 	},
@@ -808,17 +808,32 @@ static int ad82584f_reg_init(struct snd_soc_codec *codec)
 }
 static int ad82584f_init(struct snd_soc_codec *codec)
 {
+	struct ad82584f_priv *ad82584f = snd_soc_codec_get_drvdata(codec);
+
 	reset_ad82584f_GPIO(codec);
 
 	dev_info(codec->dev, "ad82584f_init!\n");
 
 	ad82584f_reg_init(codec);
 
-	/*eq and drc*/
+	/* Bclk system */
+	if (ad82584f->pdata->no_mclk)
+		snd_soc_write(codec,
+			0x01,
+			0x1 << 7 | /* Bclk system enable */
+			0x1 << 0   /* 64x bclk/fs */
+			);
+
+	/* eq and drc */
 	ad82584f_set_eq_drc(codec);
 
-	/*unmute,default power-on is mute.*/
-	/*snd_soc_write(codec, 0x02, 0x00);*/
+	/* for de-pop */
+	udelay(100);
+
+	snd_soc_write(codec, MVOL, 0x11);
+
+	/* unmute, default power-on is mute. */
+	snd_soc_write(codec, MUTE, 0x00);
 
 	return 0;
 }
@@ -944,6 +959,12 @@ static int ad82584f_parse_dt(
 				ad82584f->pdata->reset_pin);
 	}
 	ad82584f->pdata->reset_pin = reset_pin;
+
+	ad82584f->pdata->no_mclk = of_property_read_bool(
+			np,
+			"no_mclk");
+	if (ad82584f->pdata->no_mclk)
+		pr_info("%s mclk is not connected.\n", __func__);
 
 	return ret;
 }

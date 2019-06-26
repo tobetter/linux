@@ -245,6 +245,19 @@ void vout_func_update_viu(int index)
 	if (clk_bit < 0xff)
 		vout_func_vcbus_setb(VPU_VENCX_CLK_CTRL, clk_sel, clk_bit, 1);
 
+	/* special setting for dummy mode */
+	if (index == 1) {
+		if (vinfo->mode == VMODE_DUMMY_LCD) {
+			/* viu1 use encl_vsync */
+			vout_func_vcbus_setb(VPU_VIU_VENC_MUX_CTRL, 0, 4, 2);
+			vout_func_vcbus_setb(VPU_VIU_VENC_MUX_CTRL, 1, 20, 1);
+			vout_func_vcbus_setb(VPP_WRBAK_CTRL, 1, 11, 1);
+		} else {
+			vout_func_vcbus_setb(VPU_VIU_VENC_MUX_CTRL, 0, 20, 1);
+			vout_func_vcbus_setb(VPP_WRBAK_CTRL, 0, 11, 1);
+		}
+	}
+
 #if 0
 	VOUTPR("%s: %d, mux_sel=%d, clk_sel=%d\n",
 		__func__, index, mux_sel, clk_sel);

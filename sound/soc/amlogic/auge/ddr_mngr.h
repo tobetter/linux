@@ -42,18 +42,29 @@ enum ddr_types {
  * from tl1, add new source FRATV, FRHDMIRX, LOOPBACK_B, SPDIFIN_LB, VAD
  */
 enum toddr_src {
-	TDMIN_A,
-	TDMIN_B,
-	TDMIN_C,
-	SPDIFIN,
-	PDMIN,
-	FRATV, /* NONE for axg, g12a, g12b */
-	TDMIN_LB,
-	LOOPBACK_A,
-	FRHDMIRX, /* from tl1 chipset*/
-	LOOPBACK_B,
-	SPDIFIN_LB,
-	VAD,
+	TODDR_INVAL = -1,
+	TDMIN_A = 0,
+	TDMIN_B = 1,
+	TDMIN_C = 2,
+	SPDIFIN = 3,
+	PDMIN = 4,
+	FRATV = 5, /* NONE for axg, g12a, g12b */
+	TDMIN_LB = 6,
+	LOOPBACK_A = 7,
+	FRHDMIRX = 8, /* from tl1 chipset*/
+	LOOPBACK_B = 9,
+	SPDIFIN_LB = 10,
+	EARCRX_DMAC = 11,/* from sm1 chipset */
+	RESERVED_0 = 12,
+	RESERVED_1 = 13,
+	RESERVED_2 = 14,
+	VAD = 15,
+	TODDR_SRC_MAX = 16
+};
+
+enum resample_idx {
+	RESAMPLE_A,
+	RESAMPLE_B
 };
 
 enum resample_src {
@@ -176,7 +187,7 @@ struct toddr {
 	enum toddr_src src;
 	unsigned int fifo_id;
 
-	unsigned int asrc_src_sel;
+	enum toddr_src asrc_src_sel;
 
 	int is_lb; /* check whether for loopback */
 	int irq;
@@ -193,7 +204,7 @@ enum status {
 
 struct toddr_attach {
 	bool enable;
-	int id;
+	enum resample_idx id;
 	int status;
 	/* which module should be attached,
 	 * check which toddr in use should be attached
@@ -214,9 +225,14 @@ struct frddr {
 	//struct ddr_desc dscrpt;
 	struct device *dev;
 	enum frddr_dest dest;
+
+	/* dest for same source, whether enable */
+	enum frddr_dest ss_dest;
+	bool ss_en;
+
 	struct aml_audio_controller *actrl;
 	unsigned int reg_base;
-	unsigned int fifo_id;
+	enum ddr_num fifo_id;
 
 	unsigned int channels;
 	unsigned int msb;
@@ -251,9 +267,13 @@ void aml_toddr_set_format(struct toddr *to, struct toddr_fmt *fmt);
 void aml_toddr_insert_chanum(struct toddr *to);
 unsigned int aml_toddr_read(struct toddr *to);
 void aml_toddr_write(struct toddr *to, unsigned int val);
+unsigned int aml_toddr_read1(struct toddr *to);
+void aml_toddr_write1(struct toddr *to, unsigned int val);
+unsigned int aml_toddr_read_status2(struct toddr *to);
 
 /* resample */
-void aml_set_resample(int id, bool enable, int resample_module);
+void aml_set_resample(enum resample_idx id,
+		bool enable, enum toddr_src resample_module);
 /* power detect */
 void aml_pwrdet_enable(bool enable, int pwrdet_module);
 /* Voice Activity Detection */
@@ -291,8 +311,8 @@ void aml_set_aed(bool enable, int aed_module);
 void frddr_init_without_mngr(unsigned int frddr_index, unsigned int src0_sel);
 void frddr_deinit_without_mngr(unsigned int frddr_index);
 
-int toddr_src_get(void);
-const char *toddr_src_get_str(int idx);
+enum toddr_src toddr_src_get(void);
+const char *toddr_src_get_str(enum toddr_src idx);
 int frddr_src_get(void);
 const char *frddr_src_get_str(int idx);
 

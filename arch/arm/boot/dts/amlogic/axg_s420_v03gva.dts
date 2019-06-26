@@ -47,8 +47,7 @@
 			reg = <0x07400000 0x00100000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
-			ftrace-size = <0x0>;
-			pmsg-size = <0x8000>;
+			ftrace-size = <0x20000>;
 		};
 
 		secmon_reserved:linux,secmon {
@@ -314,14 +313,6 @@
 		fifosize = < 64 >;
 		pinctrl-names = "default";
 		pinctrl-0 = <&b_uart_pins>;
-	};
-
-	meson-irblaster {
-		compatible = "amlogic, am_irblaster";
-		dev_name = "meson-irblaster";
-		status = "disable";
-		pinctrl-names = "default";
-		pinctrl-0 = <&irblaster_pins>;
 	};
 
 	/* Sound iomap */

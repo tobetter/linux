@@ -79,7 +79,7 @@
 		CPU3:cpu@3 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53","arm,armv8";
-			reg = <0x0 0x3>;
+			reg = <0x3>;
 			enable-method = "psci";
 			clocks = <&scpi_dvfs 0>;
 			clock-names = "cpu-cluster.0";
@@ -134,19 +134,14 @@
 
 	arm_pmu {
 		compatible = "arm,cortex-a15-pmu";
-		interrupts = <0 137 4>;
-		reg = <0xff634400 0x1000>;
-
-		/* addr = base + offset << 2 */
-		sys_cpu_status0_offset = <0xa0>;
-
-		sys_cpu_status0_pmuirq_mask = <0xf>;
-
+		/* clusterb-enabled; */
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0xff634680 0x4>;
+		cpumasks = <0xf>;
 		/* default 10ms */
-		relax_timer_ns = <10000000>;
-
+		relax-timer-ns = <10000000>;
 		/* default 10000us */
-		max_wait_cnt = <10000>;
+		max-wait-cnt = <10000>;
 	};
 
 	gic: interrupt-controller@2c001000 {
@@ -164,13 +159,12 @@
 		method = "smc";
 	};
 
-	meson_suspend:pm {
+	aml_pm {
 		compatible = "amlogic, pm";
-		device_name = "aml_pm";
-		/*gxbaby-suspend;*/
 		status = "okay";
-		reg = <0xff8000a8 0x4>,
-			<0xff80023c 0x4>;
+		device_name = "aml_pm";
+		debug_reg = <0xff8000a8>;
+		exit_reg = <0xff80023c>;
 	};
 
 	secmon {
@@ -288,11 +282,18 @@
 	ram-dump {
 		compatible = "amlogic, ram_dump";
 		status = "okay";
+		reg = <0xFF6345E0 4>;
+		reg-names = "PREG_STICKY_REG8";
+		store_device = "data";
 	};
 
-	amlogic-jtag {
+	jtag {
 		compatible = "amlogic, jtag";
 		status = "okay";
+		select = "disable"; /* disable/apao/apee */
+		pinctrl-names="jtag_apao_pins", "jtag_apee_pins";
+		pinctrl-0=<&jtag_apao_pins>;
+		pinctrl-1=<&jtag_apee_pins>;
 	};
 
 	vpu {
@@ -839,12 +840,12 @@
 				status = "disabled";
 			};
 
-			meson-irblaster {
-				compatible = "amlogic, am_irblaster";
-				dev_name = "meson-irblaster";
-				status = "disable";
-				pinctrl-names = "default";
-				pinctrl-0 = <&irblaster_pins>;
+			irblaster: meson-irblaster@c0 {
+				compatible = "amlogic, aml_irblaster";
+				reg = <0xc0 0xc>,
+					<0x40 0x4>;
+				#irblaster-cells = <2>;
+				status = "disabled";
 			};
 
 
@@ -943,6 +944,13 @@
 		compatible = "amlogic, vdac-txlx";
 		status = "okay";
 	};
+
+	defendkey: defendkey {
+		compatible = "amlogic, defendkey";
+		reg = <0xff634500 0x4>; /*RNG_USR_DATA*/
+		mem_size = <0x0 0x100000>;
+		status = "okay";
+	};
 }; /* end of / */
 
 &pinctrl_aobus {
@@ -1022,6 +1030,13 @@
 		};
 	};
 
+	irblaster_pins1:irblaster_pin1 {
+		mux {
+			groups = "remote_out_ao6";
+			function = "ir_out";
+		};
+	};
+
 	pwmleds_pins:pwmleds {
 
 		mux {
@@ -1043,6 +1058,16 @@
 		    groups = "i2c_sck_ao10",
 		    "i2c_sda_ao11";
 		    function = "i2c_ao";
+		};
+	};
+
+	jtag_apao_pins:jtag_apao_pin {
+		mux {
+			groups = "GPIOAO_3",
+			"GPIOAO_4",
+			"GPIOAO_5",
+			"GPIOAO_7";
+			function = "gpio_aobus";
 		};
 	};
 };
@@ -1383,6 +1408,16 @@
 		mux {
 			groups ="pwm_d_dv";
 			function = "pwm_d";
+		};
+	};
+
+	jtag_apee_pins:jtag_apee_pin {
+		mux {
+			groups = "GPIOC_0",
+			"GPIOC_1",
+			"GPIOC_2",
+			"GPIOC_3";
+			function = "gpio_periphs";
 		};
 	};
 };

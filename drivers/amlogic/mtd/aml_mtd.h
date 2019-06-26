@@ -883,6 +883,9 @@ int boot_device_register(struct aml_nand_chip *aml_chip);
 int add_mtd_partitions(struct mtd_info *mtd,
 	const struct mtd_partition *part, int num);
 
+int nand_get_device(struct mtd_info *mtd, int new_state);
+void nand_release_device(struct mtd_info *mtd);
+
 #ifdef AML_NAND_UBOOT
 extern int get_partition_from_dts(unsigned char *buffer);
 #endif

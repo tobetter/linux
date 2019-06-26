@@ -183,6 +183,7 @@ int stbuf_fetch_init(void)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(stbuf_fetch_init);
 
 void stbuf_fetch_release(void)
 {
@@ -362,6 +363,7 @@ s32 stbuf_init(struct stream_buf_s *buf, struct vdec_s *vdec, bool is_multi)
 			MEM_CTRL_EMPTY_EN);
 	return 0;
 }
+EXPORT_SYMBOL(stbuf_init);
 
 void stbuf_vdec2_init(struct stream_buf_s *buf)
 {
@@ -425,6 +427,7 @@ void stbuf_release(struct stream_buf_s *buf, bool is_multi)
 	}
 	buf->flag &= ~BUF_FLAG_IN_USE;
 }
+EXPORT_SYMBOL(stbuf_release);
 
 u32 stbuf_sub_rp_get(void)
 {

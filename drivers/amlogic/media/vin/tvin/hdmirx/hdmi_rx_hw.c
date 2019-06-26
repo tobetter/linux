@@ -913,23 +913,22 @@ if (audio_info->cts != 0) {
 */
 void rx_get_audio_status(struct rx_audio_stat_s *aud_sts)
 {
-if ((rx.state == FSM_SIG_READY) &&
-	(rx.pre.sw_vic != HDMI_UNKNOWN) &&
-	(rx.pre.sw_vic != HDMI_UNSUPPORT) &&
-	(rx.avmute_skip == 0)) {
-	aud_sts->aud_rcv_flag =
-		(rx.aud_info.aud_packet_received == 0) ? false : true;
-	aud_sts->aud_stb_flag = true;
-	aud_sts->aud_sr = rx.aud_info.real_sr;
-	aud_sts->aud_channel_cnt = rx.aud_info.channel_count;
-	aud_sts->aud_type = rx.aud_info.coding_type;
-	aud_sts->afifo_thres_pass =
-		((hdmirx_rd_dwc(DWC_AUD_FIFO_STS) &
-		THS_PASS_STS) == 0) ? false : true;
-} else {
-	memset(aud_sts, 0,
-		sizeof(struct rx_audio_stat_s));
-}
+	if ((rx.state == FSM_SIG_READY) &&
+		(rx.pre.sw_vic != HDMI_UNKNOWN) &&
+		(rx.pre.sw_vic != HDMI_UNSUPPORT) &&
+		(rx.avmute_skip == 0)) {
+		aud_sts->aud_rcv_packet = rx.aud_info.aud_packet_received;
+		aud_sts->aud_stb_flag = true;
+		aud_sts->aud_sr = rx.aud_info.real_sr;
+		aud_sts->aud_channel_cnt = rx.aud_info.channel_count;
+		aud_sts->aud_type = rx.aud_info.coding_type;
+		aud_sts->afifo_thres_pass =
+			((hdmirx_rd_dwc(DWC_AUD_FIFO_STS) &
+			THS_PASS_STS) == 0) ? false : true;
+	} else {
+		memset(aud_sts, 0,
+			sizeof(struct rx_audio_stat_s));
+	}
 }
 EXPORT_SYMBOL(rx_get_audio_status);
 
@@ -1001,6 +1000,28 @@ if (clk)
 	return true;
 else
 	return false;
+}
+
+void rx_afifo_store_all_subpkt(bool all_pkt)
+{
+	static bool flag = true;
+
+	if (all_pkt) {
+		if (log_level & AUDIO_LOG)
+			rx_pr("afifo store all subpkts: %d\n", flag);
+		/* when afifo overflow, try afifo store
+		 * configuration alternatively
+		 */
+		if (flag)
+			hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+				AFIF_SUBPACKETS, 0);
+		else
+			hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+				AFIF_SUBPACKETS, 1);
+		flag = !flag;
+	} else
+		hdmirx_wr_bits_dwc(DWC_AUD_FIFO_CTRL,
+			AFIF_SUBPACKETS, 1);
 }
 
 /*

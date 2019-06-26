@@ -32,6 +32,7 @@
 /*#define CONFIG_AM_VDEC_DV*/
 
 #include "vdec_input.h"
+#include "frame_check.h"
 
 s32 vdec_dev_register(void);
 s32 vdec_dev_unregister(void);
@@ -42,6 +43,8 @@ int hevc_source_changed(int format, int width, int height, int fps);
 struct device *get_vdec_device(void);
 int vdec_module_init(void);
 void vdec_module_exit(void);
+
+#define MAX_INSTANCE_MUN  9
 
 #define VDEC_DEBUG_SUPPORT
 
@@ -117,6 +120,7 @@ extern void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
 unsigned int get_vdec_clk_config_settings(void);
 void update_vdec_clk_config_settings(unsigned int config);
 //unsigned int get_mmu_mode(void);//DEBUG_TMP
+extern void vdec_fill_frame_info(struct vframe_qos_s *vframe_qos, int debug);
 
 struct vdec_s;
 enum vformat_t;
@@ -147,7 +151,7 @@ enum vformat_t;
 
 #define VDEC_PROVIDER_NAME_SIZE 16
 #define VDEC_RECEIVER_NAME_SIZE 16
-#define VDEC_MAP_NAME_SIZE      45
+#define VDEC_MAP_NAME_SIZE      90
 
 #define VDEC_FLAG_OTHER_INPUT_CONTEXT 0x0
 #define VDEC_FLAG_SELF_INPUT_CONTEXT 0x01
@@ -175,9 +179,12 @@ struct vdec_s {
 	u32 pts;
 	u64 pts64;
 	bool pts_valid;
+	u64 timestamp;
+	bool timestamp_valid;
 	int flag;
 	int sched;
 	int need_more_data;
+	u32 canvas_mode;
 
 	struct completion inactive_done;
 
@@ -195,10 +202,13 @@ struct vdec_s {
 	/* input */
 	struct vdec_input_s input;
 
+	/*frame check*/
+	struct pic_check_mgr_t vfc;
+
 	/* mc cache */
 	u32 mc[4096 * 4];
 	bool mc_loaded;
-
+	u32 mc_type;
 	/* frame provider/receiver interface */
 	char vf_provider_name[VDEC_PROVIDER_NAME_SIZE];
 	struct vframe_provider_s vframe_provider;
@@ -216,10 +226,13 @@ struct vdec_s {
 
 	/* canvas */
 	int (*get_canvas)(unsigned int index, unsigned int base);
+	int (*get_canvas_ex)(int type, int id);
+	void (*free_canvas_ex)(int index, int id);
 
 	int (*dec_status)(struct vdec_s *vdec, struct vdec_info *vstatus);
 	int (*set_trickmode)(struct vdec_s *vdec, unsigned long trickmode);
 	int (*set_isreset)(struct vdec_s *vdec, int isreset);
+	void (*vdec_fps_detec)(int id);
 
 	unsigned long (*run_ready)(struct vdec_s *vdec, unsigned long mask);
 	void (*run)(struct vdec_s *vdec, unsigned long mask,
@@ -232,7 +245,7 @@ struct vdec_s {
 	int (*user_data_read)(struct vdec_s *vdec,
 			struct userdata_param_t *puserdata_para);
 	void (*reset_userdata_fifo)(struct vdec_s *vdec, int bInit);
-
+	void (*wakeup_userdata_poll)(struct vdec_s *vdec);
 	/* private */
 	void *private;       /* decoder per instance specific data */
 #ifdef VDEC_DEBUG_SUPPORT
@@ -247,6 +260,7 @@ struct vdec_s {
 #endif
 	atomic_t inirq_thread_flag;
 	atomic_t inirq_flag;
+	int parallel_dec;
 };
 
 /* common decoder vframe provider name to use default vfm path */
@@ -383,6 +397,8 @@ extern void  vdec_count_info(struct vdec_info *vs, unsigned int err,
 
 extern bool vdec_need_more_data(struct vdec_s *vdec);
 
+extern void vdec_reset_core(struct vdec_s *vdec);
+
 extern void hevc_reset_core(struct vdec_s *vdec);
 
 extern void vdec_set_suspend_clk(int mode, int hevc);
@@ -391,17 +407,21 @@ extern unsigned long vdec_ready_to_run(struct vdec_s *vdec, unsigned long mask);
 
 extern void vdec_prepare_run(struct vdec_s *vdec, unsigned long mask);
 
-extern int vdec_core_request(struct vdec_s *vdec, unsigned long mask);
+extern void vdec_core_request(struct vdec_s *vdec, unsigned long mask);
 
 extern int vdec_core_release(struct vdec_s *vdec, unsigned long mask);
 
-extern const bool vdec_core_with_input(unsigned long mask);
+extern bool vdec_core_with_input(unsigned long mask);
 
 extern void vdec_core_finish_run(struct vdec_s *vdec, unsigned long mask);
 
 #ifdef VDEC_DEBUG_SUPPORT
 extern void vdec_set_step_mode(void);
 #endif
+
+extern void vdec_disable_DMC(struct vdec_s *vdec);
+extern void vdec_enable_DMC(struct vdec_s *vdec);
+extern void hevc_enable_DMC(struct vdec_s *vdec);
 
 int vdec_read_user_data(struct vdec_s *vdec,
 				struct userdata_param_t *p_userdata_param);
@@ -410,6 +430,8 @@ int vdec_wakeup_userdata_poll(struct vdec_s *vdec);
 
 void vdec_reset_userdata_fifo(struct vdec_s *vdec, int bInit);
 
+struct vdec_s *vdec_get_vdec_by_id(int vdec_id);
+
 #ifdef VDEC_DEBUG_SUPPORT
 extern void vdec_set_step_mode(void);
 #endif
@@ -417,4 +439,11 @@ int vdec_get_debug_flags(void);
 
 unsigned char is_mult_inc(unsigned int);
 
+int vdec_get_status(struct vdec_s *vdec);
+
+void vdec_set_timestamp(struct vdec_s *vdec, u64 timestamp);
+
+struct vdec_s *vdec_get_with_id(unsigned int id);
+
+extern struct vframe_qos_s *vdec_get_qos_info(void);
 #endif				/* VDEC_H */

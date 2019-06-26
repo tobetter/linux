@@ -44,7 +44,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x100000 0x7ff00000>;
+		linux,usable-memory = <0x0 0x80000000>;
 	};
 
 	reserved-memory {
@@ -52,30 +52,20 @@
 		#size-cells = <1>;
 		ranges;
 		/* global autoconfigured region for contiguous allocations */
+		ramoops@0x07400000 {
+			compatible = "ramoops";
+			reg = <0x07400000 0x00100000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			ftrace-size = <0x20000>;
+		};
+
 		secmon_reserved: linux,secmon {
 			compatible = "shared-dma-pool";
 			reusable;
 			size = <0x400000>;
 			alignment = <0x400000>;
 			alloc-ranges = <0x05000000 0x400000>;
-		};
-
-		codec_mm_cma:linux,codec_mm_cma {
-			compatible = "shared-dma-pool";
-			reusable;
-			/* ion_codec_mm max can alloc size 80M*/
-			size = <0x13400000>;
-			alignment = <0x400000>;
-			linux,contiguous-region;
-			alloc-ranges = <0x12000000 0x13400000>;
-		};
-
-		/* codec shared reserved */
-		codec_mm_reserved:linux,codec_mm_reserved {
-			compatible = "amlogic, codec-mm-reserved";
-			size = <0x0>;
-			alignment = <0x100000>;
-			//no-map;
 		};
 
 		logo_reserved:linux,meson-fb {
@@ -91,13 +81,31 @@
 			reusable;
 			size = <0xc00000>;
 			alignment = <0x400000>;
-			alloc-ranges = <0x71000000 0xc00000>;
+			alloc-ranges = <0x7ec00000 0xc00000>;
+		};
+
+		codec_mm_cma:linux,codec_mm_cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			/* ion_codec_mm max can alloc size 80M*/
+			size = <0x13400000>;
+			alignment = <0x400000>;
+			linux,contiguous-region;
+			alloc-ranges = <0x30000000 0x50000000>;
+		};
+
+		/* codec shared reserved */
+		codec_mm_reserved:linux,codec_mm_reserved {
+			compatible = "amlogic, codec-mm-reserved";
+			size = <0x0>;
+			alignment = <0x100000>;
+			//no-map;
 		};
 
 		ion_cma_reserved:linux,ion-dev {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x8000000>;
+			size = <0x2000000>;
 			alignment = <0x400000>;
 		};
 
@@ -134,13 +142,6 @@
 			/* 8M */
 			size = <0x0800000>;
 			alignment = <0x400000>;
-		};
-
-		/*vbi reserved mem*/
-		vbi_reserved:linux,vbi {
-			compatible = "amlogic, vbi-mem";
-			size = <0x100000>;
-			alloc-ranges = <0x0e000000 0x800000>;
 		};
 
 		/*di CMA pool */
@@ -301,6 +302,7 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
+				prefix-names = "AMP";
 				sound-dai = <&ad82584f &tl1_codec>;
 			};
 		};
@@ -496,7 +498,7 @@
 		 *if support 4K2K-YUV422-8BIT-WR:3840*2160*2*4 ~= 64M
 		 *if support 1080p-YUV422-8BIT-WR:1920*1080*2*4 ~= 16M
 		 */
-		cma_size = <190>;
+		cma_size = <160>;
 		interrupts = <0 83 1>;
 		rdma-irq = <2>;
 		clocks = <&clkc CLKID_FCLK_DIV5>,
@@ -571,10 +573,8 @@
 
 	vbi {
 		compatible = "amlogic, vbi";
-		memory-region = <&vbi_reserved>;
 		status = "okay";
 		interrupts = <0 83 1>;
-		reserve-iomap = "true";
 	};
 
 	cvbsout {
@@ -1004,9 +1004,9 @@
 			};
 		};
 		ddr_thermal: ddr_thermal {
-			polling-delay = <1000>;
-			polling-delay-passive = <250>;
-			sustainable-power = <1680>;
+			polling-delay = <2000>;
+			polling-delay-passive = <1000>;
+			sustainable-power = <1322>;
 			thermal-sensors = <&d_tsensor 1>;
 			trips {
 				dswitch_on: trip-point@0 {
@@ -1032,9 +1032,9 @@
 			};
 		};
 		sar_thermal: sar_thermal {
-			polling-delay = <1000>;
-			polling-delay-passive = <250>;
-			sustainable-power = <1680>;
+			polling-delay = <2000>;
+			polling-delay-passive = <1000>;
+			sustainable-power = <1322>;
 			thermal-sensors = <&s_tsensor 2>;
 			trips {
 				sswitch_on: trip-point@0 {
@@ -1068,51 +1068,51 @@
 
 		opp00 {
 			opp-hz = /bits/ 64 <100000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp01 {
 			opp-hz = /bits/ 64 <250000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp02 {
 			opp-hz = /bits/ 64 <500000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp03 {
 			opp-hz = /bits/ 64 <667000000>;
-			opp-microvolt = <761000>;
+			opp-microvolt = <769000>;
 		};
 		opp04 {
 			opp-hz = /bits/ 64 <1000000000>;
-			opp-microvolt = <791000>;
+			opp-microvolt = <799000>;
 		};
 		opp05 {
 			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <801000>;
+			opp-microvolt = <809000>;
 		};
 		opp06 {
 			opp-hz = /bits/ 64 <1404000000>;
-			opp-microvolt = <831000>;
+			opp-microvolt = <839000>;
 		};
 		opp07 {
 			opp-hz = /bits/ 64 <1500000000>;
-			opp-microvolt = <861000>;
+			opp-microvolt = <869000>;
 		};
 		opp08 {
 			opp-hz = /bits/ 64 <1608000000>;
-			opp-microvolt = <891000>;
+			opp-microvolt = <899000>;
 		};
 		opp09 {
 			opp-hz = /bits/ 64 <1704000000>;
-			opp-microvolt = <921000>;
+			opp-microvolt = <929000>;
 		};
 		opp10 {
 			opp-hz = /bits/ 64 <1800000000>;
-			opp-microvolt = <981000>;
+			opp-microvolt = <989000>;
 		};
 		opp11 {
 			opp-hz = /bits/ 64 <1908000000>;
-			opp-microvolt = <1011000>;
+			opp-microvolt = <1019000>;
 		};
 	};
 
@@ -1125,15 +1125,19 @@
 
 	tuner: tuner {
 		status = "okay";
-		tuner_name = "mxl661_tuner";
-		tuner_i2c_adap = <&i2c0>;
-		tuner_i2c_addr = <0x60>;
-		tuner_xtal = <1>; /* 0: 16MHz, 1: 24MHz */
-		tuner_xtal_mode = <3>;
+		tuner_cur = <0>; /* default use tuner */
+		tuner_num = <1>; /* tuner number, multi tuner support */
+		tuner_name_0 = "r842_tuner";
+		tuner_i2c_adap_0 = <&i2c0>;
+		tuner_i2c_addr_0 = <0xf6>;
+		tuner_xtal_0 = <1>; /* 0: 16MHz, 1: 24MHz */
+		tuner_xtal_mode_0 = <0>;
 					/* NO_SHARE_XTAL(0)
-					 * SLAVE_XTAL_SHARE(3)
+					 * MASTER_TO_SLAVE_XTAL_IN(1)
+					 * MASTER_TO_SLAVE_XTAL_OUT(2)
+					 * SLAVE_XTAL_OUT(3)
 					 */
-		tuner_xtal_cap = <25>; /* when tuner_xtal_mode = 3, set 25 */
+		tuner_xtal_cap_0 = <38>; /* when tuner_xtal_mode = 3, set 25 */
 	};
 
 	atv-demod {
@@ -1266,6 +1270,12 @@
 		acodec_adc = <1>;
 
 		status = "okay";
+
+		/* !!!For --TV platform-- ONLY */
+		Channel_Mask {
+			/*i2s has 4 pins, 8channel, mux output*/
+			Spdif_samesource_Channel_Mask = "i2s_2/3";
+		};
 	};
 
 	tdmb:tdm@1 {
@@ -1305,7 +1315,7 @@
 		compatible = "amlogic, tl1-snd-spdif-a";
 		#sound-dai-cells = <0>;
 
-		clocks = <&clkc CLKID_MPLL0
+		clocks = <&clkc CLKID_MPLL1
 				&clkc CLKID_FCLK_DIV4
 				&clkaudio CLKID_AUDIO_GATE_SPDIFIN
 				&clkaudio CLKID_AUDIO_GATE_SPDIFOUT_A
@@ -1318,8 +1328,11 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "irq_spdifin";
 
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+				"spdif_pins_mute";
 		pinctrl-0 = <&spdifout_a>;
+		pinctrl-1 = <&spdifout_a_mute>;
+
 
 		/*
 		 * whether do asrc for pcm and resample a or b
@@ -1396,9 +1409,6 @@
 			&clkaudio CLKID_AUDIO_EQDRC>;
 		clock-names = "gate", "srcpll", "eqdrc";
 
-		eq_enable = <1>;
-		multiband_drc_enable = <0>;
-		fullband_drc_enable = <0>;
 		/*
 		 * 0:tdmout_a
 		 * 1:tdmout_b
@@ -1410,7 +1420,7 @@
 		/* max 0xf, each bit for one lane, usually one lane */
 		lane_mask = <0x1>;
 		/* max 0xff, each bit for one channel */
-		channel_mask = <0x3>;
+		channel_mask = <0xff>;
 
 		status = "okay";
 	};
@@ -1430,8 +1440,9 @@
 		 *	NONE,
 		 *	TDMIN_LB, 6
 		 *	LOOPBACK, 7
+		 *	FRHDMIRX, 8
 		 */
-		resample_module = <3>;
+		resample_module = <8>;
 
 		status = "okay";
 	};
@@ -1477,6 +1488,7 @@
 				"tdma_fs_z",
 				"tdma_dout0_z";
 			function = "tdma_out";
+			bias-pull-down;
 		};
 	};
 
@@ -1514,6 +1526,13 @@
 		mux { /* GPIODV_4 */
 			groups = "spdif_out_dv4";
 			function = "spdif_out";
+		};
+	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* GPIODV_4 */
+			groups = "GPIODV_4";
+			function = "gpio_periphs";
 		};
 	};
 
@@ -1593,11 +1612,12 @@
 			 "MMC_CAP_1_8V_DDR",
 			 "MMC_CAP_HW_RESET",
 			 "MMC_CAP_ERASE",
-			 "MMC_CAP_CMD23";
+			 "MMC_CAP_CMD23",
+			 "MMC_CAP_DRIVER_TYPE_D";
 		caps2 = "MMC_CAP2_HS200";
 		/* "MMC_CAP2_HS400";*/
 		f_min = <400000>;
-		f_max = <200000000>;
+		f_max = <198000000>;
 	};
 };
 

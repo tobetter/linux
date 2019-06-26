@@ -23,6 +23,7 @@
 
 / {
 	model = "Amlogic";
+	amlogic-dt-id = "g12b_w400_b";
 	compatible = "amlogic, g12b";
 	interrupt-parent = <&gic>;
 	#address-cells = <1>;
@@ -45,7 +46,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x000000 0x80000000>;
+		linux,usable-memory = <0x100000 0x7ff00000>;
 	};
 
 	reserved-memory {
@@ -58,8 +59,7 @@
 			reg = <0x07400000 0x00100000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
-			ftrace-size = <0x0>;
-			pmsg-size = <0x8000>;
+			ftrace-size = <0x20000>;
 		};
 
 		secmon_reserved:linux,secmon {
@@ -146,6 +146,18 @@
 			size = <0x04000000>;
 			alignment = <0x400000>;
 		};
+		galcore_reserved:linux,galcore {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x1000000>;
+			alignment = <0x400000>;
+			linux,contiguous-region;
+		};
+	};
+
+	galcore {
+		status = "okay";
+		memory-region = <&galcore_reserved>;
 	};
 
 	gpioleds {
@@ -231,6 +243,21 @@
 		compatible = "amlogic, codec, mm";
 		memory-region = <&codec_mm_cma &codec_mm_reserved>;
 		dev_name = "codec_mm";
+		status = "okay";
+	};
+
+	picdec_cma_reserved:linux,picdec {
+		compatible = "shared-dma-pool";
+		reusable;
+		size = <0x0>;
+		alignment = <0x0>;
+		linux,contiguous-region;
+	};
+
+	picdec {
+		compatible = "amlogic, picdec";
+		memory-region = <&picdec_cma_reserved>;
+		dev_name = "picdec";
 		status = "okay";
 	};
 
@@ -633,31 +660,31 @@
 		};
 		opp04 {
 			opp-hz = /bits/ 64 <1000000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <761000>;
 		};
 		opp05 {
 			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <781000>;
 		};
 		opp06 {
 			opp-hz = /bits/ 64 <1398000000>;
-			opp-microvolt = <761000>;
+			opp-microvolt = <811000>;
 		};
 		opp07 {
 			opp-hz = /bits/ 64 <1512000000>;
-			opp-microvolt = <791000>;
+			opp-microvolt = <861000>;
 		};
 		opp08 {
 			opp-hz = /bits/ 64 <1608000000>;
-			opp-microvolt = <831000>;
+			opp-microvolt = <901000>;
 		};
 		opp09 {
 			opp-hz = /bits/ 64 <1704000000>;
-			opp-microvolt = <861000>;
+			opp-microvolt = <951000>;
 		};
 		opp10 {
 			opp-hz = /bits/ 64 <1800000000>;
-			opp-microvolt = <981000>;
+			opp-microvolt = <1001000>;
 		};
 	};
 
@@ -667,43 +694,63 @@
 
 		opp00 {
 			opp-hz = /bits/ 64 <100000000>;
-			opp-microvolt = <751000>;
+			opp-microvolt = <731000>;
 		};
 		opp01 {
 			opp-hz = /bits/ 64 <250000000>;
-			opp-microvolt = <751000>;
+			opp-microvolt = <731000>;
 		};
 		opp02 {
 			opp-hz = /bits/ 64 <500000000>;
-			opp-microvolt = <751000>;
+			opp-microvolt = <731000>;
 		};
 		opp03 {
 			opp-hz = /bits/ 64 <667000000>;
-			opp-microvolt = <751000>;
+			opp-microvolt = <731000>;
 		};
 		opp04 {
 			opp-hz = /bits/ 64 <1000000000>;
-			opp-microvolt = <771000>;
+			opp-microvolt = <731000>;
 		};
 		opp05 {
 			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <771000>;
+			opp-microvolt = <751000>;
 		};
 		opp06 {
 			opp-hz = /bits/ 64 <1398000000>;
-			opp-microvolt = <791000>;
+			opp-microvolt = <771000>;
 		};
 		opp07 {
 			opp-hz = /bits/ 64 <1512000000>;
-			opp-microvolt = <821000>;
+			opp-microvolt = <771000>;
 		};
 		opp08 {
 			opp-hz = /bits/ 64 <1608000000>;
-			opp-microvolt = <861000>;
+			opp-microvolt = <781000>;
 		};
 		opp09 {
 			opp-hz = /bits/ 64 <1704000000>;
-			opp-microvolt = <891000>;
+			opp-microvolt = <791000>;
+		};
+		opp10 {
+			opp-hz = /bits/ 64 <1800000000>;
+			opp-microvolt = <831000>;
+		};
+		opp11 {
+			opp-hz = /bits/ 64 <1908000000>;
+			opp-microvolt = <861000>;
+		};
+		opp12 {
+			opp-hz = /bits/ 64 <2016000000>;
+			opp-microvolt = <911000>;
+		};
+		opp13 {
+			opp-hz = /bits/ 64 <2100000000>;
+			opp-microvolt = <951000>;
+		};
+		opp14 {
+			opp-hz = /bits/ 64 <2208000000>;
+			opp-microvolt = <1011000>;
 		};
 	};
 
@@ -833,8 +880,10 @@
 		dai-tdm-clk-sel = <1>;
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_B
 				&clkc CLKID_MPLL1
-				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll", "samesource_sysclk";
+				&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_SPDIFOUT_CTRL>;
+		clock-names = "mclk", "clk_srcpll",
+			"samesource_srcpll", "samesource_clk";
 		pinctrl-names = "tdm_pins";
 		pinctrl-0 = <&tdmb_mclk &tdmout_b &tdmin_b>;
 		/*
@@ -892,8 +941,10 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 
 		interrupt-names = "irq_spdifin";
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+					"spdif_pins_mute";
 		pinctrl-0 = <&spdifout &spdifin>;
+		pinctrl-1 = <&spdifout_a_mute>;
 		status = "okay";
 	};
 	aml_spdif_b: spdif_b {
@@ -1116,6 +1167,13 @@
 			function = "spdif_out_ao";
 		};
 	};
+
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* gpiao_10 */
+			groups = "GPIOAO_10";
+			function = "gpio_aobus";
+		};
+	};
 };  /* end of pinctrl_aobus */
 
 &irblaster {
@@ -1161,9 +1219,9 @@
 			/* "MMC_CAP_1_8V_DDR", */
 			 "MMC_CAP_HW_RESET",
 			 "MMC_CAP_ERASE",
-			 "MMC_CAP_CMD23";
-		caps2 = "MMC_CAP2_HS200";
-		/* "MMC_CAP2_HS400";*/
+			 "MMC_CAP_CMD23",
+			 "MMC_CAP_DRIVER_TYPE_A";
+		caps2 = "MMC_CAP2_HS200", "MMC_CAP2_HS400";
 		f_min = <400000>;
 		f_max = <200000000>;
 	};
@@ -1275,7 +1333,7 @@
 
 &usb3_phy_v2 {
 	status = "okay";
-	portnum = <0>;
+	portnum = <1>;
 	otg = <1>;
 	gpio-vbus-power = "GPIOH_6";
 	gpios = <&gpio GPIOH_6 GPIO_ACTIVE_HIGH>;
@@ -1301,7 +1359,7 @@
 
 &pcie_A {
 	reset-gpio = <&gpio GPIOX_7 GPIO_ACTIVE_HIGH>;
-	status = "okay";
+	status = "disable";
 };
 
 &saradc {

@@ -43,7 +43,7 @@
 
 	memory@00000000 {
 		device_type = "memory";
-		linux,usable-memory = <0x100000 0x7ff00000>;
+		linux,usable-memory = <0x0 0x80000000>;
 	};
 
 	reserved-memory {
@@ -51,6 +51,14 @@
 		#size-cells = <1>;
 		ranges;
 		/* global autoconfigured region for contiguous allocations */
+		ramoops@0x07400000 {
+			compatible = "ramoops";
+			reg = <0x07400000 0x00100000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			ftrace-size = <0x20000>;
+		};
+
 		secmon_reserved: linux,secmon {
 			compatible = "shared-dma-pool";
 			reusable;
@@ -66,7 +74,7 @@
 			size = <0x13400000>;
 			alignment = <0x400000>;
 			linux,contiguous-region;
-			alloc-ranges = <0x12000000 0x13400000>;
+			alloc-ranges = <0x30000000 0x50000000>;
 		};
 
 		/* codec shared reserved */
@@ -110,6 +118,53 @@
 			alignment = <0x400000>;
 		};
 
+		/*demod_reserved:linux,demod {
+		 *	compatible = "amlogic, demod-mem";
+		 *	size = <0x800000>; //8M //100m 0x6400000
+		 *	alloc-ranges = <0x0 0x30000000>;
+		 *	//multi-use;
+		 *	//no-map;
+		 *};
+		 */
+
+		demod_cma_reserved:linux,demod_cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			/* 8M */
+			size = <0x0800000>;
+			alignment = <0x400000>;
+		};
+
+		/*di CMA pool */
+		di_cma_reserved:linux,di_cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			/* buffer_size = 3621952(yuv422 8bit)
+			 *  | 4736064(yuv422 10bit)
+			 *  | 4074560(yuv422 10bit full pack mode)
+			 * 10x3621952=34.6M(0x23) support 8bit
+			 * 10x4736064=45.2M(0x2e) support 12bit
+			 * 10x4074560=40M(0x28) support 10bit
+			 */
+			size = <0x02800000>;
+			alignment = <0x400000>;
+		};
+
+		/*di CMA pool */
+		di_cma_reserved:linux,di_cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			/* buffer_size = 3621952(yuv422 8bit)
+			 *  | 4736064(yuv422 10bit)
+			 *  | 4074560(yuv422 10bit full pack mode)
+			 * 10x3621952=34.6M(0x23) support 8bit
+			 * 10x4736064=45.2M(0x2e) support 12bit
+			 * 10x4074560=40M(0x28) support 10bit
+			 */
+			size = <0x02800000>;
+			alignment = <0x400000>;
+		};
+
 		/* for hdmi rx emp use */
 		hdmirx_emp_cma_reserved:linux,emp_cma {
 			compatible = "shared-dma-pool";
@@ -139,6 +194,31 @@
 		compatible = "amlogic, ppmgr";
 		memory-region = <&ppmgr_reserved>;
 		status = "okay";
+	};
+
+	deinterlace {
+		compatible = "amlogic, deinterlace";
+		status = "okay";
+		/* 0:use reserved; 1:use cma; 2:use cma as reserved */
+		flag_cma = <1>;
+		//memory-region = <&di_reserved>;
+		memory-region = <&di_cma_reserved>;
+		interrupts = <0 46 1
+				0 40 1>;
+		interrupt-names = "pre_irq", "post_irq";
+		clocks = <&clkc CLKID_VPU_CLKB_TMP_COMP>,
+			<&clkc CLKID_VPU_CLKB_COMP>;
+		clock-names = "vpu_clkb_tmp_composite",
+			"vpu_clkb_composite";
+		clock-range = <334 667>;
+		/* buffer-size = <3621952>;(yuv422 8bit) */
+		buffer-size = <4074560>;/*yuv422 fullpack*/
+		/* reserve-iomap = "true"; */
+		/* if enable nr10bit, set nr10bit-support to 1 */
+		post-wr-support = <1>;
+		nr10bit-support = <1>;
+		nrds-enable = <1>;
+		pps-enable = <1>;
 	};
 
 	vout {
@@ -173,11 +253,13 @@
 		compatible = "amlogic, tl1-sound-card";
 		aml-audio-card,name = "AML-AUGESOUND";
 
+		avout_mute-gpios = <&gpio GPIODV_3 GPIO_ACTIVE_HIGH>;
+
 		aml-audio-card,dai-link@0 {
 			format = "i2s";
 			mclk-fs = <256>;
-			//continuous-clock;
-			bitclock-inversion;
+			continuous-clock;
+			//bitclock-inversion;
 			//frame-inversion;
 			/* master mode */
 			bitclock-master = <&tdma>;
@@ -188,7 +270,7 @@
 			 * frame-master = <&tdmacodec>;
 			 */
 			/* suffix-name, sync with android audio hal used for */
-			suffix-name = "alsaPORT-pcm";
+			suffix-name = "alsaPORT-i2s";
 			tdmacpu: cpu {
 				sound-dai = <&tdma>;
 				dai-tdm-slot-tx-mask =
@@ -201,11 +283,13 @@
 			};
 			tdmacodec: codec {
 				//sound-dai = <&dummy_codec>;
-				sound-dai = <&tl1_codec>;
+				sound-dai = </*&ad82584f*/ &tl1_codec>;
 			};
 		};
 
 		aml-audio-card,dai-link@1 {
+			status = "disabled";
+
 			format = "i2s";
 			mclk-fs = <256>;
 			//continuous-clock;
@@ -218,7 +302,7 @@
 			//bitclock-master = <&tdmbcodec>;
 			//frame-master = <&tdmbcodec>;
 			/* suffix-name, sync with android audio hal used for */
-			suffix-name = "alsaPORT-i2s";
+			suffix-name = "alsaPORT-pcm";
 			cpu {
 				sound-dai = <&tdmb>;
 				dai-tdm-slot-tx-mask = <1 1>;
@@ -240,6 +324,8 @@
 		};
 
 		aml-audio-card,dai-link@2 {
+			status = "disabled";
+
 			format = "i2s";
 			mclk-fs = <256>;
 			//continuous-clock;
@@ -304,6 +390,7 @@
 
 		aml-audio-card,dai-link@6 {
 			mclk-fs = <256>;
+			suffix-name = "alsaPORT-tv";
 			cpu {
 				sound-dai = <&extn>;
 				system-clock-frequency = <12288000>;
@@ -438,11 +525,93 @@
 		tv_bit_mode = <0x15>;
 	};
 
+	tvafe {
+		compatible = "amlogic, tvafe-tl1";
+		/*memory-region = <&tvafe_cma_reserved>;*/
+		status = "okay";
+		flag_cma = <1>;/*1:share with codec_mm;0:cma alone*/
+		cma_size = <5>;/*MByte*/
+		reg = <0xff654000 0x2000>;/*tvafe reg base*/
+		reserve-iomap = "true";
+		tvafe_id = <0>;
+		//pinctrl-names = "default";
+		/*!!particular sequence, no more and no less!!!*/
+		tvafe_pin_mux = <
+				3 /* TVAFE_CVBS_IN2, CVBS_IN0 = 0 */
+				1 /* TVAFE_CVBS_IN0, CVBS_IN1 */
+				2 /* TVAFE_CVBS_IN1, CVBS_IN2 */
+				4 /* TVAFE_CVBS_IN3, CVBS_IN3 */
+		>;
+		clocks = <&clkc CLKID_DAC_CLK>;
+		clock-names = "vdac_clk_gate";
+	};
+
+	vbi {
+		compatible = "amlogic, vbi";
+		status = "okay";
+		interrupts = <0 83 1>;
+	};
+
+	cvbsout {
+		compatible = "amlogic, cvbsout-tl1";
+		status = "disabled";
+		clocks = <&clkc CLKID_VCLK2_ENCI
+			&clkc CLKID_VCLK2_VENCI0
+			&clkc CLKID_VCLK2_VENCI1
+			&clkc CLKID_DAC_CLK>;
+		clock-names = "venci_top_gate",
+			"venci_0_gate",
+			"venci_1_gate",
+			"vdac_clk_gate";
+		/* clk path */
+		/* 0:vid_pll vid2_clk */
+		/* 1:gp0_pll vid2_clk */
+		/* 2:vid_pll vid1_clk */
+		/* 3:gp0_pll vid1_clk */
+		clk_path = <0>;
+
+		/* performance: reg_address, reg_value */
+		/* tl1 */
+		performance = <0x1bf0  0x9
+			0x1b56  0x333
+			0x1b12  0x8080
+			0x1b05  0xfd
+			0x1c59  0xf850
+			0xffff  0x0>; /* ending flag */
+		performance_sarft = <0x1bf0  0x9
+			0x1b56  0x333
+			0x1b12  0x0
+			0x1b05  0x9
+			0x1c59  0xfc48
+			0xffff  0x0>; /* ending flag */
+		performance_revB_telecom = <0x1bf0  0x9
+			0x1b56  0x546
+			0x1b12  0x8080
+			0x1b05  0x9
+			0x1c59  0xf850
+			0xffff  0x0>; /* ending flag */
+	};
+
+	adc_keypad {
+		compatible = "amlogic, adc_keypad";
+		status = "okay";
+		key_name = "vol-", "vol+", "ch+", "ch-",
+			"menu", "source", "exit";
+		key_num = <7>;
+		io-channels = <&saradc SARADC_CH2 &saradc SARADC_CH3>;
+		io-channel-names = "key-chan-2", "key-chan-3";
+		key_chan = <SARADC_CH2 SARADC_CH2 SARADC_CH2
+			SARADC_CH2 SARADC_CH3 SARADC_CH3 SARADC_CH3>;
+		key_code = <114 115 192 193 139 466 174>;
+		key_val = <0 143 266 389 0 143 266>; //val=voltage/1800mV*1023
+		key_tolerance = <40 40 40 40 40 40 40>;
+	};
+
 	unifykey {
 		compatible = "amlogic, unifykey";
 		status = "okay";
 
-		unifykey-num = <19>;
+		unifykey-num = <20>;
 		unifykey-index-0 = <&keysn_0>;
 		unifykey-index-1 = <&keysn_1>;
 		unifykey-index-2 = <&keysn_2>;
@@ -462,6 +631,7 @@
 		unifykey-index-16 = <&keysn_16>;
 		unifykey-index-17 = <&keysn_17>;
 		unifykey-index-18 = <&keysn_18>;
+		unifykey-index-19 = <&keysn_19>;
 
 		keysn_0: key_0{
 			key-name = "usid";
@@ -560,6 +730,11 @@
 		};
 		keysn_18:key_18{
 			key-name = "backlight";
+			key-device = "normal";
+			key-permit = "read","write","del";
+		};
+		keysn_19:key_19{
+			key-name = "lcd_tcon";
 			key-device = "normal";
 			key-permit = "read","write","del";
 		};
@@ -810,51 +985,51 @@
 
 		opp00 {
 			opp-hz = /bits/ 64 <100000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp01 {
 			opp-hz = /bits/ 64 <250000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp02 {
 			opp-hz = /bits/ 64 <500000000>;
-			opp-microvolt = <731000>;
+			opp-microvolt = <739000>;
 		};
 		opp03 {
 			opp-hz = /bits/ 64 <667000000>;
-			opp-microvolt = <761000>;
+			opp-microvolt = <769000>;
 		};
 		opp04 {
 			opp-hz = /bits/ 64 <1000000000>;
-			opp-microvolt = <791000>;
+			opp-microvolt = <799000>;
 		};
 		opp05 {
 			opp-hz = /bits/ 64 <1200000000>;
-			opp-microvolt = <801000>;
+			opp-microvolt = <809000>;
 		};
 		opp06 {
 			opp-hz = /bits/ 64 <1404000000>;
-			opp-microvolt = <831000>;
+			opp-microvolt = <839000>;
 		};
 		opp07 {
 			opp-hz = /bits/ 64 <1500000000>;
-			opp-microvolt = <861000>;
+			opp-microvolt = <869000>;
 		};
 		opp08 {
 			opp-hz = /bits/ 64 <1608000000>;
-			opp-microvolt = <891000>;
+			opp-microvolt = <899000>;
 		};
 		opp09 {
 			opp-hz = /bits/ 64 <1704000000>;
-			opp-microvolt = <921000>;
+			opp-microvolt = <929000>;
 		};
 		opp10 {
 			opp-hz = /bits/ 64 <1800000000>;
-			opp-microvolt = <981000>;
+			opp-microvolt = <989000>;
 		};
 		opp11 {
 			opp-hz = /bits/ 64 <1908000000>;
-			opp-microvolt = <1011000>;
+			opp-microvolt = <1019000>;
 		};
 	};
 
@@ -866,46 +1041,63 @@
 	};
 
 	tuner: tuner {
+		compatible = "amlogic, tuner";
 		status = "okay";
-		tuner_name = "mxl661_tuner";
-		tuner_i2c_adap = <&i2c0>;
-		tuner_i2c_addr = <0x60>;
-		tuner_xtal = <1>; /* 0: 16MHz, 1: 24MHz */
-		tuner_xtal_mode = <3>;
+		tuner_cur = <0>; /* default use tuner */
+		tuner_num = <1>; /* tuner number, multi tuner support */
+		tuner_name_0 = "mxl661_tuner";
+		tuner_i2c_adap_0 = <&i2c0>;
+		tuner_i2c_addr_0 = <0x60>;
+		tuner_xtal_0 = <0>; /* 0: 16MHz, 1: 24MHz */
+		tuner_xtal_mode_0 = <0>;
 					/* NO_SHARE_XTAL(0)
 					 * SLAVE_XTAL_SHARE(3)
 					 */
-		tuner_xtal_cap = <25>; /* when tuner_xtal_mode = 3, set 25 */
+		tuner_xtal_cap_0 = <25>; /* when tuner_xtal_mode = 3, set 25 */
 	};
 
-	bt-dev{
-		compatible = "amlogic, bt-dev";
+	sd_emmc_b: sd@ffe05000 {
 		status = "okay";
-		gpio_reset = <&gpio       GPIOC_13       GPIO_ACTIVE_HIGH>;
-	};
+		compatible = "amlogic, meson-mmc-tl1";
+		reg = <0xffe05000 0x800>;
+		interrupts = <0 190 1>;
 
-	wifi{
-		compatible = "amlogic, aml_wifi";
-		status = "okay";
-		interrupt_pin = <&gpio       GPIOC_12       GPIO_ACTIVE_HIGH>;
-		irq_trigger_type = "GPIO_IRQ_LOW";
-		dhd_static_buf;    //dhd_static_buf support
-		power_on_pin = <&gpio       GPIOC_11       GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pwm_b_pins1>;
-		pwm_config = <&wifi_pwm_conf>;
-	};
+		pinctrl-names = "sd_all_pins",
+			"sd_clk_cmd_pins",
+			"sd_1bit_pins";
+		pinctrl-0 = <&sd_all_pins>;
+		pinctrl-1 = <&sd_clk_cmd_pins>;
+		pinctrl-2 = <&sd_1bit_pins>;
 
-	wifi_pwm_conf:wifi_pwm_conf{
-		pwm_channel1_conf {
-			pwms = <&pwm_ab MESON_PWM_1 30040 0>;
-			duty-cycle = <15020>;
-			times = <8>;
-		};
-		pwm_channel2_conf {
-			pwms = <&pwm_ab MESON_PWM_3 30030 0>;
-			duty-cycle = <15015>;
-			times = <12>;
+		clocks = <&clkc CLKID_SD_EMMC_B>,
+			<&clkc CLKID_SD_EMMC_B_P0_COMP>,
+			<&clkc CLKID_FCLK_DIV2>,
+			<&clkc CLKID_FCLK_DIV5>,
+			<&xtal>;
+		clock-names = "core", "clkin0", "clkin1", "clkin2", "xtal";
+
+		bus-width = <4>;
+		cap-sd-highspeed;
+		cap-mmc-highspeed;
+		max-frequency = <100000000>;
+		disable-wp;
+		sd {
+			pinname = "sd";
+			ocr_avail = <0x200080>; /**VDD voltage 3.3 ~ 3.4 */
+			caps = "MMC_CAP_4_BIT_DATA",
+				"MMC_CAP_MMC_HIGHSPEED",
+				"MMC_CAP_SD_HIGHSPEED";
+				//"MMC_CAP_NONREMOVABLE"; /**ptm debug */
+			f_min = <400000>;
+			f_max = <200000000>;
+			max_req_size = <0x20000>; /**128KB*/
+			gpio_dat3 = <&gpio GPIOC_3 GPIO_ACTIVE_HIGH>;
+			jtag_pin = <&gpio GPIOC_0 GPIO_ACTIVE_HIGH>;
+			gpio_cd = <&gpio GPIOC_10 GPIO_ACTIVE_HIGH>;
+			card_type = <5>;
+			/* 3:sdio device(ie:sdio-wifi),
+			 * 4:SD combo (IO+mem) card
+			 */
 		};
 	};
 
@@ -924,17 +1116,38 @@
 		#sound-dai-cells = <0>;
 
 		dai-tdm-lane-slot-mask-in = <1 0>;
-		dai-tdm-lane-slot-mask-out = <1 0>;
+		dai-tdm-lane-slot-mask-out = <1 1 1 1>;
 		dai-tdm-clk-sel = <0>;
 
 		clocks = <&clkaudio CLKID_AUDIO_MCLK_A
-				&clkc CLKID_MPLL0>;
-		clock-names = "mclk", "clk_srcpll";
+				&clkc CLKID_MPLL0
+				&clkc CLKID_MPLL1
+				&clkaudio CLKID_AUDIO_SPDIFOUT_A>;
+		clock-names = "mclk", "clk_srcpll",
+			"samesource_srcpll", "samesource_clk";
 
 		pinctrl-names = "tdm_pins";
-		pinctrl-0 = <&tdma_mclk &tdmout_a &tdmin_a>;
+		pinctrl-0 = <&tdma_mclk &tdmout_a>;
+
+		/*
+		 * 0: tdmout_a;
+		 * 1: tdmout_b;
+		 * 2: tdmout_c;
+		 * 3: spdifout;
+		 * 4: spdifout_b;
+		 */
+		samesource_sel = <3>;
+
+		/* In for ACODEC_ADC */
+		acodec_adc = <1>;
 
 		status = "okay";
+
+		/* !!!For --TV platform-- ONLY */
+		Channel_Mask {
+			/*i2s has 4 pins, 8channel, mux output*/
+			Spdif_samesource_Channel_Mask = "i2s_2/3";
+		};
 	};
 
 	tdmb:tdm@1 {
@@ -987,8 +1200,11 @@
 				<GIC_SPI 151 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "irq_spdifin";
 
-		pinctrl-names = "spdif_pins";
+		pinctrl-names = "spdif_pins",
+				"spdif_pins_mute";
+
 		pinctrl-0 = <&spdifout_a &spdifin_a>;
+		pinctrl-1 = <&spdifout_a_mute>;
 
 		/*
 		 * whether do asrc for pcm and resample a or b
@@ -1086,8 +1302,8 @@
 
 	asrca: resample@0 {
 		compatible = "amlogic, tl1-resample-a";
-		clocks = <&clkc CLKID_MPLL3
-				&clkaudio CLKID_AUDIO_MCLK_F
+		clocks = <&clkc CLKID_MPLL0
+				&clkaudio CLKID_AUDIO_MCLK_A
 				&clkaudio CLKID_AUDIO_RESAMPLE_A>;
 		clock-names = "resample_pll", "resample_src", "resample_clk";
 		/*same with toddr_src
@@ -1102,7 +1318,7 @@
 		 */
 		resample_module = <3>;
 
-		status = "disabled";
+		status = "okay";
 	};
 
 	asrcb: resample@1 {
@@ -1154,6 +1370,13 @@
 		 */
 		src = <4>;
 
+		/*
+		 * deal with hot word in user space or kernel space
+		 * 0: in user space
+		 * 1: in kernel space
+		 */
+		level = <0>;
+
 		status = "disabled";
 	};
 }; /* end of audiobus */
@@ -1176,6 +1399,7 @@
 				"tdma_dout2_z",
 				"tdma_dout3_z";
 			function = "tdma_out";
+			bias-pull-down;
 		};
 	};
 
@@ -1223,6 +1447,13 @@
 		};
 	};
 
+	spdifout_a_mute: spdifout_a_mute {
+		mux { /* GPIODV_4 */
+			groups = "GPIODV_4";
+			function = "gpio_periphs";
+		};
+	};
+
 	pdmin: pdmin {
 		mux { /* GPIOZ_7, GPIOZ_8, pdm_din2_z4 */
 			groups = "pdm_dclk_z",
@@ -1244,10 +1475,6 @@
 	};
 };  /* end of pinctrl_aobus */
 
-&audio_data{
-	status = "okay";
-};
-
 &sd_emmc_c {
 	status = "okay";
 	emmc {
@@ -1261,18 +1488,6 @@
 			 "MMC_CAP_CMD23";
 		caps2 = "MMC_CAP2_HS200";
 		/* "MMC_CAP2_HS400";*/
-		f_min = <400000>;
-		f_max = <200000000>;
-	};
-};
-
-&sd_emmc_b {
-	status = "okay";
-	sd {
-		caps = "MMC_CAP_4_BIT_DATA",
-			"MMC_CAP_MMC_HIGHSPEED",
-			"MMC_CAP_SD_HIGHSPEED",
-			"MMC_CAP_NONREMOVABLE"; /**ptm debug */
 		f_min = <400000>;
 		f_max = <200000000>;
 	};
@@ -1410,8 +1625,32 @@
 	status = "okay";
 };
 
-&pwm_ab {
+&i2c1 {
 	status = "okay";
+	clock-frequency = <300000>;
+	pinctrl-names="default";
+	pinctrl-0=<&i2c1_h_pins>;
+
+	lcd_extern_i2c0: lcd_extern_i2c@0 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_T5800Q";
+		reg = <0x1c>;
+		status = "okay";
+	};
+
+	lcd_extern_i2c1: lcd_extern_i2c@1 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_ANX6862";
+		reg = <0x20>;
+		status = "okay";
+	};
+
+	lcd_extern_i2c2: lcd_extern_i2c@2 {
+		compatible = "lcd_ext, i2c";
+		dev_name = "i2c_ANX7911";
+		reg = <0x74>;
+		status = "okay";
+	};
 };
 
 &efuse {

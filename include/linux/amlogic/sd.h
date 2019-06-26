@@ -188,9 +188,12 @@ enum mmc_chip_e {
 	MMC_CHIP_GXLX = 0x26,
 	MMC_CHIP_TXHD = 0x27,
 	MMC_CHIP_G12A = 0x28,
-	MMC_CHIP_G12B = 0x29,
+	MMC_CHIP_G12B_A = 0x29,
 	MMC_CHIP_GXLX2 = 0x2a,
 	MMC_CHIP_TL1 = 0X2b,
+	MMC_CHIP_G12B = 0x29b,
+	MMC_CHIP_SM1 = 0X2C,
+	MMC_CHIP_TM2 = 0X2D,
 };
 
 struct mmc_phase {
@@ -279,6 +282,7 @@ struct amlsd_platform {
 	unsigned int dly1;
 	unsigned int dly2;
 	unsigned int intf3;
+	unsigned int win_start;
 	unsigned int irq_sdio_sleep;
 	unsigned int clock;
 	/* signalling voltage (1.8V or 3.3V) */
@@ -297,6 +301,7 @@ struct amlsd_platform {
 	unsigned int gpio_power;
 	unsigned int power_level;
 	unsigned int calc_f;
+	unsigned int no_sduart;
 
 	unsigned int auto_clk_close;
 	unsigned int vol_switch;
@@ -329,6 +334,7 @@ struct amlsd_platform {
 	u64 align[10];
 	int base_line;
 	unsigned int count;
+	unsigned int cmd_c;
 	unsigned int delay_cell;
 	/* int order; */
 	unsigned int rx_err;
@@ -1540,7 +1546,7 @@ struct sd_emmc_config {
 	/*[18]	  Spare,  ??? need check*/
 	u32 spare:1;
 	/*[19]	  Use this descriptor
-	 *even if its owner bit is ???0???бь?ии.
+	 *even if its owner bit is ???0???б??ии.
 	 */
 	u32 ignore_owner:1;
 	/*[20]	  Check data strobe in HS400.*/
@@ -1573,7 +1579,7 @@ struct sd_emmc_status {
 	 *any one of blocks CRC error.
 	 */
 	u32 txd_err:1;
-	/*[9]	   SD/eMMC controller doesn???и║?ииt own descriptor.
+	/*[9]	   SD/eMMC controller doesn???и??ииt own descriptor.
 	 *The owner bit is set cfg_ignore_owner to ignore this error.
 	 */
 	u32 desc_err:1;
@@ -1617,7 +1623,7 @@ struct sd_emmc_irq_en {
 	u32 rxd_err:8;
 	/*[8]	   TX data CRC error. */
 	u32 txd_err:1;
-	/*[9]	   SD/eMMC controller doesn???и║?ииt own descriptor. */
+	/*[9]	   SD/eMMC controller doesn???и??ииt own descriptor. */
 	u32 desc_err:1;
 	/*[10]	  Response CRC error.*/
 	u32 resp_err:1;

@@ -34,6 +34,7 @@
 #include <linux/string.h>
 #include "register.h"
 #include "deinterlace_dbg.h"
+#include "deinterlace_hw.h"
 #include "di_pps.h"
 #include "nr_downscale.h"
 #include <linux/amlogic/media/vfm/vframe_provider.h>
@@ -253,7 +254,9 @@ void dump_di_reg_g12(void)
 	if (is_meson_txlx_cpu() ||
 		is_meson_txhd_cpu() ||
 		is_meson_g12a_cpu() ||
-		is_meson_g12b_cpu())
+		is_meson_g12b_cpu() ||
+		is_meson_tl1_cpu() || is_meson_tm2_cpu() ||
+		is_meson_sm1_cpu())
 		base_addr = 0xff900000;
 	else
 		base_addr = 0xd0100000;
@@ -629,7 +632,9 @@ void dump_mif_size_state(struct di_pre_stru_s *pre_stru_p,
 {
 	pr_info("======pre mif status======\n");
 	pr_info("DI_PRE_CTRL=0x%x\n", Rd(DI_PRE_CTRL));
-	pr_info("DI_PRE_SIZE=0x%x\n", Rd(DI_PRE_SIZE));
+	pr_info("DI_PRE_SIZE H=%d, V=%d\n",
+		(Rd(DI_PRE_SIZE)>>16)&0xffff,
+		Rd(DI_PRE_SIZE)&0xffff);
 	pr_info("DNR_HVSIZE=0x%x\n", Rd(DNR_HVSIZE));
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A)) {
 		pr_info("CONTWR_CAN_SIZE=0x%x\n", Rd(0x37ec));
@@ -862,8 +867,8 @@ void dump_vframe(struct vframe_s *vf)
 		vf->left_eye.width, vf->left_eye.height,
 		vf->right_eye.start_x, vf->right_eye.start_y,
 		vf->right_eye.width, vf->right_eye.height);
-	pr_info("mode_3d_enable %d, use_cnt %d,",
-		vf->mode_3d_enable, atomic_read(&vf->use_cnt));
+	pr_info("mode_3d_enable %d",
+		vf->mode_3d_enable);
 	pr_info("early_process_fun 0x%p, process_fun 0x%p, private_data %p\n",
 		vf->early_process_fun,
 		vf->process_fun, vf->private_data);
@@ -1042,6 +1047,27 @@ void dump_buf_addr(struct di_buf_s *di_buf, unsigned int num)
 		pr_info("mv_adr 0x%lx, mcinfo_adr 0x%lx.\n",
 			di_buf_p->mcvec_adr, di_buf_p->mcinfo_adr);
 	}
+}
+
+void dump_afbcd_reg(void)
+{
+	u32 i;
+	u32 afbc_reg;
+
+	pr_info("---- dump afbc eAFBC_DEC0 reg -----\n");
+	for (i = 0; i < AFBC_REG_INDEX_NUB; i++) {
+		afbc_reg = reg_AFBC[eAFBC_DEC0][i];
+		pr_info("reg 0x%x val:0x%x\n", afbc_reg, RDMA_RD(afbc_reg));
+	}
+	pr_info("---- dump afbc eAFBC_DEC1 reg -----\n");
+	for (i = 0; i < AFBC_REG_INDEX_NUB; i++) {
+		afbc_reg = reg_AFBC[eAFBC_DEC1][i];
+		pr_info("reg 0x%x val:0x%x\n", afbc_reg, RDMA_RD(afbc_reg));
+	}
+	pr_info("reg 0x%x val:0x%x\n",
+		VD1_AFBCD0_MISC_CTRL, RDMA_RD(VD1_AFBCD0_MISC_CTRL));
+	pr_info("reg 0x%x val:0x%x\n",
+		VD2_AFBCD1_MISC_CTRL, RDMA_RD(VD2_AFBCD1_MISC_CTRL));
 }
 
 /*2018-08-17 add debugfs*/

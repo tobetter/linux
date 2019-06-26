@@ -134,6 +134,7 @@ struct ddr_bandwidth {
 	unsigned short real_ports;
 	char busy;
 	char mode;
+	char bytes_per_cycle;
 	int mali_port[2];
 	unsigned int threshold;
 	unsigned int irq_num;

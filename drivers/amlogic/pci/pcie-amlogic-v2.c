@@ -28,6 +28,7 @@
 #include <linux/signal.h>
 #include <linux/types.h>
 #include <linux/module.h>
+#include <linux/amlogic/power_ctrl.h>
 #include "../drivers/pci/host/pcie-designware.h"
 #include "pcie-amlogic.h"
 
@@ -51,11 +52,11 @@ struct amlogic_pcie {
 	u32			pm_enable;
 	u32			device_attch;
 	u32			rst_mod;
+	u32			pwr_ctl;
 };
 
 #define to_amlogic_pcie(x)	container_of(x, struct amlogic_pcie, pp)
 struct pcie_phy_aml_regs pcie_aml_regs_v2;
-struct pcie_phy		*g_pcie_phy_v2;
 
 static void amlogic_elb_writel(struct amlogic_pcie *amlogic_pcie, u32 val,
 								u32 reg)
@@ -220,11 +221,19 @@ static ssize_t store_pcie_cr_read(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	u32 reg;
 	u32 val;
+	int j;
 
 	if (kstrtouint(buf, 0, &reg) != 0)
 		return -EINVAL;
+
+	for (j = 0; j < 7; j++)
+		pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+			((unsigned long)amlogic_pcie->phy->phy_base
+			+ 4*j);
 
 	val = amlogic_phy_cr_readl(reg);
 	dev_info(dev, "reg 0x%x value is 0x%x\n", reg, val);
@@ -246,11 +255,14 @@ static ssize_t store_pcie_cr_write(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	unsigned int reg, val;
 	int ret = 0;
 	char *pstr;
 	char *pend;
 	char *strbuf;
+	int j;
 
 	if (count > 40)
 		return -EINVAL;
@@ -277,6 +289,12 @@ static ssize_t store_pcie_cr_write(struct device *dev,
 		ret = -EINVAL;
 		goto cr_end;
 	}
+
+	for (j = 0; j < 7; j++)
+		pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+			((unsigned long)amlogic_pcie->phy->phy_base
+			 + 4*j);
+
 	amlogic_phy_cr_writel(val, reg);
 	ret = count;
 cr_end:
@@ -639,6 +657,7 @@ static int __init amlogic_add_pcie_port(struct amlogic_pcie *amlogic_pcie,
 	struct pcie_port *pp = &amlogic_pcie->pp;
 	struct device *dev = pp->dev;
 	int ret;
+	int j;
 
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
 		pp->msi_irq = platform_get_irq(pdev, 0);
@@ -671,13 +690,42 @@ static int __init amlogic_add_pcie_port(struct amlogic_pcie *amlogic_pcie,
 		dev_err(pp->dev, "link timeout, disable PCIE PLL\n");
 		clk_disable_unprepare(amlogic_pcie->bus_clk);
 		clk_disable_unprepare(amlogic_pcie->clk);
+		clk_disable_unprepare(amlogic_pcie->phy_clk);
 		dev_err(pp->dev, "power down pcie phy\n");
+		for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 		writel(0x1d, pcie_aml_regs_v2.pcie_phy_r[0]);
 		amlogic_pcie->phy->power_state = 0;
 	}
 
 	return 0;
 }
+
+static void power_switch_to_pcie(struct pcie_phy *phy)
+{
+	u32 val;
+
+	power_ctrl_sleep(1, phy->pcie_ctrl_sleep_shift);
+
+	power_ctrl_mempd0(1, phy->pcie_hhi_mem_pd_mask,
+			phy->pcie_hhi_mem_pd_shift);
+	udelay(100);
+
+	val = readl((void __iomem *)(unsigned long)phy->reset_base);
+	writel((val & (~(0x1<<phy->pcie_ctrl_a_rst_bit))),
+		(void __iomem *)(unsigned long)phy->reset_base);
+	udelay(100);
+
+	power_ctrl_iso(1, phy->pcie_ctrl_iso_shift);
+
+	val = readl((void __iomem *)(unsigned long)phy->reset_base);
+	writel((val | (0x1<<phy->pcie_ctrl_a_rst_bit)),
+			(void __iomem	*)(unsigned long)phy->reset_base);
+	udelay(100);
+}
+
 
 static int __init amlogic_pcie_probe(struct platform_device *pdev)
 {
@@ -703,6 +751,8 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	int pcie_apb_rst_bit = 0;
 	int pcie_phy_rst_bit = 0;
 	int pcie_ctrl_a_rst_bit = 0;
+	u32 pwr_ctl = 0;
+	const void *prop;
 
 	dev_info(&pdev->dev, "amlogic_pcie_probe!\n");
 
@@ -716,16 +766,6 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	pp->dev = dev;
 	port_num++;
 	amlogic_pcie->port_num = port_num;
-	if (amlogic_pcie->port_num == 1) {
-		phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
-		if (!phy) {
-			port_num--;
-			return -ENOMEM;
-		}
-		g_pcie_phy_v2 = phy;
-	}
-
-	amlogic_pcie->phy = g_pcie_phy_v2;
 
 	ret = of_property_read_u32(np, "pcie-apb-rst-bit", &pcie_apb_rst_bit);
 	if (ret)
@@ -739,6 +779,15 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 				&pcie_ctrl_a_rst_bit);
 	if (ret)
 		amlogic_pcie->rst_mod = 0;
+
+	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
+	if (!phy) {
+		port_num--;
+		return -ENOMEM;
+	}
+	phy->pcie_ctrl_a_rst_bit = pcie_ctrl_a_rst_bit;
+
+	amlogic_pcie->phy = phy;
 
 	ret = of_property_read_u32(np, "pcie-num", &pcie_num);
 	if (ret)
@@ -756,6 +805,60 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	if (ret)
 		pp->lanes = 0;
 	pp->lanes = num_lanes;
+
+	ret = of_property_read_u32(np, "pwr-ctl", &pwr_ctl);
+	if (ret)
+		amlogic_pcie->pwr_ctl = 0;
+	else
+		amlogic_pcie->pwr_ctl = pwr_ctl;
+
+	if (pwr_ctl) {
+		prop = of_get_property(dev->of_node,
+			"pcie-ctrl-sleep-shift", NULL);
+		if (prop)
+			amlogic_pcie->phy->pcie_ctrl_sleep_shift =
+				of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"pcie-hhi-mem-pd-shift", NULL);
+		if (prop)
+			amlogic_pcie->phy->pcie_hhi_mem_pd_shift =
+				of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"pcie-hhi-mem-pd-mask", NULL);
+		if (prop)
+			amlogic_pcie->phy->pcie_hhi_mem_pd_mask =
+				of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+
+		prop = of_get_property(dev->of_node,
+			"pcie-ctrl-iso-shift", NULL);
+		if (prop)
+			amlogic_pcie->phy->pcie_ctrl_iso_shift =
+				of_read_ulong(prop, 1);
+		else
+			pwr_ctl = 0;
+	}
+
+	if (!amlogic_pcie->phy->reset_base) {
+		reset_base = platform_get_resource_byname(
+			pdev, IORESOURCE_MEM, "reset");
+		amlogic_pcie->phy->reset_base = ioremap(reset_base->start,
+				resource_size(reset_base));
+		if (IS_ERR(amlogic_pcie->phy->reset_base)) {
+			ret = PTR_ERR(amlogic_pcie->phy->reset_base);
+			return ret;
+		}
+	}
+
+	if (pwr_ctl)
+		power_switch_to_pcie(amlogic_pcie->phy);
 
 	if (!amlogic_pcie->phy->phy_base) {
 		phy_base = platform_get_resource_byname(
@@ -782,17 +885,6 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 	amlogic_pcie->gpio_type = gpio_type;
 
 	amlogic_pcie->reset_gpio = of_get_named_gpio(np, "reset-gpio", 0);
-
-	if (!amlogic_pcie->phy->reset_base) {
-		reset_base = platform_get_resource_byname(
-			pdev, IORESOURCE_MEM, "reset");
-		amlogic_pcie->phy->reset_base = devm_ioremap_resource(
-			dev, reset_base);
-		if (IS_ERR(amlogic_pcie->phy->reset_base)) {
-			ret = PTR_ERR(amlogic_pcie->phy->reset_base);
-			goto fail_pcie;
-		}
-	}
 
 	/* RESET0[1,2,6,7] = 0*/
 	if (!amlogic_pcie->phy->reset_state) {
@@ -830,10 +922,8 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 
 	if (!amlogic_pcie->phy->reset_state) {
 		rate = clk_get_rate(amlogic_pcie->bus_clk);
-		if (rate != PCIE_PLL_RATE) {
-			ret = -ENODEV;
-			goto fail_pcie;
-		}
+		if (rate != PCIE_PLL_RATE)
+			dev_info(dev, "pcie ref pll is 0x%lx\n", rate);
 	}
 
 	/*RESET0[6,7] = 1*/
@@ -1000,6 +1090,7 @@ static int amlogic_pcie_suspend_noirq(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
+	int j;
 
 	if (!amlogic_pcie->pm_enable) {
 		dev_info(dev, "don't noirq suspend amlogic pcie\n");
@@ -1014,6 +1105,10 @@ static int amlogic_pcie_suspend_noirq(struct device *dev)
 	if (amlogic_pcie->device_attch == 0) {
 		dev_info(dev, "controller power off, no suspend noirq\n");
 		if (amlogic_pcie->pcie_num == 1) {
+			for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 			writel(0x1d, pcie_aml_regs_v2.pcie_phy_r[0]);
 			amlogic_pcie->phy->power_state = 0;
 		}
@@ -1040,6 +1135,7 @@ static int amlogic_pcie_resume_noirq(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct amlogic_pcie *amlogic_pcie = platform_get_drvdata(pdev);
 	unsigned long rate = 100000000;
+	int j;
 
 	if (!amlogic_pcie->pm_enable) {
 		dev_info(dev, "don't noirq resume amlogic pcie\n");
@@ -1052,6 +1148,10 @@ static int amlogic_pcie_resume_noirq(struct device *dev)
 	}
 
 	if (amlogic_pcie->pcie_num == 1) {
+		for (j = 0; j < 7; j++)
+			pcie_aml_regs_v2.pcie_phy_r[j] = (void __iomem *)
+				((unsigned long)amlogic_pcie->phy->phy_base
+					 + 4*j);
 		writel(0x1c, pcie_aml_regs_v2.pcie_phy_r[0]);
 		amlogic_pcie->phy->power_state = 1;
 		udelay(500);

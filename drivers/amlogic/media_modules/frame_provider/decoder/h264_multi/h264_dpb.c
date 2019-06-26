@@ -1,3 +1,22 @@
+/*
+* Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful, but WITHOUT
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+* more details.
+*
+* You should have received a copy of the GNU General Public License along
+* with this program; if not, write to the Free Software Foundation, Inc.,
+* 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*
+* Description:
+*/
 #define DEBUG
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -8,6 +27,8 @@
 #include "../utils/amvdec.h"
 
 #include "h264_dpb.h"
+
+#define FRAME_NUM_MAX_SIZE 0x10000
 
 #undef pr_info
 #define pr_info printk
@@ -364,6 +385,18 @@ void slice_prepare(struct h264_dpb_stru *p_H264_Dpb,
 	pSlice->structure = (p_H264_Dpb->
 		dpb_param.l.data[NEW_PICTURE_STRUCTURE] == 3) ?
 		FRAME : p_H264_Dpb->dpb_param.l.data[NEW_PICTURE_STRUCTURE];
+	if (pSlice->structure == FRAME) {
+		pSlice->field_pic_flag = 0;
+		pSlice->bottom_field_flag = 0;
+	} else {
+		pSlice->field_pic_flag = 1;
+		if (pSlice->structure == TOP_FIELD)
+			pSlice->bottom_field_flag = 0;
+		else
+			pSlice->bottom_field_flag = 1;
+	}
+	pSlice->pic_struct = p_H264_Dpb->dpb_param.l.data[PICTURE_STRUCT];
+
 	sps->num_ref_frames = p_H264_Dpb->
 		dpb_param.l.data[MAX_REFERENCE_FRAME_NUM];
 	sps->profile_idc =
@@ -516,6 +549,14 @@ void slice_prepare(struct h264_dpb_stru *p_H264_Dpb,
 		p_H264_Dpb->dpb_param.l.data[NUM_UNITS_IN_TICK];
 	p_H264_Dpb->time_scale = p_H264_Dpb->dpb_param.l.data[TIME_SCALE] |
 		(p_H264_Dpb->dpb_param.l.data[TIME_SCALE + 1] << 16);
+
+	p_H264_Dpb->bitstream_restriction_flag =
+		(p_H264_Dpb->dpb_param.l.data[SPS_FLAGS2] >> 3) & 0x1;
+	p_H264_Dpb->num_reorder_frames =
+		p_H264_Dpb->dpb_param.l.data[NUM_REORDER_FRAMES];
+	p_H264_Dpb->max_dec_frame_buffering =
+		p_H264_Dpb->dpb_param.l.data[MAX_BUFFER_FRAME];
+
 	/**/
 	dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
 		"%s return\n", __func__);
@@ -1016,6 +1057,14 @@ static void init_picture(struct h264_dpb_stru *p_H264_Dpb,
 			currSlice->picture_structure_mmco);
 	}
 
+	if (currSlice->pic_struct >= 3)
+		dec_picture->pic_struct = currSlice->pic_struct + 2;
+	else if (currSlice->pic_struct == 1)
+		dec_picture->pic_struct = PIC_TOP_BOT;
+	else if (currSlice->pic_struct >= 2)
+		dec_picture->pic_struct = PIC_BOT_TOP;
+	else
+		dec_picture->pic_struct = PIC_INVALID;
 }
 
 void dump_pic(struct h264_dpb_stru *p_H264_Dpb)
@@ -1460,30 +1509,33 @@ static void dpb_combine_field(struct h264_dpb_stru *p_H264_Dpb,
 	fs->frame->buf_spec_num = fs->top_field->buf_spec_num;
 	fs->frame->colocated_buf_index = fs->top_field->colocated_buf_index;
 	fs->frame->data_flag = fs->top_field->data_flag;
+	fs->frame->slice_type = fs->top_field->slice_type;
 	if (fs->bottom_field)
 		fs->frame->data_flag |= (fs->bottom_field->data_flag & 0xf0);
 #endif
 
+	if (fs->bottom_field) {
+		fs->poc = fs->frame->poc = fs->frame->frame_poc = imin(
+				fs->top_field->poc, fs->bottom_field->poc);
 
-	fs->poc = fs->frame->poc = fs->frame->frame_poc = imin(
-			fs->top_field->poc, fs->bottom_field->poc);
+		fs->bottom_field->frame_poc = fs->top_field->frame_poc = fs->frame->poc;
 
-	fs->bottom_field->frame_poc = fs->top_field->frame_poc = fs->frame->poc;
+		fs->bottom_field->top_poc = fs->frame->top_poc = fs->top_field->poc;
+		fs->top_field->bottom_poc = fs->frame->bottom_poc =
+				fs->bottom_field->poc;
 
-	fs->bottom_field->top_poc = fs->frame->top_poc = fs->top_field->poc;
-	fs->top_field->bottom_poc = fs->frame->bottom_poc =
-			fs->bottom_field->poc;
-
-	fs->frame->used_for_reference = (fs->top_field->used_for_reference &&
-					 fs->bottom_field->used_for_reference);
-	fs->frame->is_long_term = (fs->top_field->is_long_term &&
-				   fs->bottom_field->is_long_term);
+		fs->frame->used_for_reference = (fs->top_field->used_for_reference &&
+						 fs->bottom_field->used_for_reference);
+		fs->frame->is_long_term = (fs->top_field->is_long_term &&
+					   fs->bottom_field->is_long_term);
+	}
 
 	if (fs->frame->is_long_term)
 		fs->frame->long_term_frame_idx = fs->long_term_frame_idx;
 
 	fs->frame->top_field    = fs->top_field;
-	fs->frame->bottom_field = fs->bottom_field;
+	if (fs->bottom_field)
+		fs->frame->bottom_field = fs->bottom_field;
 	fs->frame->frame = fs->frame;
 
 	fs->frame->coded_frame = 0;
@@ -1500,12 +1552,13 @@ static void dpb_combine_field(struct h264_dpb_stru *p_H264_Dpb,
 		fs->frame->frame_crop_right_offset =
 			fs->top_field->frame_crop_right_offset;
 	}
-
-	fs->top_field->frame = fs->bottom_field->frame = fs->frame;
-	fs->top_field->top_field = fs->top_field;
-	fs->top_field->bottom_field = fs->bottom_field;
-	fs->bottom_field->top_field = fs->top_field;
-	fs->bottom_field->bottom_field = fs->bottom_field;
+	if (fs->bottom_field) {
+		fs->top_field->frame = fs->bottom_field->frame = fs->frame;
+		fs->top_field->top_field = fs->top_field;
+		fs->top_field->bottom_field = fs->bottom_field;
+		fs->bottom_field->top_field = fs->top_field;
+		fs->bottom_field->bottom_field = fs->bottom_field;
+	}
 
 	/**/
 #if (MVC_EXTENSION_ENABLE)
@@ -1561,10 +1614,13 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	fs->buf_spec_num = p->buf_spec_num;
 	fs->colocated_buf_index = p->colocated_buf_index;
 #endif
+	p->slice_type = p_H264_Dpb->mSlice.slice_type;
 	switch (p->structure) {
 	case FRAME:
 		fs->frame = p;
 		fs->is_used = 3;
+		fs->slice_type = p->slice_type;
+		fs->frame_size = p->frame_size;
 		if (p->used_for_reference) {
 			fs->is_reference = 3;
 			fs->is_orig_reference = 3;
@@ -1591,6 +1647,12 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 		fs->top_field = p;
 		fs->is_used |= 1;
 		fs->layer_id = p->layer_id;
+		if (fs->frame_size == 0) {
+			fs->slice_type = p->slice_type;
+//			fs->pts = p->pts;
+//			fs->pts64 = p->pts64;
+		}
+		fs->frame_size += p->frame_size;
 #if (MVC_EXTENSION_ENABLE)
 		fs->view_id = p->view_id;
 		fs->inter_view_flag[0] = p->inter_view_flag;
@@ -1617,6 +1679,12 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 		fs->bottom_field = p;
 		fs->is_used |= 2;
 		fs->layer_id = p->layer_id;
+		if (fs->frame_size == 0) {
+			fs->slice_type = p->slice_type;
+//			fs->pts = p->pts;
+//			fs->pts64 = p->pts64;
+		}
+		fs->frame_size += p->frame_size;
 #if (MVC_EXTENSION_ENABLE)
 		fs->view_id = p->view_id;
 		fs->inter_view_flag[1] = p->inter_view_flag;
@@ -1646,6 +1714,19 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	fs->is_output = p->is_output;
 	fs->pre_output = p->pre_output;
 
+	/* picture qos infomation*/
+	fs->max_mv = p->max_mv;
+	fs->avg_mv = p->avg_mv;
+	fs->min_mv = p->min_mv;
+
+	fs->max_qp = p->max_qp;
+	fs->avg_qp = p->avg_qp;
+	fs->min_qp = p->min_qp;
+
+	fs->max_skip = p->max_skip;
+	fs->avg_skip = p->avg_skip;
+	fs->min_skip = p->min_skip;
+
 	if (fs->is_used == 3) {
 		calculate_frame_no(p_Vid, p);
 #if 0
@@ -1657,6 +1738,7 @@ static void insert_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 
 	fs->pts = p->pts;
 	fs->pts64 = p->pts64;
+	fs->timestamp = p->timestamp;
 }
 
 void reset_frame_store(struct h264_dpb_stru *p_H264_Dpb,
@@ -1927,7 +2009,7 @@ static void remove_frame_from_dpb(struct h264_dpb_stru *p_H264_Dpb, int pos)
 	fs->is_long_term = 0;
 	fs->is_reference = 0;
 	fs->is_orig_reference = 0;
-
+	fs->frame_size = 0;
 	/* move empty framestore to end of buffer */
 	tmp = p_Dpb->fs[pos];
 
@@ -2114,7 +2196,8 @@ static void get_smallest_poc(struct DecodedPictureBuffer *p_Dpb, int *poc,
 		/* rain */
 		if ((*poc > p_Dpb->fs[i]->poc) &&
 			(!p_Dpb->fs[i]->is_output) &&
-			(!p_Dpb->fs[i]->pre_output)) {
+			(!p_Dpb->fs[i]->pre_output) &&
+			(p_Dpb->fs[i]->is_used == 3)) {
 #else
 		if ((*poc > p_Dpb->fs[i]->poc) && (!p_Dpb->fs[i]->is_output)) {
 #endif
@@ -2134,8 +2217,18 @@ int output_frames(struct h264_dpb_stru *p_H264_Dpb, unsigned char flush_flag)
 	if (!flush_flag) {
 		for (i = 0; i < p_Dpb->used_size; i++) {
 			if ((!p_Dpb->fs[i]->is_output) &&
-				(!p_Dpb->fs[i]->pre_output)) {
+				(!p_Dpb->fs[i]->pre_output) && (p_Dpb->fs[i]->is_used == 3)) {
 				none_displayed_num++;
+				if ((p_H264_Dpb->first_insert_frame == FirstInsertFrm_IDLE)
+					&&  (p_Dpb->fs[i]->is_used == 3)
+					&& (p_Dpb->last_output_poc == INT_MIN)) {
+					p_H264_Dpb->first_insert_frame = FirstInsertFrm_OUT;
+					p_H264_Dpb->first_output_poc = p_Dpb->fs[i]->poc;
+					fast_output_flag = 1;
+					dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
+						"%s first insert frame i %d  poc %d frame_num %x\n",
+						__func__, i, p_Dpb->fs[i]->poc,  p_Dpb->fs[i]->frame_num);
+				}
 				/*check poc even/odd*/
 				if (p_H264_Dpb->poc_even_odd_flag == 0 &&
 					p_H264_Dpb->decode_pic_count >= 3)
@@ -2147,10 +2240,6 @@ int output_frames(struct h264_dpb_stru *p_H264_Dpb, unsigned char flush_flag)
 				if ((p_H264_Dpb->fast_output_enable & 0x1) &&
 					(p_Dpb->fs[i]->data_flag & IDR_FLAG))
 					fast_output_flag = 1;
-				if (p_H264_Dpb->fast_output_enable & 0x6
-					&& p_H264_Dpb->poc_even_odd_flag
-					&& p_Dpb->last_output_poc == INT_MIN)
-					fast_output_flag = 1;
 				if ((p_H264_Dpb->fast_output_enable & 0x2) &&
 					((p_Dpb->fs[i]->poc -
 						p_Dpb->last_output_poc)
@@ -2158,6 +2247,7 @@ int output_frames(struct h264_dpb_stru *p_H264_Dpb, unsigned char flush_flag)
 					fast_output_flag = 1;
 				if ((p_H264_Dpb->fast_output_enable & 0x4) &&
 					(p_H264_Dpb->poc_even_odd_flag == 2) &&
+					 (p_Dpb->fs[i]->is_used == 3) &&
 					((p_Dpb->fs[i]->poc -
 						p_Dpb->last_output_poc)
 					== 2))
@@ -2179,6 +2269,19 @@ int output_frames(struct h264_dpb_stru *p_H264_Dpb, unsigned char flush_flag)
 	if (is_used_for_reference(p_Dpb->fs[pos]))
 		return 0;
 #endif
+	if (p_H264_Dpb->first_insert_frame == FirstInsertFrm_OUT) {
+		dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
+			"%s pos %d pos->poc %d  first_output_poc %d \n",
+			__func__, pos, p_Dpb->fs[pos]->poc, p_H264_Dpb->first_output_poc);
+
+		if (p_Dpb->fs[pos]->poc < p_H264_Dpb->first_output_poc)
+			p_Dpb->fs[pos]->data_flag |= NODISP_FLAG;
+		else if (p_Dpb->last_output_poc != INT_MIN)
+			p_H264_Dpb->first_insert_frame = FirstInsertFrm_SKIPDONE;
+
+		dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
+			"%s first_insert_frame %d \n", __func__, p_H264_Dpb->first_insert_frame);
+	}
 	if (prepare_display_buf(p_H264_Dpb->vdec, p_Dpb->fs[pos]) >= 0)
 		p_Dpb->fs[pos]->pre_output = 1;
 	else {
@@ -2828,12 +2931,12 @@ static void unmark1(struct DecodedPictureBuffer *p_Dpb,
 	unsigned int curr_frame_num, int i)
 {
 	if (p_Dpb->last_picture) {
-		if ((p_Dpb->last_picture != p_Dpb->fs_ltref[i]) ||
-			p_Dpb->last_picture->frame_num != curr_frame_num) {
+		/*if ((p_Dpb->last_picture != p_Dpb->fs_ltref[i]) ||
+			p_Dpb->last_picture->frame_num != curr_frame_num) {*/
 			unmark_for_long_term_reference(p_Dpb->fs_ltref[i]);
-		} else {
+		/*} else {
 			unmark_for_long_term_reference(p_Dpb->fs_ltref[i]);
-		}
+		}*/
 	}
 }
 
@@ -3500,6 +3603,14 @@ int store_picture_in_dpb(struct h264_dpb_stru *p_H264_Dpb,
 	update_ltref_list(p_Dpb);
 
 	check_num_ref(p_Dpb);
+	if (p_H264_Dpb->fast_output_enable == H264_OUTPUT_MODE_FAST)
+		i = 1;
+	else
+		i = 0;
+	if (i || (p_H264_Dpb->first_insert_frame < FirstInsertFrm_SKIPDONE)) {
+		while (output_frames(p_H264_Dpb, i))
+			;
+	}
 
 	dump_dpb(p_Dpb, 0);
 	p_Dpb->first_pic_done = 1; /*by rain*/
@@ -4904,7 +5015,8 @@ static struct StorablePicture *get_long_term_pic(struct Slice *currSlice,
 	for (i = 0; i < p_Dpb->ltref_frames_in_buffer; i++) {
 		if (currSlice->structure == FRAME) {
 			if (p_Dpb->fs_ltref[i]->is_reference == 3)
-				if ((p_Dpb->fs_ltref[i]->frame->
+				if ((p_Dpb->fs_ltref[i]->frame) &&
+					(p_Dpb->fs_ltref[i]->frame->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->frame->
 					long_term_pic_num ==
@@ -4912,13 +5024,16 @@ static struct StorablePicture *get_long_term_pic(struct Slice *currSlice,
 					return p_Dpb->fs_ltref[i]->frame;
 		} else {
 			if (p_Dpb->fs_ltref[i]->is_reference & 1)
-				if ((p_Dpb->fs_ltref[i]->top_field->
+				if ((p_Dpb->fs_ltref[i]->top_field) &&
+					(p_Dpb->fs_ltref[i]->top_field->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->top_field->
 					long_term_pic_num == LongtermPicNum))
 					return p_Dpb->fs_ltref[i]->top_field;
+
 			if (p_Dpb->fs_ltref[i]->is_reference & 2)
-				if ((p_Dpb->fs_ltref[i]->bottom_field->
+				if ((p_Dpb->fs_ltref[i]->bottom_field) &&
+					(p_Dpb->fs_ltref[i]->bottom_field->
 					is_long_term) &&
 				    (p_Dpb->fs_ltref[i]->bottom_field->
 					long_term_pic_num ==
@@ -5602,6 +5717,7 @@ int h264_slice_header_process(struct h264_dpb_stru *p_H264_Dpb)
 		p_Vid->pre_frame_num,
 		p_Vid->max_frame_num);
 		if (p_Vid->recovery_point == 0 &&
+			p_Vid->max_frame_num <= FRAME_NUM_MAX_SIZE &&
 			currSlice->frame_num != p_Vid->pre_frame_num &&
 			currSlice->frame_num !=
 			(p_Vid->pre_frame_num + 1) % p_Vid->max_frame_num) {
@@ -5735,6 +5851,9 @@ int dpb_check_ref_list_error(
 	int i;
 	/*int j;*/
 	struct Slice *currSlice = &p_H264_Dpb->mSlice;
+	/* in first output, ignore ref check */
+	if (p_H264_Dpb->first_insert_frame < FirstInsertFrm_SKIPDONE)
+		return 0;
 	if ((currSlice->slice_type != I_SLICE) &&
 		(currSlice->slice_type != SI_SLICE)) {
 		for (i = 0; i < currSlice->listXsize[0]; i++) {

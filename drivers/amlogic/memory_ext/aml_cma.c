@@ -30,10 +30,13 @@
 #include <linux/spinlock_types.h>
 #include <linux/amlogic/aml_cma.h>
 #include <linux/hugetlb.h>
+#include <linux/proc_fs.h>
 #include <trace/events/page_isolation.h>
 #ifdef CONFIG_AMLOGIC_PAGE_TRACE
 #include <linux/amlogic/page_trace.h>
 #endif /* CONFIG_AMLOGIC_PAGE_TRACE */
+
+#define MAX_DEBUG_LEVEL		5
 
 struct work_cma {
 	struct list_head list;
@@ -52,6 +55,8 @@ struct cma_pcp {
 
 static bool can_boost;
 static DEFINE_PER_CPU(struct cma_pcp, cma_pcp_thread);
+static struct proc_dir_entry *dentry;
+int cma_debug_level;
 
 DEFINE_SPINLOCK(cma_iso_lock);
 static atomic_t cma_allocate;
@@ -96,12 +101,16 @@ EXPORT_SYMBOL(cma_page_count_update);
 
 #define RESTRIC_ANON	0
 #define ANON_RATIO	60
+bool cma_first_wm_low __read_mostly;
 
 bool can_use_cma(gfp_t gfp_flags)
 {
 #if RESTRIC_ANON
 	unsigned long anon_cma;
 #endif /* RESTRIC_ANON */
+
+	if (unlikely(!cma_first_wm_low))
+		return false;
 
 	if (cma_forbidden_mask(gfp_flags))
 		return false;
@@ -261,6 +270,7 @@ static int aml_alloc_contig_migrate_range(struct compact_control *cc,
 			pfn = isolate_migratepages_range(cc, pfn, end);
 			if (!pfn) {
 				ret = -EINTR;
+				cma_debug(1, NULL, " iso migrate page fail\n");
 				break;
 			}
 			tries = 0;
@@ -336,7 +346,7 @@ static int cma_boost_work_func(void *cma_data)
 			drain_local_pages(NULL);
 		}
 		if (ret)
-			pr_debug("%s, failed, ret:%d\n", __func__, ret);
+			cma_debug(1, NULL, "failed, ret:%d\n", ret);
 next:
 		complete(&c_work->end);
 		if (kthread_should_stop()) {
@@ -441,34 +451,6 @@ int cma_alloc_contig_boost(unsigned long start_pfn, unsigned long count)
 	return ret;
 }
 
-/*
- * Some of these functions are implemented from page_isolate.c
- */
-static bool can_free_list_page(struct page *page, struct list_head *list)
-{
-#if 0
-	unsigned long flags;
-	bool ret = false;
-
-	if (!spin_trylock_irqsave(&cma_iso_lock, flags))
-		return ret;
-
-	if (!(page->flags & PAGE_FLAGS_CHECK_AT_FREE) &&
-	    !PageSwapBacked(page) &&
-	    (page->lru.next != LIST_POISON1)) {
-		if (list_empty(&page->lru))
-			list_add(&page->lru, list);
-		else
-			list_move(&page->lru, list);
-		ret = true;
-	}
-	spin_unlock_irqrestore(&cma_iso_lock, flags);
-	return ret;
-#else
-	return false;
-#endif
-}
-
 static int __aml_check_pageblock_isolate(unsigned long pfn,
 					 unsigned long end_pfn,
 					 bool skip_hwpoisoned_pages,
@@ -496,13 +478,7 @@ static int __aml_check_pageblock_isolate(unsigned long pfn,
 			 */
 			pfn++;
 		} else {
-			/* This page can be freed ? */
-			if (!page_count(page)) {
-				if (can_free_list_page(page, list)) {
-					pfn++;
-					continue;
-				}
-			}
+			cma_debug(1, page, " isolate failed\n");
 			break;
 		}
 	}
@@ -577,14 +553,18 @@ int aml_cma_alloc_range(unsigned long start, unsigned long end)
 		.mode = MIGRATE_SYNC,
 		.page_type = COMPACT_CMA,
 		.ignore_skip_hint = true,
+		.contended = false,
 	};
 	INIT_LIST_HEAD(&cc.migratepages);
 
+	cma_debug(0, NULL, " range [%lx-%lx]\n", start, end);
 	ret = start_isolate_page_range(get_align_pfn_low(start),
 				       get_align_pfn_high(end), MIGRATE_CMA,
 				       false);
-	if (ret)
+	if (ret) {
+		cma_debug(1, NULL, "ret:%d\n", ret);
 		return ret;
+	}
 
 try_again:
 	/*
@@ -599,8 +579,10 @@ try_again:
 	} else
 		ret = aml_alloc_contig_migrate_range(&cc, start, end, 0);
 
-	if (ret && ret != -EBUSY)
+	if (ret && ret != -EBUSY) {
+		cma_debug(1, NULL, "ret:%d\n", ret);
 		goto done;
+	}
 
 	ret = 0;
 	if (!boost_ok) {
@@ -611,11 +593,8 @@ try_again:
 	outer_start = start;
 	while (!PageBuddy(pfn_to_page(outer_start))) {
 		if (++order >= MAX_ORDER) {
-			ret = -EBUSY;
-			try_times++;
-			if (try_times < 10)
-				goto try_again;
-			goto done;
+			outer_start = start;
+			break;
 		}
 		outer_start &= ~0UL << order;
 	}
@@ -635,8 +614,8 @@ try_again:
 
 	/* Make sure the range is really isolated. */
 	if (aml_check_pages_isolated(outer_start, end, false)) {
-		pr_debug("%s check_pages_isolated(%lx, %lx) failed\n",
-			 __func__, outer_start, end);
+		cma_debug(1, NULL, "check page isolate(%lx, %lx) failed\n",
+			  outer_start, end);
 		try_times++;
 		if (try_times < 10)
 			goto try_again;
@@ -647,7 +626,13 @@ try_again:
 	/* Grab isolated pages from freelists. */
 	outer_end = isolate_freepages_range(&cc, outer_start, end);
 	if (!outer_end) {
-		ret = -EBUSY;
+		if (cc.contended) {
+			ret = -EINTR;
+			pr_info("cma_alloc [%lx-%lx] aborted\n", start, end);
+		} else
+			ret = -EBUSY;
+		cma_debug(1, NULL, "iso free range(%lx, %lx) failed\n",
+			  outer_start, end);
 		goto done;
 	}
 
@@ -731,10 +716,69 @@ void aml_cma_free(unsigned long pfn, unsigned int nr_pages)
 }
 EXPORT_SYMBOL(aml_cma_free);
 
+void show_page(struct page *page)
+{
+	unsigned long trace = 0;
+	unsigned long map_flag = -1UL;
+
+	if (!page)
+		return;
+#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	trace = get_page_trace(page);
+#endif
+	if (page->mapping && !((unsigned long)page->mapping & 0x3))
+		map_flag = page->mapping->flags;
+	pr_info("page:%lx, map:%p, mf:%lx, pf:%lx, m:%d, c:%d, f:%pf\n",
+		page_to_pfn(page), page->mapping, map_flag,
+		page->flags & 0xffffffff,
+		page_mapcount(page), page_count(page),
+		(void *)trace);
+}
+
+static int cma_debug_show(struct seq_file *m, void *arg)
+{
+	seq_printf(m, "level=%d\n", cma_debug_level);
+	return 0;
+}
+
+static ssize_t cma_debug_write(struct file *file, const char __user *buffer,
+			      size_t count, loff_t *ppos)
+{
+	int arg = 0;
+
+	if (kstrtoint_from_user(buffer, count, 10, &arg))
+		return -EINVAL;
+
+	if (arg > MAX_DEBUG_LEVEL)
+		return -EINVAL;
+
+	cma_debug_level = arg;
+	return count;
+}
+
+static int cma_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, cma_debug_show, NULL);
+}
+
+static const struct file_operations cma_dbg_file_ops = {
+	.open		= cma_debug_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.write		= cma_debug_write,
+	.release	= single_release,
+};
+
 static int __init aml_cma_init(void)
 {
 	atomic_set(&cma_allocate, 0);
 	atomic_long_set(&nr_cma_allocated, 0);
+
+	dentry = proc_create("cma_debug", 0644, NULL, &cma_dbg_file_ops);
+	if (IS_ERR_OR_NULL(dentry)) {
+		pr_err("%s, create sysfs failed\n", __func__);
+		return -1;
+	}
 
 	return 0;
 }

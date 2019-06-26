@@ -23,7 +23,7 @@
 /* the MSB is represent vmode set by vmode_init */
 #define	VMODE_INIT_BIT_MASK	0x8000
 #define	VMODE_MODE_BIT_MASK	0xff
-#define VMODE_NULL_DISP_MAX	2
+#define VMODE_NULL_DISP_MAX	3
 
 enum vmode_e {
 	VMODE_HDMI = 0,
@@ -31,6 +31,7 @@ enum vmode_e {
 	VMODE_LCD,
 	VMODE_NULL, /* null mode is used as temporary witch mode state */
 	VMODE_INVALID,
+	VMODE_DUMMY_LCD,
 	VMODE_MAX,
 	VMODE_INIT_NULL,
 	VMODE_MASK = 0xFF,
@@ -51,6 +52,13 @@ enum vout_fr_adj_type_e {
 	VOUT_FR_ADJ_HDMI,  /* 50<->60: htotal; 60<->59.94: clk */
 	VOUT_FR_ADJ_NONE,  /* disable fr_adj */
 	VOUT_FR_ADJ_MAX,
+};
+
+enum vinfo_3d_e {
+	NON_3D = 0,
+	SS_3D,
+	FP_3D,
+	TB_3D,
 };
 
 /*emp : extended metadata type*/
@@ -233,6 +241,15 @@ struct vinfo_base_s {
 	enum color_fmt_e viu_color_fmt;
 };
 
+#define LATENCY_INVALID_UNKNOWN	0
+#define LATENCY_NOT_SUPPORT		0xffff
+struct rx_av_latency {
+	unsigned int vLatency;
+	unsigned int aLatency;
+	unsigned int i_vLatency;
+	unsigned int i_aLatency;
+};
+
 struct vinfo_s {
 	char *name;
 	enum vmode_e mode;
@@ -249,11 +266,13 @@ struct vinfo_s {
 	u32 video_clk;
 	u32 htotal;
 	u32 vtotal;
+	enum vinfo_3d_e info_3d;
 	enum vout_fr_adj_type_e fr_adj_type;
 	enum color_fmt_e viu_color_fmt;
 	enum viu_mux_e viu_mux;
 	struct master_display_info_s master_display_info;
 	struct hdr_info hdr_info;
+	struct rx_av_latency rx_latency;
 	struct vout_device_s *vout_device;
 };
 

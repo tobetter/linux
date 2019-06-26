@@ -1123,6 +1123,32 @@ static const struct reg_s tvregs_480x320p_60hz[] = {
 	{MREG_END_MARKER, 0}
 };
 
+static const struct reg_s tvregs_480x272p_60hz[] = {
+	{P_VENC_VDAC_SETTING, 0xff,},
+	{P_ENCP_VIDEO_EN, 0,},
+	{P_ENCI_VIDEO_EN, 0,},
+
+	{P_ENCP_VIDEO_MODE, 0x4040,},
+	{P_ENCP_VIDEO_MODE_ADV, 0x18,},
+
+	{P_ENCP_VIDEO_MAX_PXCNT, 0x31F,},
+	{P_ENCP_VIDEO_MAX_LNCNT, 0x20C,},
+	{P_ENCP_VIDEO_HAVON_BEGIN, 0x64,},
+	{P_ENCP_VIDEO_HAVON_END, 0x243,},
+	{P_ENCP_VIDEO_VAVON_BLINE, 0xEE,},
+	{P_ENCP_VIDEO_VAVON_ELINE, 0x1FD,},
+	{P_ENCP_VIDEO_HSO_BEGIN, 0x0,},
+	{P_ENCP_VIDEO_HSO_END, 0x64,},
+	{P_ENCP_VIDEO_VSO_BEGIN, 0x1E,},
+	{P_ENCP_VIDEO_VSO_END, 0x32,},
+	{P_ENCP_VIDEO_VSO_BLINE, 0x0,},
+	{P_ENCP_VIDEO_VSO_ELINE, 0x7,},
+
+	{P_ENCP_VIDEO_EN, 1,},
+	{P_ENCI_VIDEO_EN, 0,},
+	{MREG_END_MARKER, 0}
+};
+
 static const struct reg_s tvregs_480x800p_60hz[] = {
 	{P_ENCP_VIDEO_EN, 0},
 	{P_ENCI_VIDEO_EN, 0},
@@ -1206,6 +1232,7 @@ static struct vic_tvregs_set tvregsTab[] = {
 	{HDMI_800x480p60_5x3, tvregs_800x480p_60hz},
 	{HDMI_640x480p60_4x3, tvregs_640x480p_60hz},
 	{HDMI_480x320p60_4x3, tvregs_480x320p_60hz},
+	{HDMI_480x272p60_4x3, tvregs_480x272p_60hz},
 	{HDMI_480x800p60_4x3, tvregs_480x800p_60hz},
 };
 
@@ -1218,7 +1245,7 @@ static const struct reg_s tvregs_3dfp_1080p60[] = {
 
 	{P_ENCP_VIDEO_MODE, 0x4040,},
 	{P_ENCP_VIDEO_MODE_ADV, 0x18,},
-	{P_ENCP_VIDEO_MAX_PXCNT, 0x897,},
+	{P_ENCP_VIDEO_MAX_PXCNT, 0xABD,},
 	{P_ENCP_VIDEO_MAX_LNCNT, 0x8C9,},
 	{P_ENCP_VIDEO_HAVON_BEGIN, 0xC0,},
 	{P_ENCP_VIDEO_HAVON_END, 0x83F,},
@@ -1298,7 +1325,7 @@ static const struct reg_s tvregs_3dfp_1080p50[] = {
 
 	{P_ENCP_VIDEO_MODE, 0x4040,},
 	{P_ENCP_VIDEO_MODE_ADV, 0x18,},
-	{P_ENCP_VIDEO_MAX_PXCNT, 0xA4F,},
+	{P_ENCP_VIDEO_MAX_PXCNT, 0xABD,},
 	{P_ENCP_VIDEO_MAX_LNCNT, 0x8C9,},
 	{P_ENCP_VIDEO_HAVON_BEGIN, 0xC0,},
 	{P_ENCP_VIDEO_HAVON_END, 0x83F,},

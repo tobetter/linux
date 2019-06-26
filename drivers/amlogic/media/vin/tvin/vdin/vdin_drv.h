@@ -36,8 +36,8 @@
 #include <linux/amlogic/media/vfm/vframe_receiver.h>
 #include <linux/amlogic/media/vfm/vframe_provider.h>
 #include <linux/amlogic/media/frame_provider/tvin/tvin_v4l2.h>
-#ifdef CONFIG_AML_RDMA
-#include <linux/amlogic/rdma/rdma_mgr.h>
+#ifdef CONFIG_AMLOGIC_MEDIA_RDMA
+#include <linux/amlogic/media/rdma/rdma_mgr.h>
 #endif
 
 /* Local Headers */
@@ -45,7 +45,7 @@
 #include "vdin_vf.h"
 #include "vdin_regs.h"
 
-#define VDIN_VER "Ref.2018/11/07a"
+#define VDIN_VER "Ref.2019/03/01"
 
 /*the counter of vdin*/
 #define VDIN_MAX_DEVS			2
@@ -84,6 +84,12 @@
 #define VDIN_BYPASS_CYC_CHECK           0x00000002
 #define VDIN_BYPASS_VGA_CHECK           0x00000008
 #define VDIN_CANVAS_MAX_CNT				9
+
+/*values of vdin game mode process flag */
+#define VDIN_GAME_MODE_0                (1 << 0)
+#define VDIN_GAME_MODE_1                (1 << 1)
+#define VDIN_GAME_MODE_2                (1 << 2)
+#define VDIN_GAME_MODE_SWITCH_EN        (1 << 3)
 
 /*flag for flush vdin buff*/
 #define VDIN_FLAG_BLACK_SCREEN_ON	1
@@ -199,6 +205,7 @@ struct vdin_dev_s {
 
 	struct timer_list timer;
 	spinlock_t isr_lock;
+	spinlock_t hist_lock;
 	struct mutex fe_lock;
 	struct clk *msr_clk;
 	unsigned int msr_clk_val;
@@ -312,6 +319,8 @@ struct vdin_dev_s {
 	 *game_mode:
 	 *bit0:enable/disable
 	 *bit1:for true bypas and put vframe in advance one vsync
+	 *bit2:for true bypas and put vframe in advance two vsync,
+	 *vdin & vpp read/write same buffer may happen
 	 */
 	unsigned int game_mode;
 	unsigned int rdma_enable;
@@ -320,7 +329,9 @@ struct vdin_dev_s {
 	 * 1: use afbce non-mmu mode: head/body addr set by code
 	 * 2: use afbce mmu mode: head set by code, body addr assigning by hw
 	 */
+	unsigned int afbce_flag;
 	unsigned int afbce_mode;
+	unsigned int afbce_lossy_en;
 	unsigned int canvas_config_mode;
 	bool	prehsc_en;
 	bool	vshrk_en;
@@ -330,6 +341,7 @@ struct vdin_dev_s {
 	/*use frame rate to cal duraton*/
 	unsigned int use_frame_rate;
 	unsigned int irq_cnt;
+	unsigned int frame_cnt;
 	unsigned int rdma_irq_cnt;
 	unsigned int vdin_irq_flag;
 	unsigned int vdin_reset_flag;
@@ -338,6 +350,25 @@ struct vdin_dev_s {
 
 	struct dentry *dbg_root;	/*dbg_fs*/
 };
+
+struct vdin_hist_s {
+	ulong sum;
+	int width;
+	int height;
+	int ave;
+};
+
+struct vdin_v4l2_param_s {
+	int width;
+	int height;
+	int fps;
+};
+
+extern unsigned int tl1_vdin1_preview_flag;
+extern unsigned int vdin_afbc_preview_force_drop_frame_cnt;
+extern unsigned int vdin_afbc_force_drop_frame_cnt;
+extern unsigned int max_ignore_frame_cnt;
+extern unsigned int skip_frame_debug;
 
 extern struct vframe_provider_s *vf_get_provider_by_name(
 		const char *provider_name);
@@ -367,8 +398,6 @@ extern void ldim_get_matrix(int *data, int reg_sel);
 extern void ldim_set_matrix(int *data, int reg_sel);
 extern void tvafe_snow_config(unsigned int onoff);
 extern void tvafe_snow_config_clamp(unsigned int onoff);
-extern void tvafe_snow_config_acd(void);
-extern void tvafe_snow_config_acd_resume(void);
 extern void vdin_vf_reg(struct vdin_dev_s *devp);
 extern void vdin_vf_unreg(struct vdin_dev_s *devp);
 extern void vdin_pause_dec(struct vdin_dev_s *devp);
@@ -377,6 +406,8 @@ extern bool is_dolby_vision_enable(void);
 
 extern void vdin_debugfs_init(struct vdin_dev_s *vdevp);
 extern void vdin_debugfs_exit(struct vdin_dev_s *vdevp);
+
+extern bool vlock_get_phlock_flag(void);
 
 #endif /* __TVIN_VDIN_DRV_H */
 

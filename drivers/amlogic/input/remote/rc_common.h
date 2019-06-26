@@ -1,10 +1,20 @@
 /*
- * include/uapi/linux/rc_common.h from the kernel directory, but it can be used
- * in kernel and user space.
+ * drivers/amlogic/input/remote/rc_common.h
  *
- * Written by Amlogic
+ * Copyright (C) 2017 Amlogic, Inc. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
  */
+
 #ifndef _UAPI_RC_COMMON_H_
 #define _UAPI_RC_COMMON_H_
 
@@ -76,5 +86,10 @@ struct ir_sw_decode_para {
 #define REMOTE_IOC_SET_KEY_MAPPING_TAB   _IOW('I', 4, __u32)
 #define REMOTE_IOC_SET_SW_DECODE_PARA    _IOW('I', 5, __u32)
 #define REMOTE_IOC_GET_DATA_VERSION      _IOR('I', 121, __u32)
+#define REMOTE_IOC_SET_IR_LEARNING       _IOW('I', 6, __u32)
+#define REMOTE_IOC_GET_IR_LEARNING       _IOR('I', 7, __u32)
+#define REMOTE_IOC_GET_RAW_DATA          _IOR('I', 8, __u32)
+#define REMOTE_IOC_GET_SUM_CNT0          _IOR('I', 9, __u32)
+#define REMOTE_IOC_GET_SUM_CNT1          _IOR('I', 10, __u32)
 
 #endif

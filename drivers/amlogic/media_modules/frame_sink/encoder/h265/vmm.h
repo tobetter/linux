@@ -476,7 +476,7 @@ s32 vmem_init(struct video_mm_t *mm, ulong addr, ulong size)
 		(struct page_t *)VMEM_P_ALLOC(
 		mm->num_pages * sizeof(struct page_t));
 	if (mm->page_list == NULL) {
-		pr_err("%s:%d failed to kmalloc(%ld)\n",
+		pr_err("%s:%d failed to kmalloc(%zu)\n",
 			__func__, __LINE__,
 			mm->num_pages * sizeof(struct page_t));
 		return -1;

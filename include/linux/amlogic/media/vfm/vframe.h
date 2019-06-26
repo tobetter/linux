@@ -45,6 +45,8 @@
 #define VIDTYPE_PIC		        0x200000
 #define VIDTYPE_SCATTER                 0x400000
 #define VIDTYPE_VD2						0x800000
+#define VIDTYPE_COMPRESS_LOSS		0x1000000
+#define VIDTYPE_COMB_MODE			0x2000000
 
 #define DISP_RATIO_FORCECONFIG          0x80000000
 #define DISP_RATIO_FORCE_NORMALWIDE     0x40000000
@@ -280,18 +282,21 @@ struct vframe_pic_mode_s {
 #define BITDEPTH_Y8    (0 << BITDEPTH_Y_SHIFT)
 #define BITDEPTH_Y9    (1 << BITDEPTH_Y_SHIFT)
 #define BITDEPTH_Y10   (2 << BITDEPTH_Y_SHIFT)
+#define BITDEPTH_Y12   (3 << BITDEPTH_Y_SHIFT)
 #define BITDEPTH_YMASK (3 << BITDEPTH_Y_SHIFT)
 
 #define BITDEPTH_U_SHIFT 10
 #define BITDEPTH_U8    (0 << BITDEPTH_U_SHIFT)
 #define BITDEPTH_U9    (1 << BITDEPTH_U_SHIFT)
 #define BITDEPTH_U10   (2 << BITDEPTH_U_SHIFT)
+#define BITDEPTH_U12   (3 << BITDEPTH_U_SHIFT)
 #define BITDEPTH_UMASK (3 << BITDEPTH_U_SHIFT)
 
 #define BITDEPTH_V_SHIFT 12
 #define BITDEPTH_V8    (0 << BITDEPTH_V_SHIFT)
 #define BITDEPTH_V9    (1 << BITDEPTH_V_SHIFT)
 #define BITDEPTH_V10   (2 << BITDEPTH_V_SHIFT)
+#define BITDEPTH_V12   (3 << BITDEPTH_V_SHIFT)
 #define BITDEPTH_VMASK (3 << BITDEPTH_V_SHIFT)
 
 #define BITDEPTH_MASK (BITDEPTH_YMASK | BITDEPTH_UMASK | BITDEPTH_VMASK)
@@ -385,7 +390,6 @@ struct vframe_s {
 	u64 ready_jiffies64;	/* ready from decode on  jiffies_64 */
 	long long ready_clock[5];/*ns*/
 	long long ready_clock_hist[2];/*ns*/
-	atomic_t use_cnt;
 	u32 frame_dirty;
 	/*
 	 *prog_proc_config:
@@ -406,6 +410,9 @@ struct vframe_s {
 	struct vframe_pic_mode_s pic_mode;
 
 	unsigned long v4l_mem_handle;
+
+	u32 sar_width;
+	u32 sar_height;
 } /*vframe_t */;
 
 #if 0

@@ -29,7 +29,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include "amports_priv.h"
-
+#include "../../common/chips/decoder_cpu_ver_info.h"
 #define INFO_VALID ((astream_dev) && (astream_dev->format))
 
 struct astream_device_s {
@@ -121,13 +121,14 @@ static ssize_t datawidth_show(struct class *class,
 static ssize_t pts_show(struct class *class, struct class_attribute *attr,
 						char *buf)
 {
-	u32 pts;
+	u32 pts, frame_size;
 	u32 pts_margin = 0;
 
 	if (astream_dev->samplerate <= 12000)
 		pts_margin = 512;
 
-	if (INFO_VALID && (pts_lookup(PTS_TYPE_AUDIO, &pts, pts_margin) >= 0))
+	if (INFO_VALID && (pts_lookup(PTS_TYPE_AUDIO, &pts,
+			&frame_size, pts_margin) >= 0))
 		return sprintf(buf, "0x%x\n", pts);
 	else
 		return sprintf(buf, "%s\n", na_string);
@@ -155,9 +156,13 @@ static struct class astream_class = {
 	};
 
 #if 1
-#define IO_CBUS_PHY_BASE 0xc1100000
+#define IO_CBUS_PHY_BASE 0xc1100000ULL
+#define IO_AOBUS_PHY_BASE 0xc8100000ULL
 #define CBUS_REG_OFFSET(reg) ((reg) << 2)
-#define IO_SECBUS_PHY_BASE 0xda000000
+#define IO_SECBUS_PHY_BASE 0xda000000ULL
+
+
+#define IO_AOBUS_PHY_BASE_AFTER_G12A 0xff800000ULL
 
 static struct uio_info astream_uio_info = {
 	.name = "astream_uio",
@@ -179,13 +184,15 @@ static struct uio_info astream_uio_info = {
 			(IO_CBUS_PHY_BASE + CBUS_REG_OFFSET(VCOP_CTRL_REG)),
 			.size = PAGE_SIZE,
 		},
+/*
 		[2] = {
 			.name = "SECBUS",
 			.memtype = UIO_MEM_PHYS,
 			.addr = (IO_SECBUS_PHY_BASE),
 			.size = PAGE_SIZE,
 		},
-		[3] = {
+*/
+		[2] = {
 			.name = "CBUS",
 			.memtype = UIO_MEM_PHYS,
 			.addr =
@@ -193,11 +200,17 @@ static struct uio_info astream_uio_info = {
 			&(PAGE_MASK),
 			.size = PAGE_SIZE,
 		},
-		[4] = {
+		[3] = {
 			.name = "CBUS-START",
 			.memtype = UIO_MEM_PHYS,
 			.addr = (IO_CBUS_PHY_BASE + CBUS_REG_OFFSET(0x1000)),
-			.size = PAGE_SIZE * 4,
+			.size = PAGE_SIZE,
+		},
+		[4] = {
+			.name = "AOBUS-START",
+			.memtype = UIO_MEM_PHYS,
+			.addr = (IO_AOBUS_PHY_BASE),
+			.size = PAGE_SIZE,
 		},
 	},
 };
@@ -224,12 +237,13 @@ s32 adec_init(struct stream_port_s *port)
 	astream_dev->datawidth = port->adatawidth;
 
 	/*wmb();don't need it...*/
-	if (af <= ARRAY_SIZE(astream_format))
+	if (af < ARRAY_SIZE(astream_format))
 		astream_dev->format = astream_format[af];
 	else
 		astream_dev->format = NULL;
 	return 0;
 }
+EXPORT_SYMBOL(adec_init);
 
 s32 adec_release(enum aformat_e vf)
 {
@@ -242,13 +256,14 @@ s32 adec_release(enum aformat_e vf)
 
 	return 0;
 }
+EXPORT_SYMBOL(adec_release);
 
 int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
 {
 	int ret = -1;
 	void *buf, *getbuf = NULL;
 	if (size < PAGE_SIZE) {
-		void *getbuf = (void *)__get_free_page(GFP_KERNEL);
+		getbuf = (void *)__get_free_page(GFP_KERNEL);
 		if (!getbuf)
 			return -ENOMEM;
 		buf = getbuf;
@@ -275,7 +290,7 @@ int amstream_adec_show_fun(const char *trigger, int id, char *sbuf, int size)
 		ret = -1;
 	}
 	if (ret > 0 && getbuf != NULL) {
-		int ret = min_t(int, ret, size);
+		ret = min_t(int, ret, size);
 		strncpy(sbuf, buf, ret);
 	}
 	if (getbuf != NULL)
@@ -326,14 +341,18 @@ s32 astream_dev_register(void)
 		goto err_2;
 	}
 
-	if (MESON_CPU_MAJOR_ID_TXL < get_cpu_type()) {
+	if (AM_MESON_CPU_MAJOR_ID_TXL < get_cpu_major_id()) {
 		node = of_find_node_by_path("/codec_io/io_cbus_base");
 		if (!node) {
 			pr_info("No io_cbus_base node found.");
 			goto err_1;
 		}
 
+#ifdef CONFIG_ARM64_A32
+		r = of_property_read_u32_index(node, "reg", 0, &cbus_base);
+#else
 		r = of_property_read_u32_index(node, "reg", 1, &cbus_base);
+#endif
 		if (r) {
 			pr_info("No find node.\n");
 			goto err_1;
@@ -343,9 +362,11 @@ s32 astream_dev_register(void)
 		astream_dev->offset = -0x100;
 
 		/*need to offset -0x180 in g12a.*/
-		if (MESON_CPU_MAJOR_ID_G12A <= get_cpu_type())
+		if (AM_MESON_CPU_MAJOR_ID_G12A <= get_cpu_major_id()) {
 			astream_dev->offset = -0x180;
-
+			/* after G12A chip, the aobus base addr changed */
+			astream_uio_info.mem[4].addr = IO_AOBUS_PHY_BASE_AFTER_G12A;
+		}
 		astream_uio_info.mem[0].addr =
 			(cbus_base + CBUS_REG_OFFSET(AIU_AIFIFO_CTRL +
 			astream_dev->offset)) & (PAGE_MASK);

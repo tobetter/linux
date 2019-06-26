@@ -379,6 +379,8 @@ static int aml_cali_find(struct mmc_host *mmc, struct cali_data *c_data)
 
 	if (host->data->chip_type == MMC_CHIP_GXBB)
 		delay_step = 125;
+	else if (host->data->chip_type == MMC_CHIP_GXM)
+		delay_step = 250;
 	else
 		delay_step = 200;
 	if (mmc->ios.bus_width == 0)
@@ -1064,7 +1066,7 @@ static int aml_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 
 }
 
-static void aml_mmc_clk_switch_off(struct amlsd_platform *pdata)
+void aml_mmc_clk_switch_off(struct amlsd_platform *pdata)
 {
 	u32 vcfg = 0;
 	struct sd_emmc_config *conf = (struct sd_emmc_config *)&vcfg;
@@ -1915,6 +1917,7 @@ static void aml_sd_emmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 		}
 		pdata->irq_sdio_sleep = 1;
 	}
+	pdata->irq_sdio_sleep = 1;
 
 	spin_unlock_irqrestore(&host->mrq_lock, flags);
 
@@ -2616,7 +2619,7 @@ static irqreturn_t meson_mmc_irq(int irq, void *dev_id)
 					mmc_hostname(host->mmc),
 					vstat, virqc);
 		host->status = HOST_RSP_CRC_ERR;
-		mrq->cmd->error = -EILSEQ;
+		mrq->cmd->error = -EBADMSG;
 	} else if (ista->resp_timeout) {
 		if (host->is_tunning == 0)
 			pr_err("%s: resp_timeout,vstat:0x%x,virqc:%x\n",
@@ -3325,6 +3328,16 @@ static int meson_mmc_probe(struct platform_device *pdev)
 #endif /* CONFIG_MESON_CPU_EMULATOR */
 	}
 	pr_info("%s() : success!\n", __func__);
+	if (host->ctrl_ver >= 3) {
+		ret = device_create_file(&pdev->dev, &dev_attr_emmc_eyetest);
+		if (ret)
+			dev_warn(mmc_dev(host->mmc),
+					"Unable to creat sysfs attributes\n");
+		ret = device_create_file(&pdev->dev, &dev_attr_emmc_clktest);
+		if (ret)
+			dev_warn(mmc_dev(host->mmc),
+					"Unable to creat sysfs attributes\n");
+	}
 	return 0;
 
 free_host:
@@ -3402,6 +3415,12 @@ static void meson_mmc_shutdown(struct platform_device *pdev)
 			gpio_direction_output(pdata->hw_reset, 1);
 		}
 	}
+}
+
+static int meson_mmc_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	meson_mmc_shutdown(pdev);
+	return 0;
 }
 #endif
 
@@ -3569,8 +3588,8 @@ static struct meson_mmc_data mmc_data_g12a = {
 	.sdmmc.sdr104.tx_phase = 0,
 };
 
-static struct meson_mmc_data mmc_data_g12b = {
-	.chip_type = MMC_CHIP_G12B,
+static struct meson_mmc_data mmc_data_g12b_a = {
+	.chip_type = MMC_CHIP_G12B_A,
 	.port_a_base = 0xffe03000,
 	.port_b_base = 0xffe05000,
 	.port_c_base = 0xffe07000,
@@ -3587,9 +3606,36 @@ static struct meson_mmc_data mmc_data_g12b = {
 	.sdmmc.hs.core_phase = 1,
 	.sdmmc.ddr.core_phase = 2,
 	.sdmmc.ddr.tx_phase = 0,
-	.sdmmc.hs2.core_phase = 3,
+	.sdmmc.hs2.core_phase = 2,
 	.sdmmc.hs2.tx_phase = 0,
-	.sdmmc.hs4.tx_delay = 0,
+	.sdmmc.sd_hs.core_phase = 2,
+	.sdmmc.sdr104.core_phase = 2,
+	.sdmmc.sdr104.tx_phase = 0,
+};
+
+static struct meson_mmc_data mmc_data_g12b = {
+	.chip_type = MMC_CHIP_G12B,
+	.port_a_base = 0xffe03000,
+	.port_b_base = 0xffe05000,
+	.port_c_base = 0xffe07000,
+	.pinmux_base = 0xff634400,
+	.clksrc_base = 0xff63c000,
+	.ds_pin_poll = 0x3a,
+	.ds_pin_poll_en = 0x48,
+	.ds_pin_poll_bit = 13,
+	.sdmmc.init.core_phase = 2,
+	.sdmmc.init.tx_phase = 0,
+	.sdmmc.init.rx_phase = 0,
+	.sdmmc.calc.core_phase = 0,
+	.sdmmc.calc.tx_phase = 2,
+	.sdmmc.hs.core_phase = 1,
+	.sdmmc.ddr.core_phase = 2,
+	.sdmmc.ddr.tx_phase = 0,
+	.sdmmc.hs2.core_phase = 2,
+	.sdmmc.hs2.tx_phase = 0,
+	.sdmmc.hs4.tx_phase = 0,
+	.sdmmc.hs4.core_phase = 0,
+	.sdmmc.hs4.tx_delay = 16,
 	.sdmmc.sd_hs.core_phase = 2,
 	.sdmmc.sdr104.core_phase = 2,
 	.sdmmc.sdr104.tx_phase = 0,
@@ -3608,10 +3654,59 @@ static struct meson_mmc_data mmc_data_tl1 = {
 	.sdmmc.init.core_phase = 3,
 	.sdmmc.init.tx_phase = 0,
 	.sdmmc.init.rx_phase = 0,
-	.sdmmc.hs.core_phase = 1,
+	.sdmmc.hs.core_phase = 3,
 	.sdmmc.ddr.core_phase = 2,
-	.sdmmc.hs2.core_phase = 3,
+	.sdmmc.hs2.core_phase = 2,
+	.sdmmc.hs4.core_phase = 0,
+	.sdmmc.hs4.tx_delay = 16,
+	.sdmmc.sd_hs.core_phase = 2,
+	.sdmmc.sdr104.core_phase = 2,
+};
+
+static struct meson_mmc_data mmc_data_sm1 = {
+	.chip_type = MMC_CHIP_SM1,
+	.port_a_base = 0xffe03000,
+	.port_b_base = 0xffe05000,
+	.port_c_base = 0xffe07000,
+	.pinmux_base = 0xff634400,
+	.clksrc_base = 0xff63c000,
+	.ds_pin_poll = 0x3a,
+	.ds_pin_poll_en = 0x48,
+	.ds_pin_poll_bit = 13,
+	.sdmmc.init.core_phase = 3,
+	.sdmmc.init.tx_phase = 0,
+	.sdmmc.init.rx_phase = 0,
+	.sdmmc.calc.core_phase = 0,
+	.sdmmc.calc.tx_phase = 2,
+	.sdmmc.hs.core_phase = 3,
+	.sdmmc.ddr.core_phase = 2,
+	.sdmmc.ddr.tx_phase = 0,
+	.sdmmc.hs2.core_phase = 2,
+	.sdmmc.hs2.tx_phase = 0,
 	.sdmmc.hs4.tx_delay = 0,
+	.sdmmc.sd_hs.core_phase = 3,
+	.sdmmc.sdr104.core_phase = 2,
+	.sdmmc.sdr104.tx_phase = 0,
+};
+
+static struct meson_mmc_data mmc_data_tm2 = {
+	.chip_type = MMC_CHIP_TM2,
+	.port_a_base = 0xffe03000,
+	.port_b_base = 0xffe05000,
+	.port_c_base = 0xffe07000,
+	.pinmux_base = 0xff634400,
+	.clksrc_base = 0xff63c000,
+	.ds_pin_poll = 0x3a,
+	.ds_pin_poll_en = 0x48,
+	.ds_pin_poll_bit = 13,
+	.sdmmc.init.core_phase = 3,
+	.sdmmc.init.tx_phase = 0,
+	.sdmmc.init.rx_phase = 0,
+	.sdmmc.hs.core_phase = 3,
+	.sdmmc.ddr.core_phase = 2,
+	.sdmmc.hs2.core_phase = 2,
+	.sdmmc.hs4.core_phase = 0,
+	.sdmmc.hs4.tx_delay = 16,
 	.sdmmc.sd_hs.core_phase = 2,
 	.sdmmc.sdr104.core_phase = 2,
 };
@@ -3665,6 +3760,18 @@ static const struct of_device_id meson_mmc_of_match[] = {
 		.compatible = "amlogic, meson-mmc-tl1",
 		.data = &mmc_data_tl1,
 	},
+	{
+		.compatible = "amlogic, meson-mmc-g12b-a",
+		.data = &mmc_data_g12b_a,
+	},
+	{
+		.compatible = "amlogic, meson-mmc-sm1",
+		.data = &mmc_data_sm1,
+	},
+	{
+		.compatible = "amlogic, meson-mmc-tm2",
+		.data = &mmc_data_tm2,
+	},
 
 	{}
 };
@@ -3675,6 +3782,7 @@ static struct platform_driver meson_mmc_driver = {
 	.remove		= meson_mmc_remove,
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 	.shutdown	= meson_mmc_shutdown,
+	.suspend	= meson_mmc_suspend,
 #endif
 	.driver		= {
 		.name = "meson-aml-mmc",
