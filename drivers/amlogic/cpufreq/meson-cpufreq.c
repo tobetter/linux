@@ -615,6 +615,9 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 	policy->cpuinfo.transition_latency = transition_latency;
 	policy->suspend_freq = get_table_max(freq_table[cur_cluster]);
 	policy->cur = clk_get_rate(clk[cur_cluster]) / 1000;
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+	policy->min = 667000;
+#endif
 
 	/*
 	 * if uboot default cpufreq larger than freq_table's max,
