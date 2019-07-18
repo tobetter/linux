@@ -48,6 +48,10 @@ static unsigned int quirks;
 module_param(quirks, uint, S_IRUGO);
 MODULE_PARM_DESC(quirks, "Bit flags for quirks to be enabled as default");
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+static unsigned int kpara_sg_tablesize;
+#endif
+
 /*
  * xhci_handshake - spin reading hc until handshake completes or fails
  * @ptr: address of hc register to be read
@@ -4918,6 +4922,12 @@ int xhci_gen_setup(struct usb_hcd *hcd, xhci_get_quirks_t get_quirks)
 	/* Accept arbitrarily long scatter-gather lists */
 	hcd->self.sg_tablesize = ~0;
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	if (kpara_sg_tablesize > 0)
+		hcd->self.sg_tablesize = kpara_sg_tablesize;
+	pr_info("usb: xhci: determined sg_tablesize: %u", hcd->self.sg_tablesize);
+#endif
+
 	/* support to build packet from discontinuous buffers */
 	hcd->self.no_sg_constraint = 1;
 
@@ -5148,6 +5158,21 @@ static int __init xhci_hcd_init(void)
  * to allow module unload.
  */
 static void __exit xhci_hcd_fini(void) { }
+
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+static int __init get_sg_tablesize(char *str)
+{
+	int ret = kstrtouint(str, 0, &kpara_sg_tablesize);
+
+	if (ret != 0 || kpara_sg_tablesize == 0) {
+		pr_info("usb: xhci: [%s]: Invalid sg_tablesize on bootargs. It will use default value.", __func__);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+__setup("usb-xhci.tablesize=", get_sg_tablesize);
+#endif
 
 module_init(xhci_hcd_init);
 module_exit(xhci_hcd_fini);
