@@ -2346,6 +2346,12 @@ void osd_setup_hw(u32 index,
 	int update_geometry = 0;
 	u32 w = (color->bpp * xres_virtual + 7) >> 3;
 	u32 i;
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+	if (index == 0) {
+		xres_virtual = xres;
+		yres_virtual = yres;
+	}
+#endif /* CONFIG_ARCH_MESON64_ODROIDN2 */
 
 	osd_hw.buffer_alloc[index] = 1;
 	pan_data.x_start = xoffset;
@@ -2430,6 +2436,9 @@ void osd_setup_hw(u32 index,
 		osd_log_info("osd[%d] out_addr_id =0x%x\n",
 			index, osd_hw.osd_afbcd[index].out_addr_id);
 
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+		set_osd_logo_freescaler();
+#endif
 		if (osd_hw.osd_meson_dev.osd_ver == OSD_SIMPLE)
 			osd_update_phy_addr(0);
 #ifdef CONFIG_AMLOGIC_MEDIA_CANVAS

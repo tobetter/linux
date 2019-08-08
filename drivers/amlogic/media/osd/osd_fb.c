@@ -746,6 +746,11 @@ static int osd_set_par(struct fb_info *info)
 
 	output_index = get_output_device_id(fbdev->fb_index);
 
+#ifdef CONFIG_ARCH_MESON64_ODROIDN2
+	info->var.xres_virtual = info->var.xres;
+	info->var.yres_virtual = info->var.yres;
+#endif
+
 	if (fbdev->fb_index <= OSD3) {
 		vinfo = get_current_vinfo();
 		if (!vinfo) {

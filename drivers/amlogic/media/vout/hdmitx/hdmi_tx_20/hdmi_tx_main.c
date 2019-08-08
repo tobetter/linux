@@ -500,7 +500,9 @@ static int set_disp_mode_auto(void)
 		(strncmp(info->name, "ntsc_m", 6) == 0) ||
 		(strncmp(info->name, "pal_m", 5) == 0) ||
 		(strncmp(info->name, "pal_n", 5) == 0) ||
+#ifndef CONFIG_ARCH_MESON64_ODROIDN2
 		(strncmp(info->name, "panel", 5) == 0) ||
+#endif
 		(strncmp(info->name, "null", 4) == 0)) {
 		pr_info(SYS "%s not valid hdmi mode\n", info->name);
 		hdev->HWOp.CntlConfig(hdev, CONF_CLR_AVI_PACKET, 0);
@@ -652,10 +654,12 @@ static int set_disp_mode_auto(void)
 			hdev->mux_hpd_if_pin_high_flag = 0;
 		}
 		/* If current display is NOT panel, needn't TURNOFF_HDMIHW */
+#ifndef CONFIG_ARCH_MESON64_ODROIDN2
 		if (strncmp(mode, "panel", 5) == 0) {
 			hdev->HWOp.Cntl(hdev, HDMITX_HWCMD_TURNOFF_HDMIHW,
 				(hdev->hpdmode == 2)?1:0);
 		}
+#endif
 	}
 	hdmitx_set_audio(hdev, &(hdev->cur_audio_param));
 	hdev->output_blank_flag = 1;
