@@ -992,6 +992,10 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		if (dwc->dis_tx_ipgap_linecheck_quirk)
 			reg |= DWC3_GUCTL1_TX_IPGAP_LINECHECK_DIS;
 
+		/* Amlogic quirk for xHCI halt issue */
+		reg |= (DWC3_GUCTL_NAKPERENHHS |
+				DWC3_GUCTL_PARKMODEDISABLESS);
+
 		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
 	}
 
