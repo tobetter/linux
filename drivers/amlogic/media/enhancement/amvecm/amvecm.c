@@ -6227,7 +6227,11 @@ free_buf:
 
 static void def_hdr_sdr_mode(void)
 {
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	sdr_mode = 2;
+#else
 	sdr_mode = 0;
+#endif
 }
 
 /* #if (MESON_CPU_TYPE == MESON_CPU_TYPE_MESONG9TV) */
