@@ -1,0 +1,4 @@
+config RTL8192CU
+	tristate "Realtek 8192CU USB WiFi"
+	---help---
+	  Help message of RTL8192CU
