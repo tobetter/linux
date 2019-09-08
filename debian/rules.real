@@ -105,6 +105,7 @@ source-featureset: $(STAMPS_DIR)/source_$(FEATURESET)
 $(BUILD_DIR)/config.$(ARCH)_$(FEATURESET)_$(FLAVOUR): $(KCONFIG)
 	mkdir -p '$(dir $@)'
 	debian/bin/kconfig.py '$@' $(KCONFIG) $(KCONFIG_OPTIONS)
+	echo "" > $(CURDIR)/.scmversion
 
 define copy_source
 mkdir -p '$(1)'
