@@ -592,8 +592,10 @@ static int cvbs_set_current_vmode(enum vmode_e mode)
 		      tvmode, info->vinfo->sync_duration_den,
 		      info->vinfo->sync_duration_num);
 
+#if defined(CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM)
 	/*set limit range for enci*/
 	amvecm_clip_range_limit(1);
+#endif
 	if (mode & VMODE_INIT_BIT_MASK) {
 		cvbs_out_vpu_power_ctrl(1);
 		cvbs_out_clk_gate_ctrl(1);
@@ -626,9 +628,10 @@ static int cvbs_module_disable(enum vmode_e cur_vmod)
 	info->dwork_flag = 0;
 	cvbs_cntl_output(0);
 
+#if defined(CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM)
 	/*restore full range for encp/encl*/
 	amvecm_clip_range_limit(0);
-
+#endif
 	cvbs_out_vpu_power_ctrl(0);
 	cvbs_out_clk_gate_ctrl(0);
 

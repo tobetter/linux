@@ -6563,8 +6563,10 @@ static irqreturn_t vsync_isr_in(int irq, void *dev_id)
 			timestamp_pcrscr_inc_scale(vsync_pts_inc_scale,
 					vsync_pts_inc_scale_base);
 			timestamp_apts_inc(vsync_pts_inc / vsync_slow_factor);
+#if defined(CONFIG_AMLOGIC_VIDEOSYNC)
 			videosync_pcrscr_update(vsync_pts_inc_scale,
 					vsync_pts_inc_scale_base);
+#endif
 		} else if (vsync_slow_factor > 1000) {
 			u32 inc = (vsync_slow_factor / 1000)
 				* vsync_pts_inc / 1000;
