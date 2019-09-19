@@ -328,8 +328,6 @@ static int exynos5_init_freq_table(struct exynos5_dmc *dmc,
 
 	return 0;
 
-err_free_tables:
-	kfree(dmc->opp);
 err_opp:
 	dev_pm_opp_of_remove_table(dmc->dev);
 
