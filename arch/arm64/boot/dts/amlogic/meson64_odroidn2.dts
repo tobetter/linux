@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 Dongjin Kim <tobetter@gmail.com>
+ *
+ */
+
+/dts-v1/;
+
+#include "meson-g12b-odroid-n2.dts"
+
+/ {
+	model = "Hardkernel ODROID-N2";
+};
