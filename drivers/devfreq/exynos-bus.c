@@ -243,7 +243,7 @@ static int exynos_bus_parse_of(struct device_node *np,
 {
 	struct device *dev = bus->dev;
 	struct dev_pm_opp *opp;
-	unsigned long rate;
+	unsigned long rate, opp_rate;
 	int ret;
 
 	/* Get the clock to provide each bus with source clock */
@@ -267,13 +267,21 @@ static int exynos_bus_parse_of(struct device_node *np,
 	}
 
 	rate = clk_get_rate(bus->clk);
-
-	opp = devfreq_recommended_opp(dev, &rate, 0);
+	opp_rate = rate;
+	opp = devfreq_recommended_opp(dev, &opp_rate, 0);
 	if (IS_ERR(opp)) {
 		dev_err(dev, "failed to find dev_pm_opp\n");
 		ret = PTR_ERR(opp);
 		goto err_opp;
 	}
+	/*
+	 * FIXME: U-boot leaves clock source at incorrect PLL, this results
+	 * in clock rate outside defined OPP rate. Work around this bug by
+	 * setting clock rate to recommended one.
+	 */
+	if (rate > opp_rate)
+		clk_set_rate(bus->clk, opp_rate);
+
 	bus->curr_freq = dev_pm_opp_get_freq(opp);
 	dev_pm_opp_put(opp);
 
