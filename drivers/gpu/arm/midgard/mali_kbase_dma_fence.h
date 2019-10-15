@@ -21,7 +21,7 @@
 #ifdef CONFIG_MALI_DMA_FENCE
 
 #include <linux/list.h>
-#include <linux/reservation.h>
+#include <linux/dma-resv.h>
 #include <mali_kbase_fence.h>
 
 
@@ -40,7 +40,7 @@ struct kbase_context;
  * reservation objects.
  */
 struct kbase_dma_fence_resv_info {
-	struct reservation_object **resv_objs;
+	struct dma_resv **resv_objs;
 	unsigned int dma_fence_resv_count;
 	unsigned long *dma_fence_excl_bitmap;
 };
@@ -55,7 +55,7 @@ struct kbase_dma_fence_resv_info {
  * reservation_objects. At the same time keeps track of which objects require
  * exclusive access in dma_fence_excl_bitmap.
  */
-void kbase_dma_fence_add_reservation(struct reservation_object *resv,
+void kbase_dma_fence_add_reservation(struct dma_resv *resv,
 				     struct kbase_dma_fence_resv_info *info,
 				     bool exclusive);
 

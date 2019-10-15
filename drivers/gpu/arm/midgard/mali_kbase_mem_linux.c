@@ -1811,7 +1811,7 @@ KBASE_EXPORT_TEST_API(kbase_cpu_vm_close);
 static int kbase_cpu_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 #else
-static int kbase_cpu_vm_fault(struct vm_fault *vmf)
+static vm_fault_t kbase_cpu_vm_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 #endif
