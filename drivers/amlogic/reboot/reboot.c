@@ -34,9 +34,23 @@
 #include <linux/kdebug.h>
 #include <linux/arm-smccc.h>
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+
+int sd_volsw_gpio;
+int sd_power_gpio;
+#define CHECK_RET(ret) { \
+	if (ret) \
+	pr_err("[%s] gpio op failed(%d) at line %d\n",\
+			__func__, ret, __LINE__); \
+}
+#endif
+
 static u32 psci_function_id_restart;
 static u32 psci_function_id_poweroff;
 static char *kernel_panic;
+
 static u32 parse_reason(const char *cmd)
 {
 	u32 reboot_reason = MESON_NORMAL_BOOT;
@@ -102,8 +116,41 @@ void meson_common_restart(char mode, const char *cmd)
 		meson_smc_restart((u64)psci_function_id_restart,
 						(u64)reboot_reason);
 }
+
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+void odroid_card_reset(void)
+{
+	int ret = 0;
+
+	if ((sd_volsw_gpio == 0) && (sd_power_gpio == 0))
+		return;
+
+	gpio_free(sd_volsw_gpio);
+	gpio_free(sd_power_gpio);
+	ret = gpio_request_one(sd_volsw_gpio,
+			GPIOF_OUT_INIT_LOW, "REBOOT");
+	CHECK_RET(ret);
+	mdelay(10);
+	ret = gpio_direction_output(sd_volsw_gpio, 1);
+	CHECK_RET(ret);
+	ret = gpio_request_one(sd_power_gpio,
+			GPIOF_OUT_INIT_LOW, "REBOOT");
+	CHECK_RET(ret);
+	mdelay(10);
+	ret = gpio_direction_output(sd_volsw_gpio, 0);
+	CHECK_RET(ret);
+	ret = gpio_direction_output(sd_power_gpio, 1);
+	CHECK_RET(ret);
+	mdelay(5);
+	gpio_free(sd_volsw_gpio);
+	gpio_free(sd_power_gpio);
+}
+#endif // CONFIG_ARCH_MESON64_ODROID_COMMON
 static void do_aml_restart(enum reboot_mode reboot_mode, const char *cmd)
 {
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	odroid_card_reset();
+#endif
 	meson_common_restart(reboot_mode, cmd);
 }
 
@@ -128,6 +175,9 @@ static struct notifier_block panic_notifier = {
 
 static int aml_restart_probe(struct platform_device *pdev)
 {
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	struct device_node *of_node;
+#endif
 	u32 id;
 	int ret;
 
@@ -141,6 +191,14 @@ static int aml_restart_probe(struct platform_device *pdev)
 		pm_power_off = do_aml_poweroff;
 	}
 
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+	of_node = pdev->dev.of_node;
+	sd_volsw_gpio = 0;
+	sd_power_gpio = 0;
+
+	sd_volsw_gpio = of_get_named_gpio(of_node, "sd_volsw_gpio", 0);
+	sd_power_gpio = of_get_named_gpio(of_node, "sd_power_gpio", 0);
+#endif
 	ret = register_die_notifier(&panic_notifier);
 	if (ret != 0) {
 		pr_err("%s,register die notifier failed,ret =%d!\n",

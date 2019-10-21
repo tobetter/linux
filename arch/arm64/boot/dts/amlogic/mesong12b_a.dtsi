@@ -327,7 +327,7 @@
 		cpuinfo_cmd = <0x82000044>;
 	};
 
-	aml_reboot{
+	reboot: aml_reboot{
 		compatible = "aml, reboot";
 		sys_reset = <0x84000009>;
 		sys_poweroff = <0x84000008>;

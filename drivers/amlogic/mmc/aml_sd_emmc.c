@@ -3385,45 +3385,6 @@ static int meson_mmc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-/*
- * Shutdown callback
- */
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-static void meson_mmc_shutdown(struct platform_device *pdev)
-{
-	struct amlsd_host *host = dev_get_drvdata(&pdev->dev);
-	struct mmc_host *mmc = host->mmc;
-
-	if (mmc) {
-		struct amlsd_platform *pdata = mmc_priv(mmc);
-
-		if ((pdata->vol_switch) && (pdata->gpio_power)) {
-			gpio_direction_output(pdata->vol_switch, 0);
-			mdelay(500);
-			gpio_direction_output(pdata->vol_switch, 1);
-			gpio_direction_output(pdata->gpio_power, 0);
-			mdelay(500);
-			gpio_direction_output(pdata->vol_switch, 0);
-			gpio_direction_output(pdata->gpio_power, 1);
-			mdelay(200);
-			gpio_free(pdata->vol_switch);
-			gpio_free(pdata->gpio_power);
-		}
-		if (pdata->hw_reset) {
-			gpio_direction_output(pdata->hw_reset, 0);
-			mdelay(500);
-			gpio_direction_output(pdata->hw_reset, 1);
-		}
-	}
-}
-
-static int meson_mmc_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	meson_mmc_shutdown(pdev);
-	return 0;
-}
-#endif
-
 static struct meson_mmc_data mmc_data_gxbb = {
 	.chip_type = MMC_CHIP_GXBB,
 	.port_a_base = 0xd0070000,
@@ -3780,10 +3741,6 @@ MODULE_DEVICE_TABLE(of, meson_mmc_of_match);
 static struct platform_driver meson_mmc_driver = {
 	.probe		= meson_mmc_probe,
 	.remove		= meson_mmc_remove,
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	.shutdown	= meson_mmc_shutdown,
-	.suspend	= meson_mmc_suspend,
-#endif
 	.driver		= {
 		.name = "meson-aml-mmc",
 		.owner = THIS_MODULE,
