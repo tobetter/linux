@@ -77,8 +77,6 @@ static int exynos_gpiomem_open(struct inode *inode, struct file *file)
 	int dev = iminor(inode);
 	int ret = 0;
 
-	dev_info(inst->dev, "gpiomem device opened.");
-
 	if (dev != DEVICE_MINOR) {
 		dev_err(inst->dev, "Unknown minor device: %d", dev);
 		ret = -ENXIO;
