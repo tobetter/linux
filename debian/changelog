@@ -1,3 +1,79 @@
+linux (3.16.75-1) UNRELEASED; urgency=medium
+
+  * New upstream stable update:
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.75
+    - net/mlx4_core: Change the error print to info print
+    - spi: bitbang: Fix NULL pointer dereference in spi_unregister_master
+    - Btrfs: fix race between ranged fsync and writeback of adjacent ranges
+    - scsi: bnx2fc: fix incorrect cast to u64 on shift operation
+    - USB: Fix slab-out-of-bounds write in usb_get_bos_descriptor
+    - USB: Add LPM quirk for Surface Dock GigE adapter
+    - usbip: usbip_host: fix BUG: sleeping function called from invalid context
+    - USB: rio500: fix memory leak in close after disconnect
+    - [x86] drm/gma500/cdv: Check vbt config bits when detecting lvds panels
+    - USB: serial: pl2303: add Allied Telesis VT-Kit3
+    - usb: xhci: avoid null pointer deref when bos field is NULL
+    - [armhf] net: stmmac: fix reset gpio free missing
+    - igmp: acquire pmc lock for ip_mc_clear_src()
+    - igmp: add a missing spin_lock_init()
+    - ipv4/igmp: fix another memory leak in igmpv3_del_delrec()
+    - sbitmap: fix improper use of smp_mb__before_atomic()
+    - Input: uinput - add compat ioctl number translation for UI_*_FF_UPLOAD
+    - perf/ring_buffer: Fix exposing a temporarily decreased data_head
+    - perf/ring_buffer: Add ordering to rb->nest increment
+    - i2c: dev: fix potential memory leak in i2cdev_ioctl_rdwr
+    - configfs: Fix use-after-free when accessing sd->s_dentry
+    - llc: fix skb leak in llc_build_and_send_ui_pkt()
+    - CIFS: cifs_read_allocate_pages: don't iterate through whole page array on
+      ENOMEM
+    - usbip: usbip_host: fix stub_dev lock context imbalance regression
+    - signal/ptrace: Don't leak unitialized kernel memory with
+      PTRACE_PEEK_SIGINFO
+    - net-gro: fix use-after-free read in napi_gro_frags()
+    - kernel/signal.c: trace_signal_deliver when signal_group_exit
+    - USB: usb-storage: Add new ID to ums-realtek
+    - USB: Fix chipmunk-like voice when using Logitech C270 for recording
+      audio.
+    - hwmon: (pmbus/core) Treat parameters as paged if on multiple pages
+    - net: rds: fix memory leak in rds_ib_flush_mr_pool
+    - pktgen: do not sleep with the thread lock held.
+    - can: af_can: Fix error path of can_init()
+    - can: purge socket error queue on sock destruct
+    - ipv6: flowlabel: fl6_sock_lookup() must use atomic_inc_not_zero
+    - ptrace: restore smp_rmb() in __ptrace_may_access()
+    - bcache: fix stack corruption by PRECEDING_KEY()
+    - libata: Extend quirks for the ST1000LM024 drives with NOLPM quirk
+    - cifs: add spinlock for the openFileList to cifsInodeInfo
+    - fs/ocfs2: fix race in ocfs2_dentry_attach_lock()
+    - coredump: fix race condition between collapse_huge_page() and core
+      dumping
+    - cfg80211: fix memory leak of wiphy device name
+    - Btrfs: fix race between readahead and device replace/removal
+    - btrfs: start readahead also in seed devices
+    - be2net: Fix number of Rx queues used for flow hashing
+    - neigh: fix use-after-free read in pneigh_get_next
+    - perf/core: Fix perf_sample_regs_user() mm check
+    - SMB3: retry on STATUS_INSUFFICIENT_RESOURCES instead of failing write
+    - apparmor: enforce nullbyte at end of tag string
+    - net: netem: fix backlog accounting for corrupted GSO frames
+    - scsi: ufs: Avoid runtime suspend possibly being blocked forever
+    - [x86] scsi: vmw_pscsi: Fix use-after-free in pvscsi_queue_lck()
+    - [x86] apic: Fix integer overflow on 10 bit left shift of cpu_khz
+    - be2net: fix link failure after ethtool offline test
+    - perf/ioctl: Add check for the sample_period value
+    - [x86] speculation: Allow guests to use SSBD even if host does not
+    - cpu/speculation: Warn on unsupported mitigations= parameter
+    - bonding: Always enable vlan tx offload
+    - bonding: Add vlan tx offload to hw_enc_features
+    - sctp: change to hold sk after auth shkey is created successfully
+    - ALSA: seq: fix incorrect order of dest_client/dest_ports arguments
+    - tracing/snapshot: Resize spare buffer if size changed
+    - scsi: target/iblock: Fix overrun in WRITE SAME emulation
+    - lib/mpi: Fix karactx leak in mpi_powm
+    - crypto: user - prevent operating on larval algorithms
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Tue, 22 Oct 2019 16:22:21 +0100
+
 linux (3.16.74-1) jessie-security; urgency=high
 
   * New upstream stable update:
