@@ -26,6 +26,14 @@ config SND_MESON_AIU_SPDIF_FIFO
 	help
 	  Select Y or M to add support for spdif FIFO of the GXL family
 
+config SND_MESON_AIU_I2S_ENCODER
+	tristate "Amlogic AIU I2S Encoder"
+	imply SND_MESON_AIU_I2S_FIFO
+	imply SND_MESON_AIU_BUS
+	select MFD_SYSCON
+	help
+	  Select Y or M to add support for i2s Encoder of the GXL family
+
 config SND_MESON_AXG_FIFO
 	tristate
 	select REGMAP_MMIO
