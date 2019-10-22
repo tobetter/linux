@@ -72,6 +72,9 @@ linux (3.16.75-1) UNRELEASED; urgency=medium
     - lib/mpi: Fix karactx leak in mpi_powm
     - crypto: user - prevent operating on larval algorithms
 
+  [ Ben Hutchings ]
+  * net: netem: fix error path for corrupted GSO frames (regression in 3.16.75)
+
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 22 Oct 2019 16:22:21 +0100
 
 linux (3.16.74-1) jessie-security; urgency=high
