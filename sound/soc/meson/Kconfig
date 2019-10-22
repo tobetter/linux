@@ -9,6 +9,17 @@ config SND_MESON_AIU_BUS
 	  Select Y or M to add support for audio output interfaces
 	  embedded in the Amlogic GX SoC families
 
+config SND_MESON_AIU_FIFO
+	tristate
+	imply SND_MESON_AIU_BUS
+	select MFD_SYSCON
+
+config SND_MESON_AIU_I2S_FIFO
+	tristate "Amlogic AIU I2S FIFO"
+	select SND_MESON_AIU_FIFO
+	help
+	  Select Y or M to add support for i2s FIFO of the GXL family
+
 config SND_MESON_AXG_FIFO
 	tristate
 	select REGMAP_MMIO
