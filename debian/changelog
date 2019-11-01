@@ -1,4 +1,4 @@
-linux (3.16.75-1) UNRELEASED; urgency=medium
+linux (3.16.76-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.75
@@ -71,6 +71,45 @@ linux (3.16.75-1) UNRELEASED; urgency=medium
     - scsi: target/iblock: Fix overrun in WRITE SAME emulation
     - lib/mpi: Fix karactx leak in mpi_powm
     - crypto: user - prevent operating on larval algorithms
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.76
+    - eCryptfs: fix a couple type promotion bugs
+    - 9p/virtio: Add cleanup path in p9_virtio_init
+    - signal/pid_namespace: Fix reboot_pid_ns to use send_sig not force_sig
+    - xfrm: Fix xfrm sel prefix length validation
+    - af_key: fix leaks in key_pol_get_resp and dump_sp.
+    - crypto: ghash - fix unaligned memory access in ghash_setkey()
+    - memstick: Fix error cleanup path of memstick_init
+    - [armhf] gpio: omap: fix lack of irqstatus_raw0 for OMAP4
+    - xfrm: fix sa selector validation
+    - PCI: Do not poll for PME if the device is in D3cold
+    - usb: gadget: ether: Fix race between gether_disconnect and rx_submit
+    - USB: serial: option: add GosunCn ZTE WeLink ME3630
+    - USB: serial: option: add support for GosunCn ME3630 RNDIS mode
+    - [x86] VMCI: Fix integer overflow in VMCI handle arrays
+    - mwifiex: fix 802.11n/WPA detection
+    - media: v4l2: Test type instead of cfg->type in v4l2_ctrl_new_custom()
+    - EDAC: Fix global-out-of-bounds write when setting edac_mc_poll_msec
+    - carl9170: fix misuse of device driver API
+    - [x86] ptrace: Fix possible spectre-v1 in ptrace_get_debugreg()
+      (CVE-2017-5753)
+    - [x86] tls: Fix possible spectre-v1 in do_get_thread_area()
+      (CVE-2017-5753)
+    - USB: serial: ftdi_sio: add ID for isodebug v1
+    - igmp: fix memory leak in igmpv3_del_delrec()
+    - net: bridge: stp: don't cache eth dest pointer before skb pull
+    - lib/scatterlist: Fix mapping iterator when sg->offset is greater than
+      PAGE_SIZE
+    - bonding: validate ip header before check IPPROTO_IGMP
+    - NFSv4: Handle the special Linux file open access mode
+    - udf: Fix incorrect final NOT_ALLOCATED (hole) extent length
+    - mm/mmu_notifier: use hlist_add_head_rcu()
+    - net: neigh: fix multiple neigh timer scheduling
+    - ALSA: seq: Break too long mutex context in the write loop
+    - coda: pass the host file in vma->vm_file on mmap
+    - caif-hsi: fix possible deadlock in cfhsi_exit_module()
+    - padata: use smp_mb in padata_reorder to avoid orphaned padata jobs
+    - Input: psmouse - fix build error of multiple definition
+    - [x86] KVM: x86/vPMU: refine kvm_pmu err msg when event creation failed
 
   [ Ben Hutchings ]
   * net: netem: fix error path for corrupted GSO frames (regression in 3.16.75)

@@ -684,7 +684,6 @@ bugfix/all/pie-aslr/mm-revert-x86_64-and-arm64-elf_et_dyn_base-base-chan.patch
 bugfix/all/mbcache-reschedule-before-restarting-iteration-in-mb_cache_entry_alloc.patch
 bugfix/all/scsi-libsas-direct-call-probe-and-destruct.patch
 bugfix/all/Revert-net-increase-fragment-memory-usage-limits.patch
-bugfix/all/mwifiex-don-t-abort-on-small-spec-compliant-vendor-ies.patch
 bugfix/all/net-netem-fix-error-path-for-corrupted-gso-frames.patch
 
 # Fix ABI changes
