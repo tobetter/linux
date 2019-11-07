@@ -96,3 +96,16 @@
 &usbdrd_dwc3_1 {
 	dr_mode = "host";
 };
+
+/* i2c@12C70000 */
+&i2c_1 {
+	status = "okay";
+	samsung,i2c-max-bus-freq = <400000>;
+};
+
+/* i2c@12cb0000 */
+&hsi2c_5 {
+	status = "okay";
+	samsung,hs-mode;
+	clock-frequency = <400000>;
+};
