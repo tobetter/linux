@@ -129,6 +129,8 @@ linux (3.16.76-1) UNRELEASED; urgency=medium
     - x86/speculation/taa: Fix printing of TAA_MSG_SMT on IBRS_ALL CPUs
     TSX is now disabled by default; see
     Documentation/hw-vuln/tsx_async_abort.rst
+  * [x86] bugs: Add ITLB_MULTIHIT bug infrastructure (this CPU bug will *not*
+    be mitigated on 3.16)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 22 Oct 2019 16:22:21 +0100
 

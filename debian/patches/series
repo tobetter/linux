@@ -697,6 +697,7 @@ bugfix/x86/taa/0009-x86-tsx-Add-auto-option-to-the-tsx-cmdline-parameter.patch
 bugfix/x86/taa/0010-x86-speculation-taa-Add-documentation-for-TSX-Async-.patch
 bugfix/x86/taa/0011-x86-tsx-Add-config-options-to-set-tsx-on-off-auto.patch
 bugfix/x86/taa/0012-x86-speculation-taa-Fix-printing-of-TAA_MSG_SMT-on-I.patch
+bugfix/x86/x86-bugs-add-itlb_multihit-bug-infrastructure.patch
 
 # Fix ABI changes
 debian/abi/revert-x86-cpufeatures-renumber-word-7.patch
