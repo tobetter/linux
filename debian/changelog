@@ -131,6 +131,7 @@ linux (3.16.76-1) UNRELEASED; urgency=medium
     Documentation/hw-vuln/tsx_async_abort.rst
   * [x86] bugs: Add ITLB_MULTIHIT bug infrastructure (this CPU bug will *not*
     be mitigated on 3.16)
+  * [x86] drm/i915/gen8+: Add RC6 CTX corruption WA (CVE-2019-0154)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 22 Oct 2019 16:22:21 +0100
 
