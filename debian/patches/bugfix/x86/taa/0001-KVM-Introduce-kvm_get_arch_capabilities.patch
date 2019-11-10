@@ -1,0 +1,54 @@
+From 2adf8c19765513645d0a9244eab0a4219d770ce5 Mon Sep 17 00:00:00 2001
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Tue, 8 Oct 2019 23:35:30 +0100
+Subject: KVM: Introduce kvm_get_arch_capabilities()
+
+Extracted from commit 5b76a3cff011 "KVM: VMX: Tell the nested
+hypervisor to skip L1D flush on vmentry".  We will need this to let a
+nested hypervisor know that we have applied the mitigation for TAA.
+
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ arch/x86/include/asm/kvm_host.h |  1 +
+ arch/x86/kvm/x86.c              | 13 +++++++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1062,6 +1062,7 @@ int kvm_arch_interrupt_allowed(struct kv
+ int kvm_cpu_get_interrupt(struct kvm_vcpu *v);
+ void kvm_vcpu_reset(struct kvm_vcpu *vcpu);
+ 
++u64 kvm_get_arch_capabilities(void);
+ void kvm_define_shared_msr(unsigned index, u32 msr);
+ int kvm_set_shared_msr(unsigned index, u64 val, u64 mask);
+ 
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -911,6 +911,16 @@ static u32 emulated_msrs[] = {
+ 
+ static unsigned num_emulated_msrs;
+ 
++u64 kvm_get_arch_capabilities(void)
++{
++	u64 data;
++
++	rdmsrl_safe(MSR_IA32_ARCH_CAPABILITIES, &data);
++
++	return data;
++}
++EXPORT_SYMBOL_GPL(kvm_get_arch_capabilities);
++
+ bool kvm_valid_efer(struct kvm_vcpu *vcpu, u64 efer)
+ {
+ 	if (efer & efer_reserved_bits)
+@@ -6969,8 +6979,7 @@ int kvm_arch_vcpu_setup(struct kvm_vcpu
+ 	int r;
+ 
+ 	if (boot_cpu_has(X86_FEATURE_ARCH_CAPABILITIES))
+-		rdmsrl(MSR_IA32_ARCH_CAPABILITIES,
+-		       vcpu->arch.arch_capabilities);
++		vcpu->arch.arch_capabilities = kvm_get_arch_capabilities();
+ 	vcpu->arch.mtrr_state.have_fixed = 1;
+ 	r = vcpu_load(vcpu);
+ 	if (r)
