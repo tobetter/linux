@@ -1,3 +1,9 @@
+linux-4.9 (4.9.189-3+deb9u2~deb8u1) jessie-security; urgency=medium
+
+  * Backport to jessie; no further changes required
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Tue, 12 Nov 2019 22:05:49 +0000
+
 linux (4.9.189-3+deb9u2) stretch-security; urgency=high
 
   * [x86] Add mitigation for TSX Asynchronous Abort (CVE-2019-11135):
