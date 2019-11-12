@@ -1,3 +1,72 @@
+linux (4.9.189-3+deb9u2) stretch-security; urgency=high
+
+  * [x86] Add mitigation for TSX Asynchronous Abort (CVE-2019-11135):
+    - KVM: x86: use Intel speculation bugs and features as derived in generic
+      x86 code
+    - x86/msr: Add the IA32_TSX_CTRL MSR
+    - x86/cpu: Add a helper function x86_read_arch_cap_msr()
+    - x86/cpu: Add a "tsx=" cmdline option with TSX disabled by default
+    - x86/speculation/taa: Add mitigation for TSX Async Abort
+    - x86/speculation/taa: Add sysfs reporting for TSX Async Abort
+    - kvm/x86: Export MDS_NO=0 to guests when TSX is enabled
+    - x86/tsx: Add "auto" option to the tsx= cmdline parameter
+    - x86/speculation/taa: Add documentation for TSX Async Abort
+    - x86/tsx: Add config options to set tsx=on|off|auto
+    - x86/speculation/taa: Fix printing of TAA_MSG_SMT on IBRS_ALL CPUs
+    TSX is now disabled by default; see
+    Documentation/hw-vuln/tsx_async_abort.rst
+  * [x86] KVM: Add mitigation for Machine Check Error on Page Size Change
+    (aka iTLB multi-hit, CVE-2018-12207):
+    - KVM: x86: simplify ept_misconfig
+    - KVM: x86: extend usage of RET_MMIO_PF_* constants
+    - KVM: MMU: drop vcpu param in gpte_access
+    - kvm: Convert kvm_lock to a mutex
+    - kvm: x86: Do not release the page inside mmu_set_spte()
+    - KVM: x86: make FNAME(fetch) and __direct_map more similar
+    - KVM: x86: remove now unneeded hugepage gfn adjustment
+    - KVM: x86: change kvm_mmu_page_get_gfn BUG_ON to WARN_ON
+    - KVM: x86: Add is_executable_pte()
+    - KVM: x86: add tracepoints around __direct_map and FNAME(fetch)
+    - KVM: vmx, svm: always run with EFER.NXE=1 when shadow paging is active
+    - x86/bugs: Add ITLB_MULTIHIT bug infrastructure
+    - cpu/speculation: Uninline and export CPU mitigations helpers
+    - kvm: mmu: ITLB_MULTIHIT mitigation
+    - kvm: Add helper function for creating VM worker threads
+    - kvm: x86: mmu: Recovery of shattered NX large pages
+    - Documentation: Add ITLB_MULTIHIT documentation
+  * [x86] i915: Mitigate local privilege escalation on gen9 (CVE-2019-0155):
+    - drm/i915: kick out cmd_parser specific structs from i915_drv.h
+    - drm/i915: cleanup use of INSTR_CLIENT_MASK
+    - drm/i915: return EACCES for check_cmd() failures
+    - drm/i915: don't whitelist oacontrol in cmd parser
+    - drm/i915: Use the precomputed value for whether to enable command parsing
+    - drm/i915/cmdparser: Limit clflush to active cachelines
+    - drm/i915/gtt: Add read only pages to gen8_pte_encode
+    - drm/i915/gtt: Read-only pages for insert_entries on bdw+
+    - drm/i915/gtt: Disable read-only support under GVT
+    - drm/i915: Prevent writing into a read-only object via a GGTT mmap
+    - drm/i915/cmdparser: Check reg_table_count before derefencing.
+    - drm/i915/cmdparser: Do not check past the cmd length.
+    - drm/i915: Silence smatch for cmdparser
+    - drm/i915: Move engine->needs_cmd_parser to engine->flags
+    - drm/i915: Rename gen7 cmdparser tables
+    - drm/i915: Disable Secure Batches for gen6+
+    - drm/i915: Remove Master tables from cmdparser
+    - drm/i915: Add support for mandatory cmdparsing
+    - drm/i915: Support ro ppgtt mapped cmdparser shadow buffers
+    - drm/i915: Allow parsing of unsized batches
+    - drm/i915: Add gen9 BCS cmdparsing
+    - drm/i915/cmdparser: Use explicit goto for error paths
+    - drm/i915/cmdparser: Add support for backward jumps
+    - drm/i915/cmdparser: Ignore Length operands during command matching
+    - drm/i915/cmdparser: Fix jump whitelist clearing
+  * [x86] i915: Mitigate local denial-of-service on gen8/gen9 (CVE-2019-0154):
+    - drm/i915: Lower RM timeout to avoid DSI hard hangs
+    - drm/i915/gen8+: Add RC6 CTX corruption WA
+  * drm/i915: Avoid ABI change for CVE-2019-0155
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Mon, 11 Nov 2019 12:18:59 +0000
+
 linux-4.9 (4.9.189-3+deb9u1~deb8u1) jessie-security; urgency=medium
 
   * Backport to jessie; no further changes required
