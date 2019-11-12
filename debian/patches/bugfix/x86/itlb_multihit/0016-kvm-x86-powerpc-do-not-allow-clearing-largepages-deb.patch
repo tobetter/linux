@@ -1,0 +1,95 @@
+From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Fri, 11 Oct 2019 11:59:48 +0200
+Subject: kvm: x86, powerpc: do not allow clearing largepages debugfs entry
+
+commit 833b45de69a6016c4b0cebe6765d526a31a81580 upstream
+
+The largepages debugfs entry is incremented/decremented as shadow
+pages are created or destroyed.  Clearing it will result in an
+underflow, which is harmless to KVM but ugly (and could be
+misinterpreted by tools that use debugfs information), so make
+this particular statistic read-only.
+
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: kvm-ppc@vger.kernel.org
+---
+ arch/x86/kvm/x86.c       |  6 +++---
+ include/linux/kvm_host.h |  2 ++
+ virt/kvm/kvm_main.c      | 10 +++++++---
+ 3 files changed, 12 insertions(+), 6 deletions(-)
+
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -92,8 +92,8 @@ u64 __read_mostly efer_reserved_bits = ~
+ static u64 __read_mostly efer_reserved_bits = ~((u64)EFER_SCE);
+ #endif
+ 
+-#define VM_STAT(x) offsetof(struct kvm, stat.x), KVM_STAT_VM
+-#define VCPU_STAT(x) offsetof(struct kvm_vcpu, stat.x), KVM_STAT_VCPU
++#define VM_STAT(x, ...) offsetof(struct kvm, stat.x), KVM_STAT_VM, ## __VA_ARGS__
++#define VCPU_STAT(x, ...) offsetof(struct kvm_vcpu, stat.x), KVM_STAT_VCPU, ## __VA_ARGS__
+ 
+ #define KVM_X2APIC_API_VALID_FLAGS (KVM_X2APIC_API_USE_32BIT_IDS | \
+                                     KVM_X2APIC_API_DISABLE_BROADCAST_QUIRK)
+@@ -205,7 +205,7 @@ struct kvm_stats_debugfs_item debugfs_en
+ 	{ "mmu_cache_miss", VM_STAT(mmu_cache_miss) },
+ 	{ "mmu_unsync", VM_STAT(mmu_unsync) },
+ 	{ "remote_tlb_flush", VM_STAT(remote_tlb_flush) },
+-	{ "largepages", VM_STAT(lpages) },
++	{ "largepages", VM_STAT(lpages, .mode = 0444) },
+ 	{ "max_mmu_page_hash_collisions",
+ 		VM_STAT(max_mmu_page_hash_collisions) },
+ 	{ NULL }
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -1034,6 +1034,7 @@ enum kvm_stat_kind {
+ 
+ struct kvm_stat_data {
+ 	int offset;
++	int mode;
+ 	struct kvm *kvm;
+ };
+ 
+@@ -1041,6 +1042,7 @@ struct kvm_stats_debugfs_item {
+ 	const char *name;
+ 	int offset;
+ 	enum kvm_stat_kind kind;
++	int mode;
+ };
+ extern struct kvm_stats_debugfs_item debugfs_entries[];
+ extern struct dentry *kvm_debugfs_dir;
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -616,8 +616,9 @@ static int kvm_create_vm_debugfs(struct
+ 
+ 		stat_data->kvm = kvm;
+ 		stat_data->offset = p->offset;
++		stat_data->mode = p->mode ? p->mode : 0644;
+ 		kvm->debugfs_stat_data[p - debugfs_entries] = stat_data;
+-		debugfs_create_file(p->name, 0644, kvm->debugfs_dentry,
++		debugfs_create_file(p->name, stat_data->mode, kvm->debugfs_dentry,
+ 				    stat_data, stat_fops_per_vm[p->kind]);
+ 	}
+ 	return 0;
+@@ -3714,7 +3715,9 @@ static int kvm_debugfs_open(struct inode
+ 	if (!refcount_inc_not_zero(&stat_data->kvm->users_count))
+ 		return -ENOENT;
+ 
+-	if (simple_attr_open(inode, file, get, set, fmt)) {
++	if (simple_attr_open(inode, file, get,
++			     stat_data->mode & S_IWUGO ? set : NULL,
++			     fmt)) {
+ 		kvm_put_kvm(stat_data->kvm);
+ 		return -ENOMEM;
+ 	}
+@@ -3962,7 +3965,8 @@ static void kvm_init_debug(void)
+ 
+ 	kvm_debugfs_num_entries = 0;
+ 	for (p = debugfs_entries; p->name; ++p, kvm_debugfs_num_entries++) {
+-		debugfs_create_file(p->name, 0644, kvm_debugfs_dir,
++		int mode = p->mode ? p->mode : 0644;
++		debugfs_create_file(p->name, mode, kvm_debugfs_dir,
+ 				    (void *)(long)p->offset,
+ 				    stat_fops[p->kind]);
+ 	}

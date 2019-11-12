@@ -158,16 +158,6 @@ features/all/db-mok-keyring/0003-MODSIGN-checking-the-blacklisted-hash-before-lo
 features/all/db-mok-keyring/0004-MODSIGN-check-the-attributes-of-db-and-mok.patch
 features/all/db-mok-keyring/modsign-make-shash-allocation-failure-fatal.patch
 
-# Security fixes
-debian/i386-686-pae-pci-set-pci-nobios-by-default.patch
-debian/ntfs-mark-it-as-broken.patch
-bugfix/all/netfilter-conntrack-use-consistent-ct-id-hash-calcul.patch
-bugfix/all/ALSA-usb-audio-Fix-an-OOB-bug-in-parse_audio_mixer_unit.patch
-bugfix/all/ALSA-usb-audio-Fix-a-stack-buffer-overflow-bug-in-check_input_term.patch
-bugfix/all/vhost-make-sure-log_num-in_num.patch
-bugfix/x86/x86-ptrace-fix-up-botched-merge-of-spectrev1-fix.patch
-bugfix/all/KVM-coalesced_mmio-add-bounds-checking.patch
-
 # Fix exported symbol versions
 bugfix/all/module-disable-matching-missing-version-crc.patch
 
@@ -258,6 +248,54 @@ bugfix/arm64/huawei-taishan/0033-scsi-hisi_sas-fix-calls-to-dma_set_mask_and_coh
 features/arm/ARM-dts-add-Raspberry-Pi-Compute-Module-3-and-IO-boa.patch
 features/arm64/arm64-dts-broadcom-Add-reference-to-Compute-Module-I.patch
 features/arm64/arm64-dts-broadcom-Use-the-.dtb-name-in-the-rule-rat.patch
+
+# Security fixes
+debian/i386-686-pae-pci-set-pci-nobios-by-default.patch
+debian/ntfs-mark-it-as-broken.patch
+bugfix/all/netfilter-conntrack-use-consistent-ct-id-hash-calcul.patch
+bugfix/all/ALSA-usb-audio-Fix-an-OOB-bug-in-parse_audio_mixer_unit.patch
+bugfix/all/ALSA-usb-audio-Fix-a-stack-buffer-overflow-bug-in-check_input_term.patch
+bugfix/all/vhost-make-sure-log_num-in_num.patch
+bugfix/x86/x86-ptrace-fix-up-botched-merge-of-spectrev1-fix.patch
+bugfix/all/KVM-coalesced_mmio-add-bounds-checking.patch
+bugfix/x86/taa/0001-KVM-x86-use-Intel-speculation-bugs-and-features-as-d.patch
+bugfix/x86/taa/0002-x86-msr-Add-the-IA32_TSX_CTRL-MSR.patch
+bugfix/x86/taa/0003-x86-cpu-Add-a-helper-function-x86_read_arch_cap_msr.patch
+bugfix/x86/taa/0004-x86-cpu-Add-a-tsx-cmdline-option-with-TSX-disabled-b.patch
+bugfix/x86/taa/0005-x86-speculation-taa-Add-mitigation-for-TSX-Async-Abo.patch
+bugfix/x86/taa/0006-x86-speculation-taa-Add-sysfs-reporting-for-TSX-Asyn.patch
+bugfix/x86/taa/0007-kvm-x86-Export-MDS_NO-0-to-guests-when-TSX-is-enable.patch
+bugfix/x86/taa/0008-x86-tsx-Add-auto-option-to-the-tsx-cmdline-parameter.patch
+bugfix/x86/taa/0009-x86-speculation-taa-Add-documentation-for-TSX-Async-.patch
+bugfix/x86/taa/0010-x86-tsx-Add-config-options-to-set-tsx-on-off-auto.patch
+bugfix/x86/taa/0015-x86-speculation-taa-Fix-printing-of-TAA_MSG_SMT-on-I.patch
+bugfix/x86/itlb_multihit/0011-x86-bugs-Add-ITLB_MULTIHIT-bug-infrastructure.patch
+bugfix/x86/itlb_multihit/0013-cpu-speculation-Uninline-and-export-CPU-mitigations-.patch
+bugfix/x86/itlb_multihit/0014-Documentation-Add-ITLB_MULTIHIT-documentation.patch
+bugfix/x86/itlb_multihit/0016-kvm-x86-powerpc-do-not-allow-clearing-largepages-deb.patch
+bugfix/x86/itlb_multihit/0017-kvm-Convert-kvm_lock-to-a-mutex.patch
+bugfix/x86/itlb_multihit/0018-kvm-mmu-Do-not-release-the-page-inside-mmu_set_spte.patch
+bugfix/x86/itlb_multihit/0019-KVM-x86-make-FNAME-fetch-and-__direct_map-more-simil.patch
+bugfix/x86/itlb_multihit/0020-KVM-x86-remove-now-unneeded-hugepage-gfn-adjustment.patch
+bugfix/x86/itlb_multihit/0021-KVM-x86-change-kvm_mmu_page_get_gfn-BUG_ON-to-WARN_O.patch
+bugfix/x86/itlb_multihit/0022-KVM-x86-add-tracepoints-around-__direct_map-and-FNAM.patch
+bugfix/x86/itlb_multihit/0023-KVM-vmx-svm-always-run-with-EFER.NXE-1-when-shadow-p.patch
+bugfix/x86/itlb_multihit/0024-kvm-mmu-ITLB_MULTIHIT-mitigation.patch
+bugfix/x86/itlb_multihit/0025-kvm-Add-helper-function-for-creating-VM-worker-threa.patch
+bugfix/x86/itlb_multihit/0026-kvm-x86-mmu-Recovery-of-shattered-NX-large-pages.patch
+bugfix/x86/i915/0001-drm-i915-Rename-gen7-cmdparser-tables.patch
+bugfix/x86/i915/0002-drm-i915-Disable-Secure-Batches-for-gen6.patch
+bugfix/x86/i915/0003-drm-i915-Remove-Master-tables-from-cmdparser.patch
+bugfix/x86/i915/0004-drm-i915-Add-support-for-mandatory-cmdparsing.patch
+bugfix/x86/i915/0005-drm-i915-Support-ro-ppgtt-mapped-cmdparser-shadow-bu.patch
+bugfix/x86/i915/0006-drm-i915-Allow-parsing-of-unsized-batches.patch
+bugfix/x86/i915/0007-drm-i915-Add-gen9-BCS-cmdparsing.patch
+bugfix/x86/i915/0008-drm-i915-cmdparser-Use-explicit-goto-for-error-paths.patch
+bugfix/x86/i915/0009-drm-i915-cmdparser-Add-support-for-backward-jumps.patch
+bugfix/x86/i915/0010-drm-i915-cmdparser-Ignore-Length-operands-during-com.patch
+bugfix/x86/i915/0011-drm-i915-Lower-RM-timeout-to-avoid-DSI-hard-hangs.patch
+bugfix/x86/i915/0012-drm-i915-gen8-Add-RC6-CTX-corruption-WA.patch
+bugfix/x86/i915/drm-i915-cmdparser-fix-jump-whitelist-clearing.patch
 
 # ABI maintenance
 debian/abi/powerpc-avoid-abi-change-for-disabling-tm.patch
