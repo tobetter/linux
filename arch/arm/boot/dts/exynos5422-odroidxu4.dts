@@ -11,6 +11,7 @@
 /dts-v1/;
 #include <dt-bindings/sound/samsung-i2s.h>
 #include "exynos5422-odroidxu3-common.dtsi"
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	model = "Hardkernel Odroid XU4";
@@ -108,4 +109,23 @@
 	status = "okay";
 	samsung,hs-mode;
 	clock-frequency = <400000>;
+};
+
+&spi_1 {
+	status = "okay";
+	samsung,spi-src-clk = <0>;
+	num-cs = <2>;
+	cs-gpios = <&gpa2 5 GPIO_ACTIVE_HIGH>, <&gpx2 1 GPIO_ACTIVE_HIGH>;
+
+	spidev: spidev@0 {
+		status = "okay";
+		reg = <0>;
+		compatible = "odroid,spidev";
+		spi-max-frequency = <1000000>;
+
+		controller-data {
+			cs-gpio = <&gpa2 5 GPIO_ACTIVE_HIGH>;
+			samsung,spi-feedback-delay = <0>;
+		};
+	};
 };
