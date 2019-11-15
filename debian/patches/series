@@ -684,21 +684,6 @@ bugfix/all/pie-aslr/mm-revert-x86_64-and-arm64-elf_et_dyn_base-base-chan.patch
 bugfix/all/mbcache-reschedule-before-restarting-iteration-in-mb_cache_entry_alloc.patch
 bugfix/all/scsi-libsas-direct-call-probe-and-destruct.patch
 bugfix/all/Revert-net-increase-fragment-memory-usage-limits.patch
-bugfix/all/net-netem-fix-error-path-for-corrupted-gso-frames.patch
-bugfix/x86/taa/0001-KVM-Introduce-kvm_get_arch_capabilities.patch
-bugfix/x86/taa/0002-KVM-x86-use-Intel-speculation-bugs-and-features-as-d.patch
-bugfix/x86/taa/0003-x86-msr-Add-the-IA32_TSX_CTRL-MSR.patch
-bugfix/x86/taa/0004-x86-cpu-Add-a-helper-function-x86_read_arch_cap_msr.patch
-bugfix/x86/taa/0005-x86-cpu-Add-a-tsx-cmdline-option-with-TSX-disabled-b.patch
-bugfix/x86/taa/0006-x86-speculation-taa-Add-mitigation-for-TSX-Async-Abo.patch
-bugfix/x86/taa/0007-x86-speculation-taa-Add-sysfs-reporting-for-TSX-Asyn.patch
-bugfix/x86/taa/0008-kvm-x86-Export-MDS_NO-0-to-guests-when-TSX-is-enable.patch
-bugfix/x86/taa/0009-x86-tsx-Add-auto-option-to-the-tsx-cmdline-parameter.patch
-bugfix/x86/taa/0010-x86-speculation-taa-Add-documentation-for-TSX-Async-.patch
-bugfix/x86/taa/0011-x86-tsx-Add-config-options-to-set-tsx-on-off-auto.patch
-bugfix/x86/taa/0012-x86-speculation-taa-Fix-printing-of-TAA_MSG_SMT-on-I.patch
-bugfix/x86/x86-bugs-add-itlb_multihit-bug-infrastructure.patch
-bugfix/x86/drm-i915-gen8-add-rc6-ctx-corruption-wa.patch
 
 # Fix ABI changes
 debian/abi/revert-x86-cpufeatures-renumber-word-7.patch
