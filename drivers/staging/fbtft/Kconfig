@@ -213,3 +213,10 @@ config FB_TFT_HKTFT35
 	help
 	  Generic Framebuffer support for the Hardkernel 3.5 inch TFT LCD
 	  that uses the ILI9488 LCD Controller
+
+config FB_TFT_HKTFT32
+	tristate "FB driver for the Hardkernel 3.2 inch TFT LCD"
+	depends on FB_TFT
+	help
+	  Generic Framebuffer support for the Hardkernel 3.2 inch TFT LCD
+	  that uses the ILI9340 LCD Controller
