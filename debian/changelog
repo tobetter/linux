@@ -1,4 +1,4 @@
-linux (3.16.77-1) UNRELEASED; urgency=medium
+linux (3.16.78-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.77
@@ -15,6 +15,91 @@ linux (3.16.77-1) UNRELEASED; urgency=medium
     - nfc: enforce CAP_NET_RAW for raw sockets (CVE-2019-17056)
     - cfg80211: wext: avoid copying malformed SSIDs (CVE-2019-17133)
     - rtlwifi: Fix potential overflow on P2P code (CVE-2019-17666)
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.78
+    - hwmon: (nct6775) Fix register address and added missed tolerance for
+      nct6106
+    - [x86] sysfb_efi: Add quirks for some devices with swapped width and
+      height
+    - [armhf] mmc: mmc_spi: Enable stable writes
+    - ALSA: compress: Fix regression on compressed capture streams
+    - can: peak_usb: fix potential double kfree_skb()
+    - [x86] usb: pci-quirks: Correct AMD PLL quirk detection
+    - usb: wusbcore: fix unbalanced get/put cluster_id
+    - [x86] speculation/mds: Apply more accurate check on hypervisor platform
+    - [x86] hpet: Fix division by zero in hpet_time_div()
+    - sched/fair: Don't free p->numa_faults with concurrent readers
+    - tty/ldsem, locking/rwsem: Add missing ACQUIRE to read_failed sleep loop
+    - bnx2x: Disable multi-cos feature.
+    - net: sched: Fix a possible null-pointer dereference in dequeue_func()
+    - net: fix ifindex collision during namespace removal
+    - libata: zpodd: Fix small read overflow in zpodd_get_mech_type()
+    - selinux: fix memory leak in policydb_init()
+    - net: bridge: mcast: don't delete permanent entries when fast leave is
+      enabled
+    - xen/swiotlb: fix condition for calling xen_destroy_contiguous_region()
+    - can: peak_usb: pcan_usb_pro: Fix info-leaks to USB devices
+    - asm-generic: fix -Wtype-limits compiler warnings
+    - NFSv4: Fix a potential sleep while atomic in nfs4_do_reclaim()
+    - USB: serial: option: Add support for ZTE MF871A
+    - usb: yurex: Fix use-after-free in yurex_delete
+    - SMB3: Fix deadlock in validate negotiate hits reconnect
+    - smb3: send CAP_DFS capability during session setup
+    - sound: fix a memory leak bug
+    - ALSA: firewire: fix a memory leak bug
+    - ALSA: hda - Fix a memory leak bug
+    - [x86] staging: comedi: dt3000: Fix signed integer overflow 'divider *
+      base'
+    - [x86] staging: comedi: dt3000: Fix rounding up of timer divisor
+    - USB: core: Fix races in character device registration and deregistraion
+    - netfilter: conntrack: Use consistent ct id hash calculation
+    - sctp: fix the transport error_count check
+    - USB: serial: option: Add Motorola modem UARTs
+    - usb: cdc-acm: make sure a refcount is taken early enough
+    - net/packet: fix race in tpacket_snd()
+    - Revert "cfg80211: fix processing world regdomain when non modular"
+    - usb-storage: Add new JMS567 revision to unusual_devs
+    - dm btree: fix order of block initialization in btree_split_beneath
+    - dm space map metadata: fix missing store of apply_bops() return value
+    - dm table: fix invalid memory accesses with too high sector number
+    - [i386] retpoline: Don't clobber RFLAGS during CALL_NOSPEC on i386
+    - batman-adv: Only read OGM tvlv_len after buffer len check
+    - ALSA: seq: Fix potential concurrent access to the deleted pool
+    - [x86] ptrace: Make user_64bit_mode() available to 32-bit builds
+    - [x86] uprobes: Fix detection of 32-bit user mode
+    - [x86] apic: Do not initialize LDR and DFR for bigsmp
+    - [x86] apic: Drop logical_smp_processor_id() inline
+    - [i386] apic: Avoid bogus LDR warnings
+    - usb: host: ohci: fix a race condition between shutdown and irq
+    - USB: storage: ums-realtek: Update module parameter description for
+      auto_delink_en
+    - USB: storage: ums-realtek: Whitelist auto-delink support
+    - USB: cdc-wdm: fix race between write and disconnect due to flag abuse
+    - [x86] VMCI: Release resource if the work is already queued
+    - mld: fix memory leak in mld_del_delrec()
+    - ALSA: hda - Fix potential endless loop at applying quirks
+    - mmc: core: Fix init of SD cards reporting an invalid VDD range
+    - net: seeq: Fix the function used to release some memory in an error
+      handling path
+    - sched/fair: Don't assign runtime for throttled cfs_rq
+    - sctp: use transport pf_retrans in sctp_do_8_2_transport_strike
+    - genirq: Prevent NULL pointer dereference in resend_irqs()
+    - keys: Fix missing null pointer check in request_key_auth_describe()
+    - sch_hhf: ensure quantum and hhf_non_hh_weight are non-zero
+    - tcp: fix tcp_ecn_withdraw_cwr() to clear TCP_ECN_QUEUE_CWR
+    - tun: fix use-after-free when register netdev failed
+    - ipv6: Fix the link time qualifier of 'ping_v6_proc_exit_net()'
+    - net: Fix null de-reference of device refcount
+    - sctp: Fix the link time qualifier of 'sctp_ctrlsock_exit()'
+    - [x86] KVM: nVMX: handle page fault in vmread
+    - [x86] KVM: work around leak of uninitialized stack contents
+    - [armhf] PCI: tegra: Enable Relaxed Ordering only for Tegra20 & Tegra30
+    - alarmtimer: Use EOPNOTSUPP instead of ENOTSUPP
+    - cifs: use cifsInodeInfo->open_file_lock while iterating to avoid a panic
+    - CIFS: Fix use after free of file info structures
+    - md/raid: raid5 preserve the writeback action after the parity check
+    - btrfs: partially apply b8b93addde
+    - btrfs: volumes: Cleanup stripe size calculation
+    - btrfs: alloc_chunk: fix more DUP stripe size handling
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 
