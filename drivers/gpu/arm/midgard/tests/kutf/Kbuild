@@ -12,6 +12,7 @@
 #
 #
 
+src = $(srctree)/drivers/gpu/arm/midgard/tests/kutf
 
 ccflags-y += -I$(src)/../include
 

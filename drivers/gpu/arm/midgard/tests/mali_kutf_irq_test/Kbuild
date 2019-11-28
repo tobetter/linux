@@ -12,6 +12,7 @@
 #
 #
 
+src = $(srctree)/drivers/gpu/arm/midgard/tests/mali_kutf_irq_test
 
 ccflags-y += -I$(src)/../include -I$(src)/../../../ -I$(src)/../../ -I$(src)/../../backend/gpu -I$(srctree)/drivers/staging/android
 

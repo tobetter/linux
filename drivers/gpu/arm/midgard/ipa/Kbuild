@@ -12,6 +12,7 @@
 #
 #
 
+src = $(srctree)/drivers/gpu/arm/midgard
 
 mali_kbase-y += \
 	ipa/mali_kbase_ipa_simple.o \

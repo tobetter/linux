@@ -17,6 +17,8 @@
 # Driver version string which is returned to userspace via an ioctl
 MALI_RELEASE_NAME ?= "r21p0-01rel0"
 
+src = $(srctree)/drivers/gpu/arm/midgard
+
 # Paths required for build
 KBASE_PATH = $(src)
 KBASE_PLATFORM_PATH = $(KBASE_PATH)/platform_dummy
