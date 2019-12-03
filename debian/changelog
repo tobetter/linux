@@ -51,6 +51,7 @@ linux (3.16.78-1) UNRELEASED; urgency=medium
       base'
     - [x86] staging: comedi: dt3000: Fix rounding up of timer divisor
     - USB: core: Fix races in character device registration and deregistraion
+      (CVE-2019-19537)
     - netfilter: conntrack: Use consistent ct id hash calculation
     - sctp: fix the transport error_count check
     - USB: serial: option: Add Motorola modem UARTs
