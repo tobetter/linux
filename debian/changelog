@@ -57,6 +57,7 @@ linux (3.16.78-1) UNRELEASED; urgency=medium
     - sctp: fix the transport error_count check
     - USB: serial: option: Add Motorola modem UARTs
     - usb: cdc-acm: make sure a refcount is taken early enough
+      (CVE-2019-19530)
     - net/packet: fix race in tpacket_snd()
     - Revert "cfg80211: fix processing world regdomain when non modular"
     - usb-storage: Add new JMS567 revision to unusual_devs
