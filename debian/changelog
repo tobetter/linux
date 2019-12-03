@@ -38,6 +38,7 @@ linux (3.16.78-1) UNRELEASED; urgency=medium
       enabled
     - xen/swiotlb: fix condition for calling xen_destroy_contiguous_region()
     - can: peak_usb: pcan_usb_pro: Fix info-leaks to USB devices
+      (CVE-2019-19536)
     - asm-generic: fix -Wtype-limits compiler warnings
     - NFSv4: Fix a potential sleep while atomic in nfs4_do_reclaim()
     - USB: serial: option: Add support for ZTE MF871A
