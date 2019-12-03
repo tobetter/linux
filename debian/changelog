@@ -42,7 +42,7 @@ linux (3.16.78-1) UNRELEASED; urgency=medium
     - asm-generic: fix -Wtype-limits compiler warnings
     - NFSv4: Fix a potential sleep while atomic in nfs4_do_reclaim()
     - USB: serial: option: Add support for ZTE MF871A
-    - usb: yurex: Fix use-after-free in yurex_delete
+    - usb: yurex: Fix use-after-free in yurex_delete (CVE-2019-19531)
     - SMB3: Fix deadlock in validate negotiate hits reconnect
     - smb3: send CAP_DFS capability during session setup
     - sound: fix a memory leak bug
