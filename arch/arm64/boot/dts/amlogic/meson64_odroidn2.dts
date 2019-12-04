@@ -472,6 +472,14 @@
 	cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>,
 		   <&gpio GPIOA_4 GPIO_ACTIVE_LOW>;
 
+	can0: can@0 {
+		compatible = "microchip,mcp2515";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		status = "disabled";
+		gpio-irq = <&gpio GPIOX_3 GPIO_ACTIVE_LOW>;
+	};
+
 	spidev@0 {
 		status = "disabled";
 
