@@ -214,7 +214,7 @@ MACHINE_END
 		.init_early	= exynos_firmware_init,		\
 		.init_irq	= exynos_init_irq,		\
 		.init_machine	= exynos_dt_machine_init,	\
-		.init_late	= exynos_init_late,		\
+		.init_late	= exynos_pm_init,		\
 		.dt_compat	= compat,			\
 		.dt_fixup	= exynos_dt_fixup,		\
 	MACHINE_END
