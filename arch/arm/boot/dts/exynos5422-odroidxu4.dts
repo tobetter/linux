@@ -143,25 +143,25 @@
 
 /* i2c@12C70000 */
 &i2c_1 {
-	status = "okay";
+	status = "disabled";
 	samsung,i2c-max-bus-freq = <400000>;
 };
 
 /* i2c@12cb0000 */
 &hsi2c_5 {
-	status = "okay";
+	status = "disabled";
 	samsung,hs-mode;
 	clock-frequency = <400000>;
 };
 
 &spi_1 {
-	status = "okay";
+	status = "disabled";
 	samsung,spi-src-clk = <0>;
 	num-cs = <2>;
 	cs-gpios = <&gpa2 5 GPIO_ACTIVE_HIGH>, <&gpx2 1 GPIO_ACTIVE_HIGH>;
 
 	spidev: spidev@0 {
-		status = "okay";
+		status = "disabled";
 		reg = <0>;
 		compatible = "odroid,spidev";
 		spi-max-frequency = <1000000>;
