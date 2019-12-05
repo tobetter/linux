@@ -206,7 +206,7 @@ DT_MACHINE_START(EXYNOS_DT, "Samsung Exynos (Flattened Device Tree)")
 MACHINE_END
 
 #define ODROID_MACHINE_START(name, compat)			\
-	DT_MACHINE_START(EXYNOS5422_ODROID_##name, "ODROID-"#name)	\
+	DT_MACHINE_START(EXYNOS5422_ODROID_##name, "Hardkernel ODROID-"#name)	\
 		.l2c_aux_val	= 0x3c400001,			\
 		.l2c_aux_mask	= 0xc20fffff,			\
 		.smp		= smp_ops(exynos_smp_ops),	\
