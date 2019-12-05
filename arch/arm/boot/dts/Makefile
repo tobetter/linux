@@ -1438,3 +1438,7 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
 	aspeed-bmc-portwell-neptune.dtb \
 	aspeed-bmc-quanta-q71l.dtb \
 	aspeed-bmc-supermicro-x11spi.dtb
+
+targets += $(dtb-y)
+
+subdir-y := overlays
