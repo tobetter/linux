@@ -1,4 +1,4 @@
-linux (3.16.78-1) UNRELEASED; urgency=medium
+linux (3.16.79-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.77
@@ -103,6 +103,71 @@ linux (3.16.78-1) UNRELEASED; urgency=medium
     - btrfs: partially apply b8b93addde
     - btrfs: volumes: Cleanup stripe size calculation
     - btrfs: alloc_chunk: fix more DUP stripe size handling
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.79
+    - ASoC: Define a set of DAPM pre/post-up events
+    - media: dib0700: fix link error for dibx000_i2c_set_speed
+    - libertas_tf: Use correct channel range in lbtf_geo_init
+    - [x86] reboot: Always use NMI fallback when shutdown via reboot vector IPI
+      fails
+    - [armhf] video: of: display_timing: Add of_node_put() in
+      of_get_display_timing()
+    - [x86] efi: cper: print AER info of PCIe fatal error
+    - ext4: set error return correctly when ext4_htree_store_dirent fails
+    - media: tm6000: double free if usb disconnect while streaming
+    - HID: hidraw: Fix invalid read in hidraw_ioctl
+    - ext4: fix warning inside ext4_convert_unwritten_extents_endio
+    - media: sn9c20x: Add MSI MS-1039 laptop to flip_dmi_table
+    - mtd: cfi_cmdset_0002: Use chip_good() to retry in do_write_oneword()
+    - /dev/mem: Bail out upon SIGKILL.
+    - USB: usbcore: Fix slab-out-of-bounds bug during device reset
+    - HID: prodikeys: Fix general protection fault during probe
+    - Btrfs: fix use-after-free when using the tree modification log
+    - btrfs: Relinquish CPUs in btrfs_compare_trees
+    - [x86] KVM: mmio: cleanup kvm_set_mmio_spte_mask
+    - [x86] KVM: Manually calculate reserved bits when loading PDPTRS
+    - [x86] kvm: mmu: Don't read PDPTEs when paging is not enabled
+    - cfg80211: Purge frame registrations on iftype change
+    - configfs: fix a deadlock in configfs_symlink()
+    - hwrng: core - don't wait on add_early_randomness()
+    - [x86] ALSA: hda - Add laptop imic fixup for ASUS M9V laptop
+    - sch_netem: fix a divide by zero in tabledist()
+    - net/phy: fix DP83865 10 Mbps HDX loopback disable function
+    - thermal: Fix use-after-free when unregistering thermal zone device
+    - thermal: Fix deadlock in thermal thermal_zone_device_check
+    - CIFS: fix max ea value size
+    - fuse: fix missing unlock_page in fuse_writepage()
+    - CIFS: Fix oplock handling for SMB 2.1+ protocols
+    - ANDROID: binder: remove waitqueue when thread exits. (CVE-2019-2215)
+    - media: b2c2-flexcop-usb: add sanity checking (CVE-2019-15291)
+    - cfg80211: add and use strongly typed element iteration macros
+    - nl80211: validate beacon head (CVE-2019-16746)
+    - wimax: i2400: fix memory leak (CVE-2019-19051)
+    - wimax: i2400: Fix memory leak in i2400m_op_rfkill_sw_toggle
+      (CVE-2019-19051)
+    - can: gs_usb: gs_can_open(): prevent memory leak (CVE-2019-19052)
+    - mwifiex: pcie: Fix memory leak in mwifiex_pcie_alloc_cmdrsp_buf
+      (CVE-2019-19056)
+    - mwifiex: pcie: Fix memory leak in mwifiex_pcie_init_evt_ring
+      (CVE-2019-19057)
+    - crypto: user - Fix crypto_alg_match race
+    - crypto: user - fix memory leak in crypto_report (CVE-2019-19062)
+    - scsi: bfa: release allocated memory in case of error (CVE-2019-19066)
+    - appletalk: Fix potential NULL pointer dereference in
+      unregister_snap_client (CVE-2019-19227)
+    - appletalk: Set error code if register_snap_client failed
+    - [x86] KVM: fix out-of-bounds write in KVM_GET_EMULATED_CPUID
+      (CVE-2019-19332)
+    - USB: adutux: remove redundant variable minor
+    - USB: adutux: fix use-after-free on disconnect (CVE-2019-19523)
+    - Input: ff-memless - kill timer in destroy() (CVE-2019-19524)
+    - HID: hiddev: do cleanup in failure of opening a device (CVE-2019-19527)
+    - HID: hiddev: avoid opening a disconnected device (CVE-2019-19527)
+    - usb: iowarrior: fix deadlock on disconnect
+    - USB: iowarrior: fix use-after-free on disconnect (CVE-2019-19528)
+    - HID: Fix assumption that devices have inputs (CVE-2019-19532)
+    - media: ttusb-dec: Fix info-leak in ttusb_dec_send_command()
+      (CVE-2019-19533)
+    - can: peak_usb: fix slab info leak (CVE-2019-19534)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 
