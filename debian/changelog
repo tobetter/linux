@@ -1,4 +1,4 @@
-linux (3.16.79-1) UNRELEASED; urgency=medium
+linux (3.16.80-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.77
@@ -168,6 +168,132 @@ linux (3.16.79-1) UNRELEASED; urgency=medium
     - media: ttusb-dec: Fix info-leak in ttusb_dec_send_command()
       (CVE-2019-19533)
     - can: peak_usb: fix slab info leak (CVE-2019-19534)
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.80
+    - hrtimer: Store cpu-number in struct hrtimer_cpu_base
+    - tick: broadcast-hrtimer: Remove overly clever return value abuse
+    - tick: hrtimer-broadcast: Prevent endless restarting when broadcast device
+      is unused
+    - tick: broadcast-hrtimer: Fix a race in bc_set_next
+    - sch_cbq: validate TCA_CBQ_WRROPT to avoid crash
+    - scsi: sd: Ignore a failure to sync cache due to lack of authorization
+    - staging: rtl8188eu: fix HighestRate check in odm_ARFBRefresh_8188E()
+    - HID: fix error message in hid_open_report()
+    - RDMA/iwcm: Fix a lock inversion issue
+    - net: stmmac: Correctly take timestamp for PTPv2
+    - hso: fix NULL-deref on tty open
+    - USB: serial: ftdi_sio: add device IDs for Sienna and Echelon PL-20
+    - [armhf] drm/omap: fix max fclk divider for omap36xx
+    - ipv6: drop incoming packets having a v4mapped source address
+    - USB: rio500: Remove Rio 500 kernel driver
+    - USB: serial: keyspan: fix NULL-derefs on open() and write()
+    - USB: microtek: fix info-leak at probe
+    - USB: adutux: fix NULL-derefs on disconnect
+    - USB: yurex: Don't retry on unexpected errors
+    - USB: dummy-hcd: fix power budget for SuperSpeed mode
+    - USB: usblcd: fix I/O after disconnect
+    - mac80211: Reject malformed SSID elements
+    - USB: legousbtower: fix slab info leak at probe
+    - USB: legousbtower: fix deadlock on disconnect
+    - USB: legousbtower: fix potential NULL-deref on disconnect
+    - USB: legousbtower: fix open after failed reset request
+    - xhci: Prevent device initiated U1/U2 link pm if exit latency is too long
+    - xhci: Check all endpoints for LPM timeout
+    - usb: xhci: wait for CNR controller not ready bit in xhci resume
+    - USB: usblp: fix runtime PM after driver unbind
+    - USB: serial: fix runtime PM after driver unbind
+    - media: stkwebcam: fix runtime PM after driver unbind
+    - net: ipv4: use a dedicated counter for icmp_v4 redirect packets
+    - net: ipv4: avoid mixed n_redirects and rate_tokens usage
+    - sch_dsmark: fix potential NULL deref in dsmark_init()
+    - nfc: fix memory leak in llcp_sock_bind()
+    - CIFS: Gracefully handle QueryInfo errors during open
+    - panic: ensure preemption is disabled during panic()
+    - llc: fix sk_buff leak in llc_sap_state_process()
+    - CIFS: Fix to check Unique id and FileType when client refer file
+      directly.
+    - cifs: Check uniqueid for SMB2+ and return -ESTALE if necessary
+    - CIFS: Force revalidate inode when dentry is stale
+    - CIFS: Force reval dentry if LOOKUP_REVAL flag is set
+    - memstick: jmb38x_ms: Fix an error handling path in 'jmb38x_ms_probe()'
+    - sched/fair: Scale bandwidth quota and period without losing quota/period
+      ratio precision
+    - [armel,armhf] mm: fix alignment handler faults under memory pressure
+    - USB: legousbtower: fix use-after-free on release
+    - USB: ldusb: fix NULL-derefs on driver unbind
+    - USB: adutux: fix use-after-free on release
+    - USB: iowarrior: fix use-after-free on release
+    - USB: iowarrior: fix use-after-free after driver unbind
+    - USB: yurex: fix NULL-derefs on disconnect
+    - tracing: Get trace_array reference for available_tracers files
+    - batman-adv: iv_ogm_iface_enable, direct return values
+    - batman-adv: Avoid free/alloc race when handling OGM buffer
+    - mm/slub: fix a deadlock in show_slab_objects()
+    - ceph: just skip unrecognized info in ceph_reply_info_extra
+    - USB: ldusb: fix memleak on disconnect
+    - USB: legousbtower: fix memleak on disconnect
+    - USB: legousbtower: fix a signedness bug in tower_probe()
+    - usb: udc: lpc32xx: fix bad bit shift operation
+    - USB: usblp: fix use-after-free on disconnect
+    - PCI: PM: Fix pci_power_up()
+    - net: avoid potential infinite loop in tc_ctl_action()
+    - USB: serial: ti_usb_3410_5052: fix port-close races
+    - Btrfs: check for the full sync flag while holding the inode lock during
+      fsync
+    - scsi: core: try to get module before removing device
+    - USB: ldusb: fix read info leaks
+    - xen/netback: fix error path of xenvif_connect_data()
+    - net: netem: correct the parent's backlog when corrupted packet was dropped
+    - CIFS: avoid using MID 0xFFFF
+    - scsi: lpfc: Honor module parameter lpfc_use_adisc
+    - fuse: flush dirty data/metadata before non-truncate setattr
+    - fuse: truncate pending writes on O_TRUNC
+    - [armel/kirkwood] ASoC: kirkwood: fix external clock probe defer
+    - ipvs: move old_secure_tcp into struct netns_ipvs
+    - bonding: fix unexpected IFF_BONDING bit unset
+    - [armhf] clk: samsung: exynos5420: Preserve PLL configuration during
+      suspend/resume
+    - ALSA: bebob: Fix prototype of helper function to return negative value
+    - [x86] perf/amd/ibs: Fix reading of the IBS OpData register and thus
+      precise RIP validity
+    - [x86] perf/amd/ibs: Handle erratum #420 only on the affected CPU family
+      (10h)
+    - USB: ldusb: fix ring-buffer locking
+    - USB: ldusb: fix control-message timeout
+    - net: fix sk_page_frag() recursion from memory reclaim
+    - scsi: qla2xxx: stop timer in shutdown path
+    - USB: gadget: Reject endpoints with 0 maxpacket value
+    - ceph: fix use-after-free in __ceph_remove_cap()
+    - ceph: add missing check in d_revalidate snapdir handling
+    - USB: serial: whiteheat: fix potential slab corruption
+    - USB: serial: whiteheat: fix line-speed endianness
+    - nl80211: fix validation of mesh path nexthop
+    - ALSA: timer: Simplify error path in snd_timer_open()
+    - ALSA: timer: Fix incorrectly assigned timer instance
+    - ALSA: timer: Fix mutex deadlock at releasing card
+    - inet: stop leaking jiffies on the wire
+    - ALSA: bebob: fix to detect configured source of sampling clock for
+      Focusrite Saffire Pro i/o series
+    - dccp: do not leak jiffies on the wire
+    - netfilter: ipset: Fix an error code in ip_set_sockfn_get()
+    - netfilter: nf_tables: Align nft_expr private data to 64-bit
+    - can: usb_8dev: fix use-after-free on disconnect
+    - can: peak_usb: fix a potential out-of-sync while decoding packets
+    - mm, vmstat: hide /proc/pagetypeinfo from normal users
+    - dump_stack: avoid the livelock of the dump_lock
+    - drm/radeon: fix si_enable_smc_cac() failed issue
+    - block: drbd: remove a stray unlock in __drbd_send_protocol()
+    - ALSA: usb-audio: Fix missing error check at mixer resolution test
+    - ecryptfs_lookup_interpose(): lower_dentry->d_inode is not stable
+    - ecryptfs_lookup_interpose(): lower_dentry->d_parent is not stable either
+    - [x86] quirks: Disable HPET on Intel Coffe Lake platforms
+    - ALSA: usb-audio: not submit urb for stopped endpoint
+    - mm: memcg: switch to css_tryget() in get_mem_cgroup_from_mm()
+    - mm: hugetlb: switch to css_tryget() in hugetlb_cgroup_charge_cgroup()
+    - virtio_console: allocate inbufs in add_port() only if it is needed
+    - net/sched: act_pedit: fix WARN() in the traffic path
+    - sfc: Only cancel the PPS workqueue if it exists
+    - mm/ksm.c: don't WARN if page is still mapped in remove_stable_node()
+    - fs/dcache: move security_d_instantiate() behind attaching dentry to inode
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 
