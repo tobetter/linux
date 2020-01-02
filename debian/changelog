@@ -202,8 +202,6 @@ linux (3.16.80-1) UNRELEASED; urgency=medium
     - USB: usblp: fix runtime PM after driver unbind
     - USB: serial: fix runtime PM after driver unbind
     - media: stkwebcam: fix runtime PM after driver unbind
-    - net: ipv4: use a dedicated counter for icmp_v4 redirect packets
-    - net: ipv4: avoid mixed n_redirects and rate_tokens usage
     - sch_dsmark: fix potential NULL deref in dsmark_init()
     - nfc: fix memory leak in llcp_sock_bind()
     - CIFS: Gracefully handle QueryInfo errors during open
@@ -294,6 +292,14 @@ linux (3.16.80-1) UNRELEASED; urgency=medium
     - sfc: Only cancel the PPS workqueue if it exists
     - mm/ksm.c: don't WARN if page is still mapped in remove_stable_node()
     - fs/dcache: move security_d_instantiate() behind attaching dentry to inode
+
+  [ Ben Hutchings ]
+  * hrtimer: Avoid ABI change in 3.16.80
+  * Revert "net: ipv4: avoid mixed n_redirects and rate_tokens usage" and
+    "net: ipv4: use a dedicated counter for icmp_v4 redirect packets" to
+    avoid an ABI change
+  * ipvs: Avoid ABI change in 3.16.80
+  * nftables: nft_expr: Ignore ABI change in 3.16.80
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 

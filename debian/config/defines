@@ -97,6 +97,10 @@ ignore-changes:
  zpci_disable_device
  zpci_enable_device
  zpci_stop_device
+ nft_meta_*
+ nft_reject_*
+ nft_register_expr
+ nft_unregister_expr
 # Private to *notify
  fsnotify_*_group
  fsnotify_*_mark
