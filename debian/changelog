@@ -304,14 +304,13 @@ linux (3.16.81-1) UNRELEASED; urgency=medium
     - mmc: debugfs: Add a restriction to mmc debugfs clock setting
     - mmc: sanitize 'bus width' in debug output
     - mmc: core: shut up "voltage-ranges unspecified" pr_info()
-    - usb: dwc3: gadget: Fix suspend/resume during device mode
+    - [armhf] usb: dwc3: gadget: Fix suspend/resume during device mode
     - mmc: core: fix using wrong io voltage if mmc_select_hs200 fails
     - mm/rmap: replace BUG_ON(anon_vma->degree) with VM_WARN_ON
     - usb: gadget: composite: fix dereference after null check coverify warning
     - usb: gadget: serial: fix re-ordering of tx data
     - usb: gadget: Add the gserial port checking in gs_start_tx()
     - tcp/dccp: drop SYN packets if accept queue is full
-    - usb: renesas_usbhs: gadget: fix unused-but-set-variable warning
     - xhci: Fix port resume done detection for SS ports with LPM enabled
     - mmc: block: Allow more than 8 partitions per card
     - net: diag: support v4mapped sockets in inet_diag_find_one_icsk()
