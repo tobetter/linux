@@ -1,4 +1,4 @@
-linux (3.16.80-1) UNRELEASED; urgency=medium
+linux (3.16.81-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.77
@@ -292,6 +292,60 @@ linux (3.16.80-1) UNRELEASED; urgency=medium
     - sfc: Only cancel the PPS workqueue if it exists
     - mm/ksm.c: don't WARN if page is still mapped in remove_stable_node()
     - fs/dcache: move security_d_instantiate() behind attaching dentry to inode
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.81
+    - net: qlogic: Fix memory leak in ql_alloc_large_buffers
+    - net: qlogic: Fix error paths in ql_alloc_large_buffers()
+    - HID: sony: Update device ids
+    - HID: sony: Support DS4 dongle
+    - crypto: cts - fix crash on short inputs
+    - tracing/uprobes: Fix output for multiple string arguments
+    - libceph: handle an empty authorize reply
+    - [amd64] ALSA: compress: add support for 32bit calls in a 64bit kernel
+    - mmc: debugfs: Add a restriction to mmc debugfs clock setting
+    - mmc: sanitize 'bus width' in debug output
+    - mmc: core: shut up "voltage-ranges unspecified" pr_info()
+    - usb: dwc3: gadget: Fix suspend/resume during device mode
+    - mmc: core: fix using wrong io voltage if mmc_select_hs200 fails
+    - mm/rmap: replace BUG_ON(anon_vma->degree) with VM_WARN_ON
+    - usb: gadget: composite: fix dereference after null check coverify warning
+    - usb: gadget: serial: fix re-ordering of tx data
+    - usb: gadget: Add the gserial port checking in gs_start_tx()
+    - tcp/dccp: drop SYN packets if accept queue is full
+    - usb: renesas_usbhs: gadget: fix unused-but-set-variable warning
+    - xhci: Fix port resume done detection for SS ports with LPM enabled
+    - mmc: block: Allow more than 8 partitions per card
+    - net: diag: support v4mapped sockets in inet_diag_find_one_icsk()
+    - asm-generic: Fix local variable shadow in __set_fixmap_offset
+    - suspend: simplify block I/O handling
+    - [arm*] PM / Hibernate: Call flush_icache_range() on pages restored
+      in-place
+    - usb: gadget: configfs: add mutex lock before unregister gadget
+    - usb: gadget: rndis: free response queue during REMOTE_NDIS_RESET_MSG
+    - mmc: mmc: fix switch timeout issue caused by jiffies precision
+    - cfg80211: size various nl80211 messages correctly
+    - [armhf] stmmac: copy unicast mac address to MAC registers
+    - [x86] atomic: Fix smp_mb__{before,after}_atomic()
+    - [x86] locking: Kill atomic_or_long()
+    - [x86] locking: Remove the unused atomic_inc_short() methd
+    - dmaengine: qcom: bam_dma: Fix resource leak
+    - mwifiex: Fix NL80211_TX_POWER_LIMITED
+    - xhci: fix USB3 device initiated resume race with roothub autosuspend
+    - vfs: Make filldir[64]() verify the directory entry filename is valid
+      (CVE-2019-10220)
+    - vfs: filldir[64]: remove WARN_ON_ONCE() for bad directory entries
+    - ext4: Introduce ext4_clamp_want_extra_isize()
+    - ext4: add more paranoia checking in ext4_expand_extra_isize handling
+      (CVE-2019-19767)
+    - Revert "sched/fair: Fix bandwidth timer clock drift condition"
+      (CVE-2019-19922)
+    - can: kvaser_usb: kvaser_usb_leaf: Fix some info-leaks to USB devices
+      (CVE-2019-19947)
+    - media: cpia2: Fix use-after-free in cpia2_exit (CVE-2019-19966)
+    - mwifiex: don't follow AP if country code received from EEPROM
+    - mwifiex: fix possible heap overflow in mwifiex_process_country_ie()
+      (CVE-2019-14895)
+    - scsi: libsas: stop discovering if oob mode is disconnected
+      (CVE-2019-19965)
 
   [ Ben Hutchings ]
   * hrtimer: Avoid ABI change in 3.16.80
