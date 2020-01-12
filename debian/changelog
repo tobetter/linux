@@ -354,6 +354,7 @@ linux (3.16.81-1) UNRELEASED; urgency=medium
   * ipvs: Avoid ABI change in 3.16.80
   * nftables: nft_expr: Ignore ABI change in 3.16.80
   * mwifiex: fix unbalanced locking in mwifiex_process_country_ie()
+  * ALSA: compress: Avoid ABI change in 3.16.81
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 
