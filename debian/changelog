@@ -357,6 +357,9 @@ linux (3.16.81-1) UNRELEASED; urgency=medium
   * ALSA: compress: Avoid ABI change in 3.16.81
   * libertas: Fix two buffer overflows at parsing bss descriptor
     (CVE-2019-14896, CVE-2019-14897)
+  * mwifiex: fix probable memory corruption while processing TDLS frame
+  * mwifiex: Fix heap overflow in mmwifiex_process_tdls_action_frame()
+    (CVE-2019-14901)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Fri, 15 Nov 2019 00:59:42 +0000
 
