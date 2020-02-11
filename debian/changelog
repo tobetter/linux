@@ -1,3 +1,105 @@
+linux (3.16.82-1) UNRELEASED; urgency=medium
+
+  * New upstream stable update:
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.82
+    - ALSA: line6: Drop superfluous snd_device for PCM
+    - ALSA: line6: Fix memory leak at line6_init_pcm() error path
+    - pstore/ram: Write new dumps to start of recycled zones
+    - [armhf] net: davinci_cpdma: use dma_addr_t for DMA address
+    - [armhf] stmmac: fix oversized frame reception
+    - [armhf] net: stmmac: use correct DMA buffer size in the RX descriptor
+    - [armhf] net: stmmac: don't stop NAPI processing when dropping a packet
+    - workqueue: Fix spurious sanity check failures in destroy_workqueue()
+    - ath9k_hw: fix uninitialized variable data
+    - ar5523: check NULL before memcpy() in ar5523_cmd()
+    - [i386] drm/i810: Prevent underflow in ioctl
+    - usbvision: remove power_on_at_open and timed power off
+    - usbvision-video: two use after frees
+    - usbvision: fix locking error
+    - media: usbvision: Fix invalid accesses after device disconnect
+    - media: usbvision: Fix races among open, close, and disconnect
+    - sunrpc: fix crash when cache_head become valid before update
+    - [x86] PCI: Fix Intel ACS quirk UPDCR register address
+    - Bluetooth: hci_core: fix init for HCI_USER_CHANNEL
+    - compat_ioctl: handle SIOCOUTQNSD
+    - [x86] ioapic: Prevent inconsistent state when moving an interrupt
+    - xfs: Sanity check flags of Q_XQUOTARM call
+    - cpuidle: Do not unset the driver if it is there already
+    - scsi: csiostor: Don't enable IRQs too early
+    - scsi: esas2r: unlock on error in esas2r_nvram_read_direct()
+    - [armhf] clk: samsung: exynos5420: Preserve CPU clocks configuration
+      during suspend/resume
+    - quota: fix livelock in dquot_writeback_dquots
+    - quota: Check that quota is not dirty before release
+    - scsi: core: scsi_trace: Use get_unaligned_be*()
+    - blk-mq: fix deadlock when reading cpu_list
+    - blk-mq: avoid sysfs buffer overflow with too many CPU cores
+    - blk-mq: make sure that line break can be printed
+    - [x86] staging: rtl8192e: fix potential use after free
+    - jbd2: Fix possible overflow in jbd2_log_space_left()
+    - bnx2x: Enable Multi-Cos feature.
+    - PM / devfreq: Lock devfreq in trans_stat_show
+    - scsi: tracing: Fix handling of TRANSFER LENGTH == 0 for READ(6) and
+      WRITE(6)
+    - [x86] usb: gadget: pch_udc: fix use after free
+    - usb: Allow USB device to be warm reset in suspended state
+    - appledisplay: fix error handling in the scheduled work
+    - inetpeer: fix data-race in inet_putpeer / inet_putpeer
+    - [x86] drm/i915/userptr: Try to acquire the page lock around
+      set_page_dirty()
+    - USB: serial: mos7720: fix remote wakeup
+    - USB: serial: mos7840: fix remote wakeup
+    - fuse: verify attributes
+    - fuse: verify nlink
+    - ASoC: Jack: Fix NULL pointer dereference in snd_soc_jack_report
+    - scsi: lpfc: fix: Coverity: lpfc_cmpl_els_rsp(): Null pointer dereferences
+    - [armhf] tty: serial: imx: use the sg count from dma_map_sg
+    - RDMA/srpt: Report the SCSI residual to the initiator
+    - futex: Prevent robust futex exit race
+    - [x86] speculation: Fix incorrect MDS/TAA mitigation status
+    - Btrfs: fix negative subv_writers counter and data space leak after
+      buffered write
+    - btrfs: check page->mapping when loading free space cache
+    - Bluetooth: delete a stray unlock
+    - ext4: work around deleting a file with i_nlink == 0 safely
+      (CVE-2019-19447)
+    - [x86] scsi: qla4xxx: fix double free bug
+    - scsi: bnx2i: fix potential use after free
+    - iwlwifi: check kasprintf() return value
+    - serial: serial_core: Perform NULL checks for break_ctl ops
+    - [x86] KVM: fix presentation of TSX feature in ARCH_CAPABILITIES
+    - [x86] KVM: do not modify masked bits of shared MSRs
+    - [x86] PCI: Avoid AMD FCH XHCI USB PME# from D0 defect
+    - [i386] ALSA: cs4236: fix error return comparison of an unsigned integer
+    - drm/radeon: fix bad DMA from INTERRUPT_CNTL2
+    - tty: vt: keyboard: reject invalid keycodes
+    - CIFS: Respect O_SYNC and O_DIRECT flags during reconnect
+    - CIFS: Fix SMB2 oplock break processing
+    - [x86] platform: hp-wmi: Fix ACPI errors caused by too small buffer
+    - [x86] platform: hp-wmi: Fix ACPI errors caused by passing 0 as input size
+    - macvlan: schedule bc_work even if error
+    - PCI/MSI: Fix incorrect MSI-X masking on resume
+    - [x86] ACPI / osl: speedup grace period in acpi_os_map_cleanup
+    - [x86] ACPI: OSL: only free map once in osl.c
+    - [x86] ACPI: bus: Fix NULL pointer check in acpi_bus_get_private_data()
+    - openvswitch: drop unneeded BUG_ON() in ovs_flow_cmd_build_info()
+    - openvswitch: remove another BUG_ON()
+    - cifs: Fix cifsInodeInfo lock_sem deadlock when reconnect occurs
+    - CIFS: Fix NULL-pointer dereference in smb2_push_mandatory_locks
+    - net: bridge: deny dev_set_mac_address() when unregistering
+    - drm/radeon: fix r1xx/r2xx register checker for POT textures
+    - xen/blkback: Avoid unmapping unmapped grant pages
+    - hrtimer: Get rid of the resolution field in hrtimer_clock_base
+    - ALSA: pcm: oss: Avoid potential buffer overflows
+    - tcp: md5: fix potential overestimation of TCP option space
+    - tcp: syncookies: extend validity range
+    - tcp: fix rejected syncookies due to stale timestamps
+    - tcp: Protect accesses to .ts_recent_stamp with {READ,WRITE}_ONCE()
+    - inet: protect against too small mtu values.
+    - deb-pkg: remove obsolete -isp option to dpkg-gencontrol
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
+
 linux (3.16.81-1) jessie-security; urgency=high
 
   * New upstream stable update:
