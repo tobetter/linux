@@ -98,6 +98,9 @@ linux (3.16.82-1) UNRELEASED; urgency=medium
     - inet: protect against too small mtu values.
     - deb-pkg: remove obsolete -isp option to dpkg-gencontrol
 
+  [ Ben Hutchings ]
+  * hrtimer: Avoid ABI change in 3.16.82
+
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 
 linux (3.16.81-1) jessie-security; urgency=high

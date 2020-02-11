@@ -700,3 +700,4 @@ debian/abi/revert-net-ipv4-avoid-mixed-n_redirects-and-rate_tokens.patch
 debian/abi/revert-net-ipv4-use-a-dedicated-counter-for-icmp_v4-redirect.patch
 debian/abi/ipvs-avoid-abi-change-in-3.16.80.patch
 debian/abi/alsa-compress-avoid-abi-change-in-3.16.81.patch
+debian/abi/hrtimer-avoid-abi-change-in-3.16.82.patch
