@@ -49,13 +49,13 @@ debian/sched-autogroup-disabled.patch
 debian/yama-disable-by-default.patch
 debian/add-sysctl-to-disallow-unprivileged-CLONE_NEWUSER-by-default.patch
 features/all/security-perf-allow-further-restriction-of-perf_event_open.patch
-features/x86/intel-iommu-add-option-to-exclude-integrated-gpu-only.patch
-features/x86/intel-iommu-add-kconfig-option-to-exclude-igpu-by-default.patch
+#features/x86/intel-iommu-add-option-to-exclude-integrated-gpu-only.patch
+#features/x86/intel-iommu-add-kconfig-option-to-exclude-igpu-by-default.patch
 
 # Disable autoloading/probing of various drivers by default
 debian/cdc_ncm-cdc_mbim-use-ncm-by-default.patch
 debian/snd-pcsp-disable-autoload.patch
-bugfix/x86/viafb-autoload-on-olpc-xo1.5-only.patch
+#bugfix/x86/viafb-autoload-on-olpc-xo1.5-only.patch
 debian/fjes-disable-autoload.patch
 
 # Taint if dangerous features are used
@@ -65,18 +65,18 @@ debian/btrfs-warn-about-raid5-6-being-experimental-at-mount.patch
 # Arch bug fixes
 bugfix/arm/arm-dts-kirkwood-fix-sata-pinmux-ing-for-ts419.patch
 bugfix/arm64/dts-rockchip-correct-voltage-selector-firefly-RK3399.patch
-bugfix/x86/perf-tools-fix-unwind-build-on-i386.patch
-bugfix/sh/sh-boot-do-not-use-hyphen-in-exported-variable-name.patch
+#bugfix/x86/perf-tools-fix-unwind-build-on-i386.patch
+#bugfix/sh/sh-boot-do-not-use-hyphen-in-exported-variable-name.patch
 bugfix/arm/arm-mm-export-__sync_icache_dcache-for-xen-privcmd.patch
-bugfix/powerpc/powerpc-boot-fix-missing-crc32poly.h-when-building-with-kernel_xz.patch
+#bugfix/powerpc/powerpc-boot-fix-missing-crc32poly.h-when-building-with-kernel_xz.patch
 bugfix/arm64/arm64-acpi-Add-fixup-for-HPE-m400-quirks.patch
-bugfix/x86/x86-32-disable-3dnow-in-generic-config.patch
-bugfix/ppc64el/libbpf-fix-readelf-output-parsing-on-powerpc-with-re.patch
+#bugfix/x86/x86-32-disable-3dnow-in-generic-config.patch
+#bugfix/ppc64el/libbpf-fix-readelf-output-parsing-on-powerpc-with-re.patch
 
 # Arch features
 features/mips/MIPS-Loongson-3-Add-Loongson-LS3A-RS780E-1-way-machi.patch
-features/x86/x86-memtest-WARN-if-bad-RAM-found.patch
-features/x86/x86-make-x32-syscall-support-conditional.patch
+#features/x86/x86-memtest-WARN-if-bad-RAM-found.patch
+#features/x86/x86-make-x32-syscall-support-conditional.patch
 
 # Miscellaneous bug fixes
 bugfix/all/disable-some-marvell-phys.patch
@@ -118,7 +118,7 @@ bugfix/all/usbip-document-tcp-wrappers.patch
 bugfix/all/kbuild-fix-recordmcount-dependency.patch
 bugfix/all/tools-perf-man-date.patch
 bugfix/all/tools-perf-remove-shebangs.patch
-bugfix/x86/revert-perf-build-fix-libunwind-feature-detection-on.patch
+#bugfix/x86/revert-perf-build-fix-libunwind-feature-detection-on.patch
 bugfix/all/tools-build-remove-bpf-run-time-check-at-build-time.patch
 bugfix/all/cpupower-bump-soname-version.patch
 bugfix/all/libcpupower-hide-private-function.patch
