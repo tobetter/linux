@@ -224,7 +224,7 @@
 	sound {
 		compatible = "amlogic,axg-sound-card";
 		model = "G12A-ODROIDN2";
-		audio-aux-devs = <&tdmout_b>, <&tdmout_c>, <&tdmout_c>,<&dio2133>;
+		audio-aux-devs = <&tdmout_b>, <&tdmout_c>, <&dio2133>;
 		audio-routing = "TDMOUT_B IN 0", "FRDDR_A OUT 1",
 				"TDMOUT_B IN 1", "FRDDR_B OUT 1",
 				"TDMOUT_B IN 2", "FRDDR_C OUT 1",
@@ -236,7 +236,6 @@
 				"SPDIFOUT IN 0", "FRDDR_A OUT 3",
 				"SPDIFOUT IN 1", "FRDDR_B OUT 3",
 				"SPDIFOUT IN 2", "FRDDR_C OUT 3",
-				"SPDIFOUT Playback", "DIT spdif-out",
 				"AMP INL", "ACODEC LOLP",
 				"AMP INR", "ACODEC LORP";
 
