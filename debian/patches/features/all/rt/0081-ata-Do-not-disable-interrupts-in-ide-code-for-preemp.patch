@@ -1,9 +1,9 @@
-From e94d32bf6de996997daf8c9814b055e61ffee072 Mon Sep 17 00:00:00 2001
+From 70a59e33706239ab7c4f871d9267a85d58045b3f Mon Sep 17 00:00:00 2001
 From: Steven Rostedt <srostedt@redhat.com>
 Date: Fri, 3 Jul 2009 08:44:29 -0500
-Subject: [PATCH 081/368] ata: Do not disable interrupts in ide code for
+Subject: [PATCH 081/367] ata: Do not disable interrupts in ide code for
  preempt-rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Use the local_irq_*_nort variants.
 
@@ -15,7 +15,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/ata/libata-sff.c b/drivers/ata/libata-sff.c
-index 8d22acdf90f0..64fbad747da9 100644
+index 0e2bc5b9a78c..49452a598dd0 100644
 --- a/drivers/ata/libata-sff.c
 +++ b/drivers/ata/libata-sff.c
 @@ -678,9 +678,9 @@ unsigned int ata_sff_data_xfer_noirq(struct ata_device *dev, unsigned char *buf,
@@ -30,7 +30,7 @@ index 8d22acdf90f0..64fbad747da9 100644
  
  	return consumed;
  }
-@@ -719,7 +719,7 @@ static void ata_pio_sector(struct ata_queued_cmd *qc)
+@@ -723,7 +723,7 @@ static void ata_pio_sector(struct ata_queued_cmd *qc)
  		unsigned long flags;
  
  		/* FIXME: use a bounce buffer */
@@ -39,7 +39,7 @@ index 8d22acdf90f0..64fbad747da9 100644
  		buf = kmap_atomic(page);
  
  		/* do the actual data transfer */
-@@ -727,7 +727,7 @@ static void ata_pio_sector(struct ata_queued_cmd *qc)
+@@ -731,7 +731,7 @@ static void ata_pio_sector(struct ata_queued_cmd *qc)
  				       do_write);
  
  		kunmap_atomic(buf);
@@ -48,7 +48,7 @@ index 8d22acdf90f0..64fbad747da9 100644
  	} else {
  		buf = page_address(page);
  		ap->ops->sff_data_xfer(qc->dev, buf + offset, qc->sect_size,
-@@ -864,7 +864,7 @@ static int __atapi_pio_bytes(struct ata_queued_cmd *qc, unsigned int bytes)
+@@ -870,7 +870,7 @@ static int __atapi_pio_bytes(struct ata_queued_cmd *qc, unsigned int bytes)
  		unsigned long flags;
  
  		/* FIXME: use bounce buffer */
@@ -57,7 +57,7 @@ index 8d22acdf90f0..64fbad747da9 100644
  		buf = kmap_atomic(page);
  
  		/* do the actual data transfer */
-@@ -872,7 +872,7 @@ static int __atapi_pio_bytes(struct ata_queued_cmd *qc, unsigned int bytes)
+@@ -878,7 +878,7 @@ static int __atapi_pio_bytes(struct ata_queued_cmd *qc, unsigned int bytes)
  								count, rw);
  
  		kunmap_atomic(buf);
@@ -67,5 +67,5 @@ index 8d22acdf90f0..64fbad747da9 100644
  		buf = page_address(page);
  		consumed = ap->ops->sff_data_xfer(dev,  buf + offset,
 -- 
-2.20.1
+2.24.0
 

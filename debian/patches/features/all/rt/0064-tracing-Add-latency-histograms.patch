@@ -1,8 +1,8 @@
-From d02e5a8d99f3b53fbb26f40de9750662c7979825 Mon Sep 17 00:00:00 2001
+From 8826639ca0c2e5cb1115b7b0257c2db78b7492c7 Mon Sep 17 00:00:00 2001
 From: Carsten Emde <C.Emde@osadl.org>
 Date: Tue, 19 Jul 2011 14:03:41 +0100
-Subject: [PATCH 064/368] tracing: Add latency histograms
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 064/367] tracing: Add latency histograms
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 This patch provides a recording mechanism to store data of potential
 sources of system latencies. The recordings separately determine the
@@ -245,7 +245,7 @@ index 5e00f80b1535..3bddb7c8cc93 100644
  #ifdef CONFIG_TIMER_STATS
  	int				start_pid;
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index ea1c7ca528da..db9e0405c7ea 100644
+index 2ab7c620c58c..6c8b3be60cdf 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1936,6 +1936,12 @@ struct task_struct {
@@ -1845,5 +1845,5 @@ index 03cdff84d026..0b5947ea46ef 100644
  		start_critical_timing(a0, a1);
  }
 -- 
-2.20.1
+2.24.0
 

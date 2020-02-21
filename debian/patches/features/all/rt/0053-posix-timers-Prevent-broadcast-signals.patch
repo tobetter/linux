@@ -1,8 +1,8 @@
-From 6411d8af75894b4afa833de88e2b274470e2da21 Mon Sep 17 00:00:00 2001
+From 097efa0f1d0a4dfa26367bbee232ca8e8b411dc6 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 3 Jul 2009 08:29:20 -0500
-Subject: [PATCH 053/368] posix-timers: Prevent broadcast signals
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 053/367] posix-timers: Prevent broadcast signals
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Posix timers should not send broadcast signals and kernel only
 signals. Prevent it.
@@ -27,5 +27,5 @@ index 0e6ed2e7d066..06ef7e413209 100644
  	case SIGEV_NONE:
  		return task_pid(rtn);
 -- 
-2.20.1
+2.24.0
 

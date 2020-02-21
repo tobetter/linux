@@ -1,9 +1,9 @@
-From a20dca2adbf10c3670b410427237e6226e22f338 Mon Sep 17 00:00:00 2001
+From 223d7cda1f6511cde105aa17bebf587f9a13c24d Mon Sep 17 00:00:00 2001
 From: Xunlei Pang <xlpang@redhat.com>
 Date: Thu, 23 Mar 2017 15:56:09 +0100
-Subject: [PATCH 020/368] sched/deadline/rtmutex: Dont miss the
+Subject: [PATCH 020/367] sched/deadline/rtmutex: Dont miss the
  dl_runtime/dl_period update
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 85e2d4f992868ad78dc8bb2c077b652fcfb3661a
 
@@ -56,5 +56,5 @@ index 199612829fd6..03a345d508d2 100644
  			goto out_unlock_pi;
  		else
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 1e47e57d0ecc6091b7c2c87db5e30ec8224843c0 Mon Sep 17 00:00:00 2001
+From 4fa9d3a088d001b8c9b40e203c27ab987c376c46 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:56 +0100
-Subject: [PATCH 013/368] futex,rt_mutex: Introduce rt_mutex_init_waiter()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 013/367] futex,rt_mutex: Introduce rt_mutex_init_waiter()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 50809358dd7199aa7ce232f6877dd09ec30ef374
 
@@ -86,5 +86,5 @@ index 882d84eda50a..b550e9d86b1f 100644
  				     struct rt_mutex_waiter *waiter,
  				     struct task_struct *task);
 -- 
-2.20.1
+2.24.0
 

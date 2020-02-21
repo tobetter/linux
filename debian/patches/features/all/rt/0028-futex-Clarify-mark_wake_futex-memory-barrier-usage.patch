@@ -1,8 +1,8 @@
-From c5ba944c800afa985be3b11cddbddc3b7103c889 Mon Sep 17 00:00:00 2001
+From 8ee4ff9d567b496fb3dd6ca97881c45aa3bfc41f Mon Sep 17 00:00:00 2001
 From: "Darren Hart (VMware)" <dvhart@infradead.org>
 Date: Fri, 14 Apr 2017 15:31:38 -0700
-Subject: [PATCH 028/368] futex: Clarify mark_wake_futex memory barrier usage
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 028/367] futex: Clarify mark_wake_futex memory barrier usage
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 38fcd06e9b7f6855db1f3ebac5e18b8fdb467ffd
 
@@ -40,5 +40,5 @@ index f38100793934..cedff765c101 100644
  	smp_store_release(&q->lock_ptr, NULL);
  }
 -- 
-2.20.1
+2.24.0
 

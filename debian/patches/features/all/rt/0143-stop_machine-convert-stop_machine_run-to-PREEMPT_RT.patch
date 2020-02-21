@@ -1,9 +1,9 @@
-From d9f87152b31409fb369fa42bc12cd3fc62dc04b1 Mon Sep 17 00:00:00 2001
+From e2c1272ebc570353a7da38842ae6bd3bfe3c5e33 Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:30:27 -0500
-Subject: [PATCH 143/368] stop_machine: convert stop_machine_run() to
+Subject: [PATCH 143/367] stop_machine: convert stop_machine_run() to
  PREEMPT_RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Instead of playing with non-preemption, introduce explicit
 startup serialization. This is more robust and cleaner as
@@ -38,5 +38,5 @@ index 9b8cd7ebf27b..ca834ec48b99 100644
  		preempt_count_inc();
  		ret = fn(arg);
 -- 
-2.20.1
+2.24.0
 

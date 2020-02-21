@@ -1,8 +1,8 @@
-From f4535546c10caf7932d60de79c1a8ef4fe2e9116 Mon Sep 17 00:00:00 2001
+From 649502f51d16d23f753c0fc076c6fe17abb79043 Mon Sep 17 00:00:00 2001
 From: Mike Galbraith <umgwanakikbuti@gmail.com>
 Date: Tue, 22 Mar 2016 11:16:09 +0100
-Subject: [PATCH 116/368] mm/zsmalloc: copy with get_cpu_var() and locking
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 116/367] mm/zsmalloc: copy with get_cpu_var() and locking
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 get_cpu_var() disables preemption and triggers a might_sleep() splat later.
 This is replaced with get_locked_var().
@@ -18,18 +18,18 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 74 insertions(+), 6 deletions(-)
 
 diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index cf15851a7d2f..503608735e46 100644
+index 5a50ad517f0f..5c4d6034b454 100644
 --- a/mm/zsmalloc.c
 +++ b/mm/zsmalloc.c
-@@ -53,6 +53,7 @@
- #include <linux/mount.h>
+@@ -54,6 +54,7 @@
  #include <linux/migrate.h>
+ #include <linux/wait.h>
  #include <linux/pagemap.h>
 +#include <linux/locallock.h>
  
  #define ZSPAGE_MAGIC	0x58
  
-@@ -70,9 +71,22 @@
+@@ -71,9 +72,22 @@
   */
  #define ZS_MAX_ZSPAGE_ORDER 2
  #define ZS_MAX_PAGES_PER_ZSPAGE (_AC(1, UL) << ZS_MAX_ZSPAGE_ORDER)
@@ -53,7 +53,7 @@ index cf15851a7d2f..503608735e46 100644
  /*
   * Object location (<PFN>, <obj_idx>) is encoded as
   * as single (unsigned long) handle value.
-@@ -327,7 +341,7 @@ static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage) {}
+@@ -332,7 +346,7 @@ static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage) {}
  
  static int create_cache(struct zs_pool *pool)
  {
@@ -62,7 +62,7 @@ index cf15851a7d2f..503608735e46 100644
  					0, 0, NULL);
  	if (!pool->handle_cachep)
  		return 1;
-@@ -351,10 +365,27 @@ static void destroy_cache(struct zs_pool *pool)
+@@ -356,10 +370,27 @@ static void destroy_cache(struct zs_pool *pool)
  
  static unsigned long cache_alloc_handle(struct zs_pool *pool, gfp_t gfp)
  {
@@ -92,7 +92,7 @@ index cf15851a7d2f..503608735e46 100644
  static void cache_free_handle(struct zs_pool *pool, unsigned long handle)
  {
  	kmem_cache_free(pool->handle_cachep, (void *)handle);
-@@ -373,12 +404,18 @@ static void cache_free_zspage(struct zs_pool *pool, struct zspage *zspage)
+@@ -378,12 +409,18 @@ static void cache_free_zspage(struct zs_pool *pool, struct zspage *zspage)
  
  static void record_obj(unsigned long handle, unsigned long obj)
  {
@@ -111,7 +111,7 @@ index cf15851a7d2f..503608735e46 100644
  }
  
  /* zpool driver */
-@@ -467,6 +504,7 @@ MODULE_ALIAS("zpool-zsmalloc");
+@@ -472,6 +509,7 @@ MODULE_ALIAS("zpool-zsmalloc");
  
  /* per-cpu VM mapping areas for zspage accesses that cross page boundaries */
  static DEFINE_PER_CPU(struct mapping_area, zs_map_area);
@@ -119,7 +119,7 @@ index cf15851a7d2f..503608735e46 100644
  
  static bool is_zspage_isolated(struct zspage *zspage)
  {
-@@ -905,7 +943,13 @@ static unsigned long location_to_obj(struct page *page, unsigned int obj_idx)
+@@ -910,7 +948,13 @@ static unsigned long location_to_obj(struct page *page, unsigned int obj_idx)
  
  static unsigned long handle_to_obj(unsigned long handle)
  {
@@ -133,7 +133,7 @@ index cf15851a7d2f..503608735e46 100644
  }
  
  static unsigned long obj_to_head(struct page *page, void *obj)
-@@ -919,22 +963,46 @@ static unsigned long obj_to_head(struct page *page, void *obj)
+@@ -924,22 +968,46 @@ static unsigned long obj_to_head(struct page *page, void *obj)
  
  static inline int testpin_tag(unsigned long handle)
  {
@@ -180,7 +180,7 @@ index cf15851a7d2f..503608735e46 100644
  }
  
  static void reset_page(struct page *page)
-@@ -1426,7 +1494,7 @@ void *zs_map_object(struct zs_pool *pool, unsigned long handle,
+@@ -1431,7 +1499,7 @@ void *zs_map_object(struct zs_pool *pool, unsigned long handle,
  	class = pool->size_class[class_idx];
  	off = (class->size * obj_idx) & ~PAGE_MASK;
  
@@ -189,7 +189,7 @@ index cf15851a7d2f..503608735e46 100644
  	area->vm_mm = mm;
  	if (off + class->size <= PAGE_SIZE) {
  		/* this object is contained entirely within a page */
-@@ -1480,7 +1548,7 @@ void zs_unmap_object(struct zs_pool *pool, unsigned long handle)
+@@ -1485,7 +1553,7 @@ void zs_unmap_object(struct zs_pool *pool, unsigned long handle)
  
  		__zs_unmap_object(area, pages, off, class->size);
  	}
@@ -199,5 +199,5 @@ index cf15851a7d2f..503608735e46 100644
  	migrate_read_unlock(zspage);
  	unpin_tag(handle);
 -- 
-2.20.1
+2.24.0
 

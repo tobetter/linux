@@ -1,8 +1,8 @@
-From 363836c68037eaacdc3238bfadf2491cd7e51144 Mon Sep 17 00:00:00 2001
+From 82a6a119adf2558a2e16a90df99327c7c7e13689 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:50 +0100
-Subject: [PATCH 007/368] futex: Remove rt_mutex_deadlock_account_*()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 007/367] futex: Remove rt_mutex_deadlock_account_*()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit fffa954fb528963c2fb7b0c0084eb77e2be7ab52
 
@@ -193,5 +193,5 @@ index c4060584c407..6607802efa8b 100644
  #define debug_rt_mutex_free_waiter(w)			do { } while (0)
  #define debug_rt_mutex_lock(l)				do { } while (0)
 -- 
-2.20.1
+2.24.0
 

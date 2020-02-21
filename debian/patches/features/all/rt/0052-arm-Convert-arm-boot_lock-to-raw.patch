@@ -1,8 +1,8 @@
-From aa5f2462d6a703a70e9265fed9653a08a53bcd38 Mon Sep 17 00:00:00 2001
+From 6841df67459541c2a614680a76e37889a9d2e6a5 Mon Sep 17 00:00:00 2001
 From: Frank Rowand <frank.rowand@am.sony.com>
 Date: Mon, 19 Sep 2011 14:51:14 -0700
-Subject: [PATCH 052/368] arm: Convert arm boot_lock to raw
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 052/367] arm: Convert arm boot_lock to raw
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The arm boot_lock is used by the secondary processor startup code.  The locking
 task is the idle thread, which has idle->sched_class == &idle_sched_class.
@@ -424,5 +424,5 @@ index c2366510187a..6b60f582b738 100644
  	return pen_release != -1 ? -ENOSYS : 0;
  }
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 1d86bf6b1857a22e7a876b4a76b13fc9a565c730 Mon Sep 17 00:00:00 2001
+From 3106c4581df8a1eb97a2921b07bb9226aee9e108 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 18 Mar 2011 09:18:52 +0100
-Subject: [PATCH 093/368] buffer_head: Replace bh_uptodate_lock for -rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 093/367] buffer_head: Replace bh_uptodate_lock for -rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Wrap the bit_spin_lock calls into a separate inline and add the RT
 replacements with a real spinlock.
@@ -168,5 +168,5 @@ index 4431ea2c8802..87c4ed37ee77 100644
   * macro tricks to expand the set_buffer_foo(), clear_buffer_foo()
   * and buffer_foo() functions.
 -- 
-2.20.1
+2.24.0
 

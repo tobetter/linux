@@ -1,8 +1,8 @@
-From 90685d7af2c10b751aa87288960d3929bb212c14 Mon Sep 17 00:00:00 2001
+From 68c3a90fce982ae087ba9eba6363272dec528f85 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 9 Jan 2013 10:33:09 +0100
-Subject: [PATCH 106/368] mm: bounce: Use local_irq_save_nort
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 106/367] mm: bounce: Use local_irq_save_nort
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 kmap_atomic() is preemptible on RT.
 
@@ -30,5 +30,5 @@ index 1cb5dd3a5da1..2f1ec8a67cbe 100644
  
  #else /* CONFIG_HIGHMEM */
 -- 
-2.20.1
+2.24.0
 

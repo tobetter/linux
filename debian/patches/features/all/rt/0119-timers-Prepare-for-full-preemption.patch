@@ -1,8 +1,8 @@
-From c3b5d410def37f47bb2e74a2520d0dcc9e36c227 Mon Sep 17 00:00:00 2001
+From 0b0e795e913aa98b90f53dee7202ecb98621819e Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:29:34 -0500
-Subject: [PATCH 119/368] timers: Prepare for full preemption
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 119/367] timers: Prepare for full preemption
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 When softirqs can be preempted we need to make sure that cancelling
 the timer from the active thread can not deadlock vs. a running timer
@@ -30,7 +30,7 @@ index ec86e4e55ea3..8e5b680d1275 100644
  #else
  # define del_timer_sync(t)		del_timer(t)
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index dd37da8527da..cf237a6dfa89 100644
+index 3d35fa02ce7f..d34d3e7b62e3 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -525,11 +525,14 @@ void resched_cpu(int cpu)
@@ -60,7 +60,7 @@ index dd37da8527da..cf237a6dfa89 100644
  }
  /*
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index f14e3525d330..a0cb1a296afa 100644
+index c68f96af0aed..fdd7be830904 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
 @@ -195,6 +195,9 @@ EXPORT_SYMBOL(jiffies_64);
@@ -143,7 +143,7 @@ index f14e3525d330..a0cb1a296afa 100644
  			raw_spin_lock_irq(&base->lock);
  		}
  	}
-@@ -1673,8 +1706,8 @@ static inline void __run_timers(struct timer_base *base)
+@@ -1675,8 +1708,8 @@ static inline void __run_timers(struct timer_base *base)
  		while (levels--)
  			expire_timers(base, heads + levels);
  	}
@@ -153,7 +153,7 @@ index f14e3525d330..a0cb1a296afa 100644
  }
  
  /*
-@@ -1917,6 +1950,9 @@ static void __init init_timer_cpu(int cpu)
+@@ -1919,6 +1952,9 @@ static void __init init_timer_cpu(int cpu)
  		base->cpu = cpu;
  		raw_spin_lock_init(&base->lock);
  		base->clk = jiffies;
@@ -164,5 +164,5 @@ index f14e3525d330..a0cb1a296afa 100644
  }
  
 -- 
-2.20.1
+2.24.0
 

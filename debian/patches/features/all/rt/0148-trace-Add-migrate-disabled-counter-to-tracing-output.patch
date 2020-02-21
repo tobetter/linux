@@ -1,8 +1,8 @@
-From 1670c5bc4341779a3e9010ac9390791941d145b8 Mon Sep 17 00:00:00 2001
+From 4944e5dc27fa5a96f9f3cdea3f185495700d2e7b Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 21:56:42 +0200
-Subject: [PATCH 148/368] trace: Add migrate-disabled counter to tracing output
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 148/367] trace: Add migrate-disabled counter to tracing output
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
@@ -26,7 +26,7 @@ index ba57266d9e80..4f8bb9c8eed8 100644
  
  #define TRACE_EVENT_TYPE_MAX						\
 diff --git a/kernel/trace/trace.c b/kernel/trace/trace.c
-index a2d8bd68c16e..c435977671d5 100644
+index 6a170a78b453..f1c00870e55d 100644
 --- a/kernel/trace/trace.c
 +++ b/kernel/trace/trace.c
 @@ -1918,6 +1918,8 @@ tracing_generic_entry_update(struct trace_entry *entry, unsigned long flags,
@@ -53,7 +53,7 @@ index a2d8bd68c16e..c435977671d5 100644
  
  static void print_event_info(struct trace_buffer *buf, struct seq_file *m)
 diff --git a/kernel/trace/trace_events.c b/kernel/trace/trace_events.c
-index 9549ed120556..f23149a4136b 100644
+index af969f753e5e..25029c8c0d52 100644
 --- a/kernel/trace/trace_events.c
 +++ b/kernel/trace/trace_events.c
 @@ -187,6 +187,8 @@ static int trace_define_common_fields(void)
@@ -82,5 +82,5 @@ index 3fc20422c166..badf130635f1 100644
  }
  
 -- 
-2.20.1
+2.24.0
 

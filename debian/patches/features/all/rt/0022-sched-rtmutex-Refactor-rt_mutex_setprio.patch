@@ -1,8 +1,8 @@
-From 711da4bafd1fd2f24c115d7c9874d68df5a67191 Mon Sep 17 00:00:00 2001
+From d2352a281b422a562b16aeaf95d0ea01d890c0dd Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Thu, 23 Mar 2017 15:56:11 +0100
-Subject: [PATCH 022/368] sched/rtmutex: Refactor rt_mutex_setprio()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 022/367] sched/rtmutex: Refactor rt_mutex_setprio()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit acd58620e415aee4a43a808d7d2fd87259ee0001
 
@@ -270,7 +270,7 @@ index 9f55d7a7bc57..e275b8148db9 100644
  
  	return true; /* call rt_mutex_postunlock() */
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 6bb7c4c5126b..7dbebc389e4e 100644
+index cee9b9c8064f..fff5a3d496de 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -3631,10 +3631,25 @@ EXPORT_SYMBOL(default_wake_function);
@@ -399,5 +399,5 @@ index 6bb7c4c5126b..7dbebc389e4e 100644
  			queue_flags &= ~DEQUEUE_MOVE;
  	}
 -- 
-2.20.1
+2.24.0
 

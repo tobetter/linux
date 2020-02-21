@@ -1,0 +1,38 @@
+From 166c637820ce84aaf1f22f474b4cc75dbf56ca11 Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Thu, 17 Aug 2017 11:38:51 +0200
+Subject: [PATCH 335/367] PM / CPU: replace raw_notifier with atomic_notifier
+ (fixup)
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
+
+The original patch changed betwen its posting and what finally went into
+Rafael's tree so here is the delta.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ kernel/cpu_pm.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/kernel/cpu_pm.c b/kernel/cpu_pm.c
+index 10f4640f991e..67b02e138a47 100644
+--- a/kernel/cpu_pm.c
++++ b/kernel/cpu_pm.c
+@@ -28,8 +28,15 @@ static int cpu_pm_notify(enum cpu_pm_event event, int nr_to_call, int *nr_calls)
+ {
+ 	int ret;
+ 
++	/*
++	 * __atomic_notifier_call_chain has a RCU read critical section, which
++	 * could be disfunctional in cpu idle. Copy RCU_NONIDLE code to let
++	 * RCU know this.
++	 */
++	rcu_irq_enter_irqson();
+ 	ret = __atomic_notifier_call_chain(&cpu_pm_notifier_chain, event, NULL,
+ 		nr_to_call, nr_calls);
++	rcu_irq_exit_irqson();
+ 
+ 	return notifier_to_errno(ret);
+ }
+-- 
+2.24.0
+

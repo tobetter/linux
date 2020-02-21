@@ -1,8 +1,8 @@
-From f3372ad65b4d458623098f01b9ea12b4f831efdd Mon Sep 17 00:00:00 2001
+From 727cc97f69cda28eadf13b9e3a85ed7654681d0a Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 3 Apr 2011 11:57:29 +0200
-Subject: [PATCH 098/368] genirq: Force interrupt thread on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 098/367] genirq: Force interrupt thread on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Force threaded_irqs and optimize the code (force_irqthreads) in regard
 to this.
@@ -53,5 +53,5 @@ index be7f489788e2..12a6ee789d5a 100644
  
  static void __synchronize_hardirq(struct irq_desc *desc)
 -- 
-2.20.1
+2.24.0
 

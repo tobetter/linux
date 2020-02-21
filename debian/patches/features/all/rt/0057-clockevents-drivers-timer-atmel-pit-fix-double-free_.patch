@@ -1,9 +1,9 @@
-From ad6f594fef1206aa6491f37fb80731e700181e32 Mon Sep 17 00:00:00 2001
+From d5a773849d97009fd2738cffbd9bf6593274ed69 Mon Sep 17 00:00:00 2001
 From: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 Date: Thu, 17 Mar 2016 21:09:43 +0100
-Subject: [PATCH 057/368] clockevents/drivers/timer-atmel-pit: fix double
+Subject: [PATCH 057/367] clockevents/drivers/timer-atmel-pit: fix double
  free_irq
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 clockevents_exchange_device() changes the state from detached to shutdown
 and so at that point the IRQ has not yet been requested.
@@ -49,5 +49,5 @@ index 2c66bb3e595b..93288849b2bd 100644
  	data->cnt += data->cycle * PIT_PICNT(pit_read(data->base, AT91_PIT_PIVR));
  	pit_write(data->base, AT91_PIT_MR,
 -- 
-2.20.1
+2.24.0
 

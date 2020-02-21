@@ -1,12 +1,12 @@
-From 8b4618ceefbc3a9f023911fc8a3cd7d03bb87bad Mon Sep 17 00:00:00 2001
+From 7263643f9f1e1330f8135439375150d1098072cf Mon Sep 17 00:00:00 2001
 From: Benedikt Spranger <b.spranger@linutronix.de>
 Date: Sat, 6 Mar 2010 17:47:10 +0100
-Subject: [PATCH 056/368] ARM: AT91: PIT: Remove irq handler when clock event
+Subject: [PATCH 056/367] ARM: AT91: PIT: Remove irq handler when clock event
  is unused
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Setup and remove the interrupt handler in clock event mode selection.
 This avoids calling the (shared) interrupt handler when the device is
@@ -153,5 +153,5 @@ index e90ab5b63a90..9e124087c55f 100644
  	if (IS_ERR(sclk)) {
  		pr_err("Unable to get slow clock\n");
 -- 
-2.20.1
+2.24.0
 

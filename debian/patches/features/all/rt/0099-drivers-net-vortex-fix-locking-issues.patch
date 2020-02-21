@@ -1,8 +1,8 @@
-From 78cfad19e96d8a54beabd85bfd38da4ed6adb854 Mon Sep 17 00:00:00 2001
+From 7cd9208358ebc059d6ce48401d4eed5496f5541d Mon Sep 17 00:00:00 2001
 From: Steven Rostedt <rostedt@goodmis.org>
 Date: Fri, 3 Jul 2009 08:30:00 -0500
-Subject: [PATCH 099/368] drivers/net: vortex fix locking issues
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 099/367] drivers/net: vortex fix locking issues
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Argh, cut and paste wasn't enough...
 
@@ -54,5 +54,5 @@ index 9133e7926da5..63afb921ed40 100644
  	}
  
 -- 
-2.20.1
+2.24.0
 

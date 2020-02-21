@@ -1,0 +1,20 @@
+From def00ea4db8c9574f08d8c340022d821233909ed Mon Sep 17 00:00:00 2001
+From: Julia Cartwright <julia@ni.com>
+Date: Thu, 20 Dec 2018 14:25:00 -0600
+Subject: [PATCH 367/367] Linux 4.9.201-rt134 REBASE
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
+
+---
+ localversion-rt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/localversion-rt b/localversion-rt
+index 9a218ca23053..6067da4c8c99 100644
+--- a/localversion-rt
++++ b/localversion-rt
+@@ -1 +1 @@
+--rt23
++-rt134
+-- 
+2.24.0
+

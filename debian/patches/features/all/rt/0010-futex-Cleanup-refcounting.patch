@@ -1,8 +1,8 @@
-From 30eb667603d3dfc7f02e364517e6c77d270a3446 Mon Sep 17 00:00:00 2001
+From 427cf6aa0e2a7d72c954f5ee9628ec37a4353e3c Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:53 +0100
-Subject: [PATCH 010/368] futex: Cleanup refcounting
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 010/367] futex: Cleanup refcounting
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit bf92cf3a5100f5a0d5f9834787b130159397cb22
 
@@ -78,5 +78,5 @@ index c393c4ac80a7..d3b305fcc53c 100644
  			ret = rt_mutex_start_proxy_lock(&pi_state->pi_mutex,
  							this->rt_waiter,
 -- 
-2.20.1
+2.24.0
 

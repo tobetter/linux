@@ -1,9 +1,9 @@
-From 7f585fb8fcd258aec703963978be0ff28a879938 Mon Sep 17 00:00:00 2001
+From dabbf486ac7951299d2769fd3bd49e76627899f9 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 21 Oct 2016 10:29:11 +0200
-Subject: [PATCH 039/368] x86/apic: get rid of "warning: 'acpi_ioapic_lock'
+Subject: [PATCH 039/367] x86/apic: get rid of "warning: 'acpi_ioapic_lock'
  defined but not used"
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 kbuild test robot reported this against the -RT tree:
 
@@ -46,5 +46,5 @@ index 0a1e8a67cc99..4f7482b86dd8 100644
  /* --------------------------------------------------------------------------
                                Boot-time Configuration
 -- 
-2.20.1
+2.24.0
 

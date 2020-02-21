@@ -1,8 +1,8 @@
-From 3ca0915969273084bdb27a8c45a330f20a1027d7 Mon Sep 17 00:00:00 2001
+From f3f4356b12f5a28d35e51d4f51c0c9301ef2b2f7 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 7 Jun 2017 10:12:45 +0200
-Subject: [PATCH 135/368] sched: Remove TASK_ALL
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 135/367] sched: Remove TASK_ALL
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 It's unused:
 
@@ -20,7 +20,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 deletion(-)
 
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 47f6084fc0a8..a96e1bdb9d0f 100644
+index da048b068bce..65b6df96208b 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -236,7 +236,6 @@ extern char ___assert_task_state[1 - 2*!!(
@@ -32,5 +32,5 @@ index 47f6084fc0a8..a96e1bdb9d0f 100644
  /* get_task_state() */
  #define TASK_REPORT		(TASK_RUNNING | TASK_INTERRUPTIBLE | \
 -- 
-2.20.1
+2.24.0
 

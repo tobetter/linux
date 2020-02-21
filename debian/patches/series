@@ -51,6 +51,10 @@ debian/btrfs-warn-about-raid5-6-being-experimental-at-mount.patch
 # Reduce noise for bug #852324
 debian/amd64-don-t-warn-about-expected-w+x-pages-on-xen.patch
 
+# avoid user-space build regression
+debian/Revert-x86-stop-exporting-msr-index.h-to-userland.patch
+debian/x86-msr-index-remove-dependency-on-linux-bits.h.patch
+
 # Arch bug fixes
 bugfix/arm/arm-dts-kirkwood-fix-sata-pinmux-ing-for-ts419.patch
 features/all/firmware-dmi-add-dmi_product_family-identification-s.patch
@@ -101,8 +105,6 @@ bugfix/x86/mmap-remember-the-map_fixed-flag-as-vm_fixed.patch
 bugfix/x86/mmap-add-an-exception-to-the-stack-gap-for-hotspot-jvm.patch
 bugfix/all/xen-time-do-not-decrease-steal-time-after-live-migra.patch
 bugfix/all/netfilter-xt_hashlimit-fix-integer-divide-round-to-z.patch
-bugfix/all/xfs-fix-missing-ILOCK-unlock-when-xfs_setattr_nonsiz.patch
-bugfix/all/tcp-fix-tcp_rtx_queue_tail-in-case-of-empty-retransm.patch
 
 # Miscellaneous features
 features/all/netfilter-nft_ct-add-notrack-support.patch
@@ -204,7 +206,6 @@ bugfix/all/liblockdep-enable-wall-by-default.patch
 bugfix/all/liblockdep-fix-unused-value-warnings.patch
 bugfix/all/liblockdep-fix-set-but-not-used-warnings.patch
 bugfix/all/liblockdep-fix-defined-but-not-used-warning-for-init.patch
-bugfix/s390/revert-perf-test-6-fix-missing-kvm-module-load-for-s390.patch
 
 # Workaround for #897599
 debian/random-make-getrandom-ready-earlier.patch
@@ -299,7 +300,6 @@ features/all/ena/0065-net-ena-change-rx-copybreak-default-to-reduce-kernel.patch
 features/all/ena/0066-net-ena-remove-redundant-parameter-in-ena_com_admin_.patch
 features/all/ena/0067-net-ena-update-driver-version-to-2.0.1.patch
 features/all/ena/0068-net-ena-fix-indentations-in-ena_defs-for-better-read.patch
-features/all/ena/0069-net-ena-Fix-Kconfig-dependency-on-X86.patch
 features/all/ena/0070-net-ena-enable-Low-Latency-Queues.patch
 features/all/ena/0071-net-ena-fix-compilation-error-in-xtensa-architecture.patch
 features/all/ena/0072-net-ena-fix-crash-during-failed-resume-from-hibernat.patch
@@ -314,83 +314,21 @@ debian/time-mark-timer_stats-as-broken.patch
 # Deferred due to userland regressions (#897599)
 #bugfix/all/random-fix-crng_ready-test.patch
 bugfix/all/xfs-set-format-back-to-extents-if-xfs_bmap_extents_t.patch
-# avoid user-space build regression
-debian/Revert-x86-stop-exporting-msr-index.h-to-userland.patch
-debian/x86-msr-index-remove-dependency-on-linux-bits.h.patch
-features/all/siphash-add-cryptographically-secure-prf.patch
-features/all/siphash-implement-halfsiphash1-3-for-hash-tables.patch
-bugfix/all/inet-switch-ip-id-generator-to-siphash.patch
-bugfix/all/vhost-net-set-packet-weight-of-tx-polling-to-2-vq-si.patch
-bugfix/all/vhost_net-use-packet-weight-for-rx-handler-too.patch
-bugfix/all/vhost_net-introduce-vhost_exceeds_weight.patch
-bugfix/all/vhost-introduce-vhost_exceeds_weight.patch
-bugfix/all/vhost_net-fix-possible-infinite-loop.patch
-bugfix/all/vhost-scsi-add-weight-support.patch
-bugfix/all/netfilter-ctnetlink-don-t-use-conntrack-expect-objec.patch
-bugfix/all/netfilter-conntrack-use-consistent-ct-id-hash-calcul.patch
-bugfix/all/vhost-make-sure-log_num-in_num.patch
-bugfix/all/ALSA-usb-audio-Fix-an-OOB-bug-in-parse_audio_mixer_u.patch
-bugfix/all/ALSA-usb-audio-Fix-a-stack-buffer-overflow-bug-in-ch.patch
-bugfix/x86/x86-ptrace-fix-up-botched-merge-of-spectrev1-fix.patch
-bugfix/all/KVM-coalesced_mmio-add-bounds-checking.patch
-bugfix/x86/taa/0001-KVM-x86-use-Intel-speculation-bugs-and-features-as-d.patch
-bugfix/x86/taa/0002-x86-msr-Add-the-IA32_TSX_CTRL-MSR.patch
-bugfix/x86/taa/0003-x86-cpu-Add-a-helper-function-x86_read_arch_cap_msr.patch
-bugfix/x86/taa/0004-x86-cpu-Add-a-tsx-cmdline-option-with-TSX-disabled-b.patch
-bugfix/x86/taa/0005-x86-speculation-taa-Add-mitigation-for-TSX-Async-Abo.patch
-bugfix/x86/taa/0006-x86-speculation-taa-Add-sysfs-reporting-for-TSX-Asyn.patch
-bugfix/x86/taa/0007-kvm-x86-Export-MDS_NO-0-to-guests-when-TSX-is-enable.patch
-bugfix/x86/taa/0008-x86-tsx-Add-auto-option-to-the-tsx-cmdline-parameter.patch
-bugfix/x86/taa/0009-x86-speculation-taa-Add-documentation-for-TSX-Async-.patch
-bugfix/x86/taa/0010-x86-tsx-Add-config-options-to-set-tsx-on-off-auto.patch
-bugfix/x86/taa/0011-x86-speculation-taa-Fix-printing-of-TAA_MSG_SMT-on-I.patch
-bugfix/x86/itlb_multihit/0012-KVM-x86-simplify-ept_misconfig.patch
-bugfix/x86/itlb_multihit/0013-KVM-x86-extend-usage-of-RET_MMIO_PF_-constants.patch
-bugfix/x86/itlb_multihit/0014-KVM-MMU-drop-vcpu-param-in-gpte_access.patch
-bugfix/x86/itlb_multihit/0015-kvm-Convert-kvm_lock-to-a-mutex.patch
-bugfix/x86/itlb_multihit/0016-kvm-x86-Do-not-release-the-page-inside-mmu_set_spte.patch
-bugfix/x86/itlb_multihit/0017-KVM-x86-make-FNAME-fetch-and-__direct_map-more-simil.patch
-bugfix/x86/itlb_multihit/0018-KVM-x86-remove-now-unneeded-hugepage-gfn-adjustment.patch
-bugfix/x86/itlb_multihit/0019-KVM-x86-change-kvm_mmu_page_get_gfn-BUG_ON-to-WARN_O.patch
-bugfix/x86/itlb_multihit/0020-KVM-x86-Add-is_executable_pte.patch
-bugfix/x86/itlb_multihit/0021-KVM-x86-add-tracepoints-around-__direct_map-and-FNAM.patch
-bugfix/x86/itlb_multihit/0022-KVM-vmx-svm-always-run-with-EFER.NXE-1-when-shadow-p.patch
-bugfix/x86/itlb_multihit/0023-x86-bugs-Add-ITLB_MULTIHIT-bug-infrastructure.patch
-bugfix/x86/itlb_multihit/0024-cpu-speculation-Uninline-and-export-CPU-mitigations-.patch
-bugfix/x86/itlb_multihit/0025-kvm-mmu-ITLB_MULTIHIT-mitigation.patch
-bugfix/x86/itlb_multihit/0026-kvm-Add-helper-function-for-creating-VM-worker-threa.patch
-bugfix/x86/itlb_multihit/0027-kvm-x86-mmu-Recovery-of-shattered-NX-large-pages.patch
-bugfix/x86/itlb_multihit/0028-Documentation-Add-ITLB_MULTIHIT-documentation.patch
-bugfix/x86/i915/0001-drm-i915-kick-out-cmd_parser-specific-structs-from-i.patch
-bugfix/x86/i915/0002-drm-i915-cleanup-use-of-INSTR_CLIENT_MASK.patch
-bugfix/x86/i915/0003-drm-i915-return-EACCES-for-check_cmd-failures.patch
-bugfix/x86/i915/0004-drm-i915-don-t-whitelist-oacontrol-in-cmd-parser.patch
-bugfix/x86/i915/0005-drm-i915-Use-the-precomputed-value-for-whether-to-en.patch
-bugfix/x86/i915/0006-drm-i915-cmdparser-Limit-clflush-to-active-cacheline.patch
-bugfix/x86/i915/0007-drm-i915-gtt-Add-read-only-pages-to-gen8_pte_encode.patch
-bugfix/x86/i915/0008-drm-i915-gtt-Read-only-pages-for-insert_entries-on-b.patch
-bugfix/x86/i915/0009-drm-i915-gtt-Disable-read-only-support-under-GVT.patch
-bugfix/x86/i915/0010-drm-i915-Prevent-writing-into-a-read-only-object-via.patch
-bugfix/x86/i915/0011-drm-i915-cmdparser-Check-reg_table_count-before-dere.patch
-bugfix/x86/i915/0012-drm-i915-cmdparser-Do-not-check-past-the-cmd-length.patch
-bugfix/x86/i915/0013-drm-i915-Silence-smatch-for-cmdparser.patch
-bugfix/x86/i915/0014-drm-i915-Move-engine-needs_cmd_parser-to-engine-flag.patch
-bugfix/x86/i915/0001-drm-i915-Rename-gen7-cmdparser-tables.patch
-bugfix/x86/i915/0002-drm-i915-Disable-Secure-Batches-for-gen6.patch
-bugfix/x86/i915/0003-drm-i915-Remove-Master-tables-from-cmdparser.patch
-bugfix/x86/i915/0004-drm-i915-Add-support-for-mandatory-cmdparsing.patch
-bugfix/x86/i915/0005-drm-i915-Support-ro-ppgtt-mapped-cmdparser-shadow-bu.patch
-bugfix/x86/i915/0006-drm-i915-Allow-parsing-of-unsized-batches.patch
-bugfix/x86/i915/0007-drm-i915-Add-gen9-BCS-cmdparsing.patch
-bugfix/x86/i915/0008-drm-i915-cmdparser-Use-explicit-goto-for-error-paths.patch
-bugfix/x86/i915/0009-drm-i915-cmdparser-Add-support-for-backward-jumps.patch
-bugfix/x86/i915/0010-drm-i915-cmdparser-Ignore-Length-operands-during-com.patch
-bugfix/x86/i915/0011-drm-i915-Lower-RM-timeout-to-avoid-DSI-hard-hangs.patch
-bugfix/x86/i915/0012-drm-i915-gen8-Add-RC6-CTX-corruption-WA.patch
-bugfix/x86/i915/drm-i915-cmdparser-fix-jump-whitelist-clearing.patch
+bugfix/all/xfs-catch-inode-allocation-state-mismatch-corruption.patch
+bugfix/all/xfs-validate-cached-inodes-are-free-when-allocated.patch
+bugfix/all/xfs-don-t-call-xfs_da_shrink_inode-with-null-bp.patch
+bugfix/all/rsi-add-fix-for-crash-during-assertions.patch
+bugfix/all/libertas-fix-two-buffer-overflows-at-parsing-bss-descriptor.patch
+bugfix/all/mwifiex-fix-heap-overflow-in-mmwifiex_process_tdls_a.patch
+bugfix/all/media-usb-zr364xx-fix-kasan-null-ptr-deref-read-in-z.patch
+bugfix/all/wimax-i2400-fix-memory-leak.patch
+bugfix/all/wimax-i2400-fix-memory-leak-in-i2400m_op_rfkill_sw_toggle.patch
+bugfix/all/ext4-fix-use-after-free-race-with-debug_want_extra_isize.patch
+bugfix/all/ext4-add-more-paranoia-checking-in-ext4_expand_extra_isize-handling.patch
+bugfix/all/can-kvaser_usb-kvaser_usb_leaf-Fix-some-info-leaks-t.patch
+bugfix/all/dccp-fix-memleak-in-__feat_register_sp.patch
 
 # Backport to jessie
 debian/backport/revert-xen-pciback-don-t-disable-pci_command-on-pci-device-.patch
 
 # ABI maintenance
-debian/abi/drm-i915-avoid-abi-change-for-cve-2019-0155.patch

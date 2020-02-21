@@ -1,8 +1,8 @@
-From 946b7131bb185a75d3e7b137487698c709c9475a Mon Sep 17 00:00:00 2001
+From 6706a35d468c5e7554f20827abacf2d6151dd4fc Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 20 Jun 2011 09:03:47 +0200
-Subject: [PATCH 079/368] rt: Add local irq locks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 079/367] rt: Add local irq locks
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Introduce locallock. For !RT this maps to preempt_disable()/
 local_irq_disable() so there is not much that changes. For RT this will
@@ -332,5 +332,5 @@ index 491b3f5a5f8a..b988bf40ad3e 100644
  #define PCPU_MIN_UNIT_SIZE		PFN_ALIGN(32 << 10)
  
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 5684bdaff92c9f49f125a702bbdabe1145de1bc0 Mon Sep 17 00:00:00 2001
+From fc5fa48eec00241f60b175c9d83ee6cc06c76c54 Mon Sep 17 00:00:00 2001
 From: Juri Lelli <juri.lelli@gmail.com>
 Date: Tue, 13 May 2014 15:30:20 +0200
-Subject: [PATCH 124/368] sched/deadline: dl_task_timer has to be irqsafe
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 124/367] sched/deadline: dl_task_timer has to be irqsafe
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 As for rt_period_timer, dl_task_timer has to be irqsafe.
 
@@ -25,5 +25,5 @@ index 3042927c8b8a..1b7fa21d2003 100644
  
  /*
 -- 
-2.20.1
+2.24.0
 

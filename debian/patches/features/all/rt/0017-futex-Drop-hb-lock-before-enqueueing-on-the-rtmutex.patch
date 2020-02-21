@@ -1,8 +1,8 @@
-From 6021b54c43f394fbfab2ab29a8e809995a04b2af Mon Sep 17 00:00:00 2001
+From 4a38b8aa85a6c0ab3bc47f2e372558236c02ebae Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:36:00 +0100
-Subject: [PATCH 017/368] futex: Drop hb->lock before enqueueing on the rtmutex
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 017/367] futex: Drop hb->lock before enqueueing on the rtmutex
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 56222b212e8edb1cf51f5dd73ff645809b082b40
 
@@ -211,5 +211,5 @@ index b620aafa06e1..f4c34c4195a0 100644
  				     struct rt_mutex_waiter *waiter,
  				     struct task_struct *task);
 -- 
-2.20.1
+2.24.0
 

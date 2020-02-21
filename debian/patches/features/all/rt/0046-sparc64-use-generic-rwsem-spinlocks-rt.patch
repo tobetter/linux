@@ -1,8 +1,8 @@
-From 6196f13594f9292def55a9064367bb17e3096572 Mon Sep 17 00:00:00 2001
+From 6e1dd32bc7fc235a9d3bc286b67f86343d30e4e1 Mon Sep 17 00:00:00 2001
 From: Allen Pais <allen.pais@oracle.com>
 Date: Fri, 13 Dec 2013 09:44:41 +0530
-Subject: [PATCH 046/368] sparc64: use generic rwsem spinlocks rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 046/367] sparc64: use generic rwsem spinlocks rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Signed-off-by: Allen Pais <allen.pais@oracle.com>
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
@@ -30,5 +30,5 @@ index cef42d4be292..38f51d5f9d86 100644
  config GENERIC_HWEIGHT
  	bool
 -- 
-2.20.1
+2.24.0
 

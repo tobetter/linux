@@ -1,8 +1,8 @@
-From dec0293a62c380bc2640755dbc54b7b18dacdfd6 Mon Sep 17 00:00:00 2001
+From 44b4faaad9a10153f7b9621664ee2199f146a914 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 15 Jul 2010 10:29:00 +0200
-Subject: [PATCH 059/368] suspend: Prevent might sleep splats
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 059/367] suspend: Prevent might sleep splats
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 timekeeping suspend/resume calls read_persistant_clock() which takes
 rtc_lock. That results in might sleep warnings because at that point
@@ -37,10 +37,10 @@ index d83fc669eeac..52ce45f52793 100644
  
  #define TAINT_PROPRIETARY_MODULE	0
 diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-index b26dbc48c75b..72d2d26b5ce8 100644
+index 81695a492ebe..8ea6362a2e8c 100644
 --- a/kernel/power/hibernate.c
 +++ b/kernel/power/hibernate.c
-@@ -286,6 +286,8 @@ static int create_image(int platform_mode)
+@@ -291,6 +291,8 @@ static int create_image(int platform_mode)
  
  	local_irq_disable();
  
@@ -49,7 +49,7 @@ index b26dbc48c75b..72d2d26b5ce8 100644
  	error = syscore_suspend();
  	if (error) {
  		printk(KERN_ERR "PM: Some system devices failed to power down, "
-@@ -317,6 +319,7 @@ static int create_image(int platform_mode)
+@@ -322,6 +324,7 @@ static int create_image(int platform_mode)
  	syscore_resume();
  
   Enable_irqs:
@@ -57,7 +57,7 @@ index b26dbc48c75b..72d2d26b5ce8 100644
  	local_irq_enable();
  
   Enable_cpus:
-@@ -446,6 +449,7 @@ static int resume_target_kernel(bool platform_mode)
+@@ -455,6 +458,7 @@ static int resume_target_kernel(bool platform_mode)
  		goto Enable_cpus;
  
  	local_irq_disable();
@@ -65,7 +65,7 @@ index b26dbc48c75b..72d2d26b5ce8 100644
  
  	error = syscore_suspend();
  	if (error)
-@@ -479,6 +483,7 @@ static int resume_target_kernel(bool platform_mode)
+@@ -488,6 +492,7 @@ static int resume_target_kernel(bool platform_mode)
  	syscore_resume();
  
   Enable_irqs:
@@ -73,7 +73,7 @@ index b26dbc48c75b..72d2d26b5ce8 100644
  	local_irq_enable();
  
   Enable_cpus:
-@@ -564,6 +569,7 @@ int hibernation_platform_enter(void)
+@@ -573,6 +578,7 @@ int hibernation_platform_enter(void)
  		goto Enable_cpus;
  
  	local_irq_disable();
@@ -81,7 +81,7 @@ index b26dbc48c75b..72d2d26b5ce8 100644
  	syscore_suspend();
  	if (pm_wakeup_pending()) {
  		error = -EAGAIN;
-@@ -576,6 +582,7 @@ int hibernation_platform_enter(void)
+@@ -585,6 +591,7 @@ int hibernation_platform_enter(void)
  
   Power_up:
  	syscore_resume();
@@ -112,5 +112,5 @@ index 6ccb08f57fcb..40f8332ec170 100644
  	BUG_ON(irqs_disabled());
  
 -- 
-2.20.1
+2.24.0
 

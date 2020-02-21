@@ -1,8 +1,8 @@
-From a06c5fe08c192edaa01995f7808258db5b6e4f63 Mon Sep 17 00:00:00 2001
+From 3bfce01d76ff07ebbb17855d5b7c8e859f8abe75 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 2 Nov 2016 16:45:58 +0100
-Subject: [PATCH 041/368] rcu: update: make RCU_EXPEDITE_BOOT default
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 041/367] rcu: update: make RCU_EXPEDITE_BOOT default
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 RCU_EXPEDITE_BOOT should speed up the boot process by enforcing
 synchronize_rcu_expedited() instead of synchronize_rcu() during the boot
@@ -65,5 +65,5 @@ index 4f6db7e6a117..019b4708c9fa 100644
  		WRITE_ONCE(rcu_normal, 1);
  }
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 377199198a6be8e774f9b0fafb7319cf335a38d7 Mon Sep 17 00:00:00 2001
+From 7262fa5258dccb875953acdd5e40481947c37ff9 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 13 Jul 2016 18:22:23 +0200
-Subject: [PATCH 001/368] timer: make the base lock raw
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 001/367] timer: make the base lock raw
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The part where the base lock is held got more predictable / shorter after the
 timer rework. One reason is the lack of re-cascading.
@@ -14,7 +14,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 24 insertions(+), 24 deletions(-)
 
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index b625cc7fcc1c..f14e3525d330 100644
+index b5603248d841..c68f96af0aed 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
 @@ -193,7 +193,7 @@ EXPORT_SYMBOL(jiffies_64);
@@ -135,7 +135,7 @@ index b625cc7fcc1c..f14e3525d330 100644
  
  	return cmp_next_hrtimer_event(basem, expires);
  }
-@@ -1647,7 +1647,7 @@ static inline void __run_timers(struct timer_base *base)
+@@ -1649,7 +1649,7 @@ static inline void __run_timers(struct timer_base *base)
  	if (!time_after_eq(jiffies, base->clk))
  		return;
  
@@ -144,7 +144,7 @@ index b625cc7fcc1c..f14e3525d330 100644
  
  	/*
  	 * timer_base::must_forward_clk must be cleared before running
-@@ -1674,7 +1674,7 @@ static inline void __run_timers(struct timer_base *base)
+@@ -1676,7 +1676,7 @@ static inline void __run_timers(struct timer_base *base)
  			expire_timers(base, heads + levels);
  	}
  	base->running_timer = NULL;
@@ -153,7 +153,7 @@ index b625cc7fcc1c..f14e3525d330 100644
  }
  
  /*
-@@ -1884,8 +1884,8 @@ int timers_dead_cpu(unsigned int cpu)
+@@ -1886,8 +1886,8 @@ int timers_dead_cpu(unsigned int cpu)
  		 * The caller is globally serialized and nobody else
  		 * takes two locks at once, deadlock is not possible.
  		 */
@@ -164,7 +164,7 @@ index b625cc7fcc1c..f14e3525d330 100644
  
  		/*
  		 * The current CPUs base clock might be stale. Update it
-@@ -1898,8 +1898,8 @@ int timers_dead_cpu(unsigned int cpu)
+@@ -1900,8 +1900,8 @@ int timers_dead_cpu(unsigned int cpu)
  		for (i = 0; i < WHEEL_SIZE; i++)
  			migrate_timer_list(new_base, old_base->vectors + i);
  
@@ -175,7 +175,7 @@ index b625cc7fcc1c..f14e3525d330 100644
  		put_cpu_ptr(&timer_bases);
  	}
  	return 0;
-@@ -1915,7 +1915,7 @@ static void __init init_timer_cpu(int cpu)
+@@ -1917,7 +1917,7 @@ static void __init init_timer_cpu(int cpu)
  	for (i = 0; i < NR_BASES; i++) {
  		base = per_cpu_ptr(&timer_bases[i], cpu);
  		base->cpu = cpu;
@@ -185,5 +185,5 @@ index b625cc7fcc1c..f14e3525d330 100644
  	}
  }
 -- 
-2.20.1
+2.24.0
 

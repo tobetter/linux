@@ -1,8 +1,8 @@
-From 67627d4a9790df894f852544643e7322713b5031 Mon Sep 17 00:00:00 2001
+From d0ef80eb524f88b4ee3e0edc737db9c9e71c3250 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sat, 27 Feb 2016 10:47:10 +0100
-Subject: [PATCH 126/368] tick/broadcast: Make broadcast hrtimer irqsafe
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 126/367] tick/broadcast: Make broadcast hrtimer irqsafe
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Otherwise we end up with the following:
 
@@ -60,5 +60,5 @@ index 690b797f522e..fe8ba1619879 100644
  	clockevents_register_device(&ce_broadcast_hrtimer);
  }
 -- 
-2.20.1
+2.24.0
 

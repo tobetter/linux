@@ -1,9 +1,9 @@
-From 73b790f7b29bd370a152945caad2f973112c3542 Mon Sep 17 00:00:00 2001
+From d98698fec8d4b76872e5c71da3be2e92d4cf1a6a Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 7 Jun 2011 09:19:06 +0200
-Subject: [PATCH 136/368] sched: Do not account rcu_preempt_depth on RT in
+Subject: [PATCH 136/367] sched: Do not account rcu_preempt_depth on RT in
  might_sleep()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 RT changes the rcu_preempt_depth semantics, so we cannot check for it
 in might_sleep().
@@ -15,7 +15,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  2 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/include/linux/rcupdate.h b/include/linux/rcupdate.h
-index 01f71e1d2e94..00dc4a9474c0 100644
+index 96037ba940ee..67e67ea896a5 100644
 --- a/include/linux/rcupdate.h
 +++ b/include/linux/rcupdate.h
 @@ -301,6 +301,11 @@ void synchronize_rcu(void);
@@ -30,7 +30,7 @@ index 01f71e1d2e94..00dc4a9474c0 100644
  
  #else /* #ifdef CONFIG_PREEMPT_RCU */
  
-@@ -326,6 +331,8 @@ static inline int rcu_preempt_depth(void)
+@@ -324,6 +329,8 @@ static inline int rcu_preempt_depth(void)
  	return 0;
  }
  
@@ -40,7 +40,7 @@ index 01f71e1d2e94..00dc4a9474c0 100644
  
  /* Internal to kernel */
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 2421e47adbea..632d10ed3232 100644
+index 2e4891d0bdb7..73c5fd773ffe 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -7899,7 +7899,7 @@ void __init sched_init(void)
@@ -53,5 +53,5 @@ index 2421e47adbea..632d10ed3232 100644
  	return (nested == preempt_offset);
  }
 -- 
-2.20.1
+2.24.0
 

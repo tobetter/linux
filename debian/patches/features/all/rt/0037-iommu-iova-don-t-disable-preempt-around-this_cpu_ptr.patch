@@ -1,9 +1,9 @@
-From 4fbfb6b861269f946f3db19e8c6753305b220d8e Mon Sep 17 00:00:00 2001
+From 2d732eeae58ece79df583274519b7142df089321 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 15 Sep 2016 16:58:19 +0200
-Subject: [PATCH 037/368] iommu/iova: don't disable preempt around
+Subject: [PATCH 037/367] iommu/iova: don't disable preempt around
  this_cpu_ptr()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Commit 583248e6620a ("iommu/iova: Disable preemption around use of
 this_cpu_ptr()") disables preemption while accessing a per-CPU variable.
@@ -85,5 +85,5 @@ index f106fd9782bf..1c5a4cc1f0c6 100644
  	return iova_pfn;
  }
 -- 
-2.20.1
+2.24.0
 

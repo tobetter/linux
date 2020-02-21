@@ -1,8 +1,8 @@
-From 3c16006c871a83e23c1d8cf1f255d9e0b1ac3efb Mon Sep 17 00:00:00 2001
+From 75cf7be4c15a799e9b6a64e1fc6533b86f9c58e9 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 3 Jul 2009 08:44:56 -0500
-Subject: [PATCH 054/368] signals: Allow rt tasks to cache one sigqueue struct
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 054/367] signals: Allow rt tasks to cache one sigqueue struct
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 To avoid allocation allow rt tasks to cache one sigqueue struct in
 task struct.
@@ -17,7 +17,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  5 files changed, 69 insertions(+), 5 deletions(-)
 
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 9ce3060acb12..ea1c7ca528da 100644
+index fe4d5254364a..2ab7c620c58c 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1701,6 +1701,7 @@ struct task_struct {
@@ -54,7 +54,7 @@ index d9394fcd0e2c..6d74115dbcb6 100644
  	spin_unlock(&sighand->siglock);
  
 diff --git a/kernel/fork.c b/kernel/fork.c
-index ba49d00177f6..a15509d9bcc6 100644
+index f334fe407cec..72806f7c26cc 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
 @@ -1585,6 +1585,7 @@ static __latent_entropy struct task_struct *copy_process(
@@ -66,7 +66,7 @@ index ba49d00177f6..a15509d9bcc6 100644
  	p->utime = p->stime = p->gtime = 0;
  	p->utimescaled = p->stimescaled = 0;
 diff --git a/kernel/signal.c b/kernel/signal.c
-index 99007f102231..c79c96ab409a 100644
+index 3f1158d55be1..e09170dd0ac2 100644
 --- a/kernel/signal.c
 +++ b/kernel/signal.c
 @@ -14,6 +14,7 @@
@@ -208,5 +208,5 @@ index 99007f102231..c79c96ab409a 100644
  	if (q)
  		q->flags |= SIGQUEUE_PREALLOC;
 -- 
-2.20.1
+2.24.0
 

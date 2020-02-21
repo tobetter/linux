@@ -1,8 +1,8 @@
-From dd1a78614020d4a0d701b86b3c8cb066e8bb74ef Mon Sep 17 00:00:00 2001
+From 40e3f53589433b53518b6f15a7e7ce7b60a7a260 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 17 Jun 2011 15:42:38 +0200
-Subject: [PATCH 077/368] Intrduce migrate_disable() + cpu_light()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 077/367] Intrduce migrate_disable() + cpu_light()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Introduce migrate_disable(). The task can't be pushed to another CPU but can
 be preempted.
@@ -42,7 +42,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  7 files changed, 125 insertions(+), 11 deletions(-)
 
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 166686209f2c..781ac33ad04b 100644
+index b27c9b2e683f..af55e76ff931 100644
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
 @@ -186,6 +186,9 @@ static inline void cpu_notifier_register_done(void)
@@ -81,7 +81,7 @@ index 26e0eaa16492..64f1488df183 100644
  
  #ifdef CONFIG_PREEMPT_NOTIFIERS
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index db9e0405c7ea..1207a792d364 100644
+index 6c8b3be60cdf..a74445f3ca4b 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1532,6 +1532,12 @@ struct task_struct {
@@ -159,7 +159,7 @@ index 68123c1fe549..891c533724f5 100644
   * Callback to arch code if there's nosmp or maxcpus=0 on the
   * boot command line:
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index eefae8a2ca89..dd37da8527da 100644
+index d77987112a44..3d35fa02ce7f 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1100,6 +1100,11 @@ void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
@@ -174,7 +174,7 @@ index eefae8a2ca89..dd37da8527da 100644
  	queued = task_on_rq_queued(p);
  	running = task_current(rq, p);
  
-@@ -1180,7 +1185,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
+@@ -1181,7 +1186,7 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
  	}
  
  	/* Can the task run on the task's current CPU? If so, we're done */
@@ -182,7 +182,7 @@ index eefae8a2ca89..dd37da8527da 100644
 +	if (cpumask_test_cpu(task_cpu(p), new_mask) || __migrate_disabled(p))
  		goto out;
  
- 	dest_cpu = cpumask_any_and(cpu_valid_mask, new_mask);
+ 	if (task_running(rq, p) || p->state == TASK_WAKING) {
 @@ -3254,6 +3259,69 @@ static inline void schedule_debug(struct task_struct *prev)
  	schedstat_inc(this_rq()->sched_count);
  }
@@ -295,5 +295,5 @@ index 1afec32de6f2..11fa431046a8 100644
  	print_symbol("caller is %s\n", (long)__builtin_return_address(0));
  	dump_stack();
 -- 
-2.20.1
+2.24.0
 

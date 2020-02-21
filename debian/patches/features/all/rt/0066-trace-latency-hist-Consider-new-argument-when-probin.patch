@@ -1,9 +1,9 @@
-From f524eeb102ddee722edf52aebc788178d73bfd53 Mon Sep 17 00:00:00 2001
+From ac7df779fca2b5924708fd2e31d591e02317cd5f Mon Sep 17 00:00:00 2001
 From: Carsten Emde <C.Emde@osadl.org>
 Date: Tue, 5 Jan 2016 10:21:59 +0100
-Subject: [PATCH 066/368] trace/latency-hist: Consider new argument when
+Subject: [PATCH 066/367] trace/latency-hist: Consider new argument when
  probing the sched_switch tracer
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The sched_switch tracer has got a new argument. Fix the latency tracer
 accordingly.
@@ -40,5 +40,5 @@ index b6c1d14b71c4..7f6ee70dea41 100644
  	unsigned long flags;
  	int cpu = task_cpu(next);
 -- 
-2.20.1
+2.24.0
 

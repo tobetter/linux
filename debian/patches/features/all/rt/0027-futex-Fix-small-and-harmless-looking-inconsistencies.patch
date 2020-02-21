@@ -1,9 +1,9 @@
-From 3e10c8f5b7defcd24757d0cd90106846e27fac6e Mon Sep 17 00:00:00 2001
+From ec21e2d60501b8681024031e0430345f2add1622 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Fri, 7 Apr 2017 09:04:07 +0200
-Subject: [PATCH 027/368] futex: Fix small (and harmless looking)
+Subject: [PATCH 027/367] futex: Fix small (and harmless looking)
  inconsistencies
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 94ffac5d847cfd790bb37b7cef1cad803743985e
 
@@ -60,5 +60,5 @@ index 9f1148f9925f..f38100793934 100644
  
  out_unlock:
 -- 
-2.20.1
+2.24.0
 

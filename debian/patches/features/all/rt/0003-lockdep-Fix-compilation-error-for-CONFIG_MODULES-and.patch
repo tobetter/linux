@@ -1,9 +1,9 @@
-From 7f929342d0fcc40a8dd8f26f2c6d91e8385d57c3 Mon Sep 17 00:00:00 2001
+From 9ce80470eb1cfaf3824ca3faf5eb19cf464aa710 Mon Sep 17 00:00:00 2001
 From: Dan Murphy <dmurphy@ti.com>
 Date: Fri, 24 Feb 2017 08:41:49 -0600
-Subject: [PATCH 003/368] lockdep: Fix compilation error for !CONFIG_MODULES
+Subject: [PATCH 003/367] lockdep: Fix compilation error for !CONFIG_MODULES
  and !CONFIG_SMP
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 When CONFIG_MODULES is not set then it fails to compile in lockdep:
 
@@ -28,7 +28,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  2 files changed, 10 insertions(+)
 
 diff --git a/include/linux/module.h b/include/linux/module.h
-index 0d6cc692a86d..692871bdebe6 100644
+index 5436efe5c766..88a79e17fad1 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
 @@ -664,6 +664,11 @@ static inline bool is_module_percpu_address(unsigned long addr)
@@ -44,7 +44,7 @@ index 0d6cc692a86d..692871bdebe6 100644
  {
  	return false;
 diff --git a/kernel/module.c b/kernel/module.c
-index e40e5fa43ccd..17456c595ce8 100644
+index 83ed20800e71..5c4121ccaae4 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
 @@ -734,6 +734,11 @@ bool is_module_percpu_address(unsigned long addr)
@@ -60,5 +60,5 @@ index e40e5fa43ccd..17456c595ce8 100644
  
  #define MODINFO_ATTR(field)	\
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From a9ee145524ebcab54a7821322cda5ad55784b9ee Mon Sep 17 00:00:00 2001
+From cb807ad67c1cbcab64d971fbd13ce988669b2e89 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 18:51:23 +0200
-Subject: [PATCH 150/368] lockdep: Make it RT aware
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 150/367] lockdep: Make it RT aware
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 teach lockdep that we don't really do softirqs on -RT.
 
@@ -43,10 +43,10 @@ index f8f27cc5546f..9b77034f7c5e 100644
  
  #if defined(CONFIG_IRQSOFF_TRACER) || \
 diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-index 3896f3e6c7b1..69e56580efdc 100644
+index d331c6a751f7..7ae06d7a8821 100644
 --- a/kernel/locking/lockdep.c
 +++ b/kernel/locking/lockdep.c
-@@ -3709,6 +3709,7 @@ static void check_flags(unsigned long flags)
+@@ -3712,6 +3712,7 @@ static void check_flags(unsigned long flags)
  		}
  	}
  
@@ -54,7 +54,7 @@ index 3896f3e6c7b1..69e56580efdc 100644
  	/*
  	 * We dont accurately track softirq state in e.g.
  	 * hardirq contexts (such as on 4KSTACKS), so only
-@@ -3723,6 +3724,7 @@ static void check_flags(unsigned long flags)
+@@ -3726,6 +3727,7 @@ static void check_flags(unsigned long flags)
  			DEBUG_LOCKS_WARN_ON(!current->softirqs_enabled);
  		}
  	}
@@ -63,5 +63,5 @@ index 3896f3e6c7b1..69e56580efdc 100644
  	if (!debug_locks)
  		print_irqtrace_events(current);
 -- 
-2.20.1
+2.24.0
 

@@ -1,9 +1,9 @@
-From e411c01a60bb756adbe72ee47dfe45d21e24d588 Mon Sep 17 00:00:00 2001
+From e98feddbf0fa52611f04ddc22cecf084b7bd4d37 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:57 +0100
-Subject: [PATCH 014/368] futex,rt_mutex: Restructure
+Subject: [PATCH 014/367] futex,rt_mutex: Restructure
  rt_mutex_finish_proxy_lock()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 38d589f2fd08f1296aea3ce62bebd185125c6d81
 
@@ -52,5 +52,5 @@ index b550e9d86b1f..8e81b17c0ee5 100644
  extern int rt_mutex_futex_trylock(struct rt_mutex *l);
  
 -- 
-2.20.1
+2.24.0
 

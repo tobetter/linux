@@ -1,9 +1,9 @@
-From 04a78b94e3e13a052ccd35c2f845dc53b1ab025e Mon Sep 17 00:00:00 2001
+From af68b6b5304ab76d30b434b9f58206254e073a81 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 14 Jul 2015 14:26:34 +0200
-Subject: [PATCH 118/368] panic: skip get_random_bytes for RT_FULL in
+Subject: [PATCH 118/367] panic: skip get_random_bytes for RT_FULL in
  init_oops_id
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Disable on -RT. If this is invoked from irq-context we will have problems
 to acquire the sleeping lock.
@@ -14,10 +14,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 2 insertions(+)
 
 diff --git a/kernel/panic.c b/kernel/panic.c
-index eb7bc6d60927..40b7980746a3 100644
+index 89198dca0180..da7411fffeba 100644
 --- a/kernel/panic.c
 +++ b/kernel/panic.c
-@@ -486,9 +486,11 @@ static u64 oops_id;
+@@ -487,9 +487,11 @@ static u64 oops_id;
  
  static int init_oops_id(void)
  {
@@ -30,5 +30,5 @@ index eb7bc6d60927..40b7980746a3 100644
  
  	return 0;
 -- 
-2.20.1
+2.24.0
 

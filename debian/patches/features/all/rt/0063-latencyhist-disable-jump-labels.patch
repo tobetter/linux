@@ -1,8 +1,8 @@
-From f97f297a0d2e156a95acaf71d1950ce64dd923b5 Mon Sep 17 00:00:00 2001
+From 171ebeadd5547bf9459e2ddd68924f5515c960e9 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 4 Feb 2016 14:08:06 +0100
-Subject: [PATCH 063/368] latencyhist: disable jump-labels
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 063/367] latencyhist: disable jump-labels
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Atleast on X86 we die a recursive death
 
@@ -64,5 +64,5 @@ index b39d0f93c67b..e84c312fc0bb 100644
           This option enables a transparent branch optimization that
  	 makes certain almost-always-true or almost-always-false branch
 -- 
-2.20.1
+2.24.0
 

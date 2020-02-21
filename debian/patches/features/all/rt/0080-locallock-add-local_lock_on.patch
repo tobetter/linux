@@ -1,8 +1,8 @@
-From 6776ee6912bfc65948194f53f3597a7a6c786e01 Mon Sep 17 00:00:00 2001
+From 94ffa8baafcfb545835f6afbb1ad32deaa5c4c5c Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 27 May 2016 15:11:51 +0200
-Subject: [PATCH 080/368] locallock: add local_lock_on()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 080/367] locallock: add local_lock_on()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 ---
@@ -34,5 +34,5 @@ index 218e5a4db343..96f22c568998 100644
  {
  	spin_lock_irqsave(&lv->lock, lv->flags);
 -- 
-2.20.1
+2.24.0
 

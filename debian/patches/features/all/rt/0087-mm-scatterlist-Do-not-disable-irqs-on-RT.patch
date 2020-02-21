@@ -1,8 +1,8 @@
-From 36d3e987c8880c388eafc46a34353c4bd9aabcc8 Mon Sep 17 00:00:00 2001
+From 8bb12b8bc831f84737153296fdf15c4404d32216 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 3 Jul 2009 08:44:34 -0500
-Subject: [PATCH 087/368] mm/scatterlist: Do not disable irqs on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 087/367] mm/scatterlist: Do not disable irqs on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The local_irq_save() is not only used to get things done "fast" but
 also to ensure that in case of SG_MITER_ATOMIC we are in "atomic"
@@ -15,10 +15,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/lib/scatterlist.c b/lib/scatterlist.c
-index 004fc70fc56a..ccc46992a517 100644
+index a854cc39f084..1984ad93892a 100644
 --- a/lib/scatterlist.c
 +++ b/lib/scatterlist.c
-@@ -620,7 +620,7 @@ void sg_miter_stop(struct sg_mapping_iter *miter)
+@@ -621,7 +621,7 @@ void sg_miter_stop(struct sg_mapping_iter *miter)
  			flush_kernel_dcache_page(miter->page);
  
  		if (miter->__flags & SG_MITER_ATOMIC) {
@@ -27,7 +27,7 @@ index 004fc70fc56a..ccc46992a517 100644
  			kunmap_atomic(miter->addr);
  		} else
  			kunmap(miter->page);
-@@ -664,7 +664,7 @@ size_t sg_copy_buffer(struct scatterlist *sgl, unsigned int nents, void *buf,
+@@ -665,7 +665,7 @@ size_t sg_copy_buffer(struct scatterlist *sgl, unsigned int nents, void *buf,
  	if (!sg_miter_skip(&miter, skip))
  		return false;
  
@@ -36,7 +36,7 @@ index 004fc70fc56a..ccc46992a517 100644
  
  	while (sg_miter_next(&miter) && offset < buflen) {
  		unsigned int len;
-@@ -681,7 +681,7 @@ size_t sg_copy_buffer(struct scatterlist *sgl, unsigned int nents, void *buf,
+@@ -682,7 +682,7 @@ size_t sg_copy_buffer(struct scatterlist *sgl, unsigned int nents, void *buf,
  
  	sg_miter_stop(&miter);
  
@@ -46,5 +46,5 @@ index 004fc70fc56a..ccc46992a517 100644
  }
  EXPORT_SYMBOL(sg_copy_buffer);
 -- 
-2.20.1
+2.24.0
 

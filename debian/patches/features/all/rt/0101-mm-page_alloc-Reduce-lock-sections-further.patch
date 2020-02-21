@@ -1,8 +1,8 @@
-From 7315dc420f9037d12d2bfc4971abdbbd0b98d631 Mon Sep 17 00:00:00 2001
+From 856ad2a1aa1631a08efe41ceb23f20cad5aee10d Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Fri, 3 Jul 2009 08:44:37 -0500
-Subject: [PATCH 101/368] mm: page_alloc: Reduce lock sections further
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 101/367] mm: page_alloc: Reduce lock sections further
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Split out the pages which are to be freed into a separate list and
 call free_pages_bulk() outside of the percpu page allocator locks.
@@ -14,7 +14,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 66 insertions(+), 28 deletions(-)
 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 8cf469d23b35..fbb696c66c22 100644
+index 23b3e7f7449e..01f70473c226 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
 @@ -1105,7 +1105,7 @@ static bool bulkfree_pcp_prepare(struct page *page)
@@ -207,5 +207,5 @@ index 8cf469d23b35..fbb696c66c22 100644
  
  out:
 -- 
-2.20.1
+2.24.0
 

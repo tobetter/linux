@@ -1,8 +1,8 @@
-From 39b8a7824f3854c94b742fc2fa821929e4046d42 Mon Sep 17 00:00:00 2001
+From 71f51cf5fba420c83f332f42a22d380ea44146be Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:54 +0100
-Subject: [PATCH 011/368] futex: Rework inconsistent rt_mutex/futex_q state
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 011/367] futex: Rework inconsistent rt_mutex/futex_q state
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 73d786bd043ebc855f349c81ea805f6b11cbf2aa
 
@@ -143,5 +143,5 @@ index d3b305fcc53c..50e145ca0e71 100644
  out:
  	return ret ? ret : locked;
 -- 
-2.20.1
+2.24.0
 

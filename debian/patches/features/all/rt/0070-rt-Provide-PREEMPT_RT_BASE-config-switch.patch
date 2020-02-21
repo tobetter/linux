@@ -1,8 +1,8 @@
-From 1caecd7cf4a7ed5e5367eaf5ab50062bbb46a6bb Mon Sep 17 00:00:00 2001
+From 40564848bab82348ad864dce224bc4df7aeb00cd Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 17 Jun 2011 12:39:57 +0200
-Subject: [PATCH 070/368] rt: Provide PREEMPT_RT_BASE config switch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 070/367] rt: Provide PREEMPT_RT_BASE config switch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Introduce PREEMPT_RT_BASE which enables parts of
 PREEMPT_RT_FULL. Forces interrupt threading and enables some of the RT
@@ -56,5 +56,5 @@ index 3f9c97419f02..c669134982ec 100644
  
  config PREEMPT_COUNT
 -- 
-2.20.1
+2.24.0
 

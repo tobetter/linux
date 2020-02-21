@@ -1,8 +1,8 @@
-From 57e0c88c882571b462130c633c0d18f1fa93d38c Mon Sep 17 00:00:00 2001
+From 08f2ebef5ab0823373757731da6e4e6f14a520f6 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 13 Nov 2011 17:17:09 +0100
-Subject: [PATCH 153/368] softirq: Check preemption after reenabling interrupts
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 153/367] softirq: Check preemption after reenabling interrupts
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 raise_softirq_irqoff() disables interrupts and wakes the softirq
 daemon, but after reenabling interrupts there is no preemption check,
@@ -117,7 +117,7 @@ index 1d6565e81030..b23a79761df7 100644
  	return 0;
  }
 diff --git a/net/core/dev.c b/net/core/dev.c
-index 8e187f90c85d..9f30c3ef1067 100644
+index 547b4daae5ca..efde52ab9253 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
 @@ -2316,6 +2316,7 @@ static void __netif_reschedule(struct Qdisc *q)
@@ -168,7 +168,7 @@ index 8e187f90c85d..9f30c3ef1067 100644
  }
  EXPORT_SYMBOL(__napi_schedule);
  
-@@ -8099,6 +8105,7 @@ static int dev_cpu_callback(struct notifier_block *nfb,
+@@ -8104,6 +8110,7 @@ static int dev_cpu_callback(struct notifier_block *nfb,
  
  	raise_softirq_irqoff(NET_TX_SOFTIRQ);
  	local_irq_enable();
@@ -177,5 +177,5 @@ index 8e187f90c85d..9f30c3ef1067 100644
  	/* Process offline CPU's input_pkt_queue */
  	while ((skb = __skb_dequeue(&oldsd->process_queue))) {
 -- 
-2.20.1
+2.24.0
 

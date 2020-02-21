@@ -1,8 +1,8 @@
-From 19af19499064121fe1032aa7f0deef70a62a1171 Mon Sep 17 00:00:00 2001
+From a5f45f904cdeb35957867bd8005c2204d3fccb0d Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 14 Sep 2016 11:55:23 +0200
-Subject: [PATCH 034/368] fs/dcache: include wait.h
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 034/367] fs/dcache: include wait.h
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Since commit d9171b934526 ("parallel lookups machinery, part 4 (and
 last)") dcache.h is using but does not include wait.h. It works as long
@@ -26,5 +26,5 @@ index b757ee42bc63..8468a924b65d 100644
  struct path;
  struct vfsmount;
 -- 
-2.20.1
+2.24.0
 

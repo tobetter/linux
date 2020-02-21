@@ -1,8 +1,8 @@
-From 91166c3d9671f993a805b307b7c99d77e3658c39 Mon Sep 17 00:00:00 2001
+From 6cb59a7d2a5c05eb8258e8d8b3481daeaf1234b9 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 10 Apr 2017 18:03:36 +0200
-Subject: [PATCH 026/368] futex: Avoid freeing an active timer
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 026/367] futex: Avoid freeing an active timer
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit 97181f9bd57405b879403763284537e27d46963d
 
@@ -55,5 +55,5 @@ index d03dcdf5c310..9f1148f9925f 100644
  
  uaddr_faulted:
 -- 
-2.20.1
+2.24.0
 

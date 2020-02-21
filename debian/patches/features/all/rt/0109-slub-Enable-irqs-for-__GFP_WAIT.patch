@@ -1,8 +1,8 @@
-From a0b5d2ee681c45d7ccbacd9689812e6cc200f661 Mon Sep 17 00:00:00 2001
+From 9d3daf7d79bb9f81e0dd2b280eaba72f8b30e3e9 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 9 Jan 2013 12:08:15 +0100
-Subject: [PATCH 109/368] slub: Enable irqs for __GFP_WAIT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 109/367] slub: Enable irqs for __GFP_WAIT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 SYSTEM_RUNNING might be too late for enabling interrupts. Allocations
 with GFP_WAIT can happen before that. So use this as an indicator.
@@ -13,7 +13,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 6 insertions(+), 7 deletions(-)
 
 diff --git a/mm/slub.c b/mm/slub.c
-index 6cd5c830b093..e7491c120763 100644
+index 086f7123d0f0..f89915d720e1 100644
 --- a/mm/slub.c
 +++ b/mm/slub.c
 @@ -1536,14 +1536,17 @@ static struct page *allocate_slab(struct kmem_cache *s, gfp_t flags, int node)
@@ -50,5 +50,5 @@ index 6cd5c830b093..e7491c120763 100644
  	if (!page)
  		return NULL;
 -- 
-2.20.1
+2.24.0
 

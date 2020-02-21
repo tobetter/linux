@@ -1,9 +1,9 @@
-From 1172451ab11d468573ffdb475356450711e562a8 Mon Sep 17 00:00:00 2001
+From ebca02fc68e0b0d410779aaf906dd2c0ccd600e8 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 28 Jan 2015 17:14:16 +0100
-Subject: [PATCH 113/368] mm/memcontrol: Replace local_irq_disable with local
+Subject: [PATCH 113/367] mm/memcontrol: Replace local_irq_disable with local
  locks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 There are a few local_irq_disable() which then take sleeping locks. This
 patch converts them local locks.
@@ -14,7 +14,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 14 insertions(+), 6 deletions(-)
 
 diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index b0432f9364ac..9884c6d2d757 100644
+index 9e26748441c1..b0ebe2beb25c 100644
 --- a/mm/memcontrol.c
 +++ b/mm/memcontrol.c
 @@ -67,6 +67,7 @@
@@ -34,7 +34,7 @@ index b0432f9364ac..9884c6d2d757 100644
  /* Whether legacy memory+swap accounting is active */
  static bool do_memsw_account(void)
  {
-@@ -4565,12 +4568,12 @@ static int mem_cgroup_move_account(struct page *page,
+@@ -4594,12 +4597,12 @@ static int mem_cgroup_move_account(struct page *page,
  
  	ret = 0;
  
@@ -49,7 +49,7 @@ index b0432f9364ac..9884c6d2d757 100644
  out_unlock:
  	unlock_page(page);
  out:
-@@ -5445,10 +5448,10 @@ void mem_cgroup_commit_charge(struct page *page, struct mem_cgroup *memcg,
+@@ -5474,10 +5477,10 @@ void mem_cgroup_commit_charge(struct page *page, struct mem_cgroup *memcg,
  
  	commit_charge(page, memcg, lrucare);
  
@@ -62,7 +62,7 @@ index b0432f9364ac..9884c6d2d757 100644
  
  	if (do_memsw_account() && PageSwapCache(page)) {
  		swp_entry_t entry = { .val = page_private(page) };
-@@ -5504,14 +5507,14 @@ static void uncharge_batch(struct mem_cgroup *memcg, unsigned long pgpgout,
+@@ -5533,14 +5536,14 @@ static void uncharge_batch(struct mem_cgroup *memcg, unsigned long pgpgout,
  		memcg_oom_recover(memcg);
  	}
  
@@ -79,7 +79,7 @@ index b0432f9364ac..9884c6d2d757 100644
  
  	if (!mem_cgroup_is_root(memcg))
  		css_put_many(&memcg->css, nr_pages);
-@@ -5860,6 +5863,7 @@ void mem_cgroup_swapout(struct page *page, swp_entry_t entry)
+@@ -5889,6 +5892,7 @@ void mem_cgroup_swapout(struct page *page, swp_entry_t entry)
  {
  	struct mem_cgroup *memcg, *swap_memcg;
  	unsigned short oldid;
@@ -87,7 +87,7 @@ index b0432f9364ac..9884c6d2d757 100644
  
  	VM_BUG_ON_PAGE(PageLRU(page), page);
  	VM_BUG_ON_PAGE(page_count(page), page);
-@@ -5900,12 +5904,16 @@ void mem_cgroup_swapout(struct page *page, swp_entry_t entry)
+@@ -5929,12 +5933,16 @@ void mem_cgroup_swapout(struct page *page, swp_entry_t entry)
  	 * important here to have the interrupts disabled because it is the
  	 * only synchronisation we have for udpating the per-CPU variables.
  	 */
@@ -105,5 +105,5 @@ index b0432f9364ac..9884c6d2d757 100644
  
  /*
 -- 
-2.20.1
+2.24.0
 

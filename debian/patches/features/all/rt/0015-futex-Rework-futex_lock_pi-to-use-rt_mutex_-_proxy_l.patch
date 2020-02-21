@@ -1,9 +1,9 @@
-From f23c49286f14a1e26bf191861c6f5d8b79bf4a08 Mon Sep 17 00:00:00 2001
+From 8560a352561e2908e2fc4e9875b5a96a2f3cf195 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Wed, 22 Mar 2017 11:35:58 +0100
-Subject: [PATCH 015/368] futex: Rework futex_lock_pi() to use
+Subject: [PATCH 015/367] futex: Rework futex_lock_pi() to use
  rt_mutex_*_proxy_lock()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit cfafcd117da0216520568c195cb2f6cd1980c4bb
 
@@ -273,5 +273,5 @@ index 8e81b17c0ee5..b620aafa06e1 100644
  
  extern void rt_mutex_futex_unlock(struct rt_mutex *lock);
 -- 
-2.20.1
+2.24.0
 

@@ -1,9 +1,9 @@
-From ab1bebcf4ea21ad0e64dca108da1e01a636479cd Mon Sep 17 00:00:00 2001
+From 11bdfe07845054cec106447855c15fd93f5a079c Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 8 Mar 2017 14:23:35 +0100
-Subject: [PATCH 078/368] futex: workaround migrate_disable/enable in different
+Subject: [PATCH 078/367] futex: workaround migrate_disable/enable in different
  context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 migrate_disable()/migrate_enable() takes a different path in atomic() vs
 !atomic() context. These little hacks ensure that we don't underflow / overflow
@@ -62,5 +62,5 @@ index cedff765c101..077d61f758eb 100644
  
  		/*
 -- 
-2.20.1
+2.24.0
 

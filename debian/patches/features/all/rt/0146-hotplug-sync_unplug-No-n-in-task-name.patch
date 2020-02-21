@@ -1,8 +1,8 @@
-From 26ad41c6d8df512c137300e41981901b32bd0da0 Mon Sep 17 00:00:00 2001
+From e0576853ef622ca3e7ea1937bf65a1c31eb2827e Mon Sep 17 00:00:00 2001
 From: Yong Zhang <yong.zhang0@gmail.com>
 Date: Sun, 16 Oct 2011 18:56:43 +0800
-Subject: [PATCH 146/368] hotplug: sync_unplug: No "\n" in task name
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 146/367] hotplug: sync_unplug: No "\n" in task name
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Otherwise the output will look a little odd.
 
@@ -14,7 +14,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/kernel/cpu.c b/kernel/cpu.c
-index 59bdf7770e95..a4e06c506053 100644
+index 4d5670483859..b69e64e14f95 100644
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
 @@ -326,7 +326,7 @@ static int cpu_unplug_begin(unsigned int cpu)
@@ -27,5 +27,5 @@ index 59bdf7770e95..a4e06c506053 100644
  		return (PTR_ERR(tsk));
  	kthread_bind(tsk, cpu);
 -- 
-2.20.1
+2.24.0
 

@@ -1,0 +1,22 @@
+From 4d2f4357213280bd179465707710f3c5fbc022b7 Mon Sep 17 00:00:00 2001
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Fri, 8 Jul 2011 20:25:16 +0200
+Subject: [PATCH 324/367] Add localversion for -RT release
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ localversion-rt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 localversion-rt
+
+diff --git a/localversion-rt b/localversion-rt
+new file mode 100644
+index 000000000000..9a218ca23053
+--- /dev/null
++++ b/localversion-rt
+@@ -0,0 +1 @@
++-rt23
+-- 
+2.24.0
+

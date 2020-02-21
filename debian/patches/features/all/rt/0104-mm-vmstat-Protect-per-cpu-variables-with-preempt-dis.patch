@@ -1,9 +1,9 @@
-From 0246a96c8d848f105333ea16cba082164f919c9f Mon Sep 17 00:00:00 2001
+From 8ea816d71176a5ec8216033934a27983368aa707 Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:30:13 -0500
-Subject: [PATCH 104/368] mm/vmstat: Protect per cpu variables with preempt
+Subject: [PATCH 104/367] mm/vmstat: Protect per cpu variables with preempt
  disable on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Disable preemption on -RT for the vmstat code. On vanila the code runs in
 IRQ-off regions while on -RT it is not. "preempt_disable" ensures that the
@@ -41,7 +41,7 @@ index 613771909b6e..e28c5a43229d 100644
  
  static inline void count_vm_events(enum vm_event_item item, long delta)
 diff --git a/mm/vmstat.c b/mm/vmstat.c
-index 9af8d369e112..46da68855e09 100644
+index e60435d556e3..ea660046761b 100644
 --- a/mm/vmstat.c
 +++ b/mm/vmstat.c
 @@ -245,6 +245,7 @@ void __mod_zone_page_state(struct zone *zone, enum zone_stat_item item,
@@ -141,5 +141,5 @@ index 9af8d369e112..46da68855e09 100644
  
  void __dec_zone_page_state(struct page *page, enum zone_stat_item item)
 -- 
-2.20.1
+2.24.0
 

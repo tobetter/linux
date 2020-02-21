@@ -1,8 +1,8 @@
-From ad526c03523a38f4722f454ac624a2270c3d1291 Mon Sep 17 00:00:00 2001
+From 30d8de1af1e9153f5571b326895bba1309931301 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 6 Jun 2011 12:20:33 +0200
-Subject: [PATCH 131/368] sched: Move mmdrop to RCU on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 131/367] sched: Move mmdrop to RCU on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Takes sleeping locks and calls into the memory allocator, so nothing
 we want to do in task switch and oder atomic contexts.
@@ -16,7 +16,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  4 files changed, 45 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-index 8d6decd50220..d161d40ff044 100644
+index 21b18b755c0e..89542dc0752c 100644
 --- a/include/linux/mm_types.h
 +++ b/include/linux/mm_types.h
 @@ -11,6 +11,7 @@
@@ -27,7 +27,7 @@ index 8d6decd50220..d161d40ff044 100644
  #include <linux/page-flags-layout.h>
  #include <linux/workqueue.h>
  #include <asm/page.h>
-@@ -513,6 +514,9 @@ struct mm_struct {
+@@ -518,6 +519,9 @@ struct mm_struct {
  	bool tlb_flush_batched;
  #endif
  	struct uprobes_state uprobes_state;
@@ -38,7 +38,7 @@ index 8d6decd50220..d161d40ff044 100644
  	/* address of the bounds directory */
  	void __user *bd_addr;
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 5e2e6c545977..9eb99cb8bf46 100644
+index 6c96072e453f..d36822410419 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -2946,6 +2946,17 @@ static inline void mmdrop(struct mm_struct *mm)
@@ -60,7 +60,7 @@ index 5e2e6c545977..9eb99cb8bf46 100644
  {
  	struct mm_struct *mm = container_of(work, struct mm_struct, async_put_work);
 diff --git a/kernel/fork.c b/kernel/fork.c
-index 11ce4ef2fe0b..1c375cd748a8 100644
+index 01920ddc9065..083ce7448a98 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
 @@ -883,6 +883,19 @@ void __mmdrop(struct mm_struct *mm)
@@ -84,7 +84,7 @@ index 11ce4ef2fe0b..1c375cd748a8 100644
  {
  	VM_BUG_ON(atomic_read(&mm->mm_users));
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index bd6d276f166e..750affe45537 100644
+index 05dff8a485cd..ee3ef93491c5 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -2787,8 +2787,12 @@ static struct rq *finish_task_switch(struct task_struct *prev)
@@ -136,5 +136,5 @@ index bd6d276f166e..750affe45537 100644
  }
  #endif
 -- 
-2.20.1
+2.24.0
 

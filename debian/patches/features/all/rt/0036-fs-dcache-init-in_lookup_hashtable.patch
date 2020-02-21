@@ -1,8 +1,8 @@
-From 7471a529da60b267c9da23b90810fa185e9fc21a Mon Sep 17 00:00:00 2001
+From 657af6097b934d1b0bed7f03ca53334e0b2d8abc Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 14 Sep 2016 17:57:03 +0200
-Subject: [PATCH 036/368] fs/dcache: init in_lookup_hashtable
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 036/367] fs/dcache: init in_lookup_hashtable
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 in_lookup_hashtable was introduced in commit 94bdd655caba ("parallel
 lookups machinery, part 3") and never initialized but since it is in
@@ -30,5 +30,5 @@ index 05bad55352bb..69c1d983e475 100644
  	inode_init_early();
  }
 -- 
-2.20.1
+2.24.0
 

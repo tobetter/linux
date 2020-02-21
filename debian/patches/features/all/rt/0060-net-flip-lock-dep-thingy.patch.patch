@@ -1,8 +1,8 @@
-From da6f334fc03d206255e6da29256061acc019695e Mon Sep 17 00:00:00 2001
+From f0a10dabcfa1e057f47a142b04d41140f93cc00a Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 28 Jun 2011 10:59:58 +0200
-Subject: [PATCH 060/368] net-flip-lock-dep-thingy.patch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 060/367] net-flip-lock-dep-thingy.patch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 =======================================================
 [ INFO: possible circular locking dependency detected ]
@@ -96,10 +96,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/net/core/sock.c b/net/core/sock.c
-index 3041aa6df602..8e75e80fba8b 100644
+index d22493351407..c8457b736d44 100644
 --- a/net/core/sock.c
 +++ b/net/core/sock.c
-@@ -2497,12 +2497,11 @@ void lock_sock_nested(struct sock *sk, int subclass)
+@@ -2502,12 +2502,11 @@ void lock_sock_nested(struct sock *sk, int subclass)
  	if (sk->sk_lock.owned)
  		__lock_sock(sk);
  	sk->sk_lock.owned = 1;
@@ -114,5 +114,5 @@ index 3041aa6df602..8e75e80fba8b 100644
  EXPORT_SYMBOL(lock_sock_nested);
  
 -- 
-2.20.1
+2.24.0
 

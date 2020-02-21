@@ -1,9 +1,9 @@
-From 890f298ea6739fc04282f6f6d73bd3460770afed Mon Sep 17 00:00:00 2001
+From 30a28538ed7317fdbed89eba55f103ccccd6386f Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 14 Jul 2011 09:56:44 +0200
-Subject: [PATCH 137/368] sched: Take RT softirq semantics into account in
+Subject: [PATCH 137/367] sched: Take RT softirq semantics into account in
  cond_resched()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The softirq semantics work different on -RT. There is no SOFTIRQ_MASK in
 the preemption counter which leads to the BUG_ON() statement in
@@ -17,7 +17,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  2 files changed, 6 insertions(+)
 
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index a96e1bdb9d0f..187e70500a99 100644
+index 65b6df96208b..48f85ee8cd97 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -3410,12 +3410,16 @@ extern int __cond_resched_lock(spinlock_t *lock);
@@ -38,7 +38,7 @@ index a96e1bdb9d0f..187e70500a99 100644
  static inline void cond_resched_rcu(void)
  {
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 632d10ed3232..815711250c79 100644
+index 73c5fd773ffe..ab044904e666 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -5095,6 +5095,7 @@ int __cond_resched_lock(spinlock_t *lock)
@@ -58,5 +58,5 @@ index 632d10ed3232..815711250c79 100644
  /**
   * yield - yield the current processor to other threads.
 -- 
-2.20.1
+2.24.0
 

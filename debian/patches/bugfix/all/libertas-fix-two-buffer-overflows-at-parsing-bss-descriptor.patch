@@ -1,0 +1,64 @@
+From: Wen Huang <huangwenabc@gmail.com>
+Date: Thu, 28 Nov 2019 18:51:04 +0800
+Subject: libertas: Fix two buffer overflows at parsing bss descriptor
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/kvalo/wireless-drivers.git/commit/?id=e5e884b42639c74b5b57dc277909915c0aefc8bb
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-14896
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-14897
+
+add_ie_rates() copys rates without checking the length
+in bss descriptor from remote AP.when victim connects to
+remote attacker, this may trigger buffer overflow.
+lbs_ibss_join_existing() copys rates without checking the length
+in bss descriptor from remote IBSS node.when victim connects to
+remote attacker, this may trigger buffer overflow.
+Fix them by putting the length check before performing copy.
+
+This fix addresses CVE-2019-14896 and CVE-2019-14897.
+This also fix build warning of mixed declarations and code.
+
+Reported-by: kbuild test robot <lkp@intel.com>
+Signed-off-by: Wen Huang <huangwenabc@gmail.com>
+Signed-off-by: Kalle Valo <kvalo@codeaurora.org>
+---
+ drivers/net/wireless/marvell/libertas/cfg.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+--- a/drivers/net/wireless/marvell/libertas/cfg.c
++++ b/drivers/net/wireless/marvell/libertas/cfg.c
+@@ -272,6 +272,10 @@ add_ie_rates(u8 *tlv, const u8 *ie, int
+ 	int hw, ap, ap_max = ie[1];
+ 	u8 hw_rate;
+ 
++	if (ap_max > MAX_RATES) {
++		lbs_deb_assoc("invalid rates\n");
++		return tlv;
++	}
+ 	/* Advance past IE header */
+ 	ie += 2;
+ 
+@@ -1789,6 +1793,9 @@ static int lbs_ibss_join_existing(struct
+ 	struct cmd_ds_802_11_ad_hoc_join cmd;
+ 	u8 preamble = RADIO_PREAMBLE_SHORT;
+ 	int ret = 0;
++	int hw, i;
++	u8 rates_max;
++	u8 *rates;
+ 
+ 	lbs_deb_enter(LBS_DEB_CFG80211);
+ 
+@@ -1849,9 +1856,12 @@ static int lbs_ibss_join_existing(struct
+ 	if (!rates_eid) {
+ 		lbs_add_rates(cmd.bss.rates);
+ 	} else {
+-		int hw, i;
+-		u8 rates_max = rates_eid[1];
+-		u8 *rates = cmd.bss.rates;
++		rates_max = rates_eid[1];
++		if (rates_max > MAX_RATES) {
++			lbs_deb_join("invalid rates");
++			goto out;
++		}
++		rates = cmd.bss.rates;
+ 		for (hw = 0; hw < ARRAY_SIZE(lbs_rates); hw++) {
+ 			u8 hw_rate = lbs_rates[hw].bitrate / 5;
+ 			for (i = 0; i < rates_max; i++) {

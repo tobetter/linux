@@ -1,8 +1,8 @@
-From 8b0a82031dbcadac4cf69b9603a308f7e0101ccd Mon Sep 17 00:00:00 2001
+From dd2babfb345687b5157bdba9605554c1d0bb3e18 Mon Sep 17 00:00:00 2001
 From: John Stultz <johnstul@us.ibm.com>
 Date: Fri, 3 Jul 2009 08:29:58 -0500
-Subject: [PATCH 128/368] posix-timers: Thread posix-cpu-timers on -rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 128/367] posix-timers: Thread posix-cpu-timers on -rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 posix-cpu-timer code takes non -rt safe locks in hard irq
 context. Move it to a thread.
@@ -44,7 +44,7 @@ index d359b1a71610..a56e263f5005 100644
  		[PIDTYPE_PID]  = INIT_PID_LINK(PIDTYPE_PID),		\
  		[PIDTYPE_PGID] = INIT_PID_LINK(PIDTYPE_PGID),		\
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 59767e496ed7..edb557945344 100644
+index bdd94962ecc2..14159b613a76 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1676,6 +1676,9 @@ struct task_struct {
@@ -58,7 +58,7 @@ index 59767e496ed7..edb557945344 100644
  /* process credentials */
  	const struct cred __rcu *ptracer_cred; /* Tracer's credentials at attach */
 diff --git a/kernel/fork.c b/kernel/fork.c
-index a15509d9bcc6..067b5eb6b298 100644
+index 72806f7c26cc..f6ac0bb17f0b 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
 @@ -1447,6 +1447,9 @@ static void rt_mutex_init_task(struct task_struct *p)
@@ -309,5 +309,5 @@ index 21a27bb73587..6ee4181aaa7b 100644
   * Set one of the process-wide special case CPU timers or RLIMIT_CPU.
   * The tsk->sighand->siglock must be held by the caller.
 -- 
-2.20.1
+2.24.0
 

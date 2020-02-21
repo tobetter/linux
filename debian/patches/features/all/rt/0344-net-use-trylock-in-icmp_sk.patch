@@ -1,0 +1,36 @@
+From c6c9ba35a2a21b366f068fe8f57b2404e71dae2d Mon Sep 17 00:00:00 2001
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Thu, 21 Sep 2017 14:42:04 +0200
+Subject: [PATCH 344/367] net: use trylock in icmp_sk
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
+
+The locking path can be recursive (same as for sk->sk_lock.slock) and
+therefore we need a trylock version for the locallock, too.
+
+Cc: stable-rt@vger.kernel.org
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
+---
+ net/ipv4/icmp.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/net/ipv4/icmp.c b/net/ipv4/icmp.c
+index 27ed9e16fe47..ab84950c0a05 100644
+--- a/net/ipv4/icmp.c
++++ b/net/ipv4/icmp.c
+@@ -219,7 +219,11 @@ static inline struct sock *icmp_xmit_lock(struct net *net)
+ 
+ 	local_bh_disable();
+ 
+-	local_lock(icmp_sk_lock);
++	if (!local_trylock(icmp_sk_lock)) {
++		local_bh_enable();
++		return NULL;
++	}
++
+ 	sk = icmp_sk(net);
+ 
+ 	if (unlikely(!spin_trylock(&sk->sk_lock.slock))) {
+-- 
+2.24.0
+

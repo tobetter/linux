@@ -1,9 +1,9 @@
-From 6e9b3f628e9523fe213b6eec71c4995c451b8ded Mon Sep 17 00:00:00 2001
+From 0dd43ce30ef50568bba49dabfcaa281006f851d5 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 29 Jan 2015 17:19:44 +0100
-Subject: [PATCH 088/368] mm/workingset: Do not protect workingset_shadow_nodes
+Subject: [PATCH 088/367] mm/workingset: Do not protect workingset_shadow_nodes
  with irq off
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 workingset_shadow_nodes is protected by local_irq_disable(). Some users
 use spin_lock_irq().
@@ -41,7 +41,7 @@ index 2228907d08ff..e9aeaab4c4a8 100644
  static inline unsigned int workingset_node_pages(struct radix_tree_node *node)
  {
 diff --git a/mm/filemap.c b/mm/filemap.c
-index 6d2f561d517c..113c2248c476 100644
+index b046d8f147e2..92d891e1f318 100644
 --- a/mm/filemap.c
 +++ b/mm/filemap.c
 @@ -159,9 +159,12 @@ static int page_cache_tree_insert(struct address_space *mapping,
@@ -163,5 +163,5 @@ index 4c4f05655e6e..b97b1e87b54c 100644
  	return ret;
  }
 -- 
-2.20.1
+2.24.0
 

@@ -1,9 +1,9 @@
-From 388a0c88811e22c33ce0d13beece64c8ab0a3719 Mon Sep 17 00:00:00 2001
+From 129c1750c97a4baea051029633b772a7cd5ab8af Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 18 Mar 2011 10:11:25 +0100
-Subject: [PATCH 094/368] fs: jbd/jbd2: Make state lock and journal head lock
+Subject: [PATCH 094/367] fs: jbd/jbd2: Make state lock and journal head lock
  rt safe
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 bit_spin_locks break under RT.
 
@@ -106,5 +106,5 @@ index d073470cb342..9118fdac753d 100644
  
  #define J_ASSERT(assert)	BUG_ON(!(assert))
 -- 
-2.20.1
+2.24.0
 

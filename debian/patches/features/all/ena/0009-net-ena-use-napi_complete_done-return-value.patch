@@ -7,17 +7,17 @@ Do not unamsk interrupts if we are in busy poll mode.
 
 Signed-off-by: Netanel Belgazal <netanel@annapurnalabs.com>
 Signed-off-by: David S. Miller <davem@davemloft.net>
+[bwh: Adjust to apply after "net: ena: fix napi handler misbehavior when the
+ napi budget is zero"]
 ---
  drivers/net/ethernet/amazon/ena/ena_netdev.c | 44 +++++++++++++-------
  1 file changed, 29 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 5a112eed33f3..ca23519e665c 100644
 --- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
 +++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -1129,26 +1129,40 @@ static int ena_io_poll(struct napi_struct *napi, int budget)
- 	tx_work_done = ena_clean_tx_irq(tx_ring, tx_budget);
- 	rx_work_done = ena_clean_rx_irq(rx_ring, napi, budget);
+@@ -1133,26 +1133,40 @@ static int ena_io_poll(struct napi_struc
+ 	if (likely(budget))
+ 		rx_work_done = ena_clean_rx_irq(rx_ring, napi, budget);
  
 -	if ((budget > rx_work_done) && (tx_budget > tx_work_done)) {
 -		napi_complete_done(napi, rx_work_done);
@@ -71,6 +71,3 @@ index 5a112eed33f3..ca23519e665c 100644
  
  		ena_update_ring_numa_node(tx_ring, rx_ring);
  
--- 
-2.19.2
-

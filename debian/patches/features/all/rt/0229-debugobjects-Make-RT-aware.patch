@@ -1,0 +1,32 @@
+From e0f765ba7219172492f14b1c28a999a78f4c7c1a Mon Sep 17 00:00:00 2001
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Sun, 17 Jul 2011 21:41:35 +0200
+Subject: [PATCH 229/367] debugobjects: Make RT aware
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
+
+Avoid filling the pool / allocating memory with irqs off().
+
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ lib/debugobjects.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/lib/debugobjects.c b/lib/debugobjects.c
+index 1c43d4c5d2ab..43872a0a1e96 100644
+--- a/lib/debugobjects.c
++++ b/lib/debugobjects.c
+@@ -311,7 +311,10 @@ __debug_object_init(void *addr, struct debug_obj_descr *descr, int onstack)
+ 	struct debug_obj *obj;
+ 	unsigned long flags;
+ 
+-	fill_pool();
++#ifdef CONFIG_PREEMPT_RT_FULL
++	if (preempt_count() == 0 && !irqs_disabled())
++#endif
++		fill_pool();
+ 
+ 	db = get_bucket((unsigned long) addr);
+ 
+-- 
+2.24.0
+

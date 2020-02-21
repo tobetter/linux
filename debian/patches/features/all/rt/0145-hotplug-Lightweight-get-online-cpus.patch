@@ -1,8 +1,8 @@
-From a8929120de05819f76fd707dbe44a09325d46b69 Mon Sep 17 00:00:00 2001
+From d5ea47bb8ad8f88450cb9a4da15d2e04b8b3039c Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 15 Jun 2011 12:36:06 +0200
-Subject: [PATCH 145/368] hotplug: Lightweight get online cpus
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 145/367] hotplug: Lightweight get online cpus
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 get_online_cpus() is a heavy weight function which involves a global
 mutex. migrate_disable() wants a simpler construct which prevents only
@@ -19,7 +19,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  2 files changed, 122 insertions(+), 3 deletions(-)
 
 diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 781ac33ad04b..5cd523730685 100644
+index af55e76ff931..fb6914bbba58 100644
 --- a/include/linux/cpu.h
 +++ b/include/linux/cpu.h
 @@ -186,9 +186,6 @@ static inline void cpu_notifier_register_done(void)
@@ -51,7 +51,7 @@ index 781ac33ad04b..5cd523730685 100644
  #define __hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
  /* These aren't inline functions due to a GCC bug. */
 diff --git a/kernel/cpu.c b/kernel/cpu.c
-index 5634450c5e1f..59bdf7770e95 100644
+index 7ae93c729d82..4d5670483859 100644
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
 @@ -247,6 +247,100 @@ static struct {
@@ -202,5 +202,5 @@ index 5634450c5e1f..59bdf7770e95 100644
  	/* This post dead nonsense must die */
  	if (!ret && hasdied)
 -- 
-2.20.1
+2.24.0
 

@@ -1,0 +1,49 @@
+From: Xiaolong Huang <butterflyhuangxx@gmail.com>
+Date: Sat, 7 Dec 2019 22:40:24 +0800
+Subject: can: kvaser_usb: kvaser_usb_leaf: Fix some info-leaks to USB devices
+Origin: https://git.kernel.org/linus/da2311a6385c3b499da2ed5d9be59ce331fa93e9
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-19947
+
+Uninitialized Kernel memory can leak to USB devices.
+
+Fix this by using kzalloc() instead of kmalloc().
+
+Signed-off-by: Xiaolong Huang <butterflyhuangxx@gmail.com>
+Fixes: 7259124eac7d ("can: kvaser_usb: Split driver into kvaser_usb_core.c and kvaser_usb_leaf.c")
+Cc: linux-stable <stable@vger.kernel.org> # >= v4.19
+Signed-off-by: Marc Kleine-Budde <mkl@pengutronix.de>
+[bwh: Backported to 4.9: adjust filename, context]
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ drivers/net/can/usb/kvaser_usb.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+--- a/drivers/net/can/usb/kvaser_usb.c
++++ b/drivers/net/can/usb/kvaser_usb.c
+@@ -791,7 +791,7 @@ static int kvaser_usb_simple_msg_async(s
+ 	if (!urb)
+ 		return -ENOMEM;
+ 
+-	buf = kmalloc(sizeof(struct kvaser_msg), GFP_ATOMIC);
++	buf = kzalloc(sizeof(struct kvaser_msg), GFP_ATOMIC);
+ 	if (!buf) {
+ 		usb_free_urb(urb);
+ 		return -ENOMEM;
+@@ -1459,7 +1459,7 @@ static int kvaser_usb_set_opt_mode(const
+ 	struct kvaser_msg *msg;
+ 	int rc;
+ 
+-	msg = kmalloc(sizeof(*msg), GFP_KERNEL);
++	msg = kzalloc(sizeof(*msg), GFP_KERNEL);
+ 	if (!msg)
+ 		return -ENOMEM;
+ 
+@@ -1592,7 +1592,7 @@ static int kvaser_usb_flush_queue(struct
+ 	struct kvaser_msg *msg;
+ 	int rc;
+ 
+-	msg = kmalloc(sizeof(*msg), GFP_KERNEL);
++	msg = kzalloc(sizeof(*msg), GFP_KERNEL);
+ 	if (!msg)
+ 		return -ENOMEM;
+ 

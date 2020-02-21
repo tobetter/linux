@@ -1,8 +1,8 @@
-From 96ad272fc837e2f77516ee15f6c6dc2a070e1c2a Mon Sep 17 00:00:00 2001
+From 69de430ba37792734e2103020f8ac8e07fb4396b Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:29:37 -0500
-Subject: [PATCH 100/368] mm: page_alloc: rt-friendly per-cpu pages
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 100/367] mm: page_alloc: rt-friendly per-cpu pages
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 rt-friendly per-cpu pages: convert the irqs-off per-cpu locking
 method into a preemptible, explicit-per-cpu-locks method.
@@ -18,7 +18,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 41 insertions(+), 16 deletions(-)
 
 diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 05f141e39ac1..8cf469d23b35 100644
+index 13a642192e12..23b3e7f7449e 100644
 --- a/mm/page_alloc.c
 +++ b/mm/page_alloc.c
 @@ -61,6 +61,7 @@
@@ -179,7 +179,7 @@ index 05f141e39ac1..8cf469d23b35 100644
  	return NULL;
  }
  
-@@ -6571,6 +6595,7 @@ static int page_alloc_cpu_notify(struct notifier_block *self,
+@@ -6573,6 +6597,7 @@ static int page_alloc_cpu_notify(struct notifier_block *self,
  void __init page_alloc_init(void)
  {
  	hotcpu_notifier(page_alloc_cpu_notify, 0);
@@ -187,7 +187,7 @@ index 05f141e39ac1..8cf469d23b35 100644
  }
  
  /*
-@@ -7406,7 +7431,7 @@ void zone_pcp_reset(struct zone *zone)
+@@ -7408,7 +7433,7 @@ void zone_pcp_reset(struct zone *zone)
  	struct per_cpu_pageset *pset;
  
  	/* avoid races with drain_pages()  */
@@ -196,7 +196,7 @@ index 05f141e39ac1..8cf469d23b35 100644
  	if (zone->pageset != &boot_pageset) {
  		for_each_online_cpu(cpu) {
  			pset = per_cpu_ptr(zone->pageset, cpu);
-@@ -7415,7 +7440,7 @@ void zone_pcp_reset(struct zone *zone)
+@@ -7417,7 +7442,7 @@ void zone_pcp_reset(struct zone *zone)
  		free_percpu(zone->pageset);
  		zone->pageset = &boot_pageset;
  	}
@@ -206,5 +206,5 @@ index 05f141e39ac1..8cf469d23b35 100644
  
  #ifdef CONFIG_MEMORY_HOTREMOVE
 -- 
-2.20.1
+2.24.0
 

@@ -1,9 +1,9 @@
-From 8e8f8b9e44bbb3e253d10f285e9e02ee6f27de08 Mon Sep 17 00:00:00 2001
+From 0c731ea6ce3ecf8d438dfcc047aed66bce0dd7ba Mon Sep 17 00:00:00 2001
 From: Frank Rowand <frank.rowand@am.sony.com>
 Date: Sat, 1 Oct 2011 18:58:13 -0700
-Subject: [PATCH 105/368] ARM: Initialize split page table locks for vector
+Subject: [PATCH 105/367] ARM: Initialize split page table locks for vector
  page
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Without this patch, ARM can not use SPLIT_PTLOCK_CPUS if
 PREEMPT_RT_FULL=y because vectors_user_mapping() creates a
@@ -72,5 +72,5 @@ index 91d2d5b01414..750550098b59 100644
  /*
   * The vectors page is always readable from user space for the
 -- 
-2.20.1
+2.24.0
 

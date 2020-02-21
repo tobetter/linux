@@ -1,8 +1,8 @@
-From fb5bde956d6915549804ace6843eb682d99f3b69 Mon Sep 17 00:00:00 2001
+From eae01e037c7a2c73d926432fce92bb290b9efdbf Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 18 Jul 2011 17:03:52 +0200
-Subject: [PATCH 140/368] sched: Disable CONFIG_RT_GROUP_SCHED on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 140/367] sched: Disable CONFIG_RT_GROUP_SCHED on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Carsten reported problems when running:
 
@@ -31,5 +31,5 @@ index 18e55ece51e6..d8ea5e3fcbce 100644
  	help
  	  This feature lets you explicitly allocate real CPU bandwidth
 -- 
-2.20.1
+2.24.0
 

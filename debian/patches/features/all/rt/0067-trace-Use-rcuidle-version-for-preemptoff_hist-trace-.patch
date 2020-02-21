@@ -1,9 +1,9 @@
-From d9f3cb8817640010b799d693aad6d11be87c91ba Mon Sep 17 00:00:00 2001
+From 333e05ff8a69cebb68fa42bb6683c0be9cbfb425 Mon Sep 17 00:00:00 2001
 From: Yang Shi <yang.shi@windriver.com>
 Date: Tue, 23 Feb 2016 13:23:23 -0800
-Subject: [PATCH 067/368] trace: Use rcuidle version for preemptoff_hist trace
+Subject: [PATCH 067/367] trace: Use rcuidle version for preemptoff_hist trace
  point
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 When running -rt kernel with both PREEMPT_OFF_HIST and LOCKDEP enabled,
 the below error is reported:
@@ -91,5 +91,5 @@ index 0b5947ea46ef..940bd10b4406 100644
  
  #else /* !CONFIG_PROVE_LOCKING */
 -- 
-2.20.1
+2.24.0
 

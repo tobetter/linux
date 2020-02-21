@@ -1,8 +1,8 @@
-From 1f79f640b6555b882c7a86d2e50b83cb8628bcfd Mon Sep 17 00:00:00 2001
+From 9f538af7c83c9d462bfb8969a2aaa8dc41b43dac Mon Sep 17 00:00:00 2001
 From: Julia Cartwright <julia@ni.com>
 Date: Fri, 20 Jan 2017 10:13:47 -0600
-Subject: [PATCH 043/368] pinctrl: qcom: Use raw spinlock variants
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 043/367] pinctrl: qcom: Use raw spinlock variants
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The MSM pinctrl driver currently implements an irq_chip for handling
 GPIO interrupts; due to how irq_chip handling is done, it's necessary
@@ -255,5 +255,5 @@ index 5aa221487a9c..42d9fb3b22a0 100644
  	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
  	pctrl->regs = devm_ioremap_resource(&pdev->dev, res);
 -- 
-2.20.1
+2.24.0
 

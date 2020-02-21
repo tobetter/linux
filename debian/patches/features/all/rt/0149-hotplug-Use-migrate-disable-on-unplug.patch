@@ -1,8 +1,8 @@
-From bf2026760b2b556abd2ff2dbe1710506a630f134 Mon Sep 17 00:00:00 2001
+From 1755b01ba33d1ed4bf77b29583a344b6b551891e Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 19:35:29 +0200
-Subject: [PATCH 149/368] hotplug: Use migrate disable on unplug
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 149/367] hotplug: Use migrate disable on unplug
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Migration needs to be disabled accross the unplug handling to make
 sure that the unplug thread is off the unplugged cpu.
@@ -13,7 +13,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/kernel/cpu.c b/kernel/cpu.c
-index d4182bdd04a1..50906ae037b1 100644
+index ac60be1d2a4c..f8c5340df4b7 100644
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
 @@ -1126,14 +1126,13 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
@@ -42,5 +42,5 @@ index d4182bdd04a1..50906ae037b1 100644
  	if (!ret && hasdied)
  		cpu_notify_nofail(CPU_POST_DEAD, cpu);
 -- 
-2.20.1
+2.24.0
 

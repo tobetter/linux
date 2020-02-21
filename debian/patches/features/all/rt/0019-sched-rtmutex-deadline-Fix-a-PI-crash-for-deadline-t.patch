@@ -1,9 +1,9 @@
-From df6fad22c43c45a8dd869f44b37ea13e1e9e0293 Mon Sep 17 00:00:00 2001
+From f8d6e0bbad28ec1da73b8d9a27554952a275d942 Mon Sep 17 00:00:00 2001
 From: Xunlei Pang <xlpang@redhat.com>
 Date: Thu, 23 Mar 2017 15:56:08 +0100
-Subject: [PATCH 019/368] sched/rtmutex/deadline: Fix a PI crash for deadline
+Subject: [PATCH 019/367] sched/rtmutex/deadline: Fix a PI crash for deadline
  tasks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Upstream commit e96a7705e7d3fef96aec9b590c63b2f6f7d2ba22
 
@@ -74,7 +74,7 @@ index 325f649d77ff..d359b1a71610 100644
  #else
  # define INIT_RT_MUTEXES(tsk)
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 1c487a3abd84..9ce3060acb12 100644
+index 275511b60978..fe4d5254364a 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1735,6 +1735,8 @@ struct task_struct {
@@ -99,7 +99,7 @@ index a30b172df6e1..60d0c4740b9f 100644
  extern void rt_mutex_adjust_pi(struct task_struct *p);
  static inline bool tsk_is_pi_blocked(struct task_struct *tsk)
 diff --git a/kernel/fork.c b/kernel/fork.c
-index e92b06351dec..ba49d00177f6 100644
+index 288504431a53..f334fe407cec 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
 @@ -1437,6 +1437,7 @@ static void rt_mutex_init_task(struct task_struct *p)
@@ -169,7 +169,7 @@ index a77f7cae7ca0..199612829fd6 100644
  
  /*
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 50e80b1be2c8..6bb7c4c5126b 100644
+index 82cec9a666e7..cee9b9c8064f 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -3671,6 +3671,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
@@ -182,5 +182,5 @@ index 50e80b1be2c8..6bb7c4c5126b 100644
  	oldprio = p->prio;
  
 -- 
-2.20.1
+2.24.0
 

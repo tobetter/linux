@@ -1,8 +1,8 @@
-From 3ebde887404bfa47eea3e1f287e854ef3abe2b28 Mon Sep 17 00:00:00 2001
+From 8c087eabf32b78af225d903fa74f3d1850789ffb Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 22 Jul 2011 17:58:40 +0200
-Subject: [PATCH 068/368] printk: Add a printk kill switch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 068/367] printk: Add a printk kill switch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Add a prinkt-kill-switch. This is used from (NMI) watchdog to ensure that
 it does not dead-lock with the early printk code.
@@ -31,7 +31,7 @@ index eac1af8502bb..37e647af0b0b 100644
  
  #ifdef CONFIG_PRINTK_NMI
 diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
-index 27adaaab96ba..d257a8dbaa7d 100644
+index 6607d77afe55..14be6e4fa856 100644
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
 @@ -351,6 +351,58 @@ __packed __aligned(4)
@@ -93,7 +93,7 @@ index 27adaaab96ba..d257a8dbaa7d 100644
  #ifdef CONFIG_PRINTK
  DECLARE_WAIT_QUEUE_HEAD(log_wait);
  /* the next printk record to read by syslog(READ) or /proc/kmsg */
-@@ -1786,6 +1838,13 @@ asmlinkage int vprintk_emit(int facility, int level,
+@@ -1738,6 +1790,13 @@ asmlinkage int vprintk_emit(int facility, int level,
  	/* cpu currently holding logbuf_lock in this function */
  	static unsigned int logbuf_cpu = UINT_MAX;
  
@@ -107,7 +107,7 @@ index 27adaaab96ba..d257a8dbaa7d 100644
  	if (level == LOGLEVEL_SCHED) {
  		level = LOGLEVEL_DEFAULT;
  		in_sched = true;
-@@ -2019,26 +2078,6 @@ DEFINE_PER_CPU(printk_func_t, printk_func);
+@@ -1969,26 +2028,6 @@ DEFINE_PER_CPU(printk_func_t, printk_func);
  
  #endif /* CONFIG_PRINTK */
  
@@ -169,5 +169,5 @@ index 12b8dd640786..4c90d2ee7433 100644
  			nmi_panic(regs, "Hard LOCKUP");
  
 -- 
-2.20.1
+2.24.0
 

@@ -1,9 +1,9 @@
-From 93e189433175cacbe3e8a307091c616e54e86ea3 Mon Sep 17 00:00:00 2001
+From 0c7294ed3cf2cd678306f682ab43421d9027f813 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 3 Jul 2009 08:44:31 -0500
-Subject: [PATCH 123/368] hrtimer: Fixup hrtimer callback changes for
+Subject: [PATCH 123/367] hrtimer: Fixup hrtimer callback changes for
  preempt-rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 In preempt-rt we can not call the callbacks which take sleeping locks
 from the timer interrupt context.
@@ -69,7 +69,7 @@ index b7c2d54af68e..65d0671f20b4 100644
  	unsigned int			active_bases;
  	unsigned int			clock_was_set_seq;
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index cf237a6dfa89..47ed6770e02e 100644
+index d34d3e7b62e3..9664c34bc5f0 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -345,6 +345,7 @@ static void init_rq_hrtick(struct rq *rq)
@@ -353,5 +353,5 @@ index 63177be0159e..59fe007ad496 100644
  	/* Enable the perf event */
  	watchdog_nmi_enable(cpu);
 -- 
-2.20.1
+2.24.0
 

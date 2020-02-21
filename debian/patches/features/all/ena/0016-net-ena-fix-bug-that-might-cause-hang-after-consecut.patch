@@ -15,15 +15,15 @@ will be received by the driver.
 Fixes: 1738cd3ed342 ("Add a driver for Amazon Elastic Network Adapters (ENA)")
 Signed-off-by: Netanel Belgazal <netanel@amazon.com>
 Signed-off-by: David S. Miller <davem@davemloft.net>
+[bwh: Adjust to apply after "net: ena: fix napi handler misbehavior when the
+ napi budget is zero"]
 ---
  drivers/net/ethernet/amazon/ena/ena_netdev.c | 41 +++++++++++++-------
  1 file changed, 26 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 870aa61a22e9..875680768d2f 100644
 --- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
 +++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -1085,6 +1085,26 @@ inline void ena_adjust_intr_moderation(struct ena_ring *rx_ring,
+@@ -1085,6 +1085,26 @@ inline void ena_adjust_intr_moderation(s
  	rx_ring->per_napi_bytes = 0;
  }
  
@@ -50,15 +50,15 @@ index 870aa61a22e9..875680768d2f 100644
  static inline void ena_update_ring_numa_node(struct ena_ring *tx_ring,
  					     struct ena_ring *rx_ring)
  {
-@@ -1115,7 +1135,6 @@ static int ena_io_poll(struct napi_struct *napi, int budget)
+@@ -1115,7 +1135,6 @@ static int ena_io_poll(struct napi_struc
  {
  	struct ena_napi *ena_napi = container_of(napi, struct ena_napi, napi);
  	struct ena_ring *tx_ring, *rx_ring;
 -	struct ena_eth_io_intr_reg intr_reg;
  
- 	u32 tx_work_done;
- 	u32 rx_work_done;
-@@ -1156,22 +1175,9 @@ static int ena_io_poll(struct napi_struct *napi, int budget)
+ 	int tx_work_done;
+ 	int rx_work_done = 0;
+@@ -1160,22 +1179,9 @@ static int ena_io_poll(struct napi_struc
  			if (ena_com_get_adaptive_moderation_enabled(rx_ring->ena_dev))
  				ena_adjust_intr_moderation(rx_ring, tx_ring);
  
@@ -82,7 +82,7 @@ index 870aa61a22e9..875680768d2f 100644
  		ena_update_ring_numa_node(tx_ring, rx_ring);
  
  		ret = rx_work_done;
-@@ -1490,6 +1496,11 @@ static int ena_up_complete(struct ena_adapter *adapter)
+@@ -1494,6 +1500,11 @@ static int ena_up_complete(struct ena_ad
  
  	ena_napi_enable_all(adapter);
  
@@ -94,6 +94,3 @@ index 870aa61a22e9..875680768d2f 100644
  	/* schedule napi in case we had pending packets
  	 * from the last time we disable napi
  	 */
--- 
-2.19.2
-

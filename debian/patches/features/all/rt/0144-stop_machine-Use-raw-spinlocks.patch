@@ -1,8 +1,8 @@
-From 2320651a9098dd6359d4aaca0b033875e1703dd3 Mon Sep 17 00:00:00 2001
+From f8a7fa6a7dbbd5e7ce481a32635526f480abe6f1 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 29 Jun 2011 11:01:51 +0200
-Subject: [PATCH 144/368] stop_machine: Use raw spinlocks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 144/367] stop_machine: Use raw spinlocks
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Use raw-locks in stomp_machine() to allow locking in irq-off regions.
 
@@ -33,5 +33,5 @@ index ca834ec48b99..6b2952570c48 100644
  		/* cpu stop callbacks must not sleep, make in_atomic() == T */
  		preempt_count_inc();
 -- 
-2.20.1
+2.24.0
 

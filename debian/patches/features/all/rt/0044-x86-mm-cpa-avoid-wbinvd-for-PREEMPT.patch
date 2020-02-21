@@ -1,8 +1,8 @@
-From 517a232fd0246794ba355b324b55e12c59f49416 Mon Sep 17 00:00:00 2001
+From 98e4769991d5146f519269e0833334bba0fb3c35 Mon Sep 17 00:00:00 2001
 From: John Ogness <john.ogness@linutronix.de>
 Date: Mon, 30 Jan 2017 09:41:21 +0100
-Subject: [PATCH 044/368] x86/mm/cpa: avoid wbinvd() for PREEMPT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 044/367] x86/mm/cpa: avoid wbinvd() for PREEMPT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Although wbinvd() is faster than flushing many individual pages, it
 blocks the memory bus for "long" periods of time (>100us), thus
@@ -41,5 +41,5 @@ index 1271bc9fa3c6..83d9fde74c75 100644
  	BUG_ON(irqs_disabled());
  
 -- 
-2.20.1
+2.24.0
 

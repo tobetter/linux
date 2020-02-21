@@ -1,8 +1,8 @@
-From 16d16bcbf20065c3e749da1c611f84cd0a7cd918 Mon Sep 17 00:00:00 2001
+From ca7b437ad229adfca7dd13d1e796d7f31771af4c Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:30:16 -0500
-Subject: [PATCH 082/368] ide: Do not disable interrupts for PREEMPT-RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 082/367] ide: Do not disable interrupts for PREEMPT-RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Use the local_irq_*_nort variants.
 
@@ -183,5 +183,5 @@ index a716693417a3..be0568c722d6 100644
  	ide_set_handler(drive, &task_pio_intr, WAIT_WORSTCASE);
  
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 21fc21be6b5b945032d26f2d085047ebe4d0523c Mon Sep 17 00:00:00 2001
+From ff3a96dcd776ec590d98dbf11c800a333cbe8cb4 Mon Sep 17 00:00:00 2001
 From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Date: Sun, 25 Oct 2015 18:06:05 -0400
-Subject: [PATCH 065/368] latency_hist: Update sched_wakeup probe
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 065/367] latency_hist: Update sched_wakeup probe
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 "sched: Introduce the 'trace_sched_waking' tracepoint" introduces a
 prototype change for the sched_wakeup probe: the "success" argument is
@@ -43,5 +43,5 @@ index 66a69eb5329c..b6c1d14b71c4 100644
  	unsigned long flags;
  	struct task_struct *curr = current;
 -- 
-2.20.1
+2.24.0
 

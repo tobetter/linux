@@ -1,9 +1,9 @@
-From 32b427c277709a8d492b1d7edfe5a2bb4edfa2eb Mon Sep 17 00:00:00 2001
+From aa7d6b5b94ade6813b74ea793094cef445439be4 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 15 Sep 2016 17:16:44 +0200
-Subject: [PATCH 038/368] iommu/vt-d: don't disable preemption while accessing
+Subject: [PATCH 038/367] iommu/vt-d: don't disable preemption while accessing
  deferred_flush()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 get_cpu() disables preemption and returns the current CPU number. The
 CPU number is later only used once while retrieving the address of the
@@ -27,7 +27,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 2 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 28feb1744710..6c86f8b28190 100644
+index 25cc6ae87039..0e3826b39044 100644
 --- a/drivers/iommu/intel-iommu.c
 +++ b/drivers/iommu/intel-iommu.c
 @@ -480,7 +480,7 @@ struct deferred_flush_data {
@@ -61,5 +61,5 @@ index 28feb1744710..6c86f8b28190 100644
  
  static void intel_unmap(struct device *dev, dma_addr_t dev_addr, size_t size)
 -- 
-2.20.1
+2.24.0
 

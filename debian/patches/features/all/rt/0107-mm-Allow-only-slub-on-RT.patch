@@ -1,8 +1,8 @@
-From 4b7b7dc0acb80cdd2a563960e6300cd8b272cb52 Mon Sep 17 00:00:00 2001
+From f38897d3d4d9ffec201e670efdebbddc6f7c81b4 Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:44:03 -0500
-Subject: [PATCH 107/368] mm: Allow only slub on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 107/367] mm: Allow only slub on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Disable SLAB and SLOB on -RT. Only SLUB is adopted to -RT needs.
 
@@ -33,5 +33,5 @@ index 9d49641405ad..f18e578bb931 100644
  	   SLOB replaces the stock allocator with a drastically simpler
  	   allocator. SLOB is generally more space efficient but
 -- 
-2.20.1
+2.24.0
 

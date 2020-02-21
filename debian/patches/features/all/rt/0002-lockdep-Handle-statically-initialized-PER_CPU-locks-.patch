@@ -1,9 +1,9 @@
-From 07816e190b2e1bc2885fb3b6669fcc9ad3435b10 Mon Sep 17 00:00:00 2001
+From 0545cde4f42e2805aba14216dfa4d2afd3a1d520 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 17 Feb 2017 19:44:39 +0100
-Subject: [PATCH 002/368] lockdep: Handle statically initialized PER_CPU locks
+Subject: [PATCH 002/367] lockdep: Handle statically initialized PER_CPU locks
  proper
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 If a PER_CPU struct which contains a spin_lock is statically initialized
 via:
@@ -46,7 +46,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  5 files changed, 67 insertions(+), 36 deletions(-)
 
 diff --git a/include/linux/module.h b/include/linux/module.h
-index fd9e121c7b3f..0d6cc692a86d 100644
+index 99f330ae13da..5436efe5c766 100644
 --- a/include/linux/module.h
 +++ b/include/linux/module.h
 @@ -496,6 +496,7 @@ static inline int module_is_live(struct module *mod)
@@ -70,7 +70,7 @@ index 56939d3f6e53..491b3f5a5f8a 100644
  
  #if !defined(CONFIG_SMP) || !defined(CONFIG_HAVE_SETUP_PER_CPU_AREA)
 diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-index 26fc428476b9..3896f3e6c7b1 100644
+index d7f425698a4a..d331c6a751f7 100644
 --- a/kernel/locking/lockdep.c
 +++ b/kernel/locking/lockdep.c
 @@ -658,6 +658,7 @@ look_up_lock_class(struct lockdep_map *lock, unsigned int subclass)
@@ -149,7 +149,7 @@ index 26fc428476b9..3896f3e6c7b1 100644
  			return 0;
  
  		/*
-@@ -4166,7 +4179,7 @@ void lockdep_reset_lock(struct lockdep_map *lock)
+@@ -4169,7 +4182,7 @@ void lockdep_reset_lock(struct lockdep_map *lock)
  		 * If the class exists we look it up and zap it:
  		 */
  		class = look_up_lock_class(lock, j);
@@ -159,7 +159,7 @@ index 26fc428476b9..3896f3e6c7b1 100644
  	}
  	/*
 diff --git a/kernel/module.c b/kernel/module.c
-index 2325c9821f2a..e40e5fa43ccd 100644
+index fb9e07aec49e..83ed20800e71 100644
 --- a/kernel/module.c
 +++ b/kernel/module.c
 @@ -660,16 +660,7 @@ static void percpu_modcopy(struct module *mod,
@@ -278,5 +278,5 @@ index 0462a2a00f05..16bb5f561e53 100644
   * per_cpu_ptr_to_phys - convert translated percpu address to physical address
   * @addr: the address to be converted to physical address
 -- 
-2.20.1
+2.24.0
 

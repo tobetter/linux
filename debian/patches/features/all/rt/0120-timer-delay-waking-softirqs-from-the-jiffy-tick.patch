@@ -1,8 +1,8 @@
-From e4e0cec2effd1980fda76097a11fca397ef5e411 Mon Sep 17 00:00:00 2001
+From 6322f129e0e5c524aad036ecfcb7c0d3d9c25482 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Fri, 21 Aug 2009 11:56:45 +0200
-Subject: [PATCH 120/368] timer: delay waking softirqs from the jiffy tick
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 120/367] timer: delay waking softirqs from the jiffy tick
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 People were complaining about broken balancing with the recent -rt
 series.
@@ -58,10 +58,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index a0cb1a296afa..a416cee45801 100644
+index fdd7be830904..019a332d9487 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
-@@ -1658,13 +1658,13 @@ void update_process_times(int user_tick)
+@@ -1660,13 +1660,13 @@ void update_process_times(int user_tick)
  
  	/* Note: this timer irq context must be accounted for as well. */
  	account_process_tick(p, user_tick);
@@ -77,5 +77,5 @@ index a0cb1a296afa..a416cee45801 100644
  }
  
 -- 
-2.20.1
+2.24.0
 

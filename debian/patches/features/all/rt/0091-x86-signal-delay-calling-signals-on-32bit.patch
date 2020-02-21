@@ -1,8 +1,8 @@
-From aa757ee335d9182dd05bfc7a47afd3ac476ba888 Mon Sep 17 00:00:00 2001
+From 3e74380663aa030f291b086af1e27ad2d0650643 Mon Sep 17 00:00:00 2001
 From: Yang Shi <yang.shi@linaro.org>
 Date: Thu, 10 Dec 2015 10:58:51 -0800
-Subject: [PATCH 091/368] x86/signal: delay calling signals on 32bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 091/367] x86/signal: delay calling signals on 32bit
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 When running some ptrace single step tests on x86-32 machine, the below problem
 is triggered:
@@ -45,5 +45,5 @@ index c370fba8c38b..d1328789b759 100644
  #endif
  
 -- 
-2.20.1
+2.24.0
 

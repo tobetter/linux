@@ -1,9 +1,9 @@
-From c24f90174d383ef4069f8dbf5d4ae321443a3956 Mon Sep 17 00:00:00 2001
+From 2a23e9e947b8d7845f77a45eac70eeaece74dedc Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:30:16 -0500
-Subject: [PATCH 084/368] input: gameport: Do not disable interrupts on
+Subject: [PATCH 084/367] input: gameport: Do not disable interrupts on
  PREEMPT_RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Use the _nort() primitives.
 
@@ -63,5 +63,5 @@ index 4a2a9e370be7..e970d9afd179 100644
  		if (t2 - t1 < tx) tx = t2 - t1;
  	}
 -- 
-2.20.1
+2.24.0
 

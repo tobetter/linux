@@ -1,9 +1,9 @@
-From b78d2369cceaff87c0c8bb93236940f1101b587f Mon Sep 17 00:00:00 2001
+From deeb2c9a3bc442a8301f57929826aff949a5914c Mon Sep 17 00:00:00 2001
 From: Yang Shi <yang.shi@windriver.com>
 Date: Wed, 30 Oct 2013 11:48:33 -0700
-Subject: [PATCH 112/368] mm/memcontrol: Don't call schedule_work_on in
+Subject: [PATCH 112/367] mm/memcontrol: Don't call schedule_work_on in
  preemption disabled context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The following trace is triggered when running ltp oom test cases:
 
@@ -49,10 +49,10 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 86a6b331b964..b0432f9364ac 100644
+index 9ca63af4f37a..9e26748441c1 100644
 --- a/mm/memcontrol.c
 +++ b/mm/memcontrol.c
-@@ -1795,7 +1795,7 @@ static void drain_all_stock(struct mem_cgroup *root_memcg)
+@@ -1814,7 +1814,7 @@ static void drain_all_stock(struct mem_cgroup *root_memcg)
  		return;
  	/* Notify other cpus that system-wide "drain" is running */
  	get_online_cpus();
@@ -61,7 +61,7 @@ index 86a6b331b964..b0432f9364ac 100644
  	for_each_online_cpu(cpu) {
  		struct memcg_stock_pcp *stock = &per_cpu(memcg_stock, cpu);
  		struct mem_cgroup *memcg;
-@@ -1812,7 +1812,7 @@ static void drain_all_stock(struct mem_cgroup *root_memcg)
+@@ -1831,7 +1831,7 @@ static void drain_all_stock(struct mem_cgroup *root_memcg)
  				schedule_work_on(cpu, &stock->work);
  		}
  	}
@@ -71,5 +71,5 @@ index 86a6b331b964..b0432f9364ac 100644
  	mutex_unlock(&percpu_charge_mutex);
  }
 -- 
-2.20.1
+2.24.0
 

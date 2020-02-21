@@ -1,9 +1,9 @@
-From 84a6cf5dafd6b3d59776527cf3b1cbe5bd5ba2bc Mon Sep 17 00:00:00 2001
+From f81ca060d9ff1be35253efeedad36bc148267c33 Mon Sep 17 00:00:00 2001
 From: Steven Rostedt <rostedt@goodmis.org>
 Date: Thu, 29 Sep 2011 12:24:30 -0500
-Subject: [PATCH 050/368] tracing: Account for preempt off in
+Subject: [PATCH 050/367] tracing: Account for preempt off in
  preempt_schedule()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 The preempt_schedule() uses the preempt_disable_notrace() version
 because it can cause infinite recursion by the function tracer as
@@ -29,7 +29,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 9 insertions(+)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 96626bca9bb5..eefae8a2ca89 100644
+index 1d92726672ba..d77987112a44 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -3585,7 +3585,16 @@ asmlinkage __visible void __sched notrace preempt_schedule_notrace(void)
@@ -50,5 +50,5 @@ index 96626bca9bb5..eefae8a2ca89 100644
  
  		preempt_latency_stop(1);
 -- 
-2.20.1
+2.24.0
 

@@ -1,8 +1,8 @@
-From 0fa6b716e666807cee58d1d47d9b73a1252dd66b Mon Sep 17 00:00:00 2001
+From 2d501d4852bc9affd5280b22c2bdf093a566b2c5 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 8 Nov 2013 17:34:54 +0100
-Subject: [PATCH 086/368] usb: Use _nort in giveback function
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.178-rt131.tar.xz
+Subject: [PATCH 086/367] usb: Use _nort in giveback function
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.9/older/patches-4.9.201-rt134.tar.xz
 
 Since commit 94dfd7ed ("USB: HCD: support giveback of URB in tasklet
 context") I see
@@ -44,7 +44,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/usb/core/hcd.c b/drivers/usb/core/hcd.c
-index bdb0d7a08ff9..c811a81ace5e 100644
+index 1dd4c65e9188..35220ce86815 100644
 --- a/drivers/usb/core/hcd.c
 +++ b/drivers/usb/core/hcd.c
 @@ -1764,9 +1764,9 @@ static void __usb_hcd_giveback_urb(struct urb *urb)
@@ -60,5 +60,5 @@ index bdb0d7a08ff9..c811a81ace5e 100644
  	usb_anchor_resume_wakeups(anchor);
  	atomic_dec(&urb->use_count);
 -- 
-2.20.1
+2.24.0
 
