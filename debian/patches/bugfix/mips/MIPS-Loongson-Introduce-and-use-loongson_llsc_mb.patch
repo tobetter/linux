@@ -85,8 +85,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  arch/mips/mm/tlbex.c            | 10 ++++++++++
  8 files changed, 100 insertions(+)
 
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
+Index: linux/arch/mips/Kconfig
+===================================================================
+--- linux.orig/arch/mips/Kconfig
++++ linux/arch/mips/Kconfig
 @@ -1397,6 +1397,21 @@ config LOONGSON3_ENHANCEMENT
  	  please say 'N' here. If you want a high-performance kernel to run on
  	  new Loongson 3 machines only, please say 'Y' here.
@@ -109,8 +111,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  config CPU_LOONGSON2E
  	bool "Loongson 2E"
  	depends on SYS_HAS_CPU_LOONGSON2E
---- a/arch/mips/include/asm/atomic.h
-+++ b/arch/mips/include/asm/atomic.h
+Index: linux/arch/mips/include/asm/atomic.h
+===================================================================
+--- linux.orig/arch/mips/include/asm/atomic.h
++++ linux/arch/mips/include/asm/atomic.h
 @@ -58,6 +58,7 @@ static __inline__ void atomic_##op(int i
  	if (kernel_uses_llsc) {						      \
  		int temp;						      \
@@ -159,8 +163,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  		__asm__ __volatile__(					      \
  		"	.set	"MIPS_ISA_LEVEL"			\n"   \
  		"1:	lld	%1, %2		# atomic64_fetch_" #op "\n"   \
---- a/arch/mips/include/asm/barrier.h
-+++ b/arch/mips/include/asm/barrier.h
+Index: linux/arch/mips/include/asm/barrier.h
+===================================================================
+--- linux.orig/arch/mips/include/asm/barrier.h
++++ linux/arch/mips/include/asm/barrier.h
 @@ -222,6 +222,42 @@
  #define __smp_mb__before_atomic()	__smp_mb__before_llsc()
  #define __smp_mb__after_atomic()	smp_llsc_mb()
@@ -204,8 +210,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  #include <asm-generic/barrier.h>
  
  #endif /* __ASM_BARRIER_H */
---- a/arch/mips/include/asm/bitops.h
-+++ b/arch/mips/include/asm/bitops.h
+Index: linux/arch/mips/include/asm/bitops.h
+===================================================================
+--- linux.orig/arch/mips/include/asm/bitops.h
++++ linux/arch/mips/include/asm/bitops.h
 @@ -68,6 +68,7 @@ static inline void set_bit(unsigned long
  		: "ir" (1UL << bit), GCC_OFF_SMALL_ASM() (*m));
  #if defined(CONFIG_CPU_MIPSR2) || defined(CONFIG_CPU_MIPSR6)
@@ -246,8 +254,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  		do {
  			__asm__ __volatile__(
  			"	.set	"MIPS_ISA_ARCH_LEVEL"		\n"
---- a/arch/mips/include/asm/futex.h
-+++ b/arch/mips/include/asm/futex.h
+Index: linux/arch/mips/include/asm/futex.h
+===================================================================
+--- linux.orig/arch/mips/include/asm/futex.h
++++ linux/arch/mips/include/asm/futex.h
 @@ -50,6 +50,7 @@
  		  "i" (-EFAULT)						\
  		: "memory");						\
@@ -272,8 +282,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  	} else
  		return -ENOSYS;
  
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
+Index: linux/arch/mips/include/asm/pgtable.h
+===================================================================
+--- linux.orig/arch/mips/include/asm/pgtable.h
++++ linux/arch/mips/include/asm/pgtable.h
 @@ -229,6 +229,7 @@ static inline void set_pte(pte_t *ptep,
  			: [buddy] "+m" (buddy->pte), [tmp] "=&r" (tmp)
  			: [global] "r" (page_global));
@@ -290,8 +302,10 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  		}
  #else /* !CONFIG_SMP */
  		if (pte_none(*buddy))
---- a/arch/mips/loongson64/Platform
-+++ b/arch/mips/loongson64/Platform
+Index: linux/arch/mips/loongson64/Platform
+===================================================================
+--- linux.orig/arch/mips/loongson64/Platform
++++ linux/arch/mips/loongson64/Platform
 @@ -23,6 +23,29 @@ ifdef CONFIG_CPU_LOONGSON2F_WORKAROUNDS
  endif
  
@@ -322,9 +336,11 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  #
  # binutils from v2.25 on and gcc starting from v4.9.0 treat -march=loongson3a
  # as MIPS64 R2; older versions as just R1.  This leaves the possibility open
---- a/arch/mips/mm/tlbex.c
-+++ b/arch/mips/mm/tlbex.c
-@@ -931,6 +931,8 @@ build_get_pgd_vmalloc64(u32 **p, struct
+Index: linux/arch/mips/mm/tlbex.c
+===================================================================
+--- linux.orig/arch/mips/mm/tlbex.c
++++ linux/arch/mips/mm/tlbex.c
+@@ -943,6 +943,8 @@ build_get_pgd_vmalloc64(u32 **p, struct
  		 * to mimic that here by taking a load/istream page
  		 * fault.
  		 */
@@ -333,7 +349,7 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  		UASM_i_LA(p, ptr, (unsigned long)tlb_do_page_fault_0);
  		uasm_i_jr(p, ptr);
  
-@@ -1645,6 +1647,8 @@ static void
+@@ -1663,6 +1665,8 @@ static void
  iPTE_LW(u32 **p, unsigned int pte, unsigned int ptr)
  {
  #ifdef CONFIG_SMP
@@ -342,7 +358,7 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  # ifdef CONFIG_PHYS_ADDR_T_64BIT
  	if (cpu_has_64bits)
  		uasm_i_lld(p, pte, 0, ptr);
-@@ -2258,6 +2262,8 @@ static void build_r4000_tlb_load_handler
+@@ -2276,6 +2280,8 @@ static void build_r4000_tlb_load_handler
  #endif
  
  	uasm_l_nopage_tlbl(&l, p);
@@ -351,7 +367,7 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  	build_restore_work_registers(&p);
  #ifdef CONFIG_CPU_MICROMIPS
  	if ((unsigned long)tlb_do_page_fault_0 & 1) {
-@@ -2312,6 +2318,8 @@ static void build_r4000_tlb_store_handle
+@@ -2330,6 +2336,8 @@ static void build_r4000_tlb_store_handle
  #endif
  
  	uasm_l_nopage_tlbs(&l, p);
@@ -360,7 +376,7 @@ Cc: Xu Chenghua <xuchenghua@loongson.cn>
  	build_restore_work_registers(&p);
  #ifdef CONFIG_CPU_MICROMIPS
  	if ((unsigned long)tlb_do_page_fault_1 & 1) {
-@@ -2367,6 +2375,8 @@ static void build_r4000_tlb_modify_handl
+@@ -2385,6 +2393,8 @@ static void build_r4000_tlb_modify_handl
  #endif
  
  	uasm_l_nopage_tlbm(&l, p);

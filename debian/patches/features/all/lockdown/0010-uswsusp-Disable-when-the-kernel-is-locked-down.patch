@@ -16,11 +16,11 @@ cc: linux-pm@vger.kernel.org
  kernel/power/user.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/kernel/power/user.c b/kernel/power/user.c
-index 22df9f7ff672..678ade9decfe 100644
---- a/kernel/power/user.c
-+++ b/kernel/power/user.c
-@@ -52,6 +52,9 @@ static int snapshot_open(struct inode *inode, struct file *filp)
+Index: linux/kernel/power/user.c
+===================================================================
+--- linux.orig/kernel/power/user.c
++++ linux/kernel/power/user.c
+@@ -52,6 +52,9 @@ static int snapshot_open(struct inode *i
  	if (!hibernation_available())
  		return -EPERM;
  

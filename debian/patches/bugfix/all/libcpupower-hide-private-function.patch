@@ -8,8 +8,10 @@ libcpupower is a shared library.  Change its visibility to "hidden".
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/tools/power/cpupower/lib/cpupower.c
-+++ b/tools/power/cpupower/lib/cpupower.c
+Index: linux/tools/power/cpupower/lib/cpupower.c
+===================================================================
+--- linux.orig/tools/power/cpupower/lib/cpupower.c
++++ linux/tools/power/cpupower/lib/cpupower.c
 @@ -15,6 +15,7 @@
  #include "cpupower.h"
  #include "cpupower_intern.h"

@@ -19,11 +19,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  arch/arm/boot/dts/kirkwood-ts419.dtsi | 8 ++++++++
  1 file changed, 8 insertions(+)
 
-diff --git a/arch/arm/boot/dts/kirkwood-ts419.dtsi b/arch/arm/boot/dts/kirkwood-ts419.dtsi
-index 02bd53762705..532506cb0f4a 100644
---- a/arch/arm/boot/dts/kirkwood-ts419.dtsi
-+++ b/arch/arm/boot/dts/kirkwood-ts419.dtsi
-@@ -73,3 +73,11 @@
+Index: linux/arch/arm/boot/dts/kirkwood-ts419.dtsi
+===================================================================
+--- linux.orig/arch/arm/boot/dts/kirkwood-ts419.dtsi
++++ linux/arch/arm/boot/dts/kirkwood-ts419.dtsi
+@@ -69,3 +69,11 @@
  		phy-handle = <&ethphy1>;
  	};
  };

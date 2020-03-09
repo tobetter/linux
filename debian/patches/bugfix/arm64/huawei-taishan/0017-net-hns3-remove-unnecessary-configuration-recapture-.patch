@@ -17,11 +17,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  .../net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c | 13 -------------
  1 file changed, 13 deletions(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-index 340baf6a470c..1dada183456c 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-@@ -5812,19 +5812,6 @@ static int hclge_reset_ae_dev(struct hnae3_ae_dev *ae_dev)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -5814,19 +5814,6 @@ static int hclge_reset_ae_dev(struct hna
  		return ret;
  	}
  
@@ -41,6 +41,3 @@ index 340baf6a470c..1dada183456c 100644
  	ret = hclge_map_tqp(hdev);
  	if (ret) {
  		dev_err(&pdev->dev, "Map tqp error, ret = %d.\n", ret);
--- 
-2.20.1
-

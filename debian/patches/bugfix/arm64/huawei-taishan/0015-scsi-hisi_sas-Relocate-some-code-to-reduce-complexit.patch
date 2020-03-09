@@ -14,11 +14,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_main.c | 146 ++++++++++++++++----------
  1 file changed, 90 insertions(+), 56 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index ab6c7938e172..18062e4ab9a5 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_main.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -297,6 +297,90 @@ static void hisi_sas_task_prep_abort(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_main.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+@@ -297,6 +297,90 @@ static void hisi_sas_task_prep_abort(str
  			device_id, abort_flag, tag_to_abort);
  }
  
@@ -109,7 +109,7 @@ index ab6c7938e172..18062e4ab9a5 100644
  static int hisi_sas_task_prep(struct sas_task *task,
  			      struct hisi_sas_dq **dq_pointer,
  			      bool is_tmf, struct hisi_sas_tmf_task *tmf,
-@@ -339,49 +423,10 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -339,49 +423,10 @@ static int hisi_sas_task_prep(struct sas
  		return -ECOMM;
  	}
  
@@ -163,7 +163,7 @@ index ab6c7938e172..18062e4ab9a5 100644
  
  	if (hisi_hba->hw->slot_index_alloc)
  		rc = hisi_hba->hw->slot_index_alloc(hisi_hba, device);
-@@ -466,19 +511,8 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -466,19 +511,8 @@ static int hisi_sas_task_prep(struct sas
  err_out_tag:
  	hisi_sas_slot_index_free(hisi_hba, slot_idx);
  err_out_dma_unmap:
@@ -185,6 +185,3 @@ index ab6c7938e172..18062e4ab9a5 100644
  prep_out:
  	dev_err(dev, "task prep: failed[%d]!\n", rc);
  	return rc;
--- 
-2.20.1
-

@@ -1,0 +1,351 @@
+From: Arthur Kiyanovski <akiyano@amazon.com>
+Date: Tue, 11 Jun 2019 14:58:05 +0300
+Subject: [PATCH] net: ena: add MAX_QUEUES_EXT get feature admin command
+Origin: https://git.kernel.org/linus/ba8ef506fb91005fc4808370b7587ab7bf4bd918
+Bug-Debian: https://bugs.debian.org/941291
+
+Add a new admin command to support different queue size for Tx/Rx
+queues (the change also support different SQ/CQ sizes)
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ .../net/ethernet/amazon/ena/ena_admin_defs.h  | 56 +++++++++++++-
+ drivers/net/ethernet/amazon/ena/ena_com.c     | 76 ++++++++++++-------
+ drivers/net/ethernet/amazon/ena/ena_com.h     |  3 +
+ 3 files changed, 105 insertions(+), 30 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+@@ -60,6 +60,7 @@ enum ena_admin_aq_feature_id {
+ 	ENA_ADMIN_MAX_QUEUES_NUM                    = 2,
+ 	ENA_ADMIN_HW_HINTS                          = 3,
+ 	ENA_ADMIN_LLQ                               = 4,
++	ENA_ADMIN_MAX_QUEUES_EXT                    = 7,
+ 	ENA_ADMIN_RSS_HASH_FUNCTION                 = 10,
+ 	ENA_ADMIN_STATELESS_OFFLOAD_CONFIG          = 11,
+ 	ENA_ADMIN_RSS_REDIRECTION_TABLE_CONFIG      = 12,
+@@ -421,7 +422,13 @@ struct ena_admin_get_set_feature_common_
+ 	/* as appears in ena_admin_aq_feature_id */
+ 	u8 feature_id;
+ 
+-	u16 reserved16;
++	/* The driver specifies the max feature version it supports and the
++	 * device responds with the currently supported feature version. The
++	 * field is zero based
++	 */
++	u8 feature_version;
++
++	u8 reserved8;
+ };
+ 
+ struct ena_admin_device_attr_feature_desc {
+@@ -531,6 +538,34 @@ struct ena_admin_feature_llq_desc {
+ 	u32 max_tx_burst_size;
+ };
+ 
++struct ena_admin_queue_ext_feature_fields {
++	u32 max_tx_sq_num;
++
++	u32 max_tx_cq_num;
++
++	u32 max_rx_sq_num;
++
++	u32 max_rx_cq_num;
++
++	u32 max_tx_sq_depth;
++
++	u32 max_tx_cq_depth;
++
++	u32 max_rx_sq_depth;
++
++	u32 max_rx_cq_depth;
++
++	u32 max_tx_header_size;
++
++	/* Maximum Descriptors number, including meta descriptor, allowed for
++	 * a single Tx packet
++	 */
++	u16 max_per_packet_tx_descs;
++
++	/* Maximum Descriptors number allowed for a single Rx packet */
++	u16 max_per_packet_rx_descs;
++};
++
+ struct ena_admin_queue_feature_desc {
+ 	u32 max_sq_num;
+ 
+@@ -837,6 +872,19 @@ struct ena_admin_get_feat_cmd {
+ 	u32 raw[11];
+ };
+ 
++struct ena_admin_queue_ext_feature_desc {
++	/* version */
++	u8 version;
++
++	u8 reserved1[3];
++
++	union {
++		struct ena_admin_queue_ext_feature_fields max_queue_ext;
++
++		u32 raw[10];
++	};
++};
++
+ struct ena_admin_get_feat_resp {
+ 	struct ena_admin_acq_common_desc acq_common_desc;
+ 
+@@ -849,6 +897,8 @@ struct ena_admin_get_feat_resp {
+ 
+ 		struct ena_admin_queue_feature_desc max_queue;
+ 
++		struct ena_admin_queue_ext_feature_desc max_queue_ext;
++
+ 		struct ena_admin_feature_aenq_desc aenq;
+ 
+ 		struct ena_admin_get_feature_link_desc link;
+@@ -913,7 +963,9 @@ struct ena_admin_aenq_common_desc {
+ 
+ 	u16 syndrom;
+ 
+-	/* 0 : phase */
++	/* 0 : phase
++	 * 7:1 : reserved - MBZ
++	 */
+ 	u8 flags;
+ 
+ 	u8 reserved1[3];
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
+@@ -978,7 +978,8 @@ static int ena_com_get_feature_ex(struct
+ 				  struct ena_admin_get_feat_resp *get_resp,
+ 				  enum ena_admin_aq_feature_id feature_id,
+ 				  dma_addr_t control_buf_dma_addr,
+-				  u32 control_buff_size)
++				  u32 control_buff_size,
++				  u8 feature_ver)
+ {
+ 	struct ena_com_admin_queue *admin_queue;
+ 	struct ena_admin_get_feat_cmd get_cmd;
+@@ -1009,7 +1010,7 @@ static int ena_com_get_feature_ex(struct
+ 	}
+ 
+ 	get_cmd.control_buffer.length = control_buff_size;
+-
++	get_cmd.feat_common.feature_version = feature_ver;
+ 	get_cmd.feat_common.feature_id = feature_id;
+ 
+ 	ret = ena_com_execute_admin_command(admin_queue,
+@@ -1029,13 +1030,15 @@ static int ena_com_get_feature_ex(struct
+ 
+ static int ena_com_get_feature(struct ena_com_dev *ena_dev,
+ 			       struct ena_admin_get_feat_resp *get_resp,
+-			       enum ena_admin_aq_feature_id feature_id)
++			       enum ena_admin_aq_feature_id feature_id,
++			       u8 feature_ver)
+ {
+ 	return ena_com_get_feature_ex(ena_dev,
+ 				      get_resp,
+ 				      feature_id,
+ 				      0,
+-				      0);
++				      0,
++				      feature_ver);
+ }
+ 
+ static int ena_com_hash_key_allocate(struct ena_com_dev *ena_dev)
+@@ -1095,7 +1098,7 @@ static int ena_com_indirect_table_alloca
+ 	int ret;
+ 
+ 	ret = ena_com_get_feature(ena_dev, &get_resp,
+-				  ENA_ADMIN_RSS_REDIRECTION_TABLE_CONFIG);
++				  ENA_ADMIN_RSS_REDIRECTION_TABLE_CONFIG, 0);
+ 	if (unlikely(ret))
+ 		return ret;
+ 
+@@ -1515,7 +1518,7 @@ int ena_com_set_aenq_config(struct ena_c
+ 	struct ena_admin_get_feat_resp get_resp;
+ 	int ret;
+ 
+-	ret = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_AENQ_CONFIG);
++	ret = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_AENQ_CONFIG, 0);
+ 	if (ret) {
+ 		pr_info("Can't get aenq configuration\n");
+ 		return ret;
+@@ -1890,7 +1893,7 @@ void ena_com_destroy_io_queue(struct ena
+ int ena_com_get_link_params(struct ena_com_dev *ena_dev,
+ 			    struct ena_admin_get_feat_resp *resp)
+ {
+-	return ena_com_get_feature(ena_dev, resp, ENA_ADMIN_LINK_CONFIG);
++	return ena_com_get_feature(ena_dev, resp, ENA_ADMIN_LINK_CONFIG, 0);
+ }
+ 
+ int ena_com_get_dev_attr_feat(struct ena_com_dev *ena_dev,
+@@ -1900,7 +1903,7 @@ int ena_com_get_dev_attr_feat(struct ena
+ 	int rc;
+ 
+ 	rc = ena_com_get_feature(ena_dev, &get_resp,
+-				 ENA_ADMIN_DEVICE_ATTRIBUTES);
++				 ENA_ADMIN_DEVICE_ATTRIBUTES, 0);
+ 	if (rc)
+ 		return rc;
+ 
+@@ -1908,17 +1911,34 @@ int ena_com_get_dev_attr_feat(struct ena
+ 	       sizeof(get_resp.u.dev_attr));
+ 	ena_dev->supported_features = get_resp.u.dev_attr.supported_features;
+ 
+-	rc = ena_com_get_feature(ena_dev, &get_resp,
+-				 ENA_ADMIN_MAX_QUEUES_NUM);
+-	if (rc)
+-		return rc;
++	if (ena_dev->supported_features & BIT(ENA_ADMIN_MAX_QUEUES_EXT)) {
++		rc = ena_com_get_feature(ena_dev, &get_resp,
++					 ENA_ADMIN_MAX_QUEUES_EXT,
++					 ENA_FEATURE_MAX_QUEUE_EXT_VER);
++		if (rc)
++			return rc;
+ 
+-	memcpy(&get_feat_ctx->max_queues, &get_resp.u.max_queue,
+-	       sizeof(get_resp.u.max_queue));
+-	ena_dev->tx_max_header_size = get_resp.u.max_queue.max_header_size;
++		if (get_resp.u.max_queue_ext.version != ENA_FEATURE_MAX_QUEUE_EXT_VER)
++			return -EINVAL;
++
++		memcpy(&get_feat_ctx->max_queue_ext, &get_resp.u.max_queue_ext,
++		       sizeof(get_resp.u.max_queue_ext));
++		ena_dev->tx_max_header_size =
++			get_resp.u.max_queue_ext.max_queue_ext.max_tx_header_size;
++	} else {
++		rc = ena_com_get_feature(ena_dev, &get_resp,
++					 ENA_ADMIN_MAX_QUEUES_NUM, 0);
++		memcpy(&get_feat_ctx->max_queues, &get_resp.u.max_queue,
++		       sizeof(get_resp.u.max_queue));
++		ena_dev->tx_max_header_size =
++			get_resp.u.max_queue.max_header_size;
++
++		if (rc)
++			return rc;
++	}
+ 
+ 	rc = ena_com_get_feature(ena_dev, &get_resp,
+-				 ENA_ADMIN_AENQ_CONFIG);
++				 ENA_ADMIN_AENQ_CONFIG, 0);
+ 	if (rc)
+ 		return rc;
+ 
+@@ -1926,7 +1946,7 @@ int ena_com_get_dev_attr_feat(struct ena
+ 	       sizeof(get_resp.u.aenq));
+ 
+ 	rc = ena_com_get_feature(ena_dev, &get_resp,
+-				 ENA_ADMIN_STATELESS_OFFLOAD_CONFIG);
++				 ENA_ADMIN_STATELESS_OFFLOAD_CONFIG, 0);
+ 	if (rc)
+ 		return rc;
+ 
+@@ -1936,7 +1956,7 @@ int ena_com_get_dev_attr_feat(struct ena
+ 	/* Driver hints isn't mandatory admin command. So in case the
+ 	 * command isn't supported set driver hints to 0
+ 	 */
+-	rc = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_HW_HINTS);
++	rc = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_HW_HINTS, 0);
+ 
+ 	if (!rc)
+ 		memcpy(&get_feat_ctx->hw_hints, &get_resp.u.hw_hints,
+@@ -1947,7 +1967,7 @@ int ena_com_get_dev_attr_feat(struct ena
+ 	else
+ 		return rc;
+ 
+-	rc = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_LLQ);
++	rc = ena_com_get_feature(ena_dev, &get_resp, ENA_ADMIN_LLQ, 0);
+ 	if (!rc)
+ 		memcpy(&get_feat_ctx->llq, &get_resp.u.llq,
+ 		       sizeof(get_resp.u.llq));
+@@ -2185,7 +2205,7 @@ int ena_com_get_offload_settings(struct
+ 	struct ena_admin_get_feat_resp resp;
+ 
+ 	ret = ena_com_get_feature(ena_dev, &resp,
+-				  ENA_ADMIN_STATELESS_OFFLOAD_CONFIG);
++				  ENA_ADMIN_STATELESS_OFFLOAD_CONFIG, 0);
+ 	if (unlikely(ret)) {
+ 		pr_err("Failed to get offload capabilities %d\n", ret);
+ 		return ret;
+@@ -2214,7 +2234,7 @@ int ena_com_set_hash_function(struct ena
+ 
+ 	/* Validate hash function is supported */
+ 	ret = ena_com_get_feature(ena_dev, &get_resp,
+-				  ENA_ADMIN_RSS_HASH_FUNCTION);
++				  ENA_ADMIN_RSS_HASH_FUNCTION, 0);
+ 	if (unlikely(ret))
+ 		return ret;
+ 
+@@ -2274,7 +2294,7 @@ int ena_com_fill_hash_function(struct en
+ 	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
+ 				    ENA_ADMIN_RSS_HASH_FUNCTION,
+ 				    rss->hash_key_dma_addr,
+-				    sizeof(*rss->hash_key));
++				    sizeof(*rss->hash_key), 0);
+ 	if (unlikely(rc))
+ 		return rc;
+ 
+@@ -2326,7 +2346,7 @@ int ena_com_get_hash_function(struct ena
+ 	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
+ 				    ENA_ADMIN_RSS_HASH_FUNCTION,
+ 				    rss->hash_key_dma_addr,
+-				    sizeof(*rss->hash_key));
++				    sizeof(*rss->hash_key), 0);
+ 	if (unlikely(rc))
+ 		return rc;
+ 
+@@ -2351,7 +2371,7 @@ int ena_com_get_hash_ctrl(struct ena_com
+ 	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
+ 				    ENA_ADMIN_RSS_HASH_INPUT,
+ 				    rss->hash_ctrl_dma_addr,
+-				    sizeof(*rss->hash_ctrl));
++				    sizeof(*rss->hash_ctrl), 0);
+ 	if (unlikely(rc))
+ 		return rc;
+ 
+@@ -2587,7 +2607,7 @@ int ena_com_indirect_table_get(struct en
+ 	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
+ 				    ENA_ADMIN_RSS_REDIRECTION_TABLE_CONFIG,
+ 				    rss->rss_ind_tbl_dma_addr,
+-				    tbl_size);
++				    tbl_size, 0);
+ 	if (unlikely(rc))
+ 		return rc;
+ 
+@@ -2801,7 +2821,7 @@ int ena_com_init_interrupt_moderation(st
+ 	int rc;
+ 
+ 	rc = ena_com_get_feature(ena_dev, &get_resp,
+-				 ENA_ADMIN_INTERRUPT_MODERATION);
++				 ENA_ADMIN_INTERRUPT_MODERATION, 0);
+ 
+ 	if (rc) {
+ 		if (rc == -EOPNOTSUPP) {
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
+@@ -101,6 +101,8 @@
+ 
+ #define ENA_HW_HINTS_NO_TIMEOUT				0xFFFF
+ 
++#define ENA_FEATURE_MAX_QUEUE_EXT_VER	1
++
+ enum ena_intr_moder_level {
+ 	ENA_INTR_MODER_LOWEST = 0,
+ 	ENA_INTR_MODER_LOW,
+@@ -382,6 +384,7 @@ struct ena_com_dev {
+ 
+ struct ena_com_dev_get_features_ctx {
+ 	struct ena_admin_queue_feature_desc max_queues;
++	struct ena_admin_queue_ext_feature_desc max_queue_ext;
+ 	struct ena_admin_device_attr_feature_desc dev_attr;
+ 	struct ena_admin_feature_aenq_desc aenq;
+ 	struct ena_admin_feature_offload_desc offload;

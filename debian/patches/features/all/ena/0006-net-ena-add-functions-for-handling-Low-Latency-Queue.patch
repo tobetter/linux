@@ -15,11 +15,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.h  |   6 +
  3 files changed, 251 insertions(+), 143 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_ethtool.c b/drivers/net/ethernet/amazon/ena/ena_ethtool.c
-index 521607bc4393..fd28bd0d1c1e 100644
---- a/drivers/net/ethernet/amazon/ena/ena_ethtool.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_ethtool.c
-@@ -81,6 +81,7 @@ static const struct ena_stats ena_stats_tx_strings[] = {
+Index: linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_ethtool.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+@@ -81,6 +81,7 @@ static const struct ena_stats ena_stats_
  	ENA_STAT_TX_ENTRY(doorbells),
  	ENA_STAT_TX_ENTRY(prepare_ctx_err),
  	ENA_STAT_TX_ENTRY(bad_req_id),
@@ -27,11 +27,11 @@ index 521607bc4393..fd28bd0d1c1e 100644
  	ENA_STAT_TX_ENTRY(missed_tx),
  };
  
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index e732bd2ddd32..fcdfaf0ab8a7 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -237,6 +237,17 @@ static int ena_setup_tx_resources(struct ena_adapter *adapter, int qid)
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -237,6 +237,17 @@ static int ena_setup_tx_resources(struct
  		}
  	}
  
@@ -49,7 +49,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	/* Req id ring for TX out of order completions */
  	for (i = 0; i < tx_ring->ring_size; i++)
  		tx_ring->free_tx_ids[i] = i;
-@@ -265,6 +276,9 @@ static void ena_free_tx_resources(struct ena_adapter *adapter, int qid)
+@@ -265,6 +276,9 @@ static void ena_free_tx_resources(struct
  
  	vfree(tx_ring->free_tx_ids);
  	tx_ring->free_tx_ids = NULL;
@@ -59,7 +59,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  }
  
  /* ena_setup_all_tx_resources - allocate I/O Tx queues resources for All queues
-@@ -602,6 +616,36 @@ static void ena_free_all_rx_bufs(struct ena_adapter *adapter)
+@@ -602,6 +616,36 @@ static void ena_free_all_rx_bufs(struct
  		ena_free_rx_bufs(adapter, i);
  }
  
@@ -96,7 +96,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  /* ena_free_tx_bufs - Free Tx Buffers per Queue
   * @tx_ring: TX ring for which buffers be freed
   */
-@@ -612,9 +656,6 @@ static void ena_free_tx_bufs(struct ena_ring *tx_ring)
+@@ -612,9 +656,6 @@ static void ena_free_tx_bufs(struct ena_
  
  	for (i = 0; i < tx_ring->ring_size; i++) {
  		struct ena_tx_buffer *tx_info = &tx_ring->tx_buffer_info[i];
@@ -106,7 +106,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  		if (!tx_info->skb)
  			continue;
-@@ -630,21 +671,7 @@ static void ena_free_tx_bufs(struct ena_ring *tx_ring)
+@@ -630,21 +671,7 @@ static void ena_free_tx_bufs(struct ena_
  				   tx_ring->qid, i);
  		}
  
@@ -129,7 +129,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  		dev_kfree_skb_any(tx_info->skb);
  	}
-@@ -735,8 +762,6 @@ static int ena_clean_tx_irq(struct ena_ring *tx_ring, u32 budget)
+@@ -735,8 +762,6 @@ static int ena_clean_tx_irq(struct ena_r
  	while (tx_pkts < budget) {
  		struct ena_tx_buffer *tx_info;
  		struct sk_buff *skb;
@@ -138,7 +138,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  		rc = ena_com_tx_comp_req_id_get(tx_ring->ena_com_io_cq,
  						&req_id);
-@@ -756,24 +781,7 @@ static int ena_clean_tx_irq(struct ena_ring *tx_ring, u32 budget)
+@@ -756,24 +781,7 @@ static int ena_clean_tx_irq(struct ena_r
  		tx_info->skb = NULL;
  		tx_info->last_jiffies = 0;
  
@@ -164,7 +164,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  		netif_dbg(tx_ring->adapter, tx_done, tx_ring->netdev,
  			  "tx_poll: q %d skb %p completed\n", tx_ring->qid,
-@@ -1300,7 +1308,6 @@ static int ena_enable_msix(struct ena_adapter *adapter, int num_queues)
+@@ -1300,7 +1308,6 @@ static int ena_enable_msix(struct ena_ad
  
  	/* Reserved the max msix vectors we might need */
  	msix_vecs = ENA_MAX_MSIX_VEC(num_queues);
@@ -172,7 +172,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	netif_dbg(adapter, probe, adapter->netdev,
  		  "trying to enable MSI-X, vectors %d\n", msix_vecs);
  
-@@ -1591,7 +1598,7 @@ static int ena_up_complete(struct ena_adapter *adapter)
+@@ -1591,7 +1598,7 @@ static int ena_up_complete(struct ena_ad
  
  static int ena_create_io_tx_queue(struct ena_adapter *adapter, int qid)
  {
@@ -181,7 +181,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	struct ena_com_dev *ena_dev;
  	struct ena_ring *tx_ring;
  	u32 msix_vector;
-@@ -1604,6 +1611,8 @@ static int ena_create_io_tx_queue(struct ena_adapter *adapter, int qid)
+@@ -1604,6 +1611,8 @@ static int ena_create_io_tx_queue(struct
  	msix_vector = ENA_IO_IRQ_IDX(qid);
  	ena_qid = ENA_IO_TXQ_IDX(qid);
  
@@ -190,7 +190,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	ctx.direction = ENA_COM_IO_QUEUE_DIRECTION_TX;
  	ctx.qid = ena_qid;
  	ctx.mem_queue_type = ena_dev->tx_mem_queue_type;
-@@ -1657,7 +1666,7 @@ static int ena_create_all_io_tx_queues(struct ena_adapter *adapter)
+@@ -1657,7 +1666,7 @@ create_err:
  static int ena_create_io_rx_queue(struct ena_adapter *adapter, int qid)
  {
  	struct ena_com_dev *ena_dev;
@@ -199,7 +199,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	struct ena_ring *rx_ring;
  	u32 msix_vector;
  	u16 ena_qid;
-@@ -1669,6 +1678,8 @@ static int ena_create_io_rx_queue(struct ena_adapter *adapter, int qid)
+@@ -1669,6 +1678,8 @@ static int ena_create_io_rx_queue(struct
  	msix_vector = ENA_IO_IRQ_IDX(qid);
  	ena_qid = ENA_IO_RXQ_IDX(qid);
  
@@ -208,7 +208,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	ctx.qid = ena_qid;
  	ctx.direction = ENA_COM_IO_QUEUE_DIRECTION_RX;
  	ctx.mem_queue_type = ENA_ADMIN_PLACEMENT_POLICY_HOST;
-@@ -1986,73 +1997,70 @@ static int ena_check_and_linearize_skb(struct ena_ring *tx_ring,
+@@ -1986,73 +1997,70 @@ static int ena_check_and_linearize_skb(s
  	return rc;
  }
  
@@ -327,7 +327,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	}
  
  	last_frag = skb_shinfo(skb)->nr_frags;
-@@ -2060,18 +2068,75 @@ static netdev_tx_t ena_start_xmit(struct sk_buff *skb, struct net_device *dev)
+@@ -2060,18 +2068,75 @@ static netdev_tx_t ena_start_xmit(struct
  	for (i = 0; i < last_frag; i++) {
  		const skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
  
@@ -409,7 +409,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  	memset(&ena_tx_ctx, 0x0, sizeof(struct ena_com_tx_ctx));
  	ena_tx_ctx.ena_bufs = tx_info->bufs;
-@@ -2087,14 +2152,22 @@ static netdev_tx_t ena_start_xmit(struct sk_buff *skb, struct net_device *dev)
+@@ -2087,14 +2152,22 @@ static netdev_tx_t ena_start_xmit(struct
  	rc = ena_com_prepare_tx(tx_ring->ena_com_io_sq, &ena_tx_ctx,
  				&nb_hw_desc);
  
@@ -434,7 +434,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  		goto error_unmap_dma;
  	}
  
-@@ -2157,35 +2230,11 @@ static netdev_tx_t ena_start_xmit(struct sk_buff *skb, struct net_device *dev)
+@@ -2157,35 +2230,11 @@ static netdev_tx_t ena_start_xmit(struct
  
  	return NETDEV_TX_OK;
  
@@ -472,7 +472,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	dev_kfree_skb(skb);
  	return NETDEV_TX_OK;
  }
-@@ -2621,7 +2670,9 @@ static int ena_restore_device(struct ena_adapter *adapter)
+@@ -2621,7 +2670,9 @@ static int ena_restore_device(struct ena
  		netif_carrier_on(adapter->netdev);
  
  	mod_timer(&adapter->timer_service, round_jiffies(jiffies + HZ));
@@ -483,7 +483,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  	return rc;
  err_disable_msix:
-@@ -2988,18 +3039,52 @@ static int ena_calc_io_queue_num(struct pci_dev *pdev,
+@@ -2988,18 +3039,52 @@ static int ena_calc_io_queue_num(struct
  	return io_queue_num;
  }
  
@@ -542,7 +542,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  }
  
  static void ena_set_dev_offloads(struct ena_com_dev_get_features_ctx *feat,
-@@ -3117,6 +3202,15 @@ static void ena_release_bars(struct ena_com_dev *ena_dev, struct pci_dev *pdev)
+@@ -3117,6 +3202,15 @@ static void ena_release_bars(struct ena_
  	pci_release_selected_regions(pdev, release_bars);
  }
  
@@ -558,7 +558,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  static int ena_calc_queue_size(struct pci_dev *pdev,
  			       struct ena_com_dev *ena_dev,
  			       u16 *max_tx_sgl_size,
-@@ -3165,7 +3259,9 @@ static int ena_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+@@ -3165,7 +3259,9 @@ static int ena_probe(struct pci_dev *pde
  	static int version_printed;
  	struct net_device *netdev;
  	struct ena_adapter *adapter;
@@ -568,7 +568,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	static int adapters_found;
  	int io_queue_num, bars, rc;
  	int queue_size;
-@@ -3219,16 +3315,13 @@ static int ena_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+@@ -3219,16 +3315,13 @@ static int ena_probe(struct pci_dev *pde
  		goto err_free_region;
  	}
  
@@ -591,7 +591,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  	}
  
  	/* initial Tx interrupt delay, Assumes 1 usec granularity.
-@@ -3243,8 +3336,10 @@ static int ena_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+@@ -3243,8 +3336,10 @@ static int ena_probe(struct pci_dev *pde
  		goto err_device_destroy;
  	}
  
@@ -604,7 +604,7 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  	/* dev zeroed in init_etherdev */
  	netdev = alloc_etherdev_mq(sizeof(struct ena_adapter), io_queue_num);
-@@ -3334,9 +3429,15 @@ static int ena_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+@@ -3334,9 +3429,15 @@ static int ena_probe(struct pci_dev *pde
  	timer_setup(&adapter->timer_service, ena_timer_service, 0);
  	mod_timer(&adapter->timer_service, round_jiffies(jiffies + HZ));
  
@@ -622,10 +622,10 @@ index e732bd2ddd32..fcdfaf0ab8a7 100644
  
  	set_bit(ENA_FLAG_DEVICE_RUNNING, &adapter->flags);
  
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.h b/drivers/net/ethernet/amazon/ena/ena_netdev.h
-index 7c7ae56c52cf..4fa7d2fda475 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
 @@ -151,6 +151,9 @@ struct ena_tx_buffer {
  	/* num of buffers used by this skb */
  	u32 num_of_bufs;
@@ -653,6 +653,3 @@ index 7c7ae56c52cf..4fa7d2fda475 100644
  	int empty_rx_queue;
  } ____cacheline_aligned;
  
--- 
-2.19.2
-

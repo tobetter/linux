@@ -7,8 +7,10 @@ Forwarded: no
 man page title.  Install bash_completion script for perf with a
 version-dependent name.  And do the same for trace.]
 
---- a/tools/perf/Makefile.perf
-+++ b/tools/perf/Makefile.perf
+Index: linux/tools/perf/Makefile.perf
+===================================================================
+--- linux.orig/tools/perf/Makefile.perf
++++ linux/tools/perf/Makefile.perf
 @@ -759,23 +759,23 @@ endif
  install-tools: all install-gtk
  	$(call QUIET_INSTALL, binaries) \
@@ -57,8 +59,10 @@ version-dependent name.  And do the same for trace.]
  
  ### Cleaning rules
  
---- a/tools/perf/Documentation/Makefile
-+++ b/tools/perf/Documentation/Makefile
+Index: linux/tools/perf/Documentation/Makefile
+===================================================================
+--- linux.orig/tools/perf/Documentation/Makefile
++++ linux/tools/perf/Documentation/Makefile
 @@ -194,14 +194,16 @@ ifdef missing_tools
  	$(error "You need to install $(missing_tools) for man pages")
  endif
@@ -82,8 +86,10 @@ version-dependent name.  And do the same for trace.]
  
  install-man: check-man-tools man do-install-man
  
---- a/tools/perf/util/Build
-+++ b/tools/perf/util/Build
+Index: linux/tools/perf/util/Build
+===================================================================
+--- linux.orig/tools/perf/util/Build
++++ linux/tools/perf/util/Build
 @@ -193,6 +193,7 @@ CFLAGS_libstring.o     += -Wno-unused-pa
  CFLAGS_hweight.o       += -Wno-unused-parameter -DETC_PERFCONFIG="BUILD_STR($(ETC_PERFCONFIG_SQ))"
  CFLAGS_parse-events.o  += -Wno-redundant-decls
@@ -92,8 +98,10 @@ version-dependent name.  And do the same for trace.]
  
  $(OUTPUT)util/kallsyms.o: ../lib/symbol/kallsyms.c FORCE
  	$(call rule_mkdir)
---- a/tools/perf/util/vdso.c
-+++ b/tools/perf/util/vdso.c
+Index: linux/tools/perf/util/vdso.c
+===================================================================
+--- linux.orig/tools/perf/util/vdso.c
++++ linux/tools/perf/util/vdso.c
 @@ -52,12 +52,12 @@ static struct vdso_info *vdso_info__new(
  		.vdso32  = {
  			.temp_file_name = VDSO__TEMP_FILE_NAME,

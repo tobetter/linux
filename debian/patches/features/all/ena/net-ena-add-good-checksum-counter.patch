@@ -1,0 +1,72 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Mon, 3 Jun 2019 17:43:28 +0300
+Subject: [PATCH] net: ena: add good checksum counter
+Origin: https://git.kernel.org/linus/d2eecc6ee8c92053797513e34931334dd0e85e18
+Bug-Debian: https://bugs.debian.org/941291
+
+Add a new statistics to ETHTOOL to specify if the device calculated
+and validated the Rx csum.
+
+Signed-off-by: Evgeny Shmeilin <evgeny@annapurnaLabs.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_ethtool.c | 3 ++-
+ drivers/net/ethernet/amazon/ena/ena_netdev.c  | 3 +++
+ drivers/net/ethernet/amazon/ena/ena_netdev.h  | 3 ++-
+ 3 files changed, 7 insertions(+), 2 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_ethtool.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+@@ -88,13 +88,14 @@ static const struct ena_stats ena_stats_
+ static const struct ena_stats ena_stats_rx_strings[] = {
+ 	ENA_STAT_RX_ENTRY(cnt),
+ 	ENA_STAT_RX_ENTRY(bytes),
++	ENA_STAT_RX_ENTRY(rx_copybreak_pkt),
++	ENA_STAT_RX_ENTRY(csum_good),
+ 	ENA_STAT_RX_ENTRY(refil_partial),
+ 	ENA_STAT_RX_ENTRY(bad_csum),
+ 	ENA_STAT_RX_ENTRY(page_alloc_fail),
+ 	ENA_STAT_RX_ENTRY(skb_alloc_fail),
+ 	ENA_STAT_RX_ENTRY(dma_mapping_err),
+ 	ENA_STAT_RX_ENTRY(bad_desc_num),
+-	ENA_STAT_RX_ENTRY(rx_copybreak_pkt),
+ 	ENA_STAT_RX_ENTRY(bad_req_id),
+ 	ENA_STAT_RX_ENTRY(empty_rx_ring),
+ 	ENA_STAT_RX_ENTRY(csum_unchecked),
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -1001,6 +1001,9 @@ static inline void ena_rx_checksum(struc
+ 
+ 		if (likely(ena_rx_ctx->l4_csum_checked)) {
+ 			skb->ip_summed = CHECKSUM_UNNECESSARY;
++			u64_stats_update_begin(&rx_ring->syncp);
++			rx_ring->rx_stats.csum_good++;
++			u64_stats_update_end(&rx_ring->syncp);
+ 		} else {
+ 			u64_stats_update_begin(&rx_ring->syncp);
+ 			rx_ring->rx_stats.csum_unchecked++;
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+@@ -221,13 +221,14 @@ struct ena_stats_tx {
+ struct ena_stats_rx {
+ 	u64 cnt;
+ 	u64 bytes;
++	u64 rx_copybreak_pkt;
++	u64 csum_good;
+ 	u64 refil_partial;
+ 	u64 bad_csum;
+ 	u64 page_alloc_fail;
+ 	u64 skb_alloc_fail;
+ 	u64 dma_mapping_err;
+ 	u64 bad_desc_num;
+-	u64 rx_copybreak_pkt;
+ 	u64 bad_req_id;
+ 	u64 empty_rx_ring;
+ 	u64 csum_unchecked;

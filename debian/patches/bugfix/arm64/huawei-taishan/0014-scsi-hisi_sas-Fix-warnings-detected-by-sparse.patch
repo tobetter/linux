@@ -22,10 +22,10 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c | 37 +++++++++------
  5 files changed, 71 insertions(+), 55 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas.h b/drivers/scsi/hisi_sas/hisi_sas.h
-index 535c61391250..912d2342a5fe 100644
---- a/drivers/scsi/hisi_sas/hisi_sas.h
-+++ b/drivers/scsi/hisi_sas/hisi_sas.h
+Index: linux/drivers/scsi/hisi_sas/hisi_sas.h
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas.h
++++ linux/drivers/scsi/hisi_sas/hisi_sas.h
 @@ -211,7 +211,7 @@ struct hisi_sas_slot {
  	/* Do not reorder/change members after here */
  	void	*buf;
@@ -35,11 +35,11 @@ index 535c61391250..912d2342a5fe 100644
  };
  
  struct hisi_sas_hw {
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index 15360d797760..ab6c7938e172 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_main.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -1463,12 +1463,12 @@ static int hisi_sas_abort_task(struct sas_task *task)
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_main.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+@@ -1463,12 +1463,12 @@ static int hisi_sas_abort_task(struct sa
  	if (task->lldd_task && task->task_proto & SAS_PROTOCOL_SSP) {
  		struct scsi_cmnd *cmnd = task->uldd_task;
  		struct hisi_sas_slot *slot = task->lldd_task;
@@ -54,7 +54,7 @@ index 15360d797760..ab6c7938e172 100644
  
  		rc = hisi_sas_debug_issue_ssp_tmf(task->dev, lun.scsi_lun,
  						  &tmf_task);
-@@ -1722,7 +1722,7 @@ static int hisi_sas_query_task(struct sas_task *task)
+@@ -1722,7 +1722,7 @@ static int hisi_sas_query_task(struct sa
  
  		int_to_scsilun(cmnd->device->lun, &lun);
  		tmf_task.tmf = TMF_QUERY_TASK;
@@ -63,11 +63,11 @@ index 15360d797760..ab6c7938e172 100644
  
  		rc = hisi_sas_debug_issue_ssp_tmf(device,
  						  lun.scsi_lun,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-index e8e3a876e493..cb1198f0ddde 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-@@ -510,6 +510,7 @@ static void setup_itct_v1_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+@@ -510,6 +510,7 @@ static void setup_itct_v1_hw(struct hisi
  	struct hisi_sas_itct *itct = &hisi_hba->itct[device_id];
  	struct asd_sas_port *sas_port = device->port;
  	struct hisi_sas_port *port = to_hisi_sas_port(sas_port);
@@ -75,7 +75,7 @@ index e8e3a876e493..cb1198f0ddde 100644
  
  	memset(itct, 0, sizeof(*itct));
  
-@@ -534,8 +535,8 @@ static void setup_itct_v1_hw(struct hisi_hba *hisi_hba,
+@@ -534,8 +535,8 @@ static void setup_itct_v1_hw(struct hisi
  	itct->qw0 = cpu_to_le64(qw0);
  
  	/* qw1 */
@@ -86,7 +86,7 @@ index e8e3a876e493..cb1198f0ddde 100644
  
  	/* qw2 */
  	itct->qw2 = cpu_to_le64((500ULL << ITCT_HDR_IT_NEXUS_LOSS_TL_OFF) |
-@@ -561,7 +562,7 @@ static void clear_itct_v1_hw(struct hisi_hba *hisi_hba,
+@@ -561,7 +562,7 @@ static void clear_itct_v1_hw(struct hisi
  	reg_val &= ~CFG_AGING_TIME_ITCT_REL_MSK;
  	hisi_sas_write32(hisi_hba, CFG_AGING_TIME, reg_val);
  
@@ -95,7 +95,7 @@ index e8e3a876e493..cb1198f0ddde 100644
  	qw0 &= ~ITCT_HDR_VALID_MSK;
  	itct->qw0 = cpu_to_le64(qw0);
  }
-@@ -1100,7 +1101,7 @@ static void slot_err_v1_hw(struct hisi_hba *hisi_hba,
+@@ -1100,7 +1101,7 @@ static void slot_err_v1_hw(struct hisi_h
  	case SAS_PROTOCOL_SSP:
  	{
  		int error = -1;
@@ -104,7 +104,7 @@ index e8e3a876e493..cb1198f0ddde 100644
  		u32 dma_tx_err_type = ((dma_err_type &
  					ERR_HDR_DMA_TX_ERR_TYPE_MSK)) >>
  					ERR_HDR_DMA_TX_ERR_TYPE_OFF;
-@@ -1108,9 +1109,9 @@ static void slot_err_v1_hw(struct hisi_hba *hisi_hba,
+@@ -1108,9 +1109,9 @@ static void slot_err_v1_hw(struct hisi_h
  					ERR_HDR_DMA_RX_ERR_TYPE_MSK)) >>
  					ERR_HDR_DMA_RX_ERR_TYPE_OFF;
  		u32 trans_tx_fail_type =
@@ -116,7 +116,7 @@ index e8e3a876e493..cb1198f0ddde 100644
  
  		if (dma_tx_err_type) {
  			/* dma tx err */
-@@ -1558,7 +1559,7 @@ static irqreturn_t cq_interrupt_v1_hw(int irq, void *p)
+@@ -1558,7 +1559,7 @@ static irqreturn_t cq_interrupt_v1_hw(in
  		u32 cmplt_hdr_data;
  
  		complete_hdr = &complete_queue[rd_point];
@@ -125,11 +125,11 @@ index e8e3a876e493..cb1198f0ddde 100644
  		idx = (cmplt_hdr_data & CMPLT_HDR_IPTT_MSK) >>
  		      CMPLT_HDR_IPTT_OFF;
  		slot = &hisi_hba->slot_info[idx];
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-index 574a269e2865..c17dd500fba1 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-@@ -934,6 +934,7 @@ static void setup_itct_v2_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+@@ -934,6 +934,7 @@ static void setup_itct_v2_hw(struct hisi
  	struct domain_device *parent_dev = device->parent;
  	struct asd_sas_port *sas_port = device->port;
  	struct hisi_sas_port *port = to_hisi_sas_port(sas_port);
@@ -137,7 +137,7 @@ index 574a269e2865..c17dd500fba1 100644
  
  	memset(itct, 0, sizeof(*itct));
  
-@@ -966,8 +967,8 @@ static void setup_itct_v2_hw(struct hisi_hba *hisi_hba,
+@@ -966,8 +967,8 @@ static void setup_itct_v2_hw(struct hisi
  	itct->qw0 = cpu_to_le64(qw0);
  
  	/* qw1 */
@@ -148,7 +148,7 @@ index 574a269e2865..c17dd500fba1 100644
  
  	/* qw2 */
  	if (!dev_is_sata(device))
-@@ -2044,11 +2045,11 @@ static void slot_err_v2_hw(struct hisi_hba *hisi_hba,
+@@ -2044,11 +2045,11 @@ static void slot_err_v2_hw(struct hisi_h
  	struct task_status_struct *ts = &task->task_status;
  	struct hisi_sas_err_record_v2 *err_record =
  			hisi_sas_status_buf_addr_mem(slot);
@@ -165,7 +165,7 @@ index 574a269e2865..c17dd500fba1 100644
  	int error = -1;
  
  	if (err_phase == 1) {
-@@ -2059,8 +2060,7 @@ static void slot_err_v2_hw(struct hisi_hba *hisi_hba,
+@@ -2059,8 +2060,7 @@ static void slot_err_v2_hw(struct hisi_h
  					trans_tx_fail_type);
  	} else if (err_phase == 2) {
  		/* error in RX phase, the priority is: DW1 > DW3 > DW2 */
@@ -175,7 +175,7 @@ index 574a269e2865..c17dd500fba1 100644
  		if (error == -1) {
  			error = parse_dma_rx_err_code_v2_hw(
  					dma_rx_err_type);
-@@ -2358,6 +2358,7 @@ slot_complete_v2_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -2358,6 +2358,7 @@ slot_complete_v2_hw(struct hisi_hba *his
  			&complete_queue[slot->cmplt_queue_slot];
  	unsigned long flags;
  	bool is_internal = slot->is_internal;
@@ -183,7 +183,7 @@ index 574a269e2865..c17dd500fba1 100644
  
  	if (unlikely(!task || !task->lldd_task || !task->dev))
  		return -EINVAL;
-@@ -2382,8 +2383,9 @@ slot_complete_v2_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -2382,8 +2383,9 @@ slot_complete_v2_hw(struct hisi_hba *his
  	}
  
  	/* Use SAS+TMF status codes */
@@ -195,7 +195,7 @@ index 574a269e2865..c17dd500fba1 100644
  	case STAT_IO_ABORTED:
  		/* this io has been aborted by abort command */
  		ts->stat = SAS_ABORTED_TASK;
-@@ -2408,9 +2410,8 @@ slot_complete_v2_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -2408,9 +2410,8 @@ slot_complete_v2_hw(struct hisi_hba *his
  		break;
  	}
  
@@ -207,7 +207,7 @@ index 574a269e2865..c17dd500fba1 100644
  				>> CMPLT_HDR_ERR_PHASE_OFF;
  		u32 *error_info = hisi_sas_status_buf_addr_mem(slot);
  
-@@ -2526,22 +2527,23 @@ static void prep_ata_v2_hw(struct hisi_hba *hisi_hba,
+@@ -2526,22 +2527,23 @@ static void prep_ata_v2_hw(struct hisi_h
  	struct hisi_sas_tmf_task *tmf = slot->tmf;
  	u8 *buf_cmd;
  	int has_data = 0, hdr_tag = 0;
@@ -238,7 +238,7 @@ index 574a269e2865..c17dd500fba1 100644
  	/* dw1 */
  	switch (task->data_dir) {
  	case DMA_TO_DEVICE:
-@@ -3152,20 +3154,24 @@ static void cq_tasklet_v2_hw(unsigned long val)
+@@ -3152,20 +3154,24 @@ static void cq_tasklet_v2_hw(unsigned lo
  
  		/* Check for NCQ completion */
  		if (complete_hdr->act) {
@@ -269,7 +269,7 @@ index 574a269e2865..c17dd500fba1 100644
  
  				slot = &hisi_hba->slot_info[iptt];
  				slot->cmplt_queue_slot = rd_point;
-@@ -3176,7 +3182,9 @@ static void cq_tasklet_v2_hw(unsigned long val)
+@@ -3176,7 +3182,9 @@ static void cq_tasklet_v2_hw(unsigned lo
  				ncq_tag_count = ffs(act_tmp);
  			}
  		} else {
@@ -280,7 +280,7 @@ index 574a269e2865..c17dd500fba1 100644
  			slot = &hisi_hba->slot_info[iptt];
  			slot->cmplt_queue_slot = rd_point;
  			slot->cmplt_queue = queue;
-@@ -3552,7 +3560,7 @@ static void wait_cmds_complete_timeout_v2_hw(struct hisi_hba *hisi_hba,
+@@ -3552,7 +3560,7 @@ static void wait_cmds_complete_timeout_v
  	dev_dbg(dev, "wait commands complete %dms\n", time);
  }
  
@@ -289,11 +289,11 @@ index 574a269e2865..c17dd500fba1 100644
  	&dev_attr_phy_event_threshold,
  	NULL
  };
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index 7d7cb73e4bee..23f40b57b298 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-@@ -628,6 +628,7 @@ static void setup_itct_v3_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+@@ -628,6 +628,7 @@ static void setup_itct_v3_hw(struct hisi
  	struct domain_device *parent_dev = device->parent;
  	struct asd_sas_port *sas_port = device->port;
  	struct hisi_sas_port *port = to_hisi_sas_port(sas_port);
@@ -301,7 +301,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  
  	memset(itct, 0, sizeof(*itct));
  
-@@ -660,8 +661,8 @@ static void setup_itct_v3_hw(struct hisi_hba *hisi_hba,
+@@ -660,8 +661,8 @@ static void setup_itct_v3_hw(struct hisi
  	itct->qw0 = cpu_to_le64(qw0);
  
  	/* qw1 */
@@ -312,7 +312,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  
  	/* qw2 */
  	if (!dev_is_sata(device))
-@@ -1590,15 +1591,16 @@ slot_err_v3_hw(struct hisi_hba *hisi_hba, struct sas_task *task,
+@@ -1590,15 +1591,16 @@ slot_err_v3_hw(struct hisi_hba *hisi_hba
  			&complete_queue[slot->cmplt_queue_slot];
  	struct hisi_sas_err_record_v3 *record =
  			hisi_sas_status_buf_addr_mem(slot);
@@ -332,7 +332,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  			ts->stat = SAS_QUEUE_FULL;
  			slot->abort = 1;
  		} else {
-@@ -1612,7 +1614,7 @@ slot_err_v3_hw(struct hisi_hba *hisi_hba, struct sas_task *task,
+@@ -1612,7 +1614,7 @@ slot_err_v3_hw(struct hisi_hba *hisi_hba
  		if (dma_rx_err_type & RX_DATA_LEN_UNDERFLOW_MSK) {
  			ts->residual = trans_tx_fail_type;
  			ts->stat = SAS_DATA_UNDERRUN;
@@ -341,7 +341,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  			ts->stat = SAS_PHY_DOWN;
  			slot->abort = 1;
  		} else {
-@@ -1645,6 +1647,7 @@ slot_complete_v3_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -1645,6 +1647,7 @@ slot_complete_v3_hw(struct hisi_hba *his
  			&complete_queue[slot->cmplt_queue_slot];
  	unsigned long flags;
  	bool is_internal = slot->is_internal;
@@ -349,7 +349,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  
  	if (unlikely(!task || !task->lldd_task || !task->dev))
  		return -EINVAL;
-@@ -1668,11 +1671,14 @@ slot_complete_v3_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -1668,11 +1671,14 @@ slot_complete_v3_hw(struct hisi_hba *his
  		goto out;
  	}
  
@@ -366,7 +366,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  	case STAT_IO_ABORTED:
  		/* this IO has been aborted by abort command */
  		ts->stat = SAS_ABORTED_TASK;
-@@ -1695,7 +1701,7 @@ slot_complete_v3_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -1695,7 +1701,7 @@ slot_complete_v3_hw(struct hisi_hba *his
  	}
  
  	/* check for erroneous completion */
@@ -375,7 +375,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  		u32 *error_info = hisi_sas_status_buf_addr_mem(slot);
  
  		slot_err_v3_hw(hisi_hba, task, slot);
-@@ -1704,8 +1710,7 @@ slot_complete_v3_hw(struct hisi_hba *hisi_hba, struct hisi_sas_slot *slot)
+@@ -1704,8 +1710,7 @@ slot_complete_v3_hw(struct hisi_hba *his
  				"CQ hdr: 0x%x 0x%x 0x%x 0x%x "
  				"Error info: 0x%x 0x%x 0x%x 0x%x\n",
  				slot->idx, task, sas_dev->device_id,
@@ -385,7 +385,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  				error_info[0], error_info[1],
  				error_info[2], error_info[3]);
  		if (unlikely(slot->abort))
-@@ -1803,11 +1808,13 @@ static void cq_tasklet_v3_hw(unsigned long val)
+@@ -1803,11 +1808,13 @@ static void cq_tasklet_v3_hw(unsigned lo
  	while (rd_point != wr_point) {
  		struct hisi_sas_complete_v3_hdr *complete_hdr;
  		struct device *dev = hisi_hba->dev;
@@ -400,7 +400,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  		if (likely(iptt < HISI_SAS_COMMAND_ENTRIES_V3_HW)) {
  			slot = &hisi_hba->slot_info[iptt];
  			slot->cmplt_queue_slot = rd_point;
-@@ -2203,7 +2210,7 @@ static ssize_t intr_coal_count_v3_hw_store(struct device *dev,
+@@ -2203,7 +2210,7 @@ static ssize_t intr_coal_count_v3_hw_sto
  }
  static DEVICE_ATTR_RW(intr_coal_count_v3_hw);
  
@@ -409,7 +409,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  	&dev_attr_phy_event_threshold,
  	&dev_attr_intr_conv_v3_hw,
  	&dev_attr_intr_coal_ticks_v3_hw,
-@@ -2649,7 +2656,7 @@ static int hisi_sas_v3_suspend(struct pci_dev *pdev, pm_message_t state)
+@@ -2649,7 +2656,7 @@ static int hisi_sas_v3_suspend(struct pc
  	struct hisi_hba *hisi_hba = sha->lldd_ha;
  	struct device *dev = hisi_hba->dev;
  	struct Scsi_Host *shost = hisi_hba->shost;
@@ -418,7 +418,7 @@ index 7d7cb73e4bee..23f40b57b298 100644
  	int rc;
  
  	if (!pdev->pm_cap) {
-@@ -2695,7 +2702,7 @@ static int hisi_sas_v3_resume(struct pci_dev *pdev)
+@@ -2695,7 +2702,7 @@ static int hisi_sas_v3_resume(struct pci
  	struct Scsi_Host *shost = hisi_hba->shost;
  	struct device *dev = hisi_hba->dev;
  	unsigned int rc;
@@ -427,6 +427,3 @@ index 7d7cb73e4bee..23f40b57b298 100644
  
  	dev_warn(dev, "resuming from operating state [D%d]\n",
  			device_state);
--- 
-2.20.1
-

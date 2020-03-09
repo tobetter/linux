@@ -22,8 +22,10 @@ cc: kexec@lists.infradead.org
  kernel/kexec.c | 7 +++++++
  1 file changed, 7 insertions(+)
 
---- a/kernel/kexec.c
-+++ b/kernel/kexec.c
+Index: linux/kernel/kexec.c
+===================================================================
+--- linux.orig/kernel/kexec.c
++++ linux/kernel/kexec.c
 @@ -208,6 +208,13 @@ static inline int kexec_load_check(unsig
  		return result;
  

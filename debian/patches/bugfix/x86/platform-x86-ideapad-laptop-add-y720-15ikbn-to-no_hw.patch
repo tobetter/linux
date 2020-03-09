@@ -15,9 +15,11 @@ Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
  drivers/platform/x86/ideapad-laptop.c | 7 +++++++
  1 file changed, 7 insertions(+)
 
---- a/drivers/platform/x86/ideapad-laptop.c
-+++ b/drivers/platform/x86/ideapad-laptop.c
-@@ -928,6 +928,13 @@ static const struct dmi_system_id no_hw_
+Index: linux/drivers/platform/x86/ideapad-laptop.c
+===================================================================
+--- linux.orig/drivers/platform/x86/ideapad-laptop.c
++++ linux/drivers/platform/x86/ideapad-laptop.c
+@@ -1189,6 +1189,13 @@ static const struct dmi_system_id no_hw_
  		},
  	},
  	{

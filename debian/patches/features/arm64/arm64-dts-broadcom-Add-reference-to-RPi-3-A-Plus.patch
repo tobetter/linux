@@ -1,0 +1,35 @@
+From: Stefan Wahren <stefan.wahren@i2se.com>
+Date: Fri, 28 Dec 2018 23:09:27 +0100
+Subject: arm64: dts: broadcom: Add reference to RPi 3 A+
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/patch/?id=441d8020d8fc8654698f5518cdf76832f84101f4
+
+This adds a reference to the dts of the Raspberry Pi 3 A+,
+so we don't need to maintain the content in arm64.
+
+Signed-off-by: Stefan Wahren <stefan.wahren@i2se.com>
+Reviewed-by: Eric Anholt <eric@anholt.net>
+---
+ arch/arm64/boot/dts/broadcom/Makefile                 | 3 ++-
+ arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-a-plus.dts | 2 ++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-a-plus.dts
+
+Index: debian-kernel/arch/arm64/boot/dts/broadcom/Makefile
+===================================================================
+--- debian-kernel.orig/arch/arm64/boot/dts/broadcom/Makefile
++++ debian-kernel/arch/arm64/boot/dts/broadcom/Makefile
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+-dtb-$(CONFIG_ARCH_BCM2835) += bcm2837-rpi-3-b.dtb \
++dtb-$(CONFIG_ARCH_BCM2835) += bcm2837-rpi-3-a-plus.dtb \
++			      bcm2837-rpi-3-b.dtb \
+ 			      bcm2837-rpi-3-b-plus.dtb \
+ 			      bcm2837-rpi-cm3-io3.dtb
+ 
+Index: debian-kernel/arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-a-plus.dts
+===================================================================
+--- /dev/null
++++ debian-kernel/arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-a-plus.dts
+@@ -0,0 +1,2 @@
++// SPDX-License-Identifier: GPL-2.0
++#include "arm/bcm2837-rpi-3-a-plus.dts"

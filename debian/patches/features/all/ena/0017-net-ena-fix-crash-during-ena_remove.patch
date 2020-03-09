@@ -33,11 +33,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.c | 21 ++++++++++----------
  1 file changed, 10 insertions(+), 11 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 1d3cead0977e..a70bb1bb90e7 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -1848,6 +1848,8 @@ static void ena_down(struct ena_adapter *adapter)
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -1848,6 +1848,8 @@ static void ena_down(struct ena_adapter
  		rc = ena_com_dev_reset(adapter->ena_dev, adapter->reset_reason);
  		if (rc)
  			dev_err(&adapter->pdev->dev, "Device reset failed\n");
@@ -46,7 +46,7 @@ index 1d3cead0977e..a70bb1bb90e7 100644
  	}
  
  	ena_destroy_all_io_queues(adapter);
-@@ -1914,6 +1916,9 @@ static int ena_close(struct net_device *netdev)
+@@ -1914,6 +1916,9 @@ static int ena_close(struct net_device *
  
  	netif_dbg(adapter, ifdown, netdev, "%s\n", __func__);
  
@@ -56,7 +56,7 @@ index 1d3cead0977e..a70bb1bb90e7 100644
  	if (test_bit(ENA_FLAG_DEV_UP, &adapter->flags))
  		ena_down(adapter);
  
-@@ -2613,9 +2618,7 @@ static void ena_destroy_device(struct ena_adapter *adapter, bool graceful)
+@@ -2613,9 +2618,7 @@ static void ena_destroy_device(struct en
  		ena_down(adapter);
  
  	/* Stop the device from sending AENQ events (in case reset flag is set
@@ -67,7 +67,7 @@ index 1d3cead0977e..a70bb1bb90e7 100644
  	 */
  	if (!(test_bit(ENA_FLAG_TRIGGER_RESET, &adapter->flags) && dev_up))
  		ena_com_dev_reset(adapter->ena_dev, adapter->reset_reason);
-@@ -3452,6 +3455,8 @@ static int ena_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+@@ -3452,6 +3455,8 @@ err_rss:
  	ena_com_rss_destroy(ena_dev);
  err_free_msix:
  	ena_com_dev_reset(ena_dev, ENA_REGS_RESET_INIT_ERR);
@@ -76,7 +76,7 @@ index 1d3cead0977e..a70bb1bb90e7 100644
  	ena_free_mgmnt_irq(adapter);
  	ena_disable_msix(adapter);
  err_worker_destroy:
-@@ -3498,18 +3503,12 @@ static void ena_remove(struct pci_dev *pdev)
+@@ -3498,18 +3503,12 @@ static void ena_remove(struct pci_dev *p
  
  	cancel_work_sync(&adapter->reset_task);
  
@@ -97,6 +97,3 @@ index 1d3cead0977e..a70bb1bb90e7 100644
  	free_netdev(netdev);
  
  	ena_com_rss_destroy(ena_dev);
--- 
-2.19.2
-

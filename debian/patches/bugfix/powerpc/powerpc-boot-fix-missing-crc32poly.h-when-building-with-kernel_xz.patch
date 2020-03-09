@@ -24,11 +24,11 @@ Tested-by: Michal Kubecek <mkubecek@suse.cz>
  arch/powerpc/boot/Makefile | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
-index 0fb96c26136f..ba4182fb185d 100644
---- a/arch/powerpc/boot/Makefile
-+++ b/arch/powerpc/boot/Makefile
-@@ -63,7 +63,7 @@ ifeq ($(call cc-option-yn, -fstack-protector),y)
+Index: linux/arch/powerpc/boot/Makefile
+===================================================================
+--- linux.orig/arch/powerpc/boot/Makefile
++++ linux/arch/powerpc/boot/Makefile
+@@ -68,7 +68,7 @@ ifeq ($(call cc-option-yn, -fstack-prote
  BOOTCFLAGS	+= -fno-stack-protector
  endif
  

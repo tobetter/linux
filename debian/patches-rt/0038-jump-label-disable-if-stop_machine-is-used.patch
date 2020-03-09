@@ -1,8 +1,8 @@
-From b5d77d6b4b4bcead77cd720e8a93f4ae78420034 Mon Sep 17 00:00:00 2001
+From cded0d9563b5948a2aa3bddb86f632ea0ec38f0e Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 8 Jul 2015 17:14:48 +0200
-Subject: [PATCH 038/283] jump-label: disable if stop_machine() is used
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 038/290] jump-label: disable if stop_machine() is used
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Some architectures are using stop_machine() while switching the opcode which
 leads to latency spikes.
@@ -25,7 +25,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 51794c7fa6d5..7d11242a37d2 100644
+index 185e552f1461..84f36e47e3ab 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
 @@ -51,7 +51,7 @@ config ARM
@@ -38,5 +38,5 @@ index 51794c7fa6d5..7d11242a37d2 100644
  	select HAVE_ARCH_MMAP_RND_BITS if MMU
  	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
 -- 
-2.20.1
+2.24.1
 

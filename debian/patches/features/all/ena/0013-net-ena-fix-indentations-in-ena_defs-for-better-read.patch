@@ -12,10 +12,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  .../net/ethernet/amazon/ena/ena_regs_defs.h   | 206 +++++------
  3 files changed, 338 insertions(+), 425 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-index b439ec1b3edb..9f80b73f90b1 100644
---- a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
 @@ -32,119 +32,81 @@
  #ifndef _ENA_ADMIN_H_
  #define _ENA_ADMIN_H_
@@ -237,7 +237,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  };
  
  struct ena_admin_feature_rss_flow_hash_control {
-@@ -692,50 +652,35 @@ struct ena_admin_feature_rss_flow_hash_function {
+@@ -692,50 +652,35 @@ struct ena_admin_feature_rss_flow_hash_f
  
  /* RSS flow hash protocols */
  enum ena_admin_flow_hash_proto {
@@ -305,7 +305,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  };
  
  struct ena_admin_proto_input {
-@@ -774,19 +719,13 @@ struct ena_admin_feature_rss_flow_hash_input {
+@@ -774,19 +719,13 @@ struct ena_admin_feature_rss_flow_hash_i
  };
  
  enum ena_admin_os_type {
@@ -367,7 +367,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  };
  
  struct ena_admin_aenq_entry {
-@@ -1034,27 +966,27 @@ struct ena_admin_ena_mmio_req_read_less_resp {
+@@ -1034,27 +966,27 @@ struct ena_admin_ena_mmio_req_read_less_
  };
  
  /* aq_common_desc */
@@ -410,7 +410,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  #define ENA_ADMIN_AQ_CREATE_SQ_CMD_IS_PHYSICALLY_CONTIGUOUS_MASK BIT(0)
  
  /* aq_create_cq_cmd */
-@@ -1063,12 +995,12 @@ struct ena_admin_ena_mmio_req_read_less_resp {
+@@ -1063,12 +995,12 @@ struct ena_admin_ena_mmio_req_read_less_
  #define ENA_ADMIN_AQ_CREATE_CQ_CMD_CQ_ENTRY_SIZE_WORDS_MASK GENMASK(4, 0)
  
  /* get_set_feature_common_desc */
@@ -427,7 +427,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  
  /* feature_offload_desc */
  #define ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L3_CSUM_IPV4_MASK BIT(0)
-@@ -1080,19 +1012,19 @@ struct ena_admin_ena_mmio_req_read_less_resp {
+@@ -1080,19 +1012,19 @@ struct ena_admin_ena_mmio_req_read_less_
  #define ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_PART_MASK BIT(3)
  #define ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_FULL_SHIFT 4
  #define ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_FULL_MASK BIT(4)
@@ -455,7 +455,7 @@ index b439ec1b3edb..9f80b73f90b1 100644
  
  /* feature_rss_flow_hash_function */
  #define ENA_ADMIN_FEATURE_RSS_FLOW_HASH_FUNCTION_FUNCS_MASK GENMASK(7, 0)
-@@ -1100,32 +1032,32 @@ struct ena_admin_ena_mmio_req_read_less_resp {
+@@ -1100,32 +1032,32 @@ struct ena_admin_ena_mmio_req_read_less_
  
  /* feature_rss_flow_hash_input */
  #define ENA_ADMIN_FEATURE_RSS_FLOW_HASH_INPUT_L3_SORT_SHIFT 1
@@ -504,10 +504,10 @@ index b439ec1b3edb..9f80b73f90b1 100644
 +#define ENA_ADMIN_AENQ_LINK_CHANGE_DESC_LINK_STATUS_MASK    BIT(0)
  
  #endif /*_ENA_ADMIN_H_ */
-diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h b/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
-index 4c5ccaa13c42..00e0f056a741 100644
---- a/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_io_defs.h
 @@ -33,25 +33,18 @@
  #define _ENA_ETH_IO_H_
  
@@ -759,10 +759,10 @@ index 4c5ccaa13c42..00e0f056a741 100644
 +#define ENA_ETH_IO_NUMA_NODE_CFG_REG_ENABLED_MASK           BIT(31)
  
  #endif /*_ENA_ETH_IO_H_ */
-diff --git a/drivers/net/ethernet/amazon/ena/ena_regs_defs.h b/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
-index 48ca97fbe7bc..04fcafcc059c 100644
---- a/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_regs_defs.h
 @@ -33,137 +33,125 @@
  #define _ENA_REGS_H_
  
@@ -998,6 +998,3 @@ index 48ca97fbe7bc..04fcafcc059c 100644
 +#define ENA_REGS_RSS_IND_ENTRY_UPDATE_CQ_IDX_MASK           0xffff0000
  
  #endif /*_ENA_REGS_H_ */
--- 
-2.19.2
-

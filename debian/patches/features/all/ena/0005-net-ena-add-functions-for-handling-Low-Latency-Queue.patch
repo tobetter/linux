@@ -19,10 +19,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.c  |  21 +-
  5 files changed, 474 insertions(+), 80 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_com.c b/drivers/net/ethernet/amazon/ena/ena_com.c
-index b6e6a4721931..5220c7578d6b 100644
---- a/drivers/net/ethernet/amazon/ena/ena_com.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_com.c
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
 @@ -58,6 +58,8 @@
  
  #define ENA_MMIO_READ_TIMEOUT 0xFFFFFFFF
@@ -32,7 +32,7 @@ index b6e6a4721931..5220c7578d6b 100644
  #define ENA_REGS_ADMIN_INTR_MASK 1
  
  #define ENA_POLL_MS	5
-@@ -352,21 +354,48 @@ static int ena_com_init_io_sq(struct ena_com_dev *ena_dev,
+@@ -352,21 +354,48 @@ static int ena_com_init_io_sq(struct ena
  						    &io_sq->desc_addr.phys_addr,
  						    GFP_KERNEL);
  		}
@@ -89,7 +89,7 @@ index b6e6a4721931..5220c7578d6b 100644
  	}
  
  	io_sq->tail = 0;
-@@ -554,6 +583,156 @@ static int ena_com_wait_and_process_admin_cq_polling(struct ena_comp_ctx *comp_c
+@@ -554,6 +583,156 @@ err:
  	return ret;
  }
  
@@ -246,7 +246,7 @@ index b6e6a4721931..5220c7578d6b 100644
  static int ena_com_wait_and_process_admin_cq_interrupts(struct ena_comp_ctx *comp_ctx,
  							struct ena_com_admin_queue *admin_queue)
  {
-@@ -725,15 +904,17 @@ static void ena_com_io_queue_free(struct ena_com_dev *ena_dev,
+@@ -725,15 +904,17 @@ static void ena_com_io_queue_free(struct
  	if (io_sq->desc_addr.virt_addr) {
  		size = io_sq->desc_entry_size * io_sq->q_depth;
  
@@ -270,7 +270,7 @@ index b6e6a4721931..5220c7578d6b 100644
  }
  
  static int wait_for_reset_state(struct ena_com_dev *ena_dev, u32 timeout,
-@@ -1740,6 +1921,15 @@ int ena_com_get_dev_attr_feat(struct ena_com_dev *ena_dev,
+@@ -1740,6 +1921,15 @@ int ena_com_get_dev_attr_feat(struct ena
  	else
  		return rc;
  
@@ -286,7 +286,7 @@ index b6e6a4721931..5220c7578d6b 100644
  	return 0;
  }
  
-@@ -2708,3 +2898,34 @@ void ena_com_get_intr_moderation_entry(struct ena_com_dev *ena_dev,
+@@ -2708,3 +2898,34 @@ void ena_com_get_intr_moderation_entry(s
  	intr_moder_tbl[level].pkts_per_interval;
  	entry->bytes_per_interval = intr_moder_tbl[level].bytes_per_interval;
  }
@@ -321,10 +321,10 @@ index b6e6a4721931..5220c7578d6b 100644
 +
 +	return 0;
 +}
-diff --git a/drivers/net/ethernet/amazon/ena/ena_com.h b/drivers/net/ethernet/amazon/ena/ena_com.h
-index 50e6c8f6f138..25af8d025919 100644
---- a/drivers/net/ethernet/amazon/ena/ena_com.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_com.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
 @@ -37,6 +37,7 @@
  #include <linux/delay.h>
  #include <linux/dma-mapping.h>
@@ -333,7 +333,7 @@ index 50e6c8f6f138..25af8d025919 100644
  #include <linux/sched.h>
  #include <linux/sizes.h>
  #include <linux/spinlock.h>
-@@ -973,6 +974,16 @@ void ena_com_get_intr_moderation_entry(struct ena_com_dev *ena_dev,
+@@ -973,6 +974,16 @@ void ena_com_get_intr_moderation_entry(s
  				       enum ena_intr_moder_level level,
  				       struct ena_intr_moder_entry *entry);
  
@@ -350,7 +350,7 @@ index 50e6c8f6f138..25af8d025919 100644
  static inline bool ena_com_get_adaptive_moderation_enabled(struct ena_com_dev *ena_dev)
  {
  	return ena_dev->adaptive_coalescing;
-@@ -1082,4 +1093,21 @@ static inline void ena_com_update_intr_reg(struct ena_eth_io_intr_reg *intr_reg,
+@@ -1082,4 +1093,21 @@ static inline void ena_com_update_intr_r
  		intr_reg->intr_control |= ENA_ETH_IO_INTR_REG_INTR_UNMASK_MASK;
  }
  
@@ -372,11 +372,11 @@ index 50e6c8f6f138..25af8d025919 100644
 +}
 +
  #endif /* !(ENA_COM) */
-diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_com.c b/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-index 9c0511e9f9a2..17107ca107e3 100644
---- a/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-@@ -59,7 +59,7 @@ static inline struct ena_eth_io_rx_cdesc_base *ena_com_get_next_rx_cdesc(
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+@@ -59,7 +59,7 @@ static inline struct ena_eth_io_rx_cdesc
  	return cdesc;
  }
  
@@ -385,7 +385,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  {
  	u16 tail_masked;
  	u32 offset;
-@@ -71,45 +71,159 @@ static inline void *get_sq_desc(struct ena_com_io_sq *io_sq)
+@@ -71,45 +71,159 @@ static inline void *get_sq_desc(struct e
  	return (void *)((uintptr_t)io_sq->desc_addr.virt_addr + offset);
  }
  
@@ -435,22 +435,15 @@ index 9c0511e9f9a2..17107ca107e3 100644
 +static inline int ena_com_write_header_to_bounce(struct ena_com_io_sq *io_sq,
 +						 u8 *header_src,
 +						 u16 header_len)
- {
--	u16 tail_masked = io_sq->tail & (io_sq->q_depth - 1);
--	u8 __iomem *dev_head_addr =
--		io_sq->header_addr + (tail_masked * io_sq->tx_max_header_size);
++{
 +	struct ena_com_llq_pkt_ctrl *pkt_ctrl = &io_sq->llq_buf_ctrl;
 +	struct ena_com_llq_info *llq_info = &io_sq->llq_info;
 +	u8 *bounce_buffer = pkt_ctrl->curr_bounce_buf;
 +	u16 header_offset;
- 
--	if (io_sq->mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_HOST)
++
 +	if (unlikely(io_sq->mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_HOST))
- 		return 0;
- 
--	if (unlikely(!io_sq->header_addr)) {
--		pr_err("Push buffer header ptr is NULL\n");
--		return -EINVAL;
++		return 0;
++
 +	header_offset =
 +		llq_info->descs_num_before_header * io_sq->desc_entry_size;
 +
@@ -491,14 +484,21 @@ index 9c0511e9f9a2..17107ca107e3 100644
 +}
 +
 +static inline int ena_com_close_bounce_buffer(struct ena_com_io_sq *io_sq)
-+{
+ {
+-	u16 tail_masked = io_sq->tail & (io_sq->q_depth - 1);
+-	u8 __iomem *dev_head_addr =
+-		io_sq->header_addr + (tail_masked * io_sq->tx_max_header_size);
 +	struct ena_com_llq_pkt_ctrl *pkt_ctrl = &io_sq->llq_buf_ctrl;
 +	struct ena_com_llq_info *llq_info = &io_sq->llq_info;
 +	int rc;
-+
+ 
+-	if (io_sq->mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_HOST)
 +	if (unlikely(io_sq->mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_HOST))
-+		return 0;
-+
+ 		return 0;
+ 
+-	if (unlikely(!io_sq->header_addr)) {
+-		pr_err("Push buffer header ptr is NULL\n");
+-		return -EINVAL;
 +	/* bounce buffer was used, so write it and get a new one */
 +	if (pkt_ctrl->idx) {
 +		rc = ena_com_write_bounce_buffer_to_dev(io_sq,
@@ -510,8 +510,9 @@ index 9c0511e9f9a2..17107ca107e3 100644
 +			ena_com_get_next_bounce_buffer(&io_sq->bounce_buf_ctrl);
 +		memset(io_sq->llq_buf_ctrl.curr_bounce_buf,
 +		       0x0, llq_info->desc_list_entry_size);
-+	}
-+
+ 	}
+ 
+-	memcpy_toio(dev_head_addr, head_src, header_len);
 +	pkt_ctrl->idx = 0;
 +	pkt_ctrl->descs_left_in_line = llq_info->descs_num_before_header;
 +	return 0;
@@ -548,9 +549,8 @@ index 9c0511e9f9a2..17107ca107e3 100644
 +		else
 +			pkt_ctrl->descs_left_in_line =
 +			llq_info->desc_list_entry_size / io_sq->desc_entry_size;
- 	}
- 
--	memcpy_toio(dev_head_addr, head_src, header_len);
++	}
++
 +	return 0;
 +}
 +
@@ -567,7 +567,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  
  	return 0;
  }
-@@ -177,8 +291,8 @@ static inline bool ena_com_meta_desc_changed(struct ena_com_io_sq *io_sq,
+@@ -177,8 +291,8 @@ static inline bool ena_com_meta_desc_cha
  	return false;
  }
  
@@ -578,7 +578,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  {
  	struct ena_eth_io_tx_meta_desc *meta_desc = NULL;
  	struct ena_com_tx_meta *ena_meta = &ena_tx_ctx->ena_meta;
-@@ -223,8 +337,7 @@ static inline void ena_com_create_and_store_tx_meta_desc(struct ena_com_io_sq *i
+@@ -223,8 +337,7 @@ static inline void ena_com_create_and_st
  	memcpy(&io_sq->cached_tx_meta, ena_meta,
  	       sizeof(struct ena_com_tx_meta));
  
@@ -588,7 +588,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  }
  
  static inline void ena_com_rx_set_flags(struct ena_com_rx_ctx *ena_rx_ctx,
-@@ -262,18 +375,19 @@ int ena_com_prepare_tx(struct ena_com_io_sq *io_sq,
+@@ -262,18 +375,19 @@ int ena_com_prepare_tx(struct ena_com_io
  {
  	struct ena_eth_io_tx_desc *desc = NULL;
  	struct ena_com_buf *ena_bufs = ena_tx_ctx->ena_bufs;
@@ -612,7 +612,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  		return -ENOMEM;
  	}
  
-@@ -283,23 +397,32 @@ int ena_com_prepare_tx(struct ena_com_io_sq *io_sq,
+@@ -283,23 +397,32 @@ int ena_com_prepare_tx(struct ena_com_io
  		return -EINVAL;
  	}
  
@@ -652,7 +652,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  	memset(desc, 0x0, sizeof(struct ena_eth_io_tx_desc));
  
  	/* Set first desc when we don't have meta descriptor */
-@@ -351,10 +474,14 @@ int ena_com_prepare_tx(struct ena_com_io_sq *io_sq,
+@@ -351,10 +474,14 @@ int ena_com_prepare_tx(struct ena_com_io
  	for (i = 0; i < num_bufs; i++) {
  		/* The first desc share the same desc as the header */
  		if (likely(i != 0)) {
@@ -669,7 +669,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  			memset(desc, 0x0, sizeof(struct ena_eth_io_tx_desc));
  
  			desc->len_ctrl |= (io_sq->phase <<
-@@ -377,15 +504,14 @@ int ena_com_prepare_tx(struct ena_com_io_sq *io_sq,
+@@ -377,15 +504,14 @@ int ena_com_prepare_tx(struct ena_com_io
  	/* set the last desc indicator */
  	desc->len_ctrl |= ENA_ETH_IO_TX_DESC_LAST_MASK;
  
@@ -691,7 +691,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  }
  
  int ena_com_rx_pkt(struct ena_com_io_cq *io_cq,
-@@ -444,15 +570,18 @@ int ena_com_add_single_rx_desc(struct ena_com_io_sq *io_sq,
+@@ -444,15 +570,18 @@ int ena_com_add_single_rx_desc(struct en
  
  	WARN(io_sq->direction != ENA_COM_IO_QUEUE_DIRECTION_RX, "wrong Q type");
  
@@ -712,7 +712,7 @@ index 9c0511e9f9a2..17107ca107e3 100644
  	desc->ctrl |= ENA_ETH_IO_RX_DESC_LAST_MASK;
  	desc->ctrl |= io_sq->phase & ENA_ETH_IO_RX_DESC_PHASE_MASK;
  	desc->ctrl |= ENA_ETH_IO_RX_DESC_COMP_REQ_MASK;
-@@ -463,9 +592,7 @@ int ena_com_add_single_rx_desc(struct ena_com_io_sq *io_sq,
+@@ -463,9 +592,7 @@ int ena_com_add_single_rx_desc(struct en
  	desc->buff_addr_hi =
  		((ena_buf->paddr & GENMASK_ULL(io_sq->dma_addr_bits - 1, 32)) >> 32);
  
@@ -723,11 +723,11 @@ index 9c0511e9f9a2..17107ca107e3 100644
  }
  
  bool ena_com_cq_empty(struct ena_com_io_cq *io_cq)
-diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_com.h b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-index 4930324e9d8d..bcc84072367d 100644
---- a/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-@@ -94,7 +94,7 @@ static inline void ena_com_unmask_intr(struct ena_com_io_cq *io_cq,
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+@@ -94,7 +94,7 @@ static inline void ena_com_unmask_intr(s
  	writel(intr_reg->intr_control, io_cq->unmask_reg);
  }
  
@@ -736,7 +736,7 @@ index 4930324e9d8d..bcc84072367d 100644
  {
  	u16 tail, next_to_comp, cnt;
  
-@@ -105,11 +105,28 @@ static inline int ena_com_sq_empty_space(struct ena_com_io_sq *io_sq)
+@@ -105,11 +105,28 @@ static inline int ena_com_sq_empty_space
  	return io_sq->q_depth - 1 - cnt;
  }
  
@@ -768,11 +768,11 @@ index 4930324e9d8d..bcc84072367d 100644
  
  	pr_debug("write submission queue doorbell for queue: %d tail: %d\n",
  		 io_sq->qid, tail);
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 789556960b8e..e732bd2ddd32 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -804,12 +804,13 @@ static int ena_clean_tx_irq(struct ena_ring *tx_ring, u32 budget)
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -804,12 +804,13 @@ static int ena_clean_tx_irq(struct ena_r
  	 */
  	smp_mb();
  
@@ -790,7 +790,7 @@ index 789556960b8e..e732bd2ddd32 100644
  		if (netif_tx_queue_stopped(txq) && above_thresh) {
  			netif_tx_wake_queue(txq);
  			u64_stats_update_begin(&tx_ring->syncp);
-@@ -1101,7 +1102,7 @@ static int ena_clean_rx_irq(struct ena_ring *rx_ring, struct napi_struct *napi,
+@@ -1101,7 +1102,7 @@ static int ena_clean_rx_irq(struct ena_r
  
  	rx_ring->next_to_clean = next_to_clean;
  
@@ -799,7 +799,7 @@ index 789556960b8e..e732bd2ddd32 100644
  	refill_threshold = rx_ring->ring_size / ENA_RX_REFILL_THRESH_DIVIDER;
  
  	/* Optimization, try to batch new rx buffers */
-@@ -2115,8 +2116,8 @@ static netdev_tx_t ena_start_xmit(struct sk_buff *skb, struct net_device *dev)
+@@ -2115,8 +2116,8 @@ static netdev_tx_t ena_start_xmit(struct
  	 * to sgl_size + 2. one for the meta descriptor and one for header
  	 * (if the header is larger than tx_max_header_size).
  	 */
@@ -810,7 +810,7 @@ index 789556960b8e..e732bd2ddd32 100644
  		netif_dbg(adapter, tx_queued, dev, "%s stop queue %d\n",
  			  __func__, qid);
  
-@@ -2135,8 +2136,8 @@ static netdev_tx_t ena_start_xmit(struct sk_buff *skb, struct net_device *dev)
+@@ -2135,8 +2136,8 @@ static netdev_tx_t ena_start_xmit(struct
  		 */
  		smp_mb();
  
@@ -821,7 +821,7 @@ index 789556960b8e..e732bd2ddd32 100644
  			netif_tx_wake_queue(txq);
  			u64_stats_update_begin(&tx_ring->syncp);
  			tx_ring->tx_stats.queue_wakeup++;
-@@ -2813,7 +2814,7 @@ static void check_for_empty_rx_ring(struct ena_adapter *adapter)
+@@ -2813,7 +2814,7 @@ static void check_for_empty_rx_ring(stru
  		rx_ring = &adapter->rx_ring[i];
  
  		refill_required =
@@ -830,6 +830,3 @@ index 789556960b8e..e732bd2ddd32 100644
  		if (unlikely(refill_required == (rx_ring->ring_size - 1))) {
  			rx_ring->empty_rx_queue++;
  
--- 
-2.19.2
-

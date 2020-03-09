@@ -27,10 +27,10 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  3 files changed, 188 insertions(+)
  create mode 100644 certs/load_uefi.c
 
-diff --git a/certs/Kconfig b/certs/Kconfig
-index 650ffcb8db79..548859925c1f 100644
---- a/certs/Kconfig
-+++ b/certs/Kconfig
+Index: linux/certs/Kconfig
+===================================================================
+--- linux.orig/certs/Kconfig
++++ linux/certs/Kconfig
 @@ -91,4 +91,20 @@ config EFI_SIGNATURE_LIST_PARSER
  	  This option provides support for parsing EFI signature lists for
  	  X.509 certificates and turning them into keys.
@@ -52,11 +52,11 @@ index 650ffcb8db79..548859925c1f 100644
 +	  loaded and keys that match the blacklist will be rejected.
 +
  endmenu
-diff --git a/certs/Makefile b/certs/Makefile
-index 7e5e179ac685..3f127ac80740 100644
---- a/certs/Makefile
-+++ b/certs/Makefile
-@@ -12,6 +12,10 @@ obj-$(CONFIG_SYSTEM_BLACKLIST_KEYRING) += blacklist_nohashes.o
+Index: linux/certs/Makefile
+===================================================================
+--- linux.orig/certs/Makefile
++++ linux/certs/Makefile
+@@ -12,6 +12,10 @@ obj-$(CONFIG_SYSTEM_BLACKLIST_KEYRING) +
  endif
  obj-$(CONFIG_EFI_SIGNATURE_LIST_PARSER) += efi_parser.o
  
@@ -67,11 +67,10 @@ index 7e5e179ac685..3f127ac80740 100644
  ifeq ($(CONFIG_SYSTEM_TRUSTED_KEYRING),y)
  
  $(eval $(call config_filename,SYSTEM_TRUSTED_KEYS))
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-new file mode 100644
-index 000000000000..b44e464c3ff4
+Index: linux/certs/load_uefi.c
+===================================================================
 --- /dev/null
-+++ b/certs/load_uefi.c
++++ linux/certs/load_uefi.c
 @@ -0,0 +1,168 @@
 +#include <linux/kernel.h>
 +#include <linux/sched.h>
@@ -241,6 +240,3 @@ index 000000000000..b44e464c3ff4
 +	return rc;
 +}
 +late_initcall(load_uefi_certs);
--- 
-2.20.1
-

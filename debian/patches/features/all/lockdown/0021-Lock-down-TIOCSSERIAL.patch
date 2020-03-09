@@ -15,11 +15,11 @@ cc: Jiri Slaby <jslaby@suse.com>
  drivers/tty/serial/serial_core.c | 6 ++++++
  1 file changed, 6 insertions(+)
 
-diff --git a/drivers/tty/serial/serial_core.c b/drivers/tty/serial/serial_core.c
-index 3a14cccbd7ff..41f0922ad842 100644
---- a/drivers/tty/serial/serial_core.c
-+++ b/drivers/tty/serial/serial_core.c
-@@ -842,6 +842,12 @@ static int uart_set_info(struct tty_struct *tty, struct tty_port *port,
+Index: linux/drivers/tty/serial/serial_core.c
+===================================================================
+--- linux.orig/drivers/tty/serial/serial_core.c
++++ linux/drivers/tty/serial/serial_core.c
+@@ -850,6 +850,12 @@ static int uart_set_info(struct tty_stru
  	new_flags = (__force upf_t)new_info->flags;
  	old_custom_divisor = uport->custom_divisor;
  

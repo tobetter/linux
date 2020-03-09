@@ -25,11 +25,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c | 5 +++--
  1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-index 42a38ca966d1..79232f584531 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-@@ -1621,10 +1621,11 @@ static bool  hclge_is_rx_buf_ok(struct hclge_dev *hdev,
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -1620,10 +1620,11 @@ static bool  hclge_is_rx_buf_ok(struct h
  	shared_buf_tc = pfc_enable_num * aligned_mps +
  			(tc_num - pfc_enable_num) * aligned_mps / 2 +
  			aligned_mps;
@@ -43,6 +43,3 @@ index 42a38ca966d1..79232f584531 100644
  		return false;
  
  	shared_buf = rounddown(rx_all - rx_priv, HCLGE_BUF_SIZE_UNIT);
--- 
-2.20.1
-

@@ -9,8 +9,10 @@ security restrictions that block bpf().
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/tools/build/feature/test-bpf.c
-+++ b/tools/build/feature/test-bpf.c
+Index: linux/tools/build/feature/test-bpf.c
+===================================================================
+--- linux.orig/tools/build/feature/test-bpf.c
++++ linux/tools/build/feature/test-bpf.c
 @@ -35,8 +35,10 @@ int main(void)
  	attr.prog_flags = 0;
  

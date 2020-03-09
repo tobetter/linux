@@ -1,16 +1,16 @@
 From: J. R. Okajima <hooanon05@yahoo.co.jp>
-Date: Sat Sep 8 23:32:19 2018 +0900
-Subject: aufs4.x-rcN base patch
-Origin: https://github.com/sfjro/aufs4-standalone/tree/ecea3973efed5223878e489d212dc39fee4dabb6
+Date: Tue Sep 3 14:14:09 2019 +0900
+Subject: aufs4.19.63+ base patch
+Origin: https://github.com/sfjro/aufs4-standalone/tree/6c582cc629cbfb4fac5bfc7d20db128c7d201da6
 Bug-Debian: https://bugs.debian.org/541828
 
-Patch headers added by debian/patches/features/all/aufs4/gen-patch
+Patch headers added by debian/bin/genpatch-aufs
 
 SPDX-License-Identifier: GPL-2.0
-aufs4.x-rcN base patch
+aufs4.19.63+ base patch
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 9ad052a..35c459a 100644
+index 11a59e82d92e..573d5b42b28b 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
 @@ -2605,6 +2605,19 @@ F:	include/linux/audit.h
@@ -19,8 +19,8 @@ index 9ad052a..35c459a 100644
  
 +AUFS (advanced multi layered unification filesystem) FILESYSTEM
 +M:	"J. R. Okajima" <hooanon05g@gmail.com>
-+L:	linux-unionfs@vger.kernel.org
 +L:	aufs-users@lists.sourceforge.net (members only)
++L:	linux-unionfs@vger.kernel.org
 +W:	http://aufs.sourceforge.net
 +T:	git://github.com/sfjro/aufs4-linux.git
 +S:	Supported
@@ -34,7 +34,7 @@ index 9ad052a..35c459a 100644
  M:	Miguel Ojeda Sandonis <miguel.ojeda.sandonis@gmail.com>
  S:	Maintained
 diff --git a/drivers/block/loop.c b/drivers/block/loop.c
-index ea9debf..9e534a3 100644
+index f1e63eb7cbca..b732df5f14f3 100644
 --- a/drivers/block/loop.c
 +++ b/drivers/block/loop.c
 @@ -739,6 +739,24 @@ static int loop_change_fd(struct loop_device *lo, struct block_device *bdev,
@@ -63,10 +63,10 @@ index ea9debf..9e534a3 100644
  
  static ssize_t loop_attr_show(struct device *dev, char *page,
 diff --git a/fs/dcache.c b/fs/dcache.c
-index 2e7e8d8..9f57bd8 100644
+index 6e0022326afe..3bd53094ac3d 100644
 --- a/fs/dcache.c
 +++ b/fs/dcache.c
-@@ -1238,7 +1238,7 @@ enum d_walk_ret {
+@@ -1234,7 +1234,7 @@ enum d_walk_ret {
   *
   * The @enter() callbacks are called with d_lock held.
   */
@@ -76,7 +76,7 @@ index 2e7e8d8..9f57bd8 100644
  {
  	struct dentry *this_parent;
 diff --git a/fs/fcntl.c b/fs/fcntl.c
-index 4137d96..c91b3e3 100644
+index 4137d96534a6..c91b3e3c4580 100644
 --- a/fs/fcntl.c
 +++ b/fs/fcntl.c
 @@ -32,7 +32,7 @@
@@ -98,7 +98,7 @@ index 4137d96..c91b3e3 100644
  		return error;
  
 diff --git a/fs/inode.c b/fs/inode.c
-index 42f6d25..fa6ae6a 100644
+index 5c63693326bb..43046d7223e4 100644
 --- a/fs/inode.c
 +++ b/fs/inode.c
 @@ -1657,7 +1657,7 @@ EXPORT_SYMBOL(generic_update_time);
@@ -111,7 +111,7 @@ index 42f6d25..fa6ae6a 100644
  	int (*update_time)(struct inode *, struct timespec64 *, int);
  
 diff --git a/fs/namespace.c b/fs/namespace.c
-index 9918655..72c93f3 100644
+index 1fce41ba3535..fbd7edd49a2f 100644
 --- a/fs/namespace.c
 +++ b/fs/namespace.c
 @@ -770,6 +770,12 @@ static inline int check_mnt(struct mount *mnt)
@@ -128,7 +128,7 @@ index 9918655..72c93f3 100644
   * vfsmount lock must be held for write
   */
 diff --git a/fs/read_write.c b/fs/read_write.c
-index 39b4a21..19f8e04 100644
+index 85fd7a8ee29e..c1335b4f19c0 100644
 --- a/fs/read_write.c
 +++ b/fs/read_write.c
 @@ -489,6 +489,28 @@ ssize_t __vfs_write(struct file *file, const char __user *p, size_t count,
@@ -161,7 +161,7 @@ index 39b4a21..19f8e04 100644
  {
  	mm_segment_t old_fs;
 diff --git a/fs/splice.c b/fs/splice.c
-index b3daa97..1dd7f96 100644
+index 485e409ef841..b2c2d320565b 100644
 --- a/fs/splice.c
 +++ b/fs/splice.c
 @@ -838,8 +838,8 @@ EXPORT_SYMBOL(generic_splice_sendpage);
@@ -189,7 +189,7 @@ index b3daa97..1dd7f96 100644
  	ssize_t (*splice_read)(struct file *, loff_t *,
  			       struct pipe_inode_info *, size_t, unsigned int);
 diff --git a/fs/sync.c b/fs/sync.c
-index b54e054..2860782 100644
+index b54e0541ad89..28607828e96f 100644
 --- a/fs/sync.c
 +++ b/fs/sync.c
 @@ -28,7 +28,7 @@
@@ -202,10 +202,10 @@ index b54e054..2860782 100644
  	if (wait)
  		sync_inodes_sb(sb);
 diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 3332270..e1444c2 100644
+index 92420009b9bc..ecad33c40cae 100644
 --- a/include/linux/fs.h
 +++ b/include/linux/fs.h
-@@ -1286,6 +1286,7 @@ extern void fasync_free(struct fasync_struct *);
+@@ -1295,6 +1295,7 @@ extern void fasync_free(struct fasync_struct *);
  /* can be called from interrupts */
  extern void kill_fasync(struct fasync_struct **, int, int);
  
@@ -213,7 +213,7 @@ index 3332270..e1444c2 100644
  extern void __f_setown(struct file *filp, struct pid *, enum pid_type, int force);
  extern int f_setown(struct file *filp, unsigned long arg, int force);
  extern void f_delown(struct file *filp);
-@@ -1747,6 +1748,7 @@ struct file_operations {
+@@ -1759,6 +1760,7 @@ struct file_operations {
  	ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
  	unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
  	int (*check_flags)(int);
@@ -221,7 +221,7 @@ index 3332270..e1444c2 100644
  	int (*flock) (struct file *, int, struct file_lock *);
  	ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
  	ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
-@@ -1817,6 +1819,12 @@ ssize_t rw_copy_check_uvector(int type, const struct iovec __user * uvector,
+@@ -1830,6 +1832,12 @@ ssize_t rw_copy_check_uvector(int type, const struct iovec __user * uvector,
  			      struct iovec *fast_pointer,
  			      struct iovec **ret_pointer);
  
@@ -234,7 +234,7 @@ index 3332270..e1444c2 100644
  extern ssize_t __vfs_read(struct file *, char __user *, size_t, loff_t *);
  extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
  extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
-@@ -2240,6 +2248,7 @@ extern int current_umask(void);
+@@ -2255,6 +2263,7 @@ extern int current_umask(void);
  extern void ihold(struct inode * inode);
  extern void iput(struct inode *);
  extern int generic_update_time(struct inode *, struct timespec64 *, int);
@@ -242,7 +242,7 @@ index 3332270..e1444c2 100644
  
  /* /sys/fs */
  extern struct kobject *fs_kobj;
-@@ -2527,6 +2536,7 @@ static inline bool sb_is_blkdev_sb(struct super_block *sb)
+@@ -2542,6 +2551,7 @@ static inline bool sb_is_blkdev_sb(struct super_block *sb)
  	return false;
  }
  #endif
@@ -251,7 +251,7 @@ index 3332270..e1444c2 100644
  extern const struct file_operations def_blk_fops;
  extern const struct file_operations def_chr_fops;
 diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
-index b0d0b51..f73ffaa 100644
+index b0d0b51c4d85..f73ffaa0199e 100644
 --- a/include/linux/lockdep.h
 +++ b/include/linux/lockdep.h
 @@ -313,6 +313,8 @@ static inline int lockdep_match_key(struct lockdep_map *lock,
@@ -272,7 +272,7 @@ index b0d0b51..f73ffaa 100644
  
  #define lockdep_assert_held(l)			do { (void)(l); } while (0)
 diff --git a/include/linux/mnt_namespace.h b/include/linux/mnt_namespace.h
-index 3594208..24f5fd1 100644
+index 35942084cd40..24f5fd1a789d 100644
 --- a/include/linux/mnt_namespace.h
 +++ b/include/linux/mnt_namespace.h
 @@ -6,11 +6,14 @@
@@ -291,7 +291,7 @@ index 3594208..24f5fd1 100644
  extern const struct file_operations proc_mountinfo_operations;
  extern const struct file_operations proc_mountstats_operations;
 diff --git a/include/linux/splice.h b/include/linux/splice.h
-index 74b4911..19789fb 100644
+index 74b4911ac16d..19789fbea567 100644
 --- a/include/linux/splice.h
 +++ b/include/linux/splice.h
 @@ -87,4 +87,10 @@ extern void splice_shrink_spd(struct splice_pipe_desc *);
@@ -306,10 +306,10 @@ index 74b4911..19789fb 100644
 +			 unsigned int flags);
  #endif
 diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-index e406c5f..b0a8d25 100644
+index e810e8cb17e1..d0c9931e6531 100644
 --- a/kernel/locking/lockdep.c
 +++ b/kernel/locking/lockdep.c
-@@ -141,7 +141,7 @@ static struct lock_list list_entries[MAX_LOCKDEP_ENTRIES];
+@@ -140,7 +140,7 @@ static struct lock_list list_entries[MAX_LOCKDEP_ENTRIES];
  unsigned long nr_lock_classes;
  static struct lock_class lock_classes[MAX_LOCKDEP_KEYS];
  
@@ -318,7 +318,7 @@ index e406c5f..b0a8d25 100644
  {
  	if (!hlock->class_idx) {
  		/*
-@@ -152,6 +152,7 @@ static inline struct lock_class *hlock_class(struct held_lock *hlock)
+@@ -151,6 +151,7 @@ static inline struct lock_class *hlock_class(struct held_lock *hlock)
  	}
  	return lock_classes + hlock->class_idx - 1;
  }

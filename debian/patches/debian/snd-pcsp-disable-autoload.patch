@@ -17,9 +17,11 @@ claim the relevant I/O range.
 In case anyone finds snd-pcsp useful, we continue to build it.  But
 remove the alias, to ensure it's not loaded where it's not wanted.
 
---- a/sound/drivers/pcsp/pcsp.c
-+++ b/sound/drivers/pcsp/pcsp.c
-@@ -21,7 +21,7 @@ MODULE_AUTHOR("Stas Sergeev <stsp@users.
+Index: linux/sound/drivers/pcsp/pcsp.c
+===================================================================
+--- linux.orig/sound/drivers/pcsp/pcsp.c
++++ linux/sound/drivers/pcsp/pcsp.c
+@@ -22,7 +22,7 @@ MODULE_AUTHOR("Stas Sergeev <stsp@users.
  MODULE_DESCRIPTION("PC-Speaker driver");
  MODULE_LICENSE("GPL");
  MODULE_SUPPORTED_DEVICE("{{PC-Speaker, pcsp}}");

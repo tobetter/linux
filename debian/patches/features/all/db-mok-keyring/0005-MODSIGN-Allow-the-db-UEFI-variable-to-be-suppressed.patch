@@ -14,15 +14,14 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  certs/load_uefi.c | 44 ++++++++++++++++++++++++++++++++++----------
  1 file changed, 34 insertions(+), 10 deletions(-)
 
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-index b44e464c3ff4..3d8845986019 100644
---- a/certs/load_uefi.c
-+++ b/certs/load_uefi.c
-@@ -12,6 +12,26 @@ static __initdata efi_guid_t efi_cert_x509_guid = EFI_CERT_X509_GUID;
- static __initdata efi_guid_t efi_cert_x509_sha256_guid = EFI_CERT_X509_SHA256_GUID;
+Index: linux/certs/load_uefi.c
+===================================================================
+--- linux.orig/certs/load_uefi.c
++++ linux/certs/load_uefi.c
+@@ -13,6 +13,26 @@ static __initdata efi_guid_t efi_cert_x5
  static __initdata efi_guid_t efi_cert_sha256_guid = EFI_CERT_SHA256_GUID;
  
-+/*
+ /*
 + * Look to see if a UEFI variable called MokIgnoreDB exists and return true if
 + * it does.
 + *
@@ -42,10 +41,11 @@ index b44e464c3ff4..3d8845986019 100644
 +	return status == EFI_SUCCESS;
 +}
 +
- /*
++/*
   * Get a certificate list blob from the named EFI variable.
   */
-@@ -113,7 +133,9 @@ static __init efi_element_handler_t get_handler_for_dbx(const efi_guid_t *sig_ty
+ static __init void *get_cert_list(efi_char16_t *name, efi_guid_t *guid,
+@@ -113,7 +133,9 @@ static __init efi_element_handler_t get_
  }
  
  /*
@@ -83,6 +83,3 @@ index b44e464c3ff4..3d8845986019 100644
  	}
  
  	mok = get_cert_list(L"MokListRT", &mok_var, &moksize);
--- 
-2.20.1
-

@@ -1,8 +1,8 @@
-From a51785a98d1a72ead35a11a9fc57eaaf37789736 Mon Sep 17 00:00:00 2001
+From 0afdb35f56928f5bde82e37d5a90197756bbbc21 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 21:41:35 +0200
-Subject: [PATCH 195/283] debugobjects: Make RT aware
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 195/290] debugobjects: Make RT aware
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Avoid filling the pool / allocating memory with irqs off().
 
@@ -28,5 +28,5 @@ index 14afeeb7d6ef..e28481c402ae 100644
  	db = get_bucket((unsigned long) addr);
  
 -- 
-2.20.1
+2.24.1
 

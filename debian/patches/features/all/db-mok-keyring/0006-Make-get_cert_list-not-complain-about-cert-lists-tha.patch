@@ -9,11 +9,11 @@ Signed-off-by: Peter Jones <pjones@redhat.com>
  certs/load_uefi.c | 37 ++++++++++++++++++++++---------------
  1 file changed, 22 insertions(+), 15 deletions(-)
 
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-index 3d8845986019..9ef34c44fd1b 100644
---- a/certs/load_uefi.c
-+++ b/certs/load_uefi.c
-@@ -35,8 +35,8 @@ static __init bool uefi_check_ignore_db(void)
+Index: linux/certs/load_uefi.c
+===================================================================
+--- linux.orig/certs/load_uefi.c
++++ linux/certs/load_uefi.c
+@@ -35,8 +35,8 @@ static __init bool uefi_check_ignore_db(
  /*
   * Get a certificate list blob from the named EFI variable.
   */
@@ -24,7 +24,7 @@ index 3d8845986019..9ef34c44fd1b 100644
  {
  	efi_status_t status;
  	unsigned long lsize = 4;
-@@ -44,26 +44,33 @@ static __init void *get_cert_list(efi_char16_t *name, efi_guid_t *guid,
+@@ -44,26 +44,33 @@ static __init void *get_cert_list(efi_ch
  	void *db;
  
  	status = efi.get_variable(name, guid, NULL, &lsize, &tmpdb);
@@ -104,6 +104,3 @@ index 3d8845986019..9ef34c44fd1b 100644
  		rc = parse_efi_signature_list("UEFI:dbx",
  					      dbx, dbxsize,
  					      get_handler_for_dbx);
--- 
-2.20.1
-

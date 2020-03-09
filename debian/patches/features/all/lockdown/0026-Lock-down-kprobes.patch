@@ -13,11 +13,11 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  kernel/kprobes.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index a1606a4224e1..f06023b0936c 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1530,6 +1530,9 @@ int register_kprobe(struct kprobe *p)
+Index: linux/kernel/kprobes.c
+===================================================================
+--- linux.orig/kernel/kprobes.c
++++ linux/kernel/kprobes.c
+@@ -1548,6 +1548,9 @@ int register_kprobe(struct kprobe *p)
  	struct module *probed_mod;
  	kprobe_opcode_t *addr;
  

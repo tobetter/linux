@@ -1,8 +1,8 @@
-From f9ae4924361c91598ce03771aaa5f99c4bfa8100 Mon Sep 17 00:00:00 2001
+From 73e797275adecb403374a97cd6d6737f6a6f8671 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 21 Sep 2017 14:25:13 +0200
-Subject: [PATCH 155/283] rtmutex: annotate sleeping lock context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 155/290] rtmutex: annotate sleeping lock context
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The RCU code complains on schedule() within a rcu_readlock() section.
 The valid scenario on -RT is if a sleeping is held. In order to suppress
@@ -54,7 +54,7 @@ index 27c3176d88d2..9eafc34898b4 100644
  #define migrate_disable()		barrier()
  #define migrate_enable()		barrier()
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 25e9a40f9576..8f0bb5f6d39e 100644
+index 32a9ca5dff59..c5f050afff18 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -673,6 +673,15 @@ struct task_struct {
@@ -73,7 +73,7 @@ index 25e9a40f9576..8f0bb5f6d39e 100644
  #endif
  
  #ifdef CONFIG_PREEMPT_RCU
-@@ -1802,6 +1811,23 @@ static __always_inline bool need_resched(void)
+@@ -1810,6 +1819,23 @@ static __always_inline bool need_resched(void)
  	return unlikely(tif_need_resched());
  }
  
@@ -250,10 +250,10 @@ index a97c20ea9bce..564e3927e7b0 100644
  	    !t->rcu_read_unlock_special.b.blocked) {
  
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index b2149a7ed3cd..ce1cb23cb78f 100644
+index 6bab30347081..d49580cb0eb2 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -7316,4 +7316,49 @@ void migrate_enable(void)
+@@ -7354,4 +7354,49 @@ void migrate_enable(void)
  	preempt_enable();
  }
  EXPORT_SYMBOL(migrate_enable);
@@ -304,5 +304,5 @@ index b2149a7ed3cd..ce1cb23cb78f 100644
 +EXPORT_SYMBOL(migrate_enable);
  #endif
 -- 
-2.20.1
+2.24.1
 

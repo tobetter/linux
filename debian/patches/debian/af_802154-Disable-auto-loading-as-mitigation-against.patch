@@ -19,9 +19,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  net/ieee802154/socket.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
---- a/net/ieee802154/socket.c
-+++ b/net/ieee802154/socket.c
-@@ -1122,4 +1122,4 @@ module_init(af_ieee802154_init);
+Index: linux/net/ieee802154/socket.c
+===================================================================
+--- linux.orig/net/ieee802154/socket.c
++++ linux/net/ieee802154/socket.c
+@@ -1144,4 +1144,4 @@ module_init(af_ieee802154_init);
  module_exit(af_ieee802154_remove);
  
  MODULE_LICENSE("GPL");

@@ -15,11 +15,11 @@ Signed-off-by: "Lee, Chun-Yi" <jlee@suse.com>
  certs/load_uefi.c | 16 +++++++++++++---
  1 file changed, 13 insertions(+), 3 deletions(-)
 
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-index f2f372b..dc66a79 100644
---- a/certs/load_uefi.c
-+++ b/certs/load_uefi.c
-@@ -148,8 +148,8 @@
+Index: linux/certs/load_uefi.c
+===================================================================
+--- linux.orig/certs/load_uefi.c
++++ linux/certs/load_uefi.c
+@@ -148,8 +148,8 @@ static int __init load_uefi_certs(void)
  {
  	efi_guid_t secure_var = EFI_IMAGE_SECURITY_DATABASE_GUID;
  	efi_guid_t mok_var = EFI_SHIM_LOCK_GUID;
@@ -30,7 +30,7 @@ index f2f372b..dc66a79 100644
  	int rc = 0;
  
  	if (!efi.get_variable)
-@@ -183,7 +183,7 @@
+@@ -183,7 +183,7 @@ static int __init load_uefi_certs(void)
  		kfree(dbx);
  	}
  
@@ -39,7 +39,7 @@ index f2f372b..dc66a79 100644
  	if (!efi_enabled(EFI_SECURE_BOOT))
  		return 0;
  
-@@ -198,6 +198,18 @@
+@@ -198,6 +198,18 @@ static int __init load_uefi_certs(void)
  		kfree(mok);
  	}
  

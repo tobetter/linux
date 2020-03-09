@@ -37,10 +37,10 @@ Signed-off-by: Maxime Ripard <maxime.ripard@bootlin.com>
  arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts | 20 ++++++++++++++++++++
  1 file changed, 20 insertions(+)
 
-diff --git a/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts b/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
-index b403e5d787cb..ac8438c2cff1 100644
---- a/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
-+++ b/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
+Index: linux/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
+===================================================================
+--- linux.orig/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
++++ linux/arch/arm/boot/dts/sun8i-h3-orangepi-plus.dts
 @@ -74,6 +74,10 @@
  	};
  };

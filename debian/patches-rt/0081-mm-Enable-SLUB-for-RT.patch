@@ -1,8 +1,8 @@
-From b01d03c695bcba2149713f4425c806b5b5e3410d Mon Sep 17 00:00:00 2001
+From 4c7a8a89b8b16cb2733dc45aae256c0fda1c34c8 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 25 Oct 2012 10:32:35 +0100
-Subject: [PATCH 081/283] mm: Enable SLUB for RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 081/290] mm: Enable SLUB for RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Avoid the memory allocation in IRQ section
 
@@ -14,7 +14,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 6 insertions(+)
 
 diff --git a/mm/slub.c b/mm/slub.c
-index 7fd47a914f61..efd441e79e6f 100644
+index 224663e20772..cbe47408c6eb 100644
 --- a/mm/slub.c
 +++ b/mm/slub.c
 @@ -3680,6 +3680,11 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
@@ -38,5 +38,5 @@ index 7fd47a914f61..efd441e79e6f 100644
  
  /*
 -- 
-2.20.1
+2.24.1
 

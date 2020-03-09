@@ -11,8 +11,10 @@ a version of the script which is directly derived from the driver.
  drivers/media/dvb/dvb-usb/af9005-fe.c |   66 ++++++++++++++++++++++++++------
  2 files changed, 54 insertions(+), 14 deletions(-)
 
---- a/drivers/media/usb/dvb-usb/Kconfig
-+++ b/drivers/media/usb/dvb-usb/Kconfig
+Index: linux/drivers/media/usb/dvb-usb/Kconfig
+===================================================================
+--- linux.orig/drivers/media/usb/dvb-usb/Kconfig
++++ linux/drivers/media/usb/dvb-usb/Kconfig
 @@ -246,10 +246,10 @@ config DVB_USB_OPERA1
  
  config DVB_USB_AF9005
@@ -25,8 +27,10 @@ a version of the script which is directly derived from the driver.
  	help
  	  Say Y here to support the Afatech AF9005 based DVB-T USB1.1 receiver
  	  and the TerraTec Cinergy T USB XE (Rev.1)
---- a/drivers/media/usb/dvb-usb/af9005-fe.c
-+++ b/drivers/media/usb/dvb-usb/af9005-fe.c
+Index: linux/drivers/media/usb/dvb-usb/af9005-fe.c
+===================================================================
+--- linux.orig/drivers/media/usb/dvb-usb/af9005-fe.c
++++ linux/drivers/media/usb/dvb-usb/af9005-fe.c
 @@ -18,10 +18,26 @@
   * see Documentation/media/dvb-drivers/dvb-usb.rst for more information
   */

@@ -1,9 +1,9 @@
-From da8db6d203d29fd33215f60a1948967f2fe76386 Mon Sep 17 00:00:00 2001
+From 7bfefce1f534227fddc8cc519a813c04f7f6c1da Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 10 Apr 2019 11:01:37 +0200
-Subject: [PATCH 266/283] drm/i915: Don't disable interrupts independently of
+Subject: [PATCH 266/290] drm/i915: Don't disable interrupts independently of
  the lock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The locks (timeline->lock and rq->lock) need to be taken with disabled
 interrupts. This is done in __retire_engine_request() by disabling the
@@ -47,5 +47,5 @@ index 5c2c93cbab12..7124510b9131 100644
  	/*
  	 * The backing object for the context is done after switching to the
 -- 
-2.20.1
+2.24.1
 

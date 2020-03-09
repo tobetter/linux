@@ -1,8 +1,8 @@
-From 57407205aa8a3eacf4fb95e6ae48e68850c42cf4 Mon Sep 17 00:00:00 2001
+From 77d71203cae68a6d582b3c05f375bd68caea10e8 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 22 Feb 2012 12:03:30 +0100
-Subject: [PATCH 196/283] seqlock: Prevent rt starvation
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 196/290] seqlock: Prevent rt starvation
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 If a low prio writer gets preempted while holding the seqlock write
 locked, a high prio reader spins forever on RT.
@@ -160,7 +160,7 @@ index bcf4cf26b8c8..689ed53016c7 100644
  }
  
 diff --git a/include/net/neighbour.h b/include/net/neighbour.h
-index beeeed126872..6dd1765e22ec 100644
+index 5ce035984a4d..1166fc17b757 100644
 --- a/include/net/neighbour.h
 +++ b/include/net/neighbour.h
 @@ -451,7 +451,7 @@ static inline int neigh_hh_bridge(struct hh_cache *hh, struct sk_buff *skb)
@@ -191,5 +191,5 @@ index beeeed126872..6dd1765e22ec 100644
  {
  	unsigned int seq;
 -- 
-2.20.1
+2.24.1
 

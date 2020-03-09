@@ -10,23 +10,29 @@ dependencies of a module.
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 [Lukas Wunner: Forward-ported to 4.11: drop parts applied upstream]
 ---
---- a/fs/btrfs/super.c
-+++ b/fs/btrfs/super.c
-@@ -2500,3 +2500,4 @@ late_initcall(init_btrfs_fs);
+Index: linux/fs/btrfs/super.c
+===================================================================
+--- linux.orig/fs/btrfs/super.c
++++ linux/fs/btrfs/super.c
+@@ -2514,3 +2514,4 @@ late_initcall(init_btrfs_fs);
  module_exit(exit_btrfs_fs)
  
  MODULE_LICENSE("GPL");
 +MODULE_SOFTDEP("pre: crypto-crc32c");
---- a/fs/crypto/crypto.c
-+++ b/fs/crypto/crypto.c
-@@ -468,3 +468,4 @@ static void __exit fscrypt_exit(void)
+Index: linux/fs/crypto/crypto.c
+===================================================================
+--- linux.orig/fs/crypto/crypto.c
++++ linux/fs/crypto/crypto.c
+@@ -502,3 +502,4 @@ static void __exit fscrypt_exit(void)
  module_exit(fscrypt_exit);
  
  MODULE_LICENSE("GPL");
 +MODULE_SOFTDEP("pre: crypto-aes crypto-ecb");
---- a/fs/ext4/super.c
-+++ b/fs/ext4/super.c
-@@ -5880,6 +5880,6 @@ static void __exit ext4_exit_fs(void)
+Index: linux/fs/ext4/super.c
+===================================================================
+--- linux.orig/fs/ext4/super.c
++++ linux/fs/ext4/super.c
+@@ -6082,6 +6082,6 @@ static void __exit ext4_exit_fs(void)
  MODULE_AUTHOR("Remy Card, Stephen Tweedie, Andrew Morton, Andreas Dilger, Theodore Ts'o and others");
  MODULE_DESCRIPTION("Fourth Extended Filesystem");
  MODULE_LICENSE("GPL");
@@ -34,17 +40,21 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 +MODULE_SOFTDEP("pre: crypto-crc32c");
  module_init(ext4_init_fs)
  module_exit(ext4_exit_fs)
---- a/fs/f2fs/super.c
-+++ b/fs/f2fs/super.c
-@@ -3134,4 +3134,5 @@ module_exit(exit_f2fs_fs)
+Index: linux/fs/f2fs/super.c
+===================================================================
+--- linux.orig/fs/f2fs/super.c
++++ linux/fs/f2fs/super.c
+@@ -3357,4 +3357,5 @@ module_exit(exit_f2fs_fs)
  MODULE_AUTHOR("Samsung Electronics's Praesto Team");
  MODULE_DESCRIPTION("Flash Friendly File System");
  MODULE_LICENSE("GPL");
 +MODULE_SOFTDEP("pre: crypto-crc32c");
  
---- a/fs/jbd2/journal.c
-+++ b/fs/jbd2/journal.c
-@@ -2726,6 +2726,7 @@ static void __exit journal_exit(void)
+Index: linux/fs/jbd2/journal.c
+===================================================================
+--- linux.orig/fs/jbd2/journal.c
++++ linux/fs/jbd2/journal.c
+@@ -2745,6 +2745,7 @@ static void __exit journal_exit(void)
  }
  
  MODULE_LICENSE("GPL");
@@ -52,9 +62,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  module_init(journal_init);
  module_exit(journal_exit);
  
---- a/fs/nfsd/nfsctl.c
-+++ b/fs/nfsd/nfsctl.c
-@@ -1334,5 +1334,8 @@ static void __exit exit_nfsd(void)
+Index: linux/fs/nfsd/nfsctl.c
+===================================================================
+--- linux.orig/fs/nfsd/nfsctl.c
++++ linux/fs/nfsd/nfsctl.c
+@@ -1337,5 +1337,8 @@ static void __exit exit_nfsd(void)
  
  MODULE_AUTHOR("Olaf Kirch <okir@monad.swb.de>");
  MODULE_LICENSE("GPL");

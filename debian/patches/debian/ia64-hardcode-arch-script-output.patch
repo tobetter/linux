@@ -21,8 +21,10 @@ Including the scripts in linux-kbuild will avoid this manual step
 altogether, and allow for the possibility of other archs to provide
 their own scripts in the future.
 
---- a/arch/ia64/Makefile
-+++ b/arch/ia64/Makefile
+Index: linux/arch/ia64/Makefile
+===================================================================
+--- linux.orig/arch/ia64/Makefile
++++ linux/arch/ia64/Makefile
 @@ -30,16 +30,7 @@ cflags-y	:= -pipe $(EXTRA) -ffixed-r13 -
  		   -falign-functions=32 -frename-registers -fno-optimize-sibling-calls
  KBUILD_CFLAGS_KERNEL := -mconstant-gp

@@ -16,11 +16,11 @@ cc: linux-acpi@vger.kernel.org
  drivers/acpi/custom_method.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/drivers/acpi/custom_method.c b/drivers/acpi/custom_method.c
-index c68e72414a67..b33fba70ec51 100644
---- a/drivers/acpi/custom_method.c
-+++ b/drivers/acpi/custom_method.c
-@@ -29,6 +29,9 @@ static ssize_t cm_write(struct file *file, const char __user * user_buf,
+Index: linux/drivers/acpi/custom_method.c
+===================================================================
+--- linux.orig/drivers/acpi/custom_method.c
++++ linux/drivers/acpi/custom_method.c
+@@ -29,6 +29,9 @@ static ssize_t cm_write(struct file *fil
  	struct acpi_table_header table;
  	acpi_status status;
  

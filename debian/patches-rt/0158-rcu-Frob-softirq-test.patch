@@ -1,8 +1,8 @@
-From 3b403e90bb2186f5908b365157b777ed870de348 Mon Sep 17 00:00:00 2001
+From 9baac22c59df91638ab1dacfebd3290c5bfd73ca Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Date: Sat, 13 Aug 2011 00:23:17 +0200
-Subject: [PATCH 158/283] rcu: Frob softirq test
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 158/290] rcu: Frob softirq test
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 With RT_FULL we get the below wreckage:
 
@@ -169,5 +169,5 @@ index 564e3927e7b0..429a2f144e19 100644
  				       "rcu_read_unlock() from irq or softirq with blocking in critical section!!!\n");
  		pr_alert("->rcu_read_unlock_special: %#x (b: %d, enq: %d nq: %d)\n",
 -- 
-2.20.1
+2.24.1
 

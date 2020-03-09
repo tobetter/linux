@@ -1,0 +1,53 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Tue, 11 Jun 2019 14:58:07 +0300
+Subject: [PATCH] net: ena: make ethtool show correct current and max queue
+ sizes
+Origin: https://git.kernel.org/linus/9f9ae3f98b8d8b8aa709831057759dbb52ba5083
+Bug-Debian: https://bugs.debian.org/941291
+
+Currently ethtool -g shows the same size for current and max queue
+sizes.
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_ethtool.c | 10 ++++------
+ drivers/net/ethernet/amazon/ena/ena_netdev.c  |  2 ++
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_ethtool.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+@@ -447,13 +447,11 @@ static void ena_get_ringparam(struct net
+ 			      struct ethtool_ringparam *ring)
+ {
+ 	struct ena_adapter *adapter = netdev_priv(netdev);
+-	struct ena_ring *tx_ring = &adapter->tx_ring[0];
+-	struct ena_ring *rx_ring = &adapter->rx_ring[0];
+ 
+-	ring->rx_max_pending = rx_ring->ring_size;
+-	ring->tx_max_pending = tx_ring->ring_size;
+-	ring->rx_pending = rx_ring->ring_size;
+-	ring->tx_pending = tx_ring->ring_size;
++	ring->tx_max_pending = adapter->max_tx_ring_size;
++	ring->rx_max_pending = adapter->max_rx_ring_size;
++	ring->tx_pending = adapter->tx_ring_size;
++	ring->rx_pending = adapter->rx_ring_size;
+ }
+ 
+ static u32 ena_flow_hash_to_flow_type(u16 hash_fields)
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -3428,6 +3428,8 @@ static int ena_probe(struct pci_dev *pde
+ 
+ 	adapter->tx_ring_size = calc_queue_ctx.tx_queue_size;
+ 	adapter->rx_ring_size = calc_queue_ctx.rx_queue_size;
++	adapter->max_tx_ring_size = calc_queue_ctx.max_tx_queue_size;
++	adapter->max_rx_ring_size = calc_queue_ctx.max_rx_queue_size;
+ 	adapter->max_tx_sgl_size = calc_queue_ctx.max_tx_sgl_size;
+ 	adapter->max_rx_sgl_size = calc_queue_ctx.max_rx_sgl_size;
+ 

@@ -7,8 +7,10 @@ Forwarded: not-needed
 This reverts commit 561ec64ae67ef25cac8d72bb9c4bfc955edfd415
 ('VFS: don't do protected {sym,hard}links by default').
 
---- a/fs/namei.c
-+++ b/fs/namei.c
+Index: linux/fs/namei.c
+===================================================================
+--- linux.orig/fs/namei.c
++++ linux/fs/namei.c
 @@ -885,8 +885,8 @@ static inline void put_link(struct namei
  		path_put(&last->link);
  }

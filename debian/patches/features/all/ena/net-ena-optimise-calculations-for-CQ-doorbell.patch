@@ -1,0 +1,50 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Mon, 3 Jun 2019 17:43:27 +0300
+Subject: [PATCH] net: ena: optimise calculations for CQ doorbell
+Origin: https://git.kernel.org/linus/d91860989dd4bce582ed6c3647a0d41d6fd895b3
+Bug-Debian: https://bugs.debian.org/941291
+
+This patch initially checks if CQ doorbell
+is needed before proceeding with the calculations.
+
+Signed-off-by: Igor Chauskin <igorch@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_eth_com.h | 20 ++++++++++---------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_com.h b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+index 0a3d9180e40e..77986c0ea52c 100644
+--- a/drivers/net/ethernet/amazon/ena/ena_eth_com.h
++++ b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+@@ -195,15 +195,17 @@ static inline int ena_com_update_dev_comp_head(struct ena_com_io_cq *io_cq)
+ 	u16 unreported_comp, head;
+ 	bool need_update;
+ 
+-	head = io_cq->head;
+-	unreported_comp = head - io_cq->last_head_update;
+-	need_update = unreported_comp > (io_cq->q_depth / ENA_COMP_HEAD_THRESH);
+-
+-	if (io_cq->cq_head_db_reg && need_update) {
+-		pr_debug("Write completion queue doorbell for queue %d: head: %d\n",
+-			 io_cq->qid, head);
+-		writel(head, io_cq->cq_head_db_reg);
+-		io_cq->last_head_update = head;
++	if (unlikely(io_cq->cq_head_db_reg)) {
++		head = io_cq->head;
++		unreported_comp = head - io_cq->last_head_update;
++		need_update = unreported_comp > (io_cq->q_depth / ENA_COMP_HEAD_THRESH);
++
++		if (unlikely(need_update)) {
++			pr_debug("Write completion queue doorbell for queue %d: head: %d\n",
++				 io_cq->qid, head);
++			writel(head, io_cq->cq_head_db_reg);
++			io_cq->last_head_update = head;
++		}
+ 	}
+ 
+ 	return 0;
+-- 
+2.17.1
+

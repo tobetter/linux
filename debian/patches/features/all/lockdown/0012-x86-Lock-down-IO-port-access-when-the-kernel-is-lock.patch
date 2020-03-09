@@ -20,11 +20,11 @@ cc: x86@kernel.org
  arch/x86/kernel/ioport.c | 6 ++++--
  1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/ioport.c b/arch/x86/kernel/ioport.c
-index 9c3cf0944bce..2c0f058651c5 100644
---- a/arch/x86/kernel/ioport.c
-+++ b/arch/x86/kernel/ioport.c
-@@ -30,7 +30,8 @@ asmlinkage long sys_ioperm(unsigned long from, unsigned long num, int turn_on)
+Index: linux/arch/x86/kernel/ioport.c
+===================================================================
+--- linux.orig/arch/x86/kernel/ioport.c
++++ linux/arch/x86/kernel/ioport.c
+@@ -31,7 +31,8 @@ long ksys_ioperm(unsigned long from, uns
  
  	if ((from + num <= from) || (from + num > IO_BITMAP_BITS))
  		return -EINVAL;
@@ -34,7 +34,7 @@ index 9c3cf0944bce..2c0f058651c5 100644
  		return -EPERM;
  
  	/*
-@@ -120,7 +121,8 @@ SYSCALL_DEFINE1(iopl, unsigned int, level)
+@@ -126,7 +127,8 @@ SYSCALL_DEFINE1(iopl, unsigned int, leve
  		return -EINVAL;
  	/* Trying to gain more privileges? */
  	if (level > old) {

@@ -20,10 +20,10 @@ Signed-off-by: Noah Meyerhans <noahm@debian.org>
  drivers/net/ethernet/amazon/ena/ena_netdev.c | 1 -
  1 file changed, 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index d906293ce07d..69a49784b204 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
 @@ -39,7 +39,6 @@
  #include <linux/if_vlan.h>
  #include <linux/kernel.h>
@@ -32,6 +32,3 @@ index d906293ce07d..69a49784b204 100644
  #include <linux/numa.h>
  #include <linux/pci.h>
  #include <linux/utsname.h>
--- 
-2.19.2
-

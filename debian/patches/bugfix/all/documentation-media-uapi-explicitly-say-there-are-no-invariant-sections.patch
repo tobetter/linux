@@ -33,8 +33,10 @@ Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
  Documentation/media/media_uapi.rst | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
---- a/Documentation/media/media_uapi.rst
-+++ b/Documentation/media/media_uapi.rst
+Index: linux/Documentation/media/media_uapi.rst
+===================================================================
+--- linux.orig/Documentation/media/media_uapi.rst
++++ linux/Documentation/media/media_uapi.rst
 @@ -10,9 +10,9 @@ Linux Media Infrastructure userspace API
  
  Permission is granted to copy, distribute and/or modify this document

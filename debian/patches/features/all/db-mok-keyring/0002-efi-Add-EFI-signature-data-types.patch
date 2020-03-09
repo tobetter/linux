@@ -12,10 +12,10 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  include/linux/efi.h | 25 +++++++++++++++++++++++++
  1 file changed, 25 insertions(+)
 
-diff --git a/include/linux/efi.h b/include/linux/efi.h
-index 401e4b254e30..99cba6fe1234 100644
---- a/include/linux/efi.h
-+++ b/include/linux/efi.h
+Index: linux/include/linux/efi.h
+===================================================================
+--- linux.orig/include/linux/efi.h
++++ linux/include/linux/efi.h
 @@ -663,6 +663,10 @@ void efi_native_runtime_setup(void);
  #define EFI_IMAGE_SECURITY_DATABASE_GUID	EFI_GUID(0xd719b2cb, 0x3d3a, 0x4596,  0xa3, 0xbc, 0xda, 0xd0, 0x0e, 0x67, 0x65, 0x6f)
  #define EFI_SHIM_LOCK_GUID			EFI_GUID(0x605dab50, 0xe046, 0x4300,  0xab, 0xb6, 0x3d, 0xd8, 0x10, 0xdd, 0x8b, 0x23)
@@ -27,7 +27,7 @@ index 401e4b254e30..99cba6fe1234 100644
  /*
   * This GUID is used to pass to the kernel proper the struct screen_info
   * structure that was populated by the stub based on the GOP protocol instance
-@@ -933,6 +937,27 @@ typedef struct {
+@@ -934,6 +938,27 @@ typedef struct {
  	efi_memory_desc_t entry[0];
  } efi_memory_attributes_table_t;
  
@@ -55,6 +55,3 @@ index 401e4b254e30..99cba6fe1234 100644
  /*
   * All runtime access to EFI goes through this structure:
   */
--- 
-2.20.1
-

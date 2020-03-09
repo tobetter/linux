@@ -3,11 +3,11 @@ Date: Mon, 13 Apr 2009 17:34:00 +0100
 Subject: Remove microcode patches for mgsuvd (not enabled in Debian configs)
 Forwarded: not-needed
 
-diff --git a/arch/powerpc/platforms/8xx/Kconfig b/arch/powerpc/platforms/8xx/Kconfig
-index 48a920a..81570b6 100644
---- a/arch/powerpc/platforms/8xx/Kconfig
-+++ b/arch/powerpc/platforms/8xx/Kconfig
-@@ -160,16 +160,19 @@ config NO_UCODE_PATCH
+Index: linux/arch/powerpc/platforms/8xx/Kconfig
+===================================================================
+--- linux.orig/arch/powerpc/platforms/8xx/Kconfig
++++ linux/arch/powerpc/platforms/8xx/Kconfig
+@@ -144,16 +144,19 @@ config NO_UCODE_PATCH
  
  config USB_SOF_UCODE_PATCH
  	bool "USB SOF patch"

@@ -1,11 +1,11 @@
-From 1a9e9b418236c18717a91955eeafe5bd72a00598 Mon Sep 17 00:00:00 2001
+From 895584437f1a9e0847ff7ca40873fb3b8bd4be0c Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 17 Oct 2017 16:36:18 +0200
-Subject: [PATCH 040/283] lockdep: disable self-test
+Subject: [PATCH 040/290] lockdep: disable self-test
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The self-test wasn't always 100% accurate for RT. We disabled a few
 tests which failed because they had a different semantic for RT. Some
@@ -18,7 +18,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 3dea52f7be9c..1504e6aa8418 100644
+index 46a910acce3f..38cf7f81daa7 100644
 --- a/lib/Kconfig.debug
 +++ b/lib/Kconfig.debug
 @@ -1207,7 +1207,7 @@ config DEBUG_ATOMIC_SLEEP
@@ -31,5 +31,5 @@ index 3dea52f7be9c..1504e6aa8418 100644
  	  Say Y here if you want the kernel to run a short self-test during
  	  bootup. The self-test checks whether common types of locking bugs
 -- 
-2.20.1
+2.24.1
 

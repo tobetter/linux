@@ -13,8 +13,10 @@ be227b45fb228adff4371b8de9e3989904209ff4.
 Signed-off-by: Hilko Bengen <bengen@debian.org>
 [bwh: Drop unnecessary changes]
 ---
---- a/tools/lib/bpf/Makefile
-+++ b/tools/lib/bpf/Makefile
+Index: linux/tools/lib/bpf/Makefile
+===================================================================
+--- linux.orig/tools/lib/bpf/Makefile
++++ linux/tools/lib/bpf/Makefile
 @@ -94,7 +94,7 @@ export prefix libdir src obj
  libdir_SQ = $(subst ','\'',$(libdir))
  libdir_relative_SQ = $(subst ','\'',$(libdir_relative))

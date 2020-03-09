@@ -9,9 +9,11 @@ It broke feature detection that was working just fine for us.
  tools/perf/Makefile.config | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
---- a/tools/perf/Makefile.config
-+++ b/tools/perf/Makefile.config
-@@ -38,7 +38,7 @@ ifeq ($(SRCARCH),x86)
+Index: linux/tools/perf/Makefile.config
+===================================================================
+--- linux.orig/tools/perf/Makefile.config
++++ linux/tools/perf/Makefile.config
+@@ -42,7 +42,7 @@ ifeq ($(SRCARCH),x86)
      LIBUNWIND_LIBS = -lunwind-x86_64 -lunwind -llzma
      $(call detected,CONFIG_X86_64)
    else

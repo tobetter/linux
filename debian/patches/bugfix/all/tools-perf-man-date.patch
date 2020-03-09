@@ -7,9 +7,11 @@ This allows man pages to be built reproducibly.
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/tools/perf/Documentation/Makefile
-+++ b/tools/perf/Documentation/Makefile
-@@ -120,6 +120,9 @@ endif
+Index: linux/tools/perf/Documentation/Makefile
+===================================================================
+--- linux.orig/tools/perf/Documentation/Makefile
++++ linux/tools/perf/Documentation/Makefile
+@@ -131,6 +131,9 @@ endif
  ifdef DOCBOOK_SUPPRESS_SP
  XMLTO_EXTRA += -m manpage-suppress-sp.xsl
  endif
@@ -19,8 +21,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  SHELL_PATH ?= $(SHELL)
  # Shell quote;
---- a/tools/perf/Documentation/asciidoc.conf
-+++ b/tools/perf/Documentation/asciidoc.conf
+Index: linux/tools/perf/Documentation/asciidoc.conf
+===================================================================
+--- linux.orig/tools/perf/Documentation/asciidoc.conf
++++ linux/tools/perf/Documentation/asciidoc.conf
 @@ -71,6 +71,9 @@ ifdef::backend-docbook[]
  [header]
  template::[header-declarations]

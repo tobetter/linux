@@ -1,9 +1,9 @@
-From 3d625e1fb1f5adff8191330efe6d47017b0806bd Mon Sep 17 00:00:00 2001
+From 3596d839ec05c759a409ec3c9fb058b89bc43de8 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 11 Dec 2018 21:53:43 +0100
-Subject: [PATCH 087/283] x86/mm/pat: disable preemption __split_large_page()
+Subject: [PATCH 087/290] x86/mm/pat: disable preemption __split_large_page()
  after spin_lock()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Commit "x86/mm/pat: Disable preemption around __flush_tlb_all()" added a
 warning if __flush_tlb_all() is invoked in preemptible context. On !RT
@@ -58,5 +58,5 @@ index e2d4b25c7aa4..9626ebb9e3c8 100644
  
  	return 0;
 -- 
-2.20.1
+2.24.1
 

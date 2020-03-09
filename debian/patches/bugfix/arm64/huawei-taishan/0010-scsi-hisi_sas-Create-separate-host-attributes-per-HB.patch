@@ -20,11 +20,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c | 7 ++++++-
  5 files changed, 18 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas.h b/drivers/scsi/hisi_sas/hisi_sas.h
-index 0ddb53c8a2e2..94a9e13c069c 100644
---- a/drivers/scsi/hisi_sas/hisi_sas.h
-+++ b/drivers/scsi/hisi_sas/hisi_sas.h
-@@ -468,7 +468,6 @@ extern int hisi_sas_remove(struct platform_device *pdev);
+Index: linux/drivers/scsi/hisi_sas/hisi_sas.h
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas.h
++++ linux/drivers/scsi/hisi_sas/hisi_sas.h
+@@ -468,7 +468,6 @@ extern int hisi_sas_remove(struct platfo
  extern int hisi_sas_slave_configure(struct scsi_device *sdev);
  extern int hisi_sas_scan_finished(struct Scsi_Host *shost, unsigned long time);
  extern void hisi_sas_scan_start(struct Scsi_Host *shost);
@@ -32,11 +32,11 @@ index 0ddb53c8a2e2..94a9e13c069c 100644
  extern int hisi_sas_host_reset(struct Scsi_Host *shost, int reset_type);
  extern void hisi_sas_phy_down(struct hisi_hba *hisi_hba, int phy_no, int rdy);
  extern void hisi_sas_slot_task_free(struct hisi_hba *hisi_hba,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index c2998d3ac37f..dc71f8d83551 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_main.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -2009,12 +2009,6 @@ EXPORT_SYMBOL_GPL(hisi_sas_kill_tasklets);
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_main.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+@@ -2009,12 +2009,6 @@ EXPORT_SYMBOL_GPL(hisi_sas_kill_tasklets
  struct scsi_transport_template *hisi_sas_stt;
  EXPORT_SYMBOL_GPL(hisi_sas_stt);
  
@@ -49,11 +49,11 @@ index c2998d3ac37f..dc71f8d83551 100644
  static struct sas_domain_function_template hisi_sas_transport_ops = {
  	.lldd_dev_found		= hisi_sas_dev_found,
  	.lldd_dev_gone		= hisi_sas_dev_gone,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-index 8df822a4a1bd..e8e3a876e493 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-@@ -1797,6 +1797,11 @@ static int hisi_sas_v1_init(struct hisi_hba *hisi_hba)
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+@@ -1797,6 +1797,11 @@ static int hisi_sas_v1_init(struct hisi_
  	return 0;
  }
  
@@ -65,7 +65,7 @@ index 8df822a4a1bd..e8e3a876e493 100644
  static struct scsi_host_template sht_v1_hw = {
  	.name			= DRV_NAME,
  	.module			= THIS_MODULE,
-@@ -1815,7 +1820,7 @@ static struct scsi_host_template sht_v1_hw = {
+@@ -1815,7 +1820,7 @@ static struct scsi_host_template sht_v1_
  	.eh_target_reset_handler = sas_eh_target_reset_handler,
  	.target_destroy		= sas_target_destroy,
  	.ioctl			= sas_ioctl,
@@ -74,11 +74,11 @@ index 8df822a4a1bd..e8e3a876e493 100644
  };
  
  static const struct hisi_sas_hw hisi_sas_v1_hw = {
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-index 77a85ead483e..574a269e2865 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-@@ -3552,6 +3552,11 @@ static void wait_cmds_complete_timeout_v2_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+@@ -3552,6 +3552,11 @@ static void wait_cmds_complete_timeout_v
  	dev_dbg(dev, "wait commands complete %dms\n", time);
  }
  
@@ -90,7 +90,7 @@ index 77a85ead483e..574a269e2865 100644
  static struct scsi_host_template sht_v2_hw = {
  	.name			= DRV_NAME,
  	.module			= THIS_MODULE,
-@@ -3570,7 +3575,7 @@ static struct scsi_host_template sht_v2_hw = {
+@@ -3570,7 +3575,7 @@ static struct scsi_host_template sht_v2_
  	.eh_target_reset_handler = sas_eh_target_reset_handler,
  	.target_destroy		= sas_target_destroy,
  	.ioctl			= sas_ioctl,
@@ -99,11 +99,11 @@ index 77a85ead483e..574a269e2865 100644
  };
  
  static const struct hisi_sas_hw hisi_sas_v2_hw = {
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index 43005d39abe6..1d0896959fbb 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-@@ -2089,6 +2089,11 @@ static void wait_cmds_complete_timeout_v3_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+@@ -2089,6 +2089,11 @@ static void wait_cmds_complete_timeout_v
  	dev_dbg(dev, "wait commands complete %dms\n", time);
  }
  
@@ -115,7 +115,7 @@ index 43005d39abe6..1d0896959fbb 100644
  static struct scsi_host_template sht_v3_hw = {
  	.name			= DRV_NAME,
  	.module			= THIS_MODULE,
-@@ -2107,7 +2112,7 @@ static struct scsi_host_template sht_v3_hw = {
+@@ -2107,7 +2112,7 @@ static struct scsi_host_template sht_v3_
  	.eh_target_reset_handler = sas_eh_target_reset_handler,
  	.target_destroy		= sas_target_destroy,
  	.ioctl			= sas_ioctl,
@@ -124,6 +124,3 @@ index 43005d39abe6..1d0896959fbb 100644
  	.tag_alloc_policy	= BLK_TAG_ALLOC_RR,
  };
  
--- 
-2.20.1
-

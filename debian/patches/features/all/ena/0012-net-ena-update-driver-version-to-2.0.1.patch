@@ -9,10 +9,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.h | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.h b/drivers/net/ethernet/amazon/ena/ena_netdev.h
-index d241dfc542ca..521873642339 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
 @@ -43,9 +43,9 @@
  #include "ena_com.h"
  #include "ena_eth_com.h"
@@ -26,6 +26,3 @@ index d241dfc542ca..521873642339 100644
  
  #define DRV_MODULE_NAME		"ena"
  #ifndef DRV_MODULE_VERSION
--- 
-2.19.2
-

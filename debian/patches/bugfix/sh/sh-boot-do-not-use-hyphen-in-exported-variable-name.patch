@@ -23,8 +23,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  arch/sh/boot/romimage/Makefile   |  4 ++--
  4 files changed, 18 insertions(+), 18 deletions(-)
 
---- a/arch/sh/Makefile
-+++ b/arch/sh/Makefile
+Index: linux/arch/sh/Makefile
+===================================================================
+--- linux.orig/arch/sh/Makefile
++++ linux/arch/sh/Makefile
 @@ -119,16 +119,16 @@ LDFLAGS_vmlinux		+= --defsym phys_stext=
  endif
  
@@ -47,8 +49,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  head-y	:= arch/sh/kernel/head_$(BITS).o
  
---- a/arch/sh/boot/Makefile
-+++ b/arch/sh/boot/Makefile
+Index: linux/arch/sh/boot/Makefile
+===================================================================
+--- linux.orig/arch/sh/boot/Makefile
++++ linux/arch/sh/boot/Makefile
 @@ -19,12 +19,12 @@ CONFIG_ZERO_PAGE_OFFSET	?= 0x00001000
  CONFIG_ENTRY_OFFSET	?= 0x00001000
  CONFIG_PHYSICAL_START	?= $(CONFIG_MEMORY_START)
@@ -81,8 +85,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
         CONFIG_PHYSICAL_START CONFIG_ZERO_PAGE_OFFSET CONFIG_ENTRY_OFFSET \
 -       KERNEL_MEMORY suffix-y
 +       KERNEL_MEMORY suffix_y
---- a/arch/sh/boot/compressed/Makefile
-+++ b/arch/sh/boot/compressed/Makefile
+Index: linux/arch/sh/boot/compressed/Makefile
+===================================================================
+--- linux.orig/arch/sh/boot/compressed/Makefile
++++ linux/arch/sh/boot/compressed/Makefile
 @@ -33,7 +33,7 @@ ORIG_CFLAGS := $(KBUILD_CFLAGS)
  KBUILD_CFLAGS = $(subst -pg, , $(ORIG_CFLAGS))
  endif
@@ -102,8 +108,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 -$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.$(suffix-y) FORCE
 +$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.$(suffix_y) FORCE
  	$(call if_changed,ld)
---- a/arch/sh/boot/romimage/Makefile
-+++ b/arch/sh/boot/romimage/Makefile
+Index: linux/arch/sh/boot/romimage/Makefile
+===================================================================
+--- linux.orig/arch/sh/boot/romimage/Makefile
++++ linux/arch/sh/boot/romimage/Makefile
 @@ -13,7 +13,7 @@ mmcif-obj-$(CONFIG_CPU_SUBTYPE_SH7724)	:
  load-$(CONFIG_ROMIMAGE_MMCIF)		:= $(mmcif-load-y)
  obj-$(CONFIG_ROMIMAGE_MMCIF)		:= $(mmcif-obj-y)

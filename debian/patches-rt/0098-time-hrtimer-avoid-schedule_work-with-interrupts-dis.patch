@@ -1,9 +1,9 @@
-From 7ada38687fe4d4f0ff8b7390d1588f7fed28a28d Mon Sep 17 00:00:00 2001
+From cd74856820b82cb80ddd3b12dde3caad12642b3c Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 15 Nov 2017 17:29:51 +0100
-Subject: [PATCH 098/283] time/hrtimer: avoid schedule_work() with interrupts
+Subject: [PATCH 098/290] time/hrtimer: avoid schedule_work() with interrupts
  disabled
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The NOHZ code tries to schedule a workqueue with interrupts disabled.
 Since this does not work -RT I am switching it to swork instead.
@@ -14,7 +14,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index bbe24e241643..696e7583137c 100644
+index 9019c9caf146..3fab1c50bf1b 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
 @@ -217,8 +217,7 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
@@ -56,5 +56,5 @@ index bbe24e241643..696e7583137c 100644
  			    void __user *buffer, size_t *lenp,
  			    loff_t *ppos)
 -- 
-2.20.1
+2.24.1
 

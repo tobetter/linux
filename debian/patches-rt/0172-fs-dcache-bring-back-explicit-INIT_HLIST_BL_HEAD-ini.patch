@@ -1,9 +1,9 @@
-From a82c4acdfe13556ab98571ef02f3a3eb9d29dd6e Mon Sep 17 00:00:00 2001
+From 6657c7f6ea61fd3fea378532fcae38776afc9fc1 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 13 Sep 2017 12:32:34 +0200
-Subject: [PATCH 172/283] fs/dcache: bring back explicit INIT_HLIST_BL_HEAD
+Subject: [PATCH 172/290] fs/dcache: bring back explicit INIT_HLIST_BL_HEAD
  init
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Commit 3d375d78593c ("mm: update callers to use HASH_ZERO flag") removed
 INIT_HLIST_BL_HEAD and uses the ZERO flag instead for the init. However
@@ -57,5 +57,5 @@ index 6e0022326afe..10225a9135fb 100644
  }
  
 -- 
-2.20.1
+2.24.1
 

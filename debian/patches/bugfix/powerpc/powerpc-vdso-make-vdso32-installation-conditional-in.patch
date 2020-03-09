@@ -15,8 +15,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  arch/powerpc/Makefile | 2 ++
  1 file changed, 2 insertions(+)
 
---- a/arch/powerpc/Makefile
-+++ b/arch/powerpc/Makefile
+Index: linux/arch/powerpc/Makefile
+===================================================================
+--- linux.orig/arch/powerpc/Makefile
++++ linux/arch/powerpc/Makefile
 @@ -403,7 +403,9 @@ vdso_install:
  ifdef CONFIG_PPC64
  	$(Q)$(MAKE) $(build)=arch/$(ARCH)/kernel/vdso64 $@

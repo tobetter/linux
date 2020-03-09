@@ -1,0 +1,91 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Mon, 3 Jun 2019 17:43:23 +0300
+Subject: [PATCH] net: ena: add newline at the end of pr_err prints
+Origin: https://git.kernel.org/linus/9cb9c0de266f1ea52f01589f2f4019f163c01cd1
+Bug-Debian: https://bugs.debian.org/941291
+
+Some pr_err prints lacked '\n' in the end. Added where missing.
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_com.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
+@@ -115,7 +115,7 @@ static int ena_com_admin_init_sq(struct
+ 					  GFP_KERNEL);
+ 
+ 	if (!sq->entries) {
+-		pr_err("memory allocation failed");
++		pr_err("memory allocation failed\n");
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -137,7 +137,7 @@ static int ena_com_admin_init_cq(struct
+ 					  GFP_KERNEL);
+ 
+ 	if (!cq->entries) {
+-		pr_err("memory allocation failed");
++		pr_err("memory allocation failed\n");
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -160,7 +160,7 @@ static int ena_com_admin_init_aenq(struc
+ 					    GFP_KERNEL);
+ 
+ 	if (!aenq->entries) {
+-		pr_err("memory allocation failed");
++		pr_err("memory allocation failed\n");
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -285,7 +285,7 @@ static inline int ena_com_init_comp_ctxt
+ 
+ 	queue->comp_ctx = devm_kzalloc(queue->q_dmadev, size, GFP_KERNEL);
+ 	if (unlikely(!queue->comp_ctx)) {
+-		pr_err("memory allocation failed");
++		pr_err("memory allocation failed\n");
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -356,7 +356,7 @@ static int ena_com_init_io_sq(struct ena
+ 		}
+ 
+ 		if (!io_sq->desc_addr.virt_addr) {
+-			pr_err("memory allocation failed");
++			pr_err("memory allocation failed\n");
+ 			return -ENOMEM;
+ 		}
+ 	}
+@@ -382,7 +382,7 @@ static int ena_com_init_io_sq(struct ena
+ 				devm_kzalloc(ena_dev->dmadev, size, GFP_KERNEL);
+ 
+ 		if (!io_sq->bounce_buf_ctrl.base_buffer) {
+-			pr_err("bounce buffer memory allocation failed");
++			pr_err("bounce buffer memory allocation failed\n");
+ 			return -ENOMEM;
+ 		}
+ 
+@@ -440,7 +440,7 @@ static int ena_com_init_io_cq(struct ena
+ 	}
+ 
+ 	if (!io_cq->cdesc_addr.virt_addr) {
+-		pr_err("memory allocation failed");
++		pr_err("memory allocation failed\n");
+ 		return -ENOMEM;
+ 	}
+ 
+@@ -829,7 +829,7 @@ static u32 ena_com_reg_bar_read32(struct
+ 	}
+ 
+ 	if (read_resp->reg_off != offset) {
+-		pr_err("Read failure: wrong offset provided");
++		pr_err("Read failure: wrong offset provided\n");
+ 		ret = ENA_MMIO_READ_TIMEOUT;
+ 	} else {
+ 		ret = read_resp->reg_val;

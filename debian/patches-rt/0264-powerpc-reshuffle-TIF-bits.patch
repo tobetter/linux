@@ -1,8 +1,8 @@
-From 76ccb7ba434581a4fa6338c0451f3f0752582520 Mon Sep 17 00:00:00 2001
+From aef8aedf3ea12fb22a6f2b340a3f6bd4aacac4e0 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 22 Mar 2019 17:15:58 +0100
-Subject: [PATCH 264/283] powerpc: reshuffle TIF bits
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 264/290] powerpc: reshuffle TIF bits
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Powerpc32/64 does not compile because TIF_SYSCALL_TRACE's bit is higher
 than 15 and the assembly instructions don't expect that.
@@ -103,7 +103,7 @@ index 3783f3ef17a4..44bcf1585bd1 100644
  3:	lwarx	r8,0,r12
  	andc	r8,r8,r11
 diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index 7671fa5da9fa..fe713d014220 100644
+index ef02e41d5d96..229cdb04e9b0 100644
 --- a/arch/powerpc/kernel/entry_64.S
 +++ b/arch/powerpc/kernel/entry_64.S
 @@ -250,7 +250,9 @@ system_call_exit:
@@ -148,5 +148,5 @@ index 7671fa5da9fa..fe713d014220 100644
  3:	ldarx	r10,0,r12
  	andc	r10,r10,r11
 -- 
-2.20.1
+2.24.1
 

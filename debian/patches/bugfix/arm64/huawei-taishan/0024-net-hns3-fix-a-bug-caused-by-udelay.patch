@@ -15,11 +15,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c b/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
-index e9d5a4f96304..499131840041 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
-@@ -26,7 +26,7 @@ static int hclgevf_get_mbx_resp(struct hclgevf_dev *hdev, u16 code0, u16 code1,
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_mbx.c
+@@ -26,7 +26,7 @@ static int hclgevf_get_mbx_resp(struct h
  				u8 *resp_data, u16 resp_len)
  {
  #define HCLGEVF_MAX_TRY_TIMES	500
@@ -28,7 +28,7 @@ index e9d5a4f96304..499131840041 100644
  	struct hclgevf_mbx_resp_status *mbx_resp;
  	u16 r_code0, r_code1;
  	int i = 0;
-@@ -40,7 +40,7 @@ static int hclgevf_get_mbx_resp(struct hclgevf_dev *hdev, u16 code0, u16 code1,
+@@ -40,7 +40,7 @@ static int hclgevf_get_mbx_resp(struct h
  	}
  
  	while ((!hdev->mbx_resp.received_resp) && (i < HCLGEVF_MAX_TRY_TIMES)) {
@@ -37,6 +37,3 @@ index e9d5a4f96304..499131840041 100644
  		i++;
  	}
  
--- 
-2.20.1
-

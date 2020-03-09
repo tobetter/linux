@@ -1,9 +1,9 @@
-From e9b59157aa2e702f58d3f7c6f1d6fbcef65dc75b Mon Sep 17 00:00:00 2001
+From 9c314d19ce79b759d4978179077e8aa59cf1b1df Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Mon, 18 Feb 2019 16:57:09 +0100
-Subject: [PATCH 242/283] x86: lazy-preempt: properly check against
+Subject: [PATCH 242/290] x86: lazy-preempt: properly check against
  preempt-mask
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 should_resched() should check against preempt_offset after unmasking the
 need-resched-bit. Otherwise should_resched() won't work for
@@ -29,5 +29,5 @@ index 22992c837795..f66708779274 100644
  	if (current_thread_info()->preempt_lazy_count)
  		return false;
 -- 
-2.20.1
+2.24.1
 

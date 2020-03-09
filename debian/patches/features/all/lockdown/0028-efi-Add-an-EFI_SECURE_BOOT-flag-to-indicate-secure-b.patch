@@ -22,8 +22,10 @@ cc: linux-efi@vger.kernel.org
  4 files changed, 50 insertions(+), 19 deletions(-)
  create mode 100644 drivers/firmware/efi/secureboot.c
 
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
+Index: linux/arch/x86/kernel/setup.c
+===================================================================
+--- linux.orig/arch/x86/kernel/setup.c
++++ linux/arch/x86/kernel/setup.c
 @@ -1159,19 +1159,7 @@ void __init setup_arch(char **cmdline_p)
  	/* Allocate bigger log buffer */
  	setup_log_buf(1);
@@ -45,8 +47,10 @@ cc: linux-efi@vger.kernel.org
  
  	reserve_initrd();
  
---- a/drivers/firmware/efi/Makefile
-+++ b/drivers/firmware/efi/Makefile
+Index: linux/drivers/firmware/efi/Makefile
+===================================================================
+--- linux.orig/drivers/firmware/efi/Makefile
++++ linux/drivers/firmware/efi/Makefile
 @@ -24,6 +24,7 @@ obj-$(CONFIG_EFI_FAKE_MEMMAP)		+= fake_m
  obj-$(CONFIG_EFI_BOOTLOADER_CONTROL)	+= efibc.o
  obj-$(CONFIG_EFI_TEST)			+= test/
@@ -55,8 +59,10 @@ cc: linux-efi@vger.kernel.org
  obj-$(CONFIG_APPLE_PROPERTIES)		+= apple-properties.o
  
  arm-obj-$(CONFIG_EFI)			:= arm-init.o arm-runtime.o
+Index: linux/drivers/firmware/efi/secureboot.c
+===================================================================
 --- /dev/null
-+++ b/drivers/firmware/efi/secureboot.c
++++ linux/drivers/firmware/efi/secureboot.c
 @@ -0,0 +1,38 @@
 +/* Core kernel secure boot support.
 + *
@@ -96,8 +102,10 @@ cc: linux-efi@vger.kernel.org
 +		}
 +	}
 +}
---- a/include/linux/efi.h
-+++ b/include/linux/efi.h
+Index: linux/include/linux/efi.h
+===================================================================
+--- linux.orig/include/linux/efi.h
++++ linux/include/linux/efi.h
 @@ -1152,6 +1152,14 @@ extern int __init efi_setup_pcdp_console
  #define EFI_DBG			8	/* Print additional debug info at runtime */
  #define EFI_NX_PE_DATA		9	/* Can runtime data regions be mapped non-executable? */

@@ -21,8 +21,6 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c |  8 ++-
  5 files changed, 70 insertions(+), 40 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas.h b/drivers/scsi/hisi_sas/hisi_sas.h
-index 6c7d2e201abe..0ddb53c8a2e2 100644
 --- a/drivers/scsi/hisi_sas/hisi_sas.h
 +++ b/drivers/scsi/hisi_sas/hisi_sas.h
 @@ -34,6 +34,7 @@
@@ -41,12 +39,10 @@ index 6c7d2e201abe..0ddb53c8a2e2 100644
 +	int (*slot_index_alloc)(struct hisi_hba *hisi_hba,
  				struct domain_device *device);
  	struct hisi_sas_device *(*alloc_dev)(struct domain_device *device);
- 	void (*sl_notify)(struct hisi_hba *hisi_hba, int phy_no);
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index 2f57a318a71b..c2998d3ac37f 100644
+ 	void (*sl_notify_ssp)(struct hisi_hba *hisi_hba, int phy_no);
 --- a/drivers/scsi/hisi_sas/hisi_sas_main.c
 +++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -184,7 +184,14 @@ static void hisi_sas_slot_index_clear(struct hisi_hba *hisi_hba, int slot_idx)
+@@ -184,7 +184,14 @@ static void hisi_sas_slot_index_clear(st
  
  static void hisi_sas_slot_index_free(struct hisi_hba *hisi_hba, int slot_idx)
  {
@@ -62,7 +58,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  }
  
  static void hisi_sas_slot_index_set(struct hisi_hba *hisi_hba, int slot_idx)
-@@ -194,24 +201,34 @@ static void hisi_sas_slot_index_set(struct hisi_hba *hisi_hba, int slot_idx)
+@@ -194,24 +201,34 @@ static void hisi_sas_slot_index_set(stru
  	set_bit(slot_idx, bitmap);
  }
  
@@ -105,7 +101,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  }
  
  static void hisi_sas_slot_index_init(struct hisi_hba *hisi_hba)
-@@ -250,9 +267,7 @@ void hisi_sas_slot_task_free(struct hisi_hba *hisi_hba, struct sas_task *task,
+@@ -250,9 +267,7 @@ void hisi_sas_slot_task_free(struct hisi
  
  	memset(slot, 0, offsetof(struct hisi_sas_slot, buf));
  
@@ -115,7 +111,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  }
  EXPORT_SYMBOL_GPL(hisi_sas_slot_task_free);
  
-@@ -385,16 +400,27 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -385,16 +400,27 @@ static int hisi_sas_task_prep(struct sas
  		goto err_out_dma_unmap;
  	}
  
@@ -150,7 +146,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  	slot = &hisi_hba->slot_info[slot_idx];
  
  	spin_lock_irqsave(&dq->lock, flags);
-@@ -455,9 +481,7 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -455,9 +481,7 @@ static int hisi_sas_task_prep(struct sas
  	return 0;
  
  err_out_tag:
@@ -160,7 +156,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  err_out_dma_unmap:
  	if (!sas_protocol_ata(task->task_proto)) {
  		if (task->num_scatter) {
-@@ -1742,14 +1766,11 @@ hisi_sas_internal_abort_task_exec(struct hisi_hba *hisi_hba, int device_id,
+@@ -1747,14 +1771,11 @@ hisi_sas_internal_abort_task_exec(struct
  	port = to_hisi_sas_port(sas_port);
  
  	/* simply get a slot and send abort command */
@@ -178,7 +174,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  	slot = &hisi_hba->slot_info[slot_idx];
  
  	spin_lock_irqsave(&dq->lock, flags_dq);
-@@ -1785,7 +1806,6 @@ hisi_sas_internal_abort_task_exec(struct hisi_hba *hisi_hba, int device_id,
+@@ -1790,7 +1811,6 @@ hisi_sas_internal_abort_task_exec(struct
  	spin_lock_irqsave(&task->task_state_lock, flags);
  	task->task_state_flags |= SAS_TASK_AT_INITIATOR;
  	spin_unlock_irqrestore(&task->task_state_lock, flags);
@@ -186,7 +182,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  	WRITE_ONCE(slot->ready, 1);
  	/* send abort command to the chip */
  	spin_lock_irqsave(&dq->lock, flags);
-@@ -1796,9 +1816,7 @@ hisi_sas_internal_abort_task_exec(struct hisi_hba *hisi_hba, int device_id,
+@@ -1801,9 +1821,7 @@ hisi_sas_internal_abort_task_exec(struct
  	return 0;
  
  err_out_tag:
@@ -196,7 +192,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  err_out:
  	dev_err(dev, "internal abort task prep: failed[%d]!\n", rc);
  
-@@ -2174,6 +2192,8 @@ int hisi_sas_alloc(struct hisi_hba *hisi_hba, struct Scsi_Host *shost)
+@@ -2179,6 +2197,8 @@ int hisi_sas_alloc(struct hisi_hba *hisi
  	hisi_sas_init_mem(hisi_hba);
  
  	hisi_sas_slot_index_init(hisi_hba);
@@ -205,7 +201,7 @@ index 2f57a318a71b..c2998d3ac37f 100644
  
  	hisi_hba->wq = create_singlethread_workqueue(dev_name(dev));
  	if (!hisi_hba->wq) {
-@@ -2377,8 +2397,15 @@ int hisi_sas_probe(struct platform_device *pdev,
+@@ -2382,8 +2402,15 @@ int hisi_sas_probe(struct platform_devic
  	shost->max_channel = 1;
  	shost->max_cmd_len = 16;
  	shost->sg_tablesize = min_t(u16, SG_ALL, HISI_SAS_SGE_PAGE_CNT);
@@ -223,11 +219,9 @@ index 2f57a318a71b..c2998d3ac37f 100644
  
  	sha->sas_ha_name = DRV_NAME;
  	sha->dev = hisi_hba->dev;
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-index 410eccf0bc5e..8df822a4a1bd 100644
 --- a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
 +++ b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-@@ -1807,7 +1807,6 @@ static struct scsi_host_template sht_v1_hw = {
+@@ -1807,7 +1807,6 @@ static struct scsi_host_template sht_v1_
  	.scan_start		= hisi_sas_scan_start,
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
@@ -235,11 +229,9 @@ index 410eccf0bc5e..8df822a4a1bd 100644
  	.this_id		= -1,
  	.sg_tablesize		= SG_ALL,
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-index c4774d63d5d0..58a564c75a35 100644
 --- a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
 +++ b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-@@ -770,7 +770,7 @@ static u32 hisi_sas_phy_read32(struct hisi_hba *hisi_hba,
+@@ -770,7 +770,7 @@ static u32 hisi_sas_phy_read32(struct hi
  
  /* This function needs to be protected from pre-emption. */
  static int
@@ -248,7 +240,7 @@ index c4774d63d5d0..58a564c75a35 100644
  			     struct domain_device *device)
  {
  	int sata_dev = dev_is_sata(device);
-@@ -778,6 +778,7 @@ slot_index_alloc_quirk_v2_hw(struct hisi_hba *hisi_hba, int *slot_idx,
+@@ -778,6 +778,7 @@ slot_index_alloc_quirk_v2_hw(struct hisi
  	struct hisi_sas_device *sas_dev = device->lldd_dev;
  	int sata_idx = sas_dev->sata_idx;
  	int start, end;
@@ -256,7 +248,7 @@ index c4774d63d5d0..58a564c75a35 100644
  
  	if (!sata_dev) {
  		/*
-@@ -801,6 +802,7 @@ slot_index_alloc_quirk_v2_hw(struct hisi_hba *hisi_hba, int *slot_idx,
+@@ -801,6 +802,7 @@ slot_index_alloc_quirk_v2_hw(struct hisi
  		end = 64 * (sata_idx + 2);
  	}
  
@@ -264,7 +256,7 @@ index c4774d63d5d0..58a564c75a35 100644
  	while (1) {
  		start = find_next_zero_bit(bitmap,
  					hisi_hba->slot_index_count, start);
-@@ -815,8 +817,8 @@ slot_index_alloc_quirk_v2_hw(struct hisi_hba *hisi_hba, int *slot_idx,
+@@ -815,8 +817,8 @@ slot_index_alloc_quirk_v2_hw(struct hisi
  	}
  
  	set_bit(start, bitmap);
@@ -275,7 +267,7 @@ index c4774d63d5d0..58a564c75a35 100644
  }
  
  static bool sata_index_alloc_v2_hw(struct hisi_hba *hisi_hba, int *idx)
-@@ -3558,7 +3560,6 @@ static struct scsi_host_template sht_v2_hw = {
+@@ -3558,7 +3560,6 @@ static struct scsi_host_template sht_v2_
  	.scan_start		= hisi_sas_scan_start,
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
@@ -283,11 +275,9 @@ index c4774d63d5d0..58a564c75a35 100644
  	.this_id		= -1,
  	.sg_tablesize		= SG_ALL,
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index 06824bde9c8d..a0fc2d5de787 100644
 --- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
 +++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-@@ -2096,7 +2096,6 @@ static struct scsi_host_template sht_v3_hw = {
+@@ -2108,7 +2108,6 @@ static struct scsi_host_template sht_v3_
  	.scan_start		= hisi_sas_scan_start,
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
@@ -295,7 +285,7 @@ index 06824bde9c8d..a0fc2d5de787 100644
  	.this_id		= -1,
  	.sg_tablesize		= SG_ALL,
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
-@@ -2106,6 +2105,7 @@ static struct scsi_host_template sht_v3_hw = {
+@@ -2118,6 +2117,7 @@ static struct scsi_host_template sht_v3_
  	.target_destroy		= sas_target_destroy,
  	.ioctl			= sas_ioctl,
  	.shost_attrs		= host_attrs,
@@ -303,7 +293,7 @@ index 06824bde9c8d..a0fc2d5de787 100644
  };
  
  static const struct hisi_sas_hw hisi_sas_v3_hw = {
-@@ -2243,8 +2243,10 @@ hisi_sas_v3_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+@@ -2255,8 +2255,10 @@ hisi_sas_v3_probe(struct pci_dev *pdev,
  	shost->max_channel = 1;
  	shost->max_cmd_len = 16;
  	shost->sg_tablesize = min_t(u16, SG_ALL, HISI_SAS_SGE_PAGE_CNT);
@@ -316,6 +306,3 @@ index 06824bde9c8d..a0fc2d5de787 100644
  
  	sha->sas_ha_name = DRV_NAME;
  	sha->dev = dev;
--- 
-2.20.1
-

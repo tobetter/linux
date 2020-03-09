@@ -12,8 +12,10 @@ This hex dump is generated using:
 } | hexdump -v -e '1/1 "0x%.2x," "\n"' > net/wireless/certs/debian.hex
 
 ---
+Index: linux/net/wireless/certs/debian.hex
+===================================================================
 --- /dev/null
-+++ b/net/wireless/certs/debian.hex
++++ linux/net/wireless/certs/debian.hex
 @@ -0,0 +1,944 @@
 +0x30,
 +0x82,

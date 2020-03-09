@@ -20,11 +20,11 @@ Reviewed-by: "Lee, Chun-Yi" <jlee@suse.com>
  drivers/char/mem.c | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/drivers/char/mem.c b/drivers/char/mem.c
-index 593a8818aca9..0ce5ac0a5c6b 100644
---- a/drivers/char/mem.c
-+++ b/drivers/char/mem.c
-@@ -762,6 +762,8 @@ static loff_t memory_lseek(struct file *file, loff_t offset, int orig)
+Index: linux/drivers/char/mem.c
+===================================================================
+--- linux.orig/drivers/char/mem.c
++++ linux/drivers/char/mem.c
+@@ -807,6 +807,8 @@ static loff_t memory_lseek(struct file *
  
  static int open_port(struct inode *inode, struct file *filp)
  {

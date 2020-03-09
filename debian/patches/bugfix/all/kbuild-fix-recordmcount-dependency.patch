@@ -7,8 +7,10 @@ We never rebuild anything in-tree when building an out-of-tree
 modules, so external modules should not depend on the recordmcount
 sources.
 
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
+Index: linux/scripts/Makefile.build
+===================================================================
+--- linux.orig/scripts/Makefile.build
++++ linux/scripts/Makefile.build
 @@ -232,6 +232,11 @@ cmd_record_mcount =						\
  endif # CC_USING_RECORD_MCOUNT
  endif # CONFIG_FTRACE_MCOUNT_RECORD

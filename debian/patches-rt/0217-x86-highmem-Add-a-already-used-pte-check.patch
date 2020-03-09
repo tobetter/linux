@@ -1,8 +1,8 @@
-From 26d14743e5183f7a37bf0a4489428926868186de Mon Sep 17 00:00:00 2001
+From 57772c842e1a3a0de1d2490c20afe90c72d8abfb Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Mon, 11 Mar 2013 17:09:55 +0100
-Subject: [PATCH 217/283] x86/highmem: Add a "already used pte" check
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 217/290] x86/highmem: Add a "already used pte" check
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 This is a copy from kmap_atomic_prot().
 
@@ -25,5 +25,5 @@ index d5a48210d0f6..c0ec8d430c02 100644
  	current->kmap_pte[type] = pte;
  #endif
 -- 
-2.20.1
+2.24.1
 

@@ -15,11 +15,11 @@ Signed-off-by: Jason Gunthorpe <jgg@mellanox.com>
  drivers/infiniband/hw/hns/hns_roce_qp.c | 19 ++++++++++---------
  1 file changed, 10 insertions(+), 9 deletions(-)
 
-diff --git a/drivers/infiniband/hw/hns/hns_roce_qp.c b/drivers/infiniband/hw/hns/hns_roce_qp.c
-index de1676e25828..b3ad35310925 100644
---- a/drivers/infiniband/hw/hns/hns_roce_qp.c
-+++ b/drivers/infiniband/hw/hns/hns_roce_qp.c
-@@ -652,6 +652,10 @@ static int hns_roce_create_qp_common(struct hns_roce_dev *hr_dev,
+Index: linux/drivers/infiniband/hw/hns/hns_roce_qp.c
+===================================================================
+--- linux.orig/drivers/infiniband/hw/hns/hns_roce_qp.c
++++ linux/drivers/infiniband/hw/hns/hns_roce_qp.c
+@@ -652,6 +652,10 @@ static int hns_roce_create_qp_common(str
  				dev_err(dev, "rq record doorbell map failed!\n");
  				goto err_sq_dbmap;
  			}
@@ -30,7 +30,7 @@ index de1676e25828..b3ad35310925 100644
  		}
  	} else {
  		if (init_attr->create_flags &
-@@ -760,16 +764,11 @@ static int hns_roce_create_qp_common(struct hns_roce_dev *hr_dev,
+@@ -760,16 +764,11 @@ static int hns_roce_create_qp_common(str
  	else
  		hr_qp->doorbell_qpn = cpu_to_le64(hr_qp->qpn);
  
@@ -50,7 +50,7 @@ index de1676e25828..b3ad35310925 100644
  	}
  	hr_qp->event = hns_roce_ib_qp_event;
  
-@@ -946,7 +945,9 @@ int hns_roce_modify_qp(struct ib_qp *ibqp, struct ib_qp_attr *attr,
+@@ -946,7 +945,9 @@ int hns_roce_modify_qp(struct ib_qp *ibq
  	    (attr_mask & IB_QP_STATE) && new_state == IB_QPS_ERR) {
  		if (hr_qp->sdb_en == 1) {
  			hr_qp->sq.head = *(int *)(hr_qp->sdb.virt_addr);
@@ -61,6 +61,3 @@ index de1676e25828..b3ad35310925 100644
  		} else {
  			dev_warn(dev, "flush cqe is not supported in userspace!\n");
  			goto out;
--- 
-2.20.1
-

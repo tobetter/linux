@@ -14,11 +14,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_eth_com.h | 46 ++++++++++++++++++-
  2 files changed, 44 insertions(+), 45 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_com.c b/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-index 2b3ff0c20155..9c0511e9f9a2 100644
---- a/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_eth_com.c
-@@ -59,15 +59,6 @@ static inline struct ena_eth_io_rx_cdesc_base *ena_com_get_next_rx_cdesc(
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+@@ -59,15 +59,6 @@ static inline struct ena_eth_io_rx_cdesc
  	return cdesc;
  }
  
@@ -34,10 +34,11 @@ index 2b3ff0c20155..9c0511e9f9a2 100644
  static inline void *get_sq_desc(struct ena_com_io_sq *io_sq)
  {
  	u16 tail_masked;
-@@ -477,40 +468,6 @@ int ena_com_add_single_rx_desc(struct ena_com_io_sq *io_sq,
+@@ -476,40 +467,6 @@ int ena_com_add_single_rx_desc(struct en
+ 
  	return 0;
  }
- 
+-
 -int ena_com_tx_comp_req_id_get(struct ena_com_io_cq *io_cq, u16 *req_id)
 -{
 -	u8 expected_phase, cdesc_phase;
@@ -71,15 +72,14 @@ index 2b3ff0c20155..9c0511e9f9a2 100644
 -
 -	return 0;
 -}
--
+ 
  bool ena_com_cq_empty(struct ena_com_io_cq *io_cq)
  {
- 	struct ena_eth_io_rx_cdesc_base *cdesc;
-diff --git a/drivers/net/ethernet/amazon/ena/ena_eth_com.h b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-index 2f7657227cfe..4930324e9d8d 100644
---- a/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_eth_com.h
-@@ -86,8 +86,6 @@ int ena_com_add_single_rx_desc(struct ena_com_io_sq *io_sq,
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+@@ -86,8 +86,6 @@ int ena_com_add_single_rx_desc(struct en
  			       struct ena_com_buf *ena_buf,
  			       u16 req_id);
  
@@ -88,7 +88,7 @@ index 2f7657227cfe..4930324e9d8d 100644
  bool ena_com_cq_empty(struct ena_com_io_cq *io_cq);
  
  static inline void ena_com_unmask_intr(struct ena_com_io_cq *io_cq,
-@@ -159,4 +157,48 @@ static inline void ena_com_comp_ack(struct ena_com_io_sq *io_sq, u16 elem)
+@@ -159,4 +157,48 @@ static inline void ena_com_comp_ack(stru
  	io_sq->next_to_comp += elem;
  }
  
@@ -137,6 +137,3 @@ index 2f7657227cfe..4930324e9d8d 100644
 +}
 +
  #endif /* ENA_ETH_COM_H_ */
--- 
-2.19.2
-

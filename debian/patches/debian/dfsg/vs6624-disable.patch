@@ -3,9 +3,11 @@ Date: Sun, 27 May 2012 01:56:58 +0100
 Subject: vs6624: mark as broken
 Forwarded: not-needed
 
---- a/drivers/media/i2c/Kconfig
-+++ b/drivers/media/i2c/Kconfig
-@@ -768,6 +768,7 @@ config VIDEO_OV13858
+Index: linux/drivers/media/i2c/Kconfig
+===================================================================
+--- linux.orig/drivers/media/i2c/Kconfig
++++ linux/drivers/media/i2c/Kconfig
+@@ -803,6 +803,7 @@ config VIDEO_OV13858
  	  OV13858 camera.
  
  config VIDEO_VS6624

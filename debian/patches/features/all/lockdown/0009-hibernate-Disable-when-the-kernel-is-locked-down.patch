@@ -16,11 +16,11 @@ cc: linux-pm@vger.kernel.org
  kernel/power/hibernate.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-index a5c36e9c56a6..f2eafefeec50 100644
---- a/kernel/power/hibernate.c
-+++ b/kernel/power/hibernate.c
-@@ -70,7 +70,7 @@ static const struct platform_hibernation_ops *hibernation_ops;
+Index: linux/kernel/power/hibernate.c
+===================================================================
+--- linux.orig/kernel/power/hibernate.c
++++ linux/kernel/power/hibernate.c
+@@ -70,7 +70,7 @@ static const struct platform_hibernation
  
  bool hibernation_available(void)
  {

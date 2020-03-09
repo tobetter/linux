@@ -76,7 +76,6 @@ bugfix/powerpc/powerpc-boot-fix-missing-crc32poly.h-when-building-with-kernel_xz
 bugfix/arm64/arm64-acpi-Add-fixup-for-HPE-m400-quirks.patch
 bugfix/x86/x86-32-disable-3dnow-in-generic-config.patch
 bugfix/powerpc/powerpc-fix-mcpu-options-for-spe-only-compiler.patch
-bugfix/x86/x86-kvmclock-set-offset-for-kvm-unstable-clock.patch
 bugfix/arm/ARM-dts-sun8i-h3-add-sy8106a-to-orange-pi-plus.patch
 bugfix/arm64/arm64-dts-allwinner-a64-Enable-A64-timer-workaround.patch
 bugfix/mips/MIPS-Loongson-Introduce-and-use-loongson_llsc_mb.patch
@@ -91,7 +90,6 @@ features/x86/x86-boot-Add-ACPI-RSDP-address-to-setup_header.patch
 features/x86/x86-acpi-x86-boot-Take-RSDP-address-for-boot-params-.patch
 features/x86/x86-boot-Mostly-revert-commit-ae7e1238e68f2a-Add-ACP.patch
 features/x86/x86-acpi-x86-boot-Take-RSDP-address-from-boot-params.patch
-features/x86/x86-boot-Clear-RSDP-address-in-boot_params-for-broke.patch
 features/arm64/arm64-dts-allwinner-a64-Add-Pine64-LTS-device-tree-f.patch
 
 # Miscellaneous bug fixes
@@ -103,8 +101,6 @@ bugfix/all/kbuild-include-addtree-remove-quotes-before-matching-path.patch
 debian/revert-objtool-fix-config_stack_validation-y-warning.patch
 bugfix/all/mt76-use-the-correct-hweight8-function.patch
 bugfix/all/rtc-s35390a-set-uie_unsupported.patch
-bugfix/all/dm-disable-discard-if-the-underlying-storage-no-longer-supports-it.patch
-bugfix/all/xfs-fix-missing-ILOCK-unlock-when-xfs_setattr_nonsiz.patch
 
 # Miscellaneous features
 
@@ -174,11 +170,27 @@ bugfix/all/libcpupower-hide-private-function.patch
 bugfix/all/cpupower-fix-checks-for-cpu-existence.patch
 bugfix/all/tools-lib-api-fs-fs.c-fix-misuse-of-strncpy.patch
 bugfix/all/usbip-fix-misuse-of-strncpy.patch
-bugfix/x86/tools-x86_energy_perf_policy-fix-uninitialized-varia.patch
 bugfix/x86/tools-turbostat-Add-checks-for-failure-of-fgets-and-.patch
 bugfix/all/libbpf-add-soname-to-shared-object.patch
 bugfix/all/libbpf-link-shared-object-with-libelf.patch
 bugfix/all/libbpf-generate-pkg-config.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-netdev-tim.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-failed-sys.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-mem-phys-a.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-net_dropmo.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-powerpc-hc.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-sctop.py.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-stackcolla.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-stat-cpi.p.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-syscall-co.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-syscall-co-de667cce7f4f.patch
+bugfix/all/perf-script-python-Remove-mixed-indentation.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-futex-cont.patch
+bugfix/all/perf-script-python-add-Python3-support-to-check-perf.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-event_anal.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-intel-pt-e.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-export-to-.patch
+bugfix/all/perf-script-python-Add-Python3-support-to-export-to-ebf6c5c181ab.patch
 
 # wireless: Disable regulatory.db direct loading (until we sort out signing)
 debian/wireless-disable-regulatory.db-direct-loading.patch
@@ -203,17 +215,51 @@ features/all/ena/0010-net-ena-change-rx-copybreak-default-to-reduce-kernel.patch
 features/all/ena/0011-net-ena-remove-redundant-parameter-in-ena_com_admin_.patch
 features/all/ena/0012-net-ena-update-driver-version-to-2.0.1.patch
 features/all/ena/0013-net-ena-fix-indentations-in-ena_defs-for-better-read.patch
-features/all/ena/0014-net-ena-Fix-Kconfig-dependency-on-X86.patch
 features/all/ena/0015-net-ena-enable-Low-Latency-Queues.patch
 features/all/ena/0016-net-ena-fix-compilation-error-in-xtensa-architecture.patch
 features/all/ena/0017-net-ena-fix-crash-during-ena_remove.patch
 features/all/ena/0018-net-ena-update-driver-version-from-2.0.1-to-2.0.2.patch
 
+features/all/ena/net-ena-update-driver-version-from-2.0.2-to-2.0.3.patch
+features/all/ena/net-ena-fix-set-freed-objects-to-NULL-to-avoid-faili.patch
+features/all/ena/net-ena-fix-Free-napi-resources-when-ena_up-fails.patch
+features/all/ena/net-ena-fix-incorrect-test-of-supported-hash-functio.patch
+features/all/ena/net-ena-fix-return-value-of-ena_com_config_llq_info.patch
+features/all/ena/net-ena-improve-latency-by-disabling-adaptive-interr.patch
+features/all/ena/net-ena-fix-ena_com_fill_hash_function-implementatio.patch
+features/all/ena/net-ena-add-handling-of-llq-max-tx-burst-size.patch
+features/all/ena/net-ena-replace-free_tx-rx_ids-union-with-single-fre.patch
+features/all/ena/net-ena-arrange-ena_probe-function-variables-in-reve.patch
+features/all/ena/net-ena-add-newline-at-the-end-of-pr_err-prints.patch
+features/all/ena/net-ena-allow-automatic-fallback-to-polling-mode.patch
+features/all/ena/net-ena-add-support-for-changing-max_header_size-in-.patch
+features/all/ena/net-ena-optimise-calculations-for-CQ-doorbell.patch
+features/all/ena/net-ena-use-dev_info_once-instead-of-static-variable.patch
+features/all/ena/net-ena-add-MAX_QUEUES_EXT-get-feature-admin-command.patch
+features/all/ena/net-ena-enable-negotiating-larger-Rx-ring-size.patch
+features/all/ena/net-ena-make-ethtool-show-correct-current-and-max-qu.patch
+features/all/ena/net-ena-allow-queue-allocation-backoff-when-low-on-m.patch
+features/all/ena/net-ena-add-ethtool-function-for-changing-io-queue-s.patch
+features/all/ena/net-ena-update-driver-version-from-2.0.3-to-2.1.0.patch
+features/all/ena/net-ena-Fix-bug-where-ring-allocation-backoff-stoppe.patch
+features/all/ena/net-ena-don-t-wake-up-tx-queue-when-down.patch
+features/all/ena/net-ena-add-good-checksum-counter.patch
+features/all/ena/net-ena-fix-swapped-parameters-when-calling-ena_com_.patch
+features/all/ena/net-ena-add-intr_moder_rx_interval-to-struct-ena_com.patch
+features/all/ena/net-ena-remove-inline-keyword-from-functions-in-.c.patch
+features/all/ena/net-ena-switch-to-dim-algorithm-for-rx-adaptive-inte.patch
+features/all/ena/net-ena-reimplement-set-get_coalesce.patch
+features/all/ena/net-ena-enable-the-interrupt_moderation-in-driver_su.patch
+features/all/ena/net-ena-remove-code-duplication-in-ena_com_update_no.patch
+features/all/ena/net-ena-remove-old-adaptive-interrupt-moderation-cod.patch
+features/all/ena/net-ena-remove-ena_restore_ethtool_params-and-releva.patch
+features/all/ena/net-ena-remove-all-old-adaptive-rx-interrupt-moderat.patch
+features/all/ena/net-ena-fix-update-of-interrupt-moderation-register.patch
+features/all/ena/net-ena-fix-retrieval-of-nonadaptive-interrupt-moder.patch
+features/all/ena/net-ena-fix-incorrect-update-of-intr_delay_resolutio.patch
+
 # Backported bugfixes from 4.20/4.21 for the Huawei TaiShan server platform (aka D06)
-bugfix/arm64/huawei-taishan/0001-scsi-hisi_sas-Feed-back-linkrate-max-min-when-re-att.patch
 bugfix/arm64/huawei-taishan/0002-scsi-hisi_sas-Move-evaluation-of-hisi_hba-in-hisi_sa.patch
-bugfix/arm64/huawei-taishan/0003-scsi-hisi_sas-Fix-the-race-between-IO-completion-and.patch
-bugfix/arm64/huawei-taishan/0004-scsi-hisi_sas-Free-slot-later-in-slot_complete_vx_hw.patch
 bugfix/arm64/huawei-taishan/0005-scsi-hisi_sas-unmask-interrupts-ent72-and-ent74.patch
 bugfix/arm64/huawei-taishan/0006-scsi-hisi_sas-Use-block-layer-tag-instead-for-IPTT.patch
 bugfix/arm64/huawei-taishan/0007-scsi-hisi_sas-Update-v3-hw-AIP_LIMIT-and-CFG_AGING_T.patch
@@ -236,12 +282,9 @@ bugfix/arm64/huawei-taishan/0023-net-hns3-change-default-tc-state-to-close.patch
 bugfix/arm64/huawei-taishan/0024-net-hns3-fix-a-bug-caused-by-udelay.patch
 bugfix/arm64/huawei-taishan/0025-net-hns3-remove-redundant-variable-initialization.patch
 bugfix/arm64/huawei-taishan/0026-net-hns3-call-hns3_nic_net_open-while-doing-HNAE3_UP.patch
-bugfix/arm64/huawei-taishan/0027-RDMA-hns-Fix-the-bug-with-updating-rq-head-pointer-w.patch
-bugfix/arm64/huawei-taishan/0028-RDMA-hns-Bugfix-for-the-scene-without-receiver-queue.patch
 bugfix/arm64/huawei-taishan/0029-RDMA-hns-Add-constraint-on-the-setting-of-local-ACK-.patch
 bugfix/arm64/huawei-taishan/0030-RDMA-hns-Modify-the-pbl-ba-page-size-for-hip08.patch
 bugfix/arm64/huawei-taishan/0031-RDMA-hns-RDMA-hns-Assign-rq-head-pointer-when-enable.patch
-bugfix/arm64/huawei-taishan/0032-scsi-hisi_sas-Fix-NULL-pointer-dereference.patch
 bugfix/arm64/huawei-taishan/0033-scsi-hisi_sas-fix-calls-to-dma_set_mask_and_coherent.patch
 
 # Backported DTB support for Raspberry Pi Compute Module 3 from 4.20-rc1:
@@ -249,53 +292,20 @@ features/arm/ARM-dts-add-Raspberry-Pi-Compute-Module-3-and-IO-boa.patch
 features/arm64/arm64-dts-broadcom-Add-reference-to-Compute-Module-I.patch
 features/arm64/arm64-dts-broadcom-Use-the-.dtb-name-in-the-rule-rat.patch
 
+# Backported devicetree support for Raspberry Pi 3 1+ from 5.1
+features/arm/ARM-dts-add-Raspberry-Pi-3-A-Plus.patch
+features/arm64/arm64-dts-broadcom-Add-reference-to-RPi-3-A-Plus.patch
+features/arm/ARM-dts-bcm283x-Correct-vchiq-compatible-string.patch
+features/arm/staging-vc04_services-Use-correct-cache-line-size.patch
+
 # Security fixes
 debian/i386-686-pae-pci-set-pci-nobios-by-default.patch
 debian/ntfs-mark-it-as-broken.patch
-bugfix/all/netfilter-conntrack-use-consistent-ct-id-hash-calcul.patch
-bugfix/all/ALSA-usb-audio-Fix-an-OOB-bug-in-parse_audio_mixer_unit.patch
-bugfix/all/ALSA-usb-audio-Fix-a-stack-buffer-overflow-bug-in-check_input_term.patch
-bugfix/all/vhost-make-sure-log_num-in_num.patch
-bugfix/x86/x86-ptrace-fix-up-botched-merge-of-spectrev1-fix.patch
-bugfix/all/KVM-coalesced_mmio-add-bounds-checking.patch
-bugfix/x86/taa/0001-KVM-x86-use-Intel-speculation-bugs-and-features-as-d.patch
-bugfix/x86/taa/0002-x86-msr-Add-the-IA32_TSX_CTRL-MSR.patch
-bugfix/x86/taa/0003-x86-cpu-Add-a-helper-function-x86_read_arch_cap_msr.patch
-bugfix/x86/taa/0004-x86-cpu-Add-a-tsx-cmdline-option-with-TSX-disabled-b.patch
-bugfix/x86/taa/0005-x86-speculation-taa-Add-mitigation-for-TSX-Async-Abo.patch
-bugfix/x86/taa/0006-x86-speculation-taa-Add-sysfs-reporting-for-TSX-Asyn.patch
-bugfix/x86/taa/0007-kvm-x86-Export-MDS_NO-0-to-guests-when-TSX-is-enable.patch
-bugfix/x86/taa/0008-x86-tsx-Add-auto-option-to-the-tsx-cmdline-parameter.patch
-bugfix/x86/taa/0009-x86-speculation-taa-Add-documentation-for-TSX-Async-.patch
-bugfix/x86/taa/0010-x86-tsx-Add-config-options-to-set-tsx-on-off-auto.patch
-bugfix/x86/taa/0015-x86-speculation-taa-Fix-printing-of-TAA_MSG_SMT-on-I.patch
-bugfix/x86/itlb_multihit/0011-x86-bugs-Add-ITLB_MULTIHIT-bug-infrastructure.patch
-bugfix/x86/itlb_multihit/0013-cpu-speculation-Uninline-and-export-CPU-mitigations-.patch
-bugfix/x86/itlb_multihit/0014-Documentation-Add-ITLB_MULTIHIT-documentation.patch
-bugfix/x86/itlb_multihit/0016-kvm-x86-powerpc-do-not-allow-clearing-largepages-deb.patch
-bugfix/x86/itlb_multihit/0017-kvm-Convert-kvm_lock-to-a-mutex.patch
-bugfix/x86/itlb_multihit/0018-kvm-mmu-Do-not-release-the-page-inside-mmu_set_spte.patch
-bugfix/x86/itlb_multihit/0019-KVM-x86-make-FNAME-fetch-and-__direct_map-more-simil.patch
-bugfix/x86/itlb_multihit/0020-KVM-x86-remove-now-unneeded-hugepage-gfn-adjustment.patch
-bugfix/x86/itlb_multihit/0021-KVM-x86-change-kvm_mmu_page_get_gfn-BUG_ON-to-WARN_O.patch
-bugfix/x86/itlb_multihit/0022-KVM-x86-add-tracepoints-around-__direct_map-and-FNAM.patch
-bugfix/x86/itlb_multihit/0023-KVM-vmx-svm-always-run-with-EFER.NXE-1-when-shadow-p.patch
-bugfix/x86/itlb_multihit/0024-kvm-mmu-ITLB_MULTIHIT-mitigation.patch
-bugfix/x86/itlb_multihit/0025-kvm-Add-helper-function-for-creating-VM-worker-threa.patch
-bugfix/x86/itlb_multihit/0026-kvm-x86-mmu-Recovery-of-shattered-NX-large-pages.patch
-bugfix/x86/i915/0001-drm-i915-Rename-gen7-cmdparser-tables.patch
-bugfix/x86/i915/0002-drm-i915-Disable-Secure-Batches-for-gen6.patch
-bugfix/x86/i915/0003-drm-i915-Remove-Master-tables-from-cmdparser.patch
-bugfix/x86/i915/0004-drm-i915-Add-support-for-mandatory-cmdparsing.patch
-bugfix/x86/i915/0005-drm-i915-Support-ro-ppgtt-mapped-cmdparser-shadow-bu.patch
-bugfix/x86/i915/0006-drm-i915-Allow-parsing-of-unsized-batches.patch
-bugfix/x86/i915/0007-drm-i915-Add-gen9-BCS-cmdparsing.patch
-bugfix/x86/i915/0008-drm-i915-cmdparser-Use-explicit-goto-for-error-paths.patch
-bugfix/x86/i915/0009-drm-i915-cmdparser-Add-support-for-backward-jumps.patch
-bugfix/x86/i915/0010-drm-i915-cmdparser-Ignore-Length-operands-during-com.patch
-bugfix/x86/i915/0011-drm-i915-Lower-RM-timeout-to-avoid-DSI-hard-hangs.patch
-bugfix/x86/i915/0012-drm-i915-gen8-Add-RC6-CTX-corruption-WA.patch
-bugfix/x86/i915/drm-i915-cmdparser-fix-jump-whitelist-clearing.patch
+bugfix/all/libertas-fix-two-buffer-overflows-at-parsing-bss-descriptor.patch
+bugfix/all/wimax-i2400-fix-memory-leak.patch
+bugfix/all/wimax-i2400-fix-memory-leak-in-i2400m_op_rfkill_sw_toggle.patch
+
+# Backported change to provide boot-time entropy
+bugfix/all/random-try-to-actively-add-entropy-rather-than-passi.patch
 
 # ABI maintenance
-debian/abi/powerpc-avoid-abi-change-for-disabling-tm.patch

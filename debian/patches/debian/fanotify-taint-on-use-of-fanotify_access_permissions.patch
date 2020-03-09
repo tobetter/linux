@@ -10,9 +10,11 @@ do about that.  So warn and taint the kernel if this feature is
 actually used.
 
 ---
---- a/fs/notify/fanotify/fanotify_user.c
-+++ b/fs/notify/fanotify/fanotify_user.c
-@@ -866,6 +866,14 @@ SYSCALL_DEFINE5(fanotify_mark, int, fano
+Index: linux/fs/notify/fanotify/fanotify_user.c
+===================================================================
+--- linux.orig/fs/notify/fanotify/fanotify_user.c
++++ linux/fs/notify/fanotify/fanotify_user.c
+@@ -842,6 +842,14 @@ static int do_fanotify_mark(int fanotify
  	if (mask & ~valid_mask)
  		return -EINVAL;
  

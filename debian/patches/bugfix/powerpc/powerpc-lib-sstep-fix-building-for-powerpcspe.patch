@@ -14,9 +14,11 @@ Signed-off-by: James Clarke <jrtc27@jrtc27.com>
  arch/powerpc/lib/sstep.c | 4 ++++
  1 file changed, 4 insertions(+)
 
---- a/arch/powerpc/lib/sstep.c
-+++ b/arch/powerpc/lib/sstep.c
-@@ -2671,12 +2671,16 @@ void emulate_update_regs(struct pt_regs
+Index: linux/arch/powerpc/lib/sstep.c
+===================================================================
+--- linux.orig/arch/powerpc/lib/sstep.c
++++ linux/arch/powerpc/lib/sstep.c
+@@ -2681,12 +2681,16 @@ void emulate_update_regs(struct pt_regs
  		case BARRIER_EIEIO:
  			eieio();
  			break;

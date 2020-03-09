@@ -13,11 +13,11 @@ Signed-off-by: Jason Gunthorpe <jgg@mellanox.com>
  drivers/infiniband/hw/hns/hns_roce_hw_v2.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/infiniband/hw/hns/hns_roce_hw_v2.c b/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-index 627f77a6e0a9..e521cc740120 100644
---- a/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-+++ b/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-@@ -1235,7 +1235,7 @@ static int hns_roce_v2_profile(struct hns_roce_dev *hr_dev)
+Index: linux/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
+===================================================================
+--- linux.orig/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
++++ linux/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
+@@ -1235,7 +1235,7 @@ static int hns_roce_v2_profile(struct hn
  	caps->mpt_ba_pg_sz	= 0;
  	caps->mpt_buf_pg_sz	= 0;
  	caps->mpt_hop_num	= HNS_ROCE_CONTEXT_HOP_NUM;
@@ -26,6 +26,3 @@ index 627f77a6e0a9..e521cc740120 100644
  	caps->pbl_buf_pg_sz	= 0;
  	caps->pbl_hop_num	= HNS_ROCE_PBL_HOP_NUM;
  	caps->mtt_ba_pg_sz	= 0;
--- 
-2.20.1
-

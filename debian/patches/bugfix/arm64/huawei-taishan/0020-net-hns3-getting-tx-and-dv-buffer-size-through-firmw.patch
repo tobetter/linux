@@ -21,10 +21,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  .../hisilicon/hns3/hns3pf/hclge_main.h        |  3 ++
  3 files changed, 38 insertions(+), 11 deletions(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
-index 821d4c2f84bd..827e8b13b545 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_cmd.h
 @@ -365,7 +365,9 @@ struct hclge_pf_res_cmd {
  #define HCLGE_PF_VEC_NUM_M		GENMASK(7, 0)
  	__le16 pf_intr_vector_number;
@@ -44,11 +44,11 @@ index 821d4c2f84bd..827e8b13b545 100644
  
  #define HCLGE_TYPE_CRQ			0
  #define HCLGE_TYPE_CSQ			1
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-index 1dada183456c..47cbf06ea405 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-@@ -932,6 +932,18 @@ static int hclge_query_pf_resource(struct hclge_dev *hdev)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -931,6 +931,18 @@ static int hclge_query_pf_resource(struc
  	hdev->num_tqps = __le16_to_cpu(req->tqp_num);
  	hdev->pkt_buf_size = __le16_to_cpu(req->buf_size) << HCLGE_BUF_UNIT_S;
  
@@ -67,7 +67,7 @@ index 1dada183456c..47cbf06ea405 100644
  	if (hnae3_dev_roce_supported(hdev)) {
  		hdev->roce_base_msix_offset =
  		hnae3_get_field(__le16_to_cpu(req->msixcap_localid_ba_rocee),
-@@ -1592,9 +1604,10 @@ static bool  hclge_is_rx_buf_ok(struct hclge_dev *hdev,
+@@ -1591,9 +1603,10 @@ static bool  hclge_is_rx_buf_ok(struct h
  	pfc_enable_num = hclge_get_pfc_enalbe_num(hdev);
  
  	if (hnae3_dev_dcb_supported(hdev))
@@ -80,7 +80,7 @@ index 1dada183456c..47cbf06ea405 100644
  
  	shared_buf_tc = pfc_enable_num * hdev->mps +
  			(tc_num - pfc_enable_num) * hdev->mps / 2 +
-@@ -1607,8 +1620,15 @@ static bool  hclge_is_rx_buf_ok(struct hclge_dev *hdev,
+@@ -1606,8 +1619,15 @@ static bool  hclge_is_rx_buf_ok(struct h
  
  	shared_buf = rx_all - rx_priv;
  	buf_alloc->s_buf.buf_size = shared_buf;
@@ -98,7 +98,7 @@ index 1dada183456c..47cbf06ea405 100644
  
  	for (i = 0; i < HCLGE_MAX_TC_NUM; i++) {
  		if ((hdev->hw_tc_map & BIT(i)) &&
-@@ -1635,11 +1655,11 @@ static int hclge_tx_buffer_calc(struct hclge_dev *hdev,
+@@ -1634,11 +1654,11 @@ static int hclge_tx_buffer_calc(struct h
  	for (i = 0; i < HCLGE_MAX_TC_NUM; i++) {
  		struct hclge_priv_buf *priv = &buf_alloc->priv_buf[i];
  
@@ -112,7 +112,7 @@ index 1dada183456c..47cbf06ea405 100644
  		else
  			priv->tx_buf_size = 0;
  
-@@ -1685,11 +1705,12 @@ static int hclge_rx_buffer_calc(struct hclge_dev *hdev,
+@@ -1684,11 +1704,12 @@ static int hclge_rx_buffer_calc(struct h
  				priv->wl.low = aligned_mps;
  				priv->wl.high = priv->wl.low + aligned_mps;
  				priv->buf_size = priv->wl.high +
@@ -127,7 +127,7 @@ index 1dada183456c..47cbf06ea405 100644
  			}
  		} else {
  			priv->enable = 0;
-@@ -1721,11 +1742,11 @@ static int hclge_rx_buffer_calc(struct hclge_dev *hdev,
+@@ -1720,11 +1741,11 @@ static int hclge_rx_buffer_calc(struct h
  		if (hdev->tm_info.hw_pfc_map & BIT(i)) {
  			priv->wl.low = 128;
  			priv->wl.high = priv->wl.low + aligned_mps;
@@ -141,10 +141,10 @@ index 1dada183456c..47cbf06ea405 100644
  		}
  	}
  
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
-index 1528fb3fa6be..629ee0148d4e 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.h
 @@ -545,6 +545,9 @@ struct hclge_dev {
  	u32 flag;
  
@@ -155,6 +155,3 @@ index 1528fb3fa6be..629ee0148d4e 100644
  	u32 mps; /* Max packet size */
  
  	enum hclge_mta_dmac_sel_type mta_mac_sel_type;
--- 
-2.20.1
-

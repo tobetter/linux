@@ -13,11 +13,11 @@ cc: linux-pcmcia@lists.infradead.org
  drivers/pcmcia/cistpl.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/drivers/pcmcia/cistpl.c b/drivers/pcmcia/cistpl.c
-index 55ef7d1fd8da..b7a0e42eeb25 100644
---- a/drivers/pcmcia/cistpl.c
-+++ b/drivers/pcmcia/cistpl.c
-@@ -1578,6 +1578,9 @@ static ssize_t pccard_store_cis(struct file *filp, struct kobject *kobj,
+Index: linux/drivers/pcmcia/cistpl.c
+===================================================================
+--- linux.orig/drivers/pcmcia/cistpl.c
++++ linux/drivers/pcmcia/cistpl.c
+@@ -1578,6 +1578,9 @@ static ssize_t pccard_store_cis(struct f
  	struct pcmcia_socket *s;
  	int error;
  

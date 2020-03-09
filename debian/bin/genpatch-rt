@@ -79,6 +79,7 @@ def main(source, version=None):
                                   'git/rt/linux-stable-rt.git/commit?id=%s' %
                                   match.group(1))
                         add_patch(name, source_patch, origin)
+                        series_fh.write(line)
 
         else:
             # Get version and upstream version

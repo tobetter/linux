@@ -22,8 +22,10 @@ usbip_common.c has the same problem.
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/tools/usb/usbip/libsrc/usbip_common.c
-+++ b/tools/usb/usbip/libsrc/usbip_common.c
+Index: linux/tools/usb/usbip/libsrc/usbip_common.c
+===================================================================
+--- linux.orig/tools/usb/usbip/libsrc/usbip_common.c
++++ linux/tools/usb/usbip/libsrc/usbip_common.c
 @@ -226,8 +226,8 @@ int read_usb_device(struct udev_device *
  	path = udev_device_get_syspath(sdev);
  	name = udev_device_get_sysname(sdev);
@@ -35,8 +37,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  	sscanf(name, "%u-%u", &busnum, &devnum);
  	udev->busnum = busnum;
---- a/tools/usb/usbip/libsrc/usbip_device_driver.c
-+++ b/tools/usb/usbip/libsrc/usbip_device_driver.c
+Index: linux/tools/usb/usbip/libsrc/usbip_device_driver.c
+===================================================================
+--- linux.orig/tools/usb/usbip/libsrc/usbip_device_driver.c
++++ linux/tools/usb/usbip/libsrc/usbip_device_driver.c
 @@ -103,7 +103,7 @@ int read_usb_vudc_device(struct udev_dev
  	copy_descr_attr16(dev, &descr, idProduct);
  	copy_descr_attr16(dev, &descr, bcdDevice);

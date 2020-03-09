@@ -4,14 +4,18 @@ Description: generate pkg-config file for libbpf
  on pkg-config to find the library, its CFLAGS and LDFLAGS.
 Origin: https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf-next.git/commit/?id=dd399ac9e343c7573c47d6820e4a23013c54749d
 Applied-Upstream: yes
---- a/tools/lib/bpf/.gitignore
-+++ b/tools/lib/bpf/.gitignore
+Index: linux/tools/lib/bpf/.gitignore
+===================================================================
+--- linux.orig/tools/lib/bpf/.gitignore
++++ linux/tools/lib/bpf/.gitignore
 @@ -1,2 +1,3 @@
  libbpf_version.h
 +libbpf.pc
  FEATURE-DUMP.libbpf
---- a/tools/lib/bpf/Makefile
-+++ b/tools/lib/bpf/Makefile
+Index: linux/tools/lib/bpf/Makefile
+===================================================================
+--- linux.orig/tools/lib/bpf/Makefile
++++ linux/tools/lib/bpf/Makefile
 @@ -95,6 +95,7 @@ libdir_SQ = $(subst ','\'',$(libdir))
  libdir_relative_SQ = $(subst ','\'',$(libdir_relative))
  
@@ -67,8 +71,10 @@ Applied-Upstream: yes
  		$(RM) LIBBPF-CFLAGS
  	$(call QUIET_CLEAN, core-gen) $(RM) $(OUTPUT)FEATURE-DUMP.libbpf
  
+Index: linux/tools/lib/bpf/libbpf.pc.template
+===================================================================
 --- /dev/null
-+++ b/tools/lib/bpf/libbpf.pc.template
++++ linux/tools/lib/bpf/libbpf.pc.template
 @@ -0,0 +1,12 @@
 +# SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 +

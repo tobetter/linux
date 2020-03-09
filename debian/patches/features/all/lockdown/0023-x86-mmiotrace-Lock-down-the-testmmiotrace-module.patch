@@ -17,10 +17,10 @@ cc: x86@kernel.org
  arch/x86/mm/testmmiotrace.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/arch/x86/mm/testmmiotrace.c b/arch/x86/mm/testmmiotrace.c
-index f6ae6830b341..bbaad357f5d7 100644
---- a/arch/x86/mm/testmmiotrace.c
-+++ b/arch/x86/mm/testmmiotrace.c
+Index: linux/arch/x86/mm/testmmiotrace.c
+===================================================================
+--- linux.orig/arch/x86/mm/testmmiotrace.c
++++ linux/arch/x86/mm/testmmiotrace.c
 @@ -115,6 +115,9 @@ static int __init init(void)
  {
  	unsigned long size = (read_far) ? (8 << 20) : (16 << 10);

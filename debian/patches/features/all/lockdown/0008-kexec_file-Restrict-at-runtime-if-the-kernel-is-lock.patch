@@ -19,11 +19,11 @@ cc: kexec@lists.infradead.org
  kernel/kexec_file.c | 8 ++++++++
  1 file changed, 8 insertions(+)
 
-diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
-index 9f48f4412297..3ba28fc3fab0 100644
---- a/kernel/kexec_file.c
-+++ b/kernel/kexec_file.c
-@@ -255,6 +255,14 @@ SYSCALL_DEFINE5(kexec_file_load, int, kernel_fd, int, initrd_fd,
+Index: linux/kernel/kexec_file.c
+===================================================================
+--- linux.orig/kernel/kexec_file.c
++++ linux/kernel/kexec_file.c
+@@ -328,6 +328,14 @@ SYSCALL_DEFINE5(kexec_file_load, int, ke
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
  		return -EPERM;
  

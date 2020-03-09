@@ -18,11 +18,10 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  2 files changed, 51 insertions(+)
  create mode 100644 certs/internal.h
 
-diff --git a/certs/internal.h b/certs/internal.h
-new file mode 100644
-index 000000000000..5dcbefb0c23a
+Index: linux/certs/internal.h
+===================================================================
 --- /dev/null
-+++ b/certs/internal.h
++++ linux/certs/internal.h
 @@ -0,0 +1,18 @@
 +/* Internal definitions
 + *
@@ -42,10 +41,10 @@ index 000000000000..5dcbefb0c23a
 +extern void __init add_trusted_secondary_key(const char *source,
 +					     const void *data, size_t len);
 +#endif
-diff --git a/certs/system_keyring.c b/certs/system_keyring.c
-index 81728717523d..62cd664ea031 100644
---- a/certs/system_keyring.c
-+++ b/certs/system_keyring.c
+Index: linux/certs/system_keyring.c
+===================================================================
+--- linux.orig/certs/system_keyring.c
++++ linux/certs/system_keyring.c
 @@ -19,6 +19,7 @@
  #include <keys/asymmetric-type.h>
  #include <keys/system_keyring.h>
@@ -54,7 +53,7 @@ index 81728717523d..62cd664ea031 100644
  
  static struct key *builtin_trusted_keys;
  #ifdef CONFIG_SECONDARY_TRUSTED_KEYRING
-@@ -266,3 +267,35 @@ int verify_pkcs7_signature(const void *data, size_t len,
+@@ -266,3 +267,35 @@ error:
  EXPORT_SYMBOL_GPL(verify_pkcs7_signature);
  
  #endif /* CONFIG_SYSTEM_DATA_VERIFICATION */
@@ -90,6 +89,3 @@ index 81728717523d..62cd664ea031 100644
 +			  source, key_ref_to_ptr(key)->description);
 +}
 +#endif /* CONFIG_SECONDARY_TRUSTED_KEYRING */
--- 
-2.20.1
-

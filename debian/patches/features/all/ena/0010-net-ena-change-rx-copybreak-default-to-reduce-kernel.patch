@@ -13,10 +13,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.h b/drivers/net/ethernet/amazon/ena/ena_netdev.h
-index 0cf35ae77884..d241dfc542ca 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
 @@ -81,7 +81,7 @@
  #define ENA_DEFAULT_RING_SIZE	(1024)
  
@@ -26,6 +26,3 @@ index 0cf35ae77884..d241dfc542ca 100644
  
  /* limit the buffer size to 600 bytes to handle MTU changes from very
   * small to very large, in which case the number of buffers per packet
--- 
-2.19.2
-

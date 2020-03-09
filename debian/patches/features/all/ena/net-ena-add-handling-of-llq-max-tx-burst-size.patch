@@ -1,0 +1,232 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Mon, 3 Jun 2019 17:43:19 +0300
+Subject: [PATCH] net: ena: add handling of llq max tx burst size
+Origin: https://git.kernel.org/linus/05d62ca218f8425c70389d0416c15bd0d455b416
+Bug-Debian: https://bugs.debian.org/941291
+
+There is a maximum TX burst size that the ENA device can handle.
+It is exposed by the device to the driver and the driver
+needs to comply with it to avoid bugs.
+
+In this commit we:
+1. Add ena_com_is_doorbell_needed(), which calculates the number of
+   llq entries that will be used to hold a packet, and will return
+   true if they exceed the number of allowed entries in a burst.
+   If the function returns true, a doorbell needs to be invoked
+   to send this packet in the next burst.
+
+2. Follow the available entries in the current burst:
+   - Every doorbell a new burst begins
+   - With each write of an llq entry, the available entries in the
+     current burst are decreased by 1.
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ .../net/ethernet/amazon/ena/ena_admin_defs.h  |  5 ++
+ drivers/net/ethernet/amazon/ena/ena_com.c     |  7 +++
+ drivers/net/ethernet/amazon/ena/ena_com.h     |  2 +
+ drivers/net/ethernet/amazon/ena/ena_eth_com.c | 28 ++++------
+ drivers/net/ethernet/amazon/ena/ena_eth_com.h | 53 +++++++++++++++++++
+ drivers/net/ethernet/amazon/ena/ena_netdev.c  |  7 +++
+ 6 files changed, 85 insertions(+), 17 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+@@ -524,6 +524,11 @@ struct ena_admin_feature_llq_desc {
+ 
+ 	/* the stride control the driver selected to use */
+ 	u16 descriptors_stride_ctrl_enabled;
++
++	/* Maximum size in bytes taken by llq entries in a single tx burst.
++	 * Set to 0 when there is no such limit.
++	 */
++	u32 max_tx_burst_size;
+ };
+ 
+ struct ena_admin_queue_feature_desc {
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
+@@ -396,6 +396,10 @@ static int ena_com_init_io_sq(struct ena
+ 		       0x0, io_sq->llq_info.desc_list_entry_size);
+ 		io_sq->llq_buf_ctrl.descs_left_in_line =
+ 			io_sq->llq_info.descs_num_before_header;
++
++		if (io_sq->llq_info.max_entries_in_tx_burst > 0)
++			io_sq->entries_in_tx_burst_left =
++				io_sq->llq_info.max_entries_in_tx_burst;
+ 	}
+ 
+ 	io_sq->tail = 0;
+@@ -727,6 +731,9 @@ static int ena_com_config_llq_info(struc
+ 		       supported_feat, llq_info->descs_num_before_header);
+ 	}
+ 
++	llq_info->max_entries_in_tx_burst =
++		(u16)(llq_features->max_tx_burst_size /	llq_default_cfg->llq_ring_entry_size_value);
++
+ 	rc = ena_com_set_llq(ena_dev);
+ 	if (rc)
+ 		pr_err("Cannot set LLQ configuration: %d\n", rc);
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
+@@ -159,6 +159,7 @@ struct ena_com_llq_info {
+ 	u16 desc_list_entry_size;
+ 	u16 descs_num_before_header;
+ 	u16 descs_per_entry;
++	u16 max_entries_in_tx_burst;
+ };
+ 
+ struct ena_com_io_cq {
+@@ -238,6 +239,7 @@ struct ena_com_io_sq {
+ 	u8 phase;
+ 	u8 desc_entry_size;
+ 	u8 dma_addr_bits;
++	u16 entries_in_tx_burst_left;
+ } ____cacheline_aligned;
+ 
+ struct ena_com_admin_cq {
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.c
+@@ -82,6 +82,17 @@ static inline int ena_com_write_bounce_b
+ 	dst_tail_mask = io_sq->tail & (io_sq->q_depth - 1);
+ 	dst_offset = dst_tail_mask * llq_info->desc_list_entry_size;
+ 
++	if (is_llq_max_tx_burst_exists(io_sq)) {
++		if (unlikely(!io_sq->entries_in_tx_burst_left)) {
++			pr_err("Error: trying to send more packets than tx burst allows\n");
++			return -ENOSPC;
++		}
++
++		io_sq->entries_in_tx_burst_left--;
++		pr_debug("decreasing entries_in_tx_burst_left of queue %d to %d\n",
++			 io_sq->qid, io_sq->entries_in_tx_burst_left);
++	}
++
+ 	/* Make sure everything was written into the bounce buffer before
+ 	 * writing the bounce buffer to the device
+ 	 */
+@@ -274,23 +285,6 @@ static inline u16 ena_com_cdesc_rx_pkt_g
+ 	return count;
+ }
+ 
+-static inline bool ena_com_meta_desc_changed(struct ena_com_io_sq *io_sq,
+-					     struct ena_com_tx_ctx *ena_tx_ctx)
+-{
+-	int rc;
+-
+-	if (ena_tx_ctx->meta_valid) {
+-		rc = memcmp(&io_sq->cached_tx_meta,
+-			    &ena_tx_ctx->ena_meta,
+-			    sizeof(struct ena_com_tx_meta));
+-
+-		if (unlikely(rc != 0))
+-			return true;
+-	}
+-
+-	return false;
+-}
+-
+ static inline int ena_com_create_and_store_tx_meta_desc(struct ena_com_io_sq *io_sq,
+ 							struct ena_com_tx_ctx *ena_tx_ctx)
+ {
+Index: linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_eth_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_eth_com.h
+@@ -125,8 +125,55 @@ static inline bool ena_com_sq_have_enoug
+ 	return ena_com_free_desc(io_sq) > temp;
+ }
+ 
++static inline bool ena_com_meta_desc_changed(struct ena_com_io_sq *io_sq,
++					     struct ena_com_tx_ctx *ena_tx_ctx)
++{
++	if (!ena_tx_ctx->meta_valid)
++		return false;
++
++	return !!memcmp(&io_sq->cached_tx_meta,
++			&ena_tx_ctx->ena_meta,
++			sizeof(struct ena_com_tx_meta));
++}
++
++static inline bool is_llq_max_tx_burst_exists(struct ena_com_io_sq *io_sq)
++{
++	return (io_sq->mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_DEV) &&
++	       io_sq->llq_info.max_entries_in_tx_burst > 0;
++}
++
++static inline bool ena_com_is_doorbell_needed(struct ena_com_io_sq *io_sq,
++					      struct ena_com_tx_ctx *ena_tx_ctx)
++{
++	struct ena_com_llq_info *llq_info;
++	int descs_after_first_entry;
++	int num_entries_needed = 1;
++	u16 num_descs;
++
++	if (!is_llq_max_tx_burst_exists(io_sq))
++		return false;
++
++	llq_info = &io_sq->llq_info;
++	num_descs = ena_tx_ctx->num_bufs;
++
++	if (unlikely(ena_com_meta_desc_changed(io_sq, ena_tx_ctx)))
++		++num_descs;
++
++	if (num_descs > llq_info->descs_num_before_header) {
++		descs_after_first_entry = num_descs - llq_info->descs_num_before_header;
++		num_entries_needed += DIV_ROUND_UP(descs_after_first_entry,
++						   llq_info->descs_per_entry);
++	}
++
++	pr_debug("queue: %d num_descs: %d num_entries_needed: %d\n", io_sq->qid,
++		 num_descs, num_entries_needed);
++
++	return num_entries_needed > io_sq->entries_in_tx_burst_left;
++}
++
+ static inline int ena_com_write_sq_doorbell(struct ena_com_io_sq *io_sq)
+ {
++	u16 max_entries_in_tx_burst = io_sq->llq_info.max_entries_in_tx_burst;
+ 	u16 tail = io_sq->tail;
+ 
+ 	pr_debug("write submission queue doorbell for queue: %d tail: %d\n",
+@@ -134,6 +181,12 @@ static inline int ena_com_write_sq_doorb
+ 
+ 	writel(tail, io_sq->db_addr);
+ 
++	if (is_llq_max_tx_burst_exists(io_sq)) {
++		pr_debug("reset available entries in tx burst for queue %d to %d\n",
++			 io_sq->qid, max_entries_in_tx_burst);
++		io_sq->entries_in_tx_burst_left = max_entries_in_tx_burst;
++	}
++
+ 	return 0;
+ }
+ 
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -2172,6 +2172,13 @@ static netdev_tx_t ena_start_xmit(struct
+ 	/* set flags and meta data */
+ 	ena_tx_csum(&ena_tx_ctx, skb);
+ 
++	if (unlikely(ena_com_is_doorbell_needed(tx_ring->ena_com_io_sq, &ena_tx_ctx))) {
++		netif_dbg(adapter, tx_queued, dev,
++			  "llq tx max burst size of queue %d achieved, writing doorbell to send burst\n",
++			  qid);
++		ena_com_write_sq_doorbell(tx_ring->ena_com_io_sq);
++	}
++
+ 	/* prepare the packet's descriptors to dma engine */
+ 	rc = ena_com_prepare_tx(tx_ring->ena_com_io_sq, &ena_tx_ctx,
+ 				&nb_hw_desc);

@@ -1,8 +1,8 @@
-From 5bbf9de052f34cd8d685120f60da34937f2b0772 Mon Sep 17 00:00:00 2001
+From c87cd9494b5ba0149620db6bc1655edbe04f9c9d Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 3 Jul 2009 08:29:34 -0500
-Subject: [PATCH 089/283] timers: Prepare for full preemption
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 089/290] timers: Prepare for full preemption
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 When softirqs can be preempted we need to make sure that cancelling
 the timer from the active thread can not deadlock vs. a running timer
@@ -30,7 +30,7 @@ index 7b066fd38248..54627d046b3a 100644
  #else
  # define del_timer_sync(t)		del_timer(t)
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 7a39d56f6a6b..5de80f29ef57 100644
+index e6022cc2605b..986ed04425be 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -498,11 +498,14 @@ void resched_cpu(int cpu)
@@ -60,7 +60,7 @@ index 7a39d56f6a6b..5de80f29ef57 100644
  }
  
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index fa49cd753dea..bbe24e241643 100644
+index ae64cb819a9a..9019c9caf146 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
 @@ -44,6 +44,7 @@
@@ -151,7 +151,7 @@ index fa49cd753dea..bbe24e241643 100644
  			raw_spin_lock_irq(&base->lock);
  		}
  	}
-@@ -1681,8 +1715,8 @@ static inline void __run_timers(struct timer_base *base)
+@@ -1683,8 +1717,8 @@ static inline void __run_timers(struct timer_base *base)
  		while (levels--)
  			expire_timers(base, heads + levels);
  	}
@@ -161,7 +161,7 @@ index fa49cd753dea..bbe24e241643 100644
  }
  
  /*
-@@ -1927,6 +1961,9 @@ static void __init init_timer_cpu(int cpu)
+@@ -1929,6 +1963,9 @@ static void __init init_timer_cpu(int cpu)
  		base->cpu = cpu;
  		raw_spin_lock_init(&base->lock);
  		base->clk = jiffies;
@@ -172,5 +172,5 @@ index fa49cd753dea..bbe24e241643 100644
  }
  
 -- 
-2.20.1
+2.24.1
 

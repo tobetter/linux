@@ -1,8 +1,8 @@
-From 882c4f88db8d6179773dc733e794fa504aef75e3 Mon Sep 17 00:00:00 2001
+From 280627bfccdc36087f174418d56e57d027552a14 Mon Sep 17 00:00:00 2001
 From: Marc Kleine-Budde <mkl@pengutronix.de>
 Date: Wed, 5 Mar 2014 00:49:47 +0100
-Subject: [PATCH 033/283] net: sched: Use msleep() instead of yield()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 033/290] net: sched: Use msleep() instead of yield()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 On PREEMPT_RT enabled systems the interrupt handler run as threads at prio 50
 (by default). If a high priority userspace process tries to shut down a busy
@@ -47,10 +47,10 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/net/sched/sch_generic.c b/net/sched/sch_generic.c
-index 77b289da7763..31b9c2b415b4 100644
+index 8a4d01e427a2..4ab20f1138fd 100644
 --- a/net/sched/sch_generic.c
 +++ b/net/sched/sch_generic.c
-@@ -1183,7 +1183,7 @@ void dev_deactivate_many(struct list_head *head)
+@@ -1204,7 +1204,7 @@ void dev_deactivate_many(struct list_head *head)
  	/* Wait for outstanding qdisc_run calls. */
  	list_for_each_entry(dev, head, close_list) {
  		while (some_qdisc_is_busy(dev))
@@ -60,5 +60,5 @@ index 77b289da7763..31b9c2b415b4 100644
  		 * unwind stale skb lists and qdisc statistics
  		 */
 -- 
-2.20.1
+2.24.1
 

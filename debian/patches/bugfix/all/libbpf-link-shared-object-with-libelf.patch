@@ -11,7 +11,7 @@ Index: linux/tools/lib/bpf/Makefile
 ===================================================================
 --- linux.orig/tools/lib/bpf/Makefile
 +++ linux/tools/lib/bpf/Makefile
-@@ -161,7 +161,7 @@ $(BPF_IN): force elfdep bpfdep
+@@ -170,7 +170,7 @@ $(BPF_IN): force elfdep bpfdep
  	$(Q)$(MAKE) $(build)=libbpf
  
  $(OUTPUT)libbpf.so.$(LIBBPF_VERSION): $(BPF_IN)

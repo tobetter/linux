@@ -28,9 +28,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  arch/x86/include/asm/unistd.h                   |    4 +-
  7 files changed, 80 insertions(+), 5 deletions(-)
 
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -4142,6 +4142,10 @@
+Index: linux/Documentation/admin-guide/kernel-parameters.txt
+===================================================================
+--- linux.orig/Documentation/admin-guide/kernel-parameters.txt
++++ linux/Documentation/admin-guide/kernel-parameters.txt
+@@ -4501,6 +4501,10 @@
  
  	switches=	[HW,M68k]
  
@@ -41,9 +43,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  	sysfs.deprecated=0|1 [KNL]
  			Enable/disable old style sysfs layout for old udev
  			on older distributions. When this option is enabled
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -2910,6 +2910,14 @@ config COMPAT_32
+Index: linux/arch/x86/Kconfig
+===================================================================
+--- linux.orig/arch/x86/Kconfig
++++ linux/arch/x86/Kconfig
+@@ -2884,6 +2884,14 @@ config COMPAT_32
  	select HAVE_UID16
  	select OLD_SIGSUSPEND3
  
@@ -58,9 +62,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  config COMPAT
  	def_bool y
  	depends on IA32_EMULATION || X86_X32
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -281,12 +281,21 @@ __visible void do_syscall_64(unsigned lo
+Index: linux/arch/x86/entry/common.c
+===================================================================
+--- linux.orig/arch/x86/entry/common.c
++++ linux/arch/x86/entry/common.c
+@@ -287,12 +287,21 @@ __visible void do_syscall_64(unsigned lo
  	 * table.  The only functional difference is the x32 bit in
  	 * regs->orig_ax, which changes the behavior of some syscalls.
  	 */
@@ -85,8 +91,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  	syscall_return_slowpath(regs);
  }
  #endif
---- a/arch/x86/entry/syscall_64.c
-+++ b/arch/x86/entry/syscall_64.c
+Index: linux/arch/x86/entry/syscall_64.c
+===================================================================
+--- linux.orig/arch/x86/entry/syscall_64.c
++++ linux/arch/x86/entry/syscall_64.c
 @@ -4,6 +4,9 @@
  #include <linux/linkage.h>
  #include <linux/sys.h>
@@ -148,8 +156,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 +arch_param_cb(x32, &x32_param_ops, NULL, 0444);
 +
 +#endif
---- a/arch/x86/include/asm/elf.h
-+++ b/arch/x86/include/asm/elf.h
+Index: linux/arch/x86/include/asm/elf.h
+===================================================================
+--- linux.orig/arch/x86/include/asm/elf.h
++++ linux/arch/x86/include/asm/elf.h
 @@ -10,6 +10,7 @@
  #include <asm/ptrace.h>
  #include <asm/user.h>
@@ -168,8 +178,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  #if __USER32_DS != __USER_DS
  # error "The following code assumes __USER32_DS == __USER_DS"
---- a/arch/x86/include/asm/syscall.h
-+++ b/arch/x86/include/asm/syscall.h
+Index: linux/arch/x86/include/asm/syscall.h
+===================================================================
+--- linux.orig/arch/x86/include/asm/syscall.h
++++ linux/arch/x86/include/asm/syscall.h
 @@ -16,6 +16,7 @@
  #include <uapi/linux/audit.h>
  #include <linux/sched.h>
@@ -197,8 +209,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  /*
   * Only the low 32 bits of orig_ax are meaningful, so we return int.
   * This importantly ignores the high bits on 64-bit, so comparisons
---- a/arch/x86/include/asm/unistd.h
-+++ b/arch/x86/include/asm/unistd.h
+Index: linux/arch/x86/include/asm/unistd.h
+===================================================================
+--- linux.orig/arch/x86/include/asm/unistd.h
++++ linux/arch/x86/include/asm/unistd.h
 @@ -6,9 +6,9 @@
  
  

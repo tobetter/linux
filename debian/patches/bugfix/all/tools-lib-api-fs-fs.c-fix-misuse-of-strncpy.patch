@@ -18,8 +18,10 @@ terminated.  Use strlcpy() instead.
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/tools/lib/api/fs/fs.c
-+++ b/tools/lib/api/fs/fs.c
+Index: linux/tools/lib/api/fs/fs.c
+===================================================================
+--- linux.orig/tools/lib/api/fs/fs.c
++++ linux/tools/lib/api/fs/fs.c
 @@ -12,6 +12,7 @@
  #include <fcntl.h>
  #include <unistd.h>

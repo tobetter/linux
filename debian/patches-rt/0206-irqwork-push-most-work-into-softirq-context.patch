@@ -1,8 +1,8 @@
-From b1507e25e704c438e660c5c1825ec806b158f556 Mon Sep 17 00:00:00 2001
+From 6b96ba989ad06199b33100cf7469ebeae299a21e Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 23 Jun 2015 15:32:51 +0200
-Subject: [PATCH 206/283] irqwork: push most work into softirq context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 206/290] irqwork: push most work into softirq context
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Initially we defered all irqwork into softirq because we didn't want the
 latency spikes if perf or another user was busy and delayed the RT task.
@@ -223,7 +223,7 @@ index f162a4f54b05..278fe66bfb70 100644
  			rdp->rcu_iw_gp_seq = rnp->gp_seq;
  			irq_work_queue_on(&rdp->rcu_iw, rdp->cpu);
 diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
-index c0a751464971..6e95f1ca3e22 100644
+index 74b694392f2f..fb4d11bab6b7 100644
 --- a/kernel/sched/topology.c
 +++ b/kernel/sched/topology.c
 @@ -279,6 +279,7 @@ static int init_rootdomain(struct root_domain *rd)
@@ -247,10 +247,10 @@ index 6482945f8ae8..da4a3f8feb56 100644
  
  /*
 diff --git a/kernel/time/timer.c b/kernel/time/timer.c
-index 696e7583137c..781483c76b17 100644
+index 3fab1c50bf1b..2fcd56aa6092 100644
 --- a/kernel/time/timer.c
 +++ b/kernel/time/timer.c
-@@ -1733,6 +1733,8 @@ static __latent_entropy void run_timer_softirq(struct softirq_action *h)
+@@ -1735,6 +1735,8 @@ static __latent_entropy void run_timer_softirq(struct softirq_action *h)
  {
  	struct timer_base *base = this_cpu_ptr(&timer_bases[BASE_STD]);
  
@@ -260,5 +260,5 @@ index 696e7583137c..781483c76b17 100644
  	if (IS_ENABLED(CONFIG_NO_HZ_COMMON))
  		__run_timers(this_cpu_ptr(&timer_bases[BASE_DEF]));
 -- 
-2.20.1
+2.24.1
 

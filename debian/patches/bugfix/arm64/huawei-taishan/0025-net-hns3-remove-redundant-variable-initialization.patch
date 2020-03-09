@@ -13,11 +13,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
-index 5570fb5dc2eb..dca51d9cfa4f 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
-@@ -1360,7 +1360,7 @@ static int hclgevf_configure(struct hclgevf_dev *hdev)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3vf/hclgevf_main.c
+@@ -1360,7 +1360,7 @@ static int hclgevf_configure(struct hclg
  static int hclgevf_alloc_hdev(struct hnae3_ae_dev *ae_dev)
  {
  	struct pci_dev *pdev = ae_dev->pdev;
@@ -26,6 +26,3 @@ index 5570fb5dc2eb..dca51d9cfa4f 100644
  
  	hdev = devm_kzalloc(&pdev->dev, sizeof(*hdev), GFP_KERNEL);
  	if (!hdev)
--- 
-2.20.1
-

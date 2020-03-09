@@ -17,10 +17,10 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c | 29 +++++++++++++++++++++-----
  1 file changed, 24 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index 1d0896959fbb..b70190936f1b 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
 @@ -42,6 +42,7 @@
  #define MAX_CON_TIME_LIMIT_TIME		0xa4
  #define BUS_INACTIVE_LIMIT_TIME		0xa8
@@ -39,7 +39,7 @@ index 1d0896959fbb..b70190936f1b 100644
  static u32 hisi_sas_read32(struct hisi_hba *hisi_hba, u32 off)
  {
  	void __iomem *regs = hisi_hba->regs + off;
-@@ -436,6 +440,8 @@ static void init_reg_v3_hw(struct hisi_hba *hisi_hba)
+@@ -436,6 +440,8 @@ static void init_reg_v3_hw(struct hisi_h
  	hisi_sas_write32(hisi_hba, INT_COAL_EN, 0x1);
  	hisi_sas_write32(hisi_hba, OQ_INT_COAL_TIME, 0x1);
  	hisi_sas_write32(hisi_hba, OQ_INT_COAL_CNT, 0x1);
@@ -48,7 +48,7 @@ index 1d0896959fbb..b70190936f1b 100644
  	hisi_sas_write32(hisi_hba, OQ_INT_SRC, 0xffff);
  	hisi_sas_write32(hisi_hba, ENT_INT_SRC1, 0xffffffff);
  	hisi_sas_write32(hisi_hba, ENT_INT_SRC2, 0xffffffff);
-@@ -1878,10 +1884,12 @@ static int interrupt_init_v3_hw(struct hisi_hba *hisi_hba)
+@@ -1878,10 +1884,12 @@ static int interrupt_init_v3_hw(struct h
  	for (i = 0; i < hisi_hba->queue_count; i++) {
  		struct hisi_sas_cq *cq = &hisi_hba->cq[i];
  		struct tasklet_struct *t = &cq->tasklet;
@@ -64,7 +64,7 @@ index 1d0896959fbb..b70190936f1b 100644
  		if (rc) {
  			dev_err(dev,
  				"could not request cq%d interrupt, rc=%d\n",
-@@ -1898,8 +1906,9 @@ static int interrupt_init_v3_hw(struct hisi_hba *hisi_hba)
+@@ -1898,8 +1906,9 @@ static int interrupt_init_v3_hw(struct h
  free_cq_irqs:
  	for (k = 0; k < i; k++) {
  		struct hisi_sas_cq *cq = &hisi_hba->cq[k];
@@ -75,7 +75,7 @@ index 1d0896959fbb..b70190936f1b 100644
  	}
  	free_irq(pci_irq_vector(pdev, 11), hisi_hba);
  free_chnl_interrupt:
-@@ -2089,8 +2098,16 @@ static void wait_cmds_complete_timeout_v3_hw(struct hisi_hba *hisi_hba,
+@@ -2089,8 +2098,16 @@ static void wait_cmds_complete_timeout_v
  	dev_dbg(dev, "wait commands complete %dms\n", time);
  }
  
@@ -92,7 +92,7 @@ index 1d0896959fbb..b70190936f1b 100644
  	NULL
  };
  
-@@ -2303,8 +2320,9 @@ hisi_sas_v3_destroy_irqs(struct pci_dev *pdev, struct hisi_hba *hisi_hba)
+@@ -2303,8 +2320,9 @@ hisi_sas_v3_destroy_irqs(struct pci_dev
  	free_irq(pci_irq_vector(pdev, 11), hisi_hba);
  	for (i = 0; i < hisi_hba->queue_count; i++) {
  		struct hisi_sas_cq *cq = &hisi_hba->cq[i];
@@ -103,7 +103,7 @@ index 1d0896959fbb..b70190936f1b 100644
  	}
  	pci_free_irq_vectors(pdev);
  }
-@@ -2626,6 +2644,7 @@ static struct pci_driver sas_v3_pci_driver = {
+@@ -2626,6 +2644,7 @@ static struct pci_driver sas_v3_pci_driv
  };
  
  module_pci_driver(sas_v3_pci_driver);
@@ -111,6 +111,3 @@ index 1d0896959fbb..b70190936f1b 100644
  
  MODULE_LICENSE("GPL");
  MODULE_AUTHOR("John Garry <john.garry@huawei.com>");
--- 
-2.20.1
-

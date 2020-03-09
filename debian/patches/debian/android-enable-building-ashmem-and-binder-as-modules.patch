@@ -14,8 +14,10 @@ need them.
 - Change config symbol types to tristate
 
 ---
---- a/drivers/android/Kconfig
-+++ b/drivers/android/Kconfig
+Index: linux/drivers/android/Kconfig
+===================================================================
+--- linux.orig/drivers/android/Kconfig
++++ linux/drivers/android/Kconfig
 @@ -9,7 +9,7 @@ config ANDROID
  if ANDROID
  
@@ -25,8 +27,10 @@ need them.
  	depends on MMU
  	default n
  	---help---
---- a/drivers/android/Makefile
-+++ b/drivers/android/Makefile
+Index: linux/drivers/android/Makefile
+===================================================================
+--- linux.orig/drivers/android/Makefile
++++ linux/drivers/android/Makefile
 @@ -1,4 +1,5 @@
  ccflags-y += -I$(src)			# needed for trace events
  
@@ -35,8 +39,10 @@ need them.
 +obj-$(CONFIG_ANDROID_BINDER_IPC)	+= binder_linux.o
 +binder_linux-y := binder.o binder_alloc.o
 +binder_linux-$(CONFIG_ANDROID_BINDER_IPC_SELFTEST) += binder_alloc_selftest.o
---- a/drivers/staging/android/Kconfig
-+++ b/drivers/staging/android/Kconfig
+Index: linux/drivers/staging/android/Kconfig
+===================================================================
+--- linux.orig/drivers/staging/android/Kconfig
++++ linux/drivers/staging/android/Kconfig
 @@ -3,7 +3,7 @@ menu "Android"
  if ANDROID
  
@@ -46,8 +52,10 @@ need them.
  	default n
  	depends on SHMEM
  	help
---- a/drivers/staging/android/Makefile
-+++ b/drivers/staging/android/Makefile
+Index: linux/drivers/staging/android/Makefile
+===================================================================
+--- linux.orig/drivers/staging/android/Makefile
++++ linux/drivers/staging/android/Makefile
 @@ -2,5 +2,6 @@ ccflags-y += -I$(src)			# needed for tra
  
  obj-y					+= ion/
@@ -56,8 +64,10 @@ need them.
 +obj-$(CONFIG_ASHMEM)			+= ashmem_linux.o
 +ashmem_linux-y += ashmem.o
  obj-$(CONFIG_ANDROID_VSOC)		+= vsoc.o
---- a/drivers/staging/android/ashmem.c
-+++ b/drivers/staging/android/ashmem.c
+Index: linux/drivers/staging/android/ashmem.c
+===================================================================
+--- linux.orig/drivers/staging/android/ashmem.c
++++ linux/drivers/staging/android/ashmem.c
 @@ -24,6 +24,7 @@
  #include <linux/bitops.h>
  #include <linux/mutex.h>
@@ -66,14 +76,16 @@ need them.
  #include "ashmem.h"
  
  #define ASHMEM_NAME_PREFIX "dev/ashmem/"
-@@ -903,3 +904,5 @@ out:
+@@ -924,3 +925,5 @@ out:
  	return ret;
  }
  device_initcall(ashmem_init);
 +
 +MODULE_LICENSE("GPL v2");
---- a/drivers/android/binder_alloc.c
-+++ b/drivers/android/binder_alloc.c
+Index: linux/drivers/android/binder_alloc.c
+===================================================================
+--- linux.orig/drivers/android/binder_alloc.c
++++ linux/drivers/android/binder_alloc.c
 @@ -44,7 +44,7 @@ enum {
  };
  static uint32_t binder_alloc_debug_mask = BINDER_DEBUG_USER_ERROR;

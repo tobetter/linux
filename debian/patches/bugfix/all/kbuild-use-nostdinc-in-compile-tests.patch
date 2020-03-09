@@ -20,8 +20,10 @@ References: https://bugs.debian.org/717557
 References: https://bugs.debian.org/726861
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/scripts/Kbuild.include
-+++ b/scripts/Kbuild.include
+Index: linux/scripts/Kbuild.include
+===================================================================
+--- linux.orig/scripts/Kbuild.include
++++ linux/scripts/Kbuild.include
 @@ -121,7 +121,7 @@ CC_OPTION_CFLAGS = $(filter-out $(GCC_PL
  # Usage: cflags-y += $(call cc-option,-march=winchip-c6,-march=i586)
  
@@ -60,7 +62,7 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  # cc-ifversion
  # Usage:  EXTRA_CFLAGS += $(call cc-ifversion, -lt, 0402, -O1)
-@@ -160,7 +161,7 @@ cc-if-fullversion = $(shell [ $(cc-fullv
+@@ -156,7 +157,7 @@ cc-ifversion = $(shell [ $(cc-version) $
  # cc-ldoption
  # Usage: ldflags += $(call cc-ldoption, -Wl$(comma)--hash-style=both)
  cc-ldoption = $(call try-run,\
@@ -69,9 +71,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  # ld-option
  # Usage: KBUILD_LDFLAGS += $(call ld-option, -X, -Y)
---- a/Makefile
-+++ b/Makefile
-@@ -675,6 +675,8 @@ endif
+Index: linux/Makefile
+===================================================================
+--- linux.orig/Makefile
++++ linux/Makefile
+@@ -668,6 +668,8 @@ endif
  KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
  			$(call cc-disable-warning,maybe-uninitialized,))
  
@@ -80,7 +84,7 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  # Tell gcc to never replace conditional load with a non-conditional one
  KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
  
-@@ -798,7 +800,7 @@ LDFLAGS_vmlinux += --gc-sections
+@@ -787,7 +789,7 @@ LDFLAGS_vmlinux += --gc-sections
  endif
  
  # arch Makefile may override CC so keep this after arch Makefile is included

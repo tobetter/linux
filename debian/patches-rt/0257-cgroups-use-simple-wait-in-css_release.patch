@@ -1,8 +1,8 @@
-From bd17886ee0bbb3d61ca16373b799a2e9f4f71fb3 Mon Sep 17 00:00:00 2001
+From b59ff060d2629b8e98f80af20df9e89d4aa31c5d Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 13 Feb 2015 15:52:24 +0100
-Subject: [PATCH 257/283] cgroups: use simple wait in css_release()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 257/290] cgroups: use simple wait in css_release()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 To avoid:
 |BUG: sleeping function called from invalid context at kernel/locking/rtmutex.c:914
@@ -35,7 +35,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  2 files changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/include/linux/cgroup-defs.h b/include/linux/cgroup-defs.h
-index a6090154b2ab..46a706e2ba35 100644
+index a01ebb630abc..34fb541e90be 100644
 --- a/include/linux/cgroup-defs.h
 +++ b/include/linux/cgroup-defs.h
 @@ -20,6 +20,7 @@
@@ -55,10 +55,10 @@ index a6090154b2ab..46a706e2ba35 100644
  
  	/*
 diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
-index 81441117f611..7b536796daf8 100644
+index 78ef274b036e..30dd5754e62e 100644
 --- a/kernel/cgroup/cgroup.c
 +++ b/kernel/cgroup/cgroup.c
-@@ -4628,10 +4628,10 @@ static void css_free_rwork_fn(struct work_struct *work)
+@@ -4666,10 +4666,10 @@ static void css_free_rwork_fn(struct work_struct *work)
  	}
  }
  
@@ -71,7 +71,7 @@ index 81441117f611..7b536796daf8 100644
  	struct cgroup_subsys *ss = css->ss;
  	struct cgroup *cgrp = css->cgroup;
  
-@@ -4693,8 +4693,8 @@ static void css_release(struct percpu_ref *ref)
+@@ -4731,8 +4731,8 @@ static void css_release(struct percpu_ref *ref)
  	struct cgroup_subsys_state *css =
  		container_of(ref, struct cgroup_subsys_state, refcnt);
  
@@ -82,7 +82,7 @@ index 81441117f611..7b536796daf8 100644
  }
  
  static void init_and_link_css(struct cgroup_subsys_state *css,
-@@ -5420,6 +5420,7 @@ static int __init cgroup_wq_init(void)
+@@ -5458,6 +5458,7 @@ static int __init cgroup_wq_init(void)
  	 */
  	cgroup_destroy_wq = alloc_workqueue("cgroup_destroy", 0, 1);
  	BUG_ON(!cgroup_destroy_wq);
@@ -91,5 +91,5 @@ index 81441117f611..7b536796daf8 100644
  }
  core_initcall(cgroup_wq_init);
 -- 
-2.20.1
+2.24.1
 

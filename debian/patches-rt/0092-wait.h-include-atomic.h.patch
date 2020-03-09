@@ -1,11 +1,11 @@
-From 88037fc07062d469557427c97507d3f95d7ca3a6 Mon Sep 17 00:00:00 2001
+From 0aafaa8df18cf87cf491f2592b9c378667766a62 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Mon, 28 Oct 2013 12:19:57 +0100
-Subject: [PATCH 092/283] wait.h: include atomic.h
+Subject: [PATCH 092/290] wait.h: include atomic.h
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 |  CC      init/main.o
 |In file included from include/linux/mmzone.h:9:0,
@@ -38,5 +38,5 @@ index ed7c122cb31f..2b5ef8e94d19 100644
  typedef struct wait_queue_entry wait_queue_entry_t;
  
 -- 
-2.20.1
+2.24.1
 

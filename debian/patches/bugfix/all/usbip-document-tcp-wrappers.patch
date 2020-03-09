@@ -5,8 +5,10 @@ Forwarded: no
 
 Add references to TCP wrappers configuration in the manual page.
 
---- a/tools/usb/usbip/doc/usbipd.8
-+++ b/tools/usb/usbip/doc/usbipd.8
+Index: linux/tools/usb/usbip/doc/usbipd.8
+===================================================================
+--- linux.orig/tools/usb/usbip/doc/usbipd.8
++++ linux/tools/usb/usbip/doc/usbipd.8
 @@ -14,7 +14,8 @@ Devices have to explicitly be exported u
  before usbipd makes them available to other hosts.
  

@@ -14,10 +14,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
-index 398971a062f4..a75b70ce41f8 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
 @@ -14,7 +14,7 @@
  					 SUPPORTED_Asym_Pause | \
  					 PHY_10BT_FEATURES | \
@@ -27,6 +27,3 @@ index 398971a062f4..a75b70ce41f8 100644
  
  enum hclge_mdio_c22_op_seq {
  	HCLGE_MDIO_C22_WRITE = 1,
--- 
-2.20.1
-

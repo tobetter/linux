@@ -10,8 +10,10 @@ doesn't even seem to have been submitted yet.  For now, refer to the
 Debian wiki.
 
 ---
---- a/security/lock_down.c
-+++ b/security/lock_down.c
+Index: linux/security/lock_down.c
+===================================================================
+--- linux.orig/security/lock_down.c
++++ linux/security/lock_down.c
 @@ -28,7 +28,7 @@ static void __init lock_kernel_down(cons
  {
  	if (!kernel_locked_down) {

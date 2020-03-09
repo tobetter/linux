@@ -14,11 +14,11 @@ Signed-off-by: Chen-Yu Tsai <wens@csie.org>
  arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
-index bf9b719481c4..8171c0a7f265 100644
---- a/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
-+++ b/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
-@@ -200,6 +200,7 @@
+Index: linux/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
+===================================================================
+--- linux.orig/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
++++ linux/arch/arm64/boot/dts/allwinner/sun50i-a64.dtsi
+@@ -159,6 +159,7 @@
  
  	timer {
  		compatible = "arm,armv8-timer";

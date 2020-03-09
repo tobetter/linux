@@ -1,0 +1,39 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Sun, 23 Jun 2019 10:11:10 +0300
+Subject: [PATCH] net: ena: Fix bug where ring allocation backoff stopped too
+ late
+Origin: https://git.kernel.org/linus/3e5bfb189e1a65df132fd0e3fa00fbb6feec1431
+Bug-Debian: https://bugs.debian.org/941291
+
+The current code of create_queues_with_size_backoff() allows the ring size
+to become as small as ENA_MIN_RING_SIZE/2. This is a bug since we don't
+want the queue ring to be smaller than ENA_MIN_RING_SIZE
+
+In this commit we change the loop's termination condition to look at the
+queue size of the next iteration instead of that of the current one,
+so that the minimal queue size again becomes ENA_MIN_RING_SIZE.
+
+Fixes: eece4d2ab9d2 ("net: ena: add ethtool function for changing io queue sizes")
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_netdev.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -1836,8 +1836,8 @@ err_setup_tx:
+ 		if (cur_rx_ring_size >= cur_tx_ring_size)
+ 			new_rx_ring_size = cur_rx_ring_size / 2;
+ 
+-		if (cur_tx_ring_size < ENA_MIN_RING_SIZE ||
+-		    cur_rx_ring_size < ENA_MIN_RING_SIZE) {
++		if (new_tx_ring_size < ENA_MIN_RING_SIZE ||
++		    new_rx_ring_size < ENA_MIN_RING_SIZE) {
+ 			netif_err(adapter, ifup, adapter->netdev,
+ 				  "Queue creation failed with the smallest possible queue size of %d for both queues. Not retrying with smaller queues\n",
+ 				  ENA_MIN_RING_SIZE);

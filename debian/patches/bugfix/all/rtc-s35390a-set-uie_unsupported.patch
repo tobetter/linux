@@ -14,11 +14,11 @@ Signed-off-by: Alexandre Belloni <alexandre.belloni@bootlin.com>
  drivers/rtc/rtc-s35390a.c | 6 ++++++
  1 file changed, 6 insertions(+)
 
-diff --git a/drivers/rtc/rtc-s35390a.c b/drivers/rtc/rtc-s35390a.c
-index fb795c454077..4ca37f281ed9 100644
---- a/drivers/rtc/rtc-s35390a.c
-+++ b/drivers/rtc/rtc-s35390a.c
-@@ -289,6 +289,9 @@ static int s35390a_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alm)
+Index: linux/drivers/rtc/rtc-s35390a.c
+===================================================================
+--- linux.orig/drivers/rtc/rtc-s35390a.c
++++ linux/drivers/rtc/rtc-s35390a.c
+@@ -288,6 +288,9 @@ static int s35390a_rtc_set_alarm(struct
  		alm->time.tm_min, alm->time.tm_hour, alm->time.tm_mday,
  		alm->time.tm_mon, alm->time.tm_year, alm->time.tm_wday);
  
@@ -28,7 +28,7 @@ index fb795c454077..4ca37f281ed9 100644
  	/* disable interrupt (which deasserts the irq line) */
  	err = s35390a_set_reg(s35390a, S35390A_CMD_STATUS2, &sts, sizeof(sts));
  	if (err < 0)
-@@ -500,6 +503,9 @@ static int s35390a_probe(struct i2c_client *client,
+@@ -502,6 +505,9 @@ static int s35390a_probe(struct i2c_clie
  		goto exit_dummy;
  	}
  
@@ -38,6 +38,3 @@ index fb795c454077..4ca37f281ed9 100644
  	if (status1 & S35390A_FLAG_INT2)
  		rtc_update_irq(s35390a->rtc, 1, RTC_AF);
  
--- 
-2.20.1
-

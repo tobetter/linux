@@ -1,8 +1,8 @@
-From dbd3e75fbbecfbb79a264b7c2b8f092d4671dfaa Mon Sep 17 00:00:00 2001
+From 5fc0ce79ee0183b4033b86d6824ee0463b6cfa3f Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 13 Feb 2013 11:03:11 +0100
-Subject: [PATCH 219/283] arm: Enable highmem for rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 219/290] arm: Enable highmem for rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 fixup highmem for ARM.
 
@@ -180,5 +180,5 @@ index 1ac89e4718bf..eaa2ef9bc10e 100644
  #include <asm/cacheflush.h>
  
 -- 
-2.20.1
+2.24.1
 

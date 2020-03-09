@@ -16,10 +16,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.c  |  6 +-
  3 files changed, 128 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-index d735164efea3..b439ec1b3edb 100644
---- a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
 @@ -74,6 +74,8 @@ enum ena_admin_aq_feature_id {
  
  	ENA_ADMIN_HW_HINTS			= 3,
@@ -29,7 +29,7 @@ index d735164efea3..b439ec1b3edb 100644
  	ENA_ADMIN_RSS_HASH_FUNCTION		= 10,
  
  	ENA_ADMIN_STATELESS_OFFLOAD_CONFIG	= 11,
-@@ -485,8 +487,85 @@ struct ena_admin_device_attr_feature_desc {
+@@ -485,8 +487,85 @@ struct ena_admin_device_attr_feature_des
  	u32 max_mtu;
  };
  
@@ -147,10 +147,10 @@ index d735164efea3..b439ec1b3edb 100644
  	} u;
  };
  
-diff --git a/drivers/net/ethernet/amazon/ena/ena_com.h b/drivers/net/ethernet/amazon/ena/ena_com.h
-index 7b784f8a06a6..50e6c8f6f138 100644
---- a/drivers/net/ethernet/amazon/ena/ena_com.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_com.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
 @@ -108,6 +108,14 @@ enum ena_intr_moder_level {
  	ENA_INTR_MAX_NUM_OF_LEVELS,
  };
@@ -238,11 +238,11 @@ index 7b784f8a06a6..50e6c8f6f138 100644
  };
  
  struct ena_com_create_io_ctx {
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 0c9c0d3ce856..789556960b8e 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -2959,7 +2959,7 @@ static int ena_calc_io_queue_num(struct pci_dev *pdev,
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -2959,7 +2959,7 @@ static int ena_calc_io_queue_num(struct
  
  	/* In case of LLQ use the llq number in the get feature cmd */
  	if (ena_dev->tx_mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_DEV) {
@@ -251,7 +251,7 @@ index 0c9c0d3ce856..789556960b8e 100644
  
  		if (io_sq_num == 0) {
  			dev_err(&pdev->dev,
-@@ -2995,7 +2995,7 @@ static void ena_set_push_mode(struct pci_dev *pdev, struct ena_com_dev *ena_dev,
+@@ -2995,7 +2995,7 @@ static void ena_set_push_mode(struct pci
  	has_mem_bar = pci_select_bars(pdev, IORESOURCE_MEM) & BIT(ENA_MEM_BAR);
  
  	/* Enable push mode if device supports LLQ */
@@ -260,7 +260,7 @@ index 0c9c0d3ce856..789556960b8e 100644
  		ena_dev->tx_mem_queue_type = ENA_ADMIN_PLACEMENT_POLICY_DEV;
  	else
  		ena_dev->tx_mem_queue_type = ENA_ADMIN_PLACEMENT_POLICY_HOST;
-@@ -3131,7 +3131,7 @@ static int ena_calc_queue_size(struct pci_dev *pdev,
+@@ -3131,7 +3131,7 @@ static int ena_calc_queue_size(struct pc
  
  	if (ena_dev->tx_mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_DEV)
  		queue_size = min_t(u32, queue_size,
@@ -269,6 +269,3 @@ index 0c9c0d3ce856..789556960b8e 100644
  
  	queue_size = rounddown_pow_of_two(queue_size);
  
--- 
-2.19.2
-

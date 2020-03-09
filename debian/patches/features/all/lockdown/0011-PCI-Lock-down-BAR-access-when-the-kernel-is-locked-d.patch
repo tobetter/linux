@@ -20,9 +20,11 @@ cc: linux-pci@vger.kernel.org
  drivers/pci/syscall.c   | 3 ++-
  3 files changed, 19 insertions(+), 2 deletions(-)
 
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -930,6 +930,9 @@ static ssize_t pci_write_config(struct f
+Index: linux/drivers/pci/pci-sysfs.c
+===================================================================
+--- linux.orig/drivers/pci/pci-sysfs.c
++++ linux/drivers/pci/pci-sysfs.c
+@@ -905,6 +905,9 @@ static ssize_t pci_write_config(struct f
  	loff_t init_off = off;
  	u8 *data = (u8 *) buf;
  
@@ -32,7 +34,7 @@ cc: linux-pci@vger.kernel.org
  	if (off > dev->cfg_size)
  		return 0;
  	if (off + count > dev->cfg_size) {
-@@ -1224,6 +1227,9 @@ static int pci_mmap_resource(struct kobj
+@@ -1167,6 +1170,9 @@ static int pci_mmap_resource(struct kobj
  	enum pci_mmap_state mmap_type;
  	struct resource *res = &pdev->resource[bar];
  
@@ -42,7 +44,7 @@ cc: linux-pci@vger.kernel.org
  	if (res->flags & IORESOURCE_MEM && iomem_is_exclusive(res->start))
  		return -EINVAL;
  
-@@ -1299,6 +1305,9 @@ static ssize_t pci_write_resource_io(str
+@@ -1242,6 +1248,9 @@ static ssize_t pci_write_resource_io(str
  				     struct bin_attribute *attr, char *buf,
  				     loff_t off, size_t count)
  {
@@ -52,8 +54,10 @@ cc: linux-pci@vger.kernel.org
  	return pci_resource_io(filp, kobj, attr, buf, off, count, true);
  }
  
---- a/drivers/pci/proc.c
-+++ b/drivers/pci/proc.c
+Index: linux/drivers/pci/proc.c
+===================================================================
+--- linux.orig/drivers/pci/proc.c
++++ linux/drivers/pci/proc.c
 @@ -117,6 +117,9 @@ static ssize_t proc_bus_pci_write(struct
  	int size = dev->cfg_size;
  	int cnt;
@@ -84,9 +88,11 @@ cc: linux-pci@vger.kernel.org
  		return -EPERM;
  
  	if (fpriv->mmap_state == pci_mmap_io) {
---- a/drivers/pci/syscall.c
-+++ b/drivers/pci/syscall.c
-@@ -93,7 +93,8 @@ SYSCALL_DEFINE5(pciconfig_write, unsigne
+Index: linux/drivers/pci/syscall.c
+===================================================================
+--- linux.orig/drivers/pci/syscall.c
++++ linux/drivers/pci/syscall.c
+@@ -90,7 +90,8 @@ SYSCALL_DEFINE5(pciconfig_write, unsigne
  	u32 dword;
  	int err = 0;
  

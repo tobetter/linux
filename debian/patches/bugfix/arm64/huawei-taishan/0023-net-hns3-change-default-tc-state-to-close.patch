@@ -15,11 +15,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-index 79232f584531..8cc08ffee76f 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-@@ -1201,7 +1201,7 @@ static int hclge_configure(struct hclge_dev *hdev)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -1200,7 +1200,7 @@ static int hclge_configure(struct hclge_
  		hdev->pfc_max = hdev->tc_max;
  	}
  
@@ -28,6 +28,3 @@ index 79232f584531..8cc08ffee76f 100644
  
  	/* Currently not support uncontiuous tc */
  	for (i = 0; i < hdev->tm_info.num_tc; i++)
--- 
-2.20.1
-

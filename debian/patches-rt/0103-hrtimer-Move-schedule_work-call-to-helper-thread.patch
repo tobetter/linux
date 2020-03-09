@@ -1,8 +1,8 @@
-From 73842c09ad741a2814a0df56dccd630cbd503cf9 Mon Sep 17 00:00:00 2001
+From 1669cbc2eb152b7ae7f94cb966fbfd888a191cc8 Mon Sep 17 00:00:00 2001
 From: Yang Shi <yang.shi@windriver.com>
 Date: Mon, 16 Sep 2013 14:09:19 -0700
-Subject: [PATCH 103/283] hrtimer: Move schedule_work call to helper thread
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 103/290] hrtimer: Move schedule_work call to helper thread
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 When run ltp leapsec_timer test, the following call trace is caught:
 
@@ -52,7 +52,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 24 insertions(+)
 
 diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
-index abf24e60b6e8..c72eb8bfc471 100644
+index 1fd5ec39e7f4..9f3412acdb16 100644
 --- a/kernel/time/hrtimer.c
 +++ b/kernel/time/hrtimer.c
 @@ -730,6 +730,29 @@ static void hrtimer_switch_to_hres(void)
@@ -94,5 +94,5 @@ index abf24e60b6e8..c72eb8bfc471 100644
  #else
  
 -- 
-2.20.1
+2.24.1
 

@@ -1,9 +1,9 @@
-From 1f38c3b121feba50524996f2cceb92eb47269e52 Mon Sep 17 00:00:00 2001
+From 5f103966da617ccbc58a5db958144f55725dd823 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 28 May 2019 10:42:15 +0200
-Subject: [PATCH 270/283] genirq: Handle missing work_struct in
+Subject: [PATCH 270/290] genirq: Handle missing work_struct in
  irq_set_affinity_notifier()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 [ Upstream commit bbc4d2a7d6ff54ba923640d9a42c7bef7185fe98 ]
 
@@ -22,10 +22,10 @@ Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
-index 381305c48a0a..b2736d7d863b 100644
+index d5539e04e00a..290cd520dba1 100644
 --- a/kernel/irq/manage.c
 +++ b/kernel/irq/manage.c
-@@ -385,8 +385,9 @@ irq_set_affinity_notifier(unsigned int irq, struct irq_affinity_notify *notify)
+@@ -411,8 +411,9 @@ irq_set_affinity_notifier(unsigned int irq, struct irq_affinity_notify *notify)
  	raw_spin_unlock_irqrestore(&desc->lock, flags);
  
  	if (old_notify) {
@@ -38,5 +38,5 @@ index 381305c48a0a..b2736d7d863b 100644
  #endif
  		kref_put(&old_notify->kref, old_notify->release);
 -- 
-2.20.1
+2.24.1
 

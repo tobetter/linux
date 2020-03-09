@@ -6,8 +6,10 @@ Forwarded: not-needed
 We want to provide the option of autogrouping but without enabling
 it by default yet.
 
---- a/kernel/sched/autogroup.c
-+++ b/kernel/sched/autogroup.c
+Index: linux/kernel/sched/autogroup.c
+===================================================================
+--- linux.orig/kernel/sched/autogroup.c
++++ linux/kernel/sched/autogroup.c
 @@ -5,7 +5,7 @@
  #include <linux/nospec.h>
  #include "sched.h"

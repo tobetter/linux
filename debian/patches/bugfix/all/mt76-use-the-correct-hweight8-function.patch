@@ -15,11 +15,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  drivers/net/wireless/mediatek/mt76/mac80211.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/net/wireless/mediatek/mt76/mac80211.c b/drivers/net/wireless/mediatek/mt76/mac80211.c
-index 484d3ac3a206..d4eeae226f19 100644
---- a/drivers/net/wireless/mediatek/mt76/mac80211.c
-+++ b/drivers/net/wireless/mediatek/mt76/mac80211.c
-@@ -124,7 +124,7 @@ static void mt76_init_stream_cap(struct mt76_dev *dev,
+Index: linux/drivers/net/wireless/mediatek/mt76/mac80211.c
+===================================================================
+--- linux.orig/drivers/net/wireless/mediatek/mt76/mac80211.c
++++ linux/drivers/net/wireless/mediatek/mt76/mac80211.c
+@@ -124,7 +124,7 @@ static void mt76_init_stream_cap(struct
  				 bool vht)
  {
  	struct ieee80211_sta_ht_cap *ht_cap = &sband->ht_cap;

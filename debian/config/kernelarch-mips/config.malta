@@ -306,6 +306,11 @@ CONFIG_USB_ZD1201=m
 # CONFIG_PCIEPORTBUS is not set
 
 ##
+### file: drivers/power/reset/Kconfig
+##
+CONFIG_POWER_RESET_PIIX4_POWEROFF=y
+
+##
 ## file: drivers/rtc/Kconfig
 ##
 CONFIG_RTC_DRV_DS1307=m

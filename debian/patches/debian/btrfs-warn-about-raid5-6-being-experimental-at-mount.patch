@@ -15,9 +15,11 @@ Signed-off-by: Adam Borowski <kilobyte@angband.pl>
  fs/btrfs/disk-io.c | 8 ++++++++
  1 file changed, 8 insertions(+)
 
---- a/fs/btrfs/disk-io.c
-+++ b/fs/btrfs/disk-io.c
-@@ -3060,6 +3060,15 @@ retry_root_backup:
+Index: linux/fs/btrfs/disk-io.c
+===================================================================
+--- linux.orig/fs/btrfs/disk-io.c
++++ linux/fs/btrfs/disk-io.c
+@@ -3089,6 +3089,15 @@ retry_root_backup:
  		btrfs_set_and_info(fs_info, SSD, "enabling ssd optimizations");
  	}
  

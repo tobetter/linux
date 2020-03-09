@@ -1,8 +1,8 @@
-From d884bf96bfbde9a4c7e1435aa0745e52891ae9fa Mon Sep 17 00:00:00 2001
+From 9c63af996fae22f9a543ba63986342b6c6225302 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 6 Dec 2018 09:52:20 +0100
-Subject: [PATCH 255/283] drm/i915: disable tracing on -RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 255/290] drm/i915: disable tracing on -RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Luca Abeni reported this:
 | BUG: scheduling while atomic: kworker/u8:2/15203/0x00000003
@@ -43,5 +43,5 @@ index b50c6b829715..cc54ec0ef75c 100644
  #include <linux/types.h>
  #include <linux/tracepoint.h>
 -- 
-2.20.1
+2.24.1
 

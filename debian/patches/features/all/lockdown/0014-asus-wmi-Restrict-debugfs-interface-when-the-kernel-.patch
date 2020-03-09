@@ -19,11 +19,11 @@ cc: platform-driver-x86@vger.kernel.org
  drivers/platform/x86/asus-wmi.c | 9 +++++++++
  1 file changed, 9 insertions(+)
 
-diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
-index 48e1541dc8d4..ef5587469337 100644
---- a/drivers/platform/x86/asus-wmi.c
-+++ b/drivers/platform/x86/asus-wmi.c
-@@ -1905,6 +1905,9 @@ static int show_dsts(struct seq_file *m, void *data)
+Index: linux/drivers/platform/x86/asus-wmi.c
+===================================================================
+--- linux.orig/drivers/platform/x86/asus-wmi.c
++++ linux/drivers/platform/x86/asus-wmi.c
+@@ -2002,6 +2002,9 @@ static int show_dsts(struct seq_file *m,
  	int err;
  	u32 retval = -1;
  
@@ -33,7 +33,7 @@ index 48e1541dc8d4..ef5587469337 100644
  	err = asus_wmi_get_devstate(asus, asus->debug.dev_id, &retval);
  
  	if (err < 0)
-@@ -1921,6 +1924,9 @@ static int show_devs(struct seq_file *m, void *data)
+@@ -2018,6 +2021,9 @@ static int show_devs(struct seq_file *m,
  	int err;
  	u32 retval = -1;
  
@@ -43,7 +43,7 @@ index 48e1541dc8d4..ef5587469337 100644
  	err = asus_wmi_set_devstate(asus->debug.dev_id, asus->debug.ctrl_param,
  				    &retval);
  
-@@ -1945,6 +1951,9 @@ static int show_call(struct seq_file *m, void *data)
+@@ -2042,6 +2048,9 @@ static int show_call(struct seq_file *m,
  	union acpi_object *obj;
  	acpi_status status;
  

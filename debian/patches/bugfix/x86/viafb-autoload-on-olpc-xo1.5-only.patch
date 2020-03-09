@@ -14,9 +14,11 @@ We need to allow it to be autoloaded on this model only, and then
 un-blacklist it in udev.
 
 ---
---- a/drivers/video/fbdev/via/via-core.c
-+++ b/drivers/video/fbdev/via/via-core.c
-@@ -753,7 +753,14 @@ static struct pci_device_id via_pci_tabl
+Index: linux/drivers/video/fbdev/via/via-core.c
+===================================================================
+--- linux.orig/drivers/video/fbdev/via/via-core.c
++++ linux/drivers/video/fbdev/via/via-core.c
+@@ -752,7 +752,14 @@ static const struct pci_device_id via_pc
  	  .driver_data = UNICHROME_VX900 },
  	{ }
  };

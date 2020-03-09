@@ -1,0 +1,57 @@
+From: Tony Jones <tonyj@suse.de>
+Date: Fri, 1 Mar 2019 17:18:58 -0800
+Subject: perf script python: Add Python3 support to futex-contention.py
+Origin: https://git.kernel.org/linus/de2ec16bd438945813198d4de2339a396904c206
+Bug-Debian: https://bugs.debian.org/944641
+
+Support both Python2 and Python3 in the futex-contention.py script
+
+There may be differences in the ordering of output lines due to
+differences in dictionary ordering etc.  However the format within lines
+should be unchanged.
+
+The use of 'from __future__' implies the minimum supported Python2 version
+is now v2.6
+
+Signed-off-by: Tony Jones <tonyj@suse.de>
+Link: http://lkml.kernel.org/r/20190302011903.2416-3-tonyj@suse.de
+Signed-off-by: Seeteena Thoufeek <s1seetee@linux.vnet.ibm.com>
+Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
+---
+ tools/perf/scripts/python/futex-contention.py |   10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+--- a/tools/perf/scripts/python/futex-contention.py
++++ b/tools/perf/scripts/python/futex-contention.py
+@@ -10,6 +10,8 @@
+ #
+ # Measures futex contention
+ 
++from __future__ import print_function
++
+ import os, sys
+ sys.path.append(os.environ['PERF_EXEC_PATH'] + '/scripts/python/Perf-Trace-Util/lib/Perf/Trace')
+ from Util import *
+@@ -33,18 +35,18 @@ def syscalls__sys_enter_futex(event, ctx
+ 
+ def syscalls__sys_exit_futex(event, ctxt, cpu, s, ns, tid, comm, callchain,
+ 			     nr, ret):
+-	if thread_blocktime.has_key(tid):
++	if tid in thread_blocktime:
+ 		elapsed = nsecs(s, ns) - thread_blocktime[tid]
+ 		add_stats(lock_waits, (tid, thread_thislock[tid]), elapsed)
+ 		del thread_blocktime[tid]
+ 		del thread_thislock[tid]
+ 
+ def trace_begin():
+-	print "Press control+C to stop and show the summary"
++	print("Press control+C to stop and show the summary")
+ 
+ def trace_end():
+ 	for (tid, lock) in lock_waits:
+ 		min, max, avg, count = lock_waits[tid, lock]
+-		print "%s[%d] lock %x contended %d times, %d avg ns" % \
+-			(process_names[tid], tid, lock, count, avg)
++		print("%s[%d] lock %x contended %d times, %d avg ns" %
++			(process_names[tid], tid, lock, count, avg))
+ 

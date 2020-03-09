@@ -15,11 +15,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  .../hisilicon/hns3/hns3pf/hclge_main.c        | 45 ++++++++++++-------
  1 file changed, 28 insertions(+), 17 deletions(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-index 47cbf06ea405..42a38ca966d1 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
-@@ -31,6 +31,10 @@ static int hclge_set_mta_filter_mode(struct hclge_dev *hdev,
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_main.c
+@@ -31,6 +31,10 @@ static int hclge_set_mta_filter_mode(str
  				     enum hclge_mta_dmac_sel_type mta_mac_sel,
  				     bool enable);
  static int hclge_set_mtu(struct hnae3_handle *handle, int new_mtu);
@@ -30,7 +30,7 @@ index 47cbf06ea405..42a38ca966d1 100644
  static int hclge_init_vlan_config(struct hclge_dev *hdev);
  static int hclge_reset_ae_dev(struct hnae3_ae_dev *ae_dev);
  
-@@ -938,12 +942,16 @@ static int hclge_query_pf_resource(struct hclge_dev *hdev)
+@@ -937,12 +941,16 @@ static int hclge_query_pf_resource(struc
  	else
  		hdev->tx_buf_size = HCLGE_DEFAULT_TX_BUF;
  
@@ -47,7 +47,7 @@ index 47cbf06ea405..42a38ca966d1 100644
  	if (hnae3_dev_roce_supported(hdev)) {
  		hdev->roce_base_msix_offset =
  		hnae3_get_field(__le16_to_cpu(req->msixcap_localid_ba_rocee),
-@@ -1596,48 +1604,50 @@ static bool  hclge_is_rx_buf_ok(struct hclge_dev *hdev,
+@@ -1595,48 +1603,50 @@ static bool  hclge_is_rx_buf_ok(struct h
  {
  	u32 shared_buf_min, shared_buf_tc, shared_std;
  	int tc_num, pfc_enable_num;
@@ -111,7 +111,7 @@ index 47cbf06ea405..42a38ca966d1 100644
  		}
  	}
  
-@@ -1677,7 +1687,6 @@ static int hclge_tx_buffer_calc(struct hclge_dev *hdev,
+@@ -1676,7 +1686,6 @@ static int hclge_tx_buffer_calc(struct h
  static int hclge_rx_buffer_calc(struct hclge_dev *hdev,
  				struct hclge_pkt_buf_alloc *buf_alloc)
  {
@@ -119,7 +119,7 @@ index 47cbf06ea405..42a38ca966d1 100644
  	u32 rx_all = hdev->pkt_buf_size, aligned_mps;
  	int no_pfc_priv_num, pfc_priv_num;
  	struct hclge_priv_buf *priv;
-@@ -1703,9 +1712,11 @@ static int hclge_rx_buffer_calc(struct hclge_dev *hdev,
+@@ -1702,9 +1711,11 @@ static int hclge_rx_buffer_calc(struct h
  			priv->enable = 1;
  			if (hdev->tm_info.hw_pfc_map & BIT(i)) {
  				priv->wl.low = aligned_mps;
@@ -133,7 +133,7 @@ index 47cbf06ea405..42a38ca966d1 100644
  			} else {
  				priv->wl.low = 0;
  				priv->wl.high = 2 * aligned_mps;
-@@ -1740,7 +1751,7 @@ static int hclge_rx_buffer_calc(struct hclge_dev *hdev,
+@@ -1739,7 +1750,7 @@ static int hclge_rx_buffer_calc(struct h
  		priv->enable = 1;
  
  		if (hdev->tm_info.hw_pfc_map & BIT(i)) {
@@ -142,6 +142,3 @@ index 47cbf06ea405..42a38ca966d1 100644
  			priv->wl.high = priv->wl.low + aligned_mps;
  			priv->buf_size = priv->wl.high + hdev->dv_buf_size;
  		} else {
--- 
-2.20.1
-

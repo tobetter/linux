@@ -20,11 +20,11 @@ cc: x86@kernel.org
  arch/x86/kernel/msr.c | 10 ++++++++++
  1 file changed, 10 insertions(+)
 
-diff --git a/arch/x86/kernel/msr.c b/arch/x86/kernel/msr.c
-index ef688804f80d..dfb61d358196 100644
---- a/arch/x86/kernel/msr.c
-+++ b/arch/x86/kernel/msr.c
-@@ -84,6 +84,11 @@ static ssize_t msr_write(struct file *file, const char __user *buf,
+Index: linux/arch/x86/kernel/msr.c
+===================================================================
+--- linux.orig/arch/x86/kernel/msr.c
++++ linux/arch/x86/kernel/msr.c
+@@ -84,6 +84,11 @@ static ssize_t msr_write(struct file *fi
  	int err = 0;
  	ssize_t bytes = 0;
  
@@ -36,7 +36,7 @@ index ef688804f80d..dfb61d358196 100644
  	if (count % 8)
  		return -EINVAL;	/* Invalid chunk size */
  
-@@ -135,6 +140,11 @@ static long msr_ioctl(struct file *file, unsigned int ioc, unsigned long arg)
+@@ -135,6 +140,11 @@ static long msr_ioctl(struct file *file,
  			err = -EFAULT;
  			break;
  		}

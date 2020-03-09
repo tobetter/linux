@@ -280,4 +280,11 @@
 0280-futex-Make-the-futex_hash_bucket-lock-raw.patch
 0281-futex-Delay-deallocation-of-pi_state.patch
 0282-mm-zswap-Do-not-disable-preemption-in-zswap_frontswa.patch
-0283-Linux-4.19.59-rt24-REBASE.patch
+0283-revert-aio.patch
+0284-fs-aio-simple-simple-work.patch
+0285-revert-thermal.patch
+0286-thermal-Defer-thermal-wakups-to-threads.patch
+0287-revert-block.patch
+0288-block-blk-mq-move-blk_queue_usage_counter_release-in.patch
+0289-workqueue-rework.patch
+0290-Linux-4.19.94-rt38-REBASE.patch

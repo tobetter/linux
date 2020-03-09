@@ -14,11 +14,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index fb2a5969181b..06824bde9c8d 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-@@ -441,7 +441,7 @@ static void init_reg_v3_hw(struct hisi_hba *hisi_hba)
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+@@ -441,7 +441,7 @@ static void init_reg_v3_hw(struct hisi_h
  	hisi_sas_write32(hisi_hba, ENT_INT_SRC_MSK1, 0xfefefefe);
  	hisi_sas_write32(hisi_hba, ENT_INT_SRC_MSK2, 0xfefefefe);
  	if (pdev->revision >= 0x21)
@@ -27,6 +27,3 @@ index fb2a5969181b..06824bde9c8d 100644
  	else
  		hisi_sas_write32(hisi_hba, ENT_INT_SRC_MSK3, 0xfffe20ff);
  	hisi_sas_write32(hisi_hba, CHNL_PHYUPDOWN_INT_MSK, 0x0);
--- 
-2.20.1
-

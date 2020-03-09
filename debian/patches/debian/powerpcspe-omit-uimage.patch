@@ -7,9 +7,11 @@ Author: Roland Stigge <stigge@antcom.de>
 Bug-Debian: https://bugs.debian.org/708094
 Forwarded: not-needed
 
---- a/arch/powerpc/boot/Makefile
-+++ b/arch/powerpc/boot/Makefile
-@@ -221,7 +221,6 @@ image-$(CONFIG_PPC_CHRP)		+= zImage.chrp
+Index: linux/arch/powerpc/boot/Makefile
+===================================================================
+--- linux.orig/arch/powerpc/boot/Makefile
++++ linux/arch/powerpc/boot/Makefile
+@@ -268,7 +268,6 @@ image-$(CONFIG_PPC_CHRP)		+= zImage.chrp
  image-$(CONFIG_PPC_EFIKA)		+= zImage.chrp
  image-$(CONFIG_PPC_PMAC)		+= zImage.pmac
  image-$(CONFIG_PPC_HOLLY)		+= dtbImage.holly
@@ -17,7 +19,7 @@ Forwarded: not-needed
  image-$(CONFIG_EPAPR_BOOT)		+= zImage.epapr
  
  #
-@@ -280,23 +279,6 @@ image-$(CONFIG_MPC834x_MDS)		+= cuImage.
+@@ -327,23 +326,6 @@ image-$(CONFIG_MPC834x_MDS)		+= cuImage.
  image-$(CONFIG_MPC836x_MDS)		+= cuImage.mpc836x_mds
  image-$(CONFIG_ASP834x)			+= dtbImage.asp834x-redboot
  

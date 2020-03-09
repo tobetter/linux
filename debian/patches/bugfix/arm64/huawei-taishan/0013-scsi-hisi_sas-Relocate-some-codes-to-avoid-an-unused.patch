@@ -17,11 +17,9 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_main.c | 44 ++++++++++++++-------------
  1 file changed, 23 insertions(+), 21 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index dc71f8d83551..15360d797760 100644
 --- a/drivers/scsi/hisi_sas/hisi_sas_main.c
 +++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -303,36 +303,19 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -303,36 +303,19 @@ static int hisi_sas_task_prep(struct sas
  			      int *pass)
  {
  	struct domain_device *device = task->dev;
@@ -60,7 +58,7 @@ index dc71f8d83551..15360d797760 100644
  	if (DEV_IS_GONE(sas_dev)) {
  		if (sas_dev)
  			dev_info(dev, "task prep: device %d not ready\n",
-@@ -507,10 +490,29 @@ static int hisi_sas_task_exec(struct sas_task *task, gfp_t gfp_flags,
+@@ -507,10 +490,29 @@ static int hisi_sas_task_exec(struct sas
  	u32 rc;
  	u32 pass = 0;
  	unsigned long flags;
@@ -90,8 +88,5 @@ index dc71f8d83551..15360d797760 100644
 +	dev = hisi_hba->dev;
 +
  	if (unlikely(test_bit(HISI_SAS_REJECT_CMD_BIT, &hisi_hba->flags))) {
- 		if (in_softirq())
- 			return -EINVAL;
--- 
-2.20.1
-
+ 		/*
+ 		 * For IOs from upper layer, it may already disable preempt

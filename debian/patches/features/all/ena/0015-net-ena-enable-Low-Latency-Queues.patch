@@ -11,11 +11,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.c | 18 ++++--------------
  1 file changed, 4 insertions(+), 14 deletions(-)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_netdev.c b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-index 284a0a612131..18956e7604a3 100644
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
-@@ -3022,20 +3022,10 @@ static int ena_calc_io_queue_num(struct pci_dev *pdev,
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -3022,20 +3022,10 @@ static int ena_calc_io_queue_num(struct
  	int io_sq_num, io_queue_num;
  
  	/* In case of LLQ use the llq number in the get feature cmd */
@@ -39,7 +39,7 @@ index 284a0a612131..18956e7604a3 100644
  
  	io_queue_num = min_t(int, num_online_cpus(), ENA_MAX_NUM_IO_QUEUES);
  	io_queue_num = min_t(int, io_queue_num, io_sq_num);
-@@ -3238,7 +3228,7 @@ static int ena_calc_queue_size(struct pci_dev *pdev,
+@@ -3238,7 +3228,7 @@ static int ena_calc_queue_size(struct pc
  
  	if (ena_dev->tx_mem_queue_type == ENA_ADMIN_PLACEMENT_POLICY_DEV)
  		queue_size = min_t(u32, queue_size,
@@ -48,6 +48,3 @@ index 284a0a612131..18956e7604a3 100644
  
  	queue_size = rounddown_pow_of_two(queue_size);
  
--- 
-2.19.2
-

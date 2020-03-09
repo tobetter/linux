@@ -15,11 +15,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_main.c | 7 +++++--
  1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index e9747379384b..6a959a927e9d 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_main.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -288,13 +288,13 @@ static int hisi_sas_task_prep(struct sas_task *task,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_main.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+@@ -288,13 +288,13 @@ static int hisi_sas_task_prep(struct sas
  			      int *pass)
  {
  	struct domain_device *device = task->dev;
@@ -35,7 +35,7 @@ index e9747379384b..6a959a927e9d 100644
  	int dlvry_queue_slot, dlvry_queue, rc, slot_idx;
  	int n_elem = 0, n_elem_req = 0, n_elem_resp = 0;
  	struct hisi_sas_dq *dq;
-@@ -315,6 +315,9 @@ static int hisi_sas_task_prep(struct sas_task *task,
+@@ -315,6 +315,9 @@ static int hisi_sas_task_prep(struct sas
  		return -ECOMM;
  	}
  
@@ -45,6 +45,3 @@ index e9747379384b..6a959a927e9d 100644
  	if (DEV_IS_GONE(sas_dev)) {
  		if (sas_dev)
  			dev_info(dev, "task prep: device %d not ready\n",
--- 
-2.20.1
-

@@ -14,8 +14,10 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  kernel/params.c | 26 +++++++++++++++++++++-----
  1 file changed, 21 insertions(+), 5 deletions(-)
 
---- a/kernel/params.c
-+++ b/kernel/params.c
+Index: linux/kernel/params.c
+===================================================================
+--- linux.orig/kernel/params.c
++++ linux/kernel/params.c
 @@ -108,13 +108,19 @@ bool parameq(const char *a, const char *
  	return parameqn(a, b, strlen(a)+1);
  }

@@ -1,0 +1,27 @@
+From: Arthur Kiyanovski <akiyano@amazon.com>
+Date: Mon, 11 Feb 2019 19:17:44 +0200
+Subject: [PATCH] net: ena: update driver version from 2.0.2 to 2.0.3
+Origin: https://git.kernel.org/linus/d9b8656da92223eb004b4f4db74fe48e7433f7b2
+Bug-Debian: https://bugs.debian.org/941291
+
+Update driver version due to bug fix.
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_netdev.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+@@ -45,7 +45,7 @@
+ 
+ #define DRV_MODULE_VER_MAJOR	2
+ #define DRV_MODULE_VER_MINOR	0
+-#define DRV_MODULE_VER_SUBMINOR 2
++#define DRV_MODULE_VER_SUBMINOR 3
+ 
+ #define DRV_MODULE_NAME		"ena"
+ #ifndef DRV_MODULE_VERSION

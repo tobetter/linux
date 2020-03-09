@@ -27,9 +27,11 @@ Fixes: db547ef19064 ("Kbuild: don't add obj tree in additional includes")
 Cc: stable@vger.kernel.org # 4.8+
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/scripts/Kbuild.include
-+++ b/scripts/Kbuild.include
-@@ -215,7 +215,7 @@ hdr-inst := -f $(srctree)/scripts/Makefi
+Index: linux/scripts/Kbuild.include
+===================================================================
+--- linux.orig/scripts/Kbuild.include
++++ linux/scripts/Kbuild.include
+@@ -211,7 +211,7 @@ hdr-inst := -f $(srctree)/scripts/Makefi
  # Prefix -I with $(srctree) if it is not an absolute path.
  # skip if -I has no parameter
  addtree = $(if $(patsubst -I%,%,$(1)), \

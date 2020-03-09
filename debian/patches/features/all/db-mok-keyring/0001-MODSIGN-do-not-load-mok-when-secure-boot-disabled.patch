@@ -18,11 +18,11 @@ Signed-off-by: "Lee, Chun-Yi" <jlee@suse.com>
  certs/load_uefi.c | 26 +++++++++++++++-----------
  1 file changed, 15 insertions(+), 11 deletions(-)
 
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-index 3d88459..d6de4d0 100644
---- a/certs/load_uefi.c
-+++ b/certs/load_uefi.c
-@@ -171,17 +171,6 @@
+Index: linux/certs/load_uefi.c
+===================================================================
+--- linux.orig/certs/load_uefi.c
++++ linux/certs/load_uefi.c
+@@ -171,17 +171,6 @@ static int __init load_uefi_certs(void)
  		}
  	}
  
@@ -40,7 +40,7 @@ index 3d88459..d6de4d0 100644
  	rc = get_cert_list(L"dbx", &secure_var, &dbxsize, &dbx);
  	if (rc < 0) {
  		pr_info("MODSIGN: Couldn't get UEFI dbx list\n");
-@@ -194,6 +183,21 @@
+@@ -194,6 +183,21 @@ static int __init load_uefi_certs(void)
  		kfree(dbx);
  	}
  

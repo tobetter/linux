@@ -1,0 +1,41 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Wed, 1 May 2019 16:47:08 +0300
+Subject: [PATCH] net: ena: improve latency by disabling adaptive interrupt
+ moderation by default
+Origin: https://git.kernel.org/linus/78cb421d185cfb4fcea94e7c3ff6e6ea77bb8c11
+Bug-Debian: https://bugs.debian.org/941291
+
+Adaptive interrupt moderation was erroneously enabled by default
+in the driver.
+
+In case the device supports adaptive interrupt moderation it will
+be automatically used, which may potentially increase latency.
+
+The adaptive moderation can be enabled from ethtool command in
+case the feature is supported by the device.
+
+Fixes: 1738cd3ed342 ("net: ena: Add a driver for Amazon Elastic Network Adapters (ENA)")
+Signed-off-by: Guy Tzalik <gtzalik@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_com.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
+@@ -2801,7 +2801,11 @@ int ena_com_init_interrupt_moderation(st
+ 	/* if moderation is supported by device we set adaptive moderation */
+ 	delay_resolution = get_resp.u.intr_moderation.intr_delay_resolution;
+ 	ena_com_update_intr_delay_resolution(ena_dev, delay_resolution);
+-	ena_com_enable_adaptive_moderation(ena_dev);
++
++	/* Disable adaptive moderation by default - can be enabled from
++	 * ethtool
++	 */
++	ena_com_disable_adaptive_moderation(ena_dev);
+ 
+ 	return 0;
+ err:

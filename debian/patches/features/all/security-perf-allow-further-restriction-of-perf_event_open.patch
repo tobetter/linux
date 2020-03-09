@@ -15,9 +15,11 @@ at run-time regardless of whether the default is changed.
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -1145,6 +1145,11 @@ extern int perf_cpu_time_max_percent_han
+Index: linux/include/linux/perf_event.h
+===================================================================
+--- linux.orig/include/linux/perf_event.h
++++ linux/include/linux/perf_event.h
+@@ -1189,6 +1189,11 @@ extern int perf_cpu_time_max_percent_han
  int perf_event_max_stack_handler(struct ctl_table *table, int write,
  				 void __user *buffer, size_t *lenp, loff_t *ppos);
  
@@ -29,9 +31,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  static inline bool perf_paranoid_tracepoint_raw(void)
  {
  	return sysctl_perf_event_paranoid > -1;
---- a/kernel/events/core.c
-+++ b/kernel/events/core.c
-@@ -389,8 +389,13 @@ static struct srcu_struct pmus_srcu;
+Index: linux/kernel/events/core.c
+===================================================================
+--- linux.orig/kernel/events/core.c
++++ linux/kernel/events/core.c
+@@ -397,8 +397,13 @@ static cpumask_var_t perf_online_mask;
   *   0 - disallow raw tracepoint access for unpriv
   *   1 - disallow cpu events for unpriv
   *   2 - disallow kernel profiling for unpriv
@@ -45,7 +49,7 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  
  /* Minimum for 512 kiB + 1 user control page */
  int sysctl_perf_event_mlock __read_mostly = 512 + (PAGE_SIZE / 1024); /* 'free' kiB per user */
-@@ -9395,6 +9400,9 @@ SYSCALL_DEFINE5(perf_event_open,
+@@ -10485,6 +10490,9 @@ SYSCALL_DEFINE5(perf_event_open,
  	if (flags & ~PERF_FLAG_ALL)
  		return -EINVAL;
  
@@ -55,8 +59,10 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  	err = perf_copy_attr(attr_uptr, &attr);
  	if (err)
  		return err;
---- a/security/Kconfig
-+++ b/security/Kconfig
+Index: linux/security/Kconfig
+===================================================================
+--- linux.orig/security/Kconfig
++++ linux/security/Kconfig
 @@ -18,6 +18,15 @@ config SECURITY_DMESG_RESTRICT
  
  	  If you are unsure how to answer this question, answer N.

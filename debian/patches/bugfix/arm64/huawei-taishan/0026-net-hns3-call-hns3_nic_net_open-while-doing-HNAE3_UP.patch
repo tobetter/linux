@@ -23,11 +23,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3_enet.c | 6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c b/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
-index 0ccfa6a84535..895c43fd1d81 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
-@@ -3439,11 +3439,15 @@ static int hns3_reset_notify_down_enet(struct hnae3_handle *handle)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3_enet.c
+@@ -3439,11 +3439,15 @@ static int hns3_reset_notify_down_enet(s
  static int hns3_reset_notify_up_enet(struct hnae3_handle *handle)
  {
  	struct hnae3_knic_private_info *kinfo = &handle->kinfo;
@@ -44,6 +44,3 @@ index 0ccfa6a84535..895c43fd1d81 100644
  			netdev_err(kinfo->netdev,
  				   "hns net up fail, ret=%d!\n", ret);
  			return ret;
--- 
-2.20.1
-

@@ -1,8 +1,8 @@
-From 2755280eb692ac3db15304cb7874d039103cf43f Mon Sep 17 00:00:00 2001
+From e3f69c0b583258222d76fafb057b054796b9ad31 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 15 Sep 2016 10:51:27 +0200
-Subject: [PATCH 129/283] fs/nfs: turn rmdir_sem into a semaphore
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 129/290] fs/nfs: turn rmdir_sem into a semaphore
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The RW semaphore had a reader side which used the _non_owner version
 because it most likely took the reader lock in one thread and released it
@@ -22,10 +22,10 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  4 files changed, 43 insertions(+), 4 deletions(-)
 
 diff --git a/fs/nfs/dir.c b/fs/nfs/dir.c
-index 8bfaa658b2c1..62afe8ca1e36 100644
+index b8d686087952..17f8a9259971 100644
 --- a/fs/nfs/dir.c
 +++ b/fs/nfs/dir.c
-@@ -1786,7 +1786,11 @@ int nfs_rmdir(struct inode *dir, struct dentry *dentry)
+@@ -1815,7 +1815,11 @@ int nfs_rmdir(struct inode *dir, struct dentry *dentry)
  
  	trace_nfs_rmdir_enter(dir, dentry);
  	if (d_really_is_positive(dentry)) {
@@ -37,7 +37,7 @@ index 8bfaa658b2c1..62afe8ca1e36 100644
  		error = NFS_PROTO(dir)->rmdir(dir, &dentry->d_name);
  		/* Ensure the VFS deletes this inode */
  		switch (error) {
-@@ -1796,7 +1800,11 @@ int nfs_rmdir(struct inode *dir, struct dentry *dentry)
+@@ -1825,7 +1829,11 @@ int nfs_rmdir(struct inode *dir, struct dentry *dentry)
  		case -ENOENT:
  			nfs_dentry_handle_enoent(dentry);
  		}
@@ -50,10 +50,10 @@ index 8bfaa658b2c1..62afe8ca1e36 100644
  		error = NFS_PROTO(dir)->rmdir(dir, &dentry->d_name);
  	trace_nfs_rmdir_exit(dir, dentry, error);
 diff --git a/fs/nfs/inode.c b/fs/nfs/inode.c
-index b65aee481d13..110ee6f78c31 100644
+index e4cd3a2fe698..6f22c8d65760 100644
 --- a/fs/nfs/inode.c
 +++ b/fs/nfs/inode.c
-@@ -2103,7 +2103,11 @@ static void init_once(void *foo)
+@@ -2104,7 +2104,11 @@ static void init_once(void *foo)
  	atomic_long_set(&nfsi->nrequests, 0);
  	atomic_long_set(&nfsi->commit_info.ncommit, 0);
  	atomic_set(&nfsi->commit_info.rpcs_out, 0);
@@ -147,5 +147,5 @@ index a0831e9d19c9..94b6fefd90b0 100644
  
  #if IS_ENABLED(CONFIG_NFS_V4)
 -- 
-2.20.1
+2.24.1
 

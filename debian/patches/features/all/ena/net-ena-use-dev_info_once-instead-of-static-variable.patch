@@ -1,0 +1,34 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Mon, 3 Jun 2019 17:43:29 +0300
+Subject: [PATCH] net: ena: use dev_info_once instead of static variable
+Origin: https://git.kernel.org/linus/1e9c3fbad83a70e0b00806df3f4dd2db0bc04cc4
+Bug-Debian: https://bugs.debian.org/941291
+
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_netdev.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -3277,7 +3277,6 @@ static int ena_probe(struct pci_dev *pde
+ 	struct ena_llq_configurations llq_config;
+ 	struct ena_com_dev *ena_dev = NULL;
+ 	struct ena_adapter *adapter;
+-	static int version_printed;
+ 	int io_queue_num, bars, rc;
+ 	struct net_device *netdev;
+ 	static int adapters_found;
+@@ -3289,8 +3288,7 @@ static int ena_probe(struct pci_dev *pde
+ 
+ 	dev_dbg(&pdev->dev, "%s\n", __func__);
+ 
+-	if (version_printed++ == 0)
+-		dev_info(&pdev->dev, "%s", version);
++	dev_info_once(&pdev->dev, "%s", version);
+ 
+ 	rc = pci_enable_device_mem(pdev);
+ 	if (rc) {

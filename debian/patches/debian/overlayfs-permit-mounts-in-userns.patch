@@ -29,8 +29,10 @@ https://lwn.net/Articles/671641/
 
 Signed-off-by: Nicolas Schier <nicolas@fjasle.eu>
 
---- a/fs/overlayfs/super.c
-+++ b/fs/overlayfs/super.c
+Index: linux/fs/overlayfs/super.c
+===================================================================
+--- linux.orig/fs/overlayfs/super.c
++++ linux/fs/overlayfs/super.c
 @@ -56,6 +56,11 @@ module_param_named(xino_auto, ovl_xino_a
  MODULE_PARM_DESC(ovl_xino_auto_def,
  		 "Auto enable xino feature");
@@ -43,7 +45,7 @@ Signed-off-by: Nicolas Schier <nicolas@fjasle.eu>
  static void ovl_entry_stack_free(struct ovl_entry *oe)
  {
  	unsigned int i;
-@@ -1567,6 +1572,11 @@ static int __init ovl_init(void)
+@@ -1715,6 +1720,11 @@ static int __init ovl_init(void)
  	if (ovl_inode_cachep == NULL)
  		return -ENOMEM;
  

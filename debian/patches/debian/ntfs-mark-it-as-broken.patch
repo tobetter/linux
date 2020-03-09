@@ -8,8 +8,10 @@ CVE-2018-12931.  ntfs-3g is a better supported alternative.
 Make sure it can't be enabled even in custom kernels.
 
 ---
---- a/fs/ntfs/Kconfig
-+++ b/fs/ntfs/Kconfig
+Index: linux/fs/ntfs/Kconfig
+===================================================================
+--- linux.orig/fs/ntfs/Kconfig
++++ linux/fs/ntfs/Kconfig
 @@ -1,5 +1,6 @@
  config NTFS_FS
  	tristate "NTFS file system support"

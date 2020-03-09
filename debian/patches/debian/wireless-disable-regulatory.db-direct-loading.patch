@@ -8,8 +8,10 @@ Don't complain about being unable to load regulatory.db directly.
 This is expected until we generate a signing key and update
 wireless-regdb to be signed with it.
 
---- a/net/wireless/reg.c
-+++ b/net/wireless/reg.c
+Index: linux/net/wireless/reg.c
+===================================================================
+--- linux.orig/net/wireless/reg.c
++++ linux/net/wireless/reg.c
 @@ -476,6 +476,7 @@ static void reg_regdb_apply(struct work_
  
  static DECLARE_WORK(reg_regdb_work, reg_regdb_apply);

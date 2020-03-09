@@ -1,9 +1,9 @@
-From fb5b75a4b989c8e039eb585a99ee0c41ae05664b Mon Sep 17 00:00:00 2001
+From 45c086ec4e89dcf9194c2b88b5ee38ffa79fe4ec Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 26 Feb 2019 14:53:49 +0100
-Subject: [PATCH 243/283] x86: lazy-preempt: use proper return label on
+Subject: [PATCH 243/290] x86: lazy-preempt: use proper return label on
  32bit-x86
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The lazy-preempt uses the wrong return label in case preemption isn't
 possible. This results crash while returning to the kernel.
@@ -17,7 +17,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 83d43eb2f556..0b25d2efdb87 100644
+index 985988227877..d880352e410c 100644
 --- a/arch/x86/entry/entry_32.S
 +++ b/arch/x86/entry/entry_32.S
 @@ -775,15 +775,15 @@ ENTRY(resume_kernel)
@@ -41,5 +41,5 @@ index 83d43eb2f556..0b25d2efdb87 100644
  	testl	$X86_EFLAGS_IF, PT_EFLAGS(%esp)	# interrupts off (exception path) ?
  	jz	restore_all_kernel
 -- 
-2.20.1
+2.24.1
 

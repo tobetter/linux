@@ -17,10 +17,10 @@ Signed-off-by: Olof Johansson <olof@lixom.net>
  arch/arm64/boot/dts/broadcom/Makefile | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/boot/dts/broadcom/Makefile b/arch/arm64/boot/dts/broadcom/Makefile
-index 3d98f5f5ab88..667ca989c11b 100644
---- a/arch/arm64/boot/dts/broadcom/Makefile
-+++ b/arch/arm64/boot/dts/broadcom/Makefile
+Index: linux/arch/arm64/boot/dts/broadcom/Makefile
+===================================================================
+--- linux.orig/arch/arm64/boot/dts/broadcom/Makefile
++++ linux/arch/arm64/boot/dts/broadcom/Makefile
 @@ -1,7 +1,7 @@
  # SPDX-License-Identifier: GPL-2.0
  dtb-$(CONFIG_ARCH_BCM2835) += bcm2837-rpi-3-b.dtb \

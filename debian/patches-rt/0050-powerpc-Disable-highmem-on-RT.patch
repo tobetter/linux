@@ -1,8 +1,8 @@
-From ae9000e3c66794249fbca61b8a71bcdf690910e0 Mon Sep 17 00:00:00 2001
+From da3f221553e2c41925af06392f6ed660d68543a7 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 18 Jul 2011 17:08:34 +0200
-Subject: [PATCH 050/283] powerpc: Disable highmem on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 050/290] powerpc: Disable highmem on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 The current highmem handling on -RT is not compatible and needs fixups.
 
@@ -25,5 +25,5 @@ index 9952764db9c5..1563820a37e8 100644
  source kernel/Kconfig.hz
  
 -- 
-2.20.1
+2.24.1
 

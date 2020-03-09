@@ -1,8 +1,8 @@
-From 91f768aed73cc93826112811b4e622dce0c1915f Mon Sep 17 00:00:00 2001
+From a2049c3364eae5d13eaaa22d9212c631faf58236 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 3 Apr 2011 11:57:29 +0200
-Subject: [PATCH 071/283] genirq: Force interrupt thread on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Subject: [PATCH 071/290] genirq: Force interrupt thread on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Force threaded_irqs and optimize the code (force_irqthreads) in regard
 to this.
@@ -13,9 +13,11 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  kernel/irq/manage.c       | 2 ++
  2 files changed, 6 insertions(+)
 
+diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
+index eeceac3376fc..315f852b4981 100644
 --- a/include/linux/interrupt.h
 +++ b/include/linux/interrupt.h
-@@ -427,7 +427,11 @@ extern int irq_set_irqchip_state(unsigne
+@@ -427,7 +427,11 @@ extern int irq_set_irqchip_state(unsigned int irq, enum irqchip_irq_state which,
  				 bool state);
  
  #ifdef CONFIG_IRQ_FORCED_THREADING
@@ -27,6 +29,8 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #else
  #define force_irqthreads	(0)
  #endif
+diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
+index 23bcfa71077f..3c26d0708709 100644
 --- a/kernel/irq/manage.c
 +++ b/kernel/irq/manage.c
 @@ -24,6 +24,7 @@
@@ -37,7 +41,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  __read_mostly bool force_irqthreads;
  EXPORT_SYMBOL_GPL(force_irqthreads);
  
-@@ -33,6 +34,7 @@ static int __init setup_forced_irqthread
+@@ -33,6 +34,7 @@ static int __init setup_forced_irqthreads(char *arg)
  	return 0;
  }
  early_param("threadirqs", setup_forced_irqthreads);
@@ -45,3 +49,6 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  #endif
  
  static void __synchronize_hardirq(struct irq_desc *desc, bool sync_chip)
+-- 
+2.24.1
+

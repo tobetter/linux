@@ -19,9 +19,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  net/decnet/af_decnet.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
---- a/net/decnet/af_decnet.c
-+++ b/net/decnet/af_decnet.c
-@@ -2359,7 +2359,7 @@ static const struct proto_ops dn_proto_o
+Index: linux/net/decnet/af_decnet.c
+===================================================================
+--- linux.orig/net/decnet/af_decnet.c
++++ linux/net/decnet/af_decnet.c
+@@ -2346,7 +2346,7 @@ static const struct proto_ops dn_proto_o
  MODULE_DESCRIPTION("The Linux DECnet Network Protocol");
  MODULE_AUTHOR("Linux DECnet Project Team");
  MODULE_LICENSE("GPL");

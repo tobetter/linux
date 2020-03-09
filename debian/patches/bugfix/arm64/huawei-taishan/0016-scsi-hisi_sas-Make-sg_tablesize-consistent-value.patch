@@ -21,11 +21,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v3_hw.c | 3 +--
  4 files changed, 3 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_main.c b/drivers/scsi/hisi_sas/hisi_sas_main.c
-index 18062e4ab9a5..764d651879cf 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_main.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_main.c
-@@ -2426,7 +2426,6 @@ int hisi_sas_probe(struct platform_device *pdev,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_main.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_main.c
+@@ -2426,7 +2426,6 @@ int hisi_sas_probe(struct platform_devic
  	shost->max_lun = ~0;
  	shost->max_channel = 1;
  	shost->max_cmd_len = 16;
@@ -33,11 +33,11 @@ index 18062e4ab9a5..764d651879cf 100644
  	if (hisi_hba->hw->slot_index_alloc) {
  		shost->can_queue = hisi_hba->hw->max_command_entries;
  		shost->cmd_per_lun = hisi_hba->hw->max_command_entries;
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-index cb1198f0ddde..ef23d26b2271 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
-@@ -1814,7 +1814,7 @@ static struct scsi_host_template sht_v1_hw = {
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v1_hw.c
+@@ -1814,7 +1814,7 @@ static struct scsi_host_template sht_v1_
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
  	.this_id		= -1,
@@ -46,11 +46,11 @@ index cb1198f0ddde..ef23d26b2271 100644
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
  	.use_clustering		= ENABLE_CLUSTERING,
  	.eh_device_reset_handler = sas_eh_device_reset_handler,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-index c17dd500fba1..0341fa72d97e 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-@@ -3576,7 +3576,7 @@ static struct scsi_host_template sht_v2_hw = {
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+@@ -3576,7 +3576,7 @@ static struct scsi_host_template sht_v2_
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
  	.this_id		= -1,
@@ -59,11 +59,11 @@ index c17dd500fba1..0341fa72d97e 100644
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
  	.use_clustering		= ENABLE_CLUSTERING,
  	.eh_device_reset_handler = sas_eh_device_reset_handler,
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-index 23f40b57b298..6d584f232204 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
-@@ -2229,7 +2229,7 @@ static struct scsi_host_template sht_v3_hw = {
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v3_hw.c
+@@ -2229,7 +2229,7 @@ static struct scsi_host_template sht_v3_
  	.change_queue_depth	= sas_change_queue_depth,
  	.bios_param		= sas_bios_param,
  	.this_id		= -1,
@@ -72,7 +72,7 @@ index 23f40b57b298..6d584f232204 100644
  	.max_sectors		= SCSI_DEFAULT_MAX_SECTORS,
  	.use_clustering		= ENABLE_CLUSTERING,
  	.eh_device_reset_handler = sas_eh_device_reset_handler,
-@@ -2371,7 +2371,6 @@ hisi_sas_v3_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+@@ -2371,7 +2371,6 @@ hisi_sas_v3_probe(struct pci_dev *pdev,
  	shost->max_lun = ~0;
  	shost->max_channel = 1;
  	shost->max_cmd_len = 16;
@@ -80,6 +80,3 @@ index 23f40b57b298..6d584f232204 100644
  	shost->can_queue = hisi_hba->hw->max_command_entries -
  		HISI_SAS_RESERVED_IPTT_CNT;
  	shost->cmd_per_lun = hisi_hba->hw->max_command_entries -
--- 
-2.20.1
-

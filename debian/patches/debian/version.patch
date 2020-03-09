@@ -7,9 +7,11 @@ For distribution binary packages we assume
 $DISTRIBUTION_OFFICIAL_BUILD, $DISTRIBUTOR and $DISTRIBUTION_VERSION
 are set.
 
---- a/Makefile
-+++ b/Makefile
-@@ -1098,7 +1098,8 @@ endif
+Index: linux/Makefile
+===================================================================
+--- linux.orig/Makefile
++++ linux/Makefile
+@@ -1087,7 +1087,8 @@ endif
  # that need to depend on updated CONFIG_* values can be checked here.
  prepare2: prepare3 outputmakefile asm-generic
  
@@ -19,7 +21,7 @@ are set.
  	$(cmd_crmodverdir)
  
  archprepare: archheaders archscripts prepare1 scripts_basic
-@@ -1142,6 +1143,16 @@ define filechk_version.h
+@@ -1139,6 +1140,16 @@ define filechk_version.h
  	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))';)
  endef
  
@@ -36,7 +38,7 @@ are set.
  $(version_h): FORCE
  	$(call filechk,version.h)
  	$(Q)rm -f $(old_version_h)
-@@ -1149,6 +1160,9 @@ $(version_h): FORCE
+@@ -1146,6 +1157,9 @@ $(version_h): FORCE
  include/generated/utsrelease.h: include/config/kernel.release FORCE
  	$(call filechk,utsrelease.h)
  
@@ -46,8 +48,10 @@ are set.
  PHONY += headerdep
  headerdep:
  	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
---- a/arch/x86/um/sysrq_64.c
-+++ b/arch/x86/um/sysrq_64.c
+Index: linux/arch/x86/um/sysrq_64.c
+===================================================================
+--- linux.orig/arch/x86/um/sysrq_64.c
++++ linux/arch/x86/um/sysrq_64.c
 @@ -9,6 +9,7 @@
  #include <linux/sched.h>
  #include <linux/sched/debug.h>
@@ -68,8 +72,10 @@ are set.
  	printk(KERN_INFO "RIP: %04lx:[<%016lx>]\n", PT_REGS_CS(regs) & 0xffff,
  	       PT_REGS_IP(regs));
  	printk(KERN_INFO "RSP: %016lx  EFLAGS: %08lx\n", PT_REGS_SP(regs),
---- a/arch/ia64/kernel/process.c
-+++ b/arch/ia64/kernel/process.c
+Index: linux/arch/ia64/kernel/process.c
+===================================================================
+--- linux.orig/arch/ia64/kernel/process.c
++++ linux/arch/ia64/kernel/process.c
 @@ -34,6 +34,7 @@
  #include <linux/utsname.h>
  #include <linux/tracehook.h>
@@ -90,8 +96,10 @@ are set.
  	printk("ip is at %pS\n", (void *)ip);
  	printk("unat: %016lx pfs : %016lx rsc : %016lx\n",
  	       regs->ar_unat, regs->ar_pfs, regs->ar_rsc);
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
+Index: linux/arch/powerpc/kernel/process.c
+===================================================================
+--- linux.orig/arch/powerpc/kernel/process.c
++++ linux/arch/powerpc/kernel/process.c
 @@ -43,6 +43,7 @@
  #include <linux/uaccess.h>
  #include <linux/elf-randomize.h>
@@ -100,7 +108,7 @@ are set.
  
  #include <asm/pgtable.h>
  #include <asm/io.h>
-@@ -1430,8 +1431,9 @@ void show_regs(struct pt_regs * regs)
+@@ -1424,8 +1425,9 @@ void show_regs(struct pt_regs * regs)
  
  	printk("NIP:  "REG" LR: "REG" CTR: "REG"\n",
  	       regs->nip, regs->link, regs->ctr);
@@ -112,9 +120,11 @@ are set.
  	printk("MSR:  "REG" ", regs->msr);
  	print_msr_bits(regs->msr);
  	pr_cont("  CR: %08lx  XER: %08lx\n", regs->ccr, regs->xer);
---- a/kernel/hung_task.c
-+++ b/kernel/hung_task.c
-@@ -20,6 +20,7 @@
+Index: linux/kernel/hung_task.c
+===================================================================
+--- linux.orig/kernel/hung_task.c
++++ linux/kernel/hung_task.c
+@@ -21,6 +21,7 @@
  #include <linux/sched/debug.h>
  
  #include <trace/events/sched.h>
@@ -122,7 +132,7 @@ are set.
  
  /*
   * The number of tasks checked:
-@@ -123,10 +124,11 @@ static void check_hung_task(struct task_
+@@ -127,10 +128,11 @@ static void check_hung_task(struct task_
  			sysctl_hung_task_warnings--;
  		pr_err("INFO: task %s:%d blocked for more than %ld seconds.\n",
  			t->comm, t->pid, timeout);
@@ -136,8 +146,10 @@ are set.
  		pr_err("\"echo 0 > /proc/sys/kernel/hung_task_timeout_secs\""
  			" disables this message.\n");
  		sched_show_task(t);
---- a/lib/dump_stack.c
-+++ b/lib/dump_stack.c
+Index: linux/lib/dump_stack.c
+===================================================================
+--- linux.orig/lib/dump_stack.c
++++ linux/lib/dump_stack.c
 @@ -12,6 +12,7 @@
  #include <linux/atomic.h>
  #include <linux/kexec.h>

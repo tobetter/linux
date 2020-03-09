@@ -12,11 +12,11 @@ Reviewed-by: James Morris <james.l.morris@oracle.com>
  fs/proc/kcore.c | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/fs/proc/kcore.c b/fs/proc/kcore.c
-index 45629f4b5402..176cf749e650 100644
---- a/fs/proc/kcore.c
-+++ b/fs/proc/kcore.c
-@@ -549,6 +549,8 @@ read_kcore(struct file *file, char __user *buffer, size_t buflen, loff_t *fpos)
+Index: linux/fs/proc/kcore.c
+===================================================================
+--- linux.orig/fs/proc/kcore.c
++++ linux/fs/proc/kcore.c
+@@ -545,6 +545,8 @@ out:
  
  static int open_kcore(struct inode *inode, struct file *filp)
  {

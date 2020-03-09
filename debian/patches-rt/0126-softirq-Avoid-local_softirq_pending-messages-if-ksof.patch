@@ -1,9 +1,9 @@
-From 75bef693f46a9a3fd05cda70554c004df275c92b Mon Sep 17 00:00:00 2001
+From ece86c041648cc912cb0e5f6c921ce25c8ffc506 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Mon, 18 Feb 2019 13:19:59 +0100
-Subject: [PATCH 126/283] softirq: Avoid "local_softirq_pending" messages if
+Subject: [PATCH 126/290] softirq: Avoid "local_softirq_pending" messages if
  ksoftirqd is blocked
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 If the ksoftirqd thread has a softirq pending and is blocked on the
 `local_softirq_locks' lock then softirq_check_pending_idle() won't
@@ -108,5 +108,5 @@ index fe4e59c80a08..1920985eeb09 100644
  
  	if (warnpending) {
 -- 
-2.20.1
+2.24.1
 

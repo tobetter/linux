@@ -27,8 +27,10 @@ cc: Thomas Gleixner <tglx@linutronix.de>
  fs/debugfs/file.c | 6 ++++++
  1 file changed, 6 insertions(+)
 
---- a/fs/debugfs/file.c
-+++ b/fs/debugfs/file.c
+Index: linux/fs/debugfs/file.c
+===================================================================
+--- linux.orig/fs/debugfs/file.c
++++ linux/fs/debugfs/file.c
 @@ -142,6 +142,9 @@ static int open_proxy_open(struct inode
  	const struct file_operations *real_fops = NULL;
  	int r;

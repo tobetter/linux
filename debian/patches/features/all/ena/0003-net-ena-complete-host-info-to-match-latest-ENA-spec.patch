@@ -15,8 +15,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_netdev.c  | 10 ++++--
  4 files changed, 43 insertions(+), 14 deletions(-)
 
---- a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
 @@ -63,6 +63,8 @@ enum ena_admin_aq_completion_status {
  	ENA_ADMIN_ILLEGAL_PARAMETER		= 5,
  
@@ -80,8 +82,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  
  /* aenq_common_desc */
  #define ENA_ADMIN_AENQ_COMMON_DESC_PHASE_MASK BIT(0)
---- a/drivers/net/ethernet/amazon/ena/ena_com.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_com.c
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
 @@ -41,9 +41,6 @@
  #define ENA_ASYNC_QUEUE_DEPTH 16
  #define ENA_ADMIN_QUEUE_DEPTH 32
@@ -115,8 +119,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	return 0;
  }
  
---- a/drivers/net/ethernet/amazon/ena/ena_common_defs.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_common_defs.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_common_defs.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_common_defs.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_common_defs.h
 @@ -32,8 +32,8 @@
  #ifndef _ENA_COMMON_H_
  #define _ENA_COMMON_H_
@@ -128,8 +134,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  
  /* ENA operates with 48-bit memory addresses. ena_mem_addr_t */
  struct ena_common_mem_addr {
---- a/drivers/net/ethernet/amazon/ena/ena_netdev.c
-+++ b/drivers/net/ethernet/amazon/ena/ena_netdev.c
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
 @@ -2206,7 +2206,8 @@ static u16 ena_select_queue(struct net_d
  	return qid;
  }

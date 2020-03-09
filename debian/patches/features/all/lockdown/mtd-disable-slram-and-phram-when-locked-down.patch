@@ -11,9 +11,11 @@ if locked down.
 
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
---- a/drivers/mtd/devices/phram.c
-+++ b/drivers/mtd/devices/phram.c
-@@ -226,6 +226,9 @@ static int phram_setup(const char *val)
+Index: linux/drivers/mtd/devices/phram.c
+===================================================================
+--- linux.orig/drivers/mtd/devices/phram.c
++++ linux/drivers/mtd/devices/phram.c
+@@ -219,6 +219,9 @@ static int phram_setup(const char *val)
  	uint64_t len;
  	int i, ret;
  
@@ -23,9 +25,11 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  	if (strnlen(val, sizeof(buf)) >= sizeof(buf))
  		parse_err("parameter too long\n");
  
---- a/drivers/mtd/devices/slram.c
-+++ b/drivers/mtd/devices/slram.c
-@@ -231,6 +231,9 @@ static int parse_cmdline(char *devname,
+Index: linux/drivers/mtd/devices/slram.c
+===================================================================
+--- linux.orig/drivers/mtd/devices/slram.c
++++ linux/drivers/mtd/devices/slram.c
+@@ -226,6 +226,9 @@ static int parse_cmdline(char *devname,
  	unsigned long devstart;
  	unsigned long devlength;
  

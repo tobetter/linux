@@ -16,11 +16,11 @@ Signed-off-by: Jason Gunthorpe <jgg@mellanox.com>
  drivers/infiniband/hw/hns/hns_roce_hw_v2.c | 14 ++++++++++----
  1 file changed, 10 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/infiniband/hw/hns/hns_roce_hw_v2.c b/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-index c7843d9817de..627f77a6e0a9 100644
---- a/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-+++ b/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
-@@ -3398,10 +3398,16 @@ static int modify_qp_rtr_to_rts(struct ib_qp *ibqp,
+Index: linux/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
+===================================================================
+--- linux.orig/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
++++ linux/drivers/infiniband/hw/hns/hns_roce_hw_v2.c
+@@ -3398,10 +3398,16 @@ static int modify_qp_rtr_to_rts(struct i
  		       V2_QPC_BYTE_212_LSN_S, 0);
  
  	if (attr_mask & IB_QP_TIMEOUT) {
@@ -41,6 +41,3 @@ index c7843d9817de..627f77a6e0a9 100644
  	}
  
  	roce_set_field(context->byte_172_sq_psn, V2_QPC_BYTE_172_SQ_CUR_PSN_M,
--- 
-2.20.1
-

@@ -23,9 +23,11 @@ cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>
  kernel/bpf/syscall.c | 3 +++
  1 file changed, 3 insertions(+)
 
---- a/kernel/bpf/syscall.c
-+++ b/kernel/bpf/syscall.c
-@@ -2327,6 +2327,9 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf
+Index: linux/kernel/bpf/syscall.c
+===================================================================
+--- linux.orig/kernel/bpf/syscall.c
++++ linux/kernel/bpf/syscall.c
+@@ -2378,6 +2378,9 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf
  	if (sysctl_unprivileged_bpf_disabled && !capable(CAP_SYS_ADMIN))
  		return -EPERM;
  

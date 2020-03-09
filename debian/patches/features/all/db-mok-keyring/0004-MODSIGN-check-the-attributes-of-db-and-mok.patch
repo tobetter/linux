@@ -25,11 +25,11 @@ Signed-off-by: "Lee, Chun-Yi" <jlee@suse.com>
  certs/load_uefi.c | 35 +++++++++++++++++++++++------------
  1 file changed, 23 insertions(+), 12 deletions(-)
 
-diff --git a/certs/load_uefi.c b/certs/load_uefi.c
-index dc66a79..52526bd 100644
---- a/certs/load_uefi.c
-+++ b/certs/load_uefi.c
-@@ -36,12 +36,14 @@
+Index: linux/certs/load_uefi.c
+===================================================================
+--- linux.orig/certs/load_uefi.c
++++ linux/certs/load_uefi.c
+@@ -36,12 +36,14 @@ static __init bool uefi_check_ignore_db(
   * Get a certificate list blob from the named EFI variable.
   */
  static __init int get_cert_list(efi_char16_t *name, efi_guid_t *guid,
@@ -45,7 +45,7 @@ index dc66a79..52526bd 100644
  
  	status = efi.get_variable(name, guid, NULL, &lsize, &tmpdb);
  	if (status == EFI_NOT_FOUND) {
-@@ -61,12 +63,19 @@
+@@ -61,12 +63,19 @@ static __init int get_cert_list(efi_char
  		return -ENOMEM;
  	}
  
@@ -66,7 +66,7 @@ index dc66a79..52526bd 100644
  
  	*size = lsize;
  	*cert_list = db;
-@@ -159,7 +168,8 @@
+@@ -159,7 +168,8 @@ static int __init load_uefi_certs(void)
  	 * an error if we can't get them.
  	 */
  	if (!uefi_check_ignore_db()) {
@@ -76,7 +76,7 @@ index dc66a79..52526bd 100644
  		if (rc < 0) {
  			pr_err("MODSIGN: Couldn't get UEFI db list\n");
  		} else if (dbsize != 0) {
-@@ -171,7 +181,8 @@
+@@ -171,7 +181,8 @@ static int __init load_uefi_certs(void)
  		}
  	}
  
@@ -86,7 +86,7 @@ index dc66a79..52526bd 100644
  	if (rc < 0) {
  		pr_info("MODSIGN: Couldn't get UEFI dbx list\n");
  	} else if (dbxsize != 0) {
-@@ -187,7 +198,8 @@
+@@ -187,7 +198,8 @@ static int __init load_uefi_certs(void)
  	if (!efi_enabled(EFI_SECURE_BOOT))
  		return 0;
  
@@ -96,7 +96,7 @@ index dc66a79..52526bd 100644
  	if (rc < 0) {
  		pr_info("MODSIGN: Couldn't get UEFI MokListRT\n");
  	} else if (moksize != 0) {
-@@ -198,7 +210,8 @@
+@@ -198,7 +210,8 @@ static int __init load_uefi_certs(void)
  		kfree(mok);
  	}
  

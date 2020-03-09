@@ -15,11 +15,11 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  drivers/scsi/hisi_sas/hisi_sas_v2_hw.c | 4 +++-
  1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-index 58a564c75a35..77a85ead483e 100644
---- a/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-+++ b/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
-@@ -806,8 +806,10 @@ slot_index_alloc_quirk_v2_hw(struct hisi_hba *hisi_hba,
+Index: linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+===================================================================
+--- linux.orig/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
++++ linux/drivers/scsi/hisi_sas/hisi_sas_v2_hw.c
+@@ -806,8 +806,10 @@ slot_index_alloc_quirk_v2_hw(struct hisi
  	while (1) {
  		start = find_next_zero_bit(bitmap,
  					hisi_hba->slot_index_count, start);
@@ -31,6 +31,3 @@ index 58a564c75a35..77a85ead483e 100644
  		/*
  		  * SAS IPTT bit0 should be 1, and SATA IPTT bit0 should be 0.
  		  */
--- 
-2.20.1
-

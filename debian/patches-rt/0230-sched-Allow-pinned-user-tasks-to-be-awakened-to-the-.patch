@@ -1,9 +1,9 @@
-From 3ee298788bec1452e68227e1737ea65b196f5986 Mon Sep 17 00:00:00 2001
+From b4a9b46277740b295834182cfe114d91b0c44e31 Mon Sep 17 00:00:00 2001
 From: Mike Galbraith <efault@gmx.de>
 Date: Sun, 19 Aug 2018 08:28:35 +0200
-Subject: [PATCH 230/283] sched: Allow pinned user tasks to be awakened to the
+Subject: [PATCH 230/290] sched: Allow pinned user tasks to be awakened to the
  CPU they pinned
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.59-rt24.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
 
 Since commit 7af443ee16976 ("sched/core: Require cpu_active() in
 select_task_rq(), for user tasks") select_fallback_rq() will BUG() if
@@ -22,7 +22,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 08052198031a..33e81e7be168 100644
+index dcf2deedd3f8..6ef0dcea94d7 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -904,7 +904,7 @@ static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
@@ -35,5 +35,5 @@ index 08052198031a..33e81e7be168 100644
  
  	return cpu_active(cpu);
 -- 
-2.20.1
+2.24.1
 

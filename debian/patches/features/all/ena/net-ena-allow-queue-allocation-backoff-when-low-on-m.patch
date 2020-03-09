@@ -1,0 +1,323 @@
+From: Sameeh Jubran <sameehj@amazon.com>
+Date: Tue, 11 Jun 2019 14:58:08 +0300
+Subject: [PATCH] net: ena: allow queue allocation backoff when low on memory
+Origin: https://git.kernel.org/linus/13ca32a69e29f3a0fe72094dd930f312b3f3ee44
+Bug-Debian: https://bugs.debian.org/941291
+
+If there is not enough memory to allocate io queues the driver will
+try to allocate smaller queues.
+
+The backoff algorithm is as follows:
+
+1. Try to allocate TX and RX and if successful.
+1.1. return success
+
+2. Divide by 2 the size of the larger of RX and TX queues (or both if their size is the same).
+
+3. If TX or RX is smaller than 256
+3.1. return failure.
+4. else
+4.1. go back to 1.
+
+Also change the tx_queue_size, rx_queue_size field names in struct
+adapter to requested_tx_queue_size and requested_rx_queue_size, and
+use RX and TX queue 0 for actual queue sizes.
+Explanation:
+The original fields were useless as they were simply used to assign
+values once from them to each of the queues in the adapter in ena_probe().
+They could simply be deleted. However now that we have a backoff
+feature, we have use for them. In case of backoff there is a difference
+between the requested queue sizes and the actual sizes. Therefore there
+is a need to save the requested queue size for future retries of queue
+allocation (for example if allocation failed and then ifdown + ifup was
+called we want to start the allocation from the original requested size of
+the queues).
+
+Signed-off-by: Arthur Kiyanovski <akiyano@amazon.com>
+Signed-off-by: Sameeh Jubran <sameehj@amazon.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ drivers/net/ethernet/amazon/ena/ena_ethtool.c |   4 +-
+ drivers/net/ethernet/amazon/ena/ena_netdev.c  | 159 +++++++++++++-----
+ drivers/net/ethernet/amazon/ena/ena_netdev.h  |   6 +-
+ 3 files changed, 127 insertions(+), 42 deletions(-)
+
+Index: linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_ethtool.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_ethtool.c
+@@ -450,8 +450,8 @@ static void ena_get_ringparam(struct net
+ 
+ 	ring->tx_max_pending = adapter->max_tx_ring_size;
+ 	ring->rx_max_pending = adapter->max_rx_ring_size;
+-	ring->tx_pending = adapter->tx_ring_size;
+-	ring->rx_pending = adapter->rx_ring_size;
++	ring->tx_pending = adapter->tx_ring[0].ring_size;
++	ring->rx_pending = adapter->rx_ring[0].ring_size;
+ }
+ 
+ static u32 ena_flow_hash_to_flow_type(u16 hash_fields)
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.c
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.c
+@@ -182,7 +182,7 @@ static void ena_init_io_rings(struct ena
+ 		ena_init_io_rings_common(adapter, rxr, i);
+ 
+ 		/* TX specific ring state */
+-		txr->ring_size = adapter->tx_ring_size;
++		txr->ring_size = adapter->requested_tx_ring_size;
+ 		txr->tx_max_header_size = ena_dev->tx_max_header_size;
+ 		txr->tx_mem_queue_type = ena_dev->tx_mem_queue_type;
+ 		txr->sgl_size = adapter->max_tx_sgl_size;
+@@ -190,7 +190,7 @@ static void ena_init_io_rings(struct ena
+ 			ena_com_get_nonadaptive_moderation_interval_tx(ena_dev);
+ 
+ 		/* RX specific ring state */
+-		rxr->ring_size = adapter->rx_ring_size;
++		rxr->ring_size = adapter->requested_rx_ring_size;
+ 		rxr->rx_copybreak = adapter->rx_copybreak;
+ 		rxr->sgl_size = adapter->max_rx_sgl_size;
+ 		rxr->smoothed_interval =
+@@ -594,7 +594,6 @@ static void ena_free_rx_bufs(struct ena_
+ 
+ /* ena_refill_all_rx_bufs - allocate all queues Rx buffers
+  * @adapter: board private structure
+- *
+  */
+ static void ena_refill_all_rx_bufs(struct ena_adapter *adapter)
+ {
+@@ -1635,7 +1634,7 @@ static int ena_create_io_tx_queue(struct
+ 	ctx.qid = ena_qid;
+ 	ctx.mem_queue_type = ena_dev->tx_mem_queue_type;
+ 	ctx.msix_vector = msix_vector;
+-	ctx.queue_size = adapter->tx_ring_size;
++	ctx.queue_size = tx_ring->ring_size;
+ 	ctx.numa_node = cpu_to_node(tx_ring->cpu);
+ 
+ 	rc = ena_com_create_io_queue(ena_dev, &ctx);
+@@ -1702,7 +1701,7 @@ static int ena_create_io_rx_queue(struct
+ 	ctx.direction = ENA_COM_IO_QUEUE_DIRECTION_RX;
+ 	ctx.mem_queue_type = ENA_ADMIN_PLACEMENT_POLICY_HOST;
+ 	ctx.msix_vector = msix_vector;
+-	ctx.queue_size = adapter->rx_ring_size;
++	ctx.queue_size = rx_ring->ring_size;
+ 	ctx.numa_node = cpu_to_node(rx_ring->cpu);
+ 
+ 	rc = ena_com_create_io_queue(ena_dev, &ctx);
+@@ -1749,6 +1748,112 @@ create_err:
+ 	return rc;
+ }
+ 
++static void set_io_rings_size(struct ena_adapter *adapter,
++				     int new_tx_size, int new_rx_size)
++{
++	int i;
++
++	for (i = 0; i < adapter->num_queues; i++) {
++		adapter->tx_ring[i].ring_size = new_tx_size;
++		adapter->rx_ring[i].ring_size = new_rx_size;
++	}
++}
++
++/* This function allows queue allocation to backoff when the system is
++ * low on memory. If there is not enough memory to allocate io queues
++ * the driver will try to allocate smaller queues.
++ *
++ * The backoff algorithm is as follows:
++ *  1. Try to allocate TX and RX and if successful.
++ *  1.1. return success
++ *
++ *  2. Divide by 2 the size of the larger of RX and TX queues (or both if their size is the same).
++ *
++ *  3. If TX or RX is smaller than 256
++ *  3.1. return failure.
++ *  4. else
++ *  4.1. go back to 1.
++ */
++static int create_queues_with_size_backoff(struct ena_adapter *adapter)
++{
++	int rc, cur_rx_ring_size, cur_tx_ring_size;
++	int new_rx_ring_size, new_tx_ring_size;
++
++	/* current queue sizes might be set to smaller than the requested
++	 * ones due to past queue allocation failures.
++	 */
++	set_io_rings_size(adapter, adapter->requested_tx_ring_size,
++			  adapter->requested_rx_ring_size);
++
++	while (1) {
++		rc = ena_setup_all_tx_resources(adapter);
++		if (rc)
++			goto err_setup_tx;
++
++		rc = ena_create_all_io_tx_queues(adapter);
++		if (rc)
++			goto err_create_tx_queues;
++
++		rc = ena_setup_all_rx_resources(adapter);
++		if (rc)
++			goto err_setup_rx;
++
++		rc = ena_create_all_io_rx_queues(adapter);
++		if (rc)
++			goto err_create_rx_queues;
++
++		return 0;
++
++err_create_rx_queues:
++		ena_free_all_io_rx_resources(adapter);
++err_setup_rx:
++		ena_destroy_all_tx_queues(adapter);
++err_create_tx_queues:
++		ena_free_all_io_tx_resources(adapter);
++err_setup_tx:
++		if (rc != -ENOMEM) {
++			netif_err(adapter, ifup, adapter->netdev,
++				  "Queue creation failed with error code %d\n",
++				  rc);
++			return rc;
++		}
++
++		cur_tx_ring_size = adapter->tx_ring[0].ring_size;
++		cur_rx_ring_size = adapter->rx_ring[0].ring_size;
++
++		netif_err(adapter, ifup, adapter->netdev,
++			  "Not enough memory to create queues with sizes TX=%d, RX=%d\n",
++			  cur_tx_ring_size, cur_rx_ring_size);
++
++		new_tx_ring_size = cur_tx_ring_size;
++		new_rx_ring_size = cur_rx_ring_size;
++
++		/* Decrease the size of the larger queue, or
++		 * decrease both if they are the same size.
++		 */
++		if (cur_rx_ring_size <= cur_tx_ring_size)
++			new_tx_ring_size = cur_tx_ring_size / 2;
++		if (cur_rx_ring_size >= cur_tx_ring_size)
++			new_rx_ring_size = cur_rx_ring_size / 2;
++
++		if (cur_tx_ring_size < ENA_MIN_RING_SIZE ||
++		    cur_rx_ring_size < ENA_MIN_RING_SIZE) {
++			netif_err(adapter, ifup, adapter->netdev,
++				  "Queue creation failed with the smallest possible queue size of %d for both queues. Not retrying with smaller queues\n",
++				  ENA_MIN_RING_SIZE);
++			return rc;
++		}
++
++		netif_err(adapter, ifup, adapter->netdev,
++			  "Retrying queue creation with sizes TX=%d, RX=%d\n",
++			  new_tx_ring_size,
++			  new_rx_ring_size);
++
++		set_io_rings_size(adapter, new_tx_ring_size,
++				  new_rx_ring_size);
++	}
++}
++
+ static int ena_up(struct ena_adapter *adapter)
+ {
+ 	int rc, i;
+@@ -1768,25 +1873,9 @@ static int ena_up(struct ena_adapter *ad
+ 	if (rc)
+ 		goto err_req_irq;
+ 
+-	/* allocate transmit descriptors */
+-	rc = ena_setup_all_tx_resources(adapter);
++	rc = create_queues_with_size_backoff(adapter);
+ 	if (rc)
+-		goto err_setup_tx;
+-
+-	/* allocate receive descriptors */
+-	rc = ena_setup_all_rx_resources(adapter);
+-	if (rc)
+-		goto err_setup_rx;
+-
+-	/* Create TX queues */
+-	rc = ena_create_all_io_tx_queues(adapter);
+-	if (rc)
+-		goto err_create_tx_queues;
+-
+-	/* Create RX queues */
+-	rc = ena_create_all_io_rx_queues(adapter);
+-	if (rc)
+-		goto err_create_rx_queues;
++		goto err_create_queues_with_backoff;
+ 
+ 	rc = ena_up_complete(adapter);
+ 	if (rc)
+@@ -1815,14 +1904,11 @@ static int ena_up(struct ena_adapter *ad
+ 	return rc;
+ 
+ err_up:
+-	ena_destroy_all_rx_queues(adapter);
+-err_create_rx_queues:
+ 	ena_destroy_all_tx_queues(adapter);
+-err_create_tx_queues:
+-	ena_free_all_io_rx_resources(adapter);
+-err_setup_rx:
+ 	ena_free_all_io_tx_resources(adapter);
+-err_setup_tx:
++	ena_destroy_all_rx_queues(adapter);
++	ena_free_all_io_rx_resources(adapter);
++err_create_queues_with_backoff:
+ 	ena_free_io_irq(adapter);
+ err_req_irq:
+ 	ena_del_napi(adapter);
+@@ -3286,17 +3372,14 @@ static int ena_calc_queue_size(struct en
+ 	max_tx_queue_size = rounddown_pow_of_two(max_tx_queue_size);
+ 	max_rx_queue_size = rounddown_pow_of_two(max_rx_queue_size);
+ 
+-	tx_queue_size = min_t(u32, tx_queue_size, max_tx_queue_size);
+-	rx_queue_size = min_t(u32, rx_queue_size, max_rx_queue_size);
++	tx_queue_size = clamp_val(tx_queue_size, ENA_MIN_RING_SIZE,
++				  max_tx_queue_size);
++	rx_queue_size = clamp_val(rx_queue_size, ENA_MIN_RING_SIZE,
++				  max_rx_queue_size);
+ 
+ 	tx_queue_size = rounddown_pow_of_two(tx_queue_size);
+ 	rx_queue_size = rounddown_pow_of_two(rx_queue_size);
+ 
+-	if (unlikely(!rx_queue_size || !tx_queue_size)) {
+-		dev_err(&ctx->pdev->dev, "Invalid queue size\n");
+-		return -EFAULT;
+-	}
+-
+ 	ctx->max_tx_queue_size = max_tx_queue_size;
+ 	ctx->max_rx_queue_size = max_rx_queue_size;
+ 	ctx->tx_queue_size = tx_queue_size;
+@@ -3426,8 +3509,8 @@ static int ena_probe(struct pci_dev *pde
+ 	adapter->msg_enable = netif_msg_init(debug, DEFAULT_MSG_ENABLE);
+ 	adapter->reset_reason = ENA_REGS_RESET_NORMAL;
+ 
+-	adapter->tx_ring_size = calc_queue_ctx.tx_queue_size;
+-	adapter->rx_ring_size = calc_queue_ctx.rx_queue_size;
++	adapter->requested_tx_ring_size = calc_queue_ctx.tx_queue_size;
++	adapter->requested_rx_ring_size = calc_queue_ctx.rx_queue_size;
+ 	adapter->max_tx_ring_size = calc_queue_ctx.max_tx_queue_size;
+ 	adapter->max_rx_ring_size = calc_queue_ctx.max_rx_queue_size;
+ 	adapter->max_tx_sgl_size = calc_queue_ctx.max_tx_sgl_size;
+Index: linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_netdev.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_netdev.h
+@@ -79,6 +79,8 @@
+ #define ENA_BAR_MASK (BIT(ENA_REG_BAR) | BIT(ENA_MEM_BAR))
+ 
+ #define ENA_DEFAULT_RING_SIZE	(1024)
++#define ENA_MIN_RING_SIZE	(256)
++
+ 
+ #define ENA_TX_WAKEUP_THRESH		(MAX_SKB_FRAGS + 2)
+ #define ENA_DEFAULT_RX_COPYBREAK	(256 - NET_IP_ALIGN)
+@@ -330,8 +332,8 @@ struct ena_adapter {
+ 	u32 tx_usecs, rx_usecs; /* interrupt moderation */
+ 	u32 tx_frames, rx_frames; /* interrupt moderation */
+ 
+-	u32 tx_ring_size;
+-	u32 rx_ring_size;
++	u32 requested_tx_ring_size;
++	u32 requested_rx_ring_size;
+ 
+ 	u32 max_tx_ring_size;
+ 	u32 max_rx_ring_size;

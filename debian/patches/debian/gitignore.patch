@@ -5,8 +5,10 @@ Forwarded: not-needed
 
 [bwh: Tweak further for pure git]
 
---- a/.gitignore
-+++ b/.gitignore
+Index: linux/.gitignore
+===================================================================
+--- linux.orig/.gitignore
++++ linux/.gitignore
 @@ -64,11 +64,6 @@ modules.builtin
  /*.spec
  

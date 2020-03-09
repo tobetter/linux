@@ -16,8 +16,10 @@ Signed-off-by: David Howells <dhowells@redhat.com>
  security/integrity/ima/ima_policy.c | 39 +++++++++++++++++++++++++++----------
  1 file changed, 29 insertions(+), 10 deletions(-)
 
---- a/security/integrity/ima/ima_policy.c
-+++ b/security/integrity/ima/ima_policy.c
+Index: linux/security/integrity/ima/ima_policy.c
+===================================================================
+--- linux.orig/security/integrity/ima/ima_policy.c
++++ linux/security/integrity/ima/ima_policy.c
 @@ -481,14 +481,21 @@ static int ima_appraise_flag(enum ima_ho
   */
  void __init ima_init_policy(void)

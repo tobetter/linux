@@ -17,10 +17,10 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_com.h | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/drivers/net/ethernet/amazon/ena/ena_com.h b/drivers/net/ethernet/amazon/ena/ena_com.h
-index ae8b4857fce3..078d6f2b4f39 100644
---- a/drivers/net/ethernet/amazon/ena/ena_com.h
-+++ b/drivers/net/ethernet/amazon/ena/ena_com.h
+Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
+===================================================================
+--- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
++++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
 @@ -38,6 +38,7 @@
  #include <linux/dma-mapping.h>
  #include <linux/gfp.h>
@@ -29,6 +29,3 @@ index ae8b4857fce3..078d6f2b4f39 100644
  #include <linux/sched.h>
  #include <linux/sizes.h>
  #include <linux/spinlock.h>
--- 
-2.19.2
-

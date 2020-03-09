@@ -8,8 +8,10 @@ This reverts commits 66f9ba101f54bda63ab1db97f9e9e94763d0651b and
 
 We really don't want to add -Werror anywhere.
 ---
---- a/arch/mips/Kbuild
-+++ b/arch/mips/Kbuild
+Index: linux/arch/mips/Kbuild
+===================================================================
+--- linux.orig/arch/mips/Kbuild
++++ linux/arch/mips/Kbuild
 @@ -1,10 +1,3 @@
 -# Fail on warnings - also for files referenced in subdirs
 -# -Werror can be disabled for specific files using:

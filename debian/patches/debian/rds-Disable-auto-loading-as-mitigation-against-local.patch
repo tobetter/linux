@@ -19,16 +19,13 @@ Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
  net/rds/af_rds.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/net/rds/af_rds.c b/net/rds/af_rds.c
-index 98e0538..d8d4525 100644
---- a/net/rds/af_rds.c
-+++ b/net/rds/af_rds.c
-@@ -574,4 +574,4 @@ MODULE_DESCRIPTION("RDS: Reliable Datagram Sockets"
+Index: linux/net/rds/af_rds.c
+===================================================================
+--- linux.orig/net/rds/af_rds.c
++++ linux/net/rds/af_rds.c
+@@ -836,4 +836,4 @@ MODULE_DESCRIPTION("RDS: Reliable Datagr
  		   " v" DRV_VERSION " (" DRV_RELDATE ")");
  MODULE_VERSION(DRV_VERSION);
  MODULE_LICENSE("Dual BSD/GPL");
 -MODULE_ALIAS_NETPROTO(PF_RDS);
 +/* MODULE_ALIAS_NETPROTO(PF_RDS); */
--- 
-1.7.2.3
-

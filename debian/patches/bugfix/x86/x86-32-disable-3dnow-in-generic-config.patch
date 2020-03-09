@@ -16,8 +16,10 @@ crash on CPUs without the AMD-specific 3D-Now instructions.
 Make CONFIG_X86_USE_3DNOW depend on CONFIG_X86_GENERIC being disabled.
 
 ---
---- a/arch/x86/Kconfig.cpu
-+++ b/arch/x86/Kconfig.cpu
+Index: linux/arch/x86/Kconfig.cpu
+===================================================================
+--- linux.orig/arch/x86/Kconfig.cpu
++++ linux/arch/x86/Kconfig.cpu
 @@ -337,7 +337,7 @@ config X86_USE_PPRO_CHECKSUM
  
  config X86_USE_3DNOW

@@ -15,11 +15,11 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c | 4 ++++
  1 file changed, 4 insertions(+)
 
-diff --git a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
-index a75b70ce41f8..bdbec85265f4 100644
---- a/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
-+++ b/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
-@@ -181,6 +181,10 @@ static void hclge_mac_adjust_link(struct net_device *netdev)
+Index: linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+===================================================================
+--- linux.orig/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
++++ linux/drivers/net/ethernet/hisilicon/hns3/hns3pf/hclge_mdio.c
+@@ -181,6 +181,10 @@ static void hclge_mac_adjust_link(struct
  	int duplex, speed;
  	int ret;
  
@@ -30,6 +30,3 @@ index a75b70ce41f8..bdbec85265f4 100644
  	speed = netdev->phydev->speed;
  	duplex = netdev->phydev->duplex;
  
--- 
-2.20.1
-
