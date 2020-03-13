@@ -1,0 +1,59 @@
+From: Nicolas Schier <nicolas@fjasle.eu>
+Subject: ovl: permit overlayfs mounts in user namespaces (taints kernel)
+Date: Mon, 19 Nov 2018 20:36:14 +0100
+
+Permit overlayfs mounts within user namespaces to allow utilisation of e.g.
+unprivileged LXC overlay snapshots.
+
+Except by the Ubuntu community [1], overlayfs mounts in user namespaces are
+expected to be a security risk [2] and thus are not enabled on upstream
+Linux kernels.  For the non-Ubuntu users that have to stick to unprivileged
+overlay-based LXCs, this meant to patch and compile the kernel manually.
+Instead, adding the kernel tainting 'permit_mounts_in_userns' module
+parameter allows a kind of a user-friendly way to enable the feature.
+
+Testable with:
+
+    sudo modprobe overlay permit_mounts_in_userns=1
+    sudo sysctl -w kernel.unprivileged_userns_clone=1
+    mkdir -p lower upper work mnt
+    unshare --map-root-user --mount \
+        mount -t overlay none mnt \
+              -o lowerdir=lower,upperdir=upper,workdir=work
+
+[1]: Ubuntu allows unprivileged mounting of overlay filesystem
+https://lists.ubuntu.com/archives/kernel-team/2014-February/038091.html
+
+[2]: User namespaces + overlayfs = root privileges
+https://lwn.net/Articles/671641/
+
+Signed-off-by: Nicolas Schier <nicolas@fjasle.eu>
+
+Index: debian-kernel/fs/overlayfs/super.c
+===================================================================
+--- debian-kernel.orig/fs/overlayfs/super.c
++++ debian-kernel/fs/overlayfs/super.c
+@@ -53,6 +53,11 @@ module_param_named(xino_auto, ovl_xino_a
+ MODULE_PARM_DESC(xino_auto,
+ 		 "Auto enable xino feature");
+ 
++static bool ovl_permit_mounts_in_userns;
++module_param_named_unsafe(permit_mounts_in_userns, ovl_permit_mounts_in_userns,
++			  bool, 0444);
++MODULE_PARM_DESC(permit_mounts_in_userns, "Permit mounts in user namespaces");
++
+ static void ovl_entry_stack_free(struct ovl_entry *oe)
+ {
+ 	unsigned int i;
+@@ -1718,6 +1723,11 @@ static int __init ovl_init(void)
+ 	if (ovl_inode_cachep == NULL)
+ 		return -ENOMEM;
+ 
++	if (unlikely(ovl_permit_mounts_in_userns)) {
++		pr_warn("overlayfs: Allowing overlay mounts in user namespaces bears security risks\n");
++		ovl_fs_type.fs_flags |= FS_USERNS_MOUNT;
++	}
++
+ 	err = register_filesystem(&ovl_fs_type);
+ 	if (err)
+ 		kmem_cache_destroy(ovl_inode_cachep);

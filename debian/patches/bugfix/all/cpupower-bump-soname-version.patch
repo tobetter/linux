@@ -1,0 +1,28 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 19 May 2019 17:17:33 +0100
+Subject: cpupower: Bump soname version
+
+Several functions in the libcpupower API were renamed or removed in
+Linux 4.7, and again in 5.1.  This is a backward-incompatible ABI
+change, so the library soname should change from libcpupower.so.0 to
+libcpupower.so.2.
+
+Fixes: ac5a181d065d ("cpupower: Add cpuidle parts into library")
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ tools/power/cpupower/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/tools/power/cpupower/Makefile
++++ b/tools/power/cpupower/Makefile
+@@ -65,8 +65,8 @@ DESTDIR ?=
+ # and _should_ modify the PACKAGE_BUGREPORT definition
+ 
+ VERSION=			$(shell ./utils/version-gen.sh)
+-LIB_MAJ=			0.0.1
+-LIB_MIN=			0
++LIB_MAJ=			2.0.1
++LIB_MIN=			2
+ 
+ PACKAGE =			cpupower
+ PACKAGE_BUGREPORT =		linux-pm@vger.kernel.org

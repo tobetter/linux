@@ -1,0 +1,107 @@
+From: "Lee, Chun-Yi" <joeyli.kernel@gmail.com>
+Date: Tue, 13 Mar 2018 18:38:03 +0800
+Subject: [PATCH 4/4] MODSIGN: check the attributes of db and mok
+Origin: https://lore.kernel.org/patchwork/patch/933176/
+
+That's better for checking the attributes of db and mok variables
+before loading certificates to kernel keyring.
+
+For db and dbx, both of them are authenticated variables. Which
+means that they can only be modified by manufacturer's key. So
+the kernel should checks EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS
+attribute before we trust it.
+
+For mok-rt and mokx-rt, both of them are created by shim boot loader
+to forward the mok/mokx content to runtime. They must be runtime-volatile
+variables. So kernel should checks that the attributes map did not set
+EFI_VARIABLE_NON_VOLATILE bit before we trust it.
+
+Cc: David Howells <dhowells@redhat.com>
+Cc: Josh Boyer <jwboyer@fedoraproject.org>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
+Signed-off-by: "Lee, Chun-Yi" <jlee@suse.com>
+[Rebased by Luca Boccassi]
+[bwh: Forward-ported to 5.0: adjust filename, context]
+---
+ .../platform_certs/load_uefi.c | 35 +++++++++++++++++++++++------------
+ 1 file changed, 23 insertions(+), 12 deletions(-)
+
+--- a/security/integrity/platform_certs/load_uefi.c
++++ b/security/integrity/platform_certs/load_uefi.c
+@@ -39,12 +39,14 @@ static __init bool uefi_check_ignore_db(
+  * Get a certificate list blob from the named EFI variable.
+  */
+ static __init int get_cert_list(efi_char16_t *name, efi_guid_t *guid,
+-				unsigned long *size, void **cert_list)
++				unsigned long *size, void **cert_list,
++				u32 pos_attr, u32 neg_attr)
+ {
+ 	efi_status_t status;
+ 	unsigned long lsize = 4;
+ 	unsigned long tmpdb[4];
+ 	void *db;
++	u32 attr = 0;
+ 
+ 	status = efi.get_variable(name, guid, NULL, &lsize, &tmpdb);
+ 	if (status == EFI_NOT_FOUND) {
+@@ -62,12 +64,19 @@ static __init int get_cert_list(efi_char
+ 	if (!db)
+ 		return -ENOMEM;
+ 
+-	status = efi.get_variable(name, guid, NULL, &lsize, db);
++	status = efi.get_variable(name, guid, &attr, &lsize, db);
+ 	if (status != EFI_SUCCESS) {
+ 		kfree(db);
+ 		pr_err("Error reading db var: 0x%lx\n", status);
+ 		return efi_status_to_err(status);
+ 	}
++	/* must have positive attributes and no negative attributes */
++	if ((pos_attr && !(attr & pos_attr)) ||
++	    (neg_attr && (attr & neg_attr))) {
++		kfree(db);
++		pr_err("Error reading db var attributes: 0x%016x\n", attr);
++		return -1;
++	}
+ 
+ 	*size = lsize;
+ 	*cert_list = db;
+@@ -160,7 +169,8 @@ static int __init load_uefi_certs(void)
+ 	 * an error if we can't get them.
+ 	 */
+ 	if (!uefi_check_ignore_db()) {
+-		rc = get_cert_list(L"db", &secure_var, &dbsize, &db);
++		rc = get_cert_list(L"db", &secure_var, &dbsize, &db,
++			EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS, 0);
+ 		if (rc < 0) {
+ 			pr_err("MODSIGN: Couldn't get UEFI db list\n");
+ 		} else if (dbsize != 0) {
+@@ -173,7 +183,8 @@ static int __init load_uefi_certs(void)
+ 		}
+ 	}
+ 
+-	rc = get_cert_list(L"dbx", &secure_var, &dbxsize, &dbx);
++	rc = get_cert_list(L"dbx", &secure_var, &dbxsize, &dbx,
++		EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS, 0);
+ 	if (rc < 0) {
+ 		pr_info("Couldn't get UEFI dbx list\n");
+ 	} else if (dbxsize != 0) {
+@@ -189,7 +200,8 @@ static int __init load_uefi_certs(void)
+ 	if (!efi_enabled(EFI_SECURE_BOOT))
+ 		return 0;
+ 
+-	rc = get_cert_list(L"MokListRT", &mok_var, &moksize, &mok);
++	rc = get_cert_list(L"MokListRT", &mok_var, &moksize, &mok,
++				0, EFI_VARIABLE_NON_VOLATILE);
+ 	if (rc < 0) {
+ 		pr_info("Couldn't get UEFI MokListRT\n");
+ 	} else if (moksize != 0) {
+@@ -200,7 +212,8 @@ static int __init load_uefi_certs(void)
+ 		kfree(mok);
+ 	}
+ 
+-	rc = get_cert_list(L"MokListXRT", &mok_var, &mokxsize, &mokx);
++	rc = get_cert_list(L"MokListXRT", &mok_var, &mokxsize, &mokx,
++				0, EFI_VARIABLE_NON_VOLATILE);
+ 	if (rc < 0) {
+ 		pr_info("MODSIGN: Couldn't get UEFI MokListXRT\n");
+ 	} else if (mokxsize != 0) {

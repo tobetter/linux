@@ -1,0 +1,59 @@
+From: "Lee, Chun-Yi" <joeyli.kernel@gmail.com>
+Date: Tue, 13 Mar 2018 18:38:01 +0800
+Subject: [PATCH 2/4] MODSIGN: load blacklist from MOKx
+Origin: https://lore.kernel.org/patchwork/patch/933177/
+
+This patch adds the logic to load the blacklisted hash and
+certificates from MOKx which is maintained by shim bootloader.
+
+Cc: David Howells <dhowells@redhat.com>
+Cc: Josh Boyer <jwboyer@fedoraproject.org>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
+Signed-off-by: "Lee, Chun-Yi" <jlee@suse.com>
+[Rebased by Luca Boccassi]
+[bwh: Forward-ported to 5.0: adjust filename]
+---
+ security/integrity/platform_certs/load_uefi.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+--- a/security/integrity/platform_certs/load_uefi.c
++++ b/security/integrity/platform_certs/load_uefi.c
+@@ -149,8 +149,8 @@ static int __init load_uefi_certs(void)
+ {
+ 	efi_guid_t secure_var = EFI_IMAGE_SECURITY_DATABASE_GUID;
+ 	efi_guid_t mok_var = EFI_SHIM_LOCK_GUID;
+-	void *db = NULL, *dbx = NULL, *mok = NULL;
+-	unsigned long dbsize = 0, dbxsize = 0, moksize = 0;
++	void *db = NULL, *dbx = NULL, *mok = NULL, *mokx = NULL;
++	unsigned long dbsize = 0, dbxsize = 0, moksize = 0, mokxsize = 0;
+ 	int rc = 0;
+ 
+ 	if (!efi.get_variable)
+@@ -185,7 +185,7 @@ static int __init load_uefi_certs(void)
+ 		kfree(dbx);
+ 	}
+ 
+-	/* the MOK can not be trusted when secure boot is disabled */
++	/* the MOK and MOKx can not be trusted when secure boot is disabled */
+ 	if (!efi_enabled(EFI_SECURE_BOOT))
+ 		return 0;
+ 
+@@ -200,6 +200,18 @@ static int __init load_uefi_certs(void)
+ 		kfree(mok);
+ 	}
+ 
++	rc = get_cert_list(L"MokListXRT", &mok_var, &mokxsize, &mokx);
++	if (rc < 0) {
++		pr_info("MODSIGN: Couldn't get UEFI MokListXRT\n");
++	} else if (mokxsize != 0) {
++		rc = parse_efi_signature_list("UEFI:mokx",
++					      mokx, mokxsize,
++					      get_handler_for_dbx);
++		if (rc)
++			pr_err("Couldn't parse MokListXRT signatures: %d\n", rc);
++		kfree(mokx);
++	}
++
+ 	return rc;
+ }
+ late_initcall(load_uefi_certs);

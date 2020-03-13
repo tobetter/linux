@@ -1,0 +1,30 @@
+From: Scott Wood <swood@redhat.com>
+Date: Sat, 27 Jul 2019 00:56:33 -0500
+Subject: [PATCH] sched: Remove dead __migrate_disabled() check
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/5.2/older/patches-5.2.17-rt9.tar.xz
+
+This code was unreachable given the __migrate_disabled() branch
+to "out" immediately beforehand.
+
+Signed-off-by: Scott Wood <swood@redhat.com>
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ kernel/sched/core.c |    7 -------
+ 1 file changed, 7 deletions(-)
+
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -1173,13 +1173,6 @@ static int __set_cpus_allowed_ptr(struct
+ 	if (cpumask_test_cpu(task_cpu(p), new_mask) || __migrate_disabled(p))
+ 		goto out;
+ 
+-#if defined(CONFIG_PREEMPT_COUNT) && defined(CONFIG_SMP)
+-	if (__migrate_disabled(p)) {
+-		p->migrate_disable_update = 1;
+-		goto out;
+-	}
+-#endif
+-
+ 	dest_cpu = cpumask_any_and(cpu_valid_mask, new_mask);
+ 	if (task_running(rq, p) || p->state == TASK_WAKING) {
+ 		struct migration_arg arg = { p, dest_cpu };

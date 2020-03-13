@@ -1,0 +1,15 @@
+[base]
+cflags: -ffreestanding
+flavours:
+ m68k
+kernel-arch: m68k
+
+[build]
+image-file: vmlinux
+
+[image]
+suggests: vmelilo, fdutils
+install-stem: vmlinux
+
+[m68k_description]
+hardware: Motorola MC68020+ family

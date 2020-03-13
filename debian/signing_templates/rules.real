@@ -1,0 +1,85 @@
+SHELL := bash -e
+
+export DH_OPTIONS
+
+build-indep:
+
+install-signed: DH_OPTIONS = -p$(PACKAGE_NAME)
+install-signed: KERNEL_VERSION = $(ABINAME)$(LOCALVERSION)
+install-signed: IMAGE_PACKAGE_NAME = linux-image-$(KERNEL_VERSION)-unsigned
+install-signed: PACKAGE_DIR = debian/$(PACKAGE_NAME)
+install-signed: SIGNATURE_DIR = debian/signatures/$(IMAGE_PACKAGE_NAME)
+install-signed:
+	mkdir -p $(PACKAGE_DIR)/boot
+	rsync -a $(patsubst %,/boot/%-$(KERNEL_VERSION),config System.map $(IMAGE_INSTALL_STEM)) \
+		$(PACKAGE_DIR)/boot/
+	if [ -f $(SIGNATURE_DIR)/boot/vmlinuz-$(KERNEL_VERSION).sig ]; then \
+		sbattach --attach $(SIGNATURE_DIR)/boot/vmlinuz-$(KERNEL_VERSION).sig \
+			$(PACKAGE_DIR)/boot/vmlinuz-$(KERNEL_VERSION); \
+		echo >> debian/$(PACKAGE_NAME).substvars 'signed:Description=The kernel image and modules are signed for use with Secure Boot.'; \
+	else \
+		echo >> debian/$(PACKAGE_NAME).substvars 'signed:Description=The modules are signed.'; \
+	fi
+	mkdir -p $(PACKAGE_DIR)/lib/modules/$(KERNEL_VERSION)
+	rsync -a $(addprefix /lib/modules/$(KERNEL_VERSION)/,kernel modules.builtin modules.order) \
+		$(PACKAGE_DIR)/lib/modules/$(KERNEL_VERSION)/
+	while read path; do \
+		/usr/lib/linux-kbuild-$(VERSION)/scripts/sign-file -s \
+			$(SIGNATURE_DIR)/lib/modules/$(KERNEL_VERSION)/$$path \
+			sha256 dummy \
+			$(PACKAGE_DIR)/lib/modules/$(KERNEL_VERSION)/$${path%.sig}; \
+	done < <(find $(SIGNATURE_DIR)/lib/modules/$(KERNEL_VERSION) -name '*.sig' -printf '%P\n')
+# Copy any device tree files
+	if [ -d /usr/lib/linux-image-$(KERNEL_VERSION) ]; then \
+		mkdir -p $(PACKAGE_DIR)/usr/lib/linux-image-$(KERNEL_VERSION); \
+		rsync -a /usr/lib/linux-image-$(KERNEL_VERSION)/ \
+			$(PACKAGE_DIR)/usr/lib/linux-image-$(KERNEL_VERSION)/; \
+	fi
+# Copy bug scripts but change the info file to refer to the right package
+	mkdir -p $(PACKAGE_DIR)/usr/share/bug/$(PACKAGE_NAME)
+	rsync -a /usr/share/bug/$(IMAGE_PACKAGE_NAME)/ \
+		$(PACKAGE_DIR)/usr/share/bug/$(PACKAGE_NAME)/
+	sed -i -e 's/^PACKAGE_NAME=.*/PACKAGE_NAME=$(PACKAGE_NAME)/' \
+		-e 's/^PACKAGE_VERSION=.*/PACKAGE_VERSION=$(PACKAGE_VERSION)/' \
+		$(PACKAGE_DIR)/usr/share/bug/$(PACKAGE_NAME)/info
+	dh_install
+	dh_installchangelogs
+	ln -sf linux-image.NEWS debian/$(PACKAGE_NAME).NEWS
+	dh_installdocs
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+# Copy most package relations and description from unsigned package
+	for field in Depends Suggests Recommends Breaks; do \
+		echo >> debian/$(PACKAGE_NAME).substvars "unsigned:$$field=$$(dpkg-query -f '$${'$$field'}' -W $(IMAGE_PACKAGE_NAME))"; \
+	done
+	echo >> debian/$(PACKAGE_NAME).substvars "unsigned:DescriptionShort=$$(dpkg-query -f '$${Description}' -W $(IMAGE_PACKAGE_NAME) | head -n 1)"
+	echo >> debian/$(PACKAGE_NAME).substvars "unsigned:DescriptionLong=$$(dpkg-query -f '$${Description}' -W $(IMAGE_PACKAGE_NAME) | tail -n +2 | sed -rz 's/\$$/$${}/g; s/^ //; s/\n \.?/$${Newline}/g')"
+	dh_gencontrol -- $(GENCONTROL_ARGS)
+	dh_md5sums
+	dh_builddeb
+
+install-meta: DH_OPTIONS = -p$(PACKAGE_NAME)
+install-meta:
+	dh_testdir
+	dh_prep
+	dh_bugfiles
+	dh_installdocs --link-doc=linux-image-$(ABINAME)$(LOCALVERSION)
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol -- $(GENCONTROL_ARGS)
+	dh_md5sums
+	dh_builddeb
+
+install-udeb_$(ARCH): export KW_DEFCONFIG_DIR=/usr/share/linux-support-$(ABINAME)/installer
+install-udeb_$(ARCH): export KW_CONFIG_DIR=/usr/share/linux-support-$(ABINAME)/installer
+install-udeb_$(ARCH): DH_OPTIONS=$(PACKAGE_NAMES:%=-p%)
+install-udeb_$(ARCH):
+	dh_testdir
+	dh_prep
+	kernel-wedge install-files $(ABINAME)
+	kernel-wedge check $(PACKAGE_NAMES)
+	dh_fixperms
+	dh_gencontrol -- $(GENCONTROL_ARGS)
+	dh_builddeb

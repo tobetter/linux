@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+SHELL := sh -e
+
+include /usr/share/dpkg/architecture.mk
+
+build: build-arch build-indep
+build-arch:
+build-indep:
+
+clean:
+	dh_testdir
+	dh_clean
+
+binary: binary-arch binary-indep
+binary-arch: debian/control
+	dh_testdir
+	$(MAKE) -f debian/rules.gen binary-arch_$(DEB_HOST_ARCH)
+binary-indep:
+
+.PHONY: build build-arch build-indep clean binary binary-arch binary-indep

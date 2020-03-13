@@ -1,0 +1,26 @@
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Fri, 15 Feb 2019 14:34:20 +0100
+Subject: [PATCH] arm: remove printk_nmi_.*()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/5.2/older/patches-5.2.17-rt9.tar.xz
+
+It is no longer provided by the printk core code.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ arch/arm/kernel/smp.c |    2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -679,11 +679,9 @@ void handle_IPI(int ipinr, struct pt_reg
+ 		break;
+ 
+ 	case IPI_CPU_BACKTRACE:
+-		printk_nmi_enter();
+ 		irq_enter();
+ 		nmi_cpu_backtrace(regs);
+ 		irq_exit();
+-		printk_nmi_exit();
+ 		break;
+ 
+ 	default:

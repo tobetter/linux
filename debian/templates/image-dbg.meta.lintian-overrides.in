@@ -1,0 +1,2 @@
+linux-image@source_suffix@-@flavour@-dbg: wrong-section-according-to-package-name linux-image@source_suffix@-@flavour@-dbg => debug
+linux-image@source_suffix@-@flavour@-dbg: debug-package-should-be-priority-extra linux-image@source_suffix@-@flavour@-dbg

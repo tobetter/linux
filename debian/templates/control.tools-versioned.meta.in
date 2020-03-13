@@ -1,0 +1,7 @@
+Package: linux-perf@source_suffix@
+Build-Profiles: <!stage1 !pkg.linux.notools !nopython !pkg.linux.nometa>
+Architecture: alpha amd64 arm64 armel armhf hppa i386 mips mips64 mips64el mipsel mipsn32 mipsn32el mipsr6 mipsr6el mipsn32r6 mipsn32r6el mips64r6 mips64r6el powerpc ppc64 ppc64el s390 s390x sh4 sparc sparc64
+Depends: linux-perf-@version@ (= ${binary:Version}), ${misc:Depends}
+Description: Performance analysis tools for Linux (meta-package)
+ This package depends on the package containing the 'perf' performance
+ analysis tools for the latest Linux kernel.

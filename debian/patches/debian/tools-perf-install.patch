@@ -1,0 +1,51 @@
+From: Bastian Blank <waldi@debian.org>
+Date: Fri, 07 Oct 2011 21:37:52 +0100
+Subject: Install perf scripts non-executable
+Forwarded: no
+
+[bwh: Forward-ported to 4.13]
+---
+ tools/perf/Makefile.perf | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+--- a/tools/perf/Makefile.perf
++++ b/tools/perf/Makefile.perf
+@@ -854,8 +854,8 @@ endif
+ ifndef NO_LIBPERL
+ 	$(call QUIET_INSTALL, perl-scripts) \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl/Perf-Trace-Util/lib/Perf/Trace'; \
+-		$(INSTALL) scripts/perl/Perf-Trace-Util/lib/Perf/Trace/* -t '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl/Perf-Trace-Util/lib/Perf/Trace'; \
+-		$(INSTALL) scripts/perl/*.pl -t '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl'; \
++		$(INSTALL) -m 644 scripts/perl/Perf-Trace-Util/lib/Perf/Trace/* -t '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl/Perf-Trace-Util/lib/Perf/Trace'; \
++		$(INSTALL) -m 644 scripts/perl/*.pl -t '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl'; \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl/bin'; \
+ 		$(INSTALL) scripts/perl/bin/* -t '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/scripts/perl/bin'
+ endif
+@@ -869,21 +869,21 @@ ifndef NO_LIBPYTHON
+ endif
+ 	$(call QUIET_INSTALL, perf_completion-script) \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(sysconfdir_SQ)/bash_completion.d'; \
+-		$(INSTALL) perf-completion.sh '$(DESTDIR_SQ)$(sysconfdir_SQ)/bash_completion.d/perf_$(VERSION)'
++		$(INSTALL) -m 644 perf-completion.sh '$(DESTDIR_SQ)$(sysconfdir_SQ)/bash_completion.d/perf_$(VERSION)'
+ 	$(call QUIET_INSTALL, perf-tip) \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(tip_instdir_SQ)'; \
+-		$(INSTALL) Documentation/tips.txt -t '$(DESTDIR_SQ)$(tip_instdir_SQ)'
++		$(INSTALL) -m 644 Documentation/tips.txt -t '$(DESTDIR_SQ)$(tip_instdir_SQ)'
+ 
+ install-tests: all install-gtk
+ 	$(call QUIET_INSTALL, tests) \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests'; \
+-		$(INSTALL) tests/attr.py '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests'; \
++		$(INSTALL) -m 644 tests/attr.py '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests'; \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/attr'; \
+-		$(INSTALL) tests/attr/* '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/attr'; \
++		$(INSTALL) -m 644 tests/attr/* '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/attr'; \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell'; \
+-		$(INSTALL) tests/shell/*.sh '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell'; \
++		$(INSTALL) -m 644 tests/shell/*.sh '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell'; \
+ 		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell/lib'; \
+-		$(INSTALL) tests/shell/lib/*.sh '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell/lib'
++		$(INSTALL) -m 644 tests/shell/lib/*.sh '$(DESTDIR_SQ)$(perfexec_instdir_SQ)/tests/shell/lib'
+ 
+ install-bin: install-tools install-tests install-traceevent-plugins
+ 

@@ -1,0 +1,29 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Tue, 25 Sep 2018 19:44:13 +0100
+Subject: x86-32: Disable 3D-Now in generic config
+
+We want the 686 flavour to run on Geode LX and similar AMD family 5
+CPUs as well as family 6 and higher CPUs.  This used to work with
+CONFIG_M686=y.  However commit 25d76ac88821 "x86/Kconfig: Explicitly
+enumerate i686-class CPUs in Kconfig" in Linux 4.16 has made the
+kernel require family 6 or higher.
+
+It looks like a sensible choice would be to enable CONFIG_MGEODE_LX
+and CONFIG_X86_GENERIC (for more generic optimisations), but this
+currently enables CONFIG_X86_USE_3D_NOW which will cause the kernel to
+crash on CPUs without the AMD-specific 3D-Now instructions.
+
+Make CONFIG_X86_USE_3DNOW depend on CONFIG_X86_GENERIC being disabled.
+
+---
+--- a/arch/x86/Kconfig.cpu
++++ b/arch/x86/Kconfig.cpu
+@@ -337,7 +337,7 @@ config X86_USE_PPRO_CHECKSUM
+ 
+ config X86_USE_3DNOW
+ 	def_bool y
+-	depends on (MCYRIXIII || MK7 || MGEODE_LX) && !UML
++	depends on (MCYRIXIII || MK7 || MGEODE_LX) && !X86_GENERIC && !UML
+ 
+ #
+ # P6_NOPs are a relatively minor optimization that require a family >=

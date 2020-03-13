@@ -1,0 +1,28 @@
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Mon, 1 Jul 2019 17:53:13 +0200
+Subject: [PATCH] x86/ldt: Initialize the context lock for init_mm
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/5.2/older/patches-5.2.17-rt9.tar.xz
+
+The mutex mm->context->lock for init_mm is not initialized for init_mm.
+This wasn't a problem because it remained unused. This changed however
+since commit
+	4fc19708b165c ("x86/alternatives: Initialize temporary mm for patching")
+
+Initialize the mutex for init_mm.
+
+Fixes: 4fc19708b165c ("x86/alternatives: Initialize temporary mm for patching")
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ arch/x86/include/asm/mmu.h |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/arch/x86/include/asm/mmu.h
++++ b/arch/x86/include/asm/mmu.h
+@@ -59,6 +59,7 @@ typedef struct {
+ #define INIT_MM_CONTEXT(mm)						\
+ 	.context = {							\
+ 		.ctx_id = 1,						\
++		.lock = __MUTEX_INITIALIZER(mm.context.lock),		\
+ 	}
+ 
+ void leave_mm(int cpu);

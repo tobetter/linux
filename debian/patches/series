@@ -1,0 +1,135 @@
+debian/gitignore.patch
+
+# Disable features broken by exclusion of upstream files
+debian/dfsg/arch-powerpc-platforms-8xx-ucode-disable.patch
+debian/dfsg/drivers-media-dvb-dvb-usb-af9005-disable.patch
+debian/dfsg/vs6624-disable.patch
+debian/dfsg/drivers-net-appletalk-cops.patch
+debian/dfsg/video-remove-nvidiafb-and-rivafb.patch
+debian/dfsg/documentation-fix-broken-link-to-cipso-draft.patch
+
+# Changes to support package build system
+debian/version.patch
+debian/uname-version-timestamp.patch
+debian/kernelvariables.patch
+debian/ia64-hardcode-arch-script-output.patch
+debian/mips-disable-werror.patch
+debian/mips-boston-disable-its.patch
+debian/arch-sh4-fix-uimage-build.patch
+debian/tools-perf-version.patch
+debian/tools-perf-install.patch
+debian/wireless-add-debian-wireless-regdb-certificates.patch
+debian/export-symbols-needed-by-android-drivers.patch
+debian/android-enable-building-ashmem-and-binder-as-modules.patch
+
+# Fixes/improvements to firmware loading
+features/all/drivers-media-dvb-usb-af9005-request_firmware.patch
+debian/iwlwifi-do-not-request-unreleased-firmware.patch
+bugfix/all/firmware_class-log-every-success-and-failure.patch
+bugfix/all/firmware-remove-redundant-log-messages-from-drivers.patch
+bugfix/all/radeon-amdgpu-firmware-is-required-for-drm-and-kms-on-r600-onward.patch
+debian/firmware_class-refer-to-debian-wiki-firmware-page.patch
+
+# Patches from aufs5 repository, imported with debian/bin/genpatch-aufs.
+# These are only the changes needed to allow aufs to be built out-of-tree.
+features/all/aufs5/aufs5-base.patch
+features/all/aufs5/aufs5-mmap.patch
+features/all/aufs5/aufs5-standalone.patch
+
+# Change some defaults for security reasons
+debian/af_802154-Disable-auto-loading-as-mitigation-against.patch
+debian/rds-Disable-auto-loading-as-mitigation-against-local.patch
+debian/decnet-Disable-auto-loading-as-mitigation-against-lo.patch
+debian/dccp-disable-auto-loading-as-mitigation-against-local-exploits.patch
+debian/hamradio-disable-auto-loading-as-mitigation-against-local-exploits.patch
+debian/fs-enable-link-security-restrictions-by-default.patch
+
+# Set various features runtime-disabled by default
+debian/sched-autogroup-disabled.patch
+debian/yama-disable-by-default.patch
+debian/add-sysctl-to-disallow-unprivileged-CLONE_NEWUSER-by-default.patch
+features/all/security-perf-allow-further-restriction-of-perf_event_open.patch
+#features/x86/intel-iommu-add-option-to-exclude-integrated-gpu-only.patch
+#features/x86/intel-iommu-add-kconfig-option-to-exclude-igpu-by-default.patch
+
+# Disable autoloading/probing of various drivers by default
+debian/cdc_ncm-cdc_mbim-use-ncm-by-default.patch
+debian/snd-pcsp-disable-autoload.patch
+#bugfix/x86/viafb-autoload-on-olpc-xo1.5-only.patch
+debian/fjes-disable-autoload.patch
+
+# Taint if dangerous features are used
+debian/fanotify-taint-on-use-of-fanotify_access_permissions.patch
+debian/btrfs-warn-about-raid5-6-being-experimental-at-mount.patch
+
+# Arch bug fixes
+bugfix/arm/arm-dts-kirkwood-fix-sata-pinmux-ing-for-ts419.patch
+bugfix/arm64/dts-rockchip-correct-voltage-selector-firefly-RK3399.patch
+#bugfix/x86/perf-tools-fix-unwind-build-on-i386.patch
+#bugfix/sh/sh-boot-do-not-use-hyphen-in-exported-variable-name.patch
+bugfix/arm/arm-mm-export-__sync_icache_dcache-for-xen-privcmd.patch
+#bugfix/powerpc/powerpc-boot-fix-missing-crc32poly.h-when-building-with-kernel_xz.patch
+bugfix/arm64/arm64-acpi-Add-fixup-for-HPE-m400-quirks.patch
+#bugfix/x86/x86-32-disable-3dnow-in-generic-config.patch
+#bugfix/ppc64el/libbpf-fix-readelf-output-parsing-on-powerpc-with-re.patch
+
+# Arch features
+features/mips/MIPS-Loongson-3-Add-Loongson-LS3A-RS780E-1-way-machi.patch
+#features/x86/x86-memtest-WARN-if-bad-RAM-found.patch
+#features/x86/x86-make-x32-syscall-support-conditional.patch
+
+# Miscellaneous bug fixes
+bugfix/all/disable-some-marvell-phys.patch
+bugfix/all/fs-add-module_softdep-declarations-for-hard-coded-cr.patch
+bugfix/all/partially-revert-usb-kconfig-using-select-for-usb_co.patch
+debian/revert-objtool-fix-config_stack_validation-y-warning.patch
+bugfix/all/partially-revert-net-socket-implement-64-bit-timestamps.patch
+
+# Miscellaneous features
+
+# Lockdown missing pieces
+features/all/lockdown/efi-add-an-efi_secure_boot-flag-to-indicate-secure-b.patch
+features/all/lockdown/efi-lock-down-the-kernel-if-booted-in-secure-boot-mo.patch
+features/all/lockdown/add-a-sysrq-option-to-lift-kernel-lockdown.patch
+features/all/lockdown/enable-cold-boot-attack-mitigation.patch
+features/all/lockdown/mtd-disable-slram-and-phram-when-locked-down.patch
+features/all/lockdown/arm64-add-kernel-config-option-to-lock-down-when.patch
+# until the "kernel_lockdown.7" manual page exists
+features/all/lockdown/lockdown-refer-to-debian-wiki-until-manual-page-exists.patch
+
+# Improve integrity platform keyring for kernel modules verification
+features/all/db-mok-keyring/0006-Make-get_cert_list-not-complain-about-cert-lists-tha.patch
+features/all/db-mok-keyring/0001-MODSIGN-do-not-load-mok-when-secure-boot-disabled.patch
+features/all/db-mok-keyring/0002-MODSIGN-load-blacklist-from-MOKx.patch
+features/all/db-mok-keyring/0003-MODSIGN-checking-the-blacklisted-hash-before-loading-a-kernel-module.patch
+features/all/db-mok-keyring/0004-MODSIGN-check-the-attributes-of-db-and-mok.patch
+features/all/db-mok-keyring/modsign-make-shash-allocation-failure-fatal.patch
+features/all/db-mok-keyring/KEYS-Make-use-of-platform-keyring-for-module-signature.patch
+
+# Security fixes
+debian/i386-686-pae-pci-set-pci-nobios-by-default.patch
+debian/ntfs-mark-it-as-broken.patch
+
+# Fix exported symbol versions
+bugfix/all/module-disable-matching-missing-version-crc.patch
+
+# Tools bug fixes
+bugfix/all/usbip-document-tcp-wrappers.patch
+bugfix/all/kbuild-fix-recordmcount-dependency.patch
+bugfix/all/tools-perf-man-date.patch
+bugfix/all/tools-perf-remove-shebangs.patch
+#bugfix/x86/revert-perf-build-fix-libunwind-feature-detection-on.patch
+bugfix/all/tools-build-remove-bpf-run-time-check-at-build-time.patch
+bugfix/all/cpupower-bump-soname-version.patch
+bugfix/all/libcpupower-hide-private-function.patch
+bugfix/all/cpupower-fix-checks-for-cpu-existence.patch
+bugfix/all/usbip-fix-misuse-of-strncpy.patch
+bugfix/all/tools-perf-pmu-events-fix-reproducibility.patch
+
+# wireless: Disable regulatory.db direct loading (until we sort out signing)
+debian/wireless-disable-regulatory.db-direct-loading.patch
+
+# overlay: allow mounting in user namespaces
+debian/overlayfs-permit-mounts-in-userns.patch
+
+# ABI maintenance

@@ -1,0 +1,39 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Thu, 19 Jul 2018 23:36:52 +0100
+Subject: tools/lib/api/fs/fs.c: Fix misuse of strncpy()
+Bug-Debian: https://bugs.debian.org/897802
+Forwarded: https://lore.kernel.org/lkml/20180721021026.GQ14131@decadent.org.uk/T/
+
+gcc 8 reports:
+
+In function 'fs__env_override',
+    inlined from 'fs__get_mountpoint' at fs/fs.c:228:6:
+fs/fs.c:222:2: error: 'strncpy' specified bound 4096 equals destination size [-Werror=stringop-truncation]
+  strncpy(fs->path, override_path, sizeof(fs->path));
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+I'm not convinced it makes sense to truncate the copied string here,
+but since we're already doing so let's ensure it's still null-
+terminated.  Use strlcpy() instead.
+
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+--- a/tools/lib/api/fs/fs.c
++++ b/tools/lib/api/fs/fs.c
+@@ -12,6 +12,7 @@
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <sys/mount.h>
++#include <linux/string.h>
+ 
+ #include "fs.h"
+ #include "debug-internal.h"
+@@ -219,7 +220,7 @@ static bool fs__env_override(struct fs *
+ 		return false;
+ 
+ 	fs->found = true;
+-	strncpy(fs->path, override_path, sizeof(fs->path));
++	strlcpy(fs->path, override_path, sizeof(fs->path));
+ 	return true;
+ }
+ 

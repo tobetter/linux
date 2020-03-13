@@ -1,0 +1,1 @@
+dir_to_symlink /usr/share/doc/@source_basename@-doc@source_suffix@ @source_basename@-doc-@version@ 5.2+107 @source_basename@-doc@source_suffix@

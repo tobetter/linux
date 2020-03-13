@@ -1,0 +1,15 @@
+[base]
+kernel-arch: riscv
+featuresets:
+ none
+
+[build]
+image-file: arch/riscv/boot/Image
+vdso: true
+
+[image]
+install-stem: vmlinux
+
+[riscv64_description]
+hardware: 64-bit RISC-V platforms
+hardware-long: 64-bit RISC-V platforms

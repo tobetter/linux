@@ -1,0 +1,40 @@
+#!/bin/bash -eu
+
+sources="$AUTOPKGTEST_TMP/sources"
+
+{
+    # Check Python modules under debian/lib and Python scripts under
+    # debian/bin or debian/rules.d.
+    find debian/lib/python -name '*.py'
+    find debian/bin debian/rules.d -type f -perm /111 |
+	while read script; do
+	    # Check for Python shebang on the first line only
+	    if awk '/^#!.*python/ { exit 0 } { exit 1 }' "$script"; then
+		echo "$script"
+	    fi
+	done
+} > "$sources"
+
+# autopkgtest checks for a non-zero exit code *or* any output to
+# stderr.  So we should continue after a failure, but make sure
+# something is written to stderr.
+
+echo "I: Running pycodestyle..."
+# Ignore E126,E226,W503 (ignored by default) and also E127,W291 which
+# give false positives.
+if ! xargs pycodestyle --ignore E126,E127,E226,W291,W503 < "$sources"; then
+    # pycodestyle only writes to stdout
+    echo >&2 "E: pycodestyle detected problems"
+fi
+
+echo "I: Running pyflakes..."
+if ! xargs pyflakes3 < "$sources"; then
+    # pyflakes only writes to stdout
+    echo >&2 "E: pyflakes detected problems"
+fi
+
+echo "I: Running debian_linux.debian unit tests..."
+# unittest only writes to stderr
+if ! PYTHONPATH=debian/lib/python python3 -m debian_linux.debian 2>&1; then
+    echo >&2 "E: some unit tests failed"
+fi

@@ -1,0 +1,48 @@
+linux-latest (86) unstable; urgency=medium
+
+  * From Linux 4.13.10-1, AppArmor is enabled by default.  This allows
+    defining a "profile" for each installed program that can mitigate
+    security vulnerabilities in it.  However, an incorrect profile might
+    disable some functionality of the program.
+
+    In case you suspect that an AppArmor profile is incorrect, see
+    <https://lists.debian.org/debian-devel/2017/11/msg00178.html> and
+    consider reporting a bug in the package providing the profile.  The
+    profile may be part of the program's package or apparmor-profiles.
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Thu, 30 Nov 2017 20:08:25 +0000
+
+linux-latest (81) unstable; urgency=medium
+
+  * From Linux 4.10, the old 'virtual syscall' interface on 64-bit PCs
+    (amd64) is disabled.  This breaks chroot environments and containers
+    that use (e)glibc 2.13 and earlier, including those based on Debian 7
+    or RHEL/CentOS 6.  To re-enable it, set the kernel parameter:
+    vsyscall=emulate
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Fri, 30 Jun 2017 23:50:03 +0100
+
+linux-latest (76) unstable; urgency=medium
+
+  * From Linux 4.8, several changes have been made in the kernel
+    configuration to 'harden' the system, i.e. to mitigate security bugs.
+    Some changes may cause legitimate applications to fail, and can be
+    reverted by run-time configuration:
+    - On most architectures, the /dev/mem device can no longer be used to
+      access devices that also have a kernel driver.  This breaks dosemu
+      and some old user-space graphics drivers.  To allow this, set the
+      kernel parameter: iomem=relaxed
+    - The kernel log is no longer readable by unprivileged users.  To
+      allow this, set the sysctl: kernel.dmesg_restrict=0
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Sat, 29 Oct 2016 02:05:32 +0100
+
+linux-latest (75) unstable; urgency=medium
+
+  * From Linux 4.7, the iptables connection tracking system will no longer
+    automatically load helper modules.  If your firewall configuration
+    depends on connection tracking helpers, you should explicitly load the
+    required modules.  For more information, see
+    <https://home.regit.org/netfilter-en/secure-use-of-helpers/>.
+
+ -- Ben Hutchings <ben@decadent.org.uk>  Sat, 29 Oct 2016 01:53:18 +0100

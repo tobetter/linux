@@ -1,0 +1,79 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: firmware_class: Log every success and failure against given device
+Date: Sun, 09 Dec 2012 16:02:00 +0000
+Forwarded: no
+
+The hundreds of users of request_firmware() have nearly as many
+different log formats for reporting failures.  They also have only the
+vaguest hint as to what went wrong; only firmware_class really knows
+that.  Therefore, add specific log messages for the failure modes that
+aren't currently logged.
+
+In case of a driver that tries multiple names, this may result in the
+impression that it failed to initialise.  Therefore, also log successes.
+
+This makes many error messages in drivers redundant, which will be
+removed in later patches.
+
+This does not cover the case where we fall back to a user-mode helper
+(which is no longer enabled in Debian).
+
+NOTE: hw-detect will depend on the "firmware: failed to load %s (%d)\n"
+format to detect missing firmware.
+---
+ drivers/base/firmware_loader/fallback.c |  2 +-
+ drivers/base/firmware_loader/main.c     | 15 ++++++++-------
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+--- a/drivers/base/firmware_loader/fallback.c
++++ b/drivers/base/firmware_loader/fallback.c
+@@ -557,7 +557,7 @@ static int fw_load_from_user_helper(stru
+ 	if (opt_flags & FW_OPT_NOWAIT) {
+ 		timeout = usermodehelper_read_lock_wait(timeout);
+ 		if (!timeout) {
+-			dev_dbg(device, "firmware: %s loading timed out\n",
++			dev_err(device, "firmware: %s loading timed out\n",
+ 				name);
+ 			return -EBUSY;
+ 		}
+--- a/drivers/base/firmware_loader/main.c
++++ b/drivers/base/firmware_loader/main.c
+@@ -496,14 +496,12 @@ fw_get_filesystem_firmware(struct device
+ 		rc = kernel_read_file_from_path(path, &buffer, &size,
+ 						msize, id);
+ 		if (rc) {
+-			if (rc != -ENOENT)
+-				dev_warn(device, "loading %s failed with error %d\n",
+-					 path, rc);
+-			else
+-				dev_dbg(device, "loading %s failed for no such file or directory.\n",
+-					 path);
++			dev_dbg(device, "loading %s failed with error %d\n",
++				path, rc);
+ 			continue;
+ 		}
++		dev_info(device, "firmware: direct-loading firmware %s\n",
++			 fw_priv->fw_name);
+ 		if (decompress) {
+ 			dev_dbg(device, "f/w decompressing %s\n",
+ 				fw_priv->fw_name);
+@@ -516,8 +514,6 @@ fw_get_filesystem_firmware(struct device
+ 				continue;
+ 			}
+ 		} else {
+-			dev_dbg(device, "direct-loading %s\n",
+-				fw_priv->fw_name);
+ 			if (!fw_priv->data)
+ 				fw_priv->data = buffer;
+ 			fw_priv->size = size;
+@@ -527,6 +523,10 @@ fw_get_filesystem_firmware(struct device
+ 	}
+ 	__putname(path);
+ 
++	if (rc)
++		dev_err(device, "firmware: failed to load %s (%d)\n",
++			fw_priv->fw_name, rc);
++
+ 	return rc;
+ }
+ 

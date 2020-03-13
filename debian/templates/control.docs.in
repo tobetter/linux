@@ -1,0 +1,15 @@
+Package: @source_basename@-doc-@version@
+Build-Profiles: <!stage1 !nodoc>
+Architecture: all
+Build-Depends: graphviz, python3-sphinx, python3-sphinx-rtd-theme,
+ texlive-latex-base, texlive-latex-extra, dvipng
+Depends: ${misc:Depends}
+Section: doc
+Multi-Arch: foreign
+Description: Linux kernel specific documentation for version @version@
+ This package provides the various README files and HTML documentation for
+ the Linux kernel version @version@.  Plenty of information, including the
+ descriptions of various kernel subsystems, filesystems, driver-specific
+ notes and the like.  Consult the file
+ /usr/share/doc/linux-doc-@version@/Documentation/00-INDEX
+ for the detailed description of the contents.

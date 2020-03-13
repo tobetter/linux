@@ -1,0 +1,131 @@
+Package: linux-cpupower
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Section: admin
+Architecture: linux-any
+Build-Depends: libpci-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPU power management tools for Linux
+ The cpupower command allows inspection and control of cpufreq and
+ cpuidle tunables for hardware that support these features.  It
+ replaces "cpufreq-info" and "cpufreq-set" in cpufrequtils.
+ .
+ ${cpupower:Arch-Description}
+
+Package: libcpupower2
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Section: libs
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPU frequency and voltage scaling tools for Linux (libraries)
+ This package contains the shared library.
+
+Package: libcpupower-dev
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Section: libdevel
+Architecture: linux-any
+Depends: ${misc:Depends}, libcpupower2 (= ${binary:Version})
+Provides: libcpufreq-dev
+Conflicts: libcpufreq-dev
+Replaces: libcpufreq-dev
+Description: CPU frequency and voltage scaling tools for Linux (development files)
+ This package contains the 'power/cpupower' headers and library shared objects.
+
+Package: usbip
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Architecture: linux-any
+Build-Depends:
+ autoconf,
+ automake,
+ libtool,
+ libglib2.0-dev,
+ libudev-dev,
+ libwrap0-dev,
+Depends: usbutils, ${shlibs:Depends}, ${misc:Depends}
+Section: admin
+Description: USB device sharing system over IP network
+ USB/IP is a system for sharing USB devices over the network.
+ .
+ To share USB devices between computers with their full
+ functionality, USB/IP encapsulates "USB requests" into IP
+ packets and transmits them between computers.
+ .
+ Original USB device drivers and applications can be used
+ for remote USB devices without any modification of them. A
+ computer can use remote USB devices as if they were
+ directly attached.
+ .
+ Currently USB/IP provides no access control or encryption.
+ It should only be used in trusted environments.
+ .
+ This package provides the server component 'usbipd' and the
+ client tool 'usbip'.
+
+Package: hyperv-daemons
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Architecture: i386 amd64 x32
+Depends: lsb-base, ${shlibs:Depends}, ${misc:Depends}
+Section: admin
+Description: Support daemons for Linux running on Hyper-V
+ Suite of daemons for Linux guests running on Hyper-V, consisting of
+ hv_fcopy_daemon, hv_kvp_daemon and hv_vss_daemon.
+ .
+ hv_fcopy_daemon provides the file copy service, allowing the host to
+ copy files into the guest.
+ .
+ hv_kvp_daemon provides the key-value pair (KVP) service, allowing the
+ host to get and set the IP networking configuration of the guest.
+ (This requires helper scripts which are not currently included.)
+ .
+ hv_vss_daemon provides the volume shadow copy service (VSS), allowing
+ the host to freeze the guest filesystems while taking a snapshot.
+
+#Package: lockdep
+#Build-Profiles: <!stage1 !pkg.linux.notools>
+#Architecture: all
+#Depends: ${misc:Depends}, liblockdep@version@
+#Recommends: liblockdep-dev
+#Section: devel
+#Multi-Arch: allowed
+#Description: Runtime locking correctness validator
+# lockdep is a wrapper for programs that use the pthreads API, which detects
+# actual and potential deadlocks and other locking bugs.
+#
+#Package: liblockdep@version@
+#Build-Profiles: <!stage1 !pkg.linux.notools>
+#Architecture: linux-any
+#Depends: ${shlibs:Depends}, ${misc:Depends}
+#Section: libs
+#Multi-Arch: same
+#Description: Runtime locking correctness validator (shared library)
+# liblockdep is a library for programs that use the pthreads API, which can
+# be used to detect actual and potential deadlocks and other locking bugs.
+#
+#Package: liblockdep-dev
+#Build-Profiles: <!stage1 !pkg.linux.notools>
+#Architecture: linux-any
+#Depends: ${misc:Depends}, liblockdep@version@ (= ${binary:Version})
+#Section: libdevel
+#Multi-Arch: same
+#Description: Runtime locking correctness validator (development files)
+# liblockdep is a library for programs that use the pthreads API, which can
+# be used to detect actual and potential deadlocks and other locking bugs.
+
+Package: libbpf0
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Architecture: alpha amd64 arm64 arm64ilp32 armel armhf hppa i386 mips mips64 mips64el mips64r6 mips64r6el mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el powerpc ppc64 ppc64el riscv64 s390 s390x sh3 sh4 sparc sparc64 x32
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Section: libs
+Multi-Arch: same
+Description: eBPF helper library (shared library)
+ libbpf is a library for loading eBPF programs and reading and
+ manipulating eBPF objects from user-space.
+
+Package: libbpf-dev
+Build-Profiles: <!stage1 !pkg.linux.notools>
+Architecture: alpha amd64 arm64 arm64ilp32 armel armhf hppa i386 mips mips64 mips64el mips64r6 mips64r6el mipsel mipsn32 mipsn32el mipsn32r6 mipsn32r6el mipsr6 mipsr6el powerpc ppc64 ppc64el riscv64 s390 s390x sh3 sh4 sparc sparc64 x32
+Depends: ${misc:Depends}, libbpf0 (= ${binary:Version})
+Section: libdevel
+Multi-Arch: same
+Description: eBPF helper library (development files)
+ libbpf is a library for loading eBPF programs and reading and
+ manipulating eBPF objects from user-space.

@@ -1,0 +1,1 @@
+dir_to_symlink /usr/share/doc/linux-headers@source_suffix@@localversion@ linux-headers-@abiname@@localversion@ 5.2+107 linux-headers@source_suffix@@localversion@

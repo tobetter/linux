@@ -1,0 +1,140 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Tue, 20 Aug 2019 18:12:35 +0100
+Subject: Partially revert "net: socket: implement 64-bit timestamps"
+
+The introduction of SIOCGSTAMP{,NS}_OLD and move of SICOGSTAMP{,NS} to
+a different header has caused build failures for various user-space
+programs including qemu and suricata.  It also causes a test failure
+for glibc.
+
+For now, remove the _OLD suffix on the old ioctl numbers and require
+programs using 64-bit timestamps to explicitly use SIOCGSTAMP{,NS}_NEW.
+
+References: https://lore.kernel.org/lkml/af0eb47a-5b98-1bd9-3e8d-652e7f28b01f@de.ibm.com/
+References: https://bugs.debian.org/934316
+References: https://ci.debian.net/data/autopkgtest/testing/amd64/g/glibc/2772289/log.gz
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+--- a/arch/alpha/include/uapi/asm/sockios.h
++++ b/arch/alpha/include/uapi/asm/sockios.h
+@@ -11,7 +11,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* _ASM_ALPHA_SOCKIOS_H */
+--- a/arch/mips/include/uapi/asm/sockios.h
++++ b/arch/mips/include/uapi/asm/sockios.h
+@@ -21,7 +21,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* _ASM_SOCKIOS_H */
+--- a/arch/sh/include/uapi/asm/sockios.h
++++ b/arch/sh/include/uapi/asm/sockios.h
+@@ -10,7 +10,6 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP_OLD	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
+-#define SIOCGSTAMPNS_OLD _IOR('s', 101, struct timespec) /* Get stamp (timespec) */
+-
++#define SIOCGSTAMP	_IOR('s', 100, struct timeval) /* Get stamp (timeval) */
++#define SIOCGSTAMPNS	_IOR('s', 101, struct timespec) /* Get stamp (timespec) */
+ #endif /* __ASM_SH_SOCKIOS_H */
+--- a/arch/xtensa/include/uapi/asm/sockios.h
++++ b/arch/xtensa/include/uapi/asm/sockios.h
+@@ -26,7 +26,7 @@
+ #define SIOCSPGRP	_IOW('s', 8, pid_t)
+ #define SIOCGPGRP	_IOR('s', 9, pid_t)
+ 
+-#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
+ 
+ #endif	/* _XTENSA_SOCKIOS_H */
+--- a/include/uapi/asm-generic/sockios.h
++++ b/include/uapi/asm-generic/sockios.h
+@@ -8,7 +8,7 @@
+ #define FIOGETOWN	0x8903
+ #define SIOCGPGRP	0x8904
+ #define SIOCATMARK	0x8905
+-#define SIOCGSTAMP_OLD	0x8906		/* Get stamp (timeval) */
+-#define SIOCGSTAMPNS_OLD 0x8907		/* Get stamp (timespec) */
++#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
++#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
+ 
+ #endif /* __ASM_GENERIC_SOCKIOS_H */
+--- a/include/uapi/linux/sockios.h
++++ b/include/uapi/linux/sockios.h
+@@ -19,7 +19,6 @@
+ #ifndef _LINUX_SOCKIOS_H
+ #define _LINUX_SOCKIOS_H
+ 
+-#include <asm/bitsperlong.h>
+ #include <asm/sockios.h>
+ 
+ /* Linux-specific socket ioctls */
+@@ -37,17 +36,6 @@
+ /* Get stamp (timespec) */
+ #define SIOCGSTAMPNS_NEW _IOR(SOCK_IOC_TYPE, 0x07, long long[2])
+ 
+-#if __BITS_PER_LONG == 64 || (defined(__x86_64__) && defined(__ILP32__))
+-/* on 64-bit and x32, avoid the ?: operator */
+-#define SIOCGSTAMP	SIOCGSTAMP_OLD
+-#define SIOCGSTAMPNS	SIOCGSTAMPNS_OLD
+-#else
+-#define SIOCGSTAMP	((sizeof(struct timeval))  == 8 ? \
+-			 SIOCGSTAMP_OLD   : SIOCGSTAMP_NEW)
+-#define SIOCGSTAMPNS	((sizeof(struct timespec)) == 8 ? \
+-			 SIOCGSTAMPNS_OLD : SIOCGSTAMPNS_NEW)
+-#endif
+-
+ /* Routing table calls. */
+ #define SIOCADDRT	0x890B		/* add routing table entry	*/
+ #define SIOCDELRT	0x890C		/* delete routing table entry	*/
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -1170,14 +1170,14 @@ static long sock_ioctl(struct file *file
+ 
+ 			err = open_related_ns(&net->ns, get_net_ns);
+ 			break;
+-		case SIOCGSTAMP_OLD:
+-		case SIOCGSTAMPNS_OLD:
++		case SIOCGSTAMP:
++		case SIOCGSTAMPNS:
+ 			if (!sock->ops->gettstamp) {
+ 				err = -ENOIOCTLCMD;
+ 				break;
+ 			}
+ 			err = sock->ops->gettstamp(sock, argp,
+-						   cmd == SIOCGSTAMP_OLD,
++						   cmd == SIOCGSTAMP,
+ 						   !IS_ENABLED(CONFIG_64BIT));
+ 			break;
+ 		case SIOCGSTAMP_NEW:
+@@ -3341,11 +3341,11 @@ static int compat_sock_ioctl_trans(struc
+ 	case SIOCADDRT:
+ 	case SIOCDELRT:
+ 		return routing_ioctl(net, sock, cmd, argp);
+-	case SIOCGSTAMP_OLD:
+-	case SIOCGSTAMPNS_OLD:
++	case SIOCGSTAMP:
++	case SIOCGSTAMPNS:
+ 		if (!sock->ops->gettstamp)
+ 			return -ENOIOCTLCMD;
+-		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP_OLD,
++		return sock->ops->gettstamp(sock, argp, cmd == SIOCGSTAMP,
+ 					    !COMPAT_USE_64BIT_TIME);
+ 
+ 	case SIOCBONDSLAVEINFOQUERY:

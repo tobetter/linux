@@ -1,0 +1,72 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Fri, 20 Jul 2018 01:30:24 +0100
+Subject: usbip: Fix misuse of strncpy()
+Bug-Debian: https://bugs.debian.org/897802
+Forwarded: https://marc.info/?l=linux-usb&m=153213915806258
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+gcc 8 reports:
+
+usbip_device_driver.c: In function ‘read_usb_vudc_device’:
+usbip_device_driver.c:106:2: error: ‘strncpy’ specified bound 256 equals destination size [-Werror=stringop-truncation]
+  strncpy(dev->path, path, SYSFS_PATH_MAX);
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+usbip_device_driver.c:125:2: error: ‘strncpy’ specified bound 32 equals destination size [-Werror=stringop-truncation]
+  strncpy(dev->busid, name, SYSFS_BUS_ID_SIZE);
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+I'm not convinced it makes sense to truncate the copied strings here,
+but since we're already doing so let's ensure they're still null-
+terminated.  We can't easily use strlcpy() here, so use snprintf().
+
+usbip_common.c has the same problem.
+
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ tools/usb/usbip/libsrc/usbip_common.c        | 4 ++--
+ tools/usb/usbip/libsrc/usbip_device_driver.c | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tools/usb/usbip/libsrc/usbip_common.c b/tools/usb/usbip/libsrc/usbip_common.c
+index b8d7d480595a..02aae7cccb2d 100644
+--- a/tools/usb/usbip/libsrc/usbip_common.c
++++ b/tools/usb/usbip/libsrc/usbip_common.c
+@@ -226,9 +226,9 @@ int read_usb_device(struct udev_device *sdev, struct usbip_usb_device *udev)
+ 	path = udev_device_get_syspath(sdev);
+ 	name = udev_device_get_sysname(sdev);
+ 
+-	strncpy(udev->path,  path,  SYSFS_PATH_MAX - 1);
++	snprintf(udev->path, SYSFS_PATH_MAX - 1, "%s", path);
+ 	udev->path[SYSFS_PATH_MAX - 1] = '\0';
+-	strncpy(udev->busid, name, SYSFS_BUS_ID_SIZE - 1);
++	snprintf(udev->busid, SYSFS_BUS_ID_SIZE - 1, "%s", name);
+ 	udev->busid[SYSFS_BUS_ID_SIZE - 1] = '\0';
+ 
+ 	sscanf(name, "%u-%u", &busnum, &devnum);
+diff --git a/tools/usb/usbip/libsrc/usbip_device_driver.c b/tools/usb/usbip/libsrc/usbip_device_driver.c
+index 051d7d3f443b..1487770603a8 100644
+--- a/tools/usb/usbip/libsrc/usbip_device_driver.c
++++ b/tools/usb/usbip/libsrc/usbip_device_driver.c
+@@ -91,7 +91,7 @@ int read_usb_vudc_device(struct udev_device *sdev, struct usbip_usb_device *dev)
+ 	copy_descr_attr16(dev, &descr, idProduct);
+ 	copy_descr_attr16(dev, &descr, bcdDevice);
+ 
+-	strncpy(dev->path, path, SYSFS_PATH_MAX - 1);
++	snprintf(dev->path, SYSFS_PATH_MAX - 1, "%s", path);
+ 	dev->path[SYSFS_PATH_MAX - 1] = '\0';
+ 
+ 	dev->speed = USB_SPEED_UNKNOWN;
+@@ -111,7 +111,7 @@ int read_usb_vudc_device(struct udev_device *sdev, struct usbip_usb_device *dev)
+ 	dev->busnum = 0;
+ 
+ 	name = udev_device_get_sysname(plat);
+-	strncpy(dev->busid, name, SYSFS_BUS_ID_SIZE - 1);
++	snprintf(dev->busid, SYSFS_BUS_ID_SIZE - 1, "%s", name);
+ 	dev->busid[SYSFS_BUS_ID_SIZE - 1] = '\0';
+ 	return 0;
+ err:
+-- 
+2.23.0
+

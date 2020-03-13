@@ -1,0 +1,1 @@
+dir_to_symlink /usr/share/doc/linux-image@source_suffix@@localversion@ linux-image-@abiname@@localversion@ 5.2+107 linux-image@source_suffix@@localversion@

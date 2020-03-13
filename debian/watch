@@ -1,0 +1,4 @@
+# Find first non-rc tarball linked from kernel.org.
+version=3
+opts="pgpmode=mangle, pgpsigurlmangle=s|\.xz$|.sign|, decompress" \
+https://www.kernel.org/ .*/linux-([0-9.]+).tar.xz debian uupdate

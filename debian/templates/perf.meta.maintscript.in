@@ -1,0 +1,1 @@
+dir_to_symlink /usr/share/doc/linux-perf linux-perf-@version@ 5.2+107 linux-perf

@@ -1,0 +1,22 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Thu, 25 Apr 2019 15:31:33 +0100
+Subject: ntfs: mark it as broken
+
+NTFS has unfixed issues CVE-2018-12929, CVE-2018-12930, and
+CVE-2018-12931.  ntfs-3g is a better supported alternative.
+
+Make sure it can't be enabled even in custom kernels.
+
+---
+Index: debian-kernel/fs/ntfs/Kconfig
+===================================================================
+--- debian-kernel.orig/fs/ntfs/Kconfig
++++ debian-kernel/fs/ntfs/Kconfig
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config NTFS_FS
+ 	tristate "NTFS file system support"
++	depends on BROKEN
+ 	select NLS
+ 	help
+ 	  NTFS is the file system of Microsoft Windows NT, 2000, XP and 2003.

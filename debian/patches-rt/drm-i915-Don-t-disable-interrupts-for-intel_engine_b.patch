@@ -1,0 +1,116 @@
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Wed, 25 Sep 2019 16:04:11 +0200
+Subject: [PATCH] drm/i915: Don't disable interrupts for
+ intel_engine_breadcrumbs_irq()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/5.2/older/patches-5.2.17-rt9.tar.xz
+
+The function intel_engine_breadcrumbs_irq() is always invoked from an interrupt
+handler and for that reason it invokes (as an optimisation) only spin_lock()
+for locking assuming that the interrupts are already disabled. The
+function intel_engine_signal_breadcrumbs() is provided to disable
+interrupts while the former function is invoked so that assumption is
+also true for callers from preemptible context.
+
+On PREEMPT_RT local_irq_disable() really disables interrupts and this
+forbids to acquire spin_lock() which becomes a sleeping spinlock.
+
+This is also problematic with `threadirqs' in conjunction with
+irq_work. With force threading the interrupt handler, the handler is
+invoked with disabled BH but with interrupts enabled. This is okay and
+the lock itself is never acquired in IRQ context. This changes with
+irq_work (signal_irq_work()) which _still_ invokes
+intel_engine_breadcrumbs_irq() from IRQ context. Lockdep should see this
+and complain.
+
+Acquire the locks in intel_engine_breadcrumbs_irq() with _irqsave()
+suffix and let all callers invoke intel_engine_breadcrumbs_irq()
+directly instead using intel_engine_signal_breadcrumbs().
+
+Reported-by: Clark Williams <williams@redhat.com>
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
+ drivers/gpu/drm/i915/i915_reset.c        |    2 +-
+ drivers/gpu/drm/i915/intel_breadcrumbs.c |   16 +++++-----------
+ drivers/gpu/drm/i915/intel_hangcheck.c   |    2 +-
+ drivers/gpu/drm/i915/intel_ringbuffer.h  |    1 -
+ 4 files changed, 7 insertions(+), 14 deletions(-)
+
+--- a/drivers/gpu/drm/i915/i915_reset.c
++++ b/drivers/gpu/drm/i915/i915_reset.c
+@@ -804,7 +804,7 @@ static void reset_finish(struct drm_i915
+ 
+ 	for_each_engine(engine, i915, id) {
+ 		reset_finish_engine(engine);
+-		intel_engine_signal_breadcrumbs(engine);
++		intel_engine_breadcrumbs_irq(engine);
+ 	}
+ }
+ 
+--- a/drivers/gpu/drm/i915/intel_breadcrumbs.c
++++ b/drivers/gpu/drm/i915/intel_breadcrumbs.c
+@@ -116,9 +116,10 @@ void intel_engine_breadcrumbs_irq(struct
+ 	const ktime_t timestamp = ktime_get();
+ 	struct intel_context *ce, *cn;
+ 	struct list_head *pos, *next;
++	unsigned long flags;
+ 	LIST_HEAD(signal);
+ 
+-	spin_lock(&b->irq_lock);
++	spin_lock_irqsave(&b->irq_lock, flags);
+ 
+ 	if (b->irq_armed && list_empty(&b->signalers))
+ 		__intel_breadcrumbs_disarm_irq(b);
+@@ -162,7 +163,7 @@ void intel_engine_breadcrumbs_irq(struct
+ 		}
+ 	}
+ 
+-	spin_unlock(&b->irq_lock);
++	spin_unlock_irqrestore(&b->irq_lock, flags);
+ 
+ 	list_for_each_safe(pos, next, &signal) {
+ 		struct i915_request *rq =
+@@ -170,21 +171,14 @@ void intel_engine_breadcrumbs_irq(struct
+ 
+ 		__dma_fence_signal__timestamp(&rq->fence, timestamp);
+ 
+-		spin_lock(&rq->lock);
++		spin_lock_irqsave(&rq->lock, flags);
+ 		__dma_fence_signal__notify(&rq->fence);
+-		spin_unlock(&rq->lock);
++		spin_unlock_irqrestore(&rq->lock, flags);
+ 
+ 		i915_request_put(rq);
+ 	}
+ }
+ 
+-void intel_engine_signal_breadcrumbs(struct intel_engine_cs *engine)
+-{
+-	local_irq_disable();
+-	intel_engine_breadcrumbs_irq(engine);
+-	local_irq_enable();
+-}
+-
+ static void signal_irq_work(struct irq_work *work)
+ {
+ 	struct intel_engine_cs *engine =
+--- a/drivers/gpu/drm/i915/intel_hangcheck.c
++++ b/drivers/gpu/drm/i915/intel_hangcheck.c
+@@ -275,7 +275,7 @@ static void i915_hangcheck_elapsed(struc
+ 	for_each_engine(engine, dev_priv, id) {
+ 		struct hangcheck hc;
+ 
+-		intel_engine_signal_breadcrumbs(engine);
++		intel_engine_breadcrumbs_irq(engine);
+ 
+ 		hangcheck_load_sample(engine, &hc);
+ 		hangcheck_accumulate_sample(engine, &hc);
+--- a/drivers/gpu/drm/i915/intel_ringbuffer.h
++++ b/drivers/gpu/drm/i915/intel_ringbuffer.h
+@@ -388,7 +388,6 @@ void intel_engine_fini_breadcrumbs(struc
+ void intel_engine_pin_breadcrumbs_irq(struct intel_engine_cs *engine);
+ void intel_engine_unpin_breadcrumbs_irq(struct intel_engine_cs *engine);
+ 
+-void intel_engine_signal_breadcrumbs(struct intel_engine_cs *engine);
+ void intel_engine_disarm_breadcrumbs(struct intel_engine_cs *engine);
+ 
+ static inline void

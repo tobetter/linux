@@ -1,0 +1,8 @@
+Package: @source_basename@-doc@source_suffix@
+Build-Profiles: <!stage1 !nodoc !pkg.linux.nometa>
+Section: doc
+Architecture: all
+Depends: @source_basename@-doc-@version@ (= ${binary:Version}), ${misc:Depends}
+Description: Linux kernel specific documentation (meta-package)
+ This package depends on the package containing the documentation for the
+ latest Linux kernel.

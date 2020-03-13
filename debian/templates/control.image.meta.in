@@ -1,0 +1,7 @@
+Package: linux-image@source_suffix@@localversion@
+Build-Profiles: <!stage1 !pkg.linux.nokernel !pkg.linux.nometa>
+Depends: linux-image-@abiname@@localversion@ (= ${binary:Version}), ${misc:Depends}
+Provides: linux-latest-modules-@abiname@@localversion@
+Description: Linux for @class@ (meta-package)
+ This package depends on the latest Linux kernel and modules for use on
+ @longclass@.

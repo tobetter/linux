@@ -1,0 +1,40 @@
+[base]
+flavours:
+ marvell
+ rpi
+kernel-arch: arm
+
+[build]
+image-file: arch/arm/boot/zImage
+# uncompressed-image is just for size checking
+uncompressed-image-file: arch/arm/boot/Image
+
+[image]
+install-stem: vmlinuz
+
+[relations]
+headers%gcc-9: linux-compiler-gcc-9-arm
+
+[marvell_description]
+hardware: Marvell Kirkwood/Orion
+hardware-long: Marvell Kirkwood and Orion based systems (https://wiki.debian.org/ArmEabiPort#Supported_hardware)
+
+[rpi_description]
+hardware: Raspberry Pi and Pi Zero
+hardware-long: Raspberry Pi, Raspberry Pi Zero based systems
+
+[marvell_image]
+recommends: u-boot-tools
+## Maximum kernel size for supported devices (64 bytes is the u-boot header)
+# SheevaPlug: 4194304 - 64 = 4194240
+# QNAP TS-119/TS-219: 2097152 - 64 = 2097088
+# D-Link DNS-323: 1572864 - 8 - 64 = 1572792 (too small, no longer supported)
+# HP Media Vault mv2120: 2097152 - 8 - 64 = 2097080
+# QNAP TS-109/TS-209 & TS-409: 2097152 - 8 - 64 = 2097080
+# Buffalo Linkstation LS-WSXL/WXL/WVL (from stock kernel): 2729776 - 64 = 2729712
+check-size: 2729712
+check-size-with-dtb: true
+## Maximum uncompressed kernel size for supported devices
+# Buffalo Linkstation LS-WSXL/WXL/WVL: 7340032
+check-uncompressed-size: 7340032
+breaks: flash-kernel (<< 3.57~)

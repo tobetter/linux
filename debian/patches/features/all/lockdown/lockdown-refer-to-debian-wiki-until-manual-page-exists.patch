@@ -1,0 +1,32 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 21 Apr 2019 00:17:13 +0100
+Subject: lockdown: Refer to Debian wiki until manual page exists
+Forwarded: not-needed
+
+The lockdown denial log message currently refers to a
+"kernel_lockdown.7" manual page, which is supposed to document it.
+That manual page hasn't been accepted by the man-pages project and
+doesn't even seem to have been submitted yet.  For now, refer to the
+Debian wiki.
+
+---
+--- a/security/lockdown/lockdown.c
++++ b/security/lockdown/lockdown.c
+@@ -53,7 +53,7 @@ int lock_kernel_down(const char *where,
+ 		return -EPERM;
+ 
+ 	kernel_locked_down = level;
+-	pr_notice("Kernel is locked down from %s; see man kernel_lockdown.7\n",
++	pr_notice("Kernel is locked down from %s; see https://wiki.debian.org/SecureBoot\n",
+ 		  where);
+ 	return 0;
+ }
+@@ -87,7 +87,7 @@ static int lockdown_is_locked_down(enum
+ 
+ 	if (kernel_locked_down >= what) {
+ 		if (lockdown_reasons[what])
+-			pr_notice("Lockdown: %s: %s is restricted; see man kernel_lockdown.7\n",
++			pr_notice("Lockdown: %s: %s is restricted; see https://wiki.debian.org/SecureBoot\n",
+ 				  current->comm, lockdown_reasons[what]);
+ 		return -EPERM;
+ 	}

@@ -1,0 +1,46 @@
+From: Aurelien Jarno <aurelien@aurel32.net>
+Date: Sun, 1 Dec 2019 20:35:55 +0100
+Subject: libbpf: fix readelf output parsing on powerpc with recent binutils
+Origin: https://lore.kernel.org/patchwork/patch/1161149/
+
+On powerpc with recent versions of binutils, readelf outputs an extra
+field when dumping the symbols of an object file. For example:
+
+    35: 0000000000000838    96 FUNC    LOCAL  DEFAULT [<localentry>: 8]     1 btf_is_struct
+
+The extra "[<localentry>: 8]" prevents the GLOBAL_SYM_COUNT variable to
+be computed correctly and causes the checkabi target to fail.
+
+Fix that by looking for the symbol name in the last field instead of the
+8th one. This way it should also cope with future extra fields.
+
+Signed-off-by: Aurelien Jarno <aurelien@aurel32.net>
+---
+ tools/lib/bpf/Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/lib/bpf/Makefile b/tools/lib/bpf/Makefile
+index 99425d0be6ff..333900cf3f4f 100644
+--- a/tools/lib/bpf/Makefile
++++ b/tools/lib/bpf/Makefile
+@@ -147,7 +147,7 @@ TAGS_PROG := $(if $(shell which etags 2>/dev/null),etags,ctags)
+ 
+ GLOBAL_SYM_COUNT = $(shell readelf -s --wide $(BPF_IN_SHARED) | \
+ 			   cut -d "@" -f1 | sed 's/_v[0-9]_[0-9]_[0-9].*//' | \
+-			   awk '/GLOBAL/ && /DEFAULT/ && !/UND/ {print $$8}' | \
++			   awk '/GLOBAL/ && /DEFAULT/ && !/UND/ {print $$NF}' | \
+ 			   sort -u | wc -l)
+ VERSIONED_SYM_COUNT = $(shell readelf -s --wide $(OUTPUT)libbpf.so | \
+ 			      grep -Eo '[^ ]+@LIBBPF_' | cut -d@ -f1 | sort -u | wc -l)
+@@ -216,7 +216,7 @@ check_abi: $(OUTPUT)libbpf.so
+ 		     "versioned in $(VERSION_SCRIPT)." >&2;		 \
+ 		readelf -s --wide $(OUTPUT)libbpf-in.o |		 \
+ 		    cut -d "@" -f1 | sed 's/_v[0-9]_[0-9]_[0-9].*//' |	 \
+-		    awk '/GLOBAL/ && /DEFAULT/ && !/UND/ {print $$8}'|   \
++		    awk '/GLOBAL/ && /DEFAULT/ && !/UND/ {print $$NF}'|  \
+ 		    sort -u > $(OUTPUT)libbpf_global_syms.tmp;		 \
+ 		readelf -s --wide $(OUTPUT)libbpf.so |			 \
+ 		    grep -Eo '[^ ]+@LIBBPF_' | cut -d@ -f1 |		 \
+-- 
+2.24.0
+

@@ -1,0 +1,3 @@
+lzo_compress
+lzo_decompress
+zstd_decompress

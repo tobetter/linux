@@ -1,0 +1,4 @@
+[base]
+flavours:
+ armmp
+ armmp-lpae

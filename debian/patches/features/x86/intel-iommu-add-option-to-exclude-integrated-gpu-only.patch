@@ -1,0 +1,87 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Wed, 21 Aug 2019 00:05:30 +0100
+Subject: intel-iommu: Add option to exclude integrated GPU only
+Bug-Debian: https://bugs.debian.org/935270
+Bug-Kali: https://bugs.kali.org/view.php?id=5644
+
+There is still laptop firmware that touches the integrated GPU behind
+the operating system's back, and doesn't say so in the RMRR table.
+Enabling the IOMMU for all devices causes breakage, but turning it off
+for all graphics devices seems like a major weakness.
+
+Add an option, intel_iommu=igpu_off, to exclude only integrated GPUs
+from remapping.  This is a narrower exclusion than igfx_off: it only
+affects Intel devices on the root bus.  Devices attached through an
+external port (Thunderbolt or ExpressCard) won't be on the root bus.
+
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -52,6 +52,9 @@
+ #define CONTEXT_SIZE		VTD_PAGE_SIZE
+ 
+ #define IS_GFX_DEVICE(pdev) ((pdev->class >> 16) == PCI_BASE_CLASS_DISPLAY)
++#define IS_INTGPU_DEVICE(pdev) (IS_GFX_DEVICE(pdev) &&		\
++				(pdev)->vendor == 0x8086 &&	\
++				pci_is_root_bus((pdev)->bus))
+ #define IS_USB_DEVICE(pdev) ((pdev->class >> 8) == PCI_CLASS_SERIAL_USB)
+ #define IS_ISA_DEVICE(pdev) ((pdev->class >> 8) == PCI_CLASS_BRIDGE_ISA)
+ #define IS_AZALIA(pdev) ((pdev)->vendor == 0x8086 && (pdev)->device == 0x3a3e)
+@@ -356,6 +359,7 @@ int intel_iommu_enabled = 0;
+ EXPORT_SYMBOL_GPL(intel_iommu_enabled);
+ 
+ static int dmar_map_gfx = 1;
++static int dmar_map_intgpu = 1;
+ static int dmar_forcedac;
+ static int intel_iommu_strict;
+ static int intel_iommu_superpage = 1;
+@@ -364,6 +368,7 @@ static int iommu_identity_mapping;
+ #define IDENTMAP_ALL		1
+ #define IDENTMAP_GFX		2
+ #define IDENTMAP_AZALIA		4
++#define IDENTMAP_INTGPU		8
+ 
+ int intel_iommu_gfx_mapped;
+ EXPORT_SYMBOL_GPL(intel_iommu_gfx_mapped);
+@@ -439,6 +444,9 @@ static int __init intel_iommu_setup(char
+ 		} else if (!strncmp(str, "igfx_off", 8)) {
+ 			dmar_map_gfx = 0;
+ 			pr_info("Disable GFX device mapping\n");
++		} else if (!strncmp(str, "intgpu_off", 8)) {
++			dmar_map_intgpu = 0;
++			pr_info("Disable integrated GPU device mapping\n");
+ 		} else if (!strncmp(str, "forcedac", 8)) {
+ 			pr_info("Forcing DAC for PCI devices\n");
+ 			dmar_forcedac = 1;
+@@ -2890,6 +2898,9 @@ static int device_def_domain_type(struct
+ 		if ((iommu_identity_mapping & IDENTMAP_GFX) && IS_GFX_DEVICE(pdev))
+ 			return IOMMU_DOMAIN_IDENTITY;
+ 
++		if ((iommu_identity_mapping & IDENTMAP_INTGPU) && IS_INTGPU_DEVICE(pdev))
++			return IOMMU_DOMAIN_IDENTITY;
++
+ 		/*
+ 		 * We want to start off with all devices in the 1:1 domain, and
+ 		 * take them out later if we find they can't access all of memory.
+@@ -3277,6 +3288,9 @@ static int __init init_dmars(void)
+ 	if (!dmar_map_gfx)
+ 		iommu_identity_mapping |= IDENTMAP_GFX;
+ 
++	if (!dmar_map_intgpu)
++		iommu_identity_mapping |= IDENTMAP_INTGPU;
++
+ 	check_tylersburg_isoch();
+ 
+ 	ret = si_domain_init(hw_pass_through);
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -1703,6 +1703,8 @@
+ 			bypassed by not enabling DMAR with this option. In
+ 			this case, gfx device will use physical address for
+ 			DMA.
++		intgpu_off [Default Off]
++			Bypass the DMAR unit for an integrated GPU only.
+ 		forcedac [x86_64]
+ 			With this option iommu will not optimize to look
+ 			for io virtual address below 32-bit forcing dual

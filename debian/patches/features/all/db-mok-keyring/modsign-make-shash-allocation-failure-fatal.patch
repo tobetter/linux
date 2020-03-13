@@ -1,0 +1,28 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 05 May 2019 13:45:06 +0100
+Subject: MODSIGN: Make shash allocation failure fatal
+
+mod_is_hash_blacklisted() currently returns 0 (suceess) if
+crypto_alloc_shash() fails.  This should instead be a fatal error,
+so unwrap and pass up the error code.
+
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+--- a/kernel/module_signing.c
++++ b/kernel/module_signing.c
+@@ -51,11 +51,13 @@ static int mod_is_hash_blacklisted(const
+ 	struct shash_desc *desc;
+ 	size_t digest_size, desc_size;
+ 	u8 *digest;
+-	int ret = 0;
++	int ret;
+ 
+ 	tfm = crypto_alloc_shash("sha256", 0, 0);
+-	if (IS_ERR(tfm))
++	if (IS_ERR(tfm)) {
++		ret = PTR_ERR(tfm);
+ 		goto error_return;
++	}
+ 
+ 	desc_size = crypto_shash_descsize(tfm) + sizeof(*desc);
+ 	digest_size = crypto_shash_digestsize(tfm);

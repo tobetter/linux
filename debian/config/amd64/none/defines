@@ -1,0 +1,4 @@
+[base]
+flavours:
+ amd64
+ cloud-amd64

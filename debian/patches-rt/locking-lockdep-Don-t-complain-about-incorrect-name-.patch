@@ -1,0 +1,44 @@
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Date: Fri, 17 May 2019 23:22:34 +0200
+Subject: [PATCH] locking/lockdep: Don't complain about incorrect name for no
+ validate class
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/5.2/older/patches-5.2.17-rt9.tar.xz
+
+[ Upstream commit 978315462d3ea3cf6cfacd34c563ec1eb02a3aa5 ]
+
+It is possible to ignore the validation for a certain lock by using:
+
+	lockdep_set_novalidate_class()
+
+on it. Each invocation will assign a new name to the class it created
+for created __lockdep_no_validate__. That means that once
+lockdep_set_novalidate_class() has been used on two locks then
+class->name won't match lock->name for the first lock triggering the
+warning.
+
+So ignore changed non-matching ->name pointer for the special
+__lockdep_no_validate__ class.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Link: http://lkml.kernel.org/r/20190517212234.32611-1-bigeasy@linutronix.de
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ kernel/locking/lockdep.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/kernel/locking/lockdep.c
++++ b/kernel/locking/lockdep.c
+@@ -732,7 +732,8 @@ look_up_lock_class(const struct lockdep_
+ 			 * Huh! same key, different name? Did someone trample
+ 			 * on some memory? We're most confused.
+ 			 */
+-			WARN_ON_ONCE(class->name != lock->name);
++			WARN_ON_ONCE(class->name != lock->name &&
++				     lock->key != &__lockdep_no_validate__);
+ 			return class;
+ 		}
+ 	}

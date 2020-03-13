@@ -1,0 +1,11 @@
+Package: linux-image-@abiname@@localversion@
+Depends: ${unsigned:Depends}, ${misc:Depends}
+Recommends: ${unsigned:Recommends}
+Suggests: ${unsigned:Suggests}
+Breaks: ${unsigned:Breaks}
+Conflicts: linux-image-@abiname@@localversion@-unsigned
+Replaces: linux-image-@abiname@@localversion@-unsigned
+Description: ${unsigned:DescriptionShort} (signed)
+ ${unsigned:DescriptionLong}
+ .
+ ${signed:Description}

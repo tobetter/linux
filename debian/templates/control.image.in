@@ -1,0 +1,7 @@
+Package: linux-image-@abiname@@localversion@
+Build-Profiles: <!stage1 !pkg.linux.nokernel>
+Depends: kmod, linux-base (>= 4.3~), linux-bootwrapper-@abiname@ [powerpc ppc64], ${misc:Depends}
+Recommends: firmware-linux-free, ${kernel:Recommends}
+Suggests: linux-doc-@version@, debian-kernel-handbook
+Description: Linux @upstreamversion@ for @class@
+ The Linux kernel @upstreamversion@ and modules for use on @longclass@.

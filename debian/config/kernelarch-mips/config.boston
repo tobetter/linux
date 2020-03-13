@@ -1,0 +1,73 @@
+##
+## file: arch/mips/Kconfig
+##
+## choice: System type
+CONFIG_MIPS_GENERIC=y
+## end choice
+CONFIG_MIPS_CPS=y
+CONFIG_CPU_HAS_MSA=y
+CONFIG_HIGHMEM=y
+CONFIG_NR_CPUS=16
+
+##
+## file: arch/mips/generic/Kconfig
+##
+CONFIG_FIT_IMAGE_FDT_BOSTON=y
+
+##
+## file: crypto/Kconfig
+##
+CONFIG_CRYPTO_CRC32_MIPS=y
+
+##
+## file: drivers/auxdisplay/Kconfig
+##
+CONFIG_AUXDISPLAY=y
+CONFIG_IMG_ASCII_LCD=y
+
+##
+## file: drivers/clk/imgtec/Kconfig
+##
+CONFIG_COMMON_CLK_BOSTON=y
+
+##
+## file: drivers/i2c/busses/Kconfig
+##
+CONFIG_I2C_EG20T=y
+
+##
+## file: drivers/misc/Kconfig
+##
+CONFIG_PCH_PHUB=y
+
+##
+## file: drivers/mmc/Kconfig
+##
+CONFIG_MMC=y
+
+##
+## file: drivers/mmc/host/Kconfig
+##
+CONFIG_MMC_SDHCI=y
+CONFIG_MMC_SDHCI_PCI=y
+
+##
+## file: drivers/pci/controller/Kconfig
+##
+CONFIG_PCIE_XILINX=y
+
+##
+## file: drivers/rtc/Kconfig
+##
+CONFIG_RTC_DRV_M41T80=y
+
+##
+## file: drivers/spi/Kconfig
+##
+CONFIG_SPI_TOPCLIFF_PCH=y
+
+##
+## file: drivers/tty/serial/8250/Kconfig
+##
+CONFIG_SERIAL_OF_PLATFORM=y
+
