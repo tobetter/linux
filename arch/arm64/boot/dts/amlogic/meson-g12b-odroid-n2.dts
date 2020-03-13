@@ -364,6 +364,51 @@
 };
 
 &gpio {
+		gpio-line-names =
+			/* GPIOZ */
+			"", "", "", "", "", "", "", "",
+			"", "", "", "", "", "", "", "",
+			/* GPIOH */
+			"", "", "", "", "", "", "", "",
+			"",
+			/* BOOT */
+			"", "", "", "", "", "", "", "",
+			"", "", "", "", "", "", "", "",
+			/* GPIOC */
+			"", "", "", "", "", "", "", "",
+			/* GPIOA */
+			"GPIOA_0", /* PIN44 */
+			"GPIOA_1", /* PIN46 */
+			"GPIOA_2", /* PIN45 */
+			"GPIOA_3", /* PIN47 */
+			"GPIOA_4", /* PIN26 */
+			"", "", "", "", "", "",
+			"GPIOA_11", /* PIN42 */
+			"GPIOA_12", /* PIN32 */
+			"GPIOA_13", /* PIN7 */
+			"GPIOA_14", /* PIN27 */
+			"GPIOA_15", /* PIN28 */
+			/* GPIOX */
+			"GPIOX_0", /* PIN16 */
+			"GPIOX_1", /* PIN18 */
+			"GPIOX_2", /* PIN22 */
+			"GPIOX_3", /* PIN11 */
+			"GPIOX_4", /* PIN13 */
+			"GPIOX_5", /* PIN33 */
+			"GPIOX_6", /* PIN35 */
+			"GPIOX_7", /* PIN15 */
+			"GPIOX_8", /* PIN19 */
+			"GPIOX_9", /* PIN21 */
+			"GPIOX_10", /* PIN24 */
+			"GPIOX_11", /* PIN23 */
+			"GPIOX_12", /* PIN8 */
+			"GPIOX_13", /* PIN0 */
+			"GPIOX_14", /* PIN29 */
+			"GPIOX_15", /* PIN31 */
+			"GPIOX_16", /* PIN12 */
+			"GPIOX_17", /* PIN3 */
+			"GPIOX_18", /* PIN5 */
+			"GPIOX_19"; /* PIN36 */
 	/*
 	 * WARNING: The USB Hub on the Odroid-N2 needs a reset signal
 	 * to be turned high in order to be detected by the USB Controller
