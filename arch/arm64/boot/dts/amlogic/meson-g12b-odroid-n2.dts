@@ -17,8 +17,9 @@
 	model = "Hardkernel ODROID-N2";
 
 	aliases {
-		serial0 = &uart_AO;
 		ethernet0 = &ethmac;
+		serial0 = &uart_AO;
+		serial1 = &uart_A;
 	};
 
 	dioo2133: audio-amplifier-0 {
@@ -657,6 +658,12 @@
 
 &toddr_c {
 	status = "okay";
+};
+
+&uart_A {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_a_pins>;
 };
 
 &uart_AO {
