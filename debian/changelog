@@ -100,6 +100,7 @@ linux (3.16.82-1) UNRELEASED; urgency=medium
 
   [ Ben Hutchings ]
   * hrtimer: Avoid ABI change in 3.16.82
+  * debian/README.source: Refer to upload checklist in kernel-team.git
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

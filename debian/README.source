@@ -1,3 +1,9 @@
+Checklist for uploaders
+=======================
+
+There is a checklist in the kernel-team.git repository; see
+<https://salsa.debian.org/kernel-team/kernel-team/-/blob/master/docs/kernel-upload-checklist.md>.
+
 Updating the upstream source
 ============================
 
