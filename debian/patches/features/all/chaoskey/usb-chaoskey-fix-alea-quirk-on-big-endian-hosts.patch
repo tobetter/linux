@@ -1,0 +1,33 @@
+From: Johan Hovold <johan@kernel.org>
+Date: Thu, 11 May 2017 11:36:01 +0200
+Subject: USB: chaoskey: fix Alea quirk on big-endian hosts
+Origin: https://git.kernel.org/linus/63afd5cc78775018ea2dec4004428dafa5283e93
+
+Add missing endianness conversion when applying the Alea timeout quirk.
+
+Found using sparse:
+
+	warning: restricted __le16 degrades to integer
+
+Fixes: e4a886e811cd ("hwrng: chaoskey - Fix URB warning due to timeout on Alea")
+Cc: stable <stable@vger.kernel.org>     # 4.8
+Cc: Bob Ham <bob.ham@collabora.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Keith Packard <keithp@keithp.com>
+Signed-off-by: Johan Hovold <johan@kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/usb/misc/chaoskey.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/drivers/usb/misc/chaoskey.c
++++ b/drivers/usb/misc/chaoskey.c
+@@ -194,7 +194,7 @@ static int chaoskey_probe(struct usb_int
+ 
+ 	dev->in_ep = in_ep;
+ 
+-	if (udev->descriptor.idVendor != ALEA_VENDOR_ID)
++	if (le16_to_cpu(udev->descriptor.idVendor) != ALEA_VENDOR_ID)
+ 		dev->reads_started = 1;
+ 
+ 	dev->size = size;

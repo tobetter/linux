@@ -663,6 +663,9 @@ features/all/chaoskey/usb-misc-chaoskey-introduce-an-URB-for-asynchronous-.patch
 features/all/chaoskey/hwrng-chaoskey-Add-support-for-Araneus-Alea-I-USB-RN.patch
 features/all/chaoskey/hwrng-chaoskey-Fix-URB-warning-due-to-timeout-on-Ale.patch
 features/all/chaoskey/chaoskey-3.16-no-hwrng-quality.patch
+features/all/chaoskey/usb-chaoskey-fix-alea-quirk-on-big-endian-hosts.patch
+features/all/chaoskey/usb-chaoskey-fix-use-after-free-on-release.patch
+features/all/chaoskey/usb-chaoskey-fix-error-case-of-a-timeout.patch
 
 # Make PIE address randomisation independent of mmap
 bugfix/all/pie-aslr/arm-factor-out-mmap-aslr-into-mmap_rnd.patch
