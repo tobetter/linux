@@ -687,10 +687,6 @@ bugfix/all/pie-aslr/mm-revert-x86_64-and-arm64-elf_et_dyn_base-base-chan.patch
 bugfix/all/mbcache-reschedule-before-restarting-iteration-in-mb_cache_entry_alloc.patch
 bugfix/all/scsi-libsas-direct-call-probe-and-destruct.patch
 bugfix/all/Revert-net-increase-fragment-memory-usage-limits.patch
-bugfix/all/mwifiex-fix-unbalanced-locking-in-mwifiex_process_country_ie.patch
-bugfix/all/libertas-fix-two-buffer-overflows-at-parsing-bss-descriptor.patch
-bugfix/all/mwifiex-fix-probable-memory-corruption-while-process.patch
-bugfix/all/mwifiex-fix-heap-overflow-in-mmwifiex_process_tdls_a.patch
 
 # Fix ABI changes
 debian/abi/revert-x86-cpufeatures-renumber-word-7.patch

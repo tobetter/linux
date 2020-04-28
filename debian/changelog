@@ -1,4 +1,4 @@
-linux (3.16.82-1) UNRELEASED; urgency=medium
+linux (3.16.83-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.82
@@ -97,6 +97,254 @@ linux (3.16.82-1) UNRELEASED; urgency=medium
     - tcp: Protect accesses to .ts_recent_stamp with {READ,WRITE}_ONCE()
     - inet: protect against too small mtu values.
     - deb-pkg: remove obsolete -isp option to dpkg-gencontrol
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.83
+    - libertas: don't exit from lbs_ibss_join_existing() with RCU read lock
+      held
+    - libertas: make lbs_ibss_join_existing() return error code on rates
+      overflow
+    - cfg80211/mac80211: make ieee80211_send_layer2_update a public function
+      (CVE-
+    - mac80211: Do not send Layer 2 Update frame before authorization
+      (CVE-2019-5108)
+    - [x86] microcode/AMD: Add support for fam17h microcode loading
+    - ext4: wait for existing dio workers in ext4_alloc_file_blocks()
+    - ext4: only call ext4_truncate when size <= isize
+    - ext4: update c/mtime on truncate up
+    - quota: fix wrong condition in is_quota_modification()
+    - ext4: fix races between page faults and hole punching (CVE-2015-8839)
+    - ext4: move unlocked dio protection from ext4_alloc_file_blocks()
+      (CVE-2015-8839)
+    - ext4: fix races between buffered IO and collapse / insert range
+      (CVE-2015-8839)
+    - ext4: fix races of writeback with punch hole and zero range
+      (CVE-2015-8839)
+    - Btrfs: fix wrong max inline data size limit
+    - btrfs: new define for the inline extent data start
+    - btrfs: kill extent_buffer_page helper
+    - btrfs: cleanup, rename a few variables in btrfs_read_sys_array
+    - btrfs: add more checks to btrfs_read_sys_array
+    - btrfs: cleanup, stop casting for extent_map->lookup everywhere
+    - btrfs: handle invalid num_stripes in sys_array
+    - btrfs: Enhance chunk validation check
+    - Btrfs: add validadtion checks for chunk loading
+    - Btrfs: check inconsistence between chunk and block group
+    - Btrfs: fix em leak in find_first_block_group
+    - Btrfs: detect corruption when non-root leaf has zero item
+    - Btrfs: check btree node's nritems
+    - Btrfs: fix BUG_ON in btrfs_mark_buffer_dirty
+    - Btrfs: memset to avoid stale content in btree node block
+    - Btrfs: improve check_node to avoid reading corrupted nodes
+    - Btrfs: kill BUG_ON in run_delayed_tree_ref
+    - Btrfs: memset to avoid stale content in btree leaf
+    - Btrfs: fix emptiness check for dirtied extent buffers at check_leaf()
+    - btrfs: struct-funcs, constify readers
+    - btrfs: Refactor check_leaf function for later expansion
+    - btrfs: Check if item pointer overlaps with the item itself
+    - btrfs: Add sanity check for EXTENT_DATA when reading out leaf
+    - btrfs: Add checker for EXTENT_CSUM
+    - btrfs: Move leaf and node validation checker to tree-checker.c
+    - btrfs: tree-checker: Enhance btrfs_check_node output
+    - btrfs: tree-checker: Fix false panic for sanity test
+    - btrfs: tree-checker: Add checker for dir item
+    - btrfs: tree-checker: use %zu format string for size_t
+    - btrfs: tree-check: reduce stack consumption in check_dir_item
+    - btrfs: tree-checker: Verify block_group_item (CVE-2018-14613)
+    - btrfs: tree-checker: Detect invalid and empty essential trees
+      (CVE-2018-14612)
+    - btrfs: validate type when reading a chunk (CVE-2018-14611)
+    - btrfs: Check that each block group has corresponding chunk at mount time
+      (CVE-2018-14610)
+    - btrfs: Verify that every chunk has corresponding block group at mount
+      time (CVE-2018-14612)
+    - btrfs: tree-checker: Check level for leaves and nodes
+    - btrfs: tree-checker: Fix misleading group system information
+    - btrfs: ensure that a DUP or RAID1 block group has exactly two stripes
+    - dm: do not override error code returned from dm_get_device()
+    - dm flakey: return -EINVAL on interval bounds error in flakey_ctr()
+    - dm flakey: fix reads to be issued if drop_writes configured
+    - dm flakey: check for null arg_name in parse_features()
+    - [amd64] pti/efi: broken conversion from efi to kernel page table
+      (regression in 3.16.51-3+deb8u1)
+    - batman-adv: Fix DAT candidate selection on little endian systems
+    - netfilter: ctnetlink: netns exit must wait for callbacks
+    - taskstats: fix data-race
+    - dm btree: increase rebalance threshold in __rebalance2()
+    - dm thin metadata: Add support for a pre-commit callback
+    - [x86] pinctrl: baytrail: Relax GPIO request rules
+    - [x86] pinctrl: baytrail: Clear interrupt triggering from pins that are in
+      GPIO mode
+    - [x86] pinctrl: baytrail: Rework interrupt handling
+    - [x86] pinctrl: baytrail: Serialize all register access
+    - [x86] pinctrl: baytrail: Really serialize all register accesses
+    - netfilter: nf_tables: missing sanitization in data from userspace
+    - netfilter: nf_tables: validate NFT_DATA_VALUE after nft_data_init()
+    - netfilter: bridge: make sure to pull arp header in br_nf_forward_arp()
+    - HID: uhid: Fix returning EPOLLOUT from uhid_char_poll
+    - gpio: Fix error message on out-of-range GPIO in lookup table
+    - neighbour: remove neigh_cleanup() method
+    - bonding: fix bond_neigh_init()
+    - af_packet: set defaule value for tmo
+    - [x86] ACPI: PM: Avoid attaching ACPI PM domain to certain devices
+    - scsi: iscsi: qla4xxx: fix double free in probe
+    - staging: gigaset: fix general protection fault on probe
+    - staging: gigaset: fix illegal free on probe errors
+    - staging: gigaset: add endpoint-type sanity check
+    - usb: core: urb: fix URB structure initialization function
+    - usb: mon: Fix a deadlock in usbmon between mmap and read
+    - USB: serial: io_edgeport: fix epic endpoint lookup
+    - USB: idmouse: fix interface sanity checks
+    - USB: adutux: fix interface sanity check
+    - USB: atm: ueagle-atm: add missing endpoint check
+    - staging: rtl8188eu: fix interface sanity check
+    - staging: rtl8712: fix interface sanity check
+    - gpiolib: fix up emulated open drain outputs
+    - virtio-balloon: fix managed page counts when migrating pages between
+      zones
+    - HID: Fix slab-out-of-bounds read in hid_field_extract
+    - xhci: handle some XHCI_TRUST_TX_LENGTH quirks cases as default behaviour.
+    - xhci: make sure interrupts are restored to correct state
+    - IB/mlx4: Avoid executing gid task when device is being removed
+    - IB/mlx4: Follow mirror sequence of device add during device removal
+    - HID: hid-input: clear unmapped usages
+    - btrfs: do not call synchronize_srcu() in inode_tree_del
+    - Btrfs: fix removal logic of the tree mod log that leads to use-after-free
+      issues
+    - btrfs: abort transaction after failed inode updates in create_subvol
+    - btrfs: handle ENOENT in btrfs_uuid_tree_iterate
+    - btrfs: skip log replay on orphaned roots
+    - btrfs: do not leak reloc root if we fail to read the fs root
+    - Btrfs: fix infinite loop during nocow writeback due to race
+    - btrfs: Remove redundant btrfs_release_path from btrfs_unlink_subvol
+    - btrfs: do not delete mismatched root refs
+    - btrfs: check rw_devices, not num_devices for balance
+    - ext4: check for directory entries too close to block end
+    - 6pack,mkiss: fix possible deadlock
+    - tcp: do not send empty skb from tcp_write_xmit()
+    - ALSA: pcm: Avoid possible info leaks from PCM stream buffers
+    - ALSA: hda/ca0132 - Avoid endless loop
+    - tty: link tty and port before configuring it as console
+    - USB: EHCI: Do not return -EPIPE when hub is disconnected
+    - usbip: Fix error path of vhci_recv_ret_submit()
+    - [x86] kvm: x86: Host feature SSBD doesn't imply guest feature
+      SPEC_CTRL_SSBD
+    - [armhf] net: stmmac: 16KB buffer must be 16 byte aligned
+    - [armhf] net: stmmac: Enable 16KB buffer size
+    - netfilter: ebtables: convert BUG_ONs to WARN_ONs
+    - netfilter: ebtables: compat: reject all padding in matches/watchers
+    - [x86] platform/x86: hp-wmi: Make buffer for HPWMI_FEATURE2_QUERY 128
+      bytes
+    - mod_devicetable: fix PHY module format
+    - [x86] efistub: Disable paging at mixed mode entry
+    - ALSA: ice1724: Fix sleep-in-atomic in Infrasonic Quartet support code
+    - locks: print unsigned ino in /proc/locks
+    - netfilter: arp_tables: init netns pointer in xt_tgchk_param struct
+    - tty: always relink the port
+    - USB: core: fix check for duplicate endpoints
+    - USB: core: add endpoint-blacklist quirk
+    - USB: quirks: blacklist duplicate ep on Sound Devices USBPre2
+    - [armhf] usb: musb: dma: Correct parameter passed to IRQ handler
+    - can: gs_usb: gs_usb_probe(): use descriptors of current altsetting
+    - tcp: fix "old stuff" D-SACK causing SACK to be treated as D-SACK
+    - vxlan: fix tos value before xmit
+    - ftrace: Avoid potential division by zero in function profiler
+    - staging: rtl8188eu: Add device code for TP-Link TL-WN727N v5.21
+    - kernel/trace: Fix do not unregister tracepoints when register
+      sched_migrate_task fail
+    - kobject: Export kobject_get_unless_zero()
+    - chardev: Avoid potential use-after-free in 'chrdev_open()'
+    - sctp: free cmd->obj.chunk for the unprocessed SCTP_CMD_REPLY
+    - vlan: vlan_changelink() should propagate errors
+    - pkt_sched: fq: avoid hang when quantum 0
+    - pkt_sched: fq: do not accept silly TCA_FQ_QUANTUM
+    - macvlan: do not assume mac_header is set in macvlan_broadcast()
+    - netfilter: ipset: avoid null deref when IPSET_ATTR_LINENO is present
+    - ixgbevf: Remove limit of 10 entries for unicast filter list
+    - scsi: sd: Clear sdkp->protection_type if disk is reformatted without PI
+    - scsi: enclosure: Fix stale device oops with hot replug
+    - hidraw: Return EPOLLOUT from hidraw_poll
+    - HID: hidraw: Fix returning EPOLLOUT from hidraw_poll
+    - HID: hidraw, uhid: Always report EPOLLOUT
+    - Input: aiptek - fix endpoint sanity check
+    - Input: gtco - fix endpoint sanity check
+    - Input: sur40 - fix interface sanity checks
+    - [x86] platform/x86: asus-wmi: Fix keyboard brightness cannot be set to 0
+    - iio: buffer: align the size of scan bytes to size of the largest element
+    - USB: serial: simple: Add Motorola Solutions TETRA MTP3xxx and MTP85xx
+    - netfilter: fix a use-after-free in mtype_destroy()
+    - netfilter: arp_tables: init netns pointer in xt_tgdtor_param struct
+    - ALSA: usb-audio: add implicit fb quirk for Axe-Fx II
+    - ALSA: usb-audio: simplify set_sync_ep_implicit_fb_quirk
+    - ALSA: usb-audio: fix sync-ep altsetting sanity check
+    - USB: serial: opticon: fix control-message timeouts
+    - r8152: add missing endpoint sanity check
+    - usb: core: hub: Improved device recognition on remote wakeup
+    - ALSA: seq: Fix racy access for queue timer in proc read
+    - scsi: fnic: fix invalid stack access
+    - block: fix an integer overflow in logical block size
+    - macvlan: use skb_reset_mac_header() in macvlan_queue_xmit()
+    - Input: keyspan-remote - fix control-message timeouts
+    - USB: serial: suppress driver bind attributes
+    - USB: serial: ch341: handle unbound port at reset_resume
+    - USB: serial: io_edgeport: handle unbound ports on URB completion
+    - USB: serial: io_edgeport: add missing active-port sanity check
+    - USB: serial: keyspan: handle unbound ports
+    - USB: serial: quatech2: handle unbound ports
+    - hwmon: (adt7475) Make volt2reg return same reg as reg2volt input
+    - [armel,armhf] 8950/1: ftrace/recordmcount: filter relocation types
+    - mmc: sdhci: fix minimum clock rate for v3 controller
+    - can, slip: Protect tty->disc_data in write_wakeup and close with RCU
+    - net: sonic: return NETDEV_TX_OK if failed to map buffer
+    - net/sonic: Add mutual exclusion for accessing shared state
+    - net/sonic: Use MMIO accessors
+    - net/sonic: Fix receive buffer handling
+    - net/sonic: Quiesce SONIC before re-initializing descriptor memory
+    - net_sched: fix datalen for ematch
+    - namei: allow restricted O_CREAT of FIFOs and regular files
+    - do_last(): fetch directory ->i_mode and ->i_uid before it's too late
+    - vfs: fix do_last() regression
+    - blktrace: re-write setting q->blk_trace
+    - blktrace: Protect q->blk_trace with RCU (CVE-2019-19768)
+    - blktrace: fix dereference after null check
+    - Input: add safety guards to input_set_keycode() (CVE-2019-20636)
+    - staging: android: ashmem: Disallow ashmem memory from being remapped
+      (CVE-2020-0009)
+    - net: ipv6_stub: use ip6_dst_lookup_flow instead of ip6_dst_lookup
+      (CVE-2020-1749)
+    - [x86] KVM: nVMX: Don't emulate instructions in guest mode (CVE-2020-2732)
+    - vgacon: Fix a UAF in vgacon_invert_region (CVE-2020-8647, CVE-2020-8649)
+    - tty: vt: Fix !TASK_RUNNING diagnostic warning from paste_selection()
+    - vt: selection, handle pending signals in paste_selection
+    - vt: selection, close sel_buffer race (CVE-2020-8648)
+    - vt: selection, push console lock down
+    - vt: selection, push sel_lock up
+    - floppy: check FDC index for errors before assigning it (CVE-2020-9383)
+    - vhost: Check docket sk_family instead of call getname (CVE-2020-10942)
+    - mm: mempolicy: require at least one nodeid for MPOL_PREFERRED
+      (CVE-2020-11565)
+    - media: ov519: add missing endpoint sanity checks (CVE-2020-11608)
+    - media: stv06xx: add missing descriptor sanity checks (CVE-2020-11609)
+    - media: xirlink_cit: add missing descriptor sanity checks (CVE-2020-11668)
+    - ptp: do not explicitly set drvdata in ptp_clock_register()
+    - ptp: use is_visible method to hide unused attributes
+    - ptp: create "pins" together with the rest of attributes
+    - chardev: add helper function to register char devs with a struct device
+    - ptp: Fix pass zero to ERR_PTR() in ptp_clock_register
+    - ptp: fix the race between the release of ptp_clock and cdev
+      (CVE-2020-10690)
+    - ptp: free ptp device pin descriptors properly
+    - media-devnode: just return 0 instead of using a var
+    - media: Fix media_open() to clear filp->private_data in error leg
+    - drivers/media/media-devnode: clear private_data before put_device()
+    - media-devnode: add missing mutex lock in error handler
+    - media-devnode: fix namespace mess
+    - media-device: dynamically allocate struct media_devnode
+    - media: fix use-after-free in cdev_put() when app exits after driver
+      unbind
+    - media: fix media devnode ioctl/syscall and unregister race
+    - slcan: Don't transmit uninitialized stack data in padding
+      (CVE-2020-11494)
+    - futex: Fix inode life-time issue
+    - futex: Unbreak futex hashing
 
   [ Ben Hutchings ]
   * hrtimer: Avoid ABI change in 3.16.82
