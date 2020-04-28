@@ -353,6 +353,7 @@ linux (3.16.83-1) UNRELEASED; urgency=medium
     - USB: chaoskey: fix Alea quirk on big-endian hosts
     - USB: chaoskey: fix use-after-free on release
     - USB: chaoskey: fix error case of a timeout
+  * Bump ABI to 11
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

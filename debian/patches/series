@@ -689,14 +689,3 @@ bugfix/all/scsi-libsas-direct-call-probe-and-destruct.patch
 bugfix/all/Revert-net-increase-fragment-memory-usage-limits.patch
 
 # Fix ABI changes
-debian/abi/revert-x86-cpufeatures-renumber-word-7.patch
-debian/abi/inet-avoid-abi-change-for-ip-id-hash-change.patch
-debian/abi/partiallly-revert-usb-core-fix-bug-caused-by-duplicate-interface.patch
-debian/abi/macvtap-tun-avoid-abi-change-in-3.16.72.patch
-debian/abi/pci-avoid-abi-change-in-3.16.74.patch
-debian/abi/hrtimer-avoid-abi-change-in-3.16.80.patch
-debian/abi/revert-net-ipv4-avoid-mixed-n_redirects-and-rate_tokens.patch
-debian/abi/revert-net-ipv4-use-a-dedicated-counter-for-icmp_v4-redirect.patch
-debian/abi/ipvs-avoid-abi-change-in-3.16.80.patch
-debian/abi/alsa-compress-avoid-abi-change-in-3.16.81.patch
-debian/abi/hrtimer-avoid-abi-change-in-3.16.82.patch
