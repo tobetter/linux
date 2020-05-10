@@ -10,3 +10,14 @@
 / {
 	model = "Hardkernel ODROID-C4";
 };
+
+&cpu_opp_table {
+	opp-2016000000 {
+		opp-hz = /bits/ 64 <2016000000>;
+		opp-microvolt = <1000000>;
+	};
+	opp-2100000000 {
+		opp-hz = /bits/ 64 <2100000000>;
+		opp-microvolt = <1022000>;
+	};
+};
