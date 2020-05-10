@@ -10,3 +10,23 @@
 / {
 	model = "Hardkernel ODROID-C4";
 };
+
+&cpu_opp_table {
+	/delete-node/ opp-100000000;
+	/delete-node/ opp-250000000;
+	/delete-node/ opp-500000000;
+	/delete-node/ opp-667000000;
+
+	opp-2016000000 {
+		opp-hz = /bits/ 64 <2016000000>;
+		opp-microvolt = <1010000>;
+	};
+	opp-2100000000 {
+		opp-hz = /bits/ 64 <2100000000>;
+		opp-microvolt = <1030000>;
+	};
+};
+
+&vddcpu {
+	regulator-max-microvolt = <1030000>;
+};
