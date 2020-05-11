@@ -347,7 +347,6 @@ linux (3.16.83-1) UNRELEASED; urgency=medium
     - futex: Unbreak futex hashing
 
   [ Ben Hutchings ]
-  * hrtimer: Avoid ABI change in 3.16.82
   * debian/README.source: Refer to upload checklist in kernel-team.git
   * chaoskey: Apply bug fixes from upstream:
     - USB: chaoskey: fix Alea quirk on big-endian hosts
