@@ -1,8 +1,8 @@
-From 147b5bb1f8cd2975bdfa1368ba792f28df1ab8a6 Mon Sep 17 00:00:00 2001
+From 698e9d4aa2337745a67cdb0d0130df1851dd9a25 Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Mon, 7 Jan 2019 13:52:31 +0100
-Subject: [PATCH 011/290] sched/fair: Robustify CFS-bandwidth timer locking
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 011/325] sched/fair: Robustify CFS-bandwidth timer locking
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Traditionally hrtimer callbacks were run with IRQs disabled, but with
 the introduction of HRTIMER_MODE_SOFT it is possible they run from
@@ -30,10 +30,10 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 16 insertions(+), 14 deletions(-)
 
 diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index f0abb8fe0ae9..b5e03fc56d65 100644
+index 86ccaaf0c1bf..ded41daf0d73 100644
 --- a/kernel/sched/fair.c
 +++ b/kernel/sched/fair.c
-@@ -4560,7 +4560,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
+@@ -4597,7 +4597,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
  		struct rq *rq = rq_of(cfs_rq);
  		struct rq_flags rf;
  
@@ -42,7 +42,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  		if (!cfs_rq_throttled(cfs_rq))
  			goto next;
  
-@@ -4579,7 +4579,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
+@@ -4616,7 +4616,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
  			unthrottle_cfs_rq(cfs_rq);
  
  next:
@@ -51,7 +51,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  
  		if (!remaining)
  			break;
-@@ -4595,7 +4595,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
+@@ -4632,7 +4632,7 @@ static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining)
   * period the timer is deactivated until scheduling resumes; cfs_b->idle is
   * used to track this state.
   */
@@ -60,7 +60,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  {
  	u64 runtime;
  	int throttled;
-@@ -4635,10 +4635,10 @@ static int do_sched_cfs_period_timer(struct cfs_bandwidth *cfs_b, int overrun)
+@@ -4672,10 +4672,10 @@ static int do_sched_cfs_period_timer(struct cfs_bandwidth *cfs_b, int overrun)
  	while (throttled && cfs_b->runtime > 0 && !cfs_b->distribute_running) {
  		runtime = cfs_b->runtime;
  		cfs_b->distribute_running = 1;
@@ -73,7 +73,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  
  		cfs_b->distribute_running = 0;
  		throttled = !list_empty(&cfs_b->throttled_cfs_rq);
-@@ -4746,16 +4746,17 @@ static __always_inline void return_cfs_rq_runtime(struct cfs_rq *cfs_rq)
+@@ -4783,16 +4783,17 @@ static __always_inline void return_cfs_rq_runtime(struct cfs_rq *cfs_rq)
  static void do_sched_cfs_slack_timer(struct cfs_bandwidth *cfs_b)
  {
  	u64 runtime = 0, slice = sched_cfs_bandwidth_slice();
@@ -94,7 +94,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  		return;
  	}
  
-@@ -4765,17 +4766,17 @@ static void do_sched_cfs_slack_timer(struct cfs_bandwidth *cfs_b)
+@@ -4802,17 +4803,17 @@ static void do_sched_cfs_slack_timer(struct cfs_bandwidth *cfs_b)
  	if (runtime)
  		cfs_b->distribute_running = 1;
  
@@ -115,7 +115,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  }
  
  /*
-@@ -4855,11 +4856,12 @@ static enum hrtimer_restart sched_cfs_period_timer(struct hrtimer *timer)
+@@ -4892,11 +4893,12 @@ static enum hrtimer_restart sched_cfs_period_timer(struct hrtimer *timer)
  {
  	struct cfs_bandwidth *cfs_b =
  		container_of(timer, struct cfs_bandwidth, period_timer);
@@ -129,7 +129,7 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  	for (;;) {
  		overrun = hrtimer_forward_now(timer, cfs_b->period);
  		if (!overrun)
-@@ -4895,11 +4897,11 @@ static enum hrtimer_restart sched_cfs_period_timer(struct hrtimer *timer)
+@@ -4932,11 +4934,11 @@ static enum hrtimer_restart sched_cfs_period_timer(struct hrtimer *timer)
  			count = 0;
  		}
  
@@ -144,5 +144,5 @@ index f0abb8fe0ae9..b5e03fc56d65 100644
  	return idle ? HRTIMER_NORESTART : HRTIMER_RESTART;
  }
 -- 
-2.24.1
+2.25.1
 

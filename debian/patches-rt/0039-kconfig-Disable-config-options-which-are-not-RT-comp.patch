@@ -1,9 +1,9 @@
-From dce06dcc7c4046de51f2d0b0aa53995461a65b82 Mon Sep 17 00:00:00 2001
+From b922a824955d554c93823ba2547095def5b87842 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 24 Jul 2011 12:11:43 +0200
-Subject: [PATCH 039/290] kconfig: Disable config options which are not RT
+Subject: [PATCH 039/325] kconfig: Disable config options which are not RT
  compatible
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Disable stuff which is known to have issues on RT
 
@@ -39,5 +39,5 @@ index b457e94ae618..0dddbb2a3282 100644
  	select RADIX_TREE_MULTIORDER
  	help
 -- 
-2.24.1
+2.25.1
 

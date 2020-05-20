@@ -1,8 +1,8 @@
-From 33a7e9d57de8e82532d8cdec33795907685b22e7 Mon Sep 17 00:00:00 2001
+From 2724f222d99a9ed81df4fa565d6cf82d34259d69 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 18 Jul 2011 17:10:12 +0200
-Subject: [PATCH 051/290] mips: Disable highmem on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 051/325] mips: Disable highmem on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 The current highmem handling on -RT is not compatible and needs fixups.
 
@@ -25,5 +25,5 @@ index a830a9701e50..3d5fae3891be 100644
  config CPU_SUPPORTS_HIGHMEM
  	bool
 -- 
-2.24.1
+2.25.1
 

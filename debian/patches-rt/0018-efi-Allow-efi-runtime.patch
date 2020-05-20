@@ -1,8 +1,8 @@
-From da834999f8c566ac722fd157de36dd3f9335c2ad Mon Sep 17 00:00:00 2001
+From 2d27283a8f76ac017050287c1a62c14cddaf11d4 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 26 Jul 2018 15:06:10 +0200
-Subject: [PATCH 018/290] efi: Allow efi=runtime
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 018/325] efi: Allow efi=runtime
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 In case the option "efi=noruntime" is default at built-time, the user
 could overwrite its sate by `efi=runtime' and allow it again.
@@ -28,5 +28,5 @@ index d54fca902e64..5db20908aa9c 100644
  }
  early_param("efi", parse_efi_cmdline);
 -- 
-2.24.1
+2.25.1
 

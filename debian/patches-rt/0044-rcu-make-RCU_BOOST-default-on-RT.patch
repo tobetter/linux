@@ -1,8 +1,8 @@
-From 980f69b6bec3356146f6c2d4e28405b3c4de4a87 Mon Sep 17 00:00:00 2001
+From 1b6c39d11d3f8f75251ccbaa4dbbf2db13892023 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 21 Mar 2014 20:19:05 +0100
-Subject: [PATCH 044/290] rcu: make RCU_BOOST default on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 044/325] rcu: make RCU_BOOST default on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Since it is no longer invoked from the softirq people run into OOM more
 often if the priority of the RCU thread is too low. Making boosting
@@ -30,5 +30,5 @@ index 644264be90f0..a243a78ff38c 100644
  	  This option boosts the priority of preempted RCU readers that
  	  block the current preemptible RCU grace period for too long.
 -- 
-2.24.1
+2.25.1
 

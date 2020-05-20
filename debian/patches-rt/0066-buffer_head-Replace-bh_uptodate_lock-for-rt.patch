@@ -1,8 +1,8 @@
-From 5c50a0cef22d58bcda53aae4df00e10ce6e04903 Mon Sep 17 00:00:00 2001
+From 9c2e7dffa272d9112c453d37bf48c92bb1b4d287 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 18 Mar 2011 09:18:52 +0100
-Subject: [PATCH 066/290] buffer_head: Replace bh_uptodate_lock for -rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 066/325] buffer_head: Replace bh_uptodate_lock for -rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Wrap the bit_spin_lock calls into a separate inline and add the RT
 replacements with a real spinlock.
@@ -87,7 +87,7 @@ index a550e0d8e965..a5b3a456dbff 100644
  		__this_cpu_inc(bh_accounting.nr);
  		recalc_bh_state();
 diff --git a/fs/ext4/page-io.c b/fs/ext4/page-io.c
-index db7590178dfc..d76364124443 100644
+index 9cc79b7b0df1..3f4ba2011499 100644
 --- a/fs/ext4/page-io.c
 +++ b/fs/ext4/page-io.c
 @@ -95,8 +95,7 @@ static void ext4_finish_bio(struct bio *bio)
@@ -193,5 +193,5 @@ index 96225a77c112..8a1bcfb145d7 100644
   * macro tricks to expand the set_buffer_foo(), clear_buffer_foo()
   * and buffer_foo() functions.
 -- 
-2.24.1
+2.25.1
 

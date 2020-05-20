@@ -1,8 +1,8 @@
-From 00029cfcfece0c114d6428fcb7e52545a88cf2c1 Mon Sep 17 00:00:00 2001
+From 5e34b2461c24c7ec974e6c5f33e4431a3260b2c1 Mon Sep 17 00:00:00 2001
 From: Alexandre Belloni <alexandre.belloni@bootlin.com>
 Date: Thu, 13 Sep 2018 13:30:21 +0200
-Subject: [PATCH 004/290] clocksource/drivers: atmel-pit: make option silent
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 004/325] clocksource/drivers: atmel-pit: make option silent
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 To conform with the other option, make the ATMEL_PIT option silent so it
 can be selected from the platform
@@ -32,5 +32,5 @@ index 0ab22e7037f4..34b07047b91f 100644
  config ATMEL_ST
  	bool "Atmel ST timer support" if COMPILE_TEST
 -- 
-2.24.1
+2.25.1
 

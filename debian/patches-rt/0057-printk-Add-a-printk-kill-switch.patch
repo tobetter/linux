@@ -1,8 +1,8 @@
-From 3d59550d2bce945d0885bb16ee747edc40521c95 Mon Sep 17 00:00:00 2001
+From b19916a6a05bf459669c0666d128f744d601c728 Mon Sep 17 00:00:00 2001
 From: Ingo Molnar <mingo@elte.hu>
 Date: Fri, 22 Jul 2011 17:58:40 +0200
-Subject: [PATCH 057/290] printk: Add a printk kill switch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 057/325] printk: Add a printk kill switch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Add a prinkt-kill-switch. This is used from (NMI) watchdog to ensure that
 it does not dead-lock with the early printk code.
@@ -31,7 +31,7 @@ index cf3eccfe1543..30ebf5f82a7c 100644
  
  #ifdef CONFIG_PRINTK_NMI
 diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
-index 845efadaf7ec..0214d876c22d 100644
+index 7a2fdc097c8c..29838e532f46 100644
 --- a/kernel/printk/printk.c
 +++ b/kernel/printk/printk.c
 @@ -405,6 +405,58 @@ DEFINE_RAW_SPINLOCK(logbuf_lock);
@@ -170,5 +170,5 @@ index 71381168dede..685443375dc0 100644
  			nmi_panic(regs, "Hard LOCKUP");
  
 -- 
-2.24.1
+2.25.1
 

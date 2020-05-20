@@ -10,11 +10,9 @@ a pre-built objtool.
  Makefile | 22 +++++++++++-----------
  1 file changed, 11 insertions(+), 11 deletions(-)
 
-Index: linux/Makefile
-===================================================================
---- linux.orig/Makefile
-+++ linux/Makefile
-@@ -948,17 +948,6 @@ export mod_sign_cmd
+--- a/Makefile
++++ b/Makefile
+@@ -954,17 +954,6 @@ export mod_sign_cmd
  
  HOST_LIBELF_LIBS = $(shell pkg-config libelf --libs 2>/dev/null || echo -lelf)
  
@@ -29,10 +27,10 @@ Index: linux/Makefile
 -  endif
 -endif
 -
+ PHONY += prepare0
  
  ifeq ($(KBUILD_EXTMOD),)
- core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
-@@ -1109,6 +1098,17 @@ uapi-asm-generic:
+@@ -1115,6 +1104,17 @@ uapi-asm-generic:
  	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
  	            src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm
  

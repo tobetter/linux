@@ -1,8 +1,8 @@
-From a2049c3364eae5d13eaaa22d9212c631faf58236 Mon Sep 17 00:00:00 2001
+From 7dca342c202dd085c2ed2817d5bf9bdfb8d9fd4b Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 3 Apr 2011 11:57:29 +0200
-Subject: [PATCH 071/290] genirq: Force interrupt thread on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 071/325] genirq: Force interrupt thread on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Force threaded_irqs and optimize the code (force_irqthreads) in regard
 to this.
@@ -30,7 +30,7 @@ index eeceac3376fc..315f852b4981 100644
  #define force_irqthreads	(0)
  #endif
 diff --git a/kernel/irq/manage.c b/kernel/irq/manage.c
-index 23bcfa71077f..3c26d0708709 100644
+index efcb54ee0922..0809bf7743af 100644
 --- a/kernel/irq/manage.c
 +++ b/kernel/irq/manage.c
 @@ -24,6 +24,7 @@
@@ -50,5 +50,5 @@ index 23bcfa71077f..3c26d0708709 100644
  
  static void __synchronize_hardirq(struct irq_desc *desc, bool sync_chip)
 -- 
-2.24.1
+2.25.1
 

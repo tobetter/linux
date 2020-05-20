@@ -13,8 +13,6 @@ Signed-off-by: Romain Perier <romain.perier@gmail.com>
  2 files changed, 7 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm/boot/dts/bcm2836-rpi.dtsi
 
-diff --git a/arch/arm/boot/dts/bcm2835-rpi.dtsi b/arch/arm/boot/dts/bcm2835-rpi.dtsi
-index cb2d6d78a7fb..b3da141bb793 100644
 --- a/arch/arm/boot/dts/bcm2835-rpi.dtsi
 +++ b/arch/arm/boot/dts/bcm2835-rpi.dtsi
 @@ -30,7 +30,7 @@
@@ -24,11 +22,8 @@ index cb2d6d78a7fb..b3da141bb793 100644
 -		mailbox@7e00b840 {
 +		vchiq: mmailbox@7e00b840 {
  			compatible = "brcm,bcm2835-vchiq";
- 			reg = <0x7e00b840 0xf>;
+ 			reg = <0x7e00b840 0x3c>;
  			interrupts = <0 2>;
-diff --git a/arch/arm/boot/dts/bcm2836-rpi.dtsi b/arch/arm/boot/dts/bcm2836-rpi.dtsi
-new file mode 100644
-index 000000000000..c4c858b984c6
 --- /dev/null
 +++ b/arch/arm/boot/dts/bcm2836-rpi.dtsi
 @@ -0,0 +1,6 @@
@@ -38,6 +33,3 @@ index 000000000000..c4c858b984c6
 +&vchiq {
 +	compatible = "brcm,bcm2836-vchiq", "brcm,bcm2835-vchiq";
 +};
--- 
-2.23.0
-

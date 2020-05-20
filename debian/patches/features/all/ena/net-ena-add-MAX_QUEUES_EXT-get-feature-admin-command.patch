@@ -16,10 +16,8 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  drivers/net/ethernet/amazon/ena/ena_com.h     |  3 +
  3 files changed, 105 insertions(+), 30 deletions(-)
 
-Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-===================================================================
---- linux.orig/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
-+++ linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
+--- a/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
++++ b/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
 @@ -60,6 +60,7 @@ enum ena_admin_aq_feature_id {
  	ENA_ADMIN_MAX_QUEUES_NUM                    = 2,
  	ENA_ADMIN_HW_HINTS                          = 3,
@@ -118,11 +116,9 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_admin_defs.h
  	u8 flags;
  
  	u8 reserved1[3];
-Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
-===================================================================
---- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.c
-+++ linux/drivers/net/ethernet/amazon/ena/ena_com.c
-@@ -978,7 +978,8 @@ static int ena_com_get_feature_ex(struct
+--- a/drivers/net/ethernet/amazon/ena/ena_com.c
++++ b/drivers/net/ethernet/amazon/ena/ena_com.c
+@@ -983,7 +983,8 @@ static int ena_com_get_feature_ex(struct
  				  struct ena_admin_get_feat_resp *get_resp,
  				  enum ena_admin_aq_feature_id feature_id,
  				  dma_addr_t control_buf_dma_addr,
@@ -132,7 +128,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  {
  	struct ena_com_admin_queue *admin_queue;
  	struct ena_admin_get_feat_cmd get_cmd;
-@@ -1009,7 +1010,7 @@ static int ena_com_get_feature_ex(struct
+@@ -1014,7 +1015,7 @@ static int ena_com_get_feature_ex(struct
  	}
  
  	get_cmd.control_buffer.length = control_buff_size;
@@ -141,7 +137,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	get_cmd.feat_common.feature_id = feature_id;
  
  	ret = ena_com_execute_admin_command(admin_queue,
-@@ -1029,13 +1030,15 @@ static int ena_com_get_feature_ex(struct
+@@ -1034,13 +1035,15 @@ static int ena_com_get_feature_ex(struct
  
  static int ena_com_get_feature(struct ena_com_dev *ena_dev,
  			       struct ena_admin_get_feat_resp *get_resp,
@@ -158,8 +154,8 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
 +				      feature_ver);
  }
  
- static int ena_com_hash_key_allocate(struct ena_com_dev *ena_dev)
-@@ -1095,7 +1098,7 @@ static int ena_com_indirect_table_alloca
+ static void ena_com_hash_key_fill_default_key(struct ena_com_dev *ena_dev)
+@@ -1118,7 +1121,7 @@ static int ena_com_indirect_table_alloca
  	int ret;
  
  	ret = ena_com_get_feature(ena_dev, &get_resp,
@@ -168,7 +164,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(ret))
  		return ret;
  
-@@ -1515,7 +1518,7 @@ int ena_com_set_aenq_config(struct ena_c
+@@ -1538,7 +1541,7 @@ int ena_com_set_aenq_config(struct ena_c
  	struct ena_admin_get_feat_resp get_resp;
  	int ret;
  
@@ -177,7 +173,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (ret) {
  		pr_info("Can't get aenq configuration\n");
  		return ret;
-@@ -1890,7 +1893,7 @@ void ena_com_destroy_io_queue(struct ena
+@@ -1913,7 +1916,7 @@ void ena_com_destroy_io_queue(struct ena
  int ena_com_get_link_params(struct ena_com_dev *ena_dev,
  			    struct ena_admin_get_feat_resp *resp)
  {
@@ -186,7 +182,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  }
  
  int ena_com_get_dev_attr_feat(struct ena_com_dev *ena_dev,
-@@ -1900,7 +1903,7 @@ int ena_com_get_dev_attr_feat(struct ena
+@@ -1923,7 +1926,7 @@ int ena_com_get_dev_attr_feat(struct ena
  	int rc;
  
  	rc = ena_com_get_feature(ena_dev, &get_resp,
@@ -195,7 +191,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (rc)
  		return rc;
  
-@@ -1908,17 +1911,34 @@ int ena_com_get_dev_attr_feat(struct ena
+@@ -1931,17 +1934,34 @@ int ena_com_get_dev_attr_feat(struct ena
  	       sizeof(get_resp.u.dev_attr));
  	ena_dev->supported_features = get_resp.u.dev_attr.supported_features;
  
@@ -238,7 +234,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (rc)
  		return rc;
  
-@@ -1926,7 +1946,7 @@ int ena_com_get_dev_attr_feat(struct ena
+@@ -1949,7 +1969,7 @@ int ena_com_get_dev_attr_feat(struct ena
  	       sizeof(get_resp.u.aenq));
  
  	rc = ena_com_get_feature(ena_dev, &get_resp,
@@ -247,7 +243,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (rc)
  		return rc;
  
-@@ -1936,7 +1956,7 @@ int ena_com_get_dev_attr_feat(struct ena
+@@ -1959,7 +1979,7 @@ int ena_com_get_dev_attr_feat(struct ena
  	/* Driver hints isn't mandatory admin command. So in case the
  	 * command isn't supported set driver hints to 0
  	 */
@@ -256,7 +252,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  
  	if (!rc)
  		memcpy(&get_feat_ctx->hw_hints, &get_resp.u.hw_hints,
-@@ -1947,7 +1967,7 @@ int ena_com_get_dev_attr_feat(struct ena
+@@ -1970,7 +1990,7 @@ int ena_com_get_dev_attr_feat(struct ena
  	else
  		return rc;
  
@@ -265,7 +261,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (!rc)
  		memcpy(&get_feat_ctx->llq, &get_resp.u.llq,
  		       sizeof(get_resp.u.llq));
-@@ -2185,7 +2205,7 @@ int ena_com_get_offload_settings(struct
+@@ -2208,7 +2228,7 @@ int ena_com_get_offload_settings(struct
  	struct ena_admin_get_feat_resp resp;
  
  	ret = ena_com_get_feature(ena_dev, &resp,
@@ -274,7 +270,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(ret)) {
  		pr_err("Failed to get offload capabilities %d\n", ret);
  		return ret;
-@@ -2214,7 +2234,7 @@ int ena_com_set_hash_function(struct ena
+@@ -2237,7 +2257,7 @@ int ena_com_set_hash_function(struct ena
  
  	/* Validate hash function is supported */
  	ret = ena_com_get_feature(ena_dev, &get_resp,
@@ -283,7 +279,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(ret))
  		return ret;
  
-@@ -2274,7 +2294,7 @@ int ena_com_fill_hash_function(struct en
+@@ -2297,7 +2317,7 @@ int ena_com_fill_hash_function(struct en
  	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
  				    ENA_ADMIN_RSS_HASH_FUNCTION,
  				    rss->hash_key_dma_addr,
@@ -292,7 +288,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(rc))
  		return rc;
  
-@@ -2326,7 +2346,7 @@ int ena_com_get_hash_function(struct ena
+@@ -2350,7 +2370,7 @@ int ena_com_get_hash_function(struct ena
  	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
  				    ENA_ADMIN_RSS_HASH_FUNCTION,
  				    rss->hash_key_dma_addr,
@@ -301,7 +297,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(rc))
  		return rc;
  
-@@ -2351,7 +2371,7 @@ int ena_com_get_hash_ctrl(struct ena_com
+@@ -2379,7 +2399,7 @@ int ena_com_get_hash_ctrl(struct ena_com
  	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
  				    ENA_ADMIN_RSS_HASH_INPUT,
  				    rss->hash_ctrl_dma_addr,
@@ -310,7 +306,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(rc))
  		return rc;
  
-@@ -2587,7 +2607,7 @@ int ena_com_indirect_table_get(struct en
+@@ -2615,7 +2635,7 @@ int ena_com_indirect_table_get(struct en
  	rc = ena_com_get_feature_ex(ena_dev, &get_resp,
  				    ENA_ADMIN_RSS_REDIRECTION_TABLE_CONFIG,
  				    rss->rss_ind_tbl_dma_addr,
@@ -319,7 +315,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  	if (unlikely(rc))
  		return rc;
  
-@@ -2801,7 +2821,7 @@ int ena_com_init_interrupt_moderation(st
+@@ -2831,7 +2851,7 @@ int ena_com_init_interrupt_moderation(st
  	int rc;
  
  	rc = ena_com_get_feature(ena_dev, &get_resp,
@@ -328,11 +324,9 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.c
  
  	if (rc) {
  		if (rc == -EOPNOTSUPP) {
-Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
-===================================================================
---- linux.orig/drivers/net/ethernet/amazon/ena/ena_com.h
-+++ linux/drivers/net/ethernet/amazon/ena/ena_com.h
-@@ -101,6 +101,8 @@
+--- a/drivers/net/ethernet/amazon/ena/ena_com.h
++++ b/drivers/net/ethernet/amazon/ena/ena_com.h
+@@ -102,6 +102,8 @@
  
  #define ENA_HW_HINTS_NO_TIMEOUT				0xFFFF
  
@@ -341,7 +335,7 @@ Index: linux/drivers/net/ethernet/amazon/ena/ena_com.h
  enum ena_intr_moder_level {
  	ENA_INTR_MODER_LOWEST = 0,
  	ENA_INTR_MODER_LOW,
-@@ -382,6 +384,7 @@ struct ena_com_dev {
+@@ -383,6 +385,7 @@ struct ena_com_dev {
  
  struct ena_com_dev_get_features_ctx {
  	struct ena_admin_queue_feature_desc max_queues;

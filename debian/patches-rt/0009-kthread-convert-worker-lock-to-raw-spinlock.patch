@@ -1,8 +1,8 @@
-From e2fc3df409c6764dc2c394061aae000a86437a7c Mon Sep 17 00:00:00 2001
+From 3cf0fcd0004434877a5db97439d4b56e78837a4f Mon Sep 17 00:00:00 2001
 From: Julia Cartwright <julia@ni.com>
 Date: Fri, 28 Sep 2018 21:03:51 +0000
-Subject: [PATCH 009/290] kthread: convert worker lock to raw spinlock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 009/325] kthread: convert worker lock to raw spinlock
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 In order to enable the queuing of kthread work items from hardirq
 context even when PREEMPT_RT_FULL is enabled, convert the worker
@@ -199,5 +199,5 @@ index 087d18d771b5..5641b55783a6 100644
  	return ret;
  }
 -- 
-2.24.1
+2.25.1
 

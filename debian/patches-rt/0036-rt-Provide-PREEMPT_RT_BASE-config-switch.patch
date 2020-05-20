@@ -1,8 +1,8 @@
-From 4bfca780bcff671d348be592531816808005330c Mon Sep 17 00:00:00 2001
+From ac2295358559dac261e20522d82cc3896bd63e97 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 17 Jun 2011 12:39:57 +0200
-Subject: [PATCH 036/290] rt: Provide PREEMPT_RT_BASE config switch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 036/325] rt: Provide PREEMPT_RT_BASE config switch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Introduce PREEMPT_RT_BASE which enables parts of
 PREEMPT_RT_FULL. Forces interrupt threading and enables some of the RT
@@ -60,5 +60,5 @@ index cd1655122ec0..027db5976c2f 100644
 \ No newline at end of file
 +       bool
 -- 
-2.24.1
+2.25.1
 

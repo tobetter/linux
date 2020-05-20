@@ -1,9 +1,9 @@
-From 3596d839ec05c759a409ec3c9fb058b89bc43de8 Mon Sep 17 00:00:00 2001
+From 27f3206f1c5af4a5290793529fd61d28c347c32f Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 11 Dec 2018 21:53:43 +0100
-Subject: [PATCH 087/290] x86/mm/pat: disable preemption __split_large_page()
+Subject: [PATCH 087/325] x86/mm/pat: disable preemption __split_large_page()
  after spin_lock()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Commit "x86/mm/pat: Disable preemption around __flush_tlb_all()" added a
 warning if __flush_tlb_all() is invoked in preemptible context. On !RT
@@ -19,7 +19,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 8 insertions(+)
 
 diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index e2d4b25c7aa4..9626ebb9e3c8 100644
+index 101f3ad0d6ad..0b0396261ca1 100644
 --- a/arch/x86/mm/pageattr.c
 +++ b/arch/x86/mm/pageattr.c
 @@ -687,12 +687,18 @@ __split_large_page(struct cpa_data *cpa, pte_t *kpte, unsigned long address,
@@ -58,5 +58,5 @@ index e2d4b25c7aa4..9626ebb9e3c8 100644
  
  	return 0;
 -- 
-2.24.1
+2.25.1
 

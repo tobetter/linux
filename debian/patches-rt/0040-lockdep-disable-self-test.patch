@@ -1,11 +1,11 @@
-From 895584437f1a9e0847ff7ca40873fb3b8bd4be0c Mon Sep 17 00:00:00 2001
+From d503eb089b47efb99b62cfd52744ae0e8522ba67 Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 17 Oct 2017 16:36:18 +0200
-Subject: [PATCH 040/290] lockdep: disable self-test
+Subject: [PATCH 040/325] lockdep: disable self-test
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 The self-test wasn't always 100% accurate for RT. We disabled a few
 tests which failed because they had a different semantic for RT. Some
@@ -31,5 +31,5 @@ index 46a910acce3f..38cf7f81daa7 100644
  	  Say Y here if you want the kernel to run a short self-test during
  	  bootup. The self-test checks whether common types of locking bugs
 -- 
-2.24.1
+2.25.1
 

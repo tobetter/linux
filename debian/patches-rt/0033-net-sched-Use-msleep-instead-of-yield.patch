@@ -1,8 +1,8 @@
-From 280627bfccdc36087f174418d56e57d027552a14 Mon Sep 17 00:00:00 2001
+From 8eed50e0a7fd1ea99c11d47421ca4ea0266c829f Mon Sep 17 00:00:00 2001
 From: Marc Kleine-Budde <mkl@pengutronix.de>
 Date: Wed, 5 Mar 2014 00:49:47 +0100
-Subject: [PATCH 033/290] net: sched: Use msleep() instead of yield()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 033/325] net: sched: Use msleep() instead of yield()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 On PREEMPT_RT enabled systems the interrupt handler run as threads at prio 50
 (by default). If a high priority userspace process tries to shut down a busy
@@ -60,5 +60,5 @@ index 8a4d01e427a2..4ab20f1138fd 100644
  		 * unwind stale skb lists and qdisc statistics
  		 */
 -- 
-2.24.1
+2.25.1
 

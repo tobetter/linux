@@ -3,6 +3,7 @@
 ast
 tegra-drm
 rockchipdrm
+hibmc-drm
 
 # For panel/backlight on some chromeos devices
 panel-simple

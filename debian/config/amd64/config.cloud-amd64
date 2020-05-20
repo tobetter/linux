@@ -1376,7 +1376,6 @@ CONFIG_HYPERV_STORAGE=m
 ##
 ## file: mm/Kconfig
 ##
-# CONFIG_KSM is not set
 # CONFIG_ZSWAP is not set
 
 ##

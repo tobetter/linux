@@ -1,8 +1,8 @@
-From b08620f77bc1fbffba40e033f492a241bc2c62d6 Mon Sep 17 00:00:00 2001
+From 119971df8e4c3a8550b9b7479e5e409dc03f07b6 Mon Sep 17 00:00:00 2001
 From: Alexandre Belloni <alexandre.belloni@bootlin.com>
 Date: Thu, 13 Sep 2018 13:30:18 +0200
-Subject: [PATCH 001/290] ARM: at91: add TCB registers definitions
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Subject: [PATCH 001/325] ARM: at91: add TCB registers definitions
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Add registers and bits definitions for the timer counter blocks found on
 Atmel ARM SoCs.
@@ -206,5 +206,5 @@ index 000000000000..657e234b1483
 +
 +#endif /* __SOC_ATMEL_TCB_H */
 -- 
-2.24.1
+2.25.1
 

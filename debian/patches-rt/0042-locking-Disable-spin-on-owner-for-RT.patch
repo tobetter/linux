@@ -1,11 +1,11 @@
-From 4aaf38cf9c2cd085bbee6aec83c66b52b33c9a32 Mon Sep 17 00:00:00 2001
+From f90c261f0738ea136c59392132ba130bad2c03b4 Mon Sep 17 00:00:00 2001
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 21:51:45 +0200
-Subject: [PATCH 042/290] locking: Disable spin on owner for RT
+Subject: [PATCH 042/325] locking: Disable spin on owner for RT
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Drop spin on owner for mutex / rwsem. We are most likely not using it
 but…
@@ -34,5 +34,5 @@ index 84d882f3e299..af27c4000812 100644
  config LOCK_SPIN_ON_OWNER
         def_bool y
 -- 
-2.24.1
+2.25.1
 

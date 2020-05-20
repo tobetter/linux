@@ -2748,18 +2748,15 @@ Index: linux/sound/pci/hda/hda_intel.c
 ===================================================================
 --- linux.orig/sound/pci/hda/hda_intel.c
 +++ linux/sound/pci/hda/hda_intel.c
-@@ -2075,10 +2075,8 @@ static void azx_firmware_cb(const struct
- 	struct azx *chip = card->private_data;
- 	struct pci_dev *pci = chip->pci;
+@@ -2079,8 +2079,6 @@ static void azx_firmware_cb(const struct
  
--	if (!fw) {
--		dev_err(card->dev, "Cannot load firmware, aborting\n");
-+	if (!fw)
- 		goto error;
--	}
- 
- 	chip->fw = fw;
+ 	if (fw)
+ 		chip->fw = fw;
+-	else
+-		dev_err(card->dev, "Cannot load firmware, continue without patching\n");
  	if (!chip->disabled) {
+ 		/* continue probing */
+ 		azx_probe_continue(chip);
 Index: linux/sound/pci/korg1212/korg1212.c
 ===================================================================
 --- linux.orig/sound/pci/korg1212/korg1212.c

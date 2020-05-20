@@ -1,9 +1,9 @@
-From ac059eda6d9782325d4d8432b5bee7638eafd90a Mon Sep 17 00:00:00 2001
+From 8a5a5668c864f35ac4028c8c775918b8bd4fca1c Mon Sep 17 00:00:00 2001
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 9 Oct 2018 17:34:50 +0200
-Subject: [PATCH 028/290] sched/migrate_disable: Add export_symbol_gpl for
+Subject: [PATCH 028/325] sched/migrate_disable: Add export_symbol_gpl for
  __migrate_disabled
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.94-rt38.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
 
 Jonathan reported that lttng/modules can't use __migrate_disabled().
 This function is only used by sched/core itself and the tracing
@@ -34,5 +34,5 @@ index d0450f06612c..e6022cc2605b 100644
  
  static void __do_set_cpus_allowed_tail(struct task_struct *p,
 -- 
-2.24.1
+2.25.1
 
