@@ -125,7 +125,7 @@ Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 -	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
  	select ARCH_HAS_ELF_RANDOMIZE
  	select OF
- 	select OF_EARLY_FLATTREE
+ 	select OF_DMA_DEFAULT_COHERENT		if !NOT_COHERENT_CACHE
 --- a/arch/s390/include/asm/elf.h
 +++ b/arch/s390/include/asm/elf.h
 @@ -162,8 +162,7 @@ extern unsigned int vdso_enabled;
@@ -187,7 +187,7 @@ Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
  #include <linux/utsname.h>
  #include <linux/coredump.h>
  #include <linux/sched.h>
-@@ -802,21 +803,10 @@ static int load_elf_binary(struct linux_
+@@ -805,21 +806,10 @@ static int load_elf_binary(struct linux_
  			 * default mmap base, as well as whatever program they
  			 * might try to exec.  This is because the brk will
  			 * follow the loader, and is not movable.  */

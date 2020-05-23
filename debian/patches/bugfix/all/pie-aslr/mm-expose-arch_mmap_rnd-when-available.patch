@@ -50,7 +50,7 @@ Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 ---
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -472,6 +472,13 @@ config HAVE_IRQ_EXIT_ON_IRQ_STACK
+@@ -473,6 +473,13 @@ config HAVE_IRQ_EXIT_ON_IRQ_STACK
  	  This spares a stack switch and improves cache usage on softirq
  	  processing.
  
@@ -162,8 +162,8 @@ Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
  	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
 +	select ARCH_HAS_ELF_RANDOMIZE
  	select OF
+ 	select OF_DMA_DEFAULT_COHERENT		if !NOT_COHERENT_CACHE
  	select OF_EARLY_FLATTREE
- 	select OF_RESERVED_MEM
 --- a/arch/powerpc/mm/mmap.c
 +++ b/arch/powerpc/mm/mmap.c
 @@ -53,7 +53,7 @@ static inline int mmap_is_legacy(void)

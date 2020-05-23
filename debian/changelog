@@ -1,4 +1,4 @@
-linux (3.16.83-1) UNRELEASED; urgency=medium
+linux (3.16.84-1) UNRELEASED; urgency=medium
 
   * New upstream stable update:
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.82
@@ -345,6 +345,102 @@ linux (3.16.83-1) UNRELEASED; urgency=medium
       (CVE-2020-11494)
     - futex: Fix inode life-time issue
     - futex: Unbreak futex hashing
+    https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.84
+    - fs/namespace.c: fix mountpoint reference counter race
+    - propagate_one(): mnt_set_mountpoint() needs mount_lock
+    - padata: avoid race in reordering
+    - padata: get_next is never NULL
+    - padata: set cpu_index of unused CPUs to -1
+    - padata: ensure the reorder timer callback runs on the correct CPU
+    - padata: ensure padata_do_serial() runs on the correct CPU
+    - padata: Replace delayed timer with immediate workqueue in padata_reorder
+    - padata: initialize pd->cpu with effective cpumask
+    - padata: Remove broken queue flushing
+    - padata: purge get_cpu and reorder_via_wq from padata_do_serial
+    - crypto: pcrypt - Fix user-after-free on module unload
+    - crypto: pcrypt - Do not clear MAY_SLEEP flag in original request
+    - padata: always acquire cpu_hotplug_lock before pinst->lock
+    - crypto: af_alg - Use bh_lock_sock in sk_destruct
+    - crypto: api - Check spawn->alg under lock in crypto_drop_spawn
+    - crypto: api - Fix race condition in crypto_spawn_alg
+    - [armhf] mmc: spi: Toggle SPI polarity, do not hardcode it
+    - reiserfs: Fix memory leak of journal device string
+    - reiserfs: Fix spurious unlock in reiserfs_fill_super() error handling
+    - ath9k: fix storage endpoint lookup
+    - rsi: fix use-after-free on failed probe and unbind
+    - brcmfmac: Fix use after free in brcmf_sdio_readframes()
+    - brcmfmac: abort and release host after error
+    - brcmfmac: fix interface sanity check
+    - orinoco_usb: fix interface sanity check
+    - rsi_91x_usb: fix interface sanity check
+    - zd1211rw: fix storage endpoint lookup
+    - brcmfmac: Fix memory leak in brcmf_usbdev_qinit
+    - scsi: qla2xxx: Fix mtcp dump collection failure
+    - media: iguanair: add sanity checks
+    - media: iguanair: fix endpoint sanity check
+    - efi: Use early_mem*() instead of early_io*()
+    - [x86] efi/x86: Map the entire EFI vendor string before copying it
+    - PCI: Don't disable bridge BARs when assigning bus resources
+    - power: supply: sbs-battery: Fix a signedness bug in
+      sbs_get_battery_capacity()
+    - dm space map common: fix to ensure new block isn't already in use
+    - [armhf] usb: dwc3: turn off VBUS when leaving host mode
+    - usb: gadget: f_ncm: Use atomic_t to track in-flight request
+    - usb: gadget: f_ecm: Use atomic_t to track in-flight request
+    - staging: wlan-ng: ensure error return is actually returned
+    - ubifs: Fix deadlock in concurrent bulk-read and writepage
+    - [x86] cpu: Update cached HLE state on write to TSX_CTRL_CPUID_CLEAR
+    - jbd2: clear JBD2_ABORT flag before journal_reset to update log tail info
+      when load journal
+    - [x86] KVM: x86: Don't let userspace set host-reserved cr4 bits
+    - [x86] KVM: nVMX: vmread should not set rflags to specify success in case
+      of #PF
+    - [x86] kvm: avoid unused variable warning
+    - [x86] KVM: x86/mmu: Apply max PA check for MMIO sptes to 32-bit KVM
+    - USB: serial: ir-usb: add missing endpoint sanity check
+    - USB: serial: ir-usb: fix link-speed handling
+    - USB: serial: ir-usb: fix IrLAP framing
+    - media: uvcvideo: Avoid cyclic entity chains due to malformed USB
+      descriptors
+    - [x86] KVM: x86: Free wbinvd_dirty_mask if vCPU creation fails
+    - tracing: Fix very unlikely race of registering two stat tracers
+    - tracing: Fix tracing_stat return values in error handling paths
+    - jbd2: switch to use jbd2_journal_abort() when failed to submit the commit
+      record
+    - ext4, jbd2: ensure panic when aborting with zero errno
+    - iwlegacy: ensure loop counter addr does not wrap and cause an infinite
+      loop
+    - CIFS: Fix task struct use-after-free on reconnect
+    - net_sched: ematch: reject invalid TCF_EM_SIMPLE
+    - [x86] KVM: x86: Protect x86_decode_insn from Spectre-v1/L1TF attacks
+    - [x86] KVM: x86: Refactor picdev_write() to prevent Spectre-v1/L1TF
+      attacks
+    - [x86] KVM: x86: Protect ioapic_read_indirect() from Spectre-v1/L1TF
+      attacks
+    - [x86] KVM: x86: Protect ioapic_write_indirect() from Spectre-v1/L1TF
+      attacks
+    - [x86] KVM: x86: Protect kvm_lapic_reg_write() from Spectre-v1/L1TF
+      attacks
+    - [x86] kvm: x86: use macros to compute bank MSRs
+    - [x86] KVM: x86: Protect MSR-based index computations from Spectre-v1/L1TF
+      attacks in x86.c
+    - [x86] KVM: x86: Protect DR-based index computations from Spectre-v1/L1TF
+      attacks
+    - KVM: Check for a bad hva before dropping into the ghc slow path
+    - Btrfs: fix race between adding and putting tree mod seq elements and
+      nodes
+    - mm/mempolicy.c: fix out of bounds write in mpol_parse_str()
+    - media/v4l2-core: set pages dirty upon releasing DMA buffers
+    - tcp: clear tp->total_retrans in tcp_disconnect()
+    - ALSA: dummy: Fix PCM format loop in proc output
+    - clocksource: Prevent double add_timer_on() for watchdog_timer
+    - cls_rsvp: fix rsvp_policy
+    - nfs: use kmap/kunmap directly
+    - NFS: Fix memory leaks and corruption in readdir
+    - NFS: Directory page cache pages need to be locked when read
+    - cifs: fail i/o on soft mounts if sessionsetup errors out
+    - bonding/alb: properly access headers in bond_alb_xmit()
+    - sunrpc: expiry_time should be seconds not timeval
 
   [ Ben Hutchings ]
   * debian/README.source: Refer to upload checklist in kernel-team.git
