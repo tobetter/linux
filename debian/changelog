@@ -465,6 +465,10 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
       (CVE-2020-12464)
   * scsi: mptfusion: Add bounds check in mptctl_hp_targetinfo()
   * scsi: mptfusion: Fix double fetch bug in ioctl (CVE-2020-12652)
+  * mwifiex: Fix possible buffer overflows in mwifiex_cmd_append_vsie_tlv()
+    (CVE-2020-12653)
+  * mwifiex: Fix possible buffer overflows in mwifiex_ret_wmm_get_status()
+    (CVE-2020-12654)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

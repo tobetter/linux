@@ -697,5 +697,7 @@ bugfix/all/drivers-usb-core-minimize-irq-disabling-in-usb_sg_ca.patch
 bugfix/all/usb-core-fix-free-while-in-use-bug-in-the-usb-s-glib.patch
 bugfix/all/scsi-mptfusion-add-bounds-check-in-mptctl_hp_targeti.patch
 bugfix/all/scsi-mptfusion-fix-double-fetch-bug-in-ioctl.patch
+bugfix/all/mwifiex-fix-possible-buffer-overflows-in-mwifiex_cmd.patch
+bugfix/all/mwifiex-fix-possible-buffer-overflows-in-mwifiex_ret.patch
 
 # Fix ABI changes
