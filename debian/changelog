@@ -103,7 +103,6 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - libertas: make lbs_ibss_join_existing() return error code on rates
       overflow
     - cfg80211/mac80211: make ieee80211_send_layer2_update a public function
-      (CVE-
     - mac80211: Do not send Layer 2 Update frame before authorization
       (CVE-2019-5108)
     - [x86] microcode/AMD: Add support for fam17h microcode loading
