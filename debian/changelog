@@ -345,8 +345,10 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - futex: Fix inode life-time issue
     - futex: Unbreak futex hashing
     https://www.kernel.org/pub/linux/kernel/v3.x/ChangeLog-3.16.84
-    - fs/namespace.c: fix mountpoint reference counter race
+    - fs/namespace.c: fix mountpoint reference counter race (CVE-2020-12114)
     - propagate_one(): mnt_set_mountpoint() needs mount_lock
+    - spi: spi-dw: Add lock protect dw_spi rx/tx to prevent concurrent calls
+      (CVE-2020-12769)
     - padata: avoid race in reordering
     - padata: get_next is never NULL
     - padata: set cpu_index of unused CPUs to -1
