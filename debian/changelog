@@ -457,6 +457,12 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - selinux: rate-limit netlink message warnings in selinux_nlmsg_perm()
     - selinux: properly handle multiple messages in selinux_netlink_send()
       (CVE-2020-10751)
+  * USB: core: Fix serialisation of SG URB operations:
+    - drivers: usb: core: Don't disable irqs in usb_sg_wait() during URB
+      submit.
+    - drivers: usb: core: Minimize irq disabling in usb_sg_cancel()
+    - USB: core: Fix free-while-in-use bug in the USB S-Glibrary
+      (CVE-2020-12464)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

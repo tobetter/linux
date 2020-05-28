@@ -1,0 +1,66 @@
+From: David Mosberger <davidm@egauge.net>
+Date: Tue, 8 Mar 2016 14:42:49 -0700
+Subject: drivers: usb: core: Minimize irq disabling in usb_sg_cancel()
+Origin: https://git.kernel.org/linus/5f2e5fb873e269fcb806165715d237f0de4ecf1d
+
+Restructure usb_sg_cancel() so we don't have to disable interrupts
+while cancelling the URBs.
+
+Suggested-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: David Mosberger <davidm@egauge.net>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/usb/core/message.c | 37 +++++++++++++++++--------------------
+ 1 file changed, 17 insertions(+), 20 deletions(-)
+
+--- a/drivers/usb/core/message.c
++++ b/drivers/usb/core/message.c
+@@ -581,31 +581,28 @@ EXPORT_SYMBOL_GPL(usb_sg_wait);
+ void usb_sg_cancel(struct usb_sg_request *io)
+ {
+ 	unsigned long flags;
++	int i, retval;
+ 
+ 	spin_lock_irqsave(&io->lock, flags);
++	if (io->status) {
++		spin_unlock_irqrestore(&io->lock, flags);
++		return;
++	}
++	/* shut everything down */
++	io->status = -ECONNRESET;
++	spin_unlock_irqrestore(&io->lock, flags);
+ 
+-	/* shut everything down, if it didn't already */
+-	if (!io->status) {
+-		int i;
+-
+-		io->status = -ECONNRESET;
+-		spin_unlock(&io->lock);
+-		for (i = 0; i < io->entries; i++) {
+-			int retval;
+-
+-			usb_block_urb(io->urbs[i]);
++	for (i = io->entries - 1; i >= 0; --i) {
++		usb_block_urb(io->urbs[i]);
+ 
+-			retval = usb_unlink_urb(io->urbs[i]);
+-			if (retval != -EINPROGRESS
+-					&& retval != -ENODEV
+-					&& retval != -EBUSY
+-					&& retval != -EIDRM)
+-				dev_warn(&io->dev->dev, "%s, unlink --> %d\n",
+-					__func__, retval);
+-		}
+-		spin_lock(&io->lock);
++		retval = usb_unlink_urb(io->urbs[i]);
++		if (retval != -EINPROGRESS
++		    && retval != -ENODEV
++		    && retval != -EBUSY
++		    && retval != -EIDRM)
++			dev_warn(&io->dev->dev, "%s, unlink --> %d\n",
++				 __func__, retval);
+ 	}
+-	spin_unlock_irqrestore(&io->lock, flags);
+ }
+ EXPORT_SYMBOL_GPL(usb_sg_cancel);
+ 

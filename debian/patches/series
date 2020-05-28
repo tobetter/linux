@@ -692,5 +692,8 @@ bugfix/all/selinux-convert-warn_once-to-printk-in-selinux_nlmsg.patch
 bugfix/all/selinux-print-sclass-as-string-when-unrecognized-net.patch
 bugfix/all/selinux-rate-limit-netlink-message-warnings-in-selin.patch
 bugfix/all/selinux-properly-handle-multiple-messages-in-selinux.patch
+bugfix/all/drivers-usb-core-don-t-disable-irqs-in-usb_sg_wait-d.patch
+bugfix/all/drivers-usb-core-minimize-irq-disabling-in-usb_sg_ca.patch
+bugfix/all/usb-core-fix-free-while-in-use-bug-in-the-usb-s-glib.patch
 
 # Fix ABI changes
