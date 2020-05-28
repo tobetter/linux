@@ -1,0 +1,37 @@
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed, 15 May 2019 00:51:19 -0400
+Subject: ext4: fix block validity checks for journal inodes using indirect
+ blocks
+Origin: https://git.kernel.org/linus/170417c8c7bb2cbbdd949bf5c443c0c8f24a203b
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-19319
+
+Commit 345c0dbf3a30 ("ext4: protect journal inode's blocks using
+block_validity") failed to add an exception for the journal inode in
+ext4_check_blockref(), which is the function used by ext4_get_branch()
+for indirect blocks.  This caused attempts to read from the ext3-style
+journals to fail with:
+
+[  848.968550] EXT4-fs error (device sdb7): ext4_get_branch:171: inode #8: block 30343695: comm jbd2/sdb7-8: invalid block
+
+Fix this by adding the missing exception check.
+
+Fixes: 345c0dbf3a30 ("ext4: protect journal inode's blocks using block_validity")
+Reported-by: Arthur Marsh <arthur.marsh@internode.on.net>
+Signed-off-by: Theodore Ts'o <tytso@mit.edu>
+[bwh: Backported to 3.16: Use EXT4_HAS_COMPAT_FEATURE]
+---
+--- a/fs/ext4/block_validity.c
++++ b/fs/ext4/block_validity.c
+@@ -277,6 +277,12 @@ int ext4_check_blockref(const char *func
+ 	__le32 *bref = p;
+ 	unsigned int blk;
+ 
++	if (EXT4_HAS_COMPAT_FEATURE(inode->i_sb,
++				    EXT4_FEATURE_COMPAT_HAS_JOURNAL) &&
++	    (inode->i_ino ==
++	     le32_to_cpu(EXT4_SB(inode->i_sb)->s_es->s_journal_inum)))
++		return 0;
++
+ 	while (bref < p+max) {
+ 		blk = le32_to_cpu(*bref++);
+ 		if (blk &&

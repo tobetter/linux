@@ -724,5 +724,11 @@ bugfix/all/sg/0026-scsi-sg-add-sg_remove_request-in-sg_common_write.patch
 bugfix/all/sg/0027-scsi-sg-add-sg_remove_request-in-sg_write.patch
 bugfix/all/signal-extend-exec_id-to-64bits.patch
 bugfix/all/usb-gadget-fix-illegal-array-access-in-binding-with-.patch
+bugfix/all/ext4-make-metadata-csum-checks-safer.patch
+bugfix/all/ext4-protect-journal-inode-s-blocks-using-block_vali.patch
+bugfix/all/ext4-unsigned-int-compared-against-zero.patch
+bugfix/all/ext4-fix-block-validity-checks-for-journal-inodes-us.patch
+bugfix/all/ext4-don-t-perform-block-validity-checks-on-the-jour.patch
+bugfix/all/ext4-add-cond_resched-to-ext4_protect_reserved_inode.patch
 
 # Fix ABI changes

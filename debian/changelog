@@ -495,6 +495,13 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - scsi: sg: add sg_remove_request in sg_write (CVE-2020-12770)
   * signal: Extend exec_id to 64bits (CVE-2020-12826)
   * USB: gadget: fix illegal array access in binding with UDC (CVE-2020-13143)
+  * ext4: Fix various bugs:
+    - ext4: Make checks for metadata_csum feature safer
+    - ext4: protect journal inode's blocks using block_validity (CVE-2019-19319)
+    - ext4: unsigned int compared against zero
+    - ext4: fix block validity checks for journal inodes using indirect blocks
+    - ext4: don't perform block validity checks on the journal inode
+    - ext4: add cond_resched() to ext4_protect_reserved_inode (CVE-2020-8992)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

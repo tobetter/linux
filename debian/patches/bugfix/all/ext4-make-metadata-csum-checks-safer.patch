@@ -1,0 +1,48 @@
+From: Tahsin Erdogan <tahsin@google.com>
+Subject: ext4: Make checks for metadata_csum feature safer
+Origin: https://github.com/openSUSE/kernel-source/blob/SLE12-SP4/patches.suse/ext4-make-metadata-csum-checks-safer.patch
+Bug-SUSE: https://bugzilla.suse.com/show_bug.cgi?id=1087007
+
+This is just a small part of commit dec214d00e0d7 "ext4: xattr inode
+deduplication" that makes checks for metadata_csum feature safer and is
+actually needed by following fixes.
+
+Signed-off-by: Tahsin Erdogan <tahsin@google.com>
+Acked-by: Jan Kara <jack@suse.cz>
+[bwh: Ported to 3.16: Use EXT4_HAS_RO_COMPAT_FEATURE()]
+---
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -2411,21 +2411,24 @@ extern void ext4_group_desc_csum_set(str
+ extern int ext4_register_li_request(struct super_block *sb,
+ 				    ext4_group_t first_not_zeroed);
+ 
+-static inline int ext4_has_group_desc_csum(struct super_block *sb)
+-{
+-	return EXT4_HAS_RO_COMPAT_FEATURE(sb,
+-					  EXT4_FEATURE_RO_COMPAT_GDT_CSUM) ||
+-	       (EXT4_SB(sb)->s_chksum_driver != NULL);
+-}
+-
+ static inline int ext4_has_metadata_csum(struct super_block *sb)
+ {
+ 	WARN_ON_ONCE(EXT4_HAS_RO_COMPAT_FEATURE(sb,
+ 			EXT4_FEATURE_RO_COMPAT_METADATA_CSUM) &&
+ 		     !EXT4_SB(sb)->s_chksum_driver);
+ 
+-	return (EXT4_SB(sb)->s_chksum_driver != NULL);
++	return EXT4_HAS_RO_COMPAT_FEATURE(sb,
++			EXT4_FEATURE_RO_COMPAT_METADATA_CSUM) &&
++	       (EXT4_SB(sb)->s_chksum_driver != NULL);
++}
++
++static inline int ext4_has_group_desc_csum(struct super_block *sb)
++{
++	return EXT4_HAS_RO_COMPAT_FEATURE(sb,
++					  EXT4_FEATURE_RO_COMPAT_GDT_CSUM) ||
++		ext4_has_metadata_csum(sb);
+ }
++
+ static inline ext4_fsblk_t ext4_blocks_count(struct ext4_super_block *es)
+ {
+ 	return ((ext4_fsblk_t)le32_to_cpu(es->s_blocks_count_hi) << 32) |
