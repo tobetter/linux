@@ -1,12 +1,15 @@
 # Overlays for the Odroid platform
 
 dtbo-y += \
-	spidev1-overlay.dtbo \
-	i2c1-overlay.dtbo \
-	i2c5-overlay.dtbo \
-	hktft32-overlay.dtbo \
-	hktft35-overlay.dtbo \
-	hktft-cs-ogst-overlay.dtbo
+	spi0.dtbo		\
+	i2c0.dtbo		\
+	i2c1.dtbo		\
+	uart0.dtbo		\
+	hktft32.dtbo		\
+	hktft35.dtbo		\
+	ads7846.dtbo		\
+	sx865x-i2c1.dtbo	\
+	hktft-cs-ogst.dtbo
 
 targets += $(dtbo-y)
 always	:= $(dtbo-y)
