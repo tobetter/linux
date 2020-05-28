@@ -1,0 +1,35 @@
+From: Hannes Reinecke <hare@suse.de>
+Date: Mon, 24 Apr 2017 10:26:36 +0200
+Subject: [07/27] scsi: sg: reset 'res_in_use' after unlinking reserved array
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=b7571624fe986aecc7f42b421286f90cd7c67d6e
+
+commit e791ce27c3f6a1d3c746fd6a8f8e36c9540ec6f9 upstream.
+
+Once the reserved page array is unused we can reset the 'res_in_use'
+state; here we can do a lazy update without holding the mutex as we only
+need to check against concurrent access, not concurrent release.
+
+[mkp: checkpatch]
+
+Fixes: 1bc0eb044615 ("scsi: sg: protect accesses to 'reserved' page array")
+Signed-off-by: Hannes Reinecke <hare@suse.com>
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Cc: Todd Poynor <toddpoynor@google.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -2062,6 +2062,8 @@ sg_unlink_reserve(Sg_fd * sfp, Sg_reques
+ 	req_schp->sglist_len = 0;
+ 	sfp->save_scat_len = 0;
+ 	srp->res_used = 0;
++	/* Called without mutex lock to avoid deadlock */
++	sfp->res_in_use = 0;
+ }
+ 
+ static Sg_request *

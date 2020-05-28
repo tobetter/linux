@@ -1,0 +1,43 @@
+From: Hannes Reinecke <hare@suse.de>
+Date: Fri, 15 Sep 2017 14:05:16 +0200
+Subject: [14/27] scsi: sg: fixup infoleak when using SG_GET_REQUEST_TABLE
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=72896ca30a7f6ceb5238714d5761e4ad4521ccc5
+
+commit 3e0097499839e0fe3af380410eababe5a47c4cf9 upstream.
+
+When calling SG_GET_REQUEST_TABLE ioctl only a half-filled table is
+returned; the remaining part will then contain stale kernel memory
+information.  This patch zeroes out the entire table to avoid this
+issue.
+
+Signed-off-by: Hannes Reinecke <hare@suse.com>
+Reviewed-by: Bart Van Assche <bart.vanassche@wdc.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -881,7 +881,6 @@ sg_fill_request_table(Sg_fd *sfp, sg_req
+ 	list_for_each_entry(srp, &sfp->rq_list, entry) {
+ 		if (val > SG_MAX_QUEUE)
+ 			break;
+-		memset(&rinfo[val], 0, SZ_SG_REQ_INFO);
+ 		rinfo[val].req_state = srp->done + 1;
+ 		rinfo[val].problem =
+ 			srp->header.masked_status &
+@@ -1098,8 +1097,8 @@ sg_ioctl(struct file *filp, unsigned int
+ 		else {
+ 			sg_req_info_t *rinfo;
+ 
+-			rinfo = kmalloc(SZ_SG_REQ_INFO * SG_MAX_QUEUE,
+-								GFP_KERNEL);
++			rinfo = kzalloc(SZ_SG_REQ_INFO * SG_MAX_QUEUE,
++					GFP_KERNEL);
+ 			if (!rinfo)
+ 				return -ENOMEM;
+ 			read_lock_irqsave(&sfp->rq_list_lock, iflags);

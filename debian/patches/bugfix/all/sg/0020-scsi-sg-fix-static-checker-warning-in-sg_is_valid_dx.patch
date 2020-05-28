@@ -1,0 +1,41 @@
+From: Johannes Thumshirn <jthumshirn@suse.de>
+Date: Mon, 17 Jul 2017 15:11:42 +0200
+Subject: [20/27] scsi: sg: fix static checker warning in sg_is_valid_dxfer
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=db259b6768cf52ae1c0c92b7fc6e093a28969d71
+
+commit 14074aba4bcda3764c9a702b276308b89901d5b6 upstream.
+
+dxfer_len is an unsigned int and we always assign a value > 0 to it, so
+it doesn't make any sense to check if it is < 0. We can't really check
+dxferp as well as we have both NULL and not NULL cases in the possible
+call paths.
+
+So just return true for SG_DXFER_FROM_DEV transfer in
+sg_is_valid_dxfer().
+
+Signed-off-by: Johannes Thumshirn <jthumshirn@suse.de>
+Reported-by: Colin Ian King <colin.king@canonical.com>
+Reported-by: Dan Carpenter <dan.carpenter@oracle.com>
+Cc: Douglas Gilbert <dgilbert@interlog.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -796,8 +796,11 @@ static bool sg_is_valid_dxfer(sg_io_hdr_
+ 			return false;
+ 		return true;
+ 	case SG_DXFER_FROM_DEV:
+-		if (hp->dxfer_len < 0)
+-			return false;
++		/*
++		 * for SG_DXFER_FROM_DEV we always set dxfer_len to > 0. dxferp
++		 * can either be NULL or != NULL so there's no point in checking
++		 * it either. So just return true.
++		 */
+ 		return true;
+ 	case SG_DXFER_TO_DEV:
+ 	case SG_DXFER_TO_FROM_DEV:

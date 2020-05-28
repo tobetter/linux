@@ -1,0 +1,37 @@
+From: Hannes Reinecke <hare@suse.de>
+Date: Fri, 7 Apr 2017 09:34:13 +0200
+Subject: [10/27] scsi: sg: remove 'save_scat_len'
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=6b498ad144728628c541dbb703d14142c10311a4
+
+commit 136e57bf43dc4babbfb8783abbf707d483cacbe3 upstream.
+
+Unused.
+
+Signed-off-by: Hannes Reinecke <hare@suse.com>
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Tested-by: Johannes Thumshirn <jthumshirn@suse.de>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -154,7 +154,6 @@ typedef struct sg_fd {		/* holds the sta
+ 	int timeout;		/* defaults to SG_DEFAULT_TIMEOUT      */
+ 	int timeout_user;	/* defaults to SG_DEFAULT_TIMEOUT_USER */
+ 	Sg_scatter_hold reserve;	/* buffer held for this file descriptor */
+-	unsigned save_scat_len;	/* original length of trunc. scat. element */
+ 	Sg_request *headrp;	/* head of request slist, NULL->empty */
+ 	struct fasync_struct *async_qp;	/* used by asynchronous notification */
+ 	Sg_request req_arr[SG_MAX_QUEUE];	/* used as singly-linked list */
+@@ -2069,7 +2068,6 @@ sg_unlink_reserve(Sg_fd * sfp, Sg_reques
+ 	req_schp->pages = NULL;
+ 	req_schp->page_order = 0;
+ 	req_schp->sglist_len = 0;
+-	sfp->save_scat_len = 0;
+ 	srp->res_used = 0;
+ 	/* Called without mutex lock to avoid deadlock */
+ 	sfp->res_in_use = 0;

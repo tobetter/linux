@@ -1,0 +1,73 @@
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Date: Mon, 2 Jun 2014 22:56:46 +0900
+Subject: sg: prevent integer overflow when converting from sectors to bytes
+Origin: https://git.kernel.org/linus/46f69e6a6bbbf3858617c8729e31895846c15a79
+
+This prevents integer overflow when converting the request queue's
+max_sectors from sectors to bytes.  However, this is a preparation for
+extending the data type of max_sectors in struct Scsi_Host and
+scsi_host_template.  So, it is impossible to happen this integer
+overflow for now, because SCSI low-level drivers can not specify
+max_sectors greater than 0xffff due to the data type limitation.
+
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Acked by: Douglas Gilbert <dgilbert@interlog.com>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ drivers/scsi/sg.c | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -865,6 +865,15 @@ static int srp_done(Sg_fd *sfp, Sg_reque
+ 	return ret;
+ }
+ 
++static int max_sectors_bytes(struct request_queue *q)
++{
++	unsigned int max_sectors = queue_max_sectors(q);
++
++	max_sectors = min_t(unsigned int, max_sectors, INT_MAX >> 9);
++
++	return max_sectors << 9;
++}
++
+ static long
+ sg_ioctl(struct file *filp, unsigned int cmd_in, unsigned long arg)
+ {
+@@ -1004,7 +1013,7 @@ sg_ioctl(struct file *filp, unsigned int
+                 if (val < 0)
+                         return -EINVAL;
+ 		val = min_t(int, val,
+-			    queue_max_sectors(sdp->device->request_queue) * 512);
++			    max_sectors_bytes(sdp->device->request_queue));
+ 		if (val != sfp->reserve.bufflen) {
+ 			if (sg_res_in_use(sfp) || sfp->mmap_called)
+ 				return -EBUSY;
+@@ -1014,7 +1023,7 @@ sg_ioctl(struct file *filp, unsigned int
+ 		return 0;
+ 	case SG_GET_RESERVED_SIZE:
+ 		val = min_t(int, sfp->reserve.bufflen,
+-			    queue_max_sectors(sdp->device->request_queue) * 512);
++			    max_sectors_bytes(sdp->device->request_queue));
+ 		return put_user(val, ip);
+ 	case SG_SET_COMMAND_Q:
+ 		result = get_user(val, ip);
+@@ -1154,7 +1163,7 @@ sg_ioctl(struct file *filp, unsigned int
+ 			return -ENODEV;
+ 		return scsi_ioctl(sdp->device, cmd_in, p);
+ 	case BLKSECTGET:
+-		return put_user(queue_max_sectors(sdp->device->request_queue) * 512,
++		return put_user(max_sectors_bytes(sdp->device->request_queue),
+ 				ip);
+ 	case BLKTRACESETUP:
+ 		return blk_trace_setup(sdp->device->request_queue,
+@@ -2170,7 +2179,7 @@ sg_add_sfp(Sg_device * sdp, int dev)
+ 		sg_big_buff = def_reserved_size;
+ 
+ 	bufflen = min_t(int, sg_big_buff,
+-			queue_max_sectors(sdp->device->request_queue) * 512);
++			max_sectors_bytes(sdp->device->request_queue));
+ 	sg_build_reserve(sfp, bufflen);
+ 	SCSI_LOG_TIMEOUT(3, printk("sg_add_sfp:   bufflen=%d, k_use_sg=%d\n",
+ 			   sfp->reserve.bufflen, sfp->reserve.k_use_sg));

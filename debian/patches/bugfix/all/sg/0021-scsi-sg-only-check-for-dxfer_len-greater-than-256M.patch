@@ -1,0 +1,82 @@
+From: Johannes Thumshirn <jthumshirn@suse.de>
+Date: Thu, 27 Jul 2017 09:11:26 +0200
+Subject: [21/27] scsi: sg: only check for dxfer_len greater than 256M
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=036c4bdd66b72b45e43e0815294598c6b580c72a
+
+commit f930c7043663188429cd9b254e9d761edfc101ce upstream.
+
+Don't make any assumptions on the sg_io_hdr_t::dxfer_direction or the
+sg_io_hdr_t::dxferp in order to determine if it is a valid request. The
+only way we can check for bad requests is by checking if the length
+exceeds 256M.
+
+Signed-off-by: Johannes Thumshirn <jthumshirn@suse.de>
+Fixes: 28676d869bbb (scsi: sg: check for valid direction before starting the request)
+Reported-by: Jason L Tibbitts III <tibbs@math.uh.edu>
+Tested-by: Jason L Tibbitts III <tibbs@math.uh.edu>
+Suggested-by: Doug Gilbert <dgilbert@interlog.com>
+Cc: Doug Gilbert <dgilbert@interlog.com>
+Cc: <stable@vger.kernel.org>
+Reviewed-by: Hannes Reinecke <hare@suse.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+[bwh: Backported to 3.16: Include <linux/sizes.h>]
+---
+ drivers/scsi/sg.c | 31 +------------------------------
+ 1 file changed, 1 insertion(+), 30 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -54,6 +54,7 @@ static int sg_version_num = 30534;	/* 2
+ #include <linux/atomic.h>
+ #include <linux/ratelimit.h>
+ #include <linux/cred.h> /* for sg_check_file_access() */
++#include <linux/sizes.h>
+ 
+ #include "scsi.h"
+ #include <scsi/scsi_dbg.h>
+@@ -788,35 +789,6 @@ sg_new_write(Sg_fd *sfp, struct file *fi
+ 	return count;
+ }
+ 
+-static bool sg_is_valid_dxfer(sg_io_hdr_t *hp)
+-{
+-	switch (hp->dxfer_direction) {
+-	case SG_DXFER_NONE:
+-		if (hp->dxferp || hp->dxfer_len > 0)
+-			return false;
+-		return true;
+-	case SG_DXFER_FROM_DEV:
+-		/*
+-		 * for SG_DXFER_FROM_DEV we always set dxfer_len to > 0. dxferp
+-		 * can either be NULL or != NULL so there's no point in checking
+-		 * it either. So just return true.
+-		 */
+-		return true;
+-	case SG_DXFER_TO_DEV:
+-	case SG_DXFER_TO_FROM_DEV:
+-		if (!hp->dxferp || hp->dxfer_len == 0)
+-			return false;
+-		return true;
+-	case SG_DXFER_UNKNOWN:
+-		if ((!hp->dxferp && hp->dxfer_len) ||
+-		    (hp->dxferp && hp->dxfer_len == 0))
+-			return false;
+-		return true;
+-	default:
+-		return false;
+-	}
+-}
+-
+ static int
+ sg_common_write(Sg_fd * sfp, Sg_request * srp,
+ 		unsigned char *cmnd, int timeout, int blocking)
+@@ -836,7 +808,7 @@ sg_common_write(Sg_fd * sfp, Sg_request
+ 	SCSI_LOG_TIMEOUT(4, printk("sg_common_write:  scsi opcode=0x%02x, cmd_size=%d\n",
+ 			  (int) cmnd[0], (int) hp->cmd_len));
+ 
+-	if (!sg_is_valid_dxfer(hp))
++	if (hp->dxfer_len >= SZ_256M)
+ 		return -EINVAL;
+ 
+ 	k = sg_start_req(srp, cmnd);

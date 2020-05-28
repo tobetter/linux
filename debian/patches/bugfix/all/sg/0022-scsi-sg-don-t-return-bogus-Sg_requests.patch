@@ -1,0 +1,45 @@
+From: Johannes Thumshirn <jthumshirn@suse.de>
+Date: Wed, 10 May 2017 09:53:40 +0200
+Subject: [22/27] scsi: sg: don't return bogus Sg_requests
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=cf7a1cf58580521e17ce882d3bb04308ccd6b04a
+
+commit 48ae8484e9fc324b4968d33c585e54bc98e44d61 upstream.
+
+If the list search in sg_get_rq_mark() fails to find a valid request, we
+return a bogus element. This then can later lead to a GPF in
+sg_remove_scat().
+
+So don't return bogus Sg_requests in sg_get_rq_mark() but NULL in case
+the list search doesn't find a valid request.
+
+Signed-off-by: Johannes Thumshirn <jthumshirn@suse.de>
+Reported-by: Andrey Konovalov <andreyknvl@google.com>
+Cc: Hannes Reinecke <hare@suse.de>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Doug Gilbert <dgilbert@interlog.com>
+Reviewed-by: Hannes Reinecke <hare@suse.de>
+Acked-by: Doug Gilbert <dgilbert@interlog.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Cc: Tony Battersby <tonyb@cybernetics.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -2084,11 +2084,12 @@ sg_get_rq_mark(Sg_fd * sfp, int pack_id)
+ 		if ((1 == resp->done) && (!resp->sg_io_owned) &&
+ 		    ((-1 == pack_id) || (resp->header.pack_id == pack_id))) {
+ 			resp->done = 2;	/* guard against other readers */
+-			break;
++			write_unlock_irqrestore(&sfp->rq_list_lock, iflags);
++			return resp;
+ 		}
+ 	}
+ 	write_unlock_irqrestore(&sfp->rq_list_lock, iflags);
+-	return resp;
++	return NULL;
+ }
+ 
+ /* always adds to end of list */

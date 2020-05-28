@@ -1,0 +1,30 @@
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 17 Aug 2017 10:09:54 +0300
+Subject: [12/27] scsi: sg: off by one in sg_ioctl()
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=f0cd701d475038d3078867cad576f6530c065120
+
+commit bd46fc406b30d1db1aff8dabaff8d18bb423fdcf upstream.
+
+If "val" is SG_MAX_QUEUE then we are one element beyond the end of the
+"rinfo" array so the > should be >=.
+
+Fixes: 109bade9c625 ("scsi: sg: use standard lists for sg_requests")
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Acked-by: Douglas Gilbert <dgilbert@interlog.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -1072,7 +1072,7 @@ sg_ioctl(struct file *filp, unsigned int
+ 			read_lock_irqsave(&sfp->rq_list_lock, iflags);
+ 			val = 0;
+ 			list_for_each_entry(srp, &sfp->rq_list, entry) {
+-				if (val > SG_MAX_QUEUE)
++				if (val >= SG_MAX_QUEUE)
+ 					break;
+ 				memset(&rinfo[val], 0, SZ_SG_REQ_INFO);
+ 				rinfo[val].req_state = srp->done + 1;

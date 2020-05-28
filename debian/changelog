@@ -469,6 +469,30 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     (CVE-2020-12653)
   * mwifiex: Fix possible buffer overflows in mwifiex_ret_wmm_get_status()
     (CVE-2020-12654)
+  * scsi: sg: Fix various bugs:
+    - sg: O_EXCL and other lock handling
+    - sg: prevent integer overflow when converting from sectors to bytes
+    - scsi: sg: Change next_cmd_len handling to mirror upstream
+    - scsi: sg: protect accesses to 'reserved' page array
+    - scsi: sg: reset 'res_in_use' after unlinking reserved array
+    - scsi: sg: protect against races between mmap() and SG_SET_RESERVED_SIZE
+    - scsi: sg: recheck MMAP_IO request length with lock held
+    - scsi: sg: remove 'save_scat_len'
+    - scsi: sg: use standard lists for sg_requests
+    - scsi: sg: off by one in sg_ioctl()
+    - scsi: sg: factor out sg_fill_request_table()
+    - scsi: sg: fixup infoleak when using SG_GET_REQUEST_TABLE
+    - scsi: sg: Re-fix off by one in sg_fill_request_table()
+    - scsi: sg: disable SET_FORCE_LOW_DMA
+    - scsi: sg: check for valid direction before starting the request
+    - scsi: sg: close race condition in sg_remove_sfp_usercontext()
+    - scsi: sg: fix SG_DXFER_FROM_DEV transfers
+    - scsi: sg: fix static checker warning in sg_is_valid_dxfer
+    - scsi: sg: only check for dxfer_len greater than 256M
+    - scsi: sg: don't return bogus Sg_requests
+    - scsi: sg: fix minor memory leak in error path
+    - scsi: sg: add sg_remove_request in sg_common_write
+    - scsi: sg: add sg_remove_request in sg_write (CVE-2020-12770)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

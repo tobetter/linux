@@ -1,0 +1,96 @@
+From: Johannes Thumshirn <jthumshirn@suse.de>
+Date: Fri, 7 Apr 2017 09:34:15 +0200
+Subject: [17/27] scsi: sg: check for valid direction before starting the
+ request
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=9088ad9fb1c004bbac5fd083a1a43cd52f8c8415
+
+[ Upstream commit 28676d869bbb5257b5f14c0c95ad3af3a7019dd5 ]
+
+Check for a valid direction before starting the request, otherwise we
+risk running into an assertion in the scsi midlayer checking for valid
+requests.
+
+[mkp: fixed typo]
+
+Signed-off-by: Johannes Thumshirn <jthumshirn@suse.de>
+Link: http://www.spinics.net/lists/linux-scsi/msg104400.html
+Reported-by: Dmitry Vyukov <dvyukov@google.com>
+Signed-off-by: Hannes Reinecke <hare@suse.com>
+Tested-by: Johannes Thumshirn <jthumshirn@suse.de>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Sasha Levin <alexander.levin@microsoft.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/scsi/sg.c | 46 ++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 34 insertions(+), 12 deletions(-)
+
+--- a/drivers/scsi/sg.c
++++ b/drivers/scsi/sg.c
+@@ -701,18 +701,14 @@ sg_write(struct file *filp, const char _
+ 	 * is a non-zero input_size, so emit a warning.
+ 	 */
+ 	if (hp->dxfer_direction == SG_DXFER_TO_FROM_DEV) {
+-		static char cmd[TASK_COMM_LEN];
+-		if (strcmp(current->comm, cmd)) {
+-			printk_ratelimited(KERN_WARNING
+-					   "sg_write: data in/out %d/%d bytes "
+-					   "for SCSI command 0x%x-- guessing "
+-					   "data in;\n   program %s not setting "
+-					   "count and/or reply_len properly\n",
+-					   old_hdr.reply_len - (int)SZ_SG_HEADER,
+-					   input_size, (unsigned int) cmnd[0],
+-					   current->comm);
+-			strcpy(cmd, current->comm);
+-		}
++		printk_ratelimited(KERN_WARNING
++				   "sg_write: data in/out %d/%d bytes "
++				   "for SCSI command 0x%x-- guessing "
++				   "data in;\n   program %s not setting "
++				   "count and/or reply_len properly\n",
++				   old_hdr.reply_len - (int)SZ_SG_HEADER,
++				   input_size, (unsigned int) cmnd[0],
++				   current->comm);
+ 	}
+ 	k = sg_common_write(sfp, srp, cmnd, sfp->timeout, blocking);
+ 	return (k < 0) ? k : count;
+@@ -790,6 +786,29 @@ sg_new_write(Sg_fd *sfp, struct file *fi
+ 	return count;
+ }
+ 
++static bool sg_is_valid_dxfer(sg_io_hdr_t *hp)
++{
++	switch (hp->dxfer_direction) {
++	case SG_DXFER_NONE:
++		if (hp->dxferp || hp->dxfer_len > 0)
++			return false;
++		return true;
++	case SG_DXFER_TO_DEV:
++	case SG_DXFER_FROM_DEV:
++	case SG_DXFER_TO_FROM_DEV:
++		if (!hp->dxferp || hp->dxfer_len == 0)
++			return false;
++		return true;
++	case SG_DXFER_UNKNOWN:
++		if ((!hp->dxferp && hp->dxfer_len) ||
++		    (hp->dxferp && hp->dxfer_len == 0))
++			return false;
++		return true;
++	default:
++		return false;
++	}
++}
++
+ static int
+ sg_common_write(Sg_fd * sfp, Sg_request * srp,
+ 		unsigned char *cmnd, int timeout, int blocking)
+@@ -809,6 +828,9 @@ sg_common_write(Sg_fd * sfp, Sg_request
+ 	SCSI_LOG_TIMEOUT(4, printk("sg_common_write:  scsi opcode=0x%02x, cmd_size=%d\n",
+ 			  (int) cmnd[0], (int) hp->cmd_len));
+ 
++	if (!sg_is_valid_dxfer(hp))
++		return -EINVAL;
++
+ 	k = sg_start_req(srp, cmnd);
+ 	if (k) {
+ 		SCSI_LOG_TIMEOUT(1, printk("sg_common_write: start_req err=%d\n", k));
