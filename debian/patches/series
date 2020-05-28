@@ -723,5 +723,6 @@ bugfix/all/sg/0025-scsi-sg-fix-minor-memory-leak-in-error-path.patch
 bugfix/all/sg/0026-scsi-sg-add-sg_remove_request-in-sg_common_write.patch
 bugfix/all/sg/0027-scsi-sg-add-sg_remove_request-in-sg_write.patch
 bugfix/all/signal-extend-exec_id-to-64bits.patch
+bugfix/all/usb-gadget-fix-illegal-array-access-in-binding-with-.patch
 
 # Fix ABI changes
