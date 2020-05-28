@@ -493,6 +493,7 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - scsi: sg: fix minor memory leak in error path
     - scsi: sg: add sg_remove_request in sg_common_write
     - scsi: sg: add sg_remove_request in sg_write (CVE-2020-12770)
+  * signal: Extend exec_id to 64bits (CVE-2020-12826)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 
