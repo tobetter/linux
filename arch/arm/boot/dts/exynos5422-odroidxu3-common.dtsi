@@ -13,6 +13,20 @@
 #include "exynos5422-odroid-core.dtsi"
 
 / {
+	aliases {
+		/* Hardkernel alignment
+		 * I2C_0 : Pin 3, 5
+		 * I2C_1 : Pin 27, 28
+		 * SPI_0 : Pin 11, 13, 15
+		 * SERIAL_0 : Pin 8, 10
+		 */
+		i2c0 = &i2c_1;
+		i2c1 = &hsi2c_5;
+		i2c5 = &i2c_0;
+		spi0 = &spi_1;
+		spi1 = &spi_0;
+	};
+
 	gpio_keys {
 		compatible = "gpio-keys";
 		pinctrl-names = "default";
