@@ -687,5 +687,10 @@ bugfix/all/pie-aslr/mm-revert-x86_64-and-arm64-elf_et_dyn_base-base-chan.patch
 bugfix/all/mbcache-reschedule-before-restarting-iteration-in-mb_cache_entry_alloc.patch
 bugfix/all/scsi-libsas-direct-call-probe-and-destruct.patch
 bugfix/all/Revert-net-increase-fragment-memory-usage-limits.patch
+bugfix/all/selinux-cleanup-error-reporting-in-selinux_nlmsg_per.patch
+bugfix/all/selinux-convert-warn_once-to-printk-in-selinux_nlmsg.patch
+bugfix/all/selinux-print-sclass-as-string-when-unrecognized-net.patch
+bugfix/all/selinux-rate-limit-netlink-message-warnings-in-selin.patch
+bugfix/all/selinux-properly-handle-multiple-messages-in-selinux.patch
 
 # Fix ABI changes

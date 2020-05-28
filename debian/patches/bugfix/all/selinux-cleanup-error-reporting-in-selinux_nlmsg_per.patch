@@ -1,0 +1,36 @@
+From: Richard Guy Briggs <rgb@redhat.com>
+Date: Thu, 18 Sep 2014 20:50:17 -0400
+Subject: selinux: cleanup error reporting in selinux_nlmsg_perm()
+Origin: https://git.kernel.org/linus/e173fb2646a832b424c80904c306b816760ce477
+
+Convert audit_log() call to WARN_ONCE().
+
+Rename "type=" to nlmsg_type=" to avoid confusion with the audit record
+type.
+
+Added "protocol=" to help track down which protocol (NETLINK_AUDIT?) was used
+within the netlink protocol family.
+
+Signed-off-by: Richard Guy Briggs <rgb@redhat.com>
+[Rewrote the patch subject line]
+Signed-off-by: Paul Moore <pmoore@redhat.com>
+---
+ security/selinux/hooks.c | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -4683,10 +4683,9 @@ static int selinux_nlmsg_perm(struct soc
+ 	err = selinux_nlmsg_lookup(sksec->sclass, nlh->nlmsg_type, &perm);
+ 	if (err) {
+ 		if (err == -EINVAL) {
+-			audit_log(current->audit_context, GFP_KERNEL, AUDIT_SELINUX_ERR,
+-				  "SELinux:  unrecognized netlink message"
+-				  " type=%hu for sclass=%hu\n",
+-				  nlh->nlmsg_type, sksec->sclass);
++			WARN_ONCE(1, "selinux_nlmsg_perm: unrecognized netlink message:"
++				  " protocol=%hu nlmsg_type=%hu sclass=%hu\n",
++				  sk->sk_protocol, nlh->nlmsg_type, sksec->sclass);
+ 			if (!selinux_enforcing || security_get_allow_unknown())
+ 				err = 0;
+ 		}

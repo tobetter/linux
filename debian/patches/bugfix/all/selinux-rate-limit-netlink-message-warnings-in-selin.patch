@@ -1,0 +1,38 @@
+From: Vladis Dronov <vdronov@redhat.com>
+Date: Thu, 24 Dec 2015 11:09:41 -0500
+Subject: selinux: rate-limit netlink message warnings in selinux_nlmsg_perm()
+Origin: https://git.kernel.org/linus/76319946f321e30872dd72af7de867cb26e7a373
+
+Any process is able to send netlink messages with invalid types.
+Make the warning rate-limited to prevent too much log spam.
+
+The warning is supposed to help to find misbehaving programs, so
+print the triggering command name and pid.
+
+Reported-by: Florian Weimer <fweimer@redhat.com>
+Signed-off-by: Vladis Dronov <vdronov@redhat.com>
+[PM: subject line tweak to make checkpatch.pl happy]
+Signed-off-by: Paul Moore <pmoore@redhat.com>
+---
+ security/selinux/hooks.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -4683,11 +4683,12 @@ static int selinux_nlmsg_perm(struct soc
+ 	err = selinux_nlmsg_lookup(sksec->sclass, nlh->nlmsg_type, &perm);
+ 	if (err) {
+ 		if (err == -EINVAL) {
+-			printk(KERN_WARNING
+-			       "SELinux: unrecognized netlink message:"
+-			       " protocol=%hu nlmsg_type=%hu sclass=%s\n",
++			pr_warn_ratelimited("SELinux: unrecognized netlink"
++			       " message: protocol=%hu nlmsg_type=%hu sclass=%s"
++			       " pig=%d comm=%s\n",
+ 			       sk->sk_protocol, nlh->nlmsg_type,
+-			       secclass_map[sksec->sclass - 1].name);
++			       secclass_map[sksec->sclass - 1].name,
++			       task_pid_nr(current), current->comm);
+ 			if (!selinux_enforcing || security_get_allow_unknown())
+ 				err = 0;
+ 		}

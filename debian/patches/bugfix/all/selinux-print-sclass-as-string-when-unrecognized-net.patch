@@ -1,0 +1,31 @@
+From: Marek Milkovic <mmilkovi@redhat.com>
+Date: Thu, 4 Jun 2015 16:22:16 -0400
+Subject: selinux: Print 'sclass' as string when unrecognized netlink message
+ occurs
+Origin: https://git.kernel.org/linus/cded3fffbeab777e6ad2ec05d4a3b62c5caca0f3
+
+This prints the 'sclass' field as string instead of index in unrecognized netlink message.
+The textual representation makes it easier to distinguish the right class.
+
+Signed-off-by: Marek Milkovic <mmilkovi@redhat.com>
+Acked-by: Stephen Smalley <sds@tycho.nsa.gov>
+[PM: 80-char width fixes]
+Signed-off-by: Paul Moore <pmoore@redhat.com>
+---
+ security/selinux/hooks.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@ -4685,8 +4685,9 @@ static int selinux_nlmsg_perm(struct soc
+ 		if (err == -EINVAL) {
+ 			printk(KERN_WARNING
+ 			       "SELinux: unrecognized netlink message:"
+-			       " protocol=%hu nlmsg_type=%hu sclass=%hu\n",
+-			       sk->sk_protocol, nlh->nlmsg_type, sksec->sclass);
++			       " protocol=%hu nlmsg_type=%hu sclass=%s\n",
++			       sk->sk_protocol, nlh->nlmsg_type,
++			       secclass_map[sksec->sclass - 1].name);
+ 			if (!selinux_enforcing || security_get_allow_unknown())
+ 				err = 0;
+ 		}
