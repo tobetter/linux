@@ -1,0 +1,30 @@
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Date: Thu, 25 Jan 2018 17:27:27 +0300
+Subject: scsi: mptfusion: Add bounds check in mptctl_hp_targetinfo()
+Origin: https://git.kernel.org/linus/a7043e9529f3c367cc4d82997e00be034cbe57ca
+
+My static checker complains about an out of bounds read:
+
+    drivers/message/fusion/mptctl.c:2786 mptctl_hp_targetinfo()
+    error: buffer overflow 'hd->sel_timeout' 255 <= u32max.
+
+It's true that we probably should have a bounds check here.
+
+Signed-off-by: Dan Carpenter <dan.carpenter@oracle.com>
+Reviewed-by: Johannes Thumshirn <jthumshirn@suse.de>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
+---
+ drivers/message/fusion/mptctl.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+--- a/drivers/message/fusion/mptctl.c
++++ b/drivers/message/fusion/mptctl.c
+@@ -2698,6 +2698,8 @@ mptctl_hp_targetinfo(unsigned long arg)
+ 				__FILE__, __LINE__, iocnum);
+ 		return -ENODEV;
+ 	}
++	if (karg.hdr.id >= MPT_MAX_FC_DEVICES)
++		return -EINVAL;
+ 	dctlprintk(ioc, printk(MYIOC_s_DEBUG_FMT "mptctl_hp_targetinfo called.\n",
+ 	    ioc->name));
+ 

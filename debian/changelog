@@ -463,6 +463,8 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - drivers: usb: core: Minimize irq disabling in usb_sg_cancel()
     - USB: core: Fix free-while-in-use bug in the USB S-Glibrary
       (CVE-2020-12464)
+  * scsi: mptfusion: Add bounds check in mptctl_hp_targetinfo()
+  * scsi: mptfusion: Fix double fetch bug in ioctl (CVE-2020-12652)
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

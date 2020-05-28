@@ -695,5 +695,7 @@ bugfix/all/selinux-properly-handle-multiple-messages-in-selinux.patch
 bugfix/all/drivers-usb-core-don-t-disable-irqs-in-usb_sg_wait-d.patch
 bugfix/all/drivers-usb-core-minimize-irq-disabling-in-usb_sg_ca.patch
 bugfix/all/usb-core-fix-free-while-in-use-bug-in-the-usb-s-glib.patch
+bugfix/all/scsi-mptfusion-add-bounds-check-in-mptctl_hp_targeti.patch
+bugfix/all/scsi-mptfusion-fix-double-fetch-bug-in-ioctl.patch
 
 # Fix ABI changes
