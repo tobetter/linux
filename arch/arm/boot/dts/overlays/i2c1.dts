@@ -3,6 +3,7 @@
 
 / {
 	fragment@0 {
+		// hsi2c_5 alised with i2c1
 		target = <&hsi2c_5>;
 
 		__overlay__ {
