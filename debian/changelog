@@ -520,6 +520,11 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - slip: Fix memory leak in slip_open error path
     - slip: Fix use-after-free Read in slip_open
     - slip: not call free_netdev before rtnl_unlock in slip_open
+  * net-sysfs: Fix reference counting bugs:
+    - net-sysfs: Fix reference count leak in rx|netdev_queue_add_kobject
+    - net-sysfs: fix netdev_queue_add_kobject() breakage
+    - net-sysfs: Call dev_hold always in netdev_queue_add_kobject
+    - net-sysfs: Call dev_hold always in rx_queue_add_kobject
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

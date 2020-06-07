@@ -743,5 +743,9 @@ bugfix/all/slcan-not-call-free_netdev-before-rtnl_unlock-in-slc.patch
 bugfix/all/slip-fix-memory-leak-in-slip_open-error-path.patch
 bugfix/all/slip-fix-use-after-free-read-in-slip_open.patch
 bugfix/all/slip-not-call-free_netdev-before-rtnl_unlock-in-slip.patch
+bugfix/all/net-sysfs-fix-reference-count-leak-in-rx-netdev_queu.patch
+bugfix/all/net-sysfs-fix-netdev_queue_add_kobject-breakage.patch
+bugfix/all/net-sysfs-call-dev_hold-always-in-netdev_queue_add_k.patch
+bugfix/all/net-sysfs-call-dev_hold-always-in-rx_queue_add_kobje.patch
 
 # Fix ABI changes
