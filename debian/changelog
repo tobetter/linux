@@ -503,6 +503,15 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - ext4: fix block validity checks for journal inodes using indirect blocks
     - ext4: don't perform block validity checks on the journal inode
     - ext4: add cond_resched() to ext4_protect_reserved_inode (CVE-2020-8992)
+  * [x86] Add support for mitigation of Special Register Buffer Data Sampling
+    (SRBDS) (CVE-2020-0543):
+    - x86/cpu: Rename cpu_data.x86_mask to cpu_data.x86_stepping
+    - x86/cpu: Add a steppings field to struct x86_cpu_id
+    - x86/cpu: Add 'table' argument to cpu_matches()
+    - x86/speculation: Add Special Register Buffer Data Sampling (SRBDS)
+      mitigation
+    - x86/speculation: Add SRBDS vulnerability and mitigation documentation
+    - x86/speculation: Add Ivy Bridge to affected list
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 

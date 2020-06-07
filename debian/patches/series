@@ -730,5 +730,11 @@ bugfix/all/ext4-unsigned-int-compared-against-zero.patch
 bugfix/all/ext4-fix-block-validity-checks-for-journal-inodes-us.patch
 bugfix/all/ext4-don-t-perform-block-validity-checks-on-the-jour.patch
 bugfix/all/ext4-add-cond_resched-to-ext4_protect_reserved_inode.patch
+bugfix/x86/srbds/x86-cpu-rename-cpu_data.x86_mask-to-cpu_data.x86_ste.patch
+bugfix/x86/srbds/0001-x86-cpu-Add-a-steppings-field-to-struct-x86_cpu_id.patch
+bugfix/x86/srbds/0002-x86-cpu-Add-table-argument-to-cpu_matches.patch
+bugfix/x86/srbds/0003-x86-speculation-Add-Special-Register-Buffer-Data-Sam.patch
+bugfix/x86/srbds/0004-x86-speculation-Add-SRBDS-vulnerability-and-mitigati.patch
+bugfix/x86/srbds/0005-x86-speculation-Add-Ivy-Bridge-to-affected-list.patch
 
 # Fix ABI changes
