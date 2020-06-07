@@ -737,5 +737,11 @@ bugfix/x86/srbds/0003-x86-speculation-Add-Special-Register-Buffer-Data-Sam.patch
 bugfix/x86/srbds/0004-x86-speculation-Add-SRBDS-vulnerability-and-mitigati.patch
 bugfix/x86/srbds/0005-x86-speculation-Add-Ivy-Bridge-to-affected-list.patch
 bugfix/all/random-always-use-batched-entropy-for-get_random_u-32-64.patch
+bugfix/all/slcan-fix-memory-leak-in-error-path.patch
+bugfix/all/can-slcan-fix-use-after-free-read-in-slcan_open.patch
+bugfix/all/slcan-not-call-free_netdev-before-rtnl_unlock-in-slc.patch
+bugfix/all/slip-fix-memory-leak-in-slip_open-error-path.patch
+bugfix/all/slip-fix-use-after-free-read-in-slip_open.patch
+bugfix/all/slip-not-call-free_netdev-before-rtnl_unlock-in-slip.patch
 
 # Fix ABI changes

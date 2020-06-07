@@ -513,6 +513,13 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
     - x86/speculation: Add SRBDS vulnerability and mitigation documentation
     - x86/speculation: Add Ivy Bridge to affected list
   * random: always use batched entropy for get_random_u{32,64}
+  * slip, slcan: Fix various bugs:
+    - slcan: Fix memory leak in error path
+    - can: slcan: Fix use-after-free Read in slcan_open
+    - slcan: not call free_netdev before rtnl_unlock in slcan_open
+    - slip: Fix memory leak in slip_open error path
+    - slip: Fix use-after-free Read in slip_open
+    - slip: not call free_netdev before rtnl_unlock in slip_open
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 
