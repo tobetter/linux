@@ -736,5 +736,6 @@ bugfix/x86/srbds/0002-x86-cpu-Add-table-argument-to-cpu_matches.patch
 bugfix/x86/srbds/0003-x86-speculation-Add-Special-Register-Buffer-Data-Sam.patch
 bugfix/x86/srbds/0004-x86-speculation-Add-SRBDS-vulnerability-and-mitigati.patch
 bugfix/x86/srbds/0005-x86-speculation-Add-Ivy-Bridge-to-affected-list.patch
+bugfix/all/random-always-use-batched-entropy-for-get_random_u-32-64.patch
 
 # Fix ABI changes

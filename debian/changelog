@@ -512,6 +512,7 @@ linux (3.16.84-1) UNRELEASED; urgency=medium
       mitigation
     - x86/speculation: Add SRBDS vulnerability and mitigation documentation
     - x86/speculation: Add Ivy Bridge to affected list
+  * random: always use batched entropy for get_random_u{32,64}
 
  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 11 Feb 2020 20:57:54 +0000
 
