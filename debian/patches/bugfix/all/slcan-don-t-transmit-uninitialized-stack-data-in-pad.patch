@@ -1,0 +1,52 @@
+From: Richard Palethorpe <rpalethorpe@suse.com>
+Date: Wed, 1 Apr 2020 12:06:39 +0200
+Subject: [5/5] slcan: Don't transmit uninitialized stack data in padding
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=925c631e84d77a72188101258878ac58a646d540
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2020-11494
+
+[ Upstream commit b9258a2cece4ec1f020715fe3554bc2e360f6264 ]
+
+struct can_frame contains some padding which is not explicitly zeroed in
+slc_bump. This uninitialized data will then be transmitted if the stack
+initialization hardening feature is not enabled (CONFIG_INIT_STACK_ALL).
+
+This commit just zeroes the whole struct including the padding.
+
+Signed-off-by: Richard Palethorpe <rpalethorpe@suse.com>
+Fixes: a1044e36e457 ("can: add slcan driver for serial/USB-serial CAN adapters")
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Cc: linux-can@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Cc: security@kernel.org
+Cc: wg@grandegger.com
+Cc: mkl@pengutronix.de
+Cc: davem@davemloft.net
+Acked-by: Marc Kleine-Budde <mkl@pengutronix.de>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/net/can/slcan.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/drivers/net/can/slcan.c b/drivers/net/can/slcan.c
+index 94b37c60fdd0..d0435c7631ff 100644
+--- a/drivers/net/can/slcan.c
++++ b/drivers/net/can/slcan.c
+@@ -147,7 +147,7 @@ static void slc_bump(struct slcan *sl)
+ 	u32 tmpid;
+ 	char *cmd = sl->rbuff;
+ 
+-	cf.can_id = 0;
++	memset(&cf, 0, sizeof(cf));
+ 
+ 	switch (*cmd) {
+ 	case 'r':
+@@ -186,8 +186,6 @@ static void slc_bump(struct slcan *sl)
+ 	else
+ 		return;
+ 
+-	*(u64 *) (&cf.data) = 0; /* clear payload */
+-
+ 	/* RTR frames may have a dlc > 0 but they never have any data bytes */
+ 	if (!(cf.can_id & CAN_RTR_FLAG)) {
+ 		for (i = 0; i < cf.can_dlc; i++) {

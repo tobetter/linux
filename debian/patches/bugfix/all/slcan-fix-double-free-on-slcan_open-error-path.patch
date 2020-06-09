@@ -1,0 +1,40 @@
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Tue, 2 Jun 2020 18:27:45 +0100
+Subject: slcan: Fix double-free on slcan_open() error path
+Forwarded: https://lore.kernel.org/stable/20200602175418.GA53769@decadent.org.uk/T/
+
+Commit 9ebd796e2400 ("can: slcan: Fix use-after-free Read in
+slcan_open") was incorrectly backported to 4.4 and 4.9 stable
+branches.
+
+Since they do not have commit cf124db566e6 ("net: Fix inconsistent
+teardown and release of private netdev state."), the destructor
+function slc_free_netdev() is already responsible for calling
+free_netdev() and slcan_open() must not call both of them.
+
+yangerkun previously fixed the same bug in slip.
+
+Fixes: ce624b2089ea ("can: slcan: Fix use-after-free Read in slcan_open") # 4.4
+Fixes: f59604a80fa4 ("slcan: not call free_netdev before rtnl_unlock ...") # 4.4
+Fixes: 56635a1e6ffb ("can: slcan: Fix use-after-free Read in slcan_open") # 4.9
+Fixes: a1c9b23142ac ("slcan: not call free_netdev before rtnl_unlock ...") # 4.9
+Cc: yangerkun <yangerkun@huawei.com>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ drivers/net/can/slcan.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+--- a/drivers/net/can/slcan.c
++++ b/drivers/net/can/slcan.c
+@@ -620,10 +620,9 @@ err_free_chan:
+ 	sl->tty = NULL;
+ 	tty->disc_data = NULL;
+ 	clear_bit(SLF_INUSE, &sl->flags);
+-	slc_free_netdev(sl->dev);
+ 	/* do not call free_netdev before rtnl_unlock */
+ 	rtnl_unlock();
+-	free_netdev(sl->dev);
++	slc_free_netdev(sl->dev);
+ 	return err;
+ 
+ err_exit:

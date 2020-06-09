@@ -1,0 +1,42 @@
+From: Jens Axboe <axboe@kernel.dk>
+Date: Sun, 19 Nov 2017 11:52:55 -0700
+Subject: [3/5] blktrace: fix trace mutex deadlock
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=0f62edba7ca63ba8abd05379b812723162313608
+
+commit 2967acbb257a6a9bf912f4778b727e00972eac9b upstream.
+
+A previous commit changed the locking around registration/cleanup,
+but direct callers of blk_trace_remove() were missed. This means
+that if we hit the error path in setup, we will deadlock on
+attempting to re-acquire the queue trace mutex.
+
+Fixes: 1f2cac107c59 ("blktrace: fix unlocked access to init/start-stop/teardown")
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ kernel/trace/blktrace.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/trace/blktrace.c b/kernel/trace/blktrace.c
+index 55337d797deb..a88e677c74f3 100644
+--- a/kernel/trace/blktrace.c
++++ b/kernel/trace/blktrace.c
+@@ -572,7 +572,7 @@ static int __blk_trace_setup(struct request_queue *q, char *name, dev_t dev,
+ 		return ret;
+ 
+ 	if (copy_to_user(arg, &buts, sizeof(buts))) {
+-		blk_trace_remove(q);
++		__blk_trace_remove(q);
+ 		return -EFAULT;
+ 	}
+ 	return 0;
+@@ -618,7 +618,7 @@ static int compat_blk_trace_setup(struct request_queue *q, char *name,
+ 		return ret;
+ 
+ 	if (copy_to_user(arg, &buts.name, ARRAY_SIZE(buts.name))) {
+-		blk_trace_remove(q);
++		__blk_trace_remove(q);
+ 		return -EFAULT;
+ 	}
+ 

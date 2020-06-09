@@ -1,0 +1,48 @@
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Mon, 14 Nov 2016 17:29:48 +0100
+Subject: locking/atomic, kref: Add kref_read()
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=ea9df3c8cc1cae78d32ad25caa64d83435a564b2
+
+commit 2c935bc57221cc2edc787c72ea0e2d30cdcd3d5e upstream.
+
+Since we need to change the implementation, stop exposing internals.
+
+Provide kref_read() to read the current reference count; typically
+used for debug messages.
+
+Kills two anti-patterns:
+
+	atomic_read(&kref->refcount)
+	kref->refcount.counter
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[only add kref_read() to kref.h for stable backports - gregkh]
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ include/linux/kref.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/linux/kref.h b/include/linux/kref.h
+index e15828fd71f1..e2df6d397ff0 100644
+--- a/include/linux/kref.h
++++ b/include/linux/kref.h
+@@ -33,6 +33,11 @@ static inline void kref_init(struct kref *kref)
+ 	atomic_set(&kref->refcount, 1);
+ }
+ 
++static inline int kref_read(const struct kref *kref)
++{
++	return atomic_read(&kref->refcount);
++}
++
+ /**
+  * kref_get - increment refcount for object.
+  * @kref: object.

@@ -1,0 +1,101 @@
+From: Jouni Malinen <jouni@codeaurora.org>
+Date: Wed, 11 Sep 2019 16:03:05 +0300
+Subject: [2/2] mac80211: Do not send Layer 2 Update frame before authorization
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=ca60f42d7965af9f22392caa4074ab0f58c7e1fe
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-5108
+
+commit 3e493173b7841259a08c5c8e5cbe90adb349da7e upstream.
+
+The Layer 2 Update frame is used to update bridges when a station roams
+to another AP even if that STA does not transmit any frames after the
+reassociation. This behavior was described in IEEE Std 802.11F-2003 as
+something that would happen based on MLME-ASSOCIATE.indication, i.e.,
+before completing 4-way handshake. However, this IEEE trial-use
+recommended practice document was published before RSN (IEEE Std
+802.11i-2004) and as such, did not consider RSN use cases. Furthermore,
+IEEE Std 802.11F-2003 was withdrawn in 2006 and as such, has not been
+maintained amd should not be used anymore.
+
+Sending out the Layer 2 Update frame immediately after association is
+fine for open networks (and also when using SAE, FT protocol, or FILS
+authentication when the station is actually authenticated by the time
+association completes). However, it is not appropriate for cases where
+RSN is used with PSK or EAP authentication since the station is actually
+fully authenticated only once the 4-way handshake completes after
+authentication and attackers might be able to use the unauthenticated
+triggering of Layer 2 Update frame transmission to disrupt bridge
+behavior.
+
+Fix this by postponing transmission of the Layer 2 Update frame from
+station entry addition to the point when the station entry is marked
+authorized. Similarly, send out the VLAN binding update only if the STA
+entry has already been authorized.
+
+Signed-off-by: Jouni Malinen <jouni@codeaurora.org>
+Reviewed-by: Johannes Berg <johannes@sipsolutions.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+[bwh: Backported to 4.9: adjust context]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ net/mac80211/cfg.c      | 11 +++--------
+ net/mac80211/sta_info.c |  4 ++++
+ 2 files changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/net/mac80211/cfg.c b/net/mac80211/cfg.c
+index 58cc2dd0a194..88dd5d218fe3 100644
+--- a/net/mac80211/cfg.c
++++ b/net/mac80211/cfg.c
+@@ -1357,7 +1357,6 @@ static int ieee80211_add_station(struct wiphy *wiphy, struct net_device *dev,
+ 	struct sta_info *sta;
+ 	struct ieee80211_sub_if_data *sdata;
+ 	int err;
+-	int layer2_update;
+ 
+ 	if (params->vlan) {
+ 		sdata = IEEE80211_DEV_TO_SUB_IF(params->vlan);
+@@ -1401,18 +1400,12 @@ static int ieee80211_add_station(struct wiphy *wiphy, struct net_device *dev,
+ 	    test_sta_flag(sta, WLAN_STA_ASSOC))
+ 		rate_control_rate_init(sta);
+ 
+-	layer2_update = sdata->vif.type == NL80211_IFTYPE_AP_VLAN ||
+-		sdata->vif.type == NL80211_IFTYPE_AP;
+-
+ 	err = sta_info_insert_rcu(sta);
+ 	if (err) {
+ 		rcu_read_unlock();
+ 		return err;
+ 	}
+ 
+-	if (layer2_update)
+-		cfg80211_send_layer2_update(sta->sdata->dev, sta->sta.addr);
+-
+ 	rcu_read_unlock();
+ 
+ 	return 0;
+@@ -1521,7 +1514,9 @@ static int ieee80211_change_station(struct wiphy *wiphy,
+ 				atomic_inc(&sta->sdata->bss->num_mcast_sta);
+ 		}
+ 
+-		cfg80211_send_layer2_update(sta->sdata->dev, sta->sta.addr);
++		if (sta->sta_state == IEEE80211_STA_AUTHORIZED)
++			cfg80211_send_layer2_update(sta->sdata->dev,
++						    sta->sta.addr);
+ 	}
+ 
+ 	err = sta_apply_parameters(local, sta, params);
+diff --git a/net/mac80211/sta_info.c b/net/mac80211/sta_info.c
+index 8e8a185dbb9b..c800bc7c5176 100644
+--- a/net/mac80211/sta_info.c
++++ b/net/mac80211/sta_info.c
+@@ -1896,6 +1896,10 @@ int sta_info_move_state(struct sta_info *sta,
+ 			ieee80211_check_fast_xmit(sta);
+ 			ieee80211_check_fast_rx(sta);
+ 		}
++		if (sta->sdata->vif.type == NL80211_IFTYPE_AP_VLAN ||
++		    sta->sdata->vif.type == NL80211_IFTYPE_AP)
++			cfg80211_send_layer2_update(sta->sdata->dev,
++						    sta->sta.addr);
+ 		break;
+ 	default:
+ 		break;

@@ -1,0 +1,54 @@
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed, 22 May 2019 10:27:01 -0400
+Subject: [2/4] ext4: don't perform block validity checks on the journal inode
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=2130aae807893cff163404bf6f6f6a4906dd14a1
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-19319
+
+commit 0a944e8a6c66ca04c7afbaa17e22bf208a8b37f0 upstream.
+
+Since the journal inode is already checked when we added it to the
+block validity's system zone, if we check it again, we'll just trigger
+a failure.
+
+This was causing failures like this:
+
+[   53.897001] EXT4-fs error (device sda): ext4_find_extent:909: inode
+#8: comm jbd2/sda-8: pblk 121667583 bad header/extent: invalid extent entries - magic f30a, entries 8, max 340(340), depth 0(0)
+[   53.931430] jbd2_journal_bmap: journal block not found at offset 49 on sda-8
+[   53.938480] Aborting journal on device sda-8.
+
+... but only if the system was under enough memory pressure that
+logical->physical mapping for the journal inode gets pushed out of the
+extent cache.  (This is why it wasn't noticed earlier.)
+
+Fixes: 345c0dbf3a30 ("ext4: protect journal inode's blocks using block_validity")
+Reported-by: Dan Rue <dan.rue@linaro.org>
+Signed-off-by: Theodore Ts'o <tytso@mit.edu>
+Tested-by: Naresh Kamboju <naresh.kamboju@linaro.org>
+Signed-off-by: Ashwin H <ashwinh@vmware.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/ext4/extents.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+--- a/fs/ext4/extents.c
++++ b/fs/ext4/extents.c
+@@ -530,10 +530,14 @@ __read_extent_tree_block(const char *fun
+ 	}
+ 	if (buffer_verified(bh) && !(flags & EXT4_EX_FORCE_CACHE))
+ 		return bh;
+-	err = __ext4_ext_check(function, line, inode,
+-			       ext_block_hdr(bh), depth, pblk);
+-	if (err)
+-		goto errout;
++	if (!ext4_has_feature_journal(inode->i_sb) ||
++	    (inode->i_ino !=
++	     le32_to_cpu(EXT4_SB(inode->i_sb)->s_es->s_journal_inum))) {
++		err = __ext4_ext_check(function, line, inode,
++				       ext_block_hdr(bh), depth, pblk);
++		if (err)
++			goto errout;
++	}
+ 	set_buffer_verified(bh);
+ 	/*
+ 	 * If this is a leaf block, cache all of its entries

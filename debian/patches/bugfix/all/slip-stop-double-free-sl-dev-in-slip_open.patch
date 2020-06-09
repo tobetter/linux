@@ -1,0 +1,30 @@
+From: yangerkun <yangerkun@huawei.com>
+Date: Fri, 28 Feb 2020 21:40:48 +0800
+Subject: [2/5] slip: stop double free sl->dev in slip_open
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=e7fe43afa869bc5931d046707b872fdc19946bf3
+
+After include 3b5a39979daf ("slip: Fix memory leak in slip_open error path")
+and e58c19124189 ("slip: Fix use-after-free Read in slip_open") with 4.4.y/4.9.y.
+We will trigger a bug since we can double free sl->dev in slip_open. Actually,
+we should backport cf124db566e6 ("net: Fix inconsistent teardown and release
+of private netdev state.") too since it has delete free_netdev from sl_free_netdev.
+Fix it by delete free_netdev from slip_open.
+
+Signed-off-by: yangerkun <yangerkun@huawei.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/net/slip/slip.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/net/slip/slip.c b/drivers/net/slip/slip.c
+index 2af09c3851a5..cc841126147e 100644
+--- a/drivers/net/slip/slip.c
++++ b/drivers/net/slip/slip.c
+@@ -868,7 +868,6 @@ static int slip_open(struct tty_struct *tty)
+ 	tty->disc_data = NULL;
+ 	clear_bit(SLF_INUSE, &sl->flags);
+ 	sl_free_netdev(sl->dev);
+-	free_netdev(sl->dev);
+ 
+ err_exit:
+ 	rtnl_unlock();

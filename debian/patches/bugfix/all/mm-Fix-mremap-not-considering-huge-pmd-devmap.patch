@@ -1,0 +1,52 @@
+From: Fan Yang <Fan_Yang@sjtu.edu.cn>
+Date: Thu, 4 Jun 2020 18:22:07 +0800
+Subject: mm: Fix mremap not considering huge pmd devmap
+Origin: https://git.kernel.org/linus/5bfea2d9b17f1034a68147a8b03b9789af5700f9
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2020-10757
+
+The original code in mm/mremap.c checks huge pmd by:
+
+		if (is_swap_pmd(*old_pmd) || pmd_trans_huge(*old_pmd)) {
+
+However, a DAX mapped nvdimm is mapped as huge page (by default) but it
+is not transparent huge page (_PAGE_PSE | PAGE_DEVMAP).  This commit
+changes the condition to include the case.
+
+This addresses CVE-2020-10757.
+
+Fixes: 5c7fb56e5e3f ("mm, dax: dax-pmd vs thp-pmd vs hugetlbfs-pmd")
+Cc: <stable@vger.kernel.org>
+Reported-by: Fan Yang <Fan_Yang@sjtu.edu.cn>
+Signed-off-by: Fan Yang <Fan_Yang@sjtu.edu.cn>
+Tested-by: Fan Yang <Fan_Yang@sjtu.edu.cn>
+Tested-by: Dan Williams <dan.j.williams@intel.com>
+Reviewed-by: Dan Williams <dan.j.williams@intel.com>
+Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+[Salvatore Bonaccorso: Backport to 4.9: adjust for context changes]
+---
+ arch/x86/include/asm/pgtable.h | 1 +
+ mm/mremap.c                    | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -203,6 +203,7 @@ static inline int pmd_large(pmd_t pte)
+ }
+ 
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
++/* NOTE: when predicate huge page, consider also pmd_devmap, or use pmd_large */
+ static inline int pmd_trans_huge(pmd_t pmd)
+ {
+ 	return (pmd_val(pmd) & (_PAGE_PSE|_PAGE_DEVMAP)) == _PAGE_PSE;
+--- a/mm/mremap.c
++++ b/mm/mremap.c
+@@ -212,7 +212,7 @@ unsigned long move_page_tables(struct vm
+ 		new_pmd = alloc_new_pmd(vma->vm_mm, vma, new_addr);
+ 		if (!new_pmd)
+ 			break;
+-		if (pmd_trans_huge(*old_pmd)) {
++		if (pmd_trans_huge(*old_pmd) || pmd_devmap(*old_pmd)) {
+ 			if (extent == HPAGE_PMD_SIZE) {
+ 				bool moved;
+ 				/* See comment in move_ptes() */

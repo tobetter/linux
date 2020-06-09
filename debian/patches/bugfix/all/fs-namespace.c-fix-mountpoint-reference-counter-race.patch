@@ -1,0 +1,48 @@
+From: Piotr Krysiuk <piotras@gmail.com>
+Date: Mon, 27 Apr 2020 11:34:12 +0100
+Subject: fs/namespace.c: fix mountpoint reference counter race
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=91e997939dda1a866f23ddfb043dcd4a3ff57524
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2020-12114
+
+A race condition between threads updating mountpoint reference counter
+affects longterm releases 4.4.220, 4.9.220, 4.14.177 and 4.19.118.
+
+The mountpoint reference counter corruption may occur when:
+* one thread increments m_count member of struct mountpoint
+  [under namespace_sem, but not holding mount_lock]
+    pivot_root()
+* another thread simultaneously decrements the same m_count
+  [under mount_lock, but not holding namespace_sem]
+    put_mountpoint()
+      unhash_mnt()
+        umount_mnt()
+          mntput_no_expire()
+
+To fix this race condition, grab mount_lock before updating m_count in
+pivot_root().
+
+Reference: CVE-2020-12114
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Piotr Krysiuk <piotras@gmail.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/namespace.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/namespace.c b/fs/namespace.c
+index 41f906a6f5d9..3b20c7ff8cc3 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -3184,8 +3184,8 @@ SYSCALL_DEFINE2(pivot_root, const char __user *, new_root,
+ 	/* make certain new is below the root */
+ 	if (!is_path_reachable(new_mnt, new.dentry, &root))
+ 		goto out4;
+-	root_mp->m_count++; /* pin it so it won't go away */
+ 	lock_mount_hash();
++	root_mp->m_count++; /* pin it so it won't go away */
+ 	detach_mnt(new_mnt, &parent_path);
+ 	detach_mnt(root_mnt, &root_parent);
+ 	if (root_mnt->mnt.mnt_flags & MNT_LOCKED) {
+-- 
+2.27.0.rc0
+

@@ -1,0 +1,38 @@
+From: YueHaibing <yuehaibing@huawei.com>
+Date: Thu, 14 Mar 2019 22:01:24 -0400
+Subject: media: tw5864: Fix possible NULL pointer dereference in
+ tw5864_handle_frame
+Origin: https://git.kernel.org/linus/2e7682ebfc750177a4944eeb56e97a3f05734528
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-20806
+
+'vb' null check should be done before dereferencing it in
+tw5864_handle_frame, otherwise a NULL pointer dereference
+may occur.
+
+Fixes: 34d1324edd31 ("[media] pci: Add tw5864 driver")
+
+Signed-off-by: YueHaibing <yuehaibing@huawei.com>
+Signed-off-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+---
+ drivers/media/pci/tw5864/tw5864-video.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/drivers/media/pci/tw5864/tw5864-video.c
++++ b/drivers/media/pci/tw5864/tw5864-video.c
+@@ -1386,13 +1386,13 @@ static void tw5864_handle_frame(struct t
+ 	input->vb = NULL;
+ 	spin_unlock_irqrestore(&input->slock, flags);
+ 
+-	v4l2_buf = to_vb2_v4l2_buffer(&vb->vb.vb2_buf);
+-
+ 	if (!vb) { /* Gone because of disabling */
+ 		dev_dbg(&dev->pci->dev, "vb is empty, dropping frame\n");
+ 		return;
+ 	}
+ 
++	v4l2_buf = to_vb2_v4l2_buffer(&vb->vb.vb2_buf);
++
+ 	/*
+ 	 * Check for space.
+ 	 * Mind the overhead of startcode emulation prevention.

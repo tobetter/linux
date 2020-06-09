@@ -1,0 +1,36 @@
+From: Oliver Hartkopp <socketcan@hartkopp.net>
+Date: Sat, 21 Mar 2020 14:08:29 +0100
+Subject: [4/5] slcan: not call free_netdev before rtnl_unlock in slcan_open
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=a1c9b23142ac8d6577613f6e41297ae24e7d313c
+
+[ Upstream commit 2091a3d42b4f339eaeed11228e0cbe9d4f92f558 ]
+
+As the description before netdev_run_todo, we cannot call free_netdev
+before rtnl_unlock, fix it by reorder the code.
+
+This patch is a 1:1 copy of upstream slip.c commit f596c87005f7
+("slip: not call free_netdev before rtnl_unlock in slip_open").
+
+Reported-by: yangerkun <yangerkun@huawei.com>
+Signed-off-by: Oliver Hartkopp <socketcan@hartkopp.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/net/can/slcan.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/net/can/slcan.c b/drivers/net/can/slcan.c
+index 453a2ea7895b..94b37c60fdd0 100644
+--- a/drivers/net/can/slcan.c
++++ b/drivers/net/can/slcan.c
+@@ -621,7 +621,10 @@ static int slcan_open(struct tty_struct *tty)
+ 	tty->disc_data = NULL;
+ 	clear_bit(SLF_INUSE, &sl->flags);
+ 	slc_free_netdev(sl->dev);
++	/* do not call free_netdev before rtnl_unlock */
++	rtnl_unlock();
+ 	free_netdev(sl->dev);
++	return err;
+ 
+ err_exit:
+ 	rtnl_unlock();

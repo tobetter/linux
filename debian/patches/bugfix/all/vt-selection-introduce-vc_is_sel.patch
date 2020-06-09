@@ -1,0 +1,107 @@
+From: Jiri Slaby <jslaby@suse.cz>
+Date: Wed, 19 Feb 2020 08:39:43 +0100
+Subject: [07/12] vt: selection, introduce vc_is_sel
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=fc3d6dd88e21c84550aa807d4cb1182bd161f383
+
+commit dce05aa6eec977f1472abed95ccd71276b9a3864 upstream.
+
+Avoid global variables (namely sel_cons) by introducing vc_is_sel. It
+checks whether the parameter is the current selection console. This will
+help putting sel_cons to a struct later.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Link: https://lore.kernel.org/r/20200219073951.16151-1-jslaby@suse.cz
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/tty/vt/selection.c | 5 +++++
+ drivers/tty/vt/vt.c        | 7 ++++---
+ drivers/tty/vt/vt_ioctl.c  | 2 +-
+ include/linux/selection.h  | 4 +++-
+ 4 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/tty/vt/selection.c b/drivers/tty/vt/selection.c
+index 1edc1a36db4a..225689c76623 100644
+--- a/drivers/tty/vt/selection.c
++++ b/drivers/tty/vt/selection.c
+@@ -80,6 +80,11 @@ void clear_selection(void)
+ 	}
+ }
+ 
++bool vc_is_sel(struct vc_data *vc)
++{
++	return vc == sel_cons;
++}
++
+ /*
+  * User settable table: what characters are to be considered alphabetic?
+  * 256 bits. Locked by the console lock.
+diff --git a/drivers/tty/vt/vt.c b/drivers/tty/vt/vt.c
+index c1d3b685a587..30607fc90e0b 100644
+--- a/drivers/tty/vt/vt.c
++++ b/drivers/tty/vt/vt.c
+@@ -595,8 +595,9 @@ static void hide_softcursor(struct vc_data *vc)
+ 
+ static void hide_cursor(struct vc_data *vc)
+ {
+-	if (vc == sel_cons)
++	if (vc_is_sel(vc))
+ 		clear_selection();
++
+ 	vc->vc_sw->con_cursor(vc, CM_ERASE);
+ 	hide_softcursor(vc);
+ }
+@@ -606,7 +607,7 @@ static void set_cursor(struct vc_data *vc)
+ 	if (!con_is_fg(vc) || console_blanked || vc->vc_mode == KD_GRAPHICS)
+ 		return;
+ 	if (vc->vc_deccm) {
+-		if (vc == sel_cons)
++		if (vc_is_sel(vc))
+ 			clear_selection();
+ 		add_softcursor(vc);
+ 		if ((vc->vc_cursor_type & 0x0f) != 1)
+@@ -876,7 +877,7 @@ static int vc_do_resize(struct tty_struct *tty, struct vc_data *vc,
+ 	if (!newscreen)
+ 		return -ENOMEM;
+ 
+-	if (vc == sel_cons)
++	if (vc_is_sel(vc))
+ 		clear_selection();
+ 
+ 	old_rows = vc->vc_rows;
+diff --git a/drivers/tty/vt/vt_ioctl.c b/drivers/tty/vt/vt_ioctl.c
+index e8efb270dc8f..a63becccb1be 100644
+--- a/drivers/tty/vt/vt_ioctl.c
++++ b/drivers/tty/vt/vt_ioctl.c
+@@ -42,7 +42,7 @@ char vt_dont_switch;
+ extern struct tty_driver *console_driver;
+ 
+ #define VT_IS_IN_USE(i)	(console_driver->ttys[i] && console_driver->ttys[i]->count)
+-#define VT_BUSY(i)	(VT_IS_IN_USE(i) || i == fg_console || vc_cons[i].d == sel_cons)
++#define VT_BUSY(i)	(VT_IS_IN_USE(i) || i == fg_console || vc_is_sel(vc_cons[i].d))
+ 
+ /*
+  * Console (vt and kd) routines, as defined by USL SVR4 manual, and by
+diff --git a/include/linux/selection.h b/include/linux/selection.h
+index 8e4624efdb6f..f1070e4180ee 100644
+--- a/include/linux/selection.h
++++ b/include/linux/selection.h
+@@ -12,8 +12,8 @@
+ 
+ struct tty_struct;
+ 
+-extern struct vc_data *sel_cons;
+ struct tty_struct;
++struct vc_data;
+ 
+ extern void clear_selection(void);
+ extern int set_selection(const struct tiocl_selection __user *sel, struct tty_struct *tty);
+@@ -22,6 +22,8 @@ extern int sel_loadlut(char __user *p);
+ extern int mouse_reporting(void);
+ extern void mouse_report(struct tty_struct * tty, int butt, int mrx, int mry);
+ 
++bool vc_is_sel(struct vc_data *vc);
++
+ extern int console_blanked;
+ 
+ extern const unsigned char color_table[];

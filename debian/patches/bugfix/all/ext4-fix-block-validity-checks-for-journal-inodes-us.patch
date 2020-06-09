@@ -1,0 +1,44 @@
+From: Theodore Ts'o <tytso@mit.edu>
+Date: Wed, 15 May 2019 00:51:19 -0400
+Subject: [3/4] ext4: fix block validity checks for journal inodes using
+ indirect blocks
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=12140f9b8f5aa316b2888b2c876d3b59a7dac524
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-19319
+
+commit 170417c8c7bb2cbbdd949bf5c443c0c8f24a203b upstream.
+
+Commit 345c0dbf3a30 ("ext4: protect journal inode's blocks using
+block_validity") failed to add an exception for the journal inode in
+ext4_check_blockref(), which is the function used by ext4_get_branch()
+for indirect blocks.  This caused attempts to read from the ext3-style
+journals to fail with:
+
+[  848.968550] EXT4-fs error (device sdb7): ext4_get_branch:171: inode #8: block 30343695: comm jbd2/sdb7-8: invalid block
+
+Fix this by adding the missing exception check.
+
+Fixes: 345c0dbf3a30 ("ext4: protect journal inode's blocks using block_validity")
+Reported-by: Arthur Marsh <arthur.marsh@internode.on.net>
+Signed-off-by: Theodore Ts'o <tytso@mit.edu>
+Signed-off-by: Ashwin H <ashwinh@vmware.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/ext4/block_validity.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/fs/ext4/block_validity.c b/fs/ext4/block_validity.c
+index bdc8e4815f26..9c9c6394189c 100644
+--- a/fs/ext4/block_validity.c
++++ b/fs/ext4/block_validity.c
+@@ -274,6 +274,11 @@ int ext4_check_blockref(const char *function, unsigned int line,
+ 	__le32 *bref = p;
+ 	unsigned int blk;
+ 
++	if (ext4_has_feature_journal(inode->i_sb) &&
++	    (inode->i_ino ==
++	     le32_to_cpu(EXT4_SB(inode->i_sb)->s_es->s_journal_inum)))
++		return 0;
++
+ 	while (bref < p+max) {
+ 		blk = le32_to_cpu(*bref++);
+ 		if (blk &&

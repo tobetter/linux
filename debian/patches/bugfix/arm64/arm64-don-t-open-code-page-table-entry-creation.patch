@@ -1,0 +1,126 @@
+From: Kristina Martsenko <kristina.martsenko@arm.com>
+Date: Wed, 13 Dec 2017 17:07:20 +0000
+Subject: [2/5] arm64: don't open code page table entry creation
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=17c41390302670834945cb0c7770e2cfe14211c4
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-2182
+
+commit 193383043f14a398393dc18bae8380f7fe665ec3 upstream.
+
+Instead of open coding the generation of page table entries, use the
+macros/functions that exist for this - pfn_p*d and p*d_populate. Most
+code in the kernel already uses these macros, this patch tries to fix
+up the few places that don't. This is useful for the next patch in this
+series, which needs to change the page table entry logic, and it's
+better to have that logic in one place.
+
+The KVM extended ID map is special, since we're creating a level above
+CONFIG_PGTABLE_LEVELS and the required function isn't available. Leave
+it as is and add a comment to explain it. (The normal kernel ID map code
+doesn't need this change because its page tables are created in assembly
+(__create_page_tables)).
+
+Tested-by: Suzuki K Poulose <suzuki.poulose@arm.com>
+Reviewed-by: Suzuki K Poulose <suzuki.poulose@arm.com>
+Reviewed-by: Marc Zyngier <marc.zyngier@arm.com>
+Tested-by: Bob Picco <bob.picco@oracle.com>
+Reviewed-by: Bob Picco <bob.picco@oracle.com>
+Signed-off-by: Kristina Martsenko <kristina.martsenko@arm.com>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+[bwh: Backported to 4.9: adjust context]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/arm64/include/asm/kvm_mmu.h |  5 +++++
+ arch/arm64/include/asm/pgtable.h |  1 +
+ arch/arm64/kernel/hibernate.c    |  3 +--
+ arch/arm64/mm/mmu.c              | 14 +++++++++-----
+ 4 files changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/include/asm/kvm_mmu.h b/arch/arm64/include/asm/kvm_mmu.h
+index 547519abc751..ff721659eb94 100644
+--- a/arch/arm64/include/asm/kvm_mmu.h
++++ b/arch/arm64/include/asm/kvm_mmu.h
+@@ -300,6 +300,11 @@ static inline bool __kvm_cpu_uses_extended_idmap(void)
+ 	return __cpu_uses_extended_idmap();
+ }
+ 
++/*
++ * Can't use pgd_populate here, because the extended idmap adds an extra level
++ * above CONFIG_PGTABLE_LEVELS (which is 2 or 3 if we're using the extended
++ * idmap), and pgd_populate is only available if CONFIG_PGTABLE_LEVELS = 4.
++ */
+ static inline void __kvm_extend_hypmap(pgd_t *boot_hyp_pgd,
+ 				       pgd_t *hyp_pgd,
+ 				       pgd_t *merged_hyp_pgd,
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 56ba1389a95a..199f434f99a4 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -353,6 +353,7 @@ static inline int pmd_protnone(pmd_t pmd)
+ 
+ #define pud_write(pud)		pte_write(pud_pte(pud))
+ #define pud_pfn(pud)		(((pud_val(pud) & PUD_MASK) & PHYS_MASK) >> PAGE_SHIFT)
++#define pfn_pud(pfn,prot)	(__pud(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))
+ 
+ #define set_pmd_at(mm, addr, pmdp, pmd)	set_pte_at(mm, addr, (pte_t *)pmdp, pmd_pte(pmd))
+ 
+diff --git a/arch/arm64/kernel/hibernate.c b/arch/arm64/kernel/hibernate.c
+index 76c9b51fa7f1..c4aec129ed20 100644
+--- a/arch/arm64/kernel/hibernate.c
++++ b/arch/arm64/kernel/hibernate.c
+@@ -247,8 +247,7 @@ static int create_safe_exec_page(void *src_start, size_t length,
+ 	}
+ 
+ 	pte = pte_offset_kernel(pmd, dst_addr);
+-	set_pte(pte, __pte(virt_to_phys((void *)dst) |
+-			 pgprot_val(PAGE_KERNEL_EXEC)));
++	set_pte(pte, pfn_pte(virt_to_pfn(dst), PAGE_KERNEL_EXEC));
+ 
+ 	/*
+ 	 * Load our new page tables. A strict BBM approach requires that we
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index b91ee1e8dccc..2b2450a90d62 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -495,8 +495,8 @@ static void __init map_kernel(pgd_t *pgd)
+ 		 * entry instead.
+ 		 */
+ 		BUG_ON(!IS_ENABLED(CONFIG_ARM64_16K_PAGES));
+-		set_pud(pud_set_fixmap_offset(pgd, FIXADDR_START),
+-			__pud(__pa(bm_pmd) | PUD_TYPE_TABLE));
++		pud_populate(&init_mm, pud_set_fixmap_offset(pgd, FIXADDR_START),
++			     lm_alias(bm_pmd));
+ 		pud_clear_fixmap();
+ 	} else {
+ 		BUG();
+@@ -611,7 +611,7 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
+ 			if (!p)
+ 				return -ENOMEM;
+ 
+-			set_pmd(pmd, __pmd(__pa(p) | PROT_SECT_NORMAL));
++			pmd_set_huge(pmd, __pa(p), __pgprot(PROT_SECT_NORMAL));
+ 		} else
+ 			vmemmap_verify((pte_t *)pmd, node, addr, next);
+ 	} while (addr = next, addr != end);
+@@ -797,15 +797,19 @@ int __init arch_ioremap_pmd_supported(void)
+ 
+ int pud_set_huge(pud_t *pud, phys_addr_t phys, pgprot_t prot)
+ {
++	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
++					pgprot_val(mk_sect_prot(prot)));
+ 	BUG_ON(phys & ~PUD_MASK);
+-	set_pud(pud, __pud(phys | PUD_TYPE_SECT | pgprot_val(mk_sect_prot(prot))));
++	set_pud(pud, pfn_pud(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+ }
+ 
+ int pmd_set_huge(pmd_t *pmd, phys_addr_t phys, pgprot_t prot)
+ {
++	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
++					pgprot_val(mk_sect_prot(prot)));
+ 	BUG_ON(phys & ~PMD_MASK);
+-	set_pmd(pmd, __pmd(phys | PMD_TYPE_SECT | pgprot_val(mk_sect_prot(prot))));
++	set_pmd(pmd, pfn_pmd(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+ }
+ 

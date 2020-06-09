@@ -1,0 +1,27 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Tue, 05 May 2020 02:09:56 +0100
+Subject: x86/speculation: Do not match steppings
+Forwarded: not-needed
+
+Adding the x86_cpu_id::steppings field is an ABI change.  It doesn't
+seem worth the trouble of another ABI bump just to be able to report
+some potential future CPU steppings as invulnerable.  Until we have
+other change that require an ABI bump, match the affected models
+regardless of stepping.
+
+---
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -956,10 +956,8 @@ static const __initconst struct x86_cpu_
+ 	{}
+ };
+ 
+-#define VULNBL_INTEL_STEPPINGS(model, steppings, issues)		   \
+-	X86_MATCH_VENDOR_FAM_MODEL_STEPPINGS_FEATURE(INTEL, 6,		   \
+-					    INTEL_FAM6_##model, steppings, \
+-					    X86_FEATURE_ANY, issues)
++#define VULNBL_INTEL_STEPPINGS(model, steppings, issues)     \
++	VULNWL_INTEL(model, issues)
+ 
+ #define SRBDS		BIT(0)
+ 

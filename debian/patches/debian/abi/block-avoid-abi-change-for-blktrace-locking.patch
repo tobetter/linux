@@ -1,0 +1,37 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Tue, 02 Jun 2020 19:34:33 +0100
+Subject: block: Avoid ABI change for blktrace locking
+Forwarded: not-needed
+
+"blktrace: Fix potential deadlock between delete & sysfs ops" adds the
+member request_queue::blk_trace_mutex and results in an ABI change.
+
+Since the request_queue structure is always allocated in the block
+core - specifically blk_alloc_queue_node() - it is safe to add new
+members at the end.  Move blk_trace_mutex to the end and hide it
+from genksyms.
+
+---
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -446,7 +446,6 @@ struct request_queue {
+ 	int			node;
+ #ifdef CONFIG_BLK_DEV_IO_TRACE
+ 	struct blk_trace __rcu	*blk_trace;
+-	struct mutex		blk_trace_mutex;
+ #endif
+ 	/*
+ 	 * for flush operations
+@@ -482,6 +481,12 @@ struct request_queue {
+ 	struct bio_set		*bio_split;
+ 
+ 	bool			mq_sysfs_init_done;
++
++#ifndef __GENKSYMS__
++#ifdef CONFIG_BLK_DEV_IO_TRACE
++	struct mutex		blk_trace_mutex;
++#endif
++#endif
+ };
+ 
+ #define QUEUE_FLAG_QUEUED	1	/* uses generic tag queueing */

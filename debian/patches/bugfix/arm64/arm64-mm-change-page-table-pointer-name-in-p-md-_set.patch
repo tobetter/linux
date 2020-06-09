@@ -1,0 +1,47 @@
+From: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Date: Tue, 14 Jan 2020 15:44:11 +0000
+Subject: [3/5] arm64: mm: Change page table pointer name in p[md]_set_huge()
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=3103206a65f99ee05fa3b8a274b55a02c8ae4a5e
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2019-2182
+
+This is preparation for the following backported fixes.  It was done
+upstream as part of commit 20a004e7b017 "arm64: mm: Use
+READ_ONCE/WRITE_ONCE when accessing page tables", the rest of which
+does not seem suitable for stable.
+
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ arch/arm64/mm/mmu.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 2b2450a90d62..eb14ab480ee4 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -795,21 +795,21 @@ int __init arch_ioremap_pmd_supported(void)
+ 	return !IS_ENABLED(CONFIG_ARM64_PTDUMP_DEBUGFS);
+ }
+ 
+-int pud_set_huge(pud_t *pud, phys_addr_t phys, pgprot_t prot)
++int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
+ {
+ 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 	BUG_ON(phys & ~PUD_MASK);
+-	set_pud(pud, pfn_pud(__phys_to_pfn(phys), sect_prot));
++	set_pud(pudp, pfn_pud(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+ }
+ 
+-int pmd_set_huge(pmd_t *pmd, phys_addr_t phys, pgprot_t prot)
++int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
+ {
+ 	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
+ 					pgprot_val(mk_sect_prot(prot)));
+ 	BUG_ON(phys & ~PMD_MASK);
+-	set_pmd(pmd, pfn_pmd(__phys_to_pfn(phys), sect_prot));
++	set_pmd(pmdp, pfn_pmd(__phys_to_pfn(phys), sect_prot));
+ 	return 1;
+ }
+ 

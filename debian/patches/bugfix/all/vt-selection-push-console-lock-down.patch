@@ -1,0 +1,69 @@
+From: Jiri Slaby <jslaby@suse.cz>
+Date: Fri, 28 Feb 2020 12:54:05 +0100
+Subject: [05/12] vt: selection, push console lock down
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=ccd35863147dd447110b726a0d4911ab686aade9
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2020-8648
+
+commit 4b70dd57a15d2f4685ac6e38056bad93e81e982f upstream.
+
+We need to nest the console lock in sel_lock, so we have to push it down
+a bit. Fortunately, the callers of set_selection_* just lock the console
+lock around the function call. So moving it down is easy.
+
+In the next patch, we switch the order.
+
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+Fixes: 07e6124a1a46 ("vt: selection, close sel_buffer race")
+Cc: stable <stable@vger.kernel.org>
+Link: https://lore.kernel.org/r/20200228115406.5735-1-jslaby@suse.cz
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/tty/vt/selection.c | 13 ++++++++++++-
+ drivers/tty/vt/vt.c        |  2 --
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/tty/vt/selection.c b/drivers/tty/vt/selection.c
+index 0e5f4f706f01..582f160eb185 100644
+--- a/drivers/tty/vt/selection.c
++++ b/drivers/tty/vt/selection.c
+@@ -158,7 +158,7 @@ static int store_utf8(u16 c, char *p)
+  *	The entire selection process is managed under the console_lock. It's
+  *	 a lot under the lock but its hardly a performance path
+  */
+-int set_selection(const struct tiocl_selection __user *sel, struct tty_struct *tty)
++static int __set_selection(const struct tiocl_selection __user *sel, struct tty_struct *tty)
+ {
+ 	struct vc_data *vc = vc_cons[fg_console].d;
+ 	int sel_mode, new_sel_start, new_sel_end, spc;
+@@ -334,6 +334,17 @@ int set_selection(const struct tiocl_selection __user *sel, struct tty_struct *t
+ 	return ret;
+ }
+ 
++int set_selection(const struct tiocl_selection __user *v, struct tty_struct *tty)
++{
++	int ret;
++
++	console_lock();
++	ret = __set_selection(v, tty);
++	console_unlock();
++
++	return ret;
++}
++
+ /* Insert the contents of the selection buffer into the
+  * queue of the tty associated with the current console.
+  * Invoked by ioctl().
+diff --git a/drivers/tty/vt/vt.c b/drivers/tty/vt/vt.c
+index 232cb0a760b9..c1d3b685a587 100644
+--- a/drivers/tty/vt/vt.c
++++ b/drivers/tty/vt/vt.c
+@@ -2690,9 +2690,7 @@ int tioclinux(struct tty_struct *tty, unsigned long arg)
+ 	switch (type)
+ 	{
+ 		case TIOCL_SETSEL:
+-			console_lock();
+ 			ret = set_selection((struct tiocl_selection __user *)(p+1), tty);
+-			console_unlock();
+ 			break;
+ 		case TIOCL_PASTESEL:
+ 			ret = paste_selection(tty);

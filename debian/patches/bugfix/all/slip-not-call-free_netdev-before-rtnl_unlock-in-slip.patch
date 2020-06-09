@@ -1,0 +1,32 @@
+From: yangerkun <yangerkun@huawei.com>
+Date: Wed, 26 Feb 2020 11:54:35 +0800
+Subject: slip: not call free_netdev before rtnl_unlock in slip_open
+Origin: https://git.kernel.org/linus/f596c87005f7b1baeb7d62d9a9e25d68c3dfae10
+
+As the description before netdev_run_todo, we cannot call free_netdev
+before rtnl_unlock, fix it by reorder the code.
+
+Signed-off-by: yangerkun <yangerkun@huawei.com>
+Reviewed-by: Oliver Hartkopp <socketcan@hartkopp.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+[bwh: Backported to <4.11: free_netdev() is called through sl_free_netdev()]
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ drivers/net/slip/slip.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/net/slip/slip.c b/drivers/net/slip/slip.c
+index cc841126147e..f870396e05e1 100644
+--- a/drivers/net/slip/slip.c
++++ b/drivers/net/slip/slip.c
+@@ -867,7 +867,10 @@ static int slip_open(struct tty_struct *tty)
+ 	sl->tty = NULL;
+ 	tty->disc_data = NULL;
+ 	clear_bit(SLF_INUSE, &sl->flags);
++	/* do not call free_netdev before rtnl_unlock */
++	rtnl_unlock();
+ 	sl_free_netdev(sl->dev);
++	return err;
+ 
+ err_exit:
+ 	rtnl_unlock();

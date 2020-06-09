@@ -1,0 +1,99 @@
+From: Ben Hutchings <benh@debian.org>
+Date: Tue, 05 May 2020 02:19:23 +0100
+Subject: Revert "x86/cpu: Add a steppings field to struct x86_cpu_id"
+Forwarded: not-needed
+
+Adding the x86_cpu_id::steppings field is an ABI change.  It doesn't
+seem worth the trouble of another ABI bump just to be able to report
+some potential future CPU steppings as invulnerable.  Until we have
+other change that require an ABI bump, we'll match the affected models
+regardless of stepping.
+
+---
+--- a/arch/x86/include/asm/cpu_device_id.h
++++ b/arch/x86/include/asm/cpu_device_id.h
+@@ -8,33 +8,6 @@
+ 
+ #include <linux/mod_devicetable.h>
+ 
+-#define X86_STEPPINGS(mins, maxs)    GENMASK(maxs, mins)
+-
+-/**
+- * X86_MATCH_VENDOR_FAM_MODEL_STEPPINGS_FEATURE - Base macro for CPU matching
+- * @_vendor:	The vendor name, e.g. INTEL, AMD, HYGON, ..., ANY
+- *		The name is expanded to X86_VENDOR_@_vendor
+- * @_family:	The family number or X86_FAMILY_ANY
+- * @_model:	The model number, model constant or X86_MODEL_ANY
+- * @_steppings:	Bitmask for steppings, stepping constant or X86_STEPPING_ANY
+- * @_feature:	A X86_FEATURE bit or X86_FEATURE_ANY
+- * @_data:	Driver specific data or NULL. The internal storage
+- *		format is unsigned long. The supplied value, pointer
+- *		etc. is casted to unsigned long internally.
+- *
+- * Backport version to keep the SRBDS pile consistant. No shorter variants
+- * required for this.
+- */
+-#define X86_MATCH_VENDOR_FAM_MODEL_STEPPINGS_FEATURE(_vendor, _family, _model, \
+-						    _steppings, _feature, _data) { \
+-	.vendor		= X86_VENDOR_##_vendor,				\
+-	.family		= _family,					\
+-	.model		= _model,					\
+-	.steppings	= _steppings,					\
+-	.feature	= _feature,					\
+-	.driver_data	= (unsigned long) _data				\
+-}
+-
+ extern const struct x86_cpu_id *x86_match_cpu(const struct x86_cpu_id *match);
+ 
+ #endif
+--- a/arch/x86/kernel/cpu/match.c
++++ b/arch/x86/kernel/cpu/match.c
+@@ -33,18 +33,13 @@ const struct x86_cpu_id *x86_match_cpu(c
+ 	const struct x86_cpu_id *m;
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
+ 
+-	for (m = match;
+-	     m->vendor | m->family | m->model | m->steppings | m->feature;
+-	     m++) {
++	for (m = match; m->vendor | m->family | m->model | m->feature; m++) {
+ 		if (m->vendor != X86_VENDOR_ANY && c->x86_vendor != m->vendor)
+ 			continue;
+ 		if (m->family != X86_FAMILY_ANY && c->x86 != m->family)
+ 			continue;
+ 		if (m->model != X86_MODEL_ANY && c->x86_model != m->model)
+ 			continue;
+-		if (m->steppings != X86_STEPPING_ANY &&
+-		    !(BIT(c->x86_stepping) & m->steppings))
+-			continue;
+ 		if (m->feature != X86_FEATURE_ANY && !cpu_has(c, m->feature))
+ 			continue;
+ 		return m;
+--- a/include/linux/mod_devicetable.h
++++ b/include/linux/mod_devicetable.h
+@@ -573,10 +573,6 @@ struct mips_cdmm_device_id {
+ /*
+  * MODULE_DEVICE_TABLE expects this struct to be called x86cpu_device_id.
+  * Although gcc seems to ignore this error, clang fails without this define.
+- *
+- * Note: The ordering of the struct is different from upstream because the
+- * static initializers in kernels < 5.7 still use C89 style while upstream
+- * has been converted to proper C99 initializers.
+  */
+ #define x86cpu_device_id x86_cpu_id
+ struct x86_cpu_id {
+@@ -585,7 +581,6 @@ struct x86_cpu_id {
+ 	__u16 model;
+ 	__u16 feature;	/* bit index */
+ 	kernel_ulong_t driver_data;
+-	__u16 steppings;
+ };
+ 
+ #define X86_FEATURE_MATCH(x) \
+@@ -594,7 +589,6 @@ struct x86_cpu_id {
+ #define X86_VENDOR_ANY 0xffff
+ #define X86_FAMILY_ANY 0
+ #define X86_MODEL_ANY  0
+-#define X86_STEPPING_ANY 0
+ #define X86_FEATURE_ANY 0	/* Same as FPU, you can't test for that */
+ 
+ /*

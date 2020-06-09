@@ -1,0 +1,90 @@
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Date: Fri, 21 Feb 2020 21:10:37 +0100
+Subject: random: always use batched entropy for get_random_u{32,64}
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=5f27cae3002c4e59dcc20067746015933d3d3c58
+
+commit 69efea712f5b0489e67d07565aad5c94e09a3e52 upstream.
+
+It turns out that RDRAND is pretty slow. Comparing these two
+constructions:
+
+  for (i = 0; i < CHACHA_BLOCK_SIZE; i += sizeof(ret))
+    arch_get_random_long(&ret);
+
+and
+
+  long buf[CHACHA_BLOCK_SIZE / sizeof(long)];
+  extract_crng((u8 *)buf);
+
+it amortizes out to 352 cycles per long for the top one and 107 cycles
+per long for the bottom one, on Coffee Lake Refresh, Intel Core i9-9880H.
+
+And importantly, the top one has the drawback of not benefiting from the
+real rng, whereas the bottom one has all the nice benefits of using our
+own chacha rng. As get_random_u{32,64} gets used in more places (perhaps
+beyond what it was originally intended for when it was introduced as
+get_random_{int,long} back in the md5 monstrosity era), it seems like it
+might be a good thing to strengthen its posture a tiny bit. Doing this
+should only be stronger and not any weaker because that pool is already
+initialized with a bunch of rdrand data (when available). This way, we
+get the benefits of the hardware rng as well as our own rng.
+
+Another benefit of this is that we no longer hit pitfalls of the recent
+stream of AMD bugs in RDRAND. One often used code pattern for various
+things is:
+
+  do {
+  	val = get_random_u32();
+  } while (hash_table_contains_key(val));
+
+That recent AMD bug rendered that pattern useless, whereas we're really
+very certain that chacha20 output will give pretty distributed numbers,
+no matter what.
+
+So, this simplification seems better both from a security perspective
+and from a performance perspective.
+
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+Reviewed-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Link: https://lore.kernel.org/r/20200221201037.30231-1-Jason@zx2c4.com
+Signed-off-by: Theodore Ts'o <tytso@mit.edu>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ drivers/char/random.c | 10 ++--------
+ 1 file changed, 2 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/char/random.c b/drivers/char/random.c
+index 81b65d0e7563..4cbc73173701 100644
+--- a/drivers/char/random.c
++++ b/drivers/char/random.c
+@@ -2118,8 +2118,8 @@ struct batched_entropy {
+ 
+ /*
+  * Get a random word for internal kernel use only. The quality of the random
+- * number is either as good as RDRAND or as good as /dev/urandom, with the
+- * goal of being quite fast and not depleting entropy.
++ * number is good as /dev/urandom, but there is no backtrack protection, with
++ * the goal of being quite fast and not depleting entropy.
+  */
+ static DEFINE_PER_CPU(struct batched_entropy, batched_entropy_long);
+ unsigned long get_random_long(void)
+@@ -2127,9 +2127,6 @@ unsigned long get_random_long(void)
+ 	unsigned long ret;
+ 	struct batched_entropy *batch;
+ 
+-	if (arch_get_random_long(&ret))
+-		return ret;
+-
+ 	batch = &get_cpu_var(batched_entropy_long);
+ 	if (batch->position % ARRAY_SIZE(batch->entropy_long) == 0) {
+ 		extract_crng((u8 *)batch->entropy_long);
+@@ -2153,9 +2150,6 @@ unsigned int get_random_int(void)
+ 	unsigned int ret;
+ 	struct batched_entropy *batch;
+ 
+-	if (arch_get_random_int(&ret))
+-		return ret;
+-
+ 	batch = &get_cpu_var(batched_entropy_int);
+ 	if (batch->position % ARRAY_SIZE(batch->entropy_int) == 0) {
+ 		extract_crng((u8 *)batch->entropy_int);

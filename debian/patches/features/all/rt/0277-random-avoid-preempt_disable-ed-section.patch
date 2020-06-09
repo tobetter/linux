@@ -14,8 +14,6 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  drivers/char/random.c | 12 ++++++++----
  1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/char/random.c b/drivers/char/random.c
-index 002f6867ceed..aba13eddeab6 100644
 --- a/drivers/char/random.c
 +++ b/drivers/char/random.c
 @@ -263,6 +263,7 @@
@@ -26,17 +24,15 @@ index 002f6867ceed..aba13eddeab6 100644
  #include <crypto/chacha20.h>
  
  #include <asm/processor.h>
-@@ -2118,6 +2119,7 @@ struct batched_entropy {
-  * goal of being quite fast and not depleting entropy.
+@@ -2118,18 +2119,19 @@ struct batched_entropy {
+  * the goal of being quite fast and not depleting entropy.
   */
  static DEFINE_PER_CPU(struct batched_entropy, batched_entropy_long);
 +static DEFINE_LOCAL_IRQ_LOCK(batched_entropy_long_lock);
  unsigned long get_random_long(void)
  {
  	unsigned long ret;
-@@ -2126,13 +2128,13 @@ unsigned long get_random_long(void)
- 	if (arch_get_random_long(&ret))
- 		return ret;
+ 	struct batched_entropy *batch;
  
 -	batch = &get_cpu_var(batched_entropy_long);
 +	batch = &get_locked_var(batched_entropy_long_lock, batched_entropy_long);
@@ -50,7 +46,7 @@ index 002f6867ceed..aba13eddeab6 100644
  	return ret;
  }
  EXPORT_SYMBOL(get_random_long);
-@@ -2144,6 +2146,8 @@ unsigned int get_random_int(void)
+@@ -2141,18 +2143,20 @@ unsigned int get_random_int(void)
  }
  #else
  static DEFINE_PER_CPU(struct batched_entropy, batched_entropy_int);
@@ -59,9 +55,7 @@ index 002f6867ceed..aba13eddeab6 100644
  unsigned int get_random_int(void)
  {
  	unsigned int ret;
-@@ -2152,13 +2156,13 @@ unsigned int get_random_int(void)
- 	if (arch_get_random_int(&ret))
- 		return ret;
+ 	struct batched_entropy *batch;
  
 -	batch = &get_cpu_var(batched_entropy_int);
 +	batch = &get_locked_var(batched_entropy_int_lock, batched_entropy_int);
@@ -75,6 +69,3 @@ index 002f6867ceed..aba13eddeab6 100644
  	return ret;
  }
  #endif
--- 
-2.24.0
-

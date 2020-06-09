@@ -1,0 +1,45 @@
+From: Al Viro <viro@zeniv.linux.org.uk>
+Date: Mon, 27 Apr 2020 10:26:22 -0400
+Subject: propagate_one(): mnt_set_mountpoint() needs mount_lock
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit?id=fcd41818e1cd2085e2ef6fe413af5657658415d5
+
+commit b0d3869ce9eeacbb1bbd541909beeef4126426d5 upstream.
+
+... to protect the modification of mp->m_count done by it.  Most of
+the places that modify that thing also have namespace_lock held,
+but not all of them can do so, so we really need mount_lock here.
+Kudos to Piotr Krysiuk <piotras@gmail.com>, who'd spotted a related
+bug in pivot_root(2) (fixed unnoticed in 5.3); search for other
+similar turds has caught out this one.
+
+Cc: stable@kernel.org
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Piotr Krysiuk <piotras@gmail.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+---
+ fs/pnode.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/fs/pnode.c b/fs/pnode.c
+index d15c63e97ef1..64e9a401d67d 100644
+--- a/fs/pnode.c
++++ b/fs/pnode.c
+@@ -268,14 +268,13 @@ static int propagate_one(struct mount *m)
+ 	if (IS_ERR(child))
+ 		return PTR_ERR(child);
+ 	child->mnt.mnt_flags &= ~MNT_LOCKED;
++	read_seqlock_excl(&mount_lock);
+ 	mnt_set_mountpoint(m, mp, child);
++	if (m->mnt_master != dest_master)
++		SET_MNT_MARK(m->mnt_master);
++	read_sequnlock_excl(&mount_lock);
+ 	last_dest = m;
+ 	last_source = child;
+-	if (m->mnt_master != dest_master) {
+-		read_seqlock_excl(&mount_lock);
+-		SET_MNT_MARK(m->mnt_master);
+-		read_sequnlock_excl(&mount_lock);
+-	}
+ 	hlist_add_head(&child->mnt_hash, list);
+ 	return count_mounts(m->mnt_ns, child);
+ }
