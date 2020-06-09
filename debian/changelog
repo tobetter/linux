@@ -1,3 +1,53 @@
+linux (4.19.118-2+deb10u1~bpo9+1) stretch-backports; urgency=medium
+
+  * Rebuild for stretch-backports; no further changes required
+
+ -- Ben Hutchings <benh@debian.org>  Tue, 09 Jun 2020 18:28:24 +0100
+
+linux (4.19.118-2+deb10u1) buster-security; urgency=high
+
+  [ Salvatore Bonaccorso ]
+  * selinux: properly handle multiple messages in selinux_netlink_send()
+    (CVE-2020-10751)
+  * fs/namespace.c: fix mountpoint reference counter race (CVE-2020-12114)
+  * USB: core: Fix free-while-in-use bug in the USB S-Glibrary
+    (CVE-2020-12464)
+  * [x86] KVM: SVM: Fix potential memory leak in svm_cpu_init()
+    (CVE-2020-12768)
+  * scsi: sg: add sg_remove_request in sg_write (CVE-2020-12770)
+  * USB: gadget: fix illegal array access in binding with UDC (CVE-2020-13143)
+  * netlabel: cope with NULL catmap (CVE-2020-10711)
+  * fs/binfmt_elf.c: allocate initialized memory in fill_thread_core_info()
+    (CVE-2020-10732)
+  * kernel/relay.c: handle alloc_percpu returning NULL in relay_open
+    (CVE-2019-19462)
+  * mm: Fix mremap not considering huge pmd devmap (CVE-2020-10757)
+  * [x86] KVM: nVMX: Always sync GUEST_BNDCFGS when it comes from vmcs01
+  * KVM: Introduce a new guest mapping API
+  * [arm64] kvm: fix compilation on aarch64
+  * [s390x] kvm: fix compilation on s390
+  * [s390x] kvm: fix compile on s390 part 2
+  * KVM: Properly check if "page" is valid in kvm_vcpu_unmap
+  * [x86] kvm: Introduce kvm_(un)map_gfn() (CVE-2019-3016)
+  * [x86] kvm: Cache gfn to pfn translation (CVE-2019-3016)
+  * [x86] KVM: Make sure KVM_VCPU_FLUSH_TLB flag is not missed (CVE-2019-3016)
+  * [x86] KVM: Clean up host's steal time structure (CVE-2019-3016)
+  * include/uapi/linux/swab.h: fix userspace breakage, use __BITS_PER_LONG for
+    swap (Closes: #960271)
+
+  [ Ben Hutchings ]
+  * propagate_one(): mnt_set_mountpoint() needs mount_lock
+  * [x86] Add support for mitigation of Special Register Buffer Data Sampling
+    (SRBDS) (CVE-2020-0543):
+    - x86/cpu: Add 'table' argument to cpu_matches()
+    - x86/speculation: Add Special Register Buffer Data Sampling (SRBDS)
+      mitigation
+    - x86/speculation: Add SRBDS vulnerability and mitigation documentation
+    - x86/speculation: Add Ivy Bridge to affected list
+  * [x86] speculation: Do not match steppings, to avoid an ABI change
+
+ -- Salvatore Bonaccorso <carnil@debian.org>  Sun, 07 Jun 2020 17:42:22 +0200
+
 linux (4.19.118-2~bpo9+1) stretch-backports; urgency=medium
 
   * Rebuild for stretch-backports:

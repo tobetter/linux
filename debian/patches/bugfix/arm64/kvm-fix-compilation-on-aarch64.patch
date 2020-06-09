@@ -1,0 +1,54 @@
+From: Paolo Bonzini <pbonzini@redhat.com>
+Date: Fri, 17 May 2019 14:08:53 +0200
+Subject: [04/11] kvm: fix compilation on aarch64
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=94659e93c93c23dfaada78aaad45183867698f74
+
+commit c011d23ba046826ccf8c4a4a6c1d01c9ccaa1403 upstream.
+
+Commit e45adf665a53 ("KVM: Introduce a new guest mapping API", 2019-01-31)
+introduced a build failure on aarch64 defconfig:
+
+$ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out defconfig \
+                Image.gz
+...
+../arch/arm64/kvm/../../../virt/kvm/kvm_main.c:
+    In function '__kvm_map_gfn':
+../arch/arm64/kvm/../../../virt/kvm/kvm_main.c:1763:9: error:
+    implicit declaration of function 'memremap'; did you mean 'memset_p'?
+../arch/arm64/kvm/../../../virt/kvm/kvm_main.c:1763:46: error:
+    'MEMREMAP_WB' undeclared (first use in this function)
+../arch/arm64/kvm/../../../virt/kvm/kvm_main.c:
+    In function 'kvm_vcpu_unmap':
+../arch/arm64/kvm/../../../virt/kvm/kvm_main.c:1795:3: error:
+    implicit declaration of function 'memunmap'; did you mean 'vm_munmap'?
+
+because these functions are declared in <linux/io.h> rather than <asm/io.h>,
+and the former was being pulled in already on x86 but not on aarch64.
+
+Reported-by: Nathan Chancellor <natechancellor@gmail.com>
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+[bwh: Backported to 4.19: adjust context]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ virt/kvm/kvm_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index ec1479abb29d..4a5ea263edf6 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -52,9 +52,9 @@
+ #include <linux/sort.h>
+ #include <linux/bsearch.h>
+ #include <linux/kthread.h>
++#include <linux/io.h>
+ 
+ #include <asm/processor.h>
+-#include <asm/io.h>
+ #include <asm/ioctl.h>
+ #include <linux/uaccess.h>
+ #include <asm/pgtable.h>
+-- 
+2.27.0.rc0
+

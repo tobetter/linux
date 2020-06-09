@@ -1,0 +1,38 @@
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Mon, 27 May 2019 10:28:25 +0200
+Subject: [06/11] kvm: fix compile on s390 part 2
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=e25441275142a0d57a51025213c4b6ef17b193e6
+
+commit eb1f2f387db8c0d084581fb26e7faffde700bc8e upstream.
+
+We also need to fence the memunmap part.
+
+Fixes: e45adf665a53 ("KVM: Introduce a new guest mapping API")
+Fixes: d30b214d1d0a (kvm: fix compilation on s390)
+Cc: Michal Kubecek <mkubecek@suse.cz>
+Cc: KarimAllah Ahmed <karahmed@amazon.de>
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ virt/kvm/kvm_main.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index f99b99b77a48..5b949aa273de 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -1756,8 +1756,10 @@ void kvm_vcpu_unmap(struct kvm_vcpu *vcpu, struct kvm_host_map *map,
+ 
+ 	if (map->page)
+ 		kunmap(map->page);
++#ifdef CONFIG_HAS_IOMEM
+ 	else
+ 		memunmap(map->hva);
++#endif
+ 
+ 	if (dirty) {
+ 		kvm_vcpu_mark_page_dirty(vcpu, map->gfn);
+-- 
+2.27.0.rc0
+

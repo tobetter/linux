@@ -100,6 +100,7 @@ bugfix/all/kbuild-include-addtree-remove-quotes-before-matching-path.patch
 debian/revert-objtool-fix-config_stack_validation-y-warning.patch
 bugfix/all/mt76-use-the-correct-hweight8-function.patch
 bugfix/all/rtc-s35390a-set-uie_unsupported.patch
+bugfix/all/include-uapi-linux-swab.h-fix-userspace-breakage-use.patch
 
 # Miscellaneous features
 
@@ -300,5 +301,34 @@ bugfix/all/net-ipv6_stub-use-ip6_dst_lookup_flow-instead-of-ip6.patch
 bugfix/all/blktrace-protect-q-blk_trace-with-rcu.patch
 bugfix/all/blktrace-fix-dereference-after-null-check.patch
 bugfix/s390x/s390-mm-fix-page-table-upgrade-vs-2ndary-address-mod.patch
+bugfix/all/selinux-properly-handle-multiple-messages-in-selinux.patch
+bugfix/all/fs-namespace.c-fix-mountpoint-reference-counter-race.patch
+bugfix/all/propagate_one-mnt_set_mountpoint-needs-mount_lock.patch
+bugfix/all/usb-core-fix-free-while-in-use-bug-in-the-usb-s-glib.patch
+bugfix/x86/kvm-svm-fix-potential-memory-leak-in-svm_cpu_init.patch
+bugfix/all/scsi-sg-add-sg_remove_request-in-sg_write.patch
+bugfix/all/usb-gadget-fix-illegal-array-access-in-binding-with-.patch
+bugfix/all/netlabel-cope-with-NULL-catmap.patch
+bugfix/all/fs-binfmt_elf.c-allocate-initialized-memory-in-fill_.patch
+bugfix/all/kernel-relay.c-handle-alloc_percpu-returning-NULL-in.patch
+bugfix/all/mm-Fix-mremap-not-considering-huge-pmd-devmap.patch
+# pre-requisites and CVE-2019-3016
+bugfix/x86/KVM-nVMX-Always-sync-GUEST_BNDCFGS-when-it-comes-fro.patch
+bugfix/all/KVM-Introduce-a-new-guest-mapping-API.patch
+bugfix/arm64/kvm-fix-compilation-on-aarch64.patch
+bugfix/s390x/kvm-fix-compilation-on-s390.patch
+bugfix/s390x/kvm-fix-compile-on-s390-part-2.patch
+bugfix/all/KVM-Properly-check-if-page-is-valid-in-kvm_vcpu_unma.patch
+bugfix/x86/x86-kvm-Introduce-kvm_-un-map_gfn.patch
+bugfix/x86/x86-kvm-Cache-gfn-to-pfn-translation.patch
+bugfix/x86/x86-KVM-Make-sure-KVM_VCPU_FLUSH_TLB-flag-is-not-mis.patch
+bugfix/x86/x86-KVM-Clean-up-host-s-steal-time-structure.patch
+bugfix/x86/srbds/0001-x86-cpu-Add-a-steppings-field-to-struct-x86_cpu_id.patch
+bugfix/x86/srbds/0002-x86-cpu-Add-table-argument-to-cpu_matches.patch
+bugfix/x86/srbds/0003-x86-speculation-Add-Special-Register-Buffer-Data-Sam.patch
+bugfix/x86/srbds/0004-x86-speculation-Add-SRBDS-vulnerability-and-mitigati.patch
+bugfix/x86/srbds/0005-x86-speculation-Add-Ivy-Bridge-to-affected-list.patch
 
 # ABI maintenance
+debian/abi/x86-speculation-do-not-match-steppings.patch
+debian/abi/revert-x86-cpu-add-a-steppings-field-to-struct-x86_cpu_id.patch

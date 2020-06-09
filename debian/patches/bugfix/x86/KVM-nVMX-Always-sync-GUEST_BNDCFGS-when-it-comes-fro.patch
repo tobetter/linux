@@ -1,0 +1,58 @@
+From: Sean Christopherson <sean.j.christopherson@intel.com>
+Date: Tue, 7 May 2019 09:06:28 -0700
+Subject: [02/11] KVM: nVMX: Always sync GUEST_BNDCFGS when it comes from
+ vmcs01
+Origin: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit?id=7570af489e73c55690d3666c360d0a6d56acdc12
+
+commit 3b013a2972d5bc344d6eaa8f24fdfe268211e45f upstream.
+
+If L1 does not set VM_ENTRY_LOAD_BNDCFGS, then L1's BNDCFGS value must
+be propagated to vmcs02 since KVM always runs with VM_ENTRY_LOAD_BNDCFGS
+when MPX is supported.  Because the value effectively comes from vmcs01,
+vmcs02 must be updated even if vmcs12 is clean.
+
+Fixes: 62cf9bd8118c4 ("KVM: nVMX: Fix emulation of VM_ENTRY_LOAD_BNDCFGS")
+Cc: Liran Alon <liran.alon@oracle.com>
+Signed-off-by: Sean Christopherson <sean.j.christopherson@intel.com>
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+[bwh: Backported to 4.19: adjust filename, context]
+Signed-off-by: Ben Hutchings <ben.hutchings@codethink.co.uk>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
+ arch/x86/kvm/vmx.c | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index e4d0ad06790e..ccbddc80ad55 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -12137,13 +12137,9 @@ static void prepare_vmcs02_full(struct kvm_vcpu *vcpu, struct vmcs12 *vmcs12)
+ 
+ 	set_cr4_guest_host_mask(vmx);
+ 
+-	if (kvm_mpx_supported()) {
+-		if (vmx->nested.nested_run_pending &&
+-			(vmcs12->vm_entry_controls & VM_ENTRY_LOAD_BNDCFGS))
+-			vmcs_write64(GUEST_BNDCFGS, vmcs12->guest_bndcfgs);
+-		else
+-			vmcs_write64(GUEST_BNDCFGS, vmx->nested.vmcs01_guest_bndcfgs);
+-	}
++	if (kvm_mpx_supported() && vmx->nested.nested_run_pending &&
++	    (vmcs12->vm_entry_controls & VM_ENTRY_LOAD_BNDCFGS))
++		vmcs_write64(GUEST_BNDCFGS, vmcs12->guest_bndcfgs);
+ 
+ 	if (enable_vpid) {
+ 		if (nested_cpu_has_vpid(vmcs12) && vmx->nested.vpid02)
+@@ -12207,6 +12203,9 @@ static int prepare_vmcs02(struct kvm_vcpu *vcpu, struct vmcs12 *vmcs12,
+ 		kvm_set_dr(vcpu, 7, vcpu->arch.dr7);
+ 		vmcs_write64(GUEST_IA32_DEBUGCTL, vmx->nested.vmcs01_debugctl);
+ 	}
++	if (kvm_mpx_supported() && (!vmx->nested.nested_run_pending ||
++	    !(vmcs12->vm_entry_controls & VM_ENTRY_LOAD_BNDCFGS)))
++		vmcs_write64(GUEST_BNDCFGS, vmx->nested.vmcs01_guest_bndcfgs);
+ 	if (vmx->nested.nested_run_pending) {
+ 		vmcs_write32(VM_ENTRY_INTR_INFO_FIELD,
+ 			     vmcs12->vm_entry_intr_info_field);
+-- 
+2.27.0.rc0
+
