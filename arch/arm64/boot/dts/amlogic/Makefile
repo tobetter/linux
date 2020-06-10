@@ -96,5 +96,6 @@ meson-sm1-khadas-vim3l-ts050-dtbs	:= meson-sm1-khadas-vim3l.dtb meson-khadas-vim
 
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidc2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidc4.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson64_odroidhc4.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2_plus.dtb
