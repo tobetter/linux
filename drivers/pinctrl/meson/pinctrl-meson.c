@@ -98,6 +98,13 @@ static void meson_calc_reg_and_bit(struct meson_bank *bank, unsigned int pin,
 
 	*reg = desc->reg * 4;
 	*bit = desc->bit + pin - bank->first;
+
+	if (reg_type == REG_DS) {
+		if (*bit > 15) {
+			*bit &= 0xf;
+			*reg += 4;
+		}
+	}
 }
 
 static int meson_get_groups_count(struct pinctrl_dev *pcdev)
