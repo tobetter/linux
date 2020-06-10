@@ -67,5 +67,6 @@ dtb-$(CONFIG_ARCH_MESON) += meson-s4-s805x2-aq222.dtb
 
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidc2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidc4.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson64_odroidhc4.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2_plus.dtb

@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Dongjin Kim <tobetter@gmail.com>
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-odroid-hc4.dts"
+
+/ {
+	model = "Hardkernel ODROID-HC4";
+};
+
+&cpu_opp_table {
+	/delete-node/ opp-100000000;
+	/delete-node/ opp-250000000;
+	/delete-node/ opp-500000000;
+	/delete-node/ opp-667000000;
+
+	opp-1000000000 {
+		opp-hz = /bits/ 64 <1000000000>;
+		opp-microvolt = <860000>;
+	};
+
+	opp-1200000000 {
+		opp-hz = /bits/ 64 <1200000000>;
+		opp-microvolt = <860000>;
+	};
+
+	opp-1404000000 {
+		opp-hz = /bits/ 64 <1404000000>;
+		opp-microvolt = <870000>;
+	};
+
+	opp-1500000000 {
+		opp-hz = /bits/ 64 <1500000000>;
+		opp-microvolt = <880000>;
+	};
+
+	opp-1608000000 {
+		opp-hz = /bits/ 64 <1608000000>;
+		opp-microvolt = <890000>;
+	};
+
+	opp-2016000000 {
+		opp-hz = /bits/ 64 <2016000000>;
+		opp-microvolt = <1010000>;
+	};
+	opp-2100000000 {
+		opp-hz = /bits/ 64 <2100000000>;
+		opp-microvolt = <1030000>;
+	};
+};
+
+&fan0 {
+	fan-supply = <&vcc_5v>;
+	interrupt-parent = <&gpio_intc>;
+	interrupts = <84 IRQ_TYPE_EDGE_FALLING>;
+	pulses-per-revolutions = <2>;
+};
+
+&vddcpu {
+	regulator-max-microvolt = <1030000>;
+};
