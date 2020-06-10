@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Dongjin Kim <tobetter@gmail.com>
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-odroid-c4.dts"
+
+/ {
+	model = "Hardkernel ODROID-HC4";
+
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		cooling-levels = <0 120 170 220>;
+		pwms = <&pwm_cd 1 40000 0>;
+		fan-supply = <&vcc_5v>;
+		interrupt-parent = <&gpio_intc>;
+		interrupts = <84 IRQ_TYPE_EDGE_FALLING>;
+		pulses-per-revolutions = <2>;
+	};
+};
+
+&cpu_thermal {
+	cooling-maps {
+		map {
+			trip = <&cpu_passive>;
+			cooling-device = <&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+		};
+	};
+};
+
+&gpio {
+	/delete-node/ usb-hub;
+};
+
+&hub_5v {
+	/delete-property/ gpio;
+	/delete-property/ enable-active-high;
+};
+
+&pcie {
+	reset-gpios = <&gpio GPIOH_4 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};
+
+&pwm_cd {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm_d_x6_pins>;
+};
+
+&usb {
+	phys = <&usb2_phy0>, <&usb2_phy1>;
+	phy-names = "usb2-phy0", "usb2-phy1";
+};
