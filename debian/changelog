@@ -5,6 +5,7 @@ linux-4.19 (4.19.118-2+deb10u1~deb9u1) UNRELEASED; urgency=medium
     - Disable building installer udebs and remove build-dependency on
       kernel-wedge
     - Disable building linux-compiler-gcc-6-*
+    - Disable code signing
 
  -- Ben Hutchings <benh@debian.org>  Fri, 12 Jun 2020 21:39:21 +0100
 
