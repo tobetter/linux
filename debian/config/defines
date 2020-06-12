@@ -150,6 +150,10 @@ part-long-up: This kernel is not suitable for SMP (multi-processor,
 initramfs-generators: initramfs-tools initramfs-fallback
 recommends: apparmor
 
+[packages]
+libc-dev: false
+tools-unversioned: false
+
 [relations]
 # compilers
 gcc-6: gcc-6 <!stage1 !cross !pkg.linux.nokernel>, gcc-6-@gnu-type-package@ <!stage1 cross !pkg.linux.nokernel>

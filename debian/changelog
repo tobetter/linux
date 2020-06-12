@@ -1,6 +1,7 @@
 linux-4.19 (4.19.118-2+deb10u1~deb9u1) UNRELEASED; urgency=medium
 
-  * Rebuild for stretch
+  * Rebuild for stretch:
+    - Disable building linux-libc-dev and unversioned tools packages
 
  -- Ben Hutchings <benh@debian.org>  Fri, 12 Jun 2020 21:39:21 +0100
 
