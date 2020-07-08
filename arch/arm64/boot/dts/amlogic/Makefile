@@ -72,3 +72,4 @@ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-air.dtb
 
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidc2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson64_odroidn2_plus.dtb
