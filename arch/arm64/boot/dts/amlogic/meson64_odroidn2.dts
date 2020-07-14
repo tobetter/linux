@@ -11,6 +11,7 @@
 #include <dt-bindings/sound/meson-g12a-toacodec.h>
 #include <dt-bindings/reset/amlogic,meson-axg-audio-arb.h>
 #include <dt-bindings/reset/amlogic,meson-g12a-audio-reset.h>
+#include <dt-bindings/pwm/pwm.h>
 
 #include "meson-g12b-odroid-n2.dts"
 
@@ -119,6 +120,47 @@
 			codec {
 				sound-dai = <&acodec>;
 			};
+		};
+	};
+
+	pwmgpio:pwmgpio {
+		compatible = "pwm-gpio";
+		#pwm-cells = <3>;
+		pwm-gpios = <&gpio_ao GPIOAO_10 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	pwmfan:pwm-fan {
+		compatible = "pwm-fan";
+		pwms = <&pwmgpio 0 40000 PWM_POLARITY_INVERTED>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <0 120 170 220>;
+	};
+};
+
+&cpu_thermal {
+	trips {
+		fan_0: trip-point@0 {
+			temperature = <65000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+		fan_1: trip-point@1 {
+			temperature = <75000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+	};
+	cooling-maps {
+		fan_cooling_map0 {
+			trip = <&fan_0>;
+			cooling-device = <&pwmfan THERMAL_NO_LIMIT 2>;
+		};
+		fan_cooling_map1 {
+			trip = <&fan_1>;
+			cooling-device = <&pwmfan 2 THERMAL_NO_LIMIT>;
 		};
 	};
 };
