@@ -441,6 +441,12 @@
 
 	/* default 400k */
 	clock-frequency = <400000>;
+
+	pcf8563: rtc@51 {
+		status = "okay";
+		compatible = "nxp,pcf8563";
+		reg = <0x51>;
+	};
 };
 
 &i2c3 {
