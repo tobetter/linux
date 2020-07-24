@@ -18,7 +18,7 @@
 /dts-v1/;
 
 #include "meson64_odroidn2.dts"
-#include "mesong12a_drm.dtsi"
+#include "mesong12b_drm.dtsi"
 
 &meson_fb {
 	status = "disabled";
