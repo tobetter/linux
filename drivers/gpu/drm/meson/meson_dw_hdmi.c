@@ -705,6 +705,7 @@ dw_hdmi_mode_valid(struct dw_hdmi *hdmi, void *data,
 
 static const u32 meson_dw_hdmi_out_bus_fmts[] = {
 	MEDIA_BUS_FMT_YUV8_1X24,
+	MEDIA_BUS_FMT_UYVY8_1X16,
 	MEDIA_BUS_FMT_UYYVYY8_0_5X24,
 };
 
@@ -804,7 +805,8 @@ static void meson_venc_hdmi_encoder_mode_set(struct drm_bridge *bridge,
 	if (dw_hdmi->output_bus_fmt == MEDIA_BUS_FMT_UYYVYY8_0_5X24) {
 		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
 		yuv420_mode = true;
-	}
+	} else if (dw_hdmi->output_bus_fmt == MEDIA_BUS_FMT_UYVY8_1X16)
+		ycrcb_map = VPU_HDMI_OUTPUT_CRYCB;
 
 	/* VENC + VENC-DVI Mode setup */
 	meson_venc_hdmi_mode_set(priv, vic, ycrcb_map, yuv420_mode, mode);
@@ -816,6 +818,10 @@ static void meson_venc_hdmi_encoder_mode_set(struct drm_bridge *bridge,
 		/* Setup YUV420 to HDMI-TX, no 10bit diphering */
 		writel_relaxed(2 | (2 << 2),
 			       priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
+	else if (dw_hdmi->output_bus_fmt == MEDIA_BUS_FMT_UYVY8_1X16)
+		/* Setup YUV422 to HDMI-TX, no 10bit diphering */
+		writel_relaxed(1 | (2 << 2),
+				priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
 	else
 		/* Setup YUV444 to HDMI-TX, no 10bit diphering */
 		writel_relaxed(0, priv->io_base + _REG(VPU_HDMI_FMT_CTRL));
