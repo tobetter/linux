@@ -1,8 +1,11 @@
-From 22522352d905d453f9bdc5271ca567d5fafdad16 Mon Sep 17 00:00:00 2001
+From c475b279431f075c7a47aa0eaea252ef670eb27b Mon Sep 17 00:00:00 2001
+Message-Id: <c475b279431f075c7a47aa0eaea252ef670eb27b.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 14 Feb 2013 22:36:59 +0100
-Subject: [PATCH 031/325] timekeeping: Split jiffies seqlock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 031/329] timekeeping: Split jiffies seqlock
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Replace jiffies_lock seqlock with a simple seqcounter and a rawlock so
 it can be taken in atomic context on RT.
@@ -167,5 +170,5 @@ index 141ab3ab0354..099737f6f10c 100644
  #define CS_NAME_LEN	32
  
 -- 
-2.25.1
+2.17.1
 

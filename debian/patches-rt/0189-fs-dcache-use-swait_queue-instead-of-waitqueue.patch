@@ -1,8 +1,11 @@
-From 44b16a4955e56c4a19b1e22c45172500d8ad261d Mon Sep 17 00:00:00 2001
+From 63bf7c61a6cfcad6e5c1ddeb1159d816922cf00f Mon Sep 17 00:00:00 2001
+Message-Id: <63bf7c61a6cfcad6e5c1ddeb1159d816922cf00f.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 14 Sep 2016 14:35:49 +0200
-Subject: [PATCH 189/325] fs/dcache: use swait_queue instead of waitqueue
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 189/329] fs/dcache: use swait_queue instead of waitqueue
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 __d_lookup_done() invokes wake_up_all() while holding a hlist_bl_lock()
 which disables preemption. As a workaround convert it to swait.
@@ -237,5 +240,5 @@ index c7cb30cdd1b7..119a56d7f739 100644
  	list_splice_init(&q->task_list, &tmp);
  	while (!list_empty(&tmp)) {
 -- 
-2.25.1
+2.17.1
 

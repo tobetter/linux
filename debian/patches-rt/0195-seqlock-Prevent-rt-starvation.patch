@@ -1,8 +1,11 @@
-From df0cac618c41453a2bc5292c8af2ea8e21ee39c1 Mon Sep 17 00:00:00 2001
+From 8cc7c1e95ea40b40a3103e616773ba1ed1fe6d0b Mon Sep 17 00:00:00 2001
+Message-Id: <8cc7c1e95ea40b40a3103e616773ba1ed1fe6d0b.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 22 Feb 2012 12:03:30 +0100
-Subject: [PATCH 195/325] seqlock: Prevent rt starvation
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 195/329] seqlock: Prevent rt starvation
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 If a low prio writer gets preempted while holding the seqlock write
 locked, a high prio reader spins forever on RT.
@@ -191,5 +194,5 @@ index 5ce035984a4d..1166fc17b757 100644
  {
  	unsigned int seq;
 -- 
-2.25.1
+2.17.1
 

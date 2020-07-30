@@ -1,9 +1,12 @@
-From 72906548185c659d4a5693976040709cb5044c1f Mon Sep 17 00:00:00 2001
+From 15ef64c24647a083189bfcd22970da29aa874403 Mon Sep 17 00:00:00 2001
+Message-Id: <15ef64c24647a083189bfcd22970da29aa874403.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 21:42:26 +0200
-Subject: [PATCH 191/325] workqueue: Use local irq lock instead of irq disable
+Subject: [PATCH 191/329] workqueue: Use local irq lock instead of irq disable
  regions
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Use a local_irq_lock as a replacement for irq off regions. We keep the
 semantic of irq-off in regard to the pool->lock and remain preemptible.
@@ -182,5 +185,5 @@ index 29dc939dad4e..f34586370fcb 100644
  }
  
 -- 
-2.25.1
+2.17.1
 

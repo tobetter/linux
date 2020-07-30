@@ -1,9 +1,12 @@
-From 3e3a73ff713a1c57585373ecc40a3079f9baff65 Mon Sep 17 00:00:00 2001
+From 69fb6764651c58c99b1070f6046b16e4e29c8fe5 Mon Sep 17 00:00:00 2001
+Message-Id: <69fb6764651c58c99b1070f6046b16e4e29c8fe5.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 28 Jan 2015 17:14:16 +0100
-Subject: [PATCH 085/325] mm/memcontrol: Replace local_irq_disable with local
+Subject: [PATCH 085/329] mm/memcontrol: Replace local_irq_disable with local
  locks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 There are a few local_irq_disable() which then take sleeping locks. This
 patch converts them local locks.
@@ -120,5 +123,5 @@ index 1323fa231eed..4156a4e766fb 100644
  
  /**
 -- 
-2.25.1
+2.17.1
 

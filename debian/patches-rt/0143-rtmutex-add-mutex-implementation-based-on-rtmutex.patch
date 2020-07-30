@@ -1,8 +1,11 @@
-From 15d28021a92b5a0f1230c2233ae8d4736bef3094 Mon Sep 17 00:00:00 2001
+From a0019036eea95155544ba06be73424ff9e1e4379 Mon Sep 17 00:00:00 2001
+Message-Id: <a0019036eea95155544ba06be73424ff9e1e4379.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 12 Oct 2017 17:17:03 +0200
-Subject: [PATCH 143/325] rtmutex: add mutex implementation based on rtmutex
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 143/329] rtmutex: add mutex implementation based on rtmutex
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
@@ -379,5 +382,5 @@ index 000000000000..4f81595c0f52
 +}
 +EXPORT_SYMBOL(atomic_dec_and_mutex_lock);
 -- 
-2.25.1
+2.17.1
 

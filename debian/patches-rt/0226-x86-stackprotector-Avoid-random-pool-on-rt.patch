@@ -1,8 +1,11 @@
-From 4e386d000be9c36e56caa970e99aea818986cbec Mon Sep 17 00:00:00 2001
+From a1b041fed8f43cf88ee0bdea6caee42b3ab96eee Mon Sep 17 00:00:00 2001
+Message-Id: <a1b041fed8f43cf88ee0bdea6caee42b3ab96eee.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 16 Dec 2010 14:25:18 +0100
-Subject: [PATCH 226/325] x86: stackprotector: Avoid random pool on rt
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 226/329] x86: stackprotector: Avoid random pool on rt
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 CPU bringup calls into the random pool to initialize the stack
 canary. During boot that works nicely even on RT as the might sleep
@@ -19,10 +22,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/arch/x86/include/asm/stackprotector.h b/arch/x86/include/asm/stackprotector.h
-index 8ec97a62c245..7bc85841fc56 100644
+index 9c556ea2eaa7..b136992beb1b 100644
 --- a/arch/x86/include/asm/stackprotector.h
 +++ b/arch/x86/include/asm/stackprotector.h
-@@ -60,7 +60,7 @@
+@@ -65,7 +65,7 @@
   */
  static __always_inline void boot_init_stack_canary(void)
  {
@@ -31,7 +34,7 @@ index 8ec97a62c245..7bc85841fc56 100644
  	u64 tsc;
  
  #ifdef CONFIG_X86_64
-@@ -71,8 +71,14 @@ static __always_inline void boot_init_stack_canary(void)
+@@ -76,8 +76,14 @@ static __always_inline void boot_init_stack_canary(void)
  	 * of randomness. The TSC only matters for very early init,
  	 * there it already has some randomness on most systems. Later
  	 * on during the bootup the random pool has true entropy too.
@@ -47,5 +50,5 @@ index 8ec97a62c245..7bc85841fc56 100644
  	canary += tsc + (tsc << 32UL);
  	canary &= CANARY_MASK;
 -- 
-2.25.1
+2.17.1
 

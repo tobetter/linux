@@ -1,8 +1,11 @@
-From 82e554da6555d60e1a8e5c390a27a12d338f1b53 Mon Sep 17 00:00:00 2001
+From 4873fd9bc55e5233bb796f72f661818ff5750e73 Mon Sep 17 00:00:00 2001
+Message-Id: <4873fd9bc55e5233bb796f72f661818ff5750e73.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 25 Oct 2012 10:32:35 +0100
-Subject: [PATCH 081/325] mm: Enable SLUB for RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 081/329] mm: Enable SLUB for RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Avoid the memory allocation in IRQ section
 
@@ -14,10 +17,10 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 6 insertions(+)
 
 diff --git a/mm/slub.c b/mm/slub.c
-index 19bc021a2726..181b2cb6ffbb 100644
+index b890fe5f9cd3..d33c04a0e5da 100644
 --- a/mm/slub.c
 +++ b/mm/slub.c
-@@ -3699,6 +3699,11 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
+@@ -3726,6 +3726,11 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
  							const char *text)
  {
  #ifdef CONFIG_SLUB_DEBUG
@@ -29,7 +32,7 @@ index 19bc021a2726..181b2cb6ffbb 100644
  	void *addr = page_address(page);
  	void *p;
  	unsigned long *map = kcalloc(BITS_TO_LONGS(page->objects),
-@@ -3720,6 +3725,7 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
+@@ -3747,6 +3752,7 @@ static void list_slab_objects(struct kmem_cache *s, struct page *page,
  	slab_unlock(page);
  	kfree(map);
  #endif
@@ -38,5 +41,5 @@ index 19bc021a2726..181b2cb6ffbb 100644
  
  /*
 -- 
-2.25.1
+2.17.1
 

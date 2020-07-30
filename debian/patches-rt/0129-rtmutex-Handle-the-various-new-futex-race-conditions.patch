@@ -1,8 +1,11 @@
-From 1fa5c17a8433d8aa590a042209a3f2211ec87663 Mon Sep 17 00:00:00 2001
+From 2bb0c729998289856cf8881739cd03f2f0e29d59 Mon Sep 17 00:00:00 2001
+Message-Id: <2bb0c729998289856cf8881739cd03f2f0e29d59.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Fri, 10 Jun 2011 11:04:15 +0200
-Subject: [PATCH 129/325] rtmutex: Handle the various new futex race conditions
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 129/329] rtmutex: Handle the various new futex race conditions
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 RT opens a few new interesting race conditions in the rtmutex/futex
 combo due to futex hash bucket lock being a 'sleeping' spinlock and
@@ -251,5 +254,5 @@ index d1d62f942be2..f4b6596d224a 100644
  extern void rt_mutex_init_proxy_locked(struct rt_mutex *lock,
  				       struct task_struct *proxy_owner);
 -- 
-2.25.1
+2.17.1
 

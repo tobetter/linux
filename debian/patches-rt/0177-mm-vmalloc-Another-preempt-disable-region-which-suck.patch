@@ -1,9 +1,12 @@
-From a36f97c1ca6e441ddb3d47465c137d01138549ed Mon Sep 17 00:00:00 2001
+From 44ae1705bf3af875ebd758f32b6f19ccdef487e4 Mon Sep 17 00:00:00 2001
+Message-Id: <44ae1705bf3af875ebd758f32b6f19ccdef487e4.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 12 Jul 2011 11:39:36 +0200
-Subject: [PATCH 177/325] mm/vmalloc: Another preempt disable region which
+Subject: [PATCH 177/329] mm/vmalloc: Another preempt disable region which
  sucks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Avoid the preempt disable version of get_cpu_var(). The inner-lock should
 provide enough serialisation.
@@ -14,10 +17,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 8 insertions(+), 5 deletions(-)
 
 diff --git a/mm/vmalloc.c b/mm/vmalloc.c
-index 958d6ba9ee2d..ff471d6c350d 100644
+index 1817871b0239..aa06badc76f4 100644
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -852,7 +852,7 @@ static void *new_vmap_block(unsigned int order, gfp_t gfp_mask)
+@@ -853,7 +853,7 @@ static void *new_vmap_block(unsigned int order, gfp_t gfp_mask)
  	struct vmap_block *vb;
  	struct vmap_area *va;
  	unsigned long vb_idx;
@@ -26,7 +29,7 @@ index 958d6ba9ee2d..ff471d6c350d 100644
  	void *vaddr;
  
  	node = numa_node_id();
-@@ -895,11 +895,12 @@ static void *new_vmap_block(unsigned int order, gfp_t gfp_mask)
+@@ -896,11 +896,12 @@ static void *new_vmap_block(unsigned int order, gfp_t gfp_mask)
  	BUG_ON(err);
  	radix_tree_preload_end();
  
@@ -41,7 +44,7 @@ index 958d6ba9ee2d..ff471d6c350d 100644
  
  	return vaddr;
  }
-@@ -968,6 +969,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
+@@ -969,6 +970,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
  	struct vmap_block *vb;
  	void *vaddr = NULL;
  	unsigned int order;
@@ -49,7 +52,7 @@ index 958d6ba9ee2d..ff471d6c350d 100644
  
  	BUG_ON(offset_in_page(size));
  	BUG_ON(size > PAGE_SIZE*VMAP_MAX_ALLOC);
-@@ -982,7 +984,8 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
+@@ -983,7 +985,8 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
  	order = get_order(size);
  
  	rcu_read_lock();
@@ -59,7 +62,7 @@ index 958d6ba9ee2d..ff471d6c350d 100644
  	list_for_each_entry_rcu(vb, &vbq->free, free_list) {
  		unsigned long pages_off;
  
-@@ -1005,7 +1008,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
+@@ -1006,7 +1009,7 @@ static void *vb_alloc(unsigned long size, gfp_t gfp_mask)
  		break;
  	}
  
@@ -69,5 +72,5 @@ index 958d6ba9ee2d..ff471d6c350d 100644
  
  	/* Allocate new block if nothing was found */
 -- 
-2.25.1
+2.17.1
 

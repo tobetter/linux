@@ -1,8 +1,11 @@
-From f7d8e7c485e3b32f915bfdf26698b947abaeaf10 Mon Sep 17 00:00:00 2001
+From c6a92414419452341cd67f947084a2be110b7b33 Mon Sep 17 00:00:00 2001
+Message-Id: <c6a92414419452341cd67f947084a2be110b7b33.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 6 Jun 2011 12:12:51 +0200
-Subject: [PATCH 106/325] sched: Limit the number of task migrations per batch
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 106/329] sched: Limit the number of task migrations per batch
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Put an upper limit on the number of tasks which are migrated per batch
 to avoid large latencies.
@@ -13,7 +16,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  1 file changed, 4 insertions(+)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 2f6b4365d070..5c23d1272429 100644
+index dc70ec937317..1fe932aac00f 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -44,7 +44,11 @@ const_debug unsigned int sysctl_sched_features =
@@ -29,5 +32,5 @@ index 2f6b4365d070..5c23d1272429 100644
  /*
   * period over which we measure -rt task CPU usage in us.
 -- 
-2.25.1
+2.17.1
 

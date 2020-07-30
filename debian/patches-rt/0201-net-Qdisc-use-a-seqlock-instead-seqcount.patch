@@ -1,8 +1,11 @@
-From 41cf08fe25d006f91cd7ad1a97b7729a4f0c7a20 Mon Sep 17 00:00:00 2001
+From 2d33d1be07519caccf9a62439568d2ab8cf9223f Mon Sep 17 00:00:00 2001
+Message-Id: <2d33d1be07519caccf9a62439568d2ab8cf9223f.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 14 Sep 2016 17:36:35 +0200
-Subject: [PATCH 201/325] net/Qdisc: use a seqlock instead seqcount
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 201/329] net/Qdisc: use a seqlock instead seqcount
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The seqcount disables preemption on -RT while it is held which can't
 remove. Also we don't want the reader to spin for ages if the writer is
@@ -255,10 +258,10 @@ index 39e319d04bb8..fe99928aff78 100644
  		err = -EOPNOTSUPP;
  		if (sch->flags & TCQ_F_MQROOT) {
 diff --git a/net/sched/sch_generic.c b/net/sched/sch_generic.c
-index 4ab20f1138fd..a9ed58ca3924 100644
+index 49d60ae006ed..c2ee9d1c3770 100644
 --- a/net/sched/sch_generic.c
 +++ b/net/sched/sch_generic.c
-@@ -575,7 +575,11 @@ struct Qdisc noop_qdisc = {
+@@ -576,7 +576,11 @@ struct Qdisc noop_qdisc = {
  	.ops		=	&noop_qdisc_ops,
  	.q.lock		=	__SPIN_LOCK_UNLOCKED(noop_qdisc.q.lock),
  	.dev_queue	=	&noop_netdev_queue,
@@ -270,7 +273,7 @@ index 4ab20f1138fd..a9ed58ca3924 100644
  	.busylock	=	__SPIN_LOCK_UNLOCKED(noop_qdisc.busylock),
  	.gso_skb = {
  		.next = (struct sk_buff *)&noop_qdisc.gso_skb,
-@@ -876,9 +880,17 @@ struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,
+@@ -877,9 +881,17 @@ struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,
  	lockdep_set_class(&sch->busylock,
  			  dev->qdisc_tx_busylock ?: &qdisc_tx_busylock);
  
@@ -289,5 +292,5 @@ index 4ab20f1138fd..a9ed58ca3924 100644
  	sch->ops = ops;
  	sch->flags = ops->static_flags;
 -- 
-2.25.1
+2.17.1
 

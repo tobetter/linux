@@ -1,9 +1,12 @@
-From 6089b66d138cc77f35c9d6f7d526cc322b295f28 Mon Sep 17 00:00:00 2001
+From 4110484e4a50e5389415841f106f6292665c8d68 Mon Sep 17 00:00:00 2001
+Message-Id: <4110484e4a50e5389415841f106f6292665c8d68.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Yang Shi <yang.shi@windriver.com>
 Date: Wed, 30 Oct 2013 11:48:33 -0700
-Subject: [PATCH 084/325] mm/memcontrol: Don't call schedule_work_on in
+Subject: [PATCH 084/329] mm/memcontrol: Don't call schedule_work_on in
  preemption disabled context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The following trace is triggered when running ltp oom test cases:
 
@@ -71,5 +74,5 @@ index 3b78b6af353b..1323fa231eed 100644
  }
  
 -- 
-2.25.1
+2.17.1
 

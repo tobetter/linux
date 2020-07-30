@@ -1,9 +1,12 @@
-From 4c71d9e6382c1cf6d65629f46dc51039b5c5ca51 Mon Sep 17 00:00:00 2001
+From bb72cd110fa9e55b0ed7606b0e034779f9896a62 Mon Sep 17 00:00:00 2001
+Message-Id: <bb72cd110fa9e55b0ed7606b0e034779f9896a62.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Yong Zhang <yong.zhang0@gmail.com>
 Date: Tue, 15 May 2012 13:53:56 +0800
-Subject: [PATCH 170/325] mm: Protect activate_mm() by
+Subject: [PATCH 170/329] mm: Protect activate_mm() by
  preempt_[disable&enable]_rt()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 User preempt_*_rt instead of local_irq_*_rt or otherwise there will be
 warning on ARM like below:
@@ -38,7 +41,7 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  2 files changed, 4 insertions(+)
 
 diff --git a/fs/exec.c b/fs/exec.c
-index 561ea64829ec..0d95c6349fb1 100644
+index cece8c14f377..1941f39a3453 100644
 --- a/fs/exec.c
 +++ b/fs/exec.c
 @@ -1028,12 +1028,14 @@ static int exec_mmap(struct mm_struct *mm)
@@ -77,5 +80,5 @@ index 3e612ae748e9..d0ccc070979f 100644
  #ifdef finish_arch_post_lock_switch
  	finish_arch_post_lock_switch();
 -- 
-2.25.1
+2.17.1
 

@@ -1,8 +1,11 @@
-From 6fdac9a09208088f4ed195b86cdadeb37ae5ee1b Mon Sep 17 00:00:00 2001
+From 02ccdd4922231b1b1a76a561568592b01e107498 Mon Sep 17 00:00:00 2001
+Message-Id: <02ccdd4922231b1b1a76a561568592b01e107498.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 22 Jun 2011 19:47:03 +0200
-Subject: [PATCH 193/325] sched: Distangle worker accounting from rqlock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 193/329] sched: Distangle worker accounting from rqlock
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The worker accounting for cpu bound workers is plugged into the core
 scheduler code and the wakeup code. This is not a hard requirement and
@@ -34,7 +37,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  3 files changed, 47 insertions(+), 100 deletions(-)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 3b2664e691de..dcf2deedd3f8 100644
+index 20842da53a59..1abd32af7918 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1704,10 +1704,6 @@ static inline void ttwu_activate(struct rq *rq, struct task_struct *p, int en_fl
@@ -287,5 +290,5 @@ index 66fbb5a9e633..30cfed226b39 100644
  
  #endif /* _KERNEL_WORKQUEUE_INTERNAL_H */
 -- 
-2.25.1
+2.17.1
 

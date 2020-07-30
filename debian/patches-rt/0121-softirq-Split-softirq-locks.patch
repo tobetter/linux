@@ -1,8 +1,11 @@
-From 7f588c91c584d17bfab949544912fab8942a5eaf Mon Sep 17 00:00:00 2001
+From 921b748460720ebd192635d0f95162867fcc3dc3 Mon Sep 17 00:00:00 2001
+Message-Id: <921b748460720ebd192635d0f95162867fcc3dc3.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 4 Oct 2012 14:20:47 +0100
-Subject: [PATCH 121/325] softirq: Split softirq locks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 121/329] softirq: Split softirq locks
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The 3.x RT series removed the split softirq implementation in favour
 of pushing softirq processing into the context of the thread which
@@ -178,7 +181,7 @@ index 9984f2b75b73..27c3176d88d2 100644
  #define in_task()		(!(preempt_count() & \
  				   (NMI_MASK | HARDIRQ_MASK | SOFTIRQ_OFFSET)))
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index f180bfadff33..f4ff928e6be3 100644
+index 42846a65df9a..30895ae9e82d 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1198,6 +1198,8 @@ struct task_struct {
@@ -199,7 +202,7 @@ index f180bfadff33..f4ff928e6be3 100644
  #define PF_EXITING		0x00000004	/* Getting shut down */
  #define PF_EXITPIDONE		0x00000008	/* PI exit done on shut down */
 diff --git a/init/main.c b/init/main.c
-index 38a603f62b7b..6e02188386a7 100644
+index ec78f2312610..7c064c6aff55 100644
 --- a/init/main.c
 +++ b/init/main.c
 @@ -560,6 +560,7 @@ asmlinkage __visible void __init start_kernel(void)
@@ -828,5 +831,5 @@ index 012bc81879bf..2b0ddd50e879 100644
  	}
  
 -- 
-2.25.1
+2.17.1
 

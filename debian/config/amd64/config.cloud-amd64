@@ -334,7 +334,96 @@ CONFIG_HYPERV=m
 ##
 ## file: drivers/infiniband/Kconfig
 ##
-# CONFIG_INFINIBAND is not set
+CONFIG_INFINIBAND=m
+CONFIG_INFINIBAND_USER_MAD=m
+CONFIG_INFINIBAND_USER_ACCESS=m
+CONFIG_INFINIBAND_ON_DEMAND_PAGING=y
+CONFIG_INFINIBAND_ADDR_TRANS=y
+
+##
+## file: drivers/infiniband/hw/cxgb4/Kconfig
+##
+# CONFIG_INFINIBAND_CXGB4 is not set
+
+##
+## file: drivers/infiniband/hw/hfi1/Kconfig
+##
+# CONFIG_INFINIBAND_HFI1 is not set
+
+##
+## file: drivers/infiniband/hw/i40iw/Kconfig
+##
+# CONFIG_INFINIBAND_I40IW is not set
+
+##
+## file: drivers/infiniband/hw/mlx4/Kconfig
+##
+CONFIG_MLX4_INFINIBAND=m
+
+##
+## file: drivers/infiniband/hw/mlx5/Kconfig
+##
+CONFIG_MLX5_INFINIBAND=m
+
+##
+## file: drivers/infiniband/hw/mthca/Kconfig
+##
+# CONFIG_INFINIBAND_MTHCA is not set
+# CONFIG_INFINIBAND_MTHCA_DEBUG is not set
+
+##
+## file: drivers/infiniband/hw/ocrdma/Kconfig
+##
+# CONFIG_INFINIBAND_OCRDMA is not set
+
+##
+## file: drivers/infiniband/hw/qedr/Kconfig
+##
+# CONFIG_INFINIBAND_QEDR is not set
+
+##
+## file: drivers/infiniband/hw/qib/Kconfig
+##
+# CONFIG_INFINIBAND_QIB is not set
+# CONFIG_INFINIBAND_QIB_DCA is not set
+
+##
+## file: drivers/infiniband/sw/rdmavt/Kconfig
+##
+# CONFIG_INFINIBAND_RDMAVT is not set
+
+##
+## file: drivers/infiniband/sw/rxe/Kconfig
+##
+# CONFIG_RDMA_RXE is not set
+
+##
+## file: drivers/infiniband/ulp/ipoib/Kconfig
+##
+# CONFIG_INFINIBAND_IPOIB is not set
+# CONFIG_INFINIBAND_IPOIB_CM is not set
+# CONFIG_INFINIBAND_IPOIB_DEBUG is not set
+# CONFIG_INFINIBAND_IPOIB_DEBUG_DATA is not set
+
+##
+## file: drivers/infiniband/ulp/iser/Kconfig
+##
+# CONFIG_INFINIBAND_ISER is not set
+
+##
+## file: drivers/infiniband/ulp/isert/Kconfig
+##
+# CONFIG_INFINIBAND_ISERT is not set
+
+##
+## file: drivers/infiniband/ulp/srp/Kconfig
+##
+# CONFIG_INFINIBAND_SRP is not set
+
+##
+## file: drivers/infiniband/ulp/srpt/Kconfig
+##
+# CONFIG_INFINIBAND_SRPT is not set
 
 ##
 ## file: drivers/input/Kconfig
@@ -1523,6 +1612,11 @@ CONFIG_HYPERV_STORAGE=m
 ## file: net/x25/Kconfig
 ##
 # CONFIG_X25 is not set
+
+##
+## file: security/Kconfig
+##
+CONFIG_SECURITY_INFINIBAND=y
 
 ##
 ## file: security/integrity/Kconfig

@@ -1,8 +1,11 @@
-From 9d712d36877d0b56524f63fc76ae36ecfc75ec1e Mon Sep 17 00:00:00 2001
+From d91e269d2b5e4934af93621c9b40c63bd78b7c4d Mon Sep 17 00:00:00 2001
+Message-Id: <d91e269d2b5e4934af93621c9b40c63bd78b7c4d.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Mon, 6 Jun 2011 12:20:33 +0200
-Subject: [PATCH 107/325] sched: Move mmdrop to RCU on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 107/329] sched: Move mmdrop to RCU on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Takes sleeping locks and calls into the memory allocator, so nothing
 we want to do in task switch and oder atomic contexts.
@@ -12,8 +15,8 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  include/linux/mm_types.h |  4 ++++
  include/linux/sched/mm.h | 11 +++++++++++
  kernel/fork.c            | 13 +++++++++++++
- kernel/sched/core.c      | 18 ++++++++++++++++--
- 4 files changed, 44 insertions(+), 2 deletions(-)
+ kernel/sched/core.c      |  7 ++++++-
+ 4 files changed, 34 insertions(+), 1 deletion(-)
 
 diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
 index 3a9a996af229..202b736ccbfa 100644
@@ -38,7 +41,7 @@ index 3a9a996af229..202b736ccbfa 100644
  		atomic_long_t hugetlb_usage;
  #endif
 diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
-index e9d4e389aed9..fb59f96fdd2e 100644
+index 766bbe813861..51828764f932 100644
 --- a/include/linux/sched/mm.h
 +++ b/include/linux/sched/mm.h
 @@ -49,6 +49,17 @@ static inline void mmdrop(struct mm_struct *mm)
@@ -56,9 +59,9 @@ index e9d4e389aed9..fb59f96fdd2e 100644
 +# define mmdrop_delayed(mm)	mmdrop(mm)
 +#endif
 +
+ void mmdrop(struct mm_struct *mm);
+ 
  /*
-  * This has to be called after a get_task_mm()/mmget_not_zero()
-  * followed by taking the mmap_sem for writing before modifying the
 diff --git a/kernel/fork.c b/kernel/fork.c
 index 309f4a20d4ac..d4ec53c72577 100644
 --- a/kernel/fork.c
@@ -84,7 +87,7 @@ index 309f4a20d4ac..d4ec53c72577 100644
  {
  	struct mm_struct *mm;
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 5c23d1272429..cb89c90513dd 100644
+index 1fe932aac00f..fae976506632 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -2729,9 +2729,13 @@ static struct rq *finish_task_switch(struct task_struct *prev)
@@ -102,39 +105,14 @@ index 5c23d1272429..cb89c90513dd 100644
  	}
  	if (unlikely(prev_state == TASK_DEAD)) {
  		if (prev->sched_class->task_dead)
-@@ -5601,6 +5605,8 @@ void sched_setnuma(struct task_struct *p, int nid)
+@@ -5602,6 +5606,7 @@ void sched_setnuma(struct task_struct *p, int nid)
  #endif /* CONFIG_NUMA_BALANCING */
  
  #ifdef CONFIG_HOTPLUG_CPU
-+static DEFINE_PER_CPU(struct mm_struct *, idle_last_mm);
 +
  /*
   * Ensure that the idle task is using init_mm right before its CPU goes
   * offline.
-@@ -5616,7 +5622,11 @@ void idle_task_exit(void)
- 		current->active_mm = &init_mm;
- 		finish_arch_post_lock_switch();
- 	}
--	mmdrop(mm);
-+	/*
-+	 * Defer the cleanup to an alive cpu. On RT we can neither
-+	 * call mmdrop() nor mmdrop_delayed() from here.
-+	 */
-+	per_cpu(idle_last_mm, smp_processor_id()) = mm;
- }
- 
- /*
-@@ -5928,6 +5938,10 @@ int sched_cpu_dying(unsigned int cpu)
- 	update_max_interval();
- 	nohz_balance_exit_idle(rq);
- 	hrtick_clear(rq);
-+	if (per_cpu(idle_last_mm, cpu)) {
-+		mmdrop_delayed(per_cpu(idle_last_mm, cpu));
-+		per_cpu(idle_last_mm, cpu) = NULL;
-+	}
- 	return 0;
- }
- #endif
 -- 
-2.25.1
+2.17.1
 

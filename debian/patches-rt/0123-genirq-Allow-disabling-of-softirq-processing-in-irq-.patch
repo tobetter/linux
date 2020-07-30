@@ -1,9 +1,12 @@
-From 563f92a709b074d89146410c177c5e70db3cd3fa Mon Sep 17 00:00:00 2001
+From e0f9b20c3185ff122ec48f9a7fa0cf02a075efe1 Mon Sep 17 00:00:00 2001
+Message-Id: <e0f9b20c3185ff122ec48f9a7fa0cf02a075efe1.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 31 Jan 2012 13:01:27 +0100
-Subject: [PATCH 123/325] genirq: Allow disabling of softirq processing in irq
+Subject: [PATCH 123/329] genirq: Allow disabling of softirq processing in irq
  thread context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The processing of softirqs in irq thread context is a performance gain
 for the non-rt workloads of a system, but it's counterproductive for
@@ -157,5 +160,5 @@ index fd89f8ab85ac..3e9333d148ad 100644
  {
  	return current->flags & PF_IN_SOFTIRQ;
 -- 
-2.25.1
+2.17.1
 

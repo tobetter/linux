@@ -1,8 +1,11 @@
-From 87fd28b5599c18dcef1e63eeb30a5a3bbfcc3ba4 Mon Sep 17 00:00:00 2001
+From 8110c4679cb552291c1ba1765416e889d07ef28e Mon Sep 17 00:00:00 2001
+Message-Id: <8110c4679cb552291c1ba1765416e889d07ef28e.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 12 Oct 2017 17:11:19 +0200
-Subject: [PATCH 142/325] rtmutex: add sleeping lock implementation
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 142/329] rtmutex: add sleeping lock implementation
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
@@ -103,7 +106,7 @@ index a355289b1fa1..138bd1e183e0 100644
   * rt_mutex_is_locked - is the mutex locked
   * @lock: the mutex to be queried
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index f4ff928e6be3..527d04f9163e 100644
+index 30895ae9e82d..a0d1a009aa56 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -134,6 +134,9 @@ struct task_group;
@@ -1144,7 +1147,7 @@ index 5955ad2aa2a8..6fcf0a3e180d 100644
  #ifdef CONFIG_DEBUG_RT_MUTEXES
  # include "rtmutex-debug.h"
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 42b42ebf52bc..6a0ccaea2b42 100644
+index 09a3bd47ac4d..9c20e213ef80 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -401,9 +401,15 @@ static bool set_nr_if_polling(struct task_struct *p)
@@ -1204,5 +1207,5 @@ index 42b42ebf52bc..6a0ccaea2b42 100644
  	}
  }
 -- 
-2.25.1
+2.17.1
 

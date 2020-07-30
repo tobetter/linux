@@ -1,8 +1,11 @@
-From 67e5a1751b9315d556d99ae3a44140d126f2609f Mon Sep 17 00:00:00 2001
+From c927dddeac30d11dedfdfa416dd4a8051fa286b0 Mon Sep 17 00:00:00 2001
+Message-Id: <c927dddeac30d11dedfdfa416dd4a8051fa286b0.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 12 Oct 2017 18:37:12 +0200
-Subject: [PATCH 162/325] srcu: replace local_irqsave() with a locallock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 162/329] srcu: replace local_irqsave() with a locallock
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 There are two instances which disable interrupts in order to become a
 stable this_cpu_ptr() pointer. The restore part is coupled with
@@ -73,5 +76,5 @@ index df0375453ba1..0f09a1a9e17c 100644
  		srcu_funnel_gp_start(sp, sdp, s, do_norm);
  	else if (needexp)
 -- 
-2.25.1
+2.17.1
 

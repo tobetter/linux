@@ -1,8 +1,11 @@
-From 0ff5fd365065d431385afd38184b9555c870ce3b Mon Sep 17 00:00:00 2001
+From 4662441f1be8cbd75c192c3a9734efbb3e4361c6 Mon Sep 17 00:00:00 2001
+Message-Id: <4662441f1be8cbd75c192c3a9734efbb3e4361c6.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Scott Wood <swood@redhat.com>
 Date: Fri, 4 Jan 2019 15:33:21 -0500
-Subject: [PATCH 151/325] locking/rt-mutex: Flush block plug on __down_read()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 151/329] locking/rt-mutex: Flush block plug on __down_read()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 __down_read() bypasses the rtmutex frontend to call
 rt_mutex_slowlock_locked() directly, and thus it needs to call
@@ -42,5 +45,5 @@ index 660e22caf709..f518495bd6cc 100644
  	might_sleep();
  	raw_spin_lock_irq(&m->wait_lock);
 -- 
-2.25.1
+2.17.1
 

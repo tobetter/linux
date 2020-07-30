@@ -20,10 +20,8 @@ References: https://bugs.debian.org/717557
 References: https://bugs.debian.org/726861
 Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
-Index: linux/scripts/Kbuild.include
-===================================================================
---- linux.orig/scripts/Kbuild.include
-+++ linux/scripts/Kbuild.include
+--- a/scripts/Kbuild.include
++++ b/scripts/Kbuild.include
 @@ -121,7 +121,7 @@ CC_OPTION_CFLAGS = $(filter-out $(GCC_PL
  # Usage: cflags-y += $(call cc-option,-march=winchip-c6,-march=i586)
  
@@ -71,20 +69,18 @@ Index: linux/scripts/Kbuild.include
  
  # ld-option
  # Usage: KBUILD_LDFLAGS += $(call ld-option, -X, -Y)
-Index: linux/Makefile
-===================================================================
---- linux.orig/Makefile
-+++ linux/Makefile
-@@ -668,6 +668,8 @@ endif
- KBUILD_CFLAGS += $(call cc-ifversion, -lt, 0409, \
- 			$(call cc-disable-warning,maybe-uninitialized,))
+--- a/Makefile
++++ b/Makefile
+@@ -661,6 +661,8 @@ else
+ KBUILD_CFLAGS   += -O2
+ endif
  
 +NOSTDINC_FLAGS += -nostdinc
 +
  # Tell gcc to never replace conditional load with a non-conditional one
  KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
- 
-@@ -787,7 +789,7 @@ LDFLAGS_vmlinux += --gc-sections
+ KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
+@@ -781,7 +783,7 @@ LDFLAGS_vmlinux += --gc-sections
  endif
  
  # arch Makefile may override CC so keep this after arch Makefile is included

@@ -1,0 +1,36 @@
+From: Matthew Garrett <matthewgarrett@google.com>
+Date: Wed, 31 Jul 2019 15:16:16 -0700
+Subject: efi: Restrict efivar_ssdt_load when the kernel is locked down
+Origin: https://patchwork.kernel.org/patch/11069659/
+
+efivar_ssdt_load allows the kernel to import arbitrary ACPI code from an
+EFI variable, which gives arbitrary code execution in ring 0. Prevent
+that when the kernel is locked down.
+
+Signed-off-by: Matthew Garrett <mjg59@google.com>
+Acked-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-efi@vger.kernel.org
+[bwh: Convert back to the non-LSM lockdown API]
+---
+--- a/drivers/firmware/efi/efi.c
++++ b/drivers/firmware/efi/efi.c
+@@ -30,6 +30,7 @@
+ #include <linux/acpi.h>
+ #include <linux/ucs2_string.h>
+ #include <linux/memblock.h>
++#include <linux/security.h>
+ 
+ #include <asm/early_ioremap.h>
+ 
+@@ -241,6 +242,9 @@ static void generic_ops_unregister(void)
+ static char efivar_ssdt[EFIVAR_SSDT_NAME_MAX] __initdata;
+ static int __init efivar_ssdt_setup(char *str)
+ {
++	if (kernel_is_locked_down("ACPI tables"))
++		return -EPERM;
++
+ 	if (strlen(str) < sizeof(efivar_ssdt))
+ 		memcpy(efivar_ssdt, str, strlen(str));
+ 	else

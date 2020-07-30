@@ -1,8 +1,11 @@
-From 267b99f0dfc2274075fc4d4652995fe24311f05b Mon Sep 17 00:00:00 2001
+From f0f0a18808e74adade966893b7ad7d367042701b Mon Sep 17 00:00:00 2001
+Message-Id: <f0f0a18808e74adade966893b7ad7d367042701b.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 14 Dec 2011 01:03:49 +0100
-Subject: [PATCH 037/325] cpumask: Disable CONFIG_CPUMASK_OFFSTACK for RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 037/329] cpumask: Disable CONFIG_CPUMASK_OFFSTACK for RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 There are "valid" GFP_ATOMIC allocations such as
 
@@ -72,5 +75,5 @@ index a3928d4438b5..a50b2158f7cd 100644
  	  Use dynamic allocation for cpumask_var_t, instead of putting
  	  them on the stack.  This is a bit more expensive, but avoids
 -- 
-2.25.1
+2.17.1
 

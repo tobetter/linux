@@ -1,8 +1,11 @@
-From 16054939724213811099f9fdf7071e4cfeb21265 Mon Sep 17 00:00:00 2001
+From f3395089197a2ac80e93ab91acaa78ad3b4ab440 Mon Sep 17 00:00:00 2001
+Message-Id: <f3395089197a2ac80e93ab91acaa78ad3b4ab440.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 12 Oct 2017 17:18:06 +0200
-Subject: [PATCH 145/325] rtmutex: add rwlock implementation based on rtmutex
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 145/329] rtmutex: add rwlock implementation based on rtmutex
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The implementation is bias-based, similar to the rwsem implementation.
 
@@ -578,5 +581,5 @@ index 000000000000..aebb7ce25bc6
 +}
 +EXPORT_SYMBOL(__rt_rwlock_init);
 -- 
-2.25.1
+2.17.1
 

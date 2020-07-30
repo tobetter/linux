@@ -1,8 +1,11 @@
-From 733fd0de9c18647a56f62e4b18288a7025cc476a Mon Sep 17 00:00:00 2001
+From aa951c4b35370e250c8fd654b973285076a18d62 Mon Sep 17 00:00:00 2001
+Message-Id: <aa951c4b35370e250c8fd654b973285076a18d62.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 7 Mar 2012 20:51:03 +0100
-Subject: [PATCH 182/325] rt: Introduce cpu_chill()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 182/329] rt: Introduce cpu_chill()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Retry loops on RT might loop forever when the modifying side was
 preempted. Add cpu_chill() to replace cpu_relax(). cpu_chill()
@@ -109,5 +112,5 @@ index b800efb64238..98a771065818 100644
   * Functions related to boot-time initialization:
   */
 -- 
-2.25.1
+2.17.1
 

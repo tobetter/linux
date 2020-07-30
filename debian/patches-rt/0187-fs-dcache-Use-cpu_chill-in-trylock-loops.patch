@@ -1,8 +1,11 @@
-From f5454f2bfe74411fddac95ad5c3c8526ad6b28a3 Mon Sep 17 00:00:00 2001
+From e326a5665a08f08494ed0e379ad1d2acaa01a98e Mon Sep 17 00:00:00 2001
+Message-Id: <e326a5665a08f08494ed0e379ad1d2acaa01a98e.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 7 Mar 2012 21:00:34 +0100
-Subject: [PATCH 187/325] fs: dcache: Use cpu_chill() in trylock loops
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 187/329] fs: dcache: Use cpu_chill() in trylock loops
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Retry loops on RT might loop forever when the modifying side was
 preempted. Use cpu_chill() instead of cpu_relax() to let the system
@@ -36,7 +39,7 @@ index 70e9afe589fb..1a6b88ad4fe0 100644
  			}
  			spin_unlock(&p->d_lock);
 diff --git a/fs/namespace.c b/fs/namespace.c
-index 1fce41ba3535..5dc970027e30 100644
+index 741f40cd955e..df83b6e3146f 100644
 --- a/fs/namespace.c
 +++ b/fs/namespace.c
 @@ -14,6 +14,7 @@
@@ -62,5 +65,5 @@ index 1fce41ba3535..5dc970027e30 100644
  	 * After the slowpath clears MNT_WRITE_HOLD, mnt_is_readonly will
  	 * be set to match its requirements. So we must not load that until
 -- 
-2.25.1
+2.17.1
 

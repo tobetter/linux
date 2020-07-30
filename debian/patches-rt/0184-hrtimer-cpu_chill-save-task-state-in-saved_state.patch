@@ -1,9 +1,12 @@
-From 9f5be54f1f4d5410605f14e2cfb080ac1dd4d31b Mon Sep 17 00:00:00 2001
+From e41d0c353762bfc29c92a680d650263a70df9af3 Mon Sep 17 00:00:00 2001
+Message-Id: <e41d0c353762bfc29c92a680d650263a70df9af3.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 26 Feb 2019 12:31:10 +0100
-Subject: [PATCH 184/325] hrtimer: cpu_chill(): save task state in
+Subject: [PATCH 184/329] hrtimer: cpu_chill(): save task state in
  ->saved_state()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 In the previous change I saved the current task state on stack. This was
 bad because while the task is scheduled-out it might receive a wake-up.
@@ -59,5 +62,5 @@ index 21a454557c8a..f16cbc98c47a 100644
  EXPORT_SYMBOL(cpu_chill);
  #endif
 -- 
-2.25.1
+2.17.1
 

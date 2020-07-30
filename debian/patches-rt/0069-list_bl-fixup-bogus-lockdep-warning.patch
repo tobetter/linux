@@ -1,8 +1,11 @@
-From bdcdc6774f7346b9302a7cf88c2c6ad00afe3459 Mon Sep 17 00:00:00 2001
+From cf5d4a1b169ff7de5df4b8660e3481af31a2b31c Mon Sep 17 00:00:00 2001
+Message-Id: <cf5d4a1b169ff7de5df4b8660e3481af31a2b31c.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Josh Cartwright <joshc@ni.com>
 Date: Thu, 31 Mar 2016 00:04:25 -0500
-Subject: [PATCH 069/325] list_bl: fixup bogus lockdep warning
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 069/329] list_bl: fixup bogus lockdep warning
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 At first glance, the use of 'static inline' seems appropriate for
 INIT_HLIST_BL_HEAD().
@@ -100,5 +103,5 @@ index 69b659259bac..0b5de7d9ffcf 100644
  static inline void INIT_HLIST_BL_NODE(struct hlist_bl_node *h)
  {
 -- 
-2.25.1
+2.17.1
 

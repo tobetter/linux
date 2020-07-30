@@ -1,8 +1,11 @@
-From 3202d22e4b6ad35fbe7b617efd78bf1a9a727c5a Mon Sep 17 00:00:00 2001
+From 433eb289b0a03c71187d7162e27e401d25e018dc Mon Sep 17 00:00:00 2001
+Message-Id: <433eb289b0a03c71187d7162e27e401d25e018dc.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 13 Sep 2017 14:43:41 +0200
-Subject: [PATCH 161/325] srcu: use cpu_online() instead custom check
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 161/329] srcu: use cpu_online() instead custom check
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The current check via srcu_online is slightly racy because after looking
 at srcu_online there could be an interrupt that interrupted us long
@@ -92,5 +95,5 @@ index ae716ca783bc..f162a4f54b05 100644
  }
  
 -- 
-2.25.1
+2.17.1
 

@@ -1,8 +1,11 @@
-From 41922c56a8fa6df2534420fe522232d8c448aae2 Mon Sep 17 00:00:00 2001
+From b254e6884c3d1b9ea98c1aab9e5e280ccfa67cf7 Mon Sep 17 00:00:00 2001
+Message-Id: <b254e6884c3d1b9ea98c1aab9e5e280ccfa67cf7.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Yang Shi <yang.shi@windriver.com>
 Date: Mon, 16 Sep 2013 14:09:19 -0700
-Subject: [PATCH 102/325] hrtimer: Move schedule_work call to helper thread
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 102/329] hrtimer: Move schedule_work call to helper thread
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 When run ltp leapsec_timer test, the following call trace is caught:
 
@@ -94,5 +97,5 @@ index 1fd5ec39e7f4..9f3412acdb16 100644
  #else
  
 -- 
-2.25.1
+2.17.1
 

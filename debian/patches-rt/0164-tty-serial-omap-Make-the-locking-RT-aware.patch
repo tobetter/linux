@@ -1,8 +1,11 @@
-From 903fb20864016a06c02befdf5331596064256d18 Mon Sep 17 00:00:00 2001
+From 79dd3527650081cf9b3cc4d470db9c8a4fcb0d7b Mon Sep 17 00:00:00 2001
+Message-Id: <79dd3527650081cf9b3cc4d470db9c8a4fcb0d7b.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Thu, 28 Jul 2011 13:32:57 +0200
-Subject: [PATCH 164/325] tty/serial/omap: Make the locking RT aware
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 164/329] tty/serial/omap: Make the locking RT aware
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The lock is a sleeping lock and local_irq_save() is not the
 optimsation we are looking for. Redo it to make it work on -RT and
@@ -45,5 +48,5 @@ index 6420ae581a80..0f4f41ed9ffa 100644
  
  static int __init
 -- 
-2.25.1
+2.17.1
 

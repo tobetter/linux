@@ -1,9 +1,12 @@
-From 14c8c3829b5d445e2e8d2d0faa3d5aefffd4057d Mon Sep 17 00:00:00 2001
+From 2f88e5f4c41b1ff5bf3338f2a8bd3f1ed178e2e3 Mon Sep 17 00:00:00 2001
+Message-Id: <2f88e5f4c41b1ff5bf3338f2a8bd3f1ed178e2e3.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 15 Nov 2017 17:29:51 +0100
-Subject: [PATCH 097/325] time/hrtimer: avoid schedule_work() with interrupts
+Subject: [PATCH 097/329] time/hrtimer: avoid schedule_work() with interrupts
  disabled
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 The NOHZ code tries to schedule a workqueue with interrupts disabled.
 Since this does not work -RT I am switching it to swork instead.
@@ -56,5 +59,5 @@ index 9019c9caf146..3fab1c50bf1b 100644
  			    void __user *buffer, size_t *lenp,
  			    loff_t *ppos)
 -- 
-2.25.1
+2.17.1
 

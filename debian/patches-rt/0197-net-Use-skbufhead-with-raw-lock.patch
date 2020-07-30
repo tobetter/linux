@@ -1,8 +1,11 @@
-From 2ecccb79d16487a93f3885f752f4d03e13b7e308 Mon Sep 17 00:00:00 2001
+From 34aa1240e0fefa206ce5a66d24bb25db3ec59e91 Mon Sep 17 00:00:00 2001
+Message-Id: <34aa1240e0fefa206ce5a66d24bb25db3ec59e91.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 12 Jul 2011 15:38:34 +0200
-Subject: [PATCH 197/325] net: Use skbufhead with raw lock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 197/329] net: Use skbufhead with raw lock
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Use the rps lock as rawlock so we can keep irq-off regions. It looks low
 latency. However we can't kfree() from this context therefore we defer this
@@ -16,10 +19,10 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
  3 files changed, 33 insertions(+), 8 deletions(-)
 
 diff --git a/include/linux/netdevice.h b/include/linux/netdevice.h
-index 84bbdcbb199a..b816eb0bc1c4 100644
+index 4e14926433ed..8fff010fff6e 100644
 --- a/include/linux/netdevice.h
 +++ b/include/linux/netdevice.h
-@@ -2982,6 +2982,7 @@ struct softnet_data {
+@@ -2979,6 +2979,7 @@ struct softnet_data {
  	unsigned int		dropped;
  	struct sk_buff_head	input_pkt_queue;
  	struct napi_struct	backlog;
@@ -53,10 +56,10 @@ index 25407c206e73..d4d7aea13cc6 100644
  		struct lock_class_key *class)
  {
 diff --git a/net/core/dev.c b/net/core/dev.c
-index 655dbfac09fd..65eeba4e5eac 100644
+index 2bfd79026bb3..598398e3c841 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
-@@ -218,14 +218,14 @@ static inline struct hlist_head *dev_index_hash(struct net *net, int ifindex)
+@@ -219,14 +219,14 @@ static inline struct hlist_head *dev_index_hash(struct net *net, int ifindex)
  static inline void rps_lock(struct softnet_data *sd)
  {
  #ifdef CONFIG_RPS
@@ -73,7 +76,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  #endif
  }
  
-@@ -5248,7 +5248,7 @@ static void flush_backlog(struct work_struct *work)
+@@ -5253,7 +5253,7 @@ static void flush_backlog(struct work_struct *work)
  	skb_queue_walk_safe(&sd->input_pkt_queue, skb, tmp) {
  		if (skb->dev->reg_state == NETREG_UNREGISTERING) {
  			__skb_unlink(skb, &sd->input_pkt_queue);
@@ -82,7 +85,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  			input_queue_head_incr(sd);
  		}
  	}
-@@ -5258,11 +5258,14 @@ static void flush_backlog(struct work_struct *work)
+@@ -5263,11 +5263,14 @@ static void flush_backlog(struct work_struct *work)
  	skb_queue_walk_safe(&sd->process_queue, skb, tmp) {
  		if (skb->dev->reg_state == NETREG_UNREGISTERING) {
  			__skb_unlink(skb, &sd->process_queue);
@@ -98,7 +101,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  }
  
  static void flush_all_backlogs(void)
-@@ -5841,7 +5844,9 @@ static int process_backlog(struct napi_struct *napi, int quota)
+@@ -5846,7 +5849,9 @@ static int process_backlog(struct napi_struct *napi, int quota)
  	while (again) {
  		struct sk_buff *skb;
  
@@ -108,7 +111,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  			rcu_read_lock();
  			__netif_receive_skb(skb);
  			rcu_read_unlock();
-@@ -5849,9 +5854,9 @@ static int process_backlog(struct napi_struct *napi, int quota)
+@@ -5854,9 +5859,9 @@ static int process_backlog(struct napi_struct *napi, int quota)
  			if (++work >= quota)
  				return work;
  
@@ -119,7 +122,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  		rps_lock(sd);
  		if (skb_queue_empty(&sd->input_pkt_queue)) {
  			/*
-@@ -6316,13 +6321,21 @@ static __latent_entropy void net_rx_action(struct softirq_action *h)
+@@ -6321,13 +6326,21 @@ static __latent_entropy void net_rx_action(struct softirq_action *h)
  	unsigned long time_limit = jiffies +
  		usecs_to_jiffies(netdev_budget_usecs);
  	int budget = netdev_budget;
@@ -141,7 +144,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  	for (;;) {
  		struct napi_struct *n;
  
-@@ -9506,10 +9519,13 @@ static int dev_cpu_dead(unsigned int oldcpu)
+@@ -9520,10 +9533,13 @@ static int dev_cpu_dead(unsigned int oldcpu)
  		netif_rx_ni(skb);
  		input_queue_head_incr(oldsd);
  	}
@@ -156,7 +159,7 @@ index 655dbfac09fd..65eeba4e5eac 100644
  
  	return 0;
  }
-@@ -9820,8 +9836,9 @@ static int __init net_dev_init(void)
+@@ -9834,8 +9850,9 @@ static int __init net_dev_init(void)
  
  		INIT_WORK(flush, flush_backlog);
  
@@ -169,5 +172,5 @@ index 655dbfac09fd..65eeba4e5eac 100644
  		skb_queue_head_init(&sd->xfrm_backlog);
  #endif
 -- 
-2.25.1
+2.17.1
 

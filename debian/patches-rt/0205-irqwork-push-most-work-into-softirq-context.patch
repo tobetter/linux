@@ -1,8 +1,11 @@
-From 1df56a786174e8a45037c5f0be6c1c34d18162a3 Mon Sep 17 00:00:00 2001
+From 3aed2fcc4d4450f9800232001c493c228ca96317 Mon Sep 17 00:00:00 2001
+Message-Id: <3aed2fcc4d4450f9800232001c493c228ca96317.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 23 Jun 2015 15:32:51 +0200
-Subject: [PATCH 205/325] irqwork: push most work into softirq context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 205/329] irqwork: push most work into softirq context
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Initially we defered all irqwork into softirq because we didn't want the
 latency spikes if perf or another user was busy and delayed the RT task.
@@ -260,5 +263,5 @@ index 3fab1c50bf1b..2fcd56aa6092 100644
  	if (IS_ENABLED(CONFIG_NO_HZ_COMMON))
  		__run_timers(this_cpu_ptr(&timer_bases[BASE_DEF]));
 -- 
-2.25.1
+2.17.1
 

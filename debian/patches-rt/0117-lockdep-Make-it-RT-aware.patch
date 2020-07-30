@@ -1,8 +1,11 @@
-From 8ed2b42d1e41402d585e7907ef754461cda3ff25 Mon Sep 17 00:00:00 2001
+From d95c9b99941927302bb971d15be6c1aa134b9651 Mon Sep 17 00:00:00 2001
+Message-Id: <d95c9b99941927302bb971d15be6c1aa134b9651.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 17 Jul 2011 18:51:23 +0200
-Subject: [PATCH 117/325] lockdep: Make it RT aware
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 117/329] lockdep: Make it RT aware
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 teach lockdep that we don't really do softirqs on -RT.
 
@@ -54,10 +57,10 @@ index 21619c92c377..b20eeb25e9fa 100644
  	defined(CONFIG_PREEMPT_TRACER)
   extern void stop_critical_timings(void);
 diff --git a/kernel/locking/lockdep.c b/kernel/locking/lockdep.c
-index 1e272f6a01e7..1938b4bfb098 100644
+index 8a1758b094b7..376b1ef4396a 100644
 --- a/kernel/locking/lockdep.c
 +++ b/kernel/locking/lockdep.c
-@@ -3826,6 +3826,7 @@ static void check_flags(unsigned long flags)
+@@ -3830,6 +3830,7 @@ static void check_flags(unsigned long flags)
  		}
  	}
  
@@ -65,7 +68,7 @@ index 1e272f6a01e7..1938b4bfb098 100644
  	/*
  	 * We dont accurately track softirq state in e.g.
  	 * hardirq contexts (such as on 4KSTACKS), so only
-@@ -3840,6 +3841,7 @@ static void check_flags(unsigned long flags)
+@@ -3844,6 +3845,7 @@ static void check_flags(unsigned long flags)
  			DEBUG_LOCKS_WARN_ON(!current->softirqs_enabled);
  		}
  	}
@@ -74,5 +77,5 @@ index 1e272f6a01e7..1938b4bfb098 100644
  	if (!debug_locks)
  		print_irqtrace_events(current);
 -- 
-2.25.1
+2.17.1
 

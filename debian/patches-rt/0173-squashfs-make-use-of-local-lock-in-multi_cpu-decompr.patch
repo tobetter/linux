@@ -1,9 +1,12 @@
-From faaeaed6663b746f33b73dce36402da1043f70e6 Mon Sep 17 00:00:00 2001
+From 7eeaa5c0f5e63f15e6236775aaef5f8d535e5be3 Mon Sep 17 00:00:00 2001
+Message-Id: <7eeaa5c0f5e63f15e6236775aaef5f8d535e5be3.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Julia Cartwright <julia@ni.com>
 Date: Mon, 7 May 2018 08:58:57 -0500
-Subject: [PATCH 173/325] squashfs: make use of local lock in multi_cpu
+Subject: [PATCH 173/329] squashfs: make use of local lock in multi_cpu
  decompressor
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Currently, the squashfs multi_cpu decompressor makes use of
 get_cpu_ptr()/put_cpu_ptr(), which unconditionally disable preemption
@@ -68,5 +71,5 @@ index 23a9c28ad8ea..6a73c4fa88e7 100644
  	if (res < 0)
  		ERROR("%s decompression failed, data probably corrupt\n",
 -- 
-2.25.1
+2.17.1
 

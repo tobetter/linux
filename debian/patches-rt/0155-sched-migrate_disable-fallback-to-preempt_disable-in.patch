@@ -1,9 +1,12 @@
-From 3e776ffb2eb0413bfae8ab630436d01fc9850ab9 Mon Sep 17 00:00:00 2001
+From 9f19a10ac9dade26a00dc5f2858f6fcb7a8235c9 Mon Sep 17 00:00:00 2001
+Message-Id: <9f19a10ac9dade26a00dc5f2858f6fcb7a8235c9.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 5 Jul 2018 14:44:51 +0200
-Subject: [PATCH 155/325] sched/migrate_disable: fallback to preempt_disable()
+Subject: [PATCH 155/329] sched/migrate_disable: fallback to preempt_disable()
  instead barrier()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 On SMP + !RT migrate_disable() is still around. It is not part of spin_lock()
 anymore so it has almost no users. However the futex code has a workaround for
@@ -71,7 +74,7 @@ index 9eafc34898b4..ed8413e7140f 100644
  {
  	return 0;
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 682cf84a7e1b..a38a2c2a8fe4 100644
+index 50197f5c4506..4a4f03a8d8d4 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -667,7 +667,7 @@ struct task_struct {
@@ -94,7 +97,7 @@ index 682cf84a7e1b..a38a2c2a8fe4 100644
  # endif
  #endif
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index d49580cb0eb2..3b2664e691de 100644
+index e3f838371f94..20842da53a59 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1031,7 +1031,7 @@ void set_cpus_allowed_common(struct task_struct *p, const struct cpumask *new_ma
@@ -124,7 +127,7 @@ index d49580cb0eb2..3b2664e691de 100644
  	if (__migrate_disabled(p)) {
  		p->migrate_disable_update = 1;
  		goto out;
-@@ -7210,7 +7210,7 @@ const u32 sched_prio_to_wmult[40] = {
+@@ -7203,7 +7203,7 @@ const u32 sched_prio_to_wmult[40] = {
  
  #undef CREATE_TRACE_POINTS
  
@@ -133,7 +136,7 @@ index d49580cb0eb2..3b2664e691de 100644
  
  static inline void
  update_nr_migratory(struct task_struct *p, long delta)
-@@ -7358,45 +7358,44 @@ EXPORT_SYMBOL(migrate_enable);
+@@ -7351,45 +7351,44 @@ EXPORT_SYMBOL(migrate_enable);
  #elif !defined(CONFIG_SMP) && defined(CONFIG_PREEMPT_RT_BASE)
  void migrate_disable(void)
  {
@@ -200,5 +203,5 @@ index 5027158d3908..dd6c364d6f01 100644
  #endif
  	P(nr_cpus_allowed);
 -- 
-2.25.1
+2.17.1
 

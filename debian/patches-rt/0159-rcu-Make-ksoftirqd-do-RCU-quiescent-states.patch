@@ -1,8 +1,11 @@
-From 64023a5804af7927d9662f817f6949774889b17c Mon Sep 17 00:00:00 2001
+From 4bb3f9983975f5f2ca73d8e9fd18e9ba57ad2796 Mon Sep 17 00:00:00 2001
+Message-Id: <4bb3f9983975f5f2ca73d8e9fd18e9ba57ad2796.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Date: Wed, 5 Oct 2011 11:45:18 -0700
-Subject: [PATCH 159/325] rcu: Make ksoftirqd do RCU quiescent states
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Subject: [PATCH 159/329] rcu: Make ksoftirqd do RCU quiescent states
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Implementing RCU-bh in terms of RCU-preempt makes the system vulnerable
 to network-based denial-of-service attacks.  This patch therefore
@@ -113,5 +116,5 @@ index e9ce51e19e87..938e64c69d18 100644
  /*
   * Prepare a CPU for idle from an RCU perspective.  The first major task
 -- 
-2.25.1
+2.17.1
 

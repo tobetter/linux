@@ -1,12 +1,15 @@
-From 933664614b03add80f4578bbb30de2698b553234 Mon Sep 17 00:00:00 2001
+From 8458acc14dc949f69fe7ff87873ce4766546ae35 Mon Sep 17 00:00:00 2001
+Message-Id: <8458acc14dc949f69fe7ff87873ce4766546ae35.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 31 Aug 2016 17:21:56 +0200
-Subject: [PATCH 202/325] net: add back the missing serialization in
+Subject: [PATCH 202/329] net: add back the missing serialization in
  ip_send_unicast_reply()
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 Some time ago Sami Pietikäinen reported a crash on -RT in
 ip_send_unicast_reply() which was later fixed by Nicholas Mc Guire
@@ -95,5 +98,5 @@ index 6da393016c11..105e94ff1095 100644
  }
  
 -- 
-2.25.1
+2.17.1
 

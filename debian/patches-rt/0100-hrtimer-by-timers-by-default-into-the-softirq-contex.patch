@@ -1,9 +1,12 @@
-From b09a6ad039102ca18a66df006771be4c9a4679c7 Mon Sep 17 00:00:00 2001
+From 0438317cbda3b7d1f46b5e1e2fd0df0666c8a523 Mon Sep 17 00:00:00 2001
+Message-Id: <0438317cbda3b7d1f46b5e1e2fd0df0666c8a523.1594742966.git.zanussi@kernel.org>
+In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Fri, 3 Jul 2009 08:44:31 -0500
-Subject: [PATCH 100/325] hrtimer: by timers by default into the softirq
+Subject: [PATCH 100/329] hrtimer: by timers by default into the softirq
  context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.115-rt48.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
 
 We can't have hrtimers callbacks running in hardirq context on RT. Therefore
 the timers are deferred to the softirq context by default.
@@ -66,10 +69,10 @@ index 8714f1a37d84..082147c07831 100644
  
  /*
 diff --git a/kernel/events/core.c b/kernel/events/core.c
-index 8c70ee23fbe9..9804b1a8b0fa 100644
+index a17e6302ded5..e3ea20b36776 100644
 --- a/kernel/events/core.c
 +++ b/kernel/events/core.c
-@@ -1102,7 +1102,7 @@ static void __perf_mux_hrtimer_init(struct perf_cpu_context *cpuctx, int cpu)
+@@ -1107,7 +1107,7 @@ static void __perf_mux_hrtimer_init(struct perf_cpu_context *cpuctx, int cpu)
  	cpuctx->hrtimer_interval = ns_to_ktime(NSEC_PER_MSEC * interval);
  
  	raw_spin_lock_init(&cpuctx->hrtimer_lock);
@@ -78,7 +81,7 @@ index 8c70ee23fbe9..9804b1a8b0fa 100644
  	timer->function = perf_mux_hrtimer_handler;
  }
  
-@@ -9269,7 +9269,7 @@ static void perf_swevent_init_hrtimer(struct perf_event *event)
+@@ -9284,7 +9284,7 @@ static void perf_swevent_init_hrtimer(struct perf_event *event)
  	if (!is_sampling_event(event))
  		return;
  
@@ -88,7 +91,7 @@ index 8c70ee23fbe9..9804b1a8b0fa 100644
  
  	/*
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 584978640512..2f6b4365d070 100644
+index dab0e4382492..dc70ec937317 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -315,7 +315,7 @@ static void hrtick_rq_init(struct rq *rq)
@@ -101,7 +104,7 @@ index 584978640512..2f6b4365d070 100644
  }
  #else	/* CONFIG_SCHED_HRTICK */
 diff --git a/kernel/sched/deadline.c b/kernel/sched/deadline.c
-index 4b13df38c069..974a8f9b615a 100644
+index 311b3cf1270e..7d47c9b9726e 100644
 --- a/kernel/sched/deadline.c
 +++ b/kernel/sched/deadline.c
 @@ -1086,7 +1086,7 @@ void init_dl_task_timer(struct sched_dl_entity *dl_se)
@@ -114,7 +117,7 @@ index 4b13df38c069..974a8f9b615a 100644
  }
  
 diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index fe58e95484cf..f35eb8130921 100644
+index 97de4ea7dbea..26ed8b64ebef 100644
 --- a/kernel/sched/fair.c
 +++ b/kernel/sched/fair.c
 @@ -4951,9 +4951,9 @@ void init_cfs_bandwidth(struct cfs_bandwidth *cfs_b)
@@ -233,5 +236,5 @@ index 6d60701dc636..328620fe85f6 100644
  	hrtimer_start(hrtimer, ns_to_ktime(sample_period),
  		      HRTIMER_MODE_REL_PINNED);
 -- 
-2.25.1
+2.17.1
 
