@@ -1,4 +1,4 @@
-linux-4.19 (4.19.132-1~deb9u1) UNRELEASED; urgency=medium
+linux-4.19 (4.19.132-1~deb9u1) stretch-security; urgency=high
 
   * Rebuild for stretch:
     - Disable building linux-libc-dev and unversioned tools packages
@@ -8,7 +8,7 @@ linux-4.19 (4.19.132-1~deb9u1) UNRELEASED; urgency=medium
     - Disable code signing and lockdown support
     - Change ABI number to 0.bpo.10
 
- -- Ben Hutchings <benh@debian.org>  Fri, 12 Jun 2020 21:39:21 +0100
+ -- Ben Hutchings <benh@debian.org>  Tue, 04 Aug 2020 16:57:14 +0100
 
 linux (4.19.132-1) buster; urgency=medium
 
