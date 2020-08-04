@@ -5,7 +5,7 @@ linux-4.19 (4.19.132-1~deb9u1) UNRELEASED; urgency=medium
     - Disable building installer udebs and remove build-dependency on
       kernel-wedge
     - Disable building linux-compiler-gcc-6-*
-    - Disable code signing
+    - Disable code signing and lockdown support
     - Change ABI number to 0.bpo.10
 
  -- Ben Hutchings <benh@debian.org>  Fri, 12 Jun 2020 21:39:21 +0100
