@@ -359,6 +359,35 @@
 	};
 };
 
+&cpub_opp_table_1 {
+	opp-1800000000 {
+		opp-hz = /bits/ 64 <1800000000>;
+		opp-microvolt = <981000>;
+	};
+};
+
+&cpu_thermal {
+	trips {
+		cpu_warm: cpu-warm {
+			temperature = <70000>; /* millicelsius */
+			hysteresis = <2000>; /* millicelsius */
+			type = "passive";
+		};
+	};
+	cooling-maps {
+		cpufreq_map0 {
+			trip = <&cpu_warm>;
+			contribution = <1024>;
+			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+		};
+		cpufreq_map1 {
+			trip = <&cpu_warm>;
+			contribution = <1024>;
+			cooling-device = <&cpu100 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+		};
+	};
+};
+
 &ext_mdio {
 	external_phy: ethernet-phy@0 {
 		/* Realtek RTL8211F (0x001cc916) */
