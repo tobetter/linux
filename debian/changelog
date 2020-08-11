@@ -1,3 +1,10 @@
+linux-4.19 (4.19.132-1~deb9u2) stretch-security; urgency=medium
+
+  * Build-Depend on libbabeltrace-ctf-dev with no alternative, as buildds
+    for stable suites give up after looking at the first alternative
+
+ -- Ben Hutchings <benh@debian.org>  Tue, 11 Aug 2020 13:47:06 +0100
+
 linux-4.19 (4.19.132-1~deb9u1) stretch-security; urgency=high
 
   * Rebuild for stretch:
