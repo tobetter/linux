@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2013 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2017 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -11,12 +11,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
- *
- *
- ******************************************************************************/
+ *****************************************************************************/
 #ifndef __OSDEP_BSD_SERVICE_H_
 #define __OSDEP_BSD_SERVICE_H_
 
@@ -78,42 +73,37 @@
 #include <sys/sema.h>
 #include <sys/pcpu.h> /* XXX for PCPU_GET */
 //	typedef struct 	semaphore _sema;
-typedef struct 	sema _sema;
+	typedef struct 	sema _sema;
 //	typedef	spinlock_t	_lock;
-typedef	struct mtx	_lock;
-typedef struct mtx 		_mutex;
-typedef struct timer_list _timer;
-struct list_head {
+	typedef	struct mtx	_lock;
+	typedef struct mtx 		_mutex;
+	typedef struct rtw_timer_list _timer;
+	struct list_head {
 	struct list_head *next, *prev;
-};
-struct	__queue {
-	struct	list_head	queue;
-	_lock	lock;
-};
+	};
+	struct	__queue	{
+		struct	list_head	queue;	
+		_lock	lock;
+	};
 
-//typedef	struct sk_buff	_pkt;
-typedef	struct mbuf	_pkt;
-typedef struct mbuf	_buffer;
-
-typedef struct	__queue	_queue;
-typedef struct	list_head	_list;
-typedef	int	_OS_STATUS;
-//typedef u32	_irqL;
-typedef unsigned long _irqL;
-typedef	struct	ifnet * _nic_hdl;
-
-typedef pid_t		_thread_hdl_;
+	typedef	struct mbuf _pkt;
+	typedef struct mbuf	_buffer;
+	
+	typedef struct	__queue	_queue;
+	typedef struct	list_head	_list;
+	typedef	int	_OS_STATUS;
+	//typedef u32	_irqL;
+	typedef unsigned long _irqL;
+	typedef	struct	ifnet * _nic_hdl;
+	
+	typedef pid_t		_thread_hdl_;
 //	typedef struct thread		_thread_hdl_;
-typedef void		thread_return;
-typedef void*	thread_context;
+	typedef void		thread_return;
+	typedef void*	thread_context;
 
-//#define thread_exit() complete_and_exit(NULL, 0)
-
-#define thread_exit() do{printf("%s", "RTKTHREAD_exit");}while(0)
-
-typedef void timer_hdl_return;
-typedef void* timer_hdl_context;
-typedef struct work_struct _workitem;
+	typedef void timer_hdl_return;
+	typedef void* timer_hdl_context;
+	typedef struct work_struct _workitem;
 
 #define   KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 /* emulate a modern version */
@@ -129,7 +119,7 @@ typedef struct work_struct _workitem;
 #define LIST_CONTAINOR(ptr, type, member) \
         ((type *)((char *)(ptr)-(SIZE_T)(&((type *)0)->member)))
 #define container_of(p,t,n) (t*)((p)-&(((t*)0)->n))
-/*
+/* 
  * Linux timers are emulated using FreeBSD callout functions
  * (and taskqueue functionality).
  *
@@ -138,32 +128,27 @@ typedef struct work_struct _workitem;
  * See (linux_compat) processes.c
  *
  */
-struct timer_list {
-
-	/* FreeBSD callout related fields */
+struct rtw_timer_list {
 	struct callout callout;
-
-	//timeout function
-	void (*function)(void*);
-	//argument
+	void (*function)(void *);
 	void *arg;
-
 };
+
 struct workqueue_struct;
 struct work_struct;
 typedef void (*work_func_t)(struct work_struct *work);
 /* Values for the state of an item of work (work_struct) */
 typedef enum work_state {
-	WORK_STATE_UNSET = 0,
-	WORK_STATE_CALLOUT_PENDING = 1,
-	WORK_STATE_TASK_PENDING = 2,
-	WORK_STATE_WORK_CANCELLED = 3
+        WORK_STATE_UNSET = 0,
+        WORK_STATE_CALLOUT_PENDING = 1,
+        WORK_STATE_TASK_PENDING = 2,
+        WORK_STATE_WORK_CANCELLED = 3        
 } work_state_t;
 
 struct work_struct {
-	struct task task; /* FreeBSD task */
-	work_state_t state; /* the pending or otherwise state of work. */
-	work_func_t func;
+        struct task task; /* FreeBSD task */
+        work_state_t state; /* the pending or otherwise state of work. */
+        work_func_t func;       
 };
 #define spin_unlock_irqrestore mtx_unlock_irqrestore
 #define spin_unlock_bh mtx_unlock_irqrestore
@@ -177,9 +162,9 @@ union ktime {
 #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
 	struct {
 #ifdef __BIG_ENDIAN
-		s32	sec, nsec;
+	s32	sec, nsec;
 #else
-		s32	nsec, sec;
+	s32	nsec, sec;
 #endif
 	} tv;
 #endif
@@ -191,10 +176,10 @@ typedef unsigned char *sk_buff_data_t;
 typedef union ktime ktime_t;		/* Kill this */
 
 void rtw_mtx_lock(_lock *plock);
-
+	
 void rtw_mtx_unlock(_lock *plock);
 
-/**
+/** 
  *	struct sk_buff - socket buffer
  *	@next: Next buffer in list
  *	@prev: Previous buffer in list
@@ -223,7 +208,7 @@ void rtw_mtx_unlock(_lock *plock);
  *	@priority: Packet queueing priority
  *	@users: User count - see {datagram,tcp}.c
  *	@protocol: Packet protocol from driver
- *	@truesize: Buffer size
+ *	@truesize: Buffer size 
  *	@head: Head of buffer
  *	@data: Data head pointer
  *	@tail: Tail pointer
@@ -274,28 +259,28 @@ struct sk_buff {
 	struct	sec_path	*sp;
 #endif
 	unsigned int		len,
-	               data_len;
+				data_len;
 	u16			mac_len,
-	            hdr_len;
+				hdr_len;
 	union {
 		u32		csum;
 		struct {
 			u16	csum_start;
 			u16	csum_offset;
-		} smbol2;
-	} smbol1;
+		}smbol2;
+	}smbol1;
 	u32			priority;
 	kmemcheck_bitfield_begin(flags1);
 	u8			local_df:1,
-	       cloned:1,
-	       ip_summed:2,
-	       nohdr:1,
-	       nfctinfo:3;
+				cloned:1,
+				ip_summed:2,
+				nohdr:1,
+				nfctinfo:3;
 	u8			pkt_type:3,
-	       fclone:2,
-	       ipvs_property:1,
-	       peeked:1,
-	       nf_trace:1;
+				fclone:2,
+				ipvs_property:1,
+				peeked:1,
+				nf_trace:1;
 	kmemcheck_bitfield_end(flags1);
 	u16			protocol;
 
@@ -322,7 +307,7 @@ struct sk_buff {
 	u16			queue_mapping:16;
 #ifdef CONFIG_IPV6_NDISC_NODETYPE
 	u8			ndisc_nodetype:2,
-	       deliver_no_wcard:1;
+				deliver_no_wcard:1;
 #else
 	u8			deliver_no_wcard:1;
 #endif
@@ -339,7 +324,7 @@ struct sk_buff {
 	union {
 		u32		mark;
 		u32		dropcount;
-	} symbol3;
+	}symbol3;
 
 	u16			vlan_tci;
 
@@ -350,7 +335,7 @@ struct sk_buff {
 	sk_buff_data_t		tail;
 	sk_buff_data_t		end;
 	unsigned char		*head,
-	              *data;
+				*data;
 	unsigned int		truesize;
 	atomic_t		users;
 };
@@ -381,19 +366,19 @@ static inline unsigned char *__skb_pull(struct sk_buff *skb, unsigned int len)
 }
 static inline unsigned char *skb_pull(struct sk_buff *skb, unsigned int len)
 {
-#ifdef PLATFORM_FREEBSD
+	#ifdef PLATFORM_FREEBSD
 	return __skb_pull(skb, len);
-#else
+	#else
 	return unlikely(len > skb->len) ? NULL : __skb_pull(skb, len);
-#endif //PLATFORM_FREEBSD
+	#endif //PLATFORM_FREEBSD
 }
 static inline u32 skb_queue_len(const struct sk_buff_head *list_)
 {
 	return list_->qlen;
 }
 static inline void __skb_insert(struct sk_buff *newsk,
-                                struct sk_buff *prev, struct sk_buff *next,
-                                struct sk_buff_head *list)
+				struct sk_buff *prev, struct sk_buff *next,
+				struct sk_buff_head *list)
 {
 	newsk->next = next;
 	newsk->prev = prev;
@@ -401,13 +386,13 @@ static inline void __skb_insert(struct sk_buff *newsk,
 	list->qlen++;
 }
 static inline void __skb_queue_before(struct sk_buff_head *list,
-                                      struct sk_buff *next,
-                                      struct sk_buff *newsk)
+				      struct sk_buff *next,
+				      struct sk_buff *newsk)
 {
 	__skb_insert(newsk, next->prev, next, list);
 }
 static inline void skb_queue_tail(struct sk_buff_head *list,
-                                  struct sk_buff *newsk)
+				   struct sk_buff *newsk)
 {
 	mtx_lock(&list->lock);
 	__skb_queue_before(list, (struct sk_buff *)list, newsk);
@@ -486,7 +471,7 @@ void dev_kfree_skb_any(struct sk_buff *skb);
  *
  * These macros will use the SYSINIT framework to call a specified
  * function (with no arguments) on module loading or unloading.
- *
+ * 
  */
 
 void module_init_exit_wrapper(void *arg);
@@ -503,13 +488,13 @@ void module_init_exit_wrapper(void *arg);
 
 /*
  * The usb_register and usb_deregister functions are used to register
- * usb drivers with the usb subsystem.
+ * usb drivers with the usb subsystem. 
  */
 int usb_register(struct usb_driver *driver);
 int usb_deregister(struct usb_driver *driver);
 
 /*
- * usb_get_dev and usb_put_dev - increment/decrement the reference count
+ * usb_get_dev and usb_put_dev - increment/decrement the reference count 
  * of the usb device structure.
  *
  * Original body of usb_get_dev:
@@ -524,13 +509,13 @@ int usb_deregister(struct usb_driver *driver);
 static inline struct usb_device *
 usb_get_dev(struct usb_device *dev)
 {
-	return dev;
+        return dev;
 }
 
-static inline void
+static inline void 
 usb_put_dev(struct usb_device *dev)
 {
-	return;
+        return;
 }
 
 
@@ -539,12 +524,12 @@ int rtw_usb_submit_urb(struct urb *urb, uint16_t mem_flags);
 int rtw_usb_unlink_urb(struct urb *urb);
 int rtw_usb_clear_halt(struct usb_device *dev, struct usb_host_endpoint *uhe);
 int rtw_usb_control_msg(struct usb_device *dev, struct usb_host_endpoint *uhe,
-                        uint8_t request, uint8_t requesttype,
-                        uint16_t value, uint16_t index, void *data,
-                        uint16_t size, usb_timeout_t timeout);
+    uint8_t request, uint8_t requesttype,
+    uint16_t value, uint16_t index, void *data,
+    uint16_t size, usb_timeout_t timeout);
 int rtw_usb_set_interface(struct usb_device *dev, uint8_t iface_no, uint8_t alt_index);
 int rtw_usb_setup_endpoint(struct usb_device *dev,
-                           struct usb_host_endpoint *uhe, usb_size_t bufsize);
+    struct usb_host_endpoint *uhe, usb_size_t bufsize);
 struct urb *rtw_usb_alloc_urb(uint16_t iso_packets, uint16_t mem_flags);
 struct usb_host_endpoint *rtw_usb_find_host_endpoint(struct usb_device *dev, uint8_t type, uint8_t ep);
 struct usb_host_interface *rtw_usb_altnum_to_altsetting(const struct usb_interface *intf, uint8_t alt_index);
@@ -558,10 +543,10 @@ void rtw_usb_init_urb(struct urb *urb);
 void rtw_usb_kill_urb(struct urb *urb);
 void rtw_usb_set_intfdata(struct usb_interface *intf, void *data);
 void rtw_usb_fill_bulk_urb(struct urb *urb, struct usb_device *udev,
-                           struct usb_host_endpoint *uhe, void *buf,
-                           int length, usb_complete_t callback, void *arg);
+    struct usb_host_endpoint *uhe, void *buf,
+    int length, usb_complete_t callback, void *arg);
 int rtw_usb_bulk_msg(struct usb_device *udev, struct usb_host_endpoint *uhe,
-                     void *data, int len, uint16_t *pactlen, usb_timeout_t timeout);
+    void *data, int len, uint16_t *pactlen, usb_timeout_t timeout);
 void *usb_get_intfdata(struct usb_interface *intf);
 int usb_linux_init_endpoints(struct usb_device *udev);
 
@@ -602,18 +587,18 @@ typedef unsigned gfp_t;
 __inline static _list *get_next(_list	*list)
 {
 	return list->next;
-}
+}	
 
 __inline static _list	*get_list_head(_queue	*queue)
 {
 	return (&(queue->queue));
 }
 
-
+	
 #define LIST_CONTAINOR(ptr, type, member) \
-        ((type *)((char *)(ptr)-(SIZE_T)(&((type *)0)->member)))
+        ((type *)((char *)(ptr)-(SIZE_T)(&((type *)0)->member)))	
 
-
+        
 __inline static void _enter_critical(_lock *plock, _irqL *pirqL)
 {
 	spin_lock_irqsave(plock, *pirqL);
@@ -647,7 +632,7 @@ __inline static void _exit_critical_bh(_lock *plock, _irqL *pirqL)
 __inline static void _enter_critical_mutex(_mutex *pmutex, _irqL *pirqL)
 {
 
-	mtx_lock(pmutex);
+		mtx_lock(pmutex);
 
 }
 
@@ -655,7 +640,7 @@ __inline static void _enter_critical_mutex(_mutex *pmutex, _irqL *pirqL)
 __inline static void _exit_critical_mutex(_mutex *pmutex, _irqL *pirqL)
 {
 
-	mtx_unlock(pmutex);
+		mtx_unlock(pmutex);
 
 }
 static inline void __list_del(struct list_head * prev, struct list_head * next)
@@ -674,7 +659,31 @@ __inline static void rtw_list_delete(_list *plist)
 	INIT_LIST_HEAD(plist);
 }
 
-__inline static void _init_timer(_timer *ptimer,_nic_hdl padapter,void *pfunc,void* cntx)
+static inline void timer_hdl(void *ctx)
+{
+	_timer *timer = (_timer *)ctx;
+
+	rtw_mtx_lock(NULL);
+	if (callout_pending(&timer->callout)) {
+		/* callout was reset */
+		rtw_mtx_unlock(NULL);
+		return;
+	}
+
+	if (!callout_active(&timer->callout)) {
+		/* callout was stopped */
+		rtw_mtx_unlock(NULL);
+		return;
+	}
+
+	callout_deactivate(&timer->callout);
+
+	timer->function(timer->arg);
+
+	rtw_mtx_unlock(NULL);
+}
+
+static inline void _init_timer(_timer *ptimer, _nic_hdl padapter, void *pfunc, void *cntx)
 {
 	ptimer->function = pfunc;
 	ptimer->arg = cntx;
@@ -682,22 +691,20 @@ __inline static void _init_timer(_timer *ptimer,_nic_hdl padapter,void *pfunc,vo
 }
 
 __inline static void _set_timer(_timer *ptimer,u32 delay_time)
-{
-	//	mod_timer(ptimer , (jiffies+(delay_time*HZ/1000)));
-	if(ptimer->function && ptimer->arg) {
+{	
+	if (ptimer->function && ptimer->arg) {
 		rtw_mtx_lock(NULL);
-		callout_reset(&ptimer->callout, delay_time,ptimer->function, ptimer->arg);
+		callout_reset(&ptimer->callout, delay_time, timer_hdl, ptimer);
 		rtw_mtx_unlock(NULL);
 	}
 }
 
 __inline static void _cancel_timer(_timer *ptimer,u8 *bcancelled)
 {
-	//	del_timer_sync(ptimer);
-	//	*bcancelled=  _TRUE;//TRUE ==1; FALSE==0
 	rtw_mtx_lock(NULL);
 	callout_drain(&ptimer->callout);
 	rtw_mtx_unlock(NULL);
+	*bcancelled = 1; /* assume an pending timer to be canceled */
 }
 
 __inline static void _init_workitem(_workitem *pwork, void *pfunc, PVOID cntx)

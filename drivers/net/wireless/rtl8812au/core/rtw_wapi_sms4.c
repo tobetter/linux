@@ -1,3 +1,17 @@
+/******************************************************************************
+ *
+ * Copyright(c) 2016 - 2017 Realtek Corporation.
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ *****************************************************************************/
 #ifdef CONFIG_WAPI_SUPPORT
 
 #include <linux/unistd.h>
@@ -9,7 +23,7 @@
 #ifdef CONFIG_WAPI_SW_SMS4
 
 #define WAPI_LITTLE_ENDIAN
-//#define BIG_ENDIAN
+/* #define BIG_ENDIAN */
 #define ENCRYPT  0
 #define DECRYPT  1
 
@@ -17,22 +31,22 @@
 /**********************************************************
  **********************************************************/
 const u8 Sbox[256] = {
-	0xd6,0x90,0xe9,0xfe,0xcc,0xe1,0x3d,0xb7,0x16,0xb6,0x14,0xc2,0x28,0xfb,0x2c,0x05,
-	0x2b,0x67,0x9a,0x76,0x2a,0xbe,0x04,0xc3,0xaa,0x44,0x13,0x26,0x49,0x86,0x06,0x99,
-	0x9c,0x42,0x50,0xf4,0x91,0xef,0x98,0x7a,0x33,0x54,0x0b,0x43,0xed,0xcf,0xac,0x62,
-	0xe4,0xb3,0x1c,0xa9,0xc9,0x08,0xe8,0x95,0x80,0xdf,0x94,0xfa,0x75,0x8f,0x3f,0xa6,
-	0x47,0x07,0xa7,0xfc,0xf3,0x73,0x17,0xba,0x83,0x59,0x3c,0x19,0xe6,0x85,0x4f,0xa8,
-	0x68,0x6b,0x81,0xb2,0x71,0x64,0xda,0x8b,0xf8,0xeb,0x0f,0x4b,0x70,0x56,0x9d,0x35,
-	0x1e,0x24,0x0e,0x5e,0x63,0x58,0xd1,0xa2,0x25,0x22,0x7c,0x3b,0x01,0x21,0x78,0x87,
-	0xd4,0x00,0x46,0x57,0x9f,0xd3,0x27,0x52,0x4c,0x36,0x02,0xe7,0xa0,0xc4,0xc8,0x9e,
-	0xea,0xbf,0x8a,0xd2,0x40,0xc7,0x38,0xb5,0xa3,0xf7,0xf2,0xce,0xf9,0x61,0x15,0xa1,
-	0xe0,0xae,0x5d,0xa4,0x9b,0x34,0x1a,0x55,0xad,0x93,0x32,0x30,0xf5,0x8c,0xb1,0xe3,
-	0x1d,0xf6,0xe2,0x2e,0x82,0x66,0xca,0x60,0xc0,0x29,0x23,0xab,0x0d,0x53,0x4e,0x6f,
-	0xd5,0xdb,0x37,0x45,0xde,0xfd,0x8e,0x2f,0x03,0xff,0x6a,0x72,0x6d,0x6c,0x5b,0x51,
-	0x8d,0x1b,0xaf,0x92,0xbb,0xdd,0xbc,0x7f,0x11,0xd9,0x5c,0x41,0x1f,0x10,0x5a,0xd8,
-	0x0a,0xc1,0x31,0x88,0xa5,0xcd,0x7b,0xbd,0x2d,0x74,0xd0,0x12,0xb8,0xe5,0xb4,0xb0,
-	0x89,0x69,0x97,0x4a,0x0c,0x96,0x77,0x7e,0x65,0xb9,0xf1,0x09,0xc5,0x6e,0xc6,0x84,
-	0x18,0xf0,0x7d,0xec,0x3a,0xdc,0x4d,0x20,0x79,0xee,0x5f,0x3e,0xd7,0xcb,0x39,0x48
+	0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7, 0x16, 0xb6, 0x14, 0xc2, 0x28, 0xfb, 0x2c, 0x05,
+	0x2b, 0x67, 0x9a, 0x76, 0x2a, 0xbe, 0x04, 0xc3, 0xaa, 0x44, 0x13, 0x26, 0x49, 0x86, 0x06, 0x99,
+	0x9c, 0x42, 0x50, 0xf4, 0x91, 0xef, 0x98, 0x7a, 0x33, 0x54, 0x0b, 0x43, 0xed, 0xcf, 0xac, 0x62,
+	0xe4, 0xb3, 0x1c, 0xa9, 0xc9, 0x08, 0xe8, 0x95, 0x80, 0xdf, 0x94, 0xfa, 0x75, 0x8f, 0x3f, 0xa6,
+	0x47, 0x07, 0xa7, 0xfc, 0xf3, 0x73, 0x17, 0xba, 0x83, 0x59, 0x3c, 0x19, 0xe6, 0x85, 0x4f, 0xa8,
+	0x68, 0x6b, 0x81, 0xb2, 0x71, 0x64, 0xda, 0x8b, 0xf8, 0xeb, 0x0f, 0x4b, 0x70, 0x56, 0x9d, 0x35,
+	0x1e, 0x24, 0x0e, 0x5e, 0x63, 0x58, 0xd1, 0xa2, 0x25, 0x22, 0x7c, 0x3b, 0x01, 0x21, 0x78, 0x87,
+	0xd4, 0x00, 0x46, 0x57, 0x9f, 0xd3, 0x27, 0x52, 0x4c, 0x36, 0x02, 0xe7, 0xa0, 0xc4, 0xc8, 0x9e,
+	0xea, 0xbf, 0x8a, 0xd2, 0x40, 0xc7, 0x38, 0xb5, 0xa3, 0xf7, 0xf2, 0xce, 0xf9, 0x61, 0x15, 0xa1,
+	0xe0, 0xae, 0x5d, 0xa4, 0x9b, 0x34, 0x1a, 0x55, 0xad, 0x93, 0x32, 0x30, 0xf5, 0x8c, 0xb1, 0xe3,
+	0x1d, 0xf6, 0xe2, 0x2e, 0x82, 0x66, 0xca, 0x60, 0xc0, 0x29, 0x23, 0xab, 0x0d, 0x53, 0x4e, 0x6f,
+	0xd5, 0xdb, 0x37, 0x45, 0xde, 0xfd, 0x8e, 0x2f, 0x03, 0xff, 0x6a, 0x72, 0x6d, 0x6c, 0x5b, 0x51,
+	0x8d, 0x1b, 0xaf, 0x92, 0xbb, 0xdd, 0xbc, 0x7f, 0x11, 0xd9, 0x5c, 0x41, 0x1f, 0x10, 0x5a, 0xd8,
+	0x0a, 0xc1, 0x31, 0x88, 0xa5, 0xcd, 0x7b, 0xbd, 0x2d, 0x74, 0xd0, 0x12, 0xb8, 0xe5, 0xb4, 0xb0,
+	0x89, 0x69, 0x97, 0x4a, 0x0c, 0x96, 0x77, 0x7e, 0x65, 0xb9, 0xf1, 0x09, 0xc5, 0x6e, 0xc6, 0x84,
+	0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48
 };
 
 const u32 CK[32] = {
@@ -49,16 +63,16 @@ const u32 CK[32] = {
 #define Rotl(_x, _y) (((_x) << (_y)) | ((_x) >> (32 - (_y))))
 
 #define ByteSub(_A) (Sbox[(_A) >> 24 & 0xFF] << 24 | \
-                     Sbox[(_A) >> 16 & 0xFF] << 16 | \
-                     Sbox[(_A) >>  8 & 0xFF] <<  8 | \
-                     Sbox[(_A) & 0xFF])
+		     Sbox[(_A) >> 16 & 0xFF] << 16 | \
+		     Sbox[(_A) >>  8 & 0xFF] <<  8 | \
+		     Sbox[(_A) & 0xFF])
 
 #define L1(_B) ((_B) ^ Rotl(_B, 2) ^ Rotl(_B, 10) ^ Rotl(_B, 18) ^ Rotl(_B, 24))
 #define L2(_B) ((_B) ^ Rotl(_B, 13) ^ Rotl(_B, 23))
 
 static void
 xor_block(void *dst, void *src1, void *src2)
-/* 128-bit xor: *dst = *src1 xor *src2. Pointers must be 32-bit aligned  */
+/* 128-bit xor: *dst = *src1 xor *src2. Pointers must be 32-bit aligned */
 {
 	((u32 *)dst)[0] = ((u32 *)src1)[0] ^ ((u32 *)src2)[0];
 	((u32 *)dst)[1] = ((u32 *)src1)[1] ^ ((u32 *)src2)[1];
@@ -164,60 +178,59 @@ void SMS4KeyExt(u8 *Key, u32 *rk, u32 CryptFlag)
 
 
 void WapiSMS4Cryption(u8 *Key, u8 *IV, u8 *Input, u16 InputLength,
-                      u8 *Output, u16 *OutputLength, u32 CryptFlag)
+		      u8 *Output, u16 *OutputLength, u32 CryptFlag)
 {
-	u32 blockNum,i,j, rk[32];
+	u32 blockNum, i, j, rk[32];
 	u16 remainder;
-	u8 blockIn[16],blockOut[16], tempIV[16], k;
+	u8 blockIn[16], blockOut[16], tempIV[16], k;
 
 	*OutputLength = 0;
 	remainder = InputLength & 0x0F;
 	blockNum = InputLength >> 4;
-	if(remainder !=0)
+	if (remainder != 0)
 		blockNum++;
 	else
 		remainder = 16;
 
-	for(k=0; k<16; k++)
-		tempIV[k] = IV[15-k];
+	for (k = 0; k < 16; k++)
+		tempIV[k] = IV[15 - k];
 
 	memcpy(blockIn, tempIV, 16);
 
-	SMS4KeyExt((u8 *)Key, rk,CryptFlag);
+	SMS4KeyExt((u8 *)Key, rk, CryptFlag);
 
-	for(i=0; i<blockNum-1; i++) {
+	for (i = 0; i < blockNum - 1; i++) {
 		SMS4Crypt((u8 *)blockIn, blockOut, rk);
-		xor_block(&Output[i*16], &Input[i*16], blockOut);
-		memcpy(blockIn,blockOut,16);
+		xor_block(&Output[i * 16], &Input[i * 16], blockOut);
+		memcpy(blockIn, blockOut, 16);
 	}
 
-	*OutputLength = i*16;
+	*OutputLength = i * 16;
 
 	SMS4Crypt((u8 *)blockIn, blockOut, rk);
 
-	for(j=0; j<remainder; j++) {
-		Output[i*16+j] = Input[i*16+j] ^ blockOut[j];
-	}
+	for (j = 0; j < remainder; j++)
+		Output[i * 16 + j] = Input[i * 16 + j] ^ blockOut[j];
 	*OutputLength += remainder;
 
 }
 
 void WapiSMS4Encryption(u8 *Key, u8 *IV, u8 *Input, u16 InputLength,
-                        u8 *Output, u16 *OutputLength)
+			u8 *Output, u16 *OutputLength)
 {
 
 	WapiSMS4Cryption(Key, IV, Input, InputLength, Output, OutputLength, ENCRYPT);
 }
 
 void WapiSMS4Decryption(u8 *Key, u8 *IV, u8 *Input, u16 InputLength,
-                        u8 *Output, u16 *OutputLength)
+			u8 *Output, u16 *OutputLength)
 {
-	// OFB mode: is also ENCRYPT flag
+	/* OFB mode: is also ENCRYPT flag */
 	WapiSMS4Cryption(Key, IV, Input, InputLength, Output, OutputLength, ENCRYPT);
 }
 
 void WapiSMS4CalculateMic(u8 *Key, u8 *IV, u8 *Input1, u8 Input1Length,
-                          u8 *Input2, u16 Input2Length, u8 *Output, u8 *OutputLength)
+		  u8 *Input2, u16 Input2Length, u8 *Output, u8 *OutputLength)
 {
 	u32 blockNum, i, remainder, rk[32];
 	u8 BlockIn[16], BlockOut[16], TempBlock[16], tempIV[16], k;
@@ -226,8 +239,8 @@ void WapiSMS4CalculateMic(u8 *Key, u8 *IV, u8 *Input1, u8 Input1Length,
 	remainder = Input1Length & 0x0F;
 	blockNum = Input1Length >> 4;
 
-	for(k=0; k<16; k++)
-		tempIV[k] = IV[15-k];
+	for (k = 0; k < 16; k++)
+		tempIV[k] = IV[15 - k];
 
 	memcpy(BlockIn, tempIV, 16);
 
@@ -235,14 +248,14 @@ void WapiSMS4CalculateMic(u8 *Key, u8 *IV, u8 *Input1, u8 Input1Length,
 
 	SMS4Crypt((u8 *)BlockIn, BlockOut, rk);
 
-	for(i=0; i<blockNum; i++) {
-		xor_block(BlockIn, (Input1+i*16), BlockOut);
+	for (i = 0; i < blockNum; i++) {
+		xor_block(BlockIn, (Input1 + i * 16), BlockOut);
 		SMS4Crypt((u8 *)BlockIn, BlockOut, rk);
 	}
 
-	if(remainder !=0) {
+	if (remainder != 0) {
 		memset(TempBlock, 0, 16);
-		memcpy(TempBlock, (Input1+blockNum*16), remainder);
+		memcpy(TempBlock, (Input1 + blockNum * 16), remainder);
 
 		xor_block(BlockIn, TempBlock, BlockOut);
 		SMS4Crypt((u8 *)BlockIn, BlockOut, rk);
@@ -251,14 +264,14 @@ void WapiSMS4CalculateMic(u8 *Key, u8 *IV, u8 *Input1, u8 Input1Length,
 	remainder = Input2Length & 0x0F;
 	blockNum = Input2Length >> 4;
 
-	for(i=0; i<blockNum; i++) {
-		xor_block(BlockIn, (Input2+i*16), BlockOut);
+	for (i = 0; i < blockNum; i++) {
+		xor_block(BlockIn, (Input2 + i * 16), BlockOut);
 		SMS4Crypt((u8 *)BlockIn, BlockOut, rk);
 	}
 
-	if(remainder !=0) {
+	if (remainder != 0) {
 		memset(TempBlock, 0, 16);
-		memcpy(TempBlock, (Input2+blockNum*16), remainder);
+		memcpy(TempBlock, (Input2 + blockNum * 16), remainder);
 
 		xor_block(BlockIn, TempBlock, BlockOut);
 		SMS4Crypt((u8 *)BlockIn, BlockOut, rk);
@@ -269,12 +282,12 @@ void WapiSMS4CalculateMic(u8 *Key, u8 *IV, u8 *Input1, u8 Input1Length,
 }
 
 void SecCalculateMicSMS4(
-    u8		KeyIdx,
-    u8        *MicKey,
-    u8        *pHeader,
-    u8        *pData,
-    u16       DataLen,
-    u8        *MicBuffer
+	u8		KeyIdx,
+	u8        *MicKey,
+	u8        *pHeader,
+	u8        *pData,
+	u16       DataLen,
+	u8        *MicBuffer
 )
 {
 #if 0
@@ -282,46 +295,46 @@ void SecCalculateMicSMS4(
 	u8 TempBuf[34], TempLen = 32, MicLen, QosOffset, *IV;
 	u16 *pTemp, fc;
 
-	WAPI_TRACE(WAPI_TX|WAPI_RX, "=========>%s\n", __FUNCTION__);
+	WAPI_TRACE(WAPI_TX | WAPI_RX, "=========>%s\n", __FUNCTION__);
 
 	header = (struct ieee80211_hdr_3addr_qos *)pHeader;
 	memset(TempBuf, 0, 34);
-	memcpy(TempBuf, pHeader, 2); //FrameCtrl
-	pTemp = (u16*)TempBuf;
-	*pTemp &= 0xc78f;       //bit4,5,6,11,12,13
+	memcpy(TempBuf, pHeader, 2); /* FrameCtrl */
+	pTemp = (u16 *)TempBuf;
+	*pTemp &= 0xc78f;       /* bit4,5,6,11,12,13 */
 
-	memcpy((TempBuf+2), (pHeader+4), 12); //Addr1, Addr2
-	memcpy((TempBuf+14), (pHeader+22), 2); // SeqCtrl
-	pTemp = (u16*)(TempBuf + 14);
+	memcpy((TempBuf + 2), (pHeader + 4), 12); /* Addr1, Addr2 */
+	memcpy((TempBuf + 14), (pHeader + 22), 2); /* SeqCtrl */
+	pTemp = (u16 *)(TempBuf + 14);
 	*pTemp &= 0x000f;
 
-	memcpy((TempBuf+16), (pHeader+16), 6); //Addr3
+	memcpy((TempBuf + 16), (pHeader + 16), 6); /* Addr3 */
 
 	fc = le16_to_cpu(header->frame_ctl);
 
 
 
-	if (GetFrDs((u16*)&fc) && GetToDs((u16 *)&fc)) {
-		memcpy((TempBuf+22), (pHeader+24), 6);
+	if (GetFrDs((u16 *)&fc) && GetToDs((u16 *)&fc)) {
+		memcpy((TempBuf + 22), (pHeader + 24), 6);
 		QosOffset = 30;
 	} else {
-		memset((TempBuf+22), 0, 6);
+		memset((TempBuf + 22), 0, 6);
 		QosOffset = 24;
 	}
 
-	if((fc & 0x0088) == 0x0088) {
-		memcpy((TempBuf+28), (pHeader+QosOffset), 2);
+	if ((fc & 0x0088) == 0x0088) {
+		memcpy((TempBuf + 28), (pHeader + QosOffset), 2);
 		TempLen += 2;
-		//IV = pHeader + QosOffset + 2 + SNAP_SIZE + sizeof(u16) + 2;
+		/* IV = pHeader + QosOffset + 2 + SNAP_SIZE + sizeof(u16) + 2; */
 		IV = pHeader + QosOffset + 2 + 2;
 	} else {
 		IV = pHeader + QosOffset + 2;
-		//IV = pHeader + QosOffset + SNAP_SIZE + sizeof(u16) + 2;
+		/* IV = pHeader + QosOffset + SNAP_SIZE + sizeof(u16) + 2; */
 	}
 
-	TempBuf[TempLen-1] = (u8)(DataLen & 0xff);
-	TempBuf[TempLen-2] = (u8)((DataLen & 0xff00)>>8);
-	TempBuf[TempLen-4] = KeyIdx;
+	TempBuf[TempLen - 1] = (u8)(DataLen & 0xff);
+	TempBuf[TempLen - 2] = (u8)((DataLen & 0xff00) >> 8);
+	TempBuf[TempLen - 4] = KeyIdx;
 
 	WAPI_DATA(WAPI_TX, "CalculateMic - KEY", MicKey, 16);
 	WAPI_DATA(WAPI_TX, "CalculateMic - IV", IV, 16);
@@ -329,12 +342,12 @@ void SecCalculateMicSMS4(
 	WAPI_DATA(WAPI_TX, "CalculateMic - pData", pData, DataLen);
 
 	WapiSMS4CalculateMic(MicKey, IV, TempBuf, TempLen,
-	                     pData, DataLen, MicBuffer, &MicLen);
+			     pData, DataLen, MicBuffer, &MicLen);
 
 	if (MicLen != 16)
-		WAPI_TRACE(WAPI_ERR,"%s: MIC Length Error!!\n",__FUNCTION__);
+		WAPI_TRACE(WAPI_ERR, "%s: MIC Length Error!!\n", __FUNCTION__);
 
-	WAPI_TRACE(WAPI_TX|WAPI_RX, "<=========%s\n", __FUNCTION__);
+	WAPI_TRACE(WAPI_TX | WAPI_RX, "<=========%s\n", __FUNCTION__);
 #endif
 }
 
@@ -348,10 +361,10 @@ u8 WapiIncreasePN(u8 *PN, u8 AddCount)
 
 	if (NULL == PN)
 		return 1;
-	//YJ,test,091102
+	/* YJ,test,091102 */
 	/*
 	if(AddCount == 2){
-		DBG_8192C("############################%s(): PN[0]=0x%x\n", __FUNCTION__, PN[0]);
+		RTW_INFO("############################%s(): PN[0]=0x%x\n", __FUNCTION__, PN[0]);
 		if(PN[0] == 0x48){
 			PN[0] += AddCount;
 			return 1;
@@ -361,9 +374,9 @@ u8 WapiIncreasePN(u8 *PN, u8 AddCount)
 		}
 	}
 	*/
-	//YJ,test,091102,end
+	/* YJ,test,091102,end */
 
-	for (i=0; i<16; i++) {
+	for (i = 0; i < 16; i++) {
 		if (PN[i] + AddCount <= 0xff) {
 			PN[i] += AddCount;
 			return 0;
@@ -377,31 +390,31 @@ u8 WapiIncreasePN(u8 *PN, u8 AddCount)
 
 
 void WapiGetLastRxUnicastPNForQoSData(
-    u8 			UserPriority,
-    PRT_WAPI_STA_INFO    pWapiStaInfo,
-    u8 *PNOut
+	u8			UserPriority,
+	PRT_WAPI_STA_INFO    pWapiStaInfo,
+	u8 *PNOut
 )
 {
 	WAPI_TRACE(WAPI_RX, "===========> %s\n", __FUNCTION__);
-	switch(UserPriority) {
+	switch (UserPriority) {
 	case 0:
 	case 3:
-		memcpy(PNOut,pWapiStaInfo->lastRxUnicastPNBEQueue,16);
+		memcpy(PNOut, pWapiStaInfo->lastRxUnicastPNBEQueue, 16);
 		break;
 	case 1:
 	case 2:
-		memcpy(PNOut,pWapiStaInfo->lastRxUnicastPNBKQueue,16);
+		memcpy(PNOut, pWapiStaInfo->lastRxUnicastPNBKQueue, 16);
 		break;
 	case 4:
 	case 5:
-		memcpy(PNOut,pWapiStaInfo->lastRxUnicastPNVIQueue,16);
+		memcpy(PNOut, pWapiStaInfo->lastRxUnicastPNVIQueue, 16);
 		break;
 	case 6:
 	case 7:
-		memcpy(PNOut,pWapiStaInfo->lastRxUnicastPNVOQueue,16);
+		memcpy(PNOut, pWapiStaInfo->lastRxUnicastPNVOQueue, 16);
 		break;
 	default:
-		WAPI_TRACE(WAPI_ERR, "%s: Unknown TID \n", __FUNCTION__);
+		WAPI_TRACE(WAPI_ERR, "%s: Unknown TID\n", __FUNCTION__);
 		break;
 	}
 	WAPI_TRACE(WAPI_RX, "<=========== %s\n", __FUNCTION__);
@@ -409,31 +422,31 @@ void WapiGetLastRxUnicastPNForQoSData(
 
 
 void WapiSetLastRxUnicastPNForQoSData(
-    u8 		UserPriority,
-    u8           *PNIn,
-    PRT_WAPI_STA_INFO    pWapiStaInfo
+	u8		UserPriority,
+	u8           *PNIn,
+	PRT_WAPI_STA_INFO    pWapiStaInfo
 )
 {
 	WAPI_TRACE(WAPI_RX, "===========> %s\n", __FUNCTION__);
-	switch(UserPriority) {
+	switch (UserPriority) {
 	case 0:
 	case 3:
-		memcpy(pWapiStaInfo->lastRxUnicastPNBEQueue,PNIn,16);
+		memcpy(pWapiStaInfo->lastRxUnicastPNBEQueue, PNIn, 16);
 		break;
 	case 1:
 	case 2:
-		memcpy(pWapiStaInfo->lastRxUnicastPNBKQueue,PNIn,16);
+		memcpy(pWapiStaInfo->lastRxUnicastPNBKQueue, PNIn, 16);
 		break;
 	case 4:
 	case 5:
-		memcpy(pWapiStaInfo->lastRxUnicastPNVIQueue,PNIn,16);
+		memcpy(pWapiStaInfo->lastRxUnicastPNVIQueue, PNIn, 16);
 		break;
 	case 6:
 	case 7:
-		memcpy(pWapiStaInfo->lastRxUnicastPNVOQueue,PNIn,16);
+		memcpy(pWapiStaInfo->lastRxUnicastPNVOQueue, PNIn, 16);
 		break;
 	default:
-		WAPI_TRACE(WAPI_ERR, "%s: Unknown TID \n", __FUNCTION__);
+		WAPI_TRACE(WAPI_ERR, "%s: Unknown TID\n", __FUNCTION__);
 		break;
 	}
 	WAPI_TRACE(WAPI_RX, "<=========== %s\n", __FUNCTION__);
@@ -446,15 +459,15 @@ void WapiSetLastRxUnicastPNForQoSData(
 add to support WAPI to N-mode
 *****************************************************************************/
 u8 WapiCheckPnInSwDecrypt(
-    _adapter *padapter,
-    struct sk_buff *pskb
+	_adapter *padapter,
+	struct sk_buff *pskb
 )
 {
-	u8 				ret = false;
+	u8				ret = false;
 
 #if 0
 	struct ieee80211_hdr_3addr_qos *header;
-	u16 				fc;
+	u16				fc;
 	u8				*pDaddr, *pTaddr, *pRaddr;
 
 	header = (struct ieee80211_hdr_3addr_qos *)pskb->data;
@@ -462,16 +475,16 @@ u8 WapiCheckPnInSwDecrypt(
 	pRaddr = header->addr1;
 	fc = le16_to_cpu(header->frame_ctl);
 
-	if(GetToDs(&fc))
+	if (GetToDs(&fc))
 		pDaddr = header->addr3;
 	else
 		pDaddr = header->addr1;
 
 	if ((_rtw_memcmp(pRaddr, padapter->pnetdev->dev_addr, ETH_ALEN) == 0)
-	    &&	! (pDaddr)
+	    &&	!(pDaddr)
 	    && (GetFrameType(&fc) == WIFI_QOS_DATA_TYPE))
-		//&& ieee->pHTInfo->bCurrentHTSupport &&
-		//ieee->pHTInfo->bCurRxReorderEnable)
+		/* && ieee->pHTInfo->bCurrentHTSupport && */
+		/* ieee->pHTInfo->bCurRxReorderEnable) */
 		ret = false;
 	else
 		ret = true;
@@ -482,8 +495,8 @@ u8 WapiCheckPnInSwDecrypt(
 
 int SecSMS4HeaderFillIV(_adapter *padapter, u8 *pxmitframe)
 {
-	struct pkt_attrib *pattrib = &((struct xmit_frame*)pxmitframe)->attrib;
-	u8 * frame = ((struct xmit_frame *)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	struct pkt_attrib *pattrib = &((struct xmit_frame *)pxmitframe)->attrib;
+	u8 *frame = ((struct xmit_frame *)pxmitframe)->buf_addr + TXDESC_OFFSET;
 	u8 *pSecHeader = NULL, *pos = NULL, *pRA = NULL;
 	u8 bPNOverflow = false, bFindMatchPeer = false, hdr_len = 0;
 	PWLAN_HEADER_WAPI_EXTENSION pWapiExt = NULL;
@@ -496,13 +509,12 @@ int SecSMS4HeaderFillIV(_adapter *padapter, u8 *pxmitframe)
 	return ret;
 #if 0
 	hdr_len = sMacHdrLng;
-	if (GetFrameType(pskb->data) == WIFI_QOS_DATA_TYPE) {
+	if (GetFrameType(pskb->data) == WIFI_QOS_DATA_TYPE)
 		hdr_len += 2;
-	}
-	//hdr_len += SNAP_SIZE + sizeof(u16);
+	/* hdr_len += SNAP_SIZE + sizeof(u16); */
 
 	pos = skb_push(pskb, padapter->wapiInfo.extra_prefix_len);
-	memmove(pos, pos+padapter->wapiInfo.extra_prefix_len, hdr_len);
+	memmove(pos, pos + padapter->wapiInfo.extra_prefix_len, hdr_len);
 
 	pSecHeader = pskb->data + hdr_len;
 	pWapiExt = (PWLAN_HEADER_WAPI_EXTENSION)pSecHeader;
@@ -510,40 +522,40 @@ int SecSMS4HeaderFillIV(_adapter *padapter, u8 *pxmitframe)
 
 	WAPI_DATA(WAPI_TX, "FillIV - Before Fill IV", pskb->data, pskb->len);
 
-	//Address 1 is always receiver's address
-	if( IS_MCAST(pRA) ) {
-		if(!pWapiInfo->wapiTxMsk.bTxEnable) {
-			WAPI_TRACE(WAPI_ERR,"%s: bTxEnable = 0!!\n",__FUNCTION__);
+	/* Address 1 is always receiver's address */
+	if (IS_MCAST(pRA)) {
+		if (!pWapiInfo->wapiTxMsk.bTxEnable) {
+			WAPI_TRACE(WAPI_ERR, "%s: bTxEnable = 0!!\n", __FUNCTION__);
 			return -2;
 		}
-		if(pWapiInfo->wapiTxMsk.keyId <= 1) {
+		if (pWapiInfo->wapiTxMsk.keyId <= 1) {
 			pWapiExt->KeyIdx = pWapiInfo->wapiTxMsk.keyId;
 			pWapiExt->Reserved = 0;
 			bPNOverflow = WapiIncreasePN(pWapiInfo->lastTxMulticastPN, 1);
 			memcpy(pWapiExt->PN, pWapiInfo->lastTxMulticastPN, 16);
 			if (bPNOverflow) {
-				// Update MSK Notification.
-				WAPI_TRACE(WAPI_ERR,"===============>%s():multicast PN overflow\n",__FUNCTION__);
-				rtw_wapi_app_event_handler(padapter,NULL,0,pRA, false, false, true, 0, false);
+				/* Update MSK Notification. */
+				WAPI_TRACE(WAPI_ERR, "===============>%s():multicast PN overflow\n", __FUNCTION__);
+				rtw_wapi_app_event_handler(padapter, NULL, 0, pRA, false, false, true, 0, false);
 			}
 		} else {
-			WAPI_TRACE(WAPI_ERR,"%s: Invalid Wapi Multicast KeyIdx!!\n",__FUNCTION__);
+			WAPI_TRACE(WAPI_ERR, "%s: Invalid Wapi Multicast KeyIdx!!\n", __FUNCTION__);
 			ret = -3;
 		}
 	} else {
 		list_for_each_entry(pWapiSta, &pWapiInfo->wapiSTAUsedList, list) {
-			if(!memcmp(pWapiSta->PeerMacAddr,pRA,6)) {
+			if (!memcmp(pWapiSta->PeerMacAddr, pRA, 6)) {
 				bFindMatchPeer = true;
 				break;
 			}
 		}
 		if (bFindMatchPeer) {
-			if((!pWapiSta->wapiUskUpdate.bTxEnable) && (!pWapiSta->wapiUsk.bTxEnable)) {
-				WAPI_TRACE(WAPI_ERR,"%s: bTxEnable = 0!!\n",__FUNCTION__);
+			if ((!pWapiSta->wapiUskUpdate.bTxEnable) && (!pWapiSta->wapiUsk.bTxEnable)) {
+				WAPI_TRACE(WAPI_ERR, "%s: bTxEnable = 0!!\n", __FUNCTION__);
 				return -4;
 			}
 			if (pWapiSta->wapiUsk.keyId <= 1) {
-				if(pWapiSta->wapiUskUpdate.bTxEnable)
+				if (pWapiSta->wapiUskUpdate.bTxEnable)
 					pWapiExt->KeyIdx = pWapiSta->wapiUskUpdate.keyId;
 				else
 					pWapiExt->KeyIdx = pWapiSta->wapiUsk.keyId;
@@ -552,16 +564,16 @@ int SecSMS4HeaderFillIV(_adapter *padapter, u8 *pxmitframe)
 				bPNOverflow = WapiIncreasePN(pWapiSta->lastTxUnicastPN, 2);
 				memcpy(pWapiExt->PN, pWapiSta->lastTxUnicastPN, 16);
 				if (bPNOverflow) {
-					// Update USK Notification.
-					WAPI_TRACE(WAPI_ERR,"===============>%s():unicast PN overflow\n",__FUNCTION__);
-					rtw_wapi_app_event_handler(padapter,NULL,0,pWapiSta->PeerMacAddr, false, true, false, 0, false);
+					/* Update USK Notification. */
+					WAPI_TRACE(WAPI_ERR, "===============>%s():unicast PN overflow\n", __FUNCTION__);
+					rtw_wapi_app_event_handler(padapter, NULL, 0, pWapiSta->PeerMacAddr, false, true, false, 0, false);
 				}
 			} else {
-				WAPI_TRACE(WAPI_ERR,"%s: Invalid Wapi Unicast KeyIdx!!\n",__FUNCTION__);
+				WAPI_TRACE(WAPI_ERR, "%s: Invalid Wapi Unicast KeyIdx!!\n", __FUNCTION__);
 				ret = -5;
 			}
 		} else {
-			WAPI_TRACE(WAPI_ERR,"%s: Can not find Peer Sta "MAC_FMT"!!\n",__FUNCTION__, MAC_ARG(pRA));
+			WAPI_TRACE(WAPI_ERR, "%s: Can not find Peer Sta "MAC_FMT"!!\n", __FUNCTION__, MAC_ARG(pRA));
 			ret = -6;
 		}
 	}
@@ -572,16 +584,16 @@ int SecSMS4HeaderFillIV(_adapter *padapter, u8 *pxmitframe)
 #endif
 }
 
-// WAPI SW Enc: must have done Coalesce!
+/* WAPI SW Enc: must have done Coalesce! */
 void SecSWSMS4Encryption(
-    _adapter *padapter,
-    u8 * pxmitframe
+	_adapter *padapter,
+	u8 *pxmitframe
 )
 {
 	PRT_WAPI_T		pWapiInfo = &padapter->wapiInfo;
 	PRT_WAPI_STA_INFO   pWapiSta = NULL;
-	u8 *pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE;
-	struct pkt_attrib *pattrib = &((struct xmit_frame*)pxmitframe)->attrib;
+	u8 *pframe = ((struct xmit_frame *)pxmitframe)->buf_addr + TXDESC_SIZE;
+	struct pkt_attrib *pattrib = &((struct xmit_frame *)pxmitframe)->attrib;
 
 	u8 *SecPtr = NULL, *pRA, *pMicKey = NULL, *pDataKey = NULL, *pIV = NULL;
 	u8 IVOffset, DataOffset, bFindMatchPeer = false, KeyIdx = 0, MicBuffer[16];
@@ -589,7 +601,7 @@ void SecSWSMS4Encryption(
 
 	WAPI_TRACE(WAPI_TX, "=========>%s\n", __FUNCTION__);
 
-	WAPI_TRACE(WAPI_TX,"hdrlen: %d \n",pattrib->hdrlen);
+	WAPI_TRACE(WAPI_TX, "hdrlen: %d\n", pattrib->hdrlen);
 
 	return;
 
@@ -598,7 +610,7 @@ void SecSWSMS4Encryption(
 	pRA = pframe + 4;
 
 
-	if( IS_MCAST(pRA) ) {
+	if (IS_MCAST(pRA)) {
 		KeyIdx = pWapiInfo->wapiTxMsk.keyId;
 		pIV = pWapiInfo->lastTxMulticastPN;
 		pMicKey = pWapiInfo->wapiTxMsk.micKey;
@@ -627,37 +639,37 @@ void SecSWSMS4Encryption(
 					pDataKey = pWapiSta->wapiUsk.dataKey;
 				}
 			} else {
-				WAPI_TRACE(WAPI_ERR,"%s: Can not find Peer Sta!!\n",__FUNCTION__);
+				WAPI_TRACE(WAPI_ERR, "%s: Can not find Peer Sta!!\n", __FUNCTION__);
 				return;
 			}
 		} else {
-			WAPI_TRACE(WAPI_ERR,"%s: wapiSTAUsedList is empty!!\n",__FUNCTION__);
+			WAPI_TRACE(WAPI_ERR, "%s: wapiSTAUsedList is empty!!\n", __FUNCTION__);
 			return;
 		}
 	}
 
 	SecPtr = pframe;
-	SecCalculateMicSMS4(KeyIdx, pMicKey, SecPtr, (SecPtr+DataOffset), pattrib->pktlen, MicBuffer);
+	SecCalculateMicSMS4(KeyIdx, pMicKey, SecPtr, (SecPtr + DataOffset), pattrib->pktlen, MicBuffer);
 
 	WAPI_DATA(WAPI_TX, "Encryption - MIC", MicBuffer, padapter->wapiInfo.extra_postfix_len);
 
-	memcpy(pframe+pattrib->hdrlen+pattrib->iv_len+pattrib->pktlen-pattrib->icv_len,
+	memcpy(pframe + pattrib->hdrlen + pattrib->iv_len + pattrib->pktlen - pattrib->icv_len,
 	       (u8 *)MicBuffer,
 	       padapter->wapiInfo.extra_postfix_len
 	      );
 
 
-	WapiSMS4Encryption(pDataKey, pIV, (SecPtr+DataOffset),pattrib->pktlen+pattrib->icv_len, (SecPtr+DataOffset), &OutputLength);
+	WapiSMS4Encryption(pDataKey, pIV, (SecPtr + DataOffset), pattrib->pktlen + pattrib->icv_len, (SecPtr + DataOffset), &OutputLength);
 
-	WAPI_DATA(WAPI_TX, "Encryption - After SMS4 encryption",pframe,pattrib->hdrlen+pattrib->iv_len+pattrib->pktlen);
+	WAPI_DATA(WAPI_TX, "Encryption - After SMS4 encryption", pframe, pattrib->hdrlen + pattrib->iv_len + pattrib->pktlen);
 
 	WAPI_TRACE(WAPI_TX, "<=========%s\n", __FUNCTION__);
 }
 
 u8 SecSWSMS4Decryption(
-    _adapter *padapter,
-    u8 		*precv_frame,
-    struct recv_priv *precv_priv
+	_adapter *padapter,
+	u8		*precv_frame,
+	struct recv_priv *precv_priv
 )
 {
 	PRT_WAPI_T pWapiInfo = &padapter->wapiInfo;
@@ -669,28 +681,27 @@ u8 SecSWSMS4Decryption(
 	u8 TID = 0;
 	u16 OutputLength, DataLen;
 	u8   bQosData;
-	struct sk_buff * 	pskb;
+	struct sk_buff	*pskb;
 
 	WAPI_TRACE(WAPI_RX, "=========>%s\n", __FUNCTION__);
 
 	return 0;
 
-	precv_hdr = &((union recv_frame*)precv_frame)->u.hdr;
+	precv_hdr = &((union recv_frame *)precv_frame)->u.hdr;
 	pskb = (struct sk_buff *)(precv_hdr->rx_data);
 	precv_hdr->bWapiCheckPNInDecrypt = WapiCheckPnInSwDecrypt(padapter, pskb);
-	WAPI_TRACE(WAPI_RX, "=========>%s: check PN  %d\n", __FUNCTION__,precv_hdr->bWapiCheckPNInDecrypt);
+	WAPI_TRACE(WAPI_RX, "=========>%s: check PN  %d\n", __FUNCTION__, precv_hdr->bWapiCheckPNInDecrypt);
 	WAPI_DATA(WAPI_RX, "Decryption - Before decryption", pskb->data, pskb->len);
 
 	IVOffset = sMacHdrLng;
 	bQosData = GetFrameType(pskb->data) == WIFI_QOS_DATA_TYPE;
-	if (bQosData) {
+	if (bQosData)
 		IVOffset += 2;
-	}
 
-	//if(GetHTC())
-	//	IVOffset += 4;
+	/* if(GetHTC()) */
+	/*	IVOffset += 4; */
 
-	//IVOffset += SNAP_SIZE + sizeof(u16);
+	/* IVOffset += SNAP_SIZE + sizeof(u16); */
 
 	DataOffset = IVOffset + padapter->wapiInfo.extra_prefix_len;
 
@@ -717,7 +728,7 @@ u8 SecSWSMS4Decryption(
 		return false;
 	}
 
-	if( IS_MCAST(pRA) ) {
+	if (IS_MCAST(pRA)) {
 		WAPI_TRACE(WAPI_RX, "%s: Multicast decryption !!!\n", __FUNCTION__);
 		if (pWapiSta->wapiMsk.keyId == KeyIdx && pWapiSta->wapiMsk.bSet) {
 			pLastRxPN = pWapiSta->lastRxMulticastPN;
@@ -738,31 +749,27 @@ u8 SecSWSMS4Decryption(
 			pMicKey = pWapiSta->wapiMskUpdate.micKey;
 			pDataKey = pWapiSta->wapiMskUpdate.dataKey;
 		} else {
-			WAPI_TRACE(WAPI_ERR, "%s: Can not find MSK with matched KeyIdx(%d), Dropped !!!\n", __FUNCTION__,KeyIdx);
+			WAPI_TRACE(WAPI_ERR, "%s: Can not find MSK with matched KeyIdx(%d), Dropped !!!\n", __FUNCTION__, KeyIdx);
 			return false;
 		}
 	} else {
 		WAPI_TRACE(WAPI_RX, "%s: Unicast decryption !!!\n", __FUNCTION__);
 		if (pWapiSta->wapiUsk.keyId == KeyIdx && pWapiSta->wapiUsk.bSet) {
 			WAPI_TRACE(WAPI_RX, "%s: Use USK for Decryption!!!\n", __FUNCTION__);
-			if(precv_hdr->bWapiCheckPNInDecrypt) {
-				if(GetFrameType(pskb->data) == WIFI_QOS_DATA_TYPE) {
+			if (precv_hdr->bWapiCheckPNInDecrypt) {
+				if (GetFrameType(pskb->data) == WIFI_QOS_DATA_TYPE) {
 					WapiGetLastRxUnicastPNForQoSData(TID, pWapiSta, lastRxPNforQoS);
 					pLastRxPN = lastRxPNforQoS;
-				} else {
+				} else
 					pLastRxPN = pWapiSta->lastRxUnicastPN;
-				}
-				if (!WapiComparePN(pRecvPN, pLastRxPN)) {
+				if (!WapiComparePN(pRecvPN, pLastRxPN))
 					return false;
-				}
-				if(bQosData) {
+				if (bQosData)
 					WapiSetLastRxUnicastPNForQoSData(TID, pRecvPN, pWapiSta);
-				} else {
+				else
 					memcpy(pWapiSta->lastRxUnicastPN, pRecvPN, 16);
-				}
-			} else {
-				memcpy(precv_hdr->WapiTempPN,pRecvPN,16);
-			}
+			} else
+				memcpy(precv_hdr->WapiTempPN, pRecvPN, 16);
 
 			if (check_fwstate(&padapter->mlmepriv, WIFI_STATION_STATE)) {
 				if ((pRecvPN[0] & 0x1) == 0) {
@@ -773,23 +780,23 @@ u8 SecSWSMS4Decryption(
 
 			pMicKey = pWapiSta->wapiUsk.micKey;
 			pDataKey = pWapiSta->wapiUsk.dataKey;
-		} else if (pWapiSta->wapiUskUpdate.keyId == KeyIdx && pWapiSta->wapiUskUpdate.bSet ) {
+		} else if (pWapiSta->wapiUskUpdate.keyId == KeyIdx && pWapiSta->wapiUskUpdate.bSet) {
 			WAPI_TRACE(WAPI_RX, "%s: Use Updated USK for Decryption!!!\n", __FUNCTION__);
-			if(pWapiSta->bAuthenticatorInUpdata)
+			if (pWapiSta->bAuthenticatorInUpdata)
 				bUseUpdatedKey = true;
 			else
 				bUseUpdatedKey = false;
 
-			if(bQosData) {
+			if (bQosData)
 				WapiSetLastRxUnicastPNForQoSData(TID, pRecvPN, pWapiSta);
-			} else {
+			else
 				memcpy(pWapiSta->lastRxUnicastPN, pRecvPN, 16);
-			}
 			pMicKey = pWapiSta->wapiUskUpdate.micKey;
 			pDataKey = pWapiSta->wapiUskUpdate.dataKey;
 		} else {
-			WAPI_TRACE(WAPI_ERR, "%s: No valid USK!!!KeyIdx=%d pWapiSta->wapiUsk.keyId=%d pWapiSta->wapiUskUpdate.keyId=%d\n", __FUNCTION__, KeyIdx, pWapiSta->wapiUsk.keyId, pWapiSta->wapiUskUpdate.keyId);
-			//dump_buf(pskb->data,pskb->len);
+			WAPI_TRACE(WAPI_ERR, "%s: No valid USK!!!KeyIdx=%d pWapiSta->wapiUsk.keyId=%d pWapiSta->wapiUskUpdate.keyId=%d\n", __FUNCTION__, KeyIdx, pWapiSta->wapiUsk.keyId,
+				   pWapiSta->wapiUskUpdate.keyId);
+			/* dump_buf(pskb->data,pskb->len); */
 			return false;
 		}
 	}
@@ -813,8 +820,8 @@ u8 SecSWSMS4Decryption(
 	if (0 == memcmp(MicBuffer, pRecvMic, padapter->wapiInfo.extra_postfix_len)) {
 		WAPI_TRACE(WAPI_RX, "%s: Check MIC OK!!\n", __FUNCTION__);
 		if (bUseUpdatedKey) {
-			// delete the old key
-			if ( IS_MCAST(pRA) ) {
+			/* delete the old key */
+			if (IS_MCAST(pRA)) {
 				WAPI_TRACE(WAPI_API, "%s(): AE use new update MSK!!\n", __FUNCTION__);
 				pWapiSta->wapiMsk.keyId = pWapiSta->wapiMskUpdate.keyId;
 				memcpy(pWapiSta->wapiMsk.dataKey, pWapiSta->wapiMskUpdate.dataKey, 16);
@@ -834,7 +841,7 @@ u8 SecSWSMS4Decryption(
 	}
 
 	pos = pskb->data;
-	memmove(pos+padapter->wapiInfo.extra_prefix_len, pos, IVOffset);
+	memmove(pos + padapter->wapiInfo.extra_prefix_len, pos, IVOffset);
 	skb_pull(pskb, padapter->wapiInfo.extra_prefix_len);
 
 	WAPI_TRACE(WAPI_RX, "<=========%s\n", __FUNCTION__);
@@ -855,10 +862,10 @@ u32	rtw_sms4_encrypt(_adapter *padapter, u8 *pxmitframe)
 		return _FAIL;
 	}
 
-	if(((struct xmit_frame*)pxmitframe)->buf_addr==NULL)
+	if (((struct xmit_frame *)pxmitframe)->buf_addr == NULL)
 		return _FAIL;
 
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	pframe = ((struct xmit_frame *)pxmitframe)->buf_addr + TXDESC_OFFSET;
 
 	SecSWSMS4Encryption(padapter, pxmitframe);
 
@@ -879,14 +886,14 @@ u32	rtw_sms4_decrypt(_adapter *padapter, u8 *precvframe)
 	}
 
 
-	//drop packet when hw decrypt fail
-	//return tempraily
+	/* drop packet when hw decrypt fail
+	* return tempraily */
 	return _FAIL;
 
-	//pframe=(unsigned char *)((union recv_frame*)precvframe)->u.hdr.rx_data;
+	/* pframe=(unsigned char *)((union recv_frame*)precvframe)->u.hdr.rx_data; */
 
 	if (false == SecSWSMS4Decryption(padapter, precvframe, &padapter->recvpriv)) {
-		WAPI_TRACE(WAPI_ERR, "%s():SMS4 decrypt frame error\n",__FUNCTION__);
+		WAPI_TRACE(WAPI_ERR, "%s():SMS4 decrypt frame error\n", __FUNCTION__);
 		return _FAIL;
 	}
 
