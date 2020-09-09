@@ -261,7 +261,6 @@
 	operating-points-v2 = <&cpu_opp_table>;
 	clocks = <&clkc CLKID_CPU_CLK>;
 	clock-latency = <50000>;
-	#cooling-cells = <2>;
 };
 
 &cpu1 {
@@ -269,7 +268,6 @@
 	operating-points-v2 = <&cpu_opp_table>;
 	clocks = <&clkc CLKID_CPU1_CLK>;
 	clock-latency = <50000>;
-	#cooling-cells = <2>;
 };
 
 &cpu2 {
@@ -277,7 +275,6 @@
 	operating-points-v2 = <&cpu_opp_table>;
 	clocks = <&clkc CLKID_CPU2_CLK>;
 	clock-latency = <50000>;
-	#cooling-cells = <2>;
 };
 
 &cpu3 {
@@ -285,26 +282,6 @@
 	operating-points-v2 = <&cpu_opp_table>;
 	clocks = <&clkc CLKID_CPU3_CLK>;
 	clock-latency = <50000>;
-	#cooling-cells = <2>;
-};
-
-&cpu_thermal {
-	trips {
-		cpu_passive: cpu-passive {
-			temperature = <70000>; /* millicelsius */
-			hysteresis = <2000>; /* millicelsius */
-			type = "passive";
-		};
-	};
-	cooling-maps {
-		cpufreq_map0 {
-			trip = <&cpu_passive>;
-			cooling-device = <&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-					 <&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-					 <&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
-					 <&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-		};
-	};
 };
 
 &ext_mdio {
