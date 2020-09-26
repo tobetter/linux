@@ -1,11 +1,11 @@
-From cca2e5549775271cf1c2a99dfc80aa845c721961 Mon Sep 17 00:00:00 2001
-Message-Id: <cca2e5549775271cf1c2a99dfc80aa845c721961.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 0a0c4686c4e3cd2ff185d16cc0f0c7268c0ff5e5 Mon Sep 17 00:00:00 2001
+Message-Id: <0a0c4686c4e3cd2ff185d16cc0f0c7268c0ff5e5.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Anders Roxell <anders.roxell@linaro.org>
 Date: Thu, 14 May 2015 17:52:17 +0200
-Subject: [PATCH 244/329] arch/arm64: Add lazy preempt support
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 244/333] arch/arm64: Add lazy preempt support
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 arm64 is missing support for PREEMPT_RT. The main feature which is
 lacking is support for lazy preemption. The arch-specific entry code,
@@ -36,7 +36,7 @@ index 1fe3e5cb2927..6cbaf00c14ca 100644
  	select HAVE_RCU_TABLE_FREE
  	select HAVE_RSEQ
 diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-index cb2c10a8f0a8..f1820f7318b6 100644
+index 69ac5262cccd..39e921817f28 100644
 --- a/arch/arm64/include/asm/thread_info.h
 +++ b/arch/arm64/include/asm/thread_info.h
 @@ -43,6 +43,7 @@ struct thread_info {
@@ -63,7 +63,7 @@ index cb2c10a8f0a8..f1820f7318b6 100644
  #define _TIF_NOHZ		(1 << TIF_NOHZ)
  #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
  #define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
-@@ -106,8 +109,9 @@ void arch_release_task_struct(struct task_struct *tsk);
+@@ -107,8 +110,9 @@ void arch_release_task_struct(struct task_struct *tsk);
  
  #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
  				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE | \
@@ -119,10 +119,10 @@ index 5f800384cb9a..b582580c8c4c 100644
  #endif
  
 diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 5dcc942906db..4fec251fe147 100644
+index ca565853dea6..3f321daa7702 100644
 --- a/arch/arm64/kernel/signal.c
 +++ b/arch/arm64/kernel/signal.c
-@@ -926,7 +926,7 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+@@ -919,7 +919,7 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
  		/* Check valid user FS if needed */
  		addr_limit_user_check();
  

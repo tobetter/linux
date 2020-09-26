@@ -1,11 +1,11 @@
-From fbec2a140d52ca45636c2d61324f2062efe02530 Mon Sep 17 00:00:00 2001
-Message-Id: <fbec2a140d52ca45636c2d61324f2062efe02530.1594742967.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From f87bed33e138726ebee9b6200840ffdd912bbf97 Mon Sep 17 00:00:00 2001
+Message-Id: <f87bed33e138726ebee9b6200840ffdd912bbf97.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Scott Wood <swood@redhat.com>
 Date: Sat, 27 Jul 2019 00:56:33 -0500
-Subject: [PATCH 300/329] sched: Remove dead __migrate_disabled() check
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 300/333] sched: Remove dead __migrate_disabled() check
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit 14d9272d534ea91262e15db99443fc5995c7c016 ]
 
@@ -20,7 +20,7 @@ Signed-off-by: Steven Rostedt (VMware) <rostedt@goodmis.org>
  1 file changed, 7 deletions(-)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index c2aebfab8556..03b3ff43d39f 100644
+index 357bf627799f..7109b23c7a60 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1182,13 +1182,6 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,

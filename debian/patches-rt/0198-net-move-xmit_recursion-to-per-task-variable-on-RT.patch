@@ -1,11 +1,11 @@
-From 4b967e907820a2c6af47ee605519c24058ee7cb0 Mon Sep 17 00:00:00 2001
-Message-Id: <4b967e907820a2c6af47ee605519c24058ee7cb0.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 0690f41eaf2e7b1a58969a5646ec99fed2c9dd73 Mon Sep 17 00:00:00 2001
+Message-Id: <0690f41eaf2e7b1a58969a5646ec99fed2c9dd73.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Wed, 13 Jan 2016 15:55:02 +0100
-Subject: [PATCH 198/329] net: move xmit_recursion to per-task variable on -RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 198/333] net: move xmit_recursion to per-task variable on -RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 A softirq on -RT can be preempted. That means one task is in
 __dev_queue_xmit(), gets preempted and another task may enter
@@ -193,7 +193,7 @@ index 4a4f03a8d8d4..37334ec1ab3e 100644
  	int				pagefault_disabled;
  #ifdef CONFIG_MMU
 diff --git a/net/core/dev.c b/net/core/dev.c
-index 598398e3c841..bb93ab3f0b1f 100644
+index 44210413bf63..e9594b1e0d44 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
 @@ -3825,7 +3825,11 @@ static int __dev_queue_xmit(struct sk_buff *skb, struct net_device *sb_dev)
@@ -208,7 +208,7 @@ index 598398e3c841..bb93ab3f0b1f 100644
  			if (dev_xmit_recursion())
  				goto recursion_alert;
  
-@@ -8572,7 +8576,7 @@ static void netdev_init_one_queue(struct net_device *dev,
+@@ -8569,7 +8573,7 @@ static void netdev_init_one_queue(struct net_device *dev,
  	/* Initialize queue lock */
  	spin_lock_init(&queue->_xmit_lock);
  	netdev_set_xmit_lockdep_class(&queue->_xmit_lock, dev->type);

@@ -1,12 +1,12 @@
-From dd2c7383373a393116806133cd2624132dd009f7 Mon Sep 17 00:00:00 2001
-Message-Id: <dd2c7383373a393116806133cd2624132dd009f7.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 025c5c2cce5efd9e9e7bbd510ed7044ba8df97b4 Mon Sep 17 00:00:00 2001
+Message-Id: <025c5c2cce5efd9e9e7bbd510ed7044ba8df97b4.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 19 Feb 2019 16:49:29 +0100
-Subject: [PATCH 126/329] softirq: Avoid "local_softirq_pending" messages if
+Subject: [PATCH 126/333] softirq: Avoid "local_softirq_pending" messages if
  task is in cpu_chill()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 If the softirq thread enters cpu_chill() then ->state is UNINTERRUPTIBLE
 and has no ->pi_blocked_on set and so its mask is not taken into account.

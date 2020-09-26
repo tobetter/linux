@@ -1,12 +1,12 @@
-From f35ee432990b9cab2a5de108c7f38c769dfccb4e Mon Sep 17 00:00:00 2001
-Message-Id: <f35ee432990b9cab2a5de108c7f38c769dfccb4e.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 983f8298c5f0779a7634fa352e342a4ce7ad4a0a Mon Sep 17 00:00:00 2001
+Message-Id: <983f8298c5f0779a7634fa352e342a4ce7ad4a0a.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sun, 24 Jul 2011 12:11:43 +0200
-Subject: [PATCH 039/329] kconfig: Disable config options which are not RT
+Subject: [PATCH 039/333] kconfig: Disable config options which are not RT
  compatible
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Disable stuff which is known to have issues on RT
 

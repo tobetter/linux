@@ -1,12 +1,12 @@
-From 419a95ed6b9f18684a98f763a2a71bd326e1d57b Mon Sep 17 00:00:00 2001
-Message-Id: <419a95ed6b9f18684a98f763a2a71bd326e1d57b.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 04bdd32917bf0d666aa1cc62e32a14f347a73ad4 Mon Sep 17 00:00:00 2001
+Message-Id: <04bdd32917bf0d666aa1cc62e32a14f347a73ad4.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Mike Galbraith <umgwanakikbuti@gmail.com>
 Date: Sun, 16 Oct 2016 05:11:54 +0200
-Subject: [PATCH 245/329] connector/cn_proc: Protect send_msg() with a local
+Subject: [PATCH 245/333] connector/cn_proc: Protect send_msg() with a local
  lock on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 |BUG: sleeping function called from invalid context at kernel/locking/rtmutex.c:931
 |in_atomic(): 1, irqs_disabled(): 0, pid: 31807, name: sleep

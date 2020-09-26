@@ -326,4 +326,8 @@
 0326-fs-dcache-Include-swait.h-header.patch
 0327-mm-slub-Always-flush-the-delayed-empty-slubs-in-flus.patch
 0328-tasklet-Fix-UP-case-for-tasklet-CHAINED-state.patch
-0329-Linux-4.19.132-rt59-REBASE.patch
+0329-signal-Prevent-double-free-of-user-struct.patch
+0330-Bluetooth-Acquire-sk_lock.slock-without-disabling-in.patch
+0331-net-phy-fixed_phy-Remove-unused-seqcount.patch
+0332-net-xfrm-fix-compress-vs-decompress-serialization.patch
+0333-Linux-4.19.142-rt63-REBASE.patch

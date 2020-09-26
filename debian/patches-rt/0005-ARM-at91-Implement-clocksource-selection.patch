@@ -1,11 +1,11 @@
-From d7c4971ed35222efb7237485812eab5b3e72938e Mon Sep 17 00:00:00 2001
-Message-Id: <d7c4971ed35222efb7237485812eab5b3e72938e.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From a281b6474c54382a42744ca86d1566ea5482950f Mon Sep 17 00:00:00 2001
+Message-Id: <a281b6474c54382a42744ca86d1566ea5482950f.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Alexandre Belloni <alexandre.belloni@bootlin.com>
 Date: Thu, 13 Sep 2018 13:30:22 +0200
-Subject: [PATCH 005/329] ARM: at91: Implement clocksource selection
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 005/333] ARM: at91: Implement clocksource selection
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Allow selecting and unselecting the PIT clocksource driver so it doesn't
 have to be compile when unused.

@@ -79,7 +79,6 @@ bugfix/powerpc/powerpc-fix-mcpu-options-for-spe-only-compiler.patch
 bugfix/arm/ARM-dts-sun8i-h3-add-sy8106a-to-orange-pi-plus.patch
 bugfix/arm64/arm64-dts-allwinner-a64-Enable-A64-timer-workaround.patch
 bugfix/mips/MIPS-Loongson-Introduce-and-use-loongson_llsc_mb.patch
-bugfix/mips/Revert-mips-Add-udelay-lpj-numbers-adjustment.patch
 
 # Arch features
 features/mips/MIPS-increase-MAX-PHYSMEM-BITS-on-Loongson-3-only.patch
@@ -101,7 +100,7 @@ bugfix/all/kbuild-include-addtree-remove-quotes-before-matching-path.patch
 debian/revert-objtool-fix-config_stack_validation-y-warning.patch
 bugfix/all/mt76-use-the-correct-hweight8-function.patch
 bugfix/all/rtc-s35390a-set-uie_unsupported.patch
-bugfix/all/Revert-ath9k-Fix-general-protection-fault-in-ath9k_h.patch
+bugfix/all/gfs2-initialize-transaction-tr_ailX_lists-earlier.patch
 
 # Miscellaneous features
 features/all/e1000e-Add-support-for-Comet-Lake.patch
@@ -139,6 +138,7 @@ features/all/lockdown/0032-efi-Restrict-efivar_ssdt_load-when-the-kernel-is-loc.
 features/all/lockdown/enable-cold-boot-attack-mitigation.patch
 features/all/lockdown/mtd-disable-slram-and-phram-when-locked-down.patch
 features/all/lockdown/arm64-add-kernel-config-option-to-lock-down-when.patch
+features/all/lockdown/ACPI-configfs-Disallow-loading-ACPI-tables-when-lock.patch
 # until the "kernel_lockdown.7" manual page exists
 features/all/lockdown/lockdown-refer-to-debian-wiki-until-manual-page-exists.patch
 
@@ -298,5 +298,6 @@ features/arm/staging-vc04_services-Use-correct-cache-line-size.patch
 # Security fixes
 debian/i386-686-pae-pci-set-pci-nobios-by-default.patch
 debian/ntfs-mark-it-as-broken.patch
+bugfix/all/net-packet-fix-overflow-in-tpacket_rcv.patch
 
 # ABI maintenance

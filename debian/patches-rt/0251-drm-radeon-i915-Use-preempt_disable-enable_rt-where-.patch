@@ -1,12 +1,12 @@
-From a8807e9c95add534929192facd840e504e31311c Mon Sep 17 00:00:00 2001
-Message-Id: <a8807e9c95add534929192facd840e504e31311c.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From a5c293836315eb4a5993582e3b6f192cc1f917e0 Mon Sep 17 00:00:00 2001
+Message-Id: <a5c293836315eb4a5993582e3b6f192cc1f917e0.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Mike Galbraith <umgwanakikbuti@gmail.com>
 Date: Sat, 27 Feb 2016 08:09:11 +0100
-Subject: [PATCH 251/329] drm,radeon,i915: Use preempt_disable/enable_rt()
+Subject: [PATCH 251/333] drm,radeon,i915: Use preempt_disable/enable_rt()
  where recommended
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 DRM folks identified the spots, so use them.
 
@@ -40,10 +40,10 @@ index b7c398232136..eed1ba3009c6 100644
  	spin_unlock_irqrestore(&dev_priv->uncore.lock, irqflags);
  
 diff --git a/drivers/gpu/drm/radeon/radeon_display.c b/drivers/gpu/drm/radeon/radeon_display.c
-index 7d1e14f0140a..bcc3456749d6 100644
+index 3f0f3a578ddf..7aab36714b28 100644
 --- a/drivers/gpu/drm/radeon/radeon_display.c
 +++ b/drivers/gpu/drm/radeon/radeon_display.c
-@@ -1815,6 +1815,7 @@ int radeon_get_crtc_scanoutpos(struct drm_device *dev, unsigned int pipe,
+@@ -1817,6 +1817,7 @@ int radeon_get_crtc_scanoutpos(struct drm_device *dev, unsigned int pipe,
  	struct radeon_device *rdev = dev->dev_private;
  
  	/* preempt_disable_rt() should go right here in PREEMPT_RT patchset. */
@@ -51,7 +51,7 @@ index 7d1e14f0140a..bcc3456749d6 100644
  
  	/* Get optional system timestamp before query. */
  	if (stime)
-@@ -1907,6 +1908,7 @@ int radeon_get_crtc_scanoutpos(struct drm_device *dev, unsigned int pipe,
+@@ -1909,6 +1910,7 @@ int radeon_get_crtc_scanoutpos(struct drm_device *dev, unsigned int pipe,
  		*etime = ktime_get();
  
  	/* preempt_enable_rt() should go right here in PREEMPT_RT patchset. */

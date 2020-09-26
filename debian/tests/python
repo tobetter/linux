@@ -22,7 +22,7 @@ sources="$AUTOPKGTEST_TMP/sources"
 echo "I: Running pycodestyle..."
 # Ignore E126,E226,W503 (ignored by default) and also E127,W291 which
 # give false positives.
-if ! xargs pycodestyle --ignore E126,E127,E226,W291,W503 < "$sources"; then
+if ! xargs pycodestyle --max-line-length=100 --ignore E126,E127,E226,W291,W503 < "$sources"; then
     # pycodestyle only writes to stdout
     echo >&2 "E: pycodestyle detected problems"
 fi

@@ -1,11 +1,11 @@
-From bfe24ab61ba1de950c24c40f3cc16e232e8f513b Mon Sep 17 00:00:00 2001
-Message-Id: <bfe24ab61ba1de950c24c40f3cc16e232e8f513b.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From c7f5d95b2a5a283d20f9ea61f6a2136b73b79877 Mon Sep 17 00:00:00 2001
+Message-Id: <c7f5d95b2a5a283d20f9ea61f6a2136b73b79877.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: kbuild test robot <lkp@intel.com>
 Date: Sat, 13 Apr 2019 11:22:51 +0800
-Subject: [PATCH 269/329] pci/switchtec: fix stream_open.cocci warnings
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 269/333] pci/switchtec: fix stream_open.cocci warnings
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit 9462c69e29307adc95c289f50839d5d683973891 ]
 

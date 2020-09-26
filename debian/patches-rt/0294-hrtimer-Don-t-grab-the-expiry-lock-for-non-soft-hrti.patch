@@ -1,12 +1,12 @@
-From 1d51a48b53ef01bf731c8f40ad2b79e3fc5f003a Mon Sep 17 00:00:00 2001
-Message-Id: <1d51a48b53ef01bf731c8f40ad2b79e3fc5f003a.1594742967.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 228bd179f1d21fab82184d6c9f48b0e04f79ed91 Mon Sep 17 00:00:00 2001
+Message-Id: <228bd179f1d21fab82184d6c9f48b0e04f79ed91.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Julien Grall <julien.grall@arm.com>
 Date: Wed, 21 Aug 2019 10:24:08 +0100
-Subject: [PATCH 294/329] hrtimer: Don't grab the expiry lock for non-soft
+Subject: [PATCH 294/333] hrtimer: Don't grab the expiry lock for non-soft
  hrtimer
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit fd420354bea2f57c11f3de191dffdeea76531e76 ]
 

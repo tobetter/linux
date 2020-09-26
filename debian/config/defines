@@ -1,5 +1,5 @@
 [abi]
-abiname: 0.bpo.10
+abiname: 0.bpo.11
 ignore-changes:
  __cpuhp_*
  bpf_analyzer

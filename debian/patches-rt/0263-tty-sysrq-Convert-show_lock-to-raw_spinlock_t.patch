@@ -1,11 +1,11 @@
-From e1f7b9e1eddc425d8cc697726b124efab2f2bae3 Mon Sep 17 00:00:00 2001
-Message-Id: <e1f7b9e1eddc425d8cc697726b124efab2f2bae3.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From d8523fad15187a82770cc560bcc454855ecb40ee Mon Sep 17 00:00:00 2001
+Message-Id: <d8523fad15187a82770cc560bcc454855ecb40ee.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Julien Grall <julien.grall@arm.com>
 Date: Wed, 13 Mar 2019 11:40:34 +0000
-Subject: [PATCH 263/329] tty/sysrq: Convert show_lock to raw_spinlock_t
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 263/333] tty/sysrq: Convert show_lock to raw_spinlock_t
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Systems which don't provide arch_trigger_cpumask_backtrace() will
 invoke showacpu() from a smp_call_function() function which is invoked

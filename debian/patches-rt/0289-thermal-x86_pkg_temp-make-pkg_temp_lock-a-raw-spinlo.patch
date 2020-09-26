@@ -1,12 +1,12 @@
-From 1c58dfe5587a70a9765f147703ba498b86b5847d Mon Sep 17 00:00:00 2001
-Message-Id: <1c58dfe5587a70a9765f147703ba498b86b5847d.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From ae31fd9a0273879286664d3eefb41c9feefc489f Mon Sep 17 00:00:00 2001
+Message-Id: <ae31fd9a0273879286664d3eefb41c9feefc489f.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Clark Williams <williams@redhat.com>
 Date: Mon, 15 Jul 2019 15:25:00 -0500
-Subject: [PATCH 289/329] thermal/x86_pkg_temp: make pkg_temp_lock a raw
+Subject: [PATCH 289/333] thermal/x86_pkg_temp: make pkg_temp_lock a raw
  spinlock
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit 8b03bb3ea7861b70b506199a69b1c8f81fe2d4d0 ]
 

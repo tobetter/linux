@@ -1,12 +1,12 @@
-From 59eae7f9b913be891996c958eeb8bd21ac786558 Mon Sep 17 00:00:00 2001
-Message-Id: <59eae7f9b913be891996c958eeb8bd21ac786558.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 21b901c5402bba76c8411b9b847a9963003213b2 Mon Sep 17 00:00:00 2001
+Message-Id: <21b901c5402bba76c8411b9b847a9963003213b2.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Tue, 7 Jun 2011 09:19:06 +0200
-Subject: [PATCH 110/329] sched: Do not account rcu_preempt_depth on RT in
+Subject: [PATCH 110/333] sched: Do not account rcu_preempt_depth on RT in
  might_sleep()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 RT changes the rcu_preempt_depth semantics, so we cannot check for it
 in might_sleep().
@@ -43,10 +43,10 @@ index 68cbe111420b..027c58cdbb6e 100644
  
  /* Internal to kernel */
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index dba77f924ec8..dec4822184bb 100644
+index 53d9f8927619..2aa1d2a9ee5e 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -6191,7 +6191,7 @@ void __init sched_init(void)
+@@ -6193,7 +6193,7 @@ void __init sched_init(void)
  #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
  static inline int preempt_count_equals(int preempt_offset)
  {

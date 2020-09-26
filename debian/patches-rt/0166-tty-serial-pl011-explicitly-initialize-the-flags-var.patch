@@ -1,15 +1,15 @@
-From 51000d5e4bc5e53af304187eeda891f18bd39bd5 Mon Sep 17 00:00:00 2001
-Message-Id: <51000d5e4bc5e53af304187eeda891f18bd39bd5.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From b12623d1f1f51dd08880e56741f9fda2af4c1a39 Mon Sep 17 00:00:00 2001
+Message-Id: <b12623d1f1f51dd08880e56741f9fda2af4c1a39.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Kurt Kanzenbach <kurt@linutronix.de>
 Date: Mon, 24 Sep 2018 10:29:01 +0200
-Subject: [PATCH 166/329] tty: serial: pl011: explicitly initialize the flags
+Subject: [PATCH 166/333] tty: serial: pl011: explicitly initialize the flags
  variable
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Silence the following gcc warning:
 

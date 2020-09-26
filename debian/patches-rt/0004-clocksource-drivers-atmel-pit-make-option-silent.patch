@@ -1,11 +1,11 @@
-From 6585d2242c353963685bd6af832ed97e9a27255a Mon Sep 17 00:00:00 2001
-Message-Id: <6585d2242c353963685bd6af832ed97e9a27255a.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 44798f501242577d14cb71a200a07359b48aaf04 Mon Sep 17 00:00:00 2001
+Message-Id: <44798f501242577d14cb71a200a07359b48aaf04.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Alexandre Belloni <alexandre.belloni@bootlin.com>
 Date: Thu, 13 Sep 2018 13:30:21 +0200
-Subject: [PATCH 004/329] clocksource/drivers: atmel-pit: make option silent
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 004/333] clocksource/drivers: atmel-pit: make option silent
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 To conform with the other option, make the ATMEL_PIT option silent so it
 can be selected from the platform

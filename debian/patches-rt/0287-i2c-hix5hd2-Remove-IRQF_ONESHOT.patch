@@ -1,11 +1,11 @@
-From bf082b8dc94201b06e0c0d2476b1125e630de281 Mon Sep 17 00:00:00 2001
-Message-Id: <bf082b8dc94201b06e0c0d2476b1125e630de281.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 59460f475358984f7cb7a5b1aa906373834950d7 Mon Sep 17 00:00:00 2001
+Message-Id: <59460f475358984f7cb7a5b1aa906373834950d7.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 13 Aug 2019 12:30:37 +0200
-Subject: [PATCH 287/329] i2c: hix5hd2: Remove IRQF_ONESHOT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 287/333] i2c: hix5hd2: Remove IRQF_ONESHOT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit e88b481f3f86f11e3243e0808a830e5ca5782a9d ]
 

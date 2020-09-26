@@ -1,11 +1,11 @@
-From cc76e3461b86d564e0fe0a8eded6357a6a6feea3 Mon Sep 17 00:00:00 2001
-Message-Id: <cc76e3461b86d564e0fe0a8eded6357a6a6feea3.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 0e639dcb6fcfa7ce6b8aa8b6125c8a277435d121 Mon Sep 17 00:00:00 2001
+Message-Id: <0e639dcb6fcfa7ce6b8aa8b6125c8a277435d121.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Julia Cartwright <julia@ni.com>
 Date: Fri, 28 Sep 2018 21:03:51 +0000
-Subject: [PATCH 250/329] watchdog: prevent deferral of watchdogd wakeup on RT
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 250/333] watchdog: prevent deferral of watchdogd wakeup on RT
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 When PREEMPT_RT_FULL is enabled, all hrtimer expiry functions are
 deferred for execution into the context of ktimersoftd unless otherwise
@@ -40,7 +40,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/watchdog/watchdog_dev.c b/drivers/watchdog/watchdog_dev.c
-index 10b2090f3e5e..c04384aa94a5 100644
+index 1c322caecf7f..822a0a20da2e 100644
 --- a/drivers/watchdog/watchdog_dev.c
 +++ b/drivers/watchdog/watchdog_dev.c
 @@ -145,7 +145,7 @@ static inline void watchdog_update_worker(struct watchdog_device *wdd)
@@ -61,8 +61,8 @@ index 10b2090f3e5e..c04384aa94a5 100644
  		return 0;
  	}
  
-@@ -948,7 +948,7 @@ static int watchdog_cdev_register(struct watchdog_device *wdd)
- 		return -ENODEV;
+@@ -957,7 +957,7 @@ static int watchdog_cdev_register(struct watchdog_device *wdd)
+ 	dev_set_name(&wd_data->dev, "watchdog%d", wdd->id);
  
  	kthread_init_work(&wd_data->work, watchdog_ping_work);
 -	hrtimer_init(&wd_data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);

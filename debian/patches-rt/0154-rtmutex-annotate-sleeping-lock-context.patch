@@ -1,11 +1,11 @@
-From d291ff6355cdb7f5887d00de427964e00c97201c Mon Sep 17 00:00:00 2001
-Message-Id: <d291ff6355cdb7f5887d00de427964e00c97201c.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 05d70eb28e951f4f19037250e589c85532b12836 Mon Sep 17 00:00:00 2001
+Message-Id: <05d70eb28e951f4f19037250e589c85532b12836.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Thu, 21 Sep 2017 14:25:13 +0200
-Subject: [PATCH 154/329] rtmutex: annotate sleeping lock context
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 154/333] rtmutex: annotate sleeping lock context
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 The RCU code complains on schedule() within a rcu_readlock() section.
 The valid scenario on -RT is if a sleeping is held. In order to suppress
@@ -253,10 +253,10 @@ index 5f6de49dc78e..35f3552b7463 100644
  	    !t->rcu_read_unlock_special.b.blocked) {
  
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 1fc8a3fcc34d..e3f838371f94 100644
+index 3128a5b95fd7..d10698fa8cad 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
-@@ -7347,4 +7347,49 @@ void migrate_enable(void)
+@@ -7349,4 +7349,49 @@ void migrate_enable(void)
  	preempt_enable();
  }
  EXPORT_SYMBOL(migrate_enable);

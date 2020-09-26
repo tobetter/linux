@@ -1,11 +1,11 @@
-From 3df3c9149f18b2e3acaee0522e78d1c101a936ca Mon Sep 17 00:00:00 2001
-Message-Id: <3df3c9149f18b2e3acaee0522e78d1c101a936ca.1594742967.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 8fcb1e2d5ce403604b7c103763665a345fcaa5a9 Mon Sep 17 00:00:00 2001
+Message-Id: <8fcb1e2d5ce403604b7c103763665a345fcaa5a9.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Waiman Long <longman@redhat.com>
 Date: Thu, 3 Oct 2019 16:36:08 -0400
-Subject: [PATCH 302/329] lib/smp_processor_id: Don't use cpumask_equal()
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 302/333] lib/smp_processor_id: Don't use cpumask_equal()
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit 659252061477862f45b79e1de169e6030f5c8918 ]
 

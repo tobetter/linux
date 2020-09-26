@@ -1,0 +1,57 @@
+From: Or Cohen <orcohen@paloaltonetworks.com>
+Date: Thu, 3 Sep 2020 21:05:28 -0700
+Subject: net/packet: fix overflow in tpacket_rcv
+Origin: https://git.kernel.org/linus/acf69c946233259ab4d64f8869d4037a198c7f06
+Bug-Debian-Security: https://security-tracker.debian.org/tracker/CVE-2020-14386
+
+Using tp_reserve to calculate netoff can overflow as
+tp_reserve is unsigned int and netoff is unsigned short.
+
+This may lead to macoff receving a smaller value then
+sizeof(struct virtio_net_hdr), and if po->has_vnet_hdr
+is set, an out-of-bounds write will occur when
+calling virtio_net_hdr_from_skb.
+
+The bug is fixed by converting netoff to unsigned int
+and checking if it exceeds USHRT_MAX.
+
+This addresses CVE-2020-14386
+
+Fixes: 8913336a7e8d ("packet: add PACKET_RESERVE sockopt")
+Signed-off-by: Or Cohen <orcohen@paloaltonetworks.com>
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+[Salvatore Bonaccorso: Backport to v4.19.y:
+ - Adjust for context changes
+ - Revert change to use atomic_inc as v4.19.y does not contain 8e8e2951e309
+   ("net/packet: make tp_drops atomic") introduced in v5.3-rc1
+]
+---
+ net/packet/af_packet.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+--- a/net/packet/af_packet.c
++++ b/net/packet/af_packet.c
+@@ -2162,7 +2162,8 @@ static int tpacket_rcv(struct sk_buff *s
+ 	int skb_len = skb->len;
+ 	unsigned int snaplen, res;
+ 	unsigned long status = TP_STATUS_USER;
+-	unsigned short macoff, netoff, hdrlen;
++	unsigned short macoff, hdrlen;
++	unsigned int netoff;
+ 	struct sk_buff *copy_skb = NULL;
+ 	struct timespec ts;
+ 	__u32 ts_status;
+@@ -2225,6 +2226,12 @@ static int tpacket_rcv(struct sk_buff *s
+ 		}
+ 		macoff = netoff - maclen;
+ 	}
++	if (netoff > USHRT_MAX) {
++		spin_lock(&sk->sk_receive_queue.lock);
++		po->stats.stats1.tp_drops++;
++		spin_unlock(&sk->sk_receive_queue.lock);
++		goto drop_n_restore;
++	}
+ 	if (po->tp_version <= TPACKET_V2) {
+ 		if (macoff + snaplen > po->rx_ring.frame_size) {
+ 			if (po->copy_thresh &&

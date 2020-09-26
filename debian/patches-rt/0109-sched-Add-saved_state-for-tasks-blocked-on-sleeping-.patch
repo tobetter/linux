@@ -1,12 +1,12 @@
-From 3ba4d8eee40b02f3d072aa382b26c302b18a6e1e Mon Sep 17 00:00:00 2001
-Message-Id: <3ba4d8eee40b02f3d072aa382b26c302b18a6e1e.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From a275c27647d9d5ab9af837365cfd8bb49b90d5f9 Mon Sep 17 00:00:00 2001
+Message-Id: <a275c27647d9d5ab9af837365cfd8bb49b90d5f9.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Sat, 25 Jun 2011 09:21:04 +0200
-Subject: [PATCH 109/329] sched: Add saved_state for tasks blocked on sleeping
+Subject: [PATCH 109/333] sched: Add saved_state for tasks blocked on sleeping
  locks
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Spinlocks are state preserving in !RT. RT changes the state when a
 task gets blocked on a lock. So we need to remember the state before
@@ -43,7 +43,7 @@ index 9a0e01e48602..42846a65df9a 100644
  
  #ifdef CONFIG_SMP
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 7927ce657c44..dba77f924ec8 100644
+index 3600139cb690..53d9f8927619 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1999,8 +1999,27 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)

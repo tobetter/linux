@@ -1,11 +1,11 @@
-From d7b6dfb25c0b54a721120d4838218d8d6b2567fa Mon Sep 17 00:00:00 2001
-Message-Id: <d7b6dfb25c0b54a721120d4838218d8d6b2567fa.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From f69ca6511d2668ca91728c537bd9658a0bbc2908 Mon Sep 17 00:00:00 2001
+Message-Id: <f69ca6511d2668ca91728c537bd9658a0bbc2908.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Thomas Gleixner <tglx@linutronix.de>
 Date: Wed, 19 Jul 2017 17:31:20 +0200
-Subject: [PATCH 228/329] cpu/hotplug: Implement CPU pinning
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 228/333] cpu/hotplug: Implement CPU pinning
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---

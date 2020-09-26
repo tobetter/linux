@@ -1,0 +1,54 @@
+From: Bob Peterson <rpeterso@redhat.com>
+Date: Fri, 5 Jun 2020 14:12:34 -0500
+Subject: gfs2: initialize transaction tr_ailX_lists earlier
+Origin: https://git.kernel.org/linus/cbcc89b630447ec7836aa2b9242d9bb1725f5a61
+Bug-Debian: https://bugs.debian.org/968567
+
+Since transactions may be freed shortly after they're created, before
+a log_flush occurs, we need to initialize their ail1 and ail2 lists
+earlier. Before this patch, the ail1 list was initialized in gfs2_log_flush().
+This moves the initialization to the point when the transaction is first
+created.
+
+Signed-off-by: Bob Peterson <rpeterso@redhat.com>
+Signed-off-by: Andreas Gruenbacher <agruenba@redhat.com>
+[Salvatore Bonaccorso: Backport to 4.19.144 for context changes]
+---
+ fs/gfs2/glops.c | 2 ++
+ fs/gfs2/log.c   | 2 --
+ fs/gfs2/trans.c | 2 ++
+ 3 files changed, 4 insertions(+), 2 deletions(-)
+
+--- a/fs/gfs2/glops.c
++++ b/fs/gfs2/glops.c
+@@ -89,6 +89,8 @@ static void gfs2_ail_empty_gl(struct gfs
+ 	memset(&tr, 0, sizeof(tr));
+ 	INIT_LIST_HEAD(&tr.tr_buf);
+ 	INIT_LIST_HEAD(&tr.tr_databuf);
++	INIT_LIST_HEAD(&tr.tr_ail1_list);
++	INIT_LIST_HEAD(&tr.tr_ail2_list);
+ 	tr.tr_revokes = atomic_read(&gl->gl_ail_count);
+ 
+ 	if (!tr.tr_revokes)
+--- a/fs/gfs2/log.c
++++ b/fs/gfs2/log.c
+@@ -806,8 +806,6 @@ void gfs2_log_flush(struct gfs2_sbd *sdp
+ 	tr = sdp->sd_log_tr;
+ 	if (tr) {
+ 		sdp->sd_log_tr = NULL;
+-		INIT_LIST_HEAD(&tr->tr_ail1_list);
+-		INIT_LIST_HEAD(&tr->tr_ail2_list);
+ 		tr->tr_first = sdp->sd_log_flush_head;
+ 		if (unlikely (state == SFS_FROZEN))
+ 			gfs2_assert_withdraw(sdp, !tr->tr_num_buf_new && !tr->tr_num_databuf_new);
+--- a/fs/gfs2/trans.c
++++ b/fs/gfs2/trans.c
+@@ -56,6 +56,8 @@ int gfs2_trans_begin(struct gfs2_sbd *sd
+ 						   sizeof(u64));
+ 	INIT_LIST_HEAD(&tr->tr_databuf);
+ 	INIT_LIST_HEAD(&tr->tr_buf);
++	INIT_LIST_HEAD(&tr->tr_ail1_list);
++	INIT_LIST_HEAD(&tr->tr_ail2_list);
+ 
+ 	sb_start_intwrite(sdp->sd_vfs);
+ 

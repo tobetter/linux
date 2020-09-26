@@ -1,12 +1,12 @@
-From 89a73d8e7ad3ce8e0626924dcf9dd3979ef3be3b Mon Sep 17 00:00:00 2001
-Message-Id: <89a73d8e7ad3ce8e0626924dcf9dd3979ef3be3b.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 9d392927a31ae6d07d33380430eacb483eac1f3f Mon Sep 17 00:00:00 2001
+Message-Id: <9d392927a31ae6d07d33380430eacb483eac1f3f.1599166690.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 9 Oct 2018 17:34:50 +0200
-Subject: [PATCH 028/329] sched/migrate_disable: Add export_symbol_gpl for
+Subject: [PATCH 028/333] sched/migrate_disable: Add export_symbol_gpl for
  __migrate_disabled
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 Jonathan reported that lttng/modules can't use __migrate_disabled().
 This function is only used by sched/core itself and the tracing
@@ -25,7 +25,7 @@ Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  1 file changed, 1 insertion(+)
 
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index fbdf142013b9..183881fe4aab 100644
+index 77afdcb4d3ba..541c7222ffc2 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -1013,6 +1013,7 @@ int __migrate_disabled(struct task_struct *p)

@@ -1,0 +1,24 @@
+From 7242d3d469f4634a955870633416179e66ffda84 Mon Sep 17 00:00:00 2001
+Message-Id: <7242d3d469f4634a955870633416179e66ffda84.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+From: Tom Zanussi <zanussi@kernel.org>
+Date: Wed, 2 Sep 2020 13:53:19 -0500
+Subject: [PATCH 333/333] Linux 4.19.142-rt63 REBASE
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
+
+Signed-off-by: Tom Zanussi <zanussi@kernel.org>
+---
+ localversion-rt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/localversion-rt b/localversion-rt
+index 1199ebade17b..b0e8dd7bd707 100644
+--- a/localversion-rt
++++ b/localversion-rt
+@@ -1 +1 @@
+--rt16
++-rt63
+-- 
+2.17.1
+

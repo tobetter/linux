@@ -1,11 +1,11 @@
-From 98a1f056e6fe5b7b5d9db8cfc3a6f24a6bec4386 Mon Sep 17 00:00:00 2001
-Message-Id: <98a1f056e6fe5b7b5d9db8cfc3a6f24a6bec4386.1594742966.git.zanussi@kernel.org>
-In-Reply-To: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
-References: <832f7d97d6b989a5b4860dd2dbec58ad6ad5ab81.1594742966.git.zanussi@kernel.org>
+From 552f780b71cc9cc54aff7beca8412c06c95a9f82 Mon Sep 17 00:00:00 2001
+Message-Id: <552f780b71cc9cc54aff7beca8412c06c95a9f82.1599166691.git.zanussi@kernel.org>
+In-Reply-To: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
+References: <56457dc415803c8abc5acb513ada877a79596f05.1599166690.git.zanussi@kernel.org>
 From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Date: Tue, 14 May 2019 17:07:44 +0200
-Subject: [PATCH 267/329] arm: imx6: cpuidle: Use raw_spinlock_t
-Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.132-rt59.tar.xz
+Subject: [PATCH 267/333] arm: imx6: cpuidle: Use raw_spinlock_t
+Origin: https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/older/patches-4.19.142-rt63.tar.xz
 
 [ Upstream commit 40d0332ec8312e9c090f0a5414d9c90e12b13611 ]
 
