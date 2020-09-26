@@ -78,7 +78,8 @@ class Gencontrol(Base):
             if os.getenv(env):
                 if self.changelog[0].distribution == 'UNRELEASED':
                     import warnings
-                    warnings.warn(f'Disable {desc} on request ({env} set)')
+                    warnings.warn('Disable {desc} on request ({env} set)'
+                                  .format(desc=desc, env=env))
                     setattr(self, attr, True)
                 else:
                     raise RuntimeError(

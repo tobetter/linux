@@ -2,6 +2,7 @@ linux-4.19 (4.19.146-1~deb9u1) UNRELEASED; urgency=high
 
   * Rebuild for stretch:
     - Change ABI number to 0.bpo.11
+    - debian/bin/gencontrol.py: Replace f-string with use of str.format
 
  -- Ben Hutchings <benh@debian.org>  Sat, 26 Sep 2020 17:21:37 +0100
 
