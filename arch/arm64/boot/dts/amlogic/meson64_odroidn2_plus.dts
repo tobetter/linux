@@ -12,6 +12,10 @@
 	model = "Hardkernel ODROID-N2Plus";
 };
 
+&reboot {
+	sd-vqen = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_HIGH>;
+};
+
 &vddcpu_a {
 	regulator-min-microvolt = <680000>;
 	regulator-max-microvolt = <1040000>;
