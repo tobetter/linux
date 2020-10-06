@@ -9,6 +9,16 @@
 
 / {
 	model = "Hardkernel ODROID-C4";
+
+	odroid-reboot {
+		compatible = "odroid,reboot";
+		sys_reset = <0x84000009>;
+		sys_poweroff = <0x84000008>;
+
+		sd-vqen = <&gpio_ao GPIOE_2 GPIO_ACTIVE_HIGH>;
+		sd-vqsw = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>;
+		sd-vmmc = <&gpio_ao GPIOAO_3 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &cpu_opp_table {
