@@ -9,6 +9,13 @@ menuconfig POWER_RESET
 
 if POWER_RESET
 
+config POWER_RESET_ODROID
+	bool "odroid reboot/power-off driver"
+	depends on ARCH_MESON
+	help
+	  This driver supports restart / power off board for amlogic
+	  g12a/g12b/sm1 SoCs
+
 config POWER_RESET_AS3722
 	bool "ams AS3722 power-off driver"
 	depends on MFD_AS3722
