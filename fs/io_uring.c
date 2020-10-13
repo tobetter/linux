@@ -3056,8 +3056,6 @@ static int __io_openat_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe
 	const char __user *fname;
 	int ret;
 
-	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL|IORING_SETUP_SQPOLL)))
-		return -EINVAL;
 	if (unlikely(sqe->ioprio || sqe->buf_index))
 		return -EINVAL;
 	if (unlikely(req->flags & REQ_F_FIXED_FILE))
@@ -3084,6 +3082,8 @@ static int io_openat_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 {
 	u64 flags, mode;
 
+	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL|IORING_SETUP_SQPOLL)))
+		return -EINVAL;
 	if (req->flags & REQ_F_NEED_CLEANUP)
 		return 0;
 	mode = READ_ONCE(sqe->len);
@@ -3098,6 +3098,8 @@ static int io_openat2_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 	size_t len;
 	int ret;
 
+	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL|IORING_SETUP_SQPOLL)))
+		return -EINVAL;
 	if (req->flags & REQ_F_NEED_CLEANUP)
 		return 0;
 	how = u64_to_user_ptr(READ_ONCE(sqe->addr2));
@@ -3316,7 +3318,7 @@ static int io_epoll_ctl_prep(struct io_kiocb *req,
 #if defined(CONFIG_EPOLL)
 	if (sqe->ioprio || sqe->buf_index)
 		return -EINVAL;
-	if (unlikely(req->ctx->flags & IORING_SETUP_IOPOLL))
+	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL | IORING_SETUP_SQPOLL)))
 		return -EINVAL;
 
 	req->epoll.epfd = READ_ONCE(sqe->fd);
@@ -3433,7 +3435,7 @@ static int io_fadvise(struct io_kiocb *req, bool force_nonblock)
 
 static int io_statx_prep(struct io_kiocb *req, const struct io_uring_sqe *sqe)
 {
-	if (unlikely(req->ctx->flags & IORING_SETUP_IOPOLL))
+	if (unlikely(req->ctx->flags & (IORING_SETUP_IOPOLL | IORING_SETUP_SQPOLL)))
 		return -EINVAL;
 	if (sqe->ioprio || sqe->buf_index)
 		return -EINVAL;
@@ -4308,6 +4310,8 @@ static int io_poll_double_wake(struct wait_queue_entry *wait, unsigned mode,
 	if (mask && !(mask & poll->events))
 		return 0;
 
+	list_del_init(&wait->entry);
+
 	if (poll && poll->head) {
 		bool done;
 
@@ -5038,6 +5042,8 @@ static int io_async_cancel(struct io_kiocb *req)
 static int io_files_update_prep(struct io_kiocb *req,
 				const struct io_uring_sqe *sqe)
 {
+	if (unlikely(req->ctx->flags & IORING_SETUP_SQPOLL))
+		return -EINVAL;
 	if (unlikely(req->flags & (REQ_F_FIXED_FILE | REQ_F_BUFFER_SELECT)))
 		return -EINVAL;
 	if (sqe->ioprio || sqe->rw_flags)
@@ -5252,6 +5258,8 @@ static void io_cleanup_req(struct io_kiocb *req)
 		break;
 	case IORING_OP_OPENAT:
 	case IORING_OP_OPENAT2:
+		if (req->open.filename)
+			putname(req->open.filename);
 		break;
 	case IORING_OP_SPLICE:
 	case IORING_OP_TEE:
