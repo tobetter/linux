@@ -75,6 +75,7 @@ enum gc_type {
 	GC_PSX,
 	GC_DDR,
 	GC_SNESMOUSE,
+	GC_GPIO,
 	GC_MAX
 };
 
@@ -107,7 +108,7 @@ static const int gc_status_bit[] = { 0x40, 0x80, 0x20, 0x10, 0x08 };
 static const char *gc_names[] = {
 	NULL, "SNES pad", "NES pad", "NES FourPort", "Multisystem joystick",
 	"Multisystem 2-button joystick", "N64 controller", "PSX controller",
-	"PSX DDR controller", "SNES mouse"
+	"PSX DDR controller", "SNES mouse", "GPIO controller"
 };
 
 /*
@@ -739,6 +740,65 @@ static void gc_psx_process_packet(struct gc *gc)
 }
 
 /*
+ * GPIO support
+ */
+
+#define GC_GPIO_BYTES		12
+
+static const short gc_gpio_btn[] = {
+	BTN_A, BTN_B, BTN_SELECT, BTN_START, BTN_X, BTN_Y, BTN_TL, BTN_TR
+};
+
+static void gc_gpio_read_packet(struct gc *gc,
+			       int data[GC_GPIO_BYTES])
+{
+	int i;
+	unsigned char val;
+	unsigned char mask;
+	unsigned char status_bit[] = {
+		PARPORT_STATUS_ERROR,
+		PARPORT_STATUS_SELECT,
+		PARPORT_STATUS_PAPEROUT,
+		PARPORT_STATUS_ACK
+	};
+
+	val = parport_read_status(gc->pd->port);
+	for (i = 0; i < 4; i++)
+		data[i] = (val & status_bit[i]) ? 255 : 0;
+
+	val = parport_read_data(gc->pd->port);
+	for (mask = 1; i < 12; i++, mask <<= 1)
+		data[i] = (val & mask) ? 255 : 0;
+}
+
+static void gc_gpio_process_packet(struct gc *gc)
+{
+	struct gc_pad *pad;
+	int i;
+
+	for (i = 0; i < GC_MAX_DEVICES; i++) {
+		pad = &gc->pads[i];
+		if (pad->type == GC_GPIO) {
+			int data[GC_GPIO_BYTES];
+			struct input_dev *dev = pad->dev;
+			int j;
+
+			gc_gpio_read_packet(gc, data);
+
+			input_report_abs(dev, ABS_X, data[3] - data[2]);
+			input_report_abs(dev, ABS_Y, data[1] - data[0]);
+
+			for (j = 0; j < 8; j++) {
+				input_report_key(dev, gc_gpio_btn[j],
+						data[4 + j]);
+			}
+
+			input_sync(dev);
+		}
+	}
+}
+
+/*
  * gc_timer() initiates reads of console pads data.
  */
 
@@ -776,6 +836,12 @@ static void gc_timer(unsigned long private)
 
 	if (gc->pad_count[GC_PSX] || gc->pad_count[GC_DDR])
 		gc_psx_process_packet(gc);
+
+/*
+ * GPIO controllers
+ */
+	if (gc->pad_count[GC_GPIO])
+		gc_gpio_process_packet(gc);
 
 	mod_timer(&gc->timer, jiffies + GC_REFRESH_TIME);
 }
@@ -912,6 +978,11 @@ static int gc_setup_pad(struct gc *gc, int idx, int pad_type)
 		for (i = 0; i < 12; i++)
 			__set_bit(gc_psx_btn[i], input_dev->keybit);
 
+		break;
+
+	case GC_GPIO:
+		for (i = 0; i < 8; i++)
+			__set_bit(gc_gpio_btn[i], input_dev->keybit);
 		break;
 	}
 
