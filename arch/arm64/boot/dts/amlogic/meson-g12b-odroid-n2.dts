@@ -549,6 +549,12 @@
 
 	/* default 100k */
 	clock-frequency = <100000>;
+
+	rtc: rtc@51 {
+		compatible = "nxp,pcf8563";
+		reg = <0x51>;
+		status = "okay";
+	};
 };
 
 &ir {
