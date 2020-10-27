@@ -26,6 +26,6 @@ obj-$(CONFIG_USB_NET_RNDIS_WLAN)	+= rndis_wlan.o
 
 obj-$(CONFIG_MAC80211_HWSIM)	+= mac80211_hwsim.o
 
-obj-$(CONFIG_88XXAU) += rtl8812au/
-obj-$(CONFIG_RTL8188EU) += rtl8188eu/
-obj-$(CONFIG_RTL8192CU) += rtl8192cu/
+#obj-$(CONFIG_88XXAU) += rtl8812au/
+#obj-$(CONFIG_RTL8188EU) += rtl8188eu/
+#obj-$(CONFIG_RTL8192CU) += rtl8192cu/
