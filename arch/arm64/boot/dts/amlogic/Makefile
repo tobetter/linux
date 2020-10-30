@@ -57,6 +57,10 @@ dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p241_1g.dtb
 dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p241_v2-1g.dtb
 dtb-$(CONFIG_ARM64) += coreelec-gxl/gxl_p241_1g_lafrite.dtb
 
+dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2_joystick.dtb
+dtb-$(CONFIG_ARM64) += g12b_s922x_odroid_n2plus_joystick.dtb
+dtb-$(CONFIG_ARM64) += sm1_s905x3_odroid_c4_joystick.dtb
+
 always		:= $(dtb-y)
 subdir-y	:= $(dts-dirs)
 clean-files	:= *.dtb
