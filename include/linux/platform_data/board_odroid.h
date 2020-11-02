@@ -5,6 +5,7 @@
 
 #define BOARD_ODROIDN2			0x09221000
 #define BOARD_ODROIDC4			0x09051000
+#define BOARD_BANANAPI_M5		0x09052000
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 
@@ -19,5 +20,6 @@ extern bool odroid_amlogic_usb3(void);
 
 #define board_is_odroidn2()	__board_is_odroid(BOARD_ODROIDN2)
 #define board_is_odroidc4()	__board_is_odroid(BOARD_ODROIDC4)
+#define board_is_bananapi_m5()  __board_is_odroid(BOARD_BANANAPI_M5)
 
 #endif
