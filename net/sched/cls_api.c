@@ -650,12 +650,12 @@ static void tc_block_indr_cleanup(struct flow_block_cb *block_cb)
 			       block_cb->indr.binder_type,
 			       &block->flow_block, tcf_block_shared(block),
 			       &extack);
+	rtnl_lock();
 	down_write(&block->cb_lock);
 	list_del(&block_cb->driver_list);
 	list_move(&block_cb->list, &bo.cb_list);
-	up_write(&block->cb_lock);
-	rtnl_lock();
 	tcf_block_unbind(block, &bo);
+	up_write(&block->cb_lock);
 	rtnl_unlock();
 }
 
@@ -3707,7 +3707,7 @@ int tc_setup_flow_action(struct flow_action *flow_action,
 			entry->gate.num_entries = tcf_gate_num_entries(act);
 			err = tcf_gate_get_entries(entry, act);
 			if (err)
-				goto err_out;
+				goto err_out_locked;
 		} else {
 			err = -EOPNOTSUPP;
 			goto err_out_locked;
