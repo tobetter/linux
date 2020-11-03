@@ -6044,7 +6044,7 @@ static int amhdmitx_probe(struct platform_device *pdev)
 	hdmitx_extcon_register(pdev, dev);
 
 	/* update fmt_attr */
-	/*hdmitx_init_fmt_attr(&hdmitx_device); /**/
+	hdmitx_init_fmt_attr(&hdmitx_device);
 
 	hdmitx_device.task = kthread_run(hdmi_task_handle,
 		&hdmitx_device, "kthread_hdmi");
