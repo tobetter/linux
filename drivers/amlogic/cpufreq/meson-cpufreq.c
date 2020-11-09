@@ -59,6 +59,10 @@
 #define C4_A55_DEFAULT		1800000	/* C4 Core A55 */
 #endif
 
+#ifdef CONFIG_ARCH_MESON64_BANANAPI_M5
+#define C4_A55_DEFAULT          1800000 /* C4 Core A55 */
+#endif
+
 static unsigned long max_freq[2] = {
 	0,
 	0,
