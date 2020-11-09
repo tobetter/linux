@@ -39,3 +39,12 @@
 			<&gpio GPIOX_5 GPIO_ACTIVE_LOW>;
 	};
 };
+
+&pinctrl_periphs {
+	spdifout: spdifout {
+		mux {/* GPIOA_11 */
+			groups = "spdif_out_a11";
+			function = "spdif_out";
+		};
+	};
+};
