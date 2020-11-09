@@ -4,10 +4,13 @@
 / {
 	fragment@0 {
 		// GPIOA 13
-		target = <&aml_spdif>;
+		target = <&spdifout>;
 
 		__overlay__ {
-			pinctrl-0 = <&spdifout_b>;
+			mux {/* GPIOA_13 */
+				groups = "spdif_out_a13";
+				function = "spdif_out";
+			};
 		};
 	};
 };

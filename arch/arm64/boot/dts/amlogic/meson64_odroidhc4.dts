@@ -1,0 +1,126 @@
+/*
+ * arch/arm64/boot/dts/amlogic/meson64_odroidhc4.dts
+ *
+ * Copyright (C) 2019 Hardkernel Co., Ltd. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ */
+
+#include <include/dt-bindings/thermal/thermal.h>
+#include "meson64_odroidc4.dts"
+
+/ {
+	model = "Hardkernel ODROID-HC4";
+
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		status = "okay";
+		#cooling-cells = <2>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		cooling-levels = <0 128 180 240>;
+		pwms = <&pwm_cd MESON_PWM_1 40000 0>;
+	};
+
+	usb_host_pwren: usb_host_pwren {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio_ao GPIOAO_2 GPIO_ACTIVE_HIGH>;
+		regulator-name = "usb_host_pwren";
+		regulator-always-on;
+		regulator-boot-on;
+	};
+};
+
+&pwm_cd {
+	status = "okay";
+	pinctrl-names = "pwm_pins";
+	pinctrl-0 = <&pwm_c_pins1 &pwm_d_pins2>;
+};
+
+&pcie_A {
+	reset-gpio = <&gpio GPIOH_4 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&sd_emmc_c {
+	status = "disabled";
+};
+
+&spifc {
+	status = "disabled";
+	spi-nor@0 {
+		compatible = "jedec,spi-nor";
+		spifc-frequency = <40000000>;
+		read-capability = <2>;
+		spifc-io-width = <2>;
+		cs_gpios = <&gpio BOOT_14 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&dwc2_a {
+	port-type = <1>;
+	port-id-mode = <1>; /** 0: hardware, 1: sw_host, 2: sw_slave*/
+	controller-type = <1>;
+};
+
+&usb3_phy_v2 {
+	status = "disabled";
+};
+
+&soc_thermal {
+	trips {
+		pcontrol: trip-point@1 {
+			temperature = <80000>;
+			hysteresis = <5000>;
+			type = "passive";
+		};
+		phot: trip-point@2 {
+			temperature = <90000>;
+			hysteresis = <5000>;
+			type = "hot";
+		};
+		fan_low: trip-point@4 {
+			temperature = <65000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+		fan_mid: trip-point@5 {
+			temperature = <75000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+		fan_high: trip-point@6 {
+			temperature = <90000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+	};
+
+	cooling-maps {
+		fan_cooling_map0 {
+			trip = <&fan_low>;
+			cooling-device = <&fan0 THERMAL_NO_LIMIT 1>;
+			contribution = <1024>;
+		};
+		fan_cooling_map1 {
+			trip = <&fan_mid>;
+			cooling-device = <&fan0 THERMAL_NO_LIMIT 2>;
+			contribution = <1024>;
+		};
+		fan_cooling_map2 {
+			trip = <&fan_high>;
+			cooling-device = <&fan0 3 THERMAL_NO_LIMIT>;
+			contribution = <1024>;
+		};
+	};
+};

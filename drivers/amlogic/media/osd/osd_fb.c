@@ -53,6 +53,11 @@
 #ifdef CONFIG_INSTABOOT
 #include <linux/amlogic/instaboot/instaboot.h>
 #endif
+
+#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+#include <linux/platform_data/board_odroid.h>
+#endif
+
 /* Local Headers */
 #include "osd.h"
 #include "osd_fb.h"
@@ -692,10 +697,10 @@ static int osd_set_par(struct fb_info *info)
 
 	output_index = get_output_device_id(fbdev->fb_index);
 
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	info->var.xres_virtual = info->var.xres;
-	info->var.yres_virtual = info->var.yres;
-#endif
+	if (board_is_odroidn2()) {
+		info->var.xres_virtual = info->var.xres;
+		info->var.yres_virtual = info->var.yres;
+	}
 
 	if (fbdev->fb_index < osd_hw.osd_meson_dev.viu1_osd_count) {
 		vinfo = get_current_vinfo();

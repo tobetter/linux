@@ -1,0 +1,65 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+#include <dt-bindings/pwm/meson.h>
+#include <dt-bindings/pwm/pwm.h>
+
+/{
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			bt-dev {
+				compatible = "amlogic, bt-dev";
+				dev_name = "bt-dev";
+				status = "okay";
+				gpio_reset = <&gpio		GPIOX_17	GPIO_ACTIVE_LOW>;
+				gpio_hostwake = <&gpio	GPIOX_19	GPIO_ACTIVE_HIGH>;
+				gpio_btwakeup = <&gpio	GPIOX_18	GPIO_ACTIVE_HIGH>;
+			};
+
+			wifi {
+				compatible = "amlogic, aml_wifi";
+				dev_name = "aml_wifi";
+				status = "okay";
+				interrupt_pin = <&gpio	GPIOX_7		GPIO_ACTIVE_LOW>;
+				irq_trigger_type = "GPIO_IRQ_HIGH";
+				power_on_pin = <&gpio	GPIOX_6		GPIO_ACTIVE_HIGH>;
+				dhd_static_buf; //if use bcm wifi, config dhd_static_buf
+				pinctrl-names = "default";
+				pinctrl-0 = <&pwm_e_pins>;
+				pwms = <&pwm_ef MESON_PWM_0 30541 0>;
+				duty_cycle = <15270>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&uart_A>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&pwm_ef>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "pwm_pins";
+			pinctrl-0 = <&pwm_e_pins>;
+		};
+	};
+
+	fragment@3 {
+		target = <&sd_emmc_a>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
