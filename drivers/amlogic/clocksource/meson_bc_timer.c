@@ -184,10 +184,12 @@ static irqreturn_t meson_timer_interrupt(int irq, void *dev_id)
 	struct clock_event_device *evt = dev_id;
 
 	if (evt == NULL || evt->event_handler == NULL) {
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 		WARN_ONCE(evt == NULL || evt->event_handler == NULL,
 			"%p %s %p %d",
 			evt, evt?evt->name:NULL,
 			evt?evt->event_handler:NULL, irq);
+#endif
 		return IRQ_HANDLED;
 	}
 	evt->event_handler(evt);

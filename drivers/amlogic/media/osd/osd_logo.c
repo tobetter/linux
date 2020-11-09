@@ -33,6 +33,7 @@
 #include "osd.h"
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
+#include <linux/platform_data/board_odroid.h>
 #include "osd_fb.h"
 #endif
 
@@ -195,12 +196,14 @@ int set_osd_logo_freescaler(void)
 	s32 target_x_end = 0, target_y_end = 0;
 
 #if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	struct osd_fb_dev_s *fb_dev;
+	if (board_is_odroidn2()) {
+		struct osd_fb_dev_s *fb_dev;
 
-	fb_dev = gp_fbdev_list[0];
-	if (fb_dev) {
-		logo_info.fb_width = fb_dev->fb_info->var.xres;
-		logo_info.fb_height = fb_dev->fb_info->var.yres;
+		fb_dev = gp_fbdev_list[0];
+		if (fb_dev) {
+			logo_info.fb_width = fb_dev->fb_info->var.xres;
+			logo_info.fb_height = fb_dev->fb_info->var.yres;
+		}
 	}
 #endif
 

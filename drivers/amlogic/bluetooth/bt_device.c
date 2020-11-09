@@ -168,7 +168,7 @@ static void bt_device_on(struct bt_dev_data *pdata)
 				gpio_direction_input(pdata->gpio_reset);
 			} else {
 				gpio_direction_output(pdata->gpio_reset,
-						pdata->power_low_level);
+						!pdata->power_low_level);
 			}
 		}
 		if (pdata->gpio_en > 0) {

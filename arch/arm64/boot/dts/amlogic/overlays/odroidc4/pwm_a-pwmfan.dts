@@ -1,0 +1,75 @@
+/dts-v1/;
+/plugin/;
+
+#include <include/dt-bindings/thermal/thermal.h>
+#include <dt-bindings/pwm/meson.h>
+#include <dt-bindings/pwm/pwm.h>
+
+/{
+	fragment@0 {
+		// pwm_ab
+		// This activates pwm_ab.
+		target = <&pwm_ab>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "pwm_pins";
+			pinctrl-0 = <&pwm_a_pins &pwm_b_pins2>;
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			pwmcfan: pwm_c-fan {
+				compatible = "pwm-fan";
+				status = "okay";
+				#cooling-cells = <2>;
+				cooling-levels = <0 128 180 240>;
+				pwms = <&pwm_ab MESON_PWM_0 40000 0>;
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&soc_thermal>;
+
+		__overlay__ {
+			trips {
+				pwmc_fan_low: trip-point@7 {
+					temperature = <65000>;
+					hysteresis = <5000>;
+					type = "active";
+				};
+				pwmc_fan_mid: trip-point@8 {
+					temperature = <75000>;
+					hysteresis = <5000>;
+					type = "active";
+				};
+				pwmc_fan_high: trip-point@9 {
+					temperature = <90000>;
+					hysteresis = <5000>;
+					type = "active";
+				};
+			};
+			cooling-maps {
+				pwmc_fan_cooling_map0 {
+					trip = <&pwmc_fan_low>;
+					cooling-device = <&pwmcfan THERMAL_NO_LIMIT 1>;
+					contribution = <1024>;
+				};
+				pwmc_fan_cooling_map1 {
+					trip = <&pwmc_fan_mid>;
+					cooling-device = <&pwmcfan THERMAL_NO_LIMIT 2>;
+					contribution = <1024>;
+				};
+				pwmc_fan_cooling_map2 {
+					trip = <&pwmc_fan_high>;
+					cooling-device = <&pwmcfan 3 THERMAL_NO_LIMIT>;
+					contribution = <1024>;
+				};
+			};
+		};
+	};
+};
