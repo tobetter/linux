@@ -600,7 +600,7 @@ static int meson_cpufreq_init(struct cpufreq_policy *policy)
 
 #ifdef CONFIG_ARCH_MESON64_ODROID_COMMON
 	if (board_is_odroidn2() || board_is_odroidc4()
-			|| board_is_odroidhc4()) {
+      || board_is_odroidhc4() || board_is_bananapi_m5()) {
 		int i = 0;
 
 		max_freq[cur_cluster] = min(max_freq[cur_cluster],
@@ -726,7 +726,7 @@ __setup("max_freq_a53=", get_max_freq_a53);
 
 static int __init get_max_freq_a55(char *str)
 {
-	if (board_is_odroidc4() || board_is_odroidhc4())
+	if (board_is_odroidc4() || board_is_odroidhc4() || board_is_bananapi_m5())
 		return get_max_freq_cortex(0, str);
 	return -EINVAL;
 }
@@ -843,7 +843,8 @@ static int meson_cpufreq_probe(struct platform_device *pdev)
 			max_freq[1] = (is_meson_g12b_cpu() && is_meson_rev_a())
 				? N2_A73_DEFAULT : N2PLUS_A73_DEFAULT;
 		}
-	} else if (board_is_odroidc4() || board_is_odroidhc4()) {
+	} else if (board_is_odroidc4() || board_is_odroidhc4() || board_is_bananapi_m5()) {
+
 		if (!max_freq[0])
 			max_freq[0] = C4_A55_DEFAULT;
 	}
