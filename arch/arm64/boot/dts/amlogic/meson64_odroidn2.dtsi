@@ -426,9 +426,7 @@
 				&clkaudio CLKID_AUDIO_SPDIFOUTB_CTRL>;
 		clock-names = "sysclk",
 				"gate_spdifout", "clk_spdifout";
-		pinctrl-names = "spdif_pins";
-		pinctrl-0 = <&spdifout_b>;
-		status = "disabled";
+		status = "okay";
 	};
 	aml_loopback: loopback {
 		compatible = "amlogic, snd-loopback";
@@ -571,12 +569,6 @@
 	spdifout: spdifout {
 		mux {/* GPIOA_11 */
 			groups = "spdif_out_a11";
-			function = "spdif_out";
-		};
-	};
-	spdifout_b: spdifout_b {
-		mux {/* GPIOA_13 */
-			groups = "spdif_out_a13";
 			function = "spdif_out";
 		};
 	};

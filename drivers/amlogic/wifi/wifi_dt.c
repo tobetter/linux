@@ -37,7 +37,9 @@
 #include <linux/io.h>
 #include <linux/uaccess.h>
 #include <linux/pwm.h>
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 #include <linux/pci.h>
+#endif
 #include <linux/amlogic/pwm_meson.h>
 #include "../../gpio/gpiolib.h"
 #define OWNER_NAME "sdio_wifi"
@@ -252,7 +254,7 @@ static int  wifi_power_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 void pci_reinit(void)
 {
 	struct pci_bus *bus = NULL;
@@ -312,6 +314,7 @@ void pci_remove_reinit(unsigned int vid, unsigned int pid, unsigned int delBus)
 
 }
 EXPORT_SYMBOL(pci_remove_reinit);
+#endif
 
 static long wifi_power_ioctl(struct file *filp,
 	unsigned int cmd, unsigned long arg)
@@ -334,7 +337,9 @@ static long wifi_power_ioctl(struct file *filp,
 		mdelay(200);
 		set_usb_wifi_power(1);
 		mdelay(200);
+#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 		pci_reinit();
+#endif
 		WIFI_INFO("Set sdio wifi power up!\n");
 		break;
 	case WIFI_POWER_DOWN:
@@ -664,7 +669,12 @@ static int wifi_dev_probe(struct platform_device *pdev)
 			plat->power_on_pin2 = desc_to_gpio(desc);
 		}
 
-		if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
+		if (get_cpu_type() == MESON_CPU_MAJOR_ID_SM1) {
+			WIFI_INFO("set pwm as 32k output\n");
+			ret = pwm_single_channel_conf(plat);
+			if (ret)
+				pr_err("pwm config err\n");
+		} else if (get_cpu_type() >= MESON_CPU_MAJOR_ID_GXTVBB) {
 			ret = pwm_double_channel_conf_dt(plat);
 			if (ret != 0) {
 				WIFI_INFO("pwm_double_channel_conf_dt error\n");

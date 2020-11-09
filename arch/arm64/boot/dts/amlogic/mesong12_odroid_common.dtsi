@@ -139,20 +139,6 @@
 	tv_bit_mode = <1>;
 };
 
-&pwm_cd {
-	status = "okay";
-	pinctrl-names = "pwm_pins","gpio_periphs";
-	pinctrl-0 = <&pwm_c_pins2 &pwm_d_pins2>;
-	pinctrl-1 = <&pwmcd_to_gpios>;
-};
-
-&pwm_ef {
-	status = "okay";
-	pinctrl-names = "pwm_pins","gpio_periphs";
-	pinctrl-0 = <&pwm_e_pins &pwm_f_pins1>;
-	pinctrl-1 = <&pwmef_to_gpios>;
-};
-
 &pwm_AO_cd {
 	status = "okay";
 };
@@ -257,18 +243,6 @@
 		};
 	};
 
-	pwmcd_to_gpios:pwmcd_gpio {
-		mux {
-			groups = "GPIOX_5", "GPIOX_6";
-			function = "gpio_periphs";
-		};
-	};
-	pwmef_to_gpios:pwmef_gpio {
-		mux {
-			groups = "GPIOX_16", "GPIOX_7";
-			function = "gpio_periphs";
-		};
-	};
 	spicc0_pins_x: spicc0_pins_x {
 		mux {
 			drive-strength = <3>;

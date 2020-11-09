@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// pwm_ab
+		// This activates pwm_ab.
+		target = <&pwm_ab>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "pwm_pins";
+			pinctrl-0 = <&pwm_a_pins &pwm_b_pins2>;
+		};
+	};
+};
