@@ -26,3 +26,8 @@
 		opp-microvolt = <1030000>;
 	};
 };
+
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
