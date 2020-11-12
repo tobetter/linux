@@ -125,6 +125,11 @@
 	};
 };
 
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
+
 &spdifout {
 	pinctrl-0 = <&spdif_out_a13_pins>;
 	pinctrl-names = "default";
