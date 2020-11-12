@@ -10,3 +10,12 @@
 / {
 	model = "Hardkernel ODROID-C4";
 };
+
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
+
+&vddcpu {
+	regulator-max-microvolt = <1030000>;
+};
