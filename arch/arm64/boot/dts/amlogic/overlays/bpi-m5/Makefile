@@ -14,6 +14,7 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDC4) += spi0.dtbo \
 					uart1.dtbo \
 					uart1_cts_rts.dtbo \
 					uart2.dtbo \
+					ds3231.dtbo \
 					waveshare_tft35c_lcd.dtbo \
 					waveshare_tft35c_rtp.dtbo \
 					waveshare_tft24_lcd.dtbo
