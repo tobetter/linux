@@ -52,6 +52,11 @@
 	};
 };
 
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
+
 &fan0 {
 	fan-supply = <&vcc_5v>;
 	interrupt-parent = <&gpio_intc>;
