@@ -10,3 +10,8 @@
 / {
 	model = "Hardkernel ODROID-C4";
 };
+
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
