@@ -1,0 +1,31 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/pwm/meson.h>
+#include <dt-bindings/pwm/pwm.h>
+
+/{
+	fragment@0 {
+		// pwm_ab
+		// This activates pwm_cd.
+		target = <&pwm_cd>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "pwm_pins";
+			pinctrl-0 = <&pwm_c_pins2 &pwm_d_pins1>;
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			beeper: beeper {
+				compatible = "pwm-beeper";
+				pwms = <&pwm_cd MESON_PWM_0 1000000 0>;
+				status = "okay";
+			};
+		};
+	};
+};

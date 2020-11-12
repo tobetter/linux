@@ -1,0 +1,44 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target = <&spicc0>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			tft24: tft24@0 {
+				compatible = "ilitek,ili9341";
+				reg = <0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&tft24_pins>;
+
+				spi-max-frequency = <50000000>;
+				rotate = <90>;
+				bgr = <0>;
+				fps = <30>;
+				buswidth = <8>;
+				reset-gpios = <&gpio GPIOX_4 GPIO_ACTIVE_LOW>; //phy.13
+				dc-gpios = <&gpio GPIOX_2 GPIO_ACTIVE_HIGH>;    //phy.22
+				led-gpios = <&gpio_ao GPIOAO_8 GPIO_ACTIVE_LOW>;  //phy.12
+				debug = <0>;
+
+				tft24_pins: tft24_pins {
+					mux {
+						groups = "GPIOAO_8", "GPIOX_2", "GPIOX_4";
+						function = "gpio_periphs";
+						output-high;
+						drive-strength = <3>;
+					};
+				};
+			};
+		};
+	};
+};

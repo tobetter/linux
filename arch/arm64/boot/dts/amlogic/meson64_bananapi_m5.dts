@@ -940,6 +940,15 @@
 };
 
 &pinctrl_periphs {
+	a_uart_cts_rts_pins: a_uart_cts_rts {
+		mux {
+			groups = "uart_tx_a",
+				"uart_rx_a",
+				"uart_cts_a",
+				"uart_rts_a";
+			function = "uart_a";
+		};
+	};
 };
 
 &pinctrl_aobus {

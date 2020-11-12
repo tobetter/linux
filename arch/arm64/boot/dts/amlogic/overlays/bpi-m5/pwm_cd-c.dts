@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// pwm_cd
+		// This activates pwm_cd.
+		target = <&pwm_cd>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "pwm_pins";
+			pinctrl-0 = <&pwm_c_pins2>;
+		};
+	};
+};

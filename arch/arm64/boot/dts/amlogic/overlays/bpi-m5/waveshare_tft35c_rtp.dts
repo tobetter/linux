@@ -1,0 +1,33 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target = <&spicc0>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ads7846: ads7846@0 {
+				status = "okay";
+				compatible = "ti,ads7846";
+
+				spi-max-frequency = <2000000>;
+				reg = <1>;
+
+				pendown-gpio = <&gpio GPIOX_3 GPIO_ACTIVE_HIGH>;  //phy.11
+
+				ti,x-plate-ohms = /bits/ 16 <60>;
+				ti,pressure-max = /bits/ 16 <255>;
+
+				linux,wakeup;
+			};
+		};
+	};
+};

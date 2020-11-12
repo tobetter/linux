@@ -1,0 +1,45 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target = <&spicc0>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			tft35c: tft35c@0 {
+				compatible = "ilitek,ili9486";
+				reg = <0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&tft35c_pins>;
+
+				spi-max-frequency = <100000000>;
+				txbuflen = <32768>;
+				rotate = <90>;
+				bgr = <0>;
+				fps = <30>;
+				buswidth = <8>;
+				regwidth = <16>;
+				reset-gpios = <&gpio GPIOX_2 GPIO_ACTIVE_LOW>; //phy.22
+				dc-gpios = <&gpio GPIOX_1 GPIO_ACTIVE_LOW>;    //phy.18
+				debug = <0>;
+
+				tft35c_pins: tft35c_pins {
+					mux {
+						groups = "GPIOX_1", "GPIOX_2";
+						function = "gpio_periphs";
+						output-high;
+						drive-strength = <3>;
+					};
+				};
+			};
+		};
+	};
+};
