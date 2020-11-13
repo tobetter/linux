@@ -221,6 +221,10 @@ int ir_scancode_sort(struct ir_map_tab *ir_map);
 struct ir_map_tab_list *seek_map_tab(struct remote_chip *chip, int custom_code);
 const struct aml_remote_reg_proto **ir_get_proto_reg(void);
 void ir_tab_free(struct ir_map_tab_list *ir_map_list);
+int remote_pulses_malloc(struct remote_chip *chip);
+void remote_pulses_free(struct remote_chip *chip);
+void demod_reset(struct remote_chip *chip);
+void demod_init(struct remote_chip *chip);
 
 #if defined(CONFIG_IR_HK_LIRC_HELPER)
 extern void remote_wakeup_decode_type(int dec_type);

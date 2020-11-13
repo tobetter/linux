@@ -609,7 +609,7 @@
 		status = "disabled";
 	};
 
-	meson-ir {
+	meson_ir: meson-ir {
 		compatible = "amlogic,meson6-ir";
 		/* Multi-format IR controller */
 		reg = <0x0 0xff808040 0x0 0x44>;
@@ -617,7 +617,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&remote_pins>;
 		pulse-inverted;
-		status = "disabled";
+		status = "ok";
 	};
 
 	/* Audio Related start */
@@ -750,7 +750,7 @@
 		key_tolerance = <40>;
 	};
 
-	hk-lirc-helper {
+	hk_lirc: hk-lirc-helper {
 		compatible = "hk-lirc-helper";
 		/* Multi-format IR controller */
 		reg = <0x0 0xff808040 0x0 0x44>;
