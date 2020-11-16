@@ -24,6 +24,14 @@
 	};
 };
 
+&cpu_opp_table {
+	/delete-node/ opp-100000000;
+	/delete-node/ opp-250000000;
+	/delete-node/ opp-500000000;
+	/delete-node/ opp-667000000;
+	/delete-node/ opp-1908000000;
+};
+
 &cpu_thermal {
 	cooling-maps {
 		map {
