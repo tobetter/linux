@@ -129,7 +129,7 @@
 
 		regulator-name = "VDDCPU";
 		regulator-min-microvolt = <721000>;
-		regulator-max-microvolt = <1022000>;
+		regulator-max-microvolt = <1030000>;
 
 		vin-supply = <&main_12v>;
 
