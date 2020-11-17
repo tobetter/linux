@@ -631,6 +631,11 @@
 		compatible = "linux,spdif-dit";
 		status = "okay";
 	};
+	pcm5102a: pcm5102a {
+		compatible = "ti,pcm5102a";
+		#sound-dai-cells = <0>;
+		status = "disabled";
+	};
 	amlogic_codec:t9015{
 		#sound-dai-cells = <0>;
 		compatible = "amlogic, aml_codec_T9015";
@@ -658,15 +663,28 @@
 		/* max 0xff, each bit for one channel */
 		channel_mask = <0x3>;
 	};
-	auge_sound {
+	auge_sound: auge_sound {
 		compatible = "amlogic, g12a-sound-card";
 		aml-audio-card,name = "AML-AUGESOUND";
 
-                aml-audio-card,dai-link@0 {
+		aml-audio-card,dai-link@0 {
+			mclk-fs = <128>;
+			continuous-clock;
+			suffix-name = "hdmi-spdifa";
+			cpu {
+				sound-dai = <&spdifa>;
+				system-clock-frequency = <6144000>;
+			};
+			codec {
+				sound-dai = <&dummy_codec>;
+			};
+		};
+
+                aml-audio-card,dai-link@1 {
                         format = "i2s";
                         mclk-fs = <256>;
                         continuous-clock;
-			suffix-name = "bananapi-lineout";
+			suffix-name = "lineout";
                         bitclock-master = <&tdmc>;
                         frame-master = <&tdmc>;
                         cpu {
@@ -679,32 +697,6 @@
                         };
                         codec {
                                 sound-dai = <&amlogic_codec>;
-                        };
-                };
-
-		aml-audio-card,dai-link@1 {
-                        mclk-fs = <128>;
-                        continuous-clock;
-                        suffix-name = "bananapi-spdif";
-                        cpu {
-                                sound-dai = <&spdifa>;
-                                system-clock-frequency = <6144000>;
-                        };
-                        codec {
-                                sound-dai = <&dummy_codec>;
-                        };
-                };
-
-                aml-audio-card,dai-link@2 {
-                        mclk-fs = <128>;
-                        continuous-clock;
-                        suffix-name = "bananapi-hdmi";
-                        cpu {   
-                                sound-dai = <&spdifb>; 
-                                system-clock-frequency = <6144000>;
-                        };
-                        codec { 
-                                sound-dai = <&dummy_codec>;
                         };
                 };
 	};
@@ -816,18 +808,6 @@
 
 		status = "okay";
 	};
-
-	spdifb: spdif@1 {
-                compatible = "amlogic, sm1-snd-spdif-b";
-                #sound-dai-cells = <0>;
-                clocks = <&clkc CLKID_MPLL0 /*CLKID_HIFI_PLL*/
-                                &clkaudio CLKID_AUDIO_GATE_SPDIFOUT_B
-                                &clkaudio CLKID_AUDIO_SPDIFOUT_B>;
-                clock-names = "sysclk",
-                                "gate_spdifout", "clk_spdifout";
-
-                status = "okay";
-        };
 }; /* end of audiobus */
 
 &gpio {

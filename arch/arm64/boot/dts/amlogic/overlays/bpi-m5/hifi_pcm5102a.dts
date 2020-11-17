@@ -1,0 +1,47 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&tdmb>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@1 {
+		target = <&pcm5102a>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&auge_sound>;
+
+		__overlay__ {
+			compatible = "amlogic, g12a-sound-card";
+			aml-audio-card,name = "AML-AUGESOUND";
+			status = "okay";
+
+			aml-audio-card,dai-link@0 {
+				format = "i2s";
+				mclk-fs = <256>;
+				continuous-clock;
+				suffix-name = "hifi";
+				bitclock-master = <&tdmb>;
+				frame-master = <&tdmb>;
+				cpu {
+					sound-dai = <&tdmb>;
+					dai-tdm-slot-tx-mask = <1 1>;
+					dai-tdm-slot-rx-mask = <1 1>;
+					dai-tdm-slot-num = <2>;
+					dai-tdm-slot-width = <32>;
+					system-clock-frequency = <12288000>;
+				};
+				codec {
+					sound-dai = <&pcm5102a &dummy_codec>;
+				};
+			};
+		};
+	};
+};

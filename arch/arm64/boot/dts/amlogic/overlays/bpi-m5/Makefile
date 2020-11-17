@@ -18,7 +18,9 @@ dtbo-$(CONFIG_ARCH_MESON64_ODROIDC4) += spi0.dtbo \
 					waveshare_tft35c_lcd.dtbo \
 					waveshare_tft35c_rtp.dtbo \
 					waveshare_tft24_lcd.dtbo \
-					custom_ir.dtbo
+					custom_ir.dtbo \
+					hifi_pcm5102a.dtbo \
+					hifi_pcm5122.dtbo
 
 targets	+= $(dtbo-y)
 always	:= $(dtbo-y)
