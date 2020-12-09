@@ -786,7 +786,7 @@ static void gc_gpio_process_packet(struct gc *gc)
 			gc_gpio_read_packet(gc, data);
 
 			input_report_abs(dev, ABS_X, data[3] - data[2]);
-			input_report_abs(dev, ABS_Y, data[1] - data[0]);
+			input_report_abs(dev, ABS_Y, data[0] - data[1]);
 
 			for (j = 0; j < 8; j++) {
 				input_report_key(dev, gc_gpio_btn[j],
