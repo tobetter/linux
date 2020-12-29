@@ -971,7 +971,7 @@ static int is_color_space_conversion(struct dw_hdmi *hdmi)
 	is_output_rgb = hdmi_bus_fmt_is_rgb(hdmi_data->enc_out_bus_format);
 
 	return (is_input_rgb != is_output_rgb) ||
-	       (is_input_rgb && is_output_rgb && hdmi_data->rgb_limited_range);
+	       hdmi_data->rgb_limited_range;
 }
 
 static int is_color_space_decimation(struct dw_hdmi *hdmi)
@@ -1026,8 +1026,7 @@ static void dw_hdmi_update_csc_coeffs(struct dw_hdmi *hdmi)
 		else
 			csc_coeff = &csc_coeff_rgb_in_eitu709;
 		csc_scale = 0;
-	} else if (is_input_rgb && is_output_rgb &&
-		   hdmi->hdmi_data.rgb_limited_range) {
+	} else if (hdmi->hdmi_data.rgb_limited_range) {
 		csc_coeff = &csc_coeff_rgb_full_to_rgb_limited;
 	}
 
