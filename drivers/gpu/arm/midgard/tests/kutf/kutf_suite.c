@@ -608,6 +608,10 @@ static int create_fixture_variant(struct kutf_test_function *test_func,
 		goto fail_dir;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	debugfs_create_file("type", S_IROTH, test_fix->dir, "fixture\n",
+			&kutf_debugfs_const_string_ops);
+#else
 	tmp = debugfs_create_file("type", S_IROTH, test_fix->dir, "fixture\n",
 				  &kutf_debugfs_const_string_ops);
 	if (!tmp) {
@@ -616,8 +620,11 @@ static int create_fixture_variant(struct kutf_test_function *test_func,
 		err = -EEXIST;
 		goto fail_file;
 	}
+#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	debugfs_create_file_unsafe(
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	tmp = debugfs_create_file_unsafe(
 #else
 	tmp = debugfs_create_file(
@@ -625,12 +632,14 @@ static int create_fixture_variant(struct kutf_test_function *test_func,
 			"run", 0600, test_fix->dir,
 			test_fix,
 			&kutf_debugfs_run_ops);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
 	if (!tmp) {
 		pr_err("Failed to create debugfs file \"run\" when adding fixture\n");
 		/* Might not be the right error, we don't get it passed back to us */
 		err = -EEXIST;
 		goto fail_file;
 	}
+#endif
 
 	list_add(&test_fix->node, &test_func->variant_list);
 	return 0;
@@ -679,28 +688,43 @@ void kutf_add_test_with_filters_and_data(
 		goto fail_dir;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	debugfs_create_file("type", S_IROTH, test_func->dir, "test\n",
+			&kutf_debugfs_const_string_ops);
+#else
 	tmp = debugfs_create_file("type", S_IROTH, test_func->dir, "test\n",
 				  &kutf_debugfs_const_string_ops);
 	if (!tmp) {
 		pr_err("Failed to create debugfs file \"type\" when adding test %s\n", name);
 		goto fail_file;
 	}
+#endif
 
 	test_func->filters = filters;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	debugfs_create_x32("filters", S_IROTH, test_func->dir,
+			&test_func->filters);
+#else
 	tmp = debugfs_create_x32("filters", S_IROTH, test_func->dir,
 				 &test_func->filters);
 	if (!tmp) {
 		pr_err("Failed to create debugfs file \"filters\" when adding test %s\n", name);
 		goto fail_file;
 	}
+#endif
 
 	test_func->test_id = id;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+	debugfs_create_u32("test_id", S_IROTH, test_func->dir,
+			&test_func->test_id);
+#else
 	tmp = debugfs_create_u32("test_id", S_IROTH, test_func->dir,
 				 &test_func->test_id);
 	if (!tmp) {
 		pr_err("Failed to create debugfs file \"test_id\" when adding test %s\n", name);
 		goto fail_file;
 	}
+#endif
 
 	for (i = 0; i < suite->fixture_variants; i++) {
 		if (create_fixture_variant(test_func, i)) {

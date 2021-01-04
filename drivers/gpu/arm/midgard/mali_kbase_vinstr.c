@@ -902,9 +902,15 @@ static void accum_clients(struct kbase_vinstr_context *vinstr_ctx)
  */
 static u64 kbasep_vinstr_get_timestamp(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct timespec64 ts;
+
+	ktime_get_raw_ts64(&ts);
+#else
 	struct timespec ts;
 
 	getrawmonotonic(&ts);
+#endif
 	return (u64)ts.tv_sec * NSECS_IN_SEC + ts.tv_nsec;
 }
 

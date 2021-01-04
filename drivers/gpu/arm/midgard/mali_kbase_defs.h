@@ -736,7 +736,11 @@ enum kbase_trace_code {
 #define KBASE_TRACE_FLAG_JOBSLOT  (((u8)1) << 1)
 
 struct kbase_trace {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct timespec64 timestamp;
+#else
 	struct timespec timestamp;
+#endif
 	u32 thread_id;
 	u32 cpu;
 	void *ctx;
