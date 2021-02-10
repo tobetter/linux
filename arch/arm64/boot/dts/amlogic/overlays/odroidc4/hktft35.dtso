@@ -1,0 +1,53 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			backlight: backlight {
+				compatible = "gpio-backlight";
+				gpios = <&gpio GPIOX_6 GPIO_ACTIVE_HIGH>;
+			};
+
+			display: display {
+				#address-cells = <2>;
+				#size-cells = <1>;
+
+				status = "okay";
+				compatible = "hardkernel,ili9488";
+				reg = <0x0 0xff63445c 0x0 0x04>;
+
+				rotate = <270>;
+				backlight = <&backlight>;
+
+				db-bits-0 = <0x00000002>;
+				db-bits-1 = <0x00000004>;
+				db-bits-2 = <0x00000001>;
+				db-bits-3 = <0x00000800>;
+				db-bits-4 = <0x00000200>;
+				db-bits-5 = <0x00000100>;
+				db-bits-6 = <0x00000080>;
+				db-bits-7 = <0x00000010>;
+				db-bits-wr = <0x00000400>;
+
+				reset-gpios = <&gpio GPIOX_3 GPIO_ACTIVE_HIGH>;
+				dc-gpios = <&gpio GPIOX_14 GPIO_ACTIVE_HIGH>;
+				wr-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_HIGH>;
+				cs-gpios = <&gpio GPIOX_16 GPIO_ACTIVE_HIGH>;
+				db-gpios = <&gpio GPIOX_1 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_2 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_0 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_11 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_9 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_8 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_7 GPIO_ACTIVE_HIGH>,
+					<&gpio GPIOX_4 GPIO_ACTIVE_HIGH>;
+			};
+		};
+	};
+};
