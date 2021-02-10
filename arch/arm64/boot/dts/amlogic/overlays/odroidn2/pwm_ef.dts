@@ -1,0 +1,24 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&pwm_ef>;
+
+		__overlay__ {
+			status = "okay";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&pwm_e_pins &pwm_f_x_pins>;
+			pinctrl-1 = <&pwmef_to_gpios>;
+			clocks = <&xtal>,
+				<&xtal>,
+				<&xtal>,
+				<&xtal>;
+			clock-names = "clkin0",
+				"clkin1",
+				"clkin2",
+				"clkin3";
+		};
+	};
+};
