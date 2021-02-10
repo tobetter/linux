@@ -1,0 +1,67 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/axg-audio-clkc.h>
+
+/ {
+	fragment@0 {
+		// i2c2 aliased with i2c0.
+		target = <&i2c2>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pcm5122: pcm5122@4c {
+				#sound-dai-cells = <0>;
+				compatible = "ti,pcm5122";
+				reg = <0x4c>;
+				AVDD-supply = <&vddao_3v3>;
+				DVDD-supply = <&vddao_3v3>;
+				CPVDD-supply = <&vddao_3v3>;
+
+				status = "okay";
+			};
+		};
+	};
+
+	fragment@1 {
+		// add pcm5122 as seconday dai link to HDMI
+		target-path = "/sound";
+
+		sound_overlay: __overlay__ {
+
+		       dai-link-3 {
+			       codec-2 {
+				       sound-dai = <&pcm5122>;
+			       };
+		       };
+	       };
+	};
+
+	fragment@2 {
+		// set I2S master clocks and output on AO pins
+		target = <&tdmif_b>;
+
+		__overlay__ {
+			status = "okay";
+
+			pinctrl-0 = <&mclk0_ao_pins>,
+				<&tdm_ao_b_fs_pins>,
+				<&tdm_ao_b_sclk_pins>,
+				<&tdm_ao_b_dout0_pins>;
+
+			pinctrl-names = "default";
+
+			assigned-clocks = <&clkc_audio AUD_CLKID_TDM_MCLK_PAD0>,
+				<&clkc_audio AUD_CLKID_TDM_SCLK_PAD1>,
+				<&clkc_audio AUD_CLKID_TDM_LRCLK_PAD1>;
+			assigned-clock-parents = <&clkc_audio AUD_CLKID_MST_B_MCLK>,
+				<&clkc_audio AUD_CLKID_MST_B_SCLK>,
+				<&clkc_audio AUD_CLKID_MST_B_LRCLK>;
+			assigned-clock-rates = <0>, <0>, <0>;
+		};
+	};
+};
