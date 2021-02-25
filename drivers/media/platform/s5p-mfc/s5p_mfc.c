@@ -858,7 +858,7 @@ static int s5p_mfc_open(struct file *file)
 	 * We'll do mostly sequential access, so sacrifice TLB efficiency for
 	 * faster allocation.
 	 */
-	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES;
+	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES | DMA_ATTR_NO_KERNEL_MAPPING;
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
 	ret = vb2_queue_init(q);
@@ -893,7 +893,7 @@ static int s5p_mfc_open(struct file *file)
 	 * We'll do mostly sequential access, so sacrifice TLB efficiency for
 	 * faster allocation.
 	 */
-	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES;
+	q->dma_attrs = DMA_ATTR_ALLOC_SINGLE_PAGES | DMA_ATTR_NO_KERNEL_MAPPING;
 	q->mem_ops = &vb2_dma_contig_memops;
 	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
 	ret = vb2_queue_init(q);
@@ -941,6 +941,11 @@ static int s5p_mfc_release(struct file *file)
 	mfc_debug_enter();
 	if (dev)
 		mutex_lock(&dev->mfc_mutex);
+
+	/* stop streaming */
+	vb2_streamoff(&ctx->vq_src, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+	vb2_streamoff(&ctx->vq_dst, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+
 	vb2_queue_release(&ctx->vq_src);
 	vb2_queue_release(&ctx->vq_dst);
 	if (dev) {

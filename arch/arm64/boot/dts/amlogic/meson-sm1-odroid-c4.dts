@@ -7,6 +7,7 @@
 
 #include "meson-sm1.dtsi"
 #include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/sound/meson-g12a-tohdmitx.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/sound/meson-g12a-tohdmitx.h>
 
@@ -15,8 +16,12 @@
 	model = "Hardkernel ODROID-C4";
 
 	aliases {
-		serial0 = &uart_AO;
 		ethernet0 = &ethmac;
+		i2c0 = &i2c2;
+		i2c1 = &i2c3;
+		serial0 = &uart_AO;
+		serial1 = &uart_A;
+		spi0 = &spicc0;
 	};
 
 	chosen {
@@ -124,7 +129,7 @@
 
 		regulator-name = "VDDCPU";
 		regulator-min-microvolt = <721000>;
-		regulator-max-microvolt = <1022000>;
+		regulator-max-microvolt = <1030000>;
 
 		vin-supply = <&main_12v>;
 
@@ -280,11 +285,57 @@
 	clock-latency = <50000>;
 };
 
+&cpu_opp_table {
+	opp-1000000000 {
+		opp-hz = /bits/ 64 <1000000000>;
+		opp-microvolt = <800000>;
+	};
+
+	opp-1200000000 {
+		opp-hz = /bits/ 64 <1200000000>;
+		opp-microvolt = <810000>;
+	};
+
+	opp-1404000000 {
+		opp-hz = /bits/ 64 <1404000000>;
+		opp-microvolt = <820000>;
+	};
+
+	opp-1500000000 {
+		opp-hz = /bits/ 64 <1500000000>;
+		opp-microvolt = <830000>;
+	};
+
+	opp-1608000000 {
+		opp-hz = /bits/ 64 <1608000000>;
+		opp-microvolt = <860000>;
+	};
+
+	opp-1704000000 {
+		opp-hz = /bits/ 64 <1704000000>;
+		opp-microvolt = <900000>;
+	};
+
+	opp-1800000000 {
+		opp-hz = /bits/ 64 <1800000000>;
+		opp-microvolt = <940000>;
+	};
+
+	opp-1908000000 {
+		opp-hz = /bits/ 64 <1908000000>;
+		opp-microvolt = <1000000>;
+	};
+};
+
 &ext_mdio {
 	external_phy: ethernet-phy@0 {
 		/* Realtek RTL8211F (0x001cc916) */
 		reg = <0>;
 		max-speed = <1000>;
+
+		reset-assert-us = <10000>;
+		reset-deassert-us = <30000>;
+		reset-gpios = <&gpio GPIOZ_15 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
 
 		interrupt-parent = <&gpio_intc>;
 		/* MAC_INTR on GPIOZ_14 */
@@ -405,6 +456,57 @@
 	linux,rc-map-name = "rc-odroid";
 };
 
+&i2c2 {
+	status = "okay";
+
+	/*
+	 * 40 Pin Header : SDA(GPIOX.17->3 Pin)
+	 *		   SCL(GPIOX.18->5 Pin)
+	 */
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_master_pins1>;
+
+	/* default 400k */
+	clock-frequency = <400000>;
+};
+
+&i2c3 {
+	/* default i2c clock-frequency is 100Khz */
+	status = "okay";
+
+	/*
+	 * 40 Pin Header : SDA(GPIOA.14->27 Pin)
+	 *		   SCL(GPIOA.15->28 Pin)
+	 */
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3_master_pins2>;
+
+	/* default 100k */
+	clock-frequency = <100000>;
+};
+
+&periphs_pinctrl {
+	i2c2_master_pins1: i2c2-master-pins1 {
+		mux {
+			groups = "i2c2_sda_x",
+				"i2c2_sck_x";
+			function = "i2c2";
+			bias-pull-up;
+			drive-strength-microamp = <3000>;
+		};
+	};
+
+	i2c3_master_pins2: i2c3-master-pins2 {
+		mux {
+			groups = "i2c3_sda_a",
+				"i2c3_sck_a";
+			function = "i2c3";
+			bias-pull-up;
+			drive-strength-microamp = <3000>;
+		};
+	};
+};
+
 &pwm_AO_cd {
 	pinctrl-0 = <&pwm_ao_d_e_pins>;
 	pinctrl-names = "default";
@@ -457,6 +559,22 @@
 	vqmmc-supply = <&flash_1v8>;
 };
 
+&spicc0 {
+	status = "okay";
+
+	pinctrl-names = "default","gpio_periphs";
+	pinctrl-0 = <&spicc0_x_pins>;
+	pinctrl-1 = <&spicc0_ss0_x_pins>;
+
+	spidev@0 {
+		status = "okay";
+
+		compatible = "linux,spidev";
+		reg = <0>;
+		spi-max-frequency = <100000000>;
+	};
+};
+
 &tdmif_b {
 	status = "okay";
 };
@@ -467,6 +585,12 @@
 
 &tohdmitx {
 	status = "okay";
+};
+
+&uart_A {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_a_pins>;
 };
 
 &uart_AO {
