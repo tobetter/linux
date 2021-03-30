@@ -6785,6 +6785,14 @@ T:	git git://anongit.freedesktop.org/drm/drm-misc
 F:	Documentation/devicetree/bindings/display/solomon,ssd1307fb.yaml
 F:	drivers/gpu/drm/solomon/ssd130x*
 
+DRM DRIVER FOR SITRONIX ST7789V PANELS
+M:	David Lechner <david@lechnology.com>
+M:	Xuezhi Zhang <zhangxuezhi1@yulong.com>
+S:	Maintained
+T:	git git://anongit.freedesktop.org/drm/drm-misc
+F:	Documentation/devicetree/bindings/display/sitronix,st7789v-dbi.yaml
+F:	drivers/gpu/drm/tiny/st7789v.c
+
 DRM DRIVER FOR ST-ERICSSON MCDE
 M:	Linus Walleij <linus.walleij@linaro.org>
 S:	Maintained
