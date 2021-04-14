@@ -431,17 +431,6 @@ static int compare_of(struct device *dev, void *data)
 	return dev->of_node == data;
 }
 
-static void meson_drv_shutdown(struct platform_device *pdev)
-{
-	struct meson_drm *priv = dev_get_drvdata(&pdev->dev);
-
-	if (!priv)
-		return;
-
-	drm_kms_helper_poll_fini(priv->drm);
-	drm_atomic_helper_shutdown(priv->drm);
-}
-
 /* Possible connectors nodes to ignore */
 static const struct of_device_id connectors_match[] = {
 	{ .compatible = "composite-video-connector" },
@@ -533,7 +522,6 @@ static const struct dev_pm_ops meson_drv_pm_ops = {
 
 static struct platform_driver meson_drm_platform_driver = {
 	.probe      = meson_drv_probe,
-	.shutdown   = meson_drv_shutdown,
 	.driver     = {
 		.name	= "meson-drm",
 		.of_match_table = dt_match,
