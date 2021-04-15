@@ -21,6 +21,9 @@
 		i2c1 = &i2c3;
 		serial0 = &uart_AO;
 		serial1 = &uart_A;
+		serial2 = &uart_B;
+		serial3 = &uart_C;
+		serial4 = &uart_AO_B;
 		spi0 = &spicc0;
 	};
 
@@ -509,6 +512,22 @@
 	};
 };
 
+&ao_pinctrl {
+	/*
+	 * The reason of the name, pins2, is uart_ao_b_pins should
+	 * use uart_ao_b_tx_2, uart_ao_b_rx_3 pins.
+	 * But these pins isn't exposed on the board.
+	 */
+	uart_ao_b_pins2: uart-b-ao2 {
+		mux {
+			groups = "uart_ao_b_tx_8",
+				"uart_ao_b_rx_9";
+			function = "uart_ao_b";
+			bias-disable;
+		};
+	};
+};
+
 &pwm_AO_cd {
 	pinctrl-0 = <&pwm_ao_d_e_pins>;
 	pinctrl-names = "default";
@@ -595,10 +614,28 @@
 	pinctrl-0 = <&uart_a_pins>;
 };
 
+&uart_B {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_b_pins>;
+};
+
+&uart_C {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_c_pins>;
+};
+
 &uart_AO {
 	status = "okay";
 	pinctrl-0 = <&uart_ao_a_pins>;
 	pinctrl-names = "default";
+};
+
+&uart_AO_B {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_ao_b_pins2>;
 };
 
 &usb {
