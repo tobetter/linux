@@ -132,3 +132,7 @@
 &ir {
 	linux,rc-map-name = "rc-odroid";
 };
+
+&uart_AO {
+	status = "disabled";
+};
