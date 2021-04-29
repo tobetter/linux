@@ -3,6 +3,8 @@ dtbo-y += \
 	spi0.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
+	pwm_cd.dtbo \
+	pwm_ef.dtbo \
 	sx865x-i2c1.dtbo \
 	w1-gpio_p15.dtbo \
 	w1-gpio_p22.dtbo
