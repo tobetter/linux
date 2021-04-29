@@ -588,6 +588,19 @@
 			drive-strength-microamp = <3000>;
 		};
 	};
+	pwmcd_to_gpios: pwmcd_gpio {
+		mux {
+			groups = "GPIOX_5", "GPIOX_6";
+			function = "gpio_periphs";
+		};
+	};
+
+	pwmef_to_gpios: pwmef_gpio {
+		mux {
+			groups = "GPIOX_16", "GPIOX_7";
+			function = "gpio_periphs";
+		};
+	};
 };
 
 &pwm_ab {
