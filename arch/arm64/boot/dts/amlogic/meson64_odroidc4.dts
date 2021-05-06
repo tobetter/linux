@@ -47,6 +47,18 @@
 	/delete-property/	interrupts-parent;
 };
 
+&i2c2 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_sda_x_pins>, <&i2c2_sck_x_pins>;
+};
+
+&i2c3 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3_sda_a_pins>, <&i2c3_sck_a_pins>;
+};
+
 &gpu_opp_table {
 	opp-999999984 {
 		opp-hz = /bits/ 64 <999999984>;
