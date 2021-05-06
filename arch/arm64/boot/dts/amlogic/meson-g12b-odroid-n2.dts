@@ -525,7 +525,7 @@
 };
 
 &i2c2 {
-	status = "okay";
+	status = "disabled";
 
 	/*
 	 * 40 Pin Header : SDA(GPIOX.17->3 Pin)
@@ -540,7 +540,7 @@
 
 &i2c3 {
 	/* default i2c clock-frequency is 100Khz */
-	status = "okay";
+	status = "disabled";
 
 	/*
 	 * 40 Pin Header : SDA(GPIOA.14->27 Pin)
