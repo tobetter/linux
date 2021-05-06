@@ -11,6 +11,11 @@
 	compatible = "hardkernel,odroid-c4", "amlogic,sm1";
 	model = "Hardkernel ODROID-C4";
 
+	aliases {
+		i2c0 = &i2c2;
+		i2c1 = &i2c3;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 
