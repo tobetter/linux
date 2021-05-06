@@ -579,11 +579,10 @@
 };
 
 &spicc0 {
-	status = "okay";
+	status = "disabled";
 
-	pinctrl-names = "default","gpio_periphs";
+	pinctrl-names = "default";
 	pinctrl-0 = <&spicc0_x_pins>;
-	pinctrl-1 = <&spicc0_ss0_x_pins>;
 
 	spidev@0 {
 		status = "okay";
