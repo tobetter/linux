@@ -3,6 +3,8 @@ dtbo-y += \
 	hktft35.dtbo \
 	pcf8563.dtbo \
 	spi0.dtbo \
+	i2c0.dtbo \
+	i2c1.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
 	uart2.dtbo \
