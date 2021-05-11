@@ -450,7 +450,7 @@
 	status = "okay";
 };
 
-&periphs_pinctrl {
+&gpio {
 	gpio-line-names =
 		/* GPIOZ */
 		"", "", "", "", "", "", "", "",
@@ -496,9 +496,6 @@
 		"PIN_3",  /* GPIOX_17 */
 		"PIN_5",  /* GPIOX_18 */
 		"PIN_36"; /* GPIOX_19 */
-};
-
-&gpio {
 	/*
 	 * WARNING: The USB Hub on the Odroid-N2 needs a reset signal
 	 * to be turned high in order to be detected by the USB Controller
