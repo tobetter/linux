@@ -12,4 +12,4 @@ dtbo-y += \
 	hktft-cs-ogst.dtbo
 
 targets += $(dtbo-y)
-always	:= $(dtbo-y)
+always-y := $(dtbo-y)
