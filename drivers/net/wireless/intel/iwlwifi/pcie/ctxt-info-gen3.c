@@ -164,8 +164,10 @@ int iwl_pcie_ctxt_info_gen3_init(struct iwl_trans *trans,
 	/* Allocate IML */
 	iml_img = dma_alloc_coherent(trans->dev, trans->iml_len,
 				     &trans_pcie->iml_dma_addr, GFP_KERNEL);
-	if (!iml_img)
-		return -ENOMEM;
+	if (!iml_img) {
+		ret = -ENOMEM;
+		goto err_free_ctxt_info;
+	}
 
 	memcpy(iml_img, trans->iml, trans->iml_len);
 
@@ -180,6 +182,26 @@ int iwl_pcie_ctxt_info_gen3_init(struct iwl_trans *trans,
 
 	iwl_set_bit(trans, CSR_CTXT_INFO_BOOT_CTRL,
 		    CSR_AUTO_FUNC_BOOT_ENA);
+
+	if (trans->trans_cfg->device_family == IWL_DEVICE_FAMILY_AX210) {
+		/*
+		 * The firmware initializes this again later (to a smaller
+		 * value), but for the boot process initialize the LTR to
+		 * ~250 usec.
+		 */
+		u32 val = CSR_LTR_LONG_VAL_AD_NO_SNOOP_REQ |
+			  u32_encode_bits(CSR_LTR_LONG_VAL_AD_SCALE_USEC,
+					  CSR_LTR_LONG_VAL_AD_NO_SNOOP_SCALE) |
+			  u32_encode_bits(250,
+					  CSR_LTR_LONG_VAL_AD_NO_SNOOP_VAL) |
+			  CSR_LTR_LONG_VAL_AD_SNOOP_REQ |
+			  u32_encode_bits(CSR_LTR_LONG_VAL_AD_SCALE_USEC,
+					  CSR_LTR_LONG_VAL_AD_SNOOP_SCALE) |
+			  u32_encode_bits(250, CSR_LTR_LONG_VAL_AD_SNOOP_VAL);
+
+		iwl_write32(trans, CSR_LTR_LONG_VAL_AD, val);
+	}
+
 	if (trans->trans_cfg->device_family >= IWL_DEVICE_FAMILY_AX210)
 		iwl_write_umac_prph(trans, UREG_CPU_INIT_RUN, 1);
 	else
@@ -187,6 +209,11 @@ int iwl_pcie_ctxt_info_gen3_init(struct iwl_trans *trans,
 
 	return 0;
 
+err_free_ctxt_info:
+	dma_free_coherent(trans->dev, sizeof(*trans_pcie->ctxt_info_gen3),
+			  trans_pcie->ctxt_info_gen3,
+			  trans_pcie->ctxt_info_dma_addr);
+	trans_pcie->ctxt_info_gen3 = NULL;
 err_free_prph_info:
 	dma_free_coherent(trans->dev,
 			  sizeof(*prph_info),
