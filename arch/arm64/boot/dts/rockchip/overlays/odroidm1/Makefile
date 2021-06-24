@@ -1,6 +1,18 @@
 # Overlays for the Odroid platform
 
-dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += fanspeed-full.dtbo
+dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
+	i2c0.dtbo \
+	i2c1.dtbo \
+	pwm1-0.dtbo \
+	pwm1-1.dtbo \
+	pwm10.dtbo \
+	pwm11-ir.dtbo \
+	pwm2.dtbo \
+	pwm9.dtbo \
+	spi0.dtbo \
+	uart0-with-ctsrts.dtbo \
+	uart0.dtbo \
+	uart1.dtbo
 
 targets += $(dtbo-y)
 always := $(dtbo-y)
