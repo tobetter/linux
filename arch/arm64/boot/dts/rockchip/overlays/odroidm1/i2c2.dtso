@@ -1,0 +1,6 @@
+/dts-v1/;
+/plugin/;
+
+&i2c2 {
+	status = "okay";
+};
