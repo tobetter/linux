@@ -1,0 +1,6 @@
+/dts-v1/;
+/plugin/;
+
+&led_work {
+	linux,default-trigger = "none";
+};
