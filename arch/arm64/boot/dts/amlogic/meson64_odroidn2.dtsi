@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (c) 2019 Dongjin Kim <tobetter@gmail.com>
+ * Copyright (c) 2021 Dongjin Kim <tobetter@gmail.com>
  *
  */
-
-/dts-v1/;
 
 #include <dt-bindings/clock/axg-audio-clkc.h>
 #include <dt-bindings/sound/meson-g12a-tohdmitx.h>
@@ -13,11 +11,21 @@
 #include <dt-bindings/reset/amlogic,meson-g12a-audio-reset.h>
 #include <dt-bindings/pwm/pwm.h>
 
-#include "meson-g12b-odroid-n2.dts"
-#include "meson64_odroidn2.dtsi"
-
 / {
-	model = "Hardkernel ODROID-N2";
+	aliases {
+		mmc0 = &sd_emmc_c; /* eMMC */
+		mmc1 = &sd_emmc_b; /* SD card */
+		mmc2 = &sd_emmc_a; /* SDIO */
+	};
+
+	reboot: odroid-reboot {
+		compatible = "odroid,reboot";
+		sys_reset = <0x84000009>;
+		sys_poweroff = <0x84000008>;
+
+		sd-vqsw = <&gpio_ao GPIOAO_9 GPIO_ACTIVE_HIGH>;
+		sd-vmmc = <&gpio_ao GPIOAO_8 GPIO_ACTIVE_HIGH>;
+	};
 
 	dio2133: audio-amplifier-0 {
 		compatible = "simple-audio-amplifier";
@@ -123,6 +131,115 @@
 			};
 		};
 	};
+
+	pwmgpio:pwmgpio {
+		compatible = "pwm-gpio";
+		#pwm-cells = <3>;
+		pwm-gpios = <&gpio_ao GPIOAO_10 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	pwmfan:pwm-fan {
+		compatible = "pwm-fan";
+		pwms = <&pwmgpio 0 40000 PWM_POLARITY_INVERTED>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		#cooling-cells = <2>;
+		cooling-levels = <0 120 170 220>;
+	};
+};
+
+&cpu_thermal {
+	trips {
+		fan_0: trip-point@0 {
+			temperature = <65000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+		fan_1: trip-point@1 {
+			temperature = <75000>;
+			hysteresis = <5000>;
+			type = "active";
+		};
+	};
+	cooling-maps {
+		fan_cooling_map0 {
+			trip = <&fan_0>;
+			cooling-device = <&pwmfan THERMAL_NO_LIMIT 2>;
+		};
+		fan_cooling_map1 {
+			trip = <&fan_1>;
+			cooling-device = <&pwmfan 2 THERMAL_NO_LIMIT>;
+		};
+	};
+};
+
+&sd_emmc_b {
+	max-frequency = <200000000>;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
+};
+
+&ethmac {
+	/delete-property/	resets;
+	/delete-property/	reset-names;
+};
+
+&gpio {
+	gpio-line-names =
+		/* GPIOZ */
+		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "",
+		/* GPIOH */
+		"", "", "", "", "", "", "", "",
+		"",
+		/* BOOT */
+		"", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "",
+		/* GPIOC */
+		"", "", "", "", "", "", "", "",
+		/* GPIOA */
+		"PIN_44", /* GPIOA_0 */
+		"PIN_46", /* GPIOA_1 */
+		"PIN_45", /* GPIOA_2 */
+		"PIN_47", /* GPIOA_3 */
+		"PIN_26", /* GPIOA_4 */
+		"", "", "", "", "", "",
+		"PIN_42", /* GPIOA_11 */
+		"PIN_32", /* GPIOA_12 */
+		"PIN_7",  /* GPIOA_13 */
+		"PIN_27", /* GPIOA_14 */
+		"PIN_28", /* GPIOA_15 */
+		/* GPIOX */
+		"PIN_16", /* GPIOX_0 */
+		"PIN_18", /* GPIOX_1 */
+		"PIN_22", /* GPIOX_2 */
+		"PIN_11", /* GPIOX_3 */
+		"PIN_13", /* GPIOX_4 */
+		"PIN_33", /* GPIOX_5 */
+		"PIN_35", /* GPIOX_6 */
+		"PIN_15", /* GPIOX_7 */
+		"PIN_19", /* GPIOX_8 */
+		"PIN_21", /* GPIOX_9 */
+		"PIN_24", /* GPIOX_10 */
+		"PIN_23", /* GPIOX_11 */
+		"PIN_8",  /* GPIOX_12 */
+		"PIN_10", /* GPIOX_13 */
+		"PIN_29", /* GPIOX_14 */
+		"PIN_31", /* GPIOX_15 */
+		"PIN_12", /* GPIOX_16 */
+		"PIN_3",  /* GPIOX_17 */
+		"PIN_5",  /* GPIOX_18 */
+		"PIN_36"; /* GPIOX_19 */
+};
+
+&gpu_opp_table {
+	opp-999999984 {
+		opp-hz = /bits/ 64 <999999984>;
+		opp-microvolt = <800000>;
+	};
 };
 
 &spdifout {
@@ -167,4 +284,8 @@
 
 &toacodec {
 	status = "okay";
+};
+
+&gpio {
+	/delete-node/ hog-0;
 };
