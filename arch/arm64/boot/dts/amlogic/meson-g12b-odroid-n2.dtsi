@@ -12,6 +12,7 @@
 / {
 	aliases {
 		serial0 = &uart_AO;
+		serial1 = &uart_A;
 		ethernet0 = &ethmac;
 		rtc0 = &rtc;
 		rtc1 = &vrtc;
@@ -668,6 +669,12 @@
 
 &toddr_c {
 	status = "okay";
+};
+
+&uart_A {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_a_pins>;
 };
 
 &uart_AO {
