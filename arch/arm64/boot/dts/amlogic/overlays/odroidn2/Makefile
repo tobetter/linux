@@ -1,4 +1,5 @@
 dtbo-y += \
+	fanspeed-full.dtbo \
 	hktft35.dtbo \
 	spi0.dtbo \
 	pwm_cd.dtbo \
