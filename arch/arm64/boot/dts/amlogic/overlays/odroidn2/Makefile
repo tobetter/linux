@@ -4,6 +4,7 @@ dtbo-y += \
 	spi0.dtbo \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
+	pwmfan-lowtemp.dtbo \
 	uart0.dtbo \
 	uart1.dtbo \
 	sx865x-i2c1.dtbo \

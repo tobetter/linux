@@ -1,0 +1,20 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragement@0 {
+		target = <&fan_0>;
+
+		__overlay__ {
+			temperature = <45000>;
+		};
+	};
+
+	fragement@1 {
+		target = <&fan_1>;
+
+		__overlay__ {
+			temperature = <55000>;
+		};
+	};
+};
