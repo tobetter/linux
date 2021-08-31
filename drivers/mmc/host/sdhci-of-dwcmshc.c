@@ -49,6 +49,8 @@
 #define DWCMSHC_EMMC_DLL_TIMEOUT	BIT(9)
 #define DLL_RXCLK_NO_INVERTER		1
 #define DLL_RXCLK_INVERTER		0
+#define DWCMSHC_EMMC_RST_N		BIT(2)
+#define DWCMSHC_EMMC_RST_N_OE		BIT(3)
 #define DWCMSHC_ENHANCED_STROBE		BIT(8)
 #define DLL_LOCK_WO_TMOUT(x) \
 	((((x) & DWCMSHC_EMMC_DLL_LOCKED) == DWCMSHC_EMMC_DLL_LOCKED) && \
@@ -237,6 +239,23 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 	sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 }
 
+static void dwcmshc_rk_hw_reset(struct sdhci_host *host)
+{
+	u32 reg;
+
+	reg = sdhci_readl(host, DWCMSHC_EMMC_CONTROL);
+	reg |= DWCMSHC_EMMC_RST_N_OE;
+	reg &= ~DWCMSHC_EMMC_RST_N;
+	sdhci_writel(host, reg, DWCMSHC_EMMC_CONTROL);
+	udelay(20);
+
+	reg |= DWCMSHC_EMMC_RST_N;
+	sdhci_writel(host, reg, DWCMSHC_EMMC_CONTROL);
+	udelay(300);
+	return;
+}
+
+
 static const struct sdhci_ops sdhci_dwcmshc_ops = {
 	.set_clock		= sdhci_set_clock,
 	.set_bus_width		= sdhci_set_bus_width,
@@ -253,6 +272,7 @@ static const struct sdhci_ops sdhci_dwcmshc_rk_ops = {
 	.get_max_clock		= sdhci_pltfm_clk_get_max_clock,
 	.reset			= sdhci_reset,
 	.adma_write_desc	= dwcmshc_adma_write_desc,
+	.hw_reset		= dwcmshc_rk_hw_reset,
 };
 
 static const struct sdhci_pltfm_data sdhci_dwcmshc_pdata = {
