@@ -360,7 +360,6 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
 		priv->viu.osd_blend_din0_scope_h = ((dest.x2 - 1) << 16) | dest.x1;
 		priv->viu.osd_blend_din0_scope_v = ((dest.y2 - 1) << 16) | dest.y1;
 		priv->viu.osb_blend0_size = dst_h << 16 | dst_w;
-		priv->viu.osb_blend1_size = dst_h << 16 | dst_w;
 	}
 
 	/* Update Canvas with buffer address */
