@@ -36,6 +36,7 @@ struct meson_crtc {
 	struct drm_pending_vblank_event *event;
 	struct meson_drm *priv;
 	void (*enable_osd1)(struct meson_drm *priv);
+	void (*enable_osd2)(struct meson_drm *priv);
 	void (*enable_vd1)(struct meson_drm *priv);
 	void (*enable_osd1_afbc)(struct meson_drm *priv);
 	void (*disable_osd1_afbc)(struct meson_drm *priv);
@@ -110,6 +111,20 @@ static void meson_g12a_crtc_atomic_enable(struct drm_crtc *crtc,
 	writel_relaxed(0 << 16 |
 			(crtc_state->mode.vdisplay - 1),
 			priv->io_base + _REG(VPP_OSD1_BLD_V_SCOPE));
+	writel_relaxed(0 << 16 |
+			(crtc_state->mode.hdisplay - 1),
+			priv->io_base + _REG(VPP_OSD2_BLD_H_SCOPE));
+	writel_relaxed(0 << 16 |
+			(crtc_state->mode.vdisplay - 1),
+			priv->io_base + _REG(VPP_OSD2_BLD_V_SCOPE));
+	writel_relaxed(crtc_state->mode.hdisplay |
+			crtc_state->mode.vdisplay << 16,
+		       priv->io_base +
+		       _REG(VIU_OSD_BLEND_BLEND0_SIZE));
+	writel_relaxed(crtc_state->mode.hdisplay |
+			crtc_state->mode.vdisplay << 16,
+		       priv->io_base +
+		       _REG(VIU_OSD_BLEND_BLEND1_SIZE));
 	writel_relaxed(crtc_state->mode.hdisplay << 16 |
 			crtc_state->mode.vdisplay,
 			priv->io_base + _REG(VPP_OUT_H_V_SIZE));
@@ -158,6 +173,9 @@ static void meson_g12a_crtc_atomic_disable(struct drm_crtc *crtc,
 	priv->viu.osd1_enabled = false;
 	priv->viu.osd1_commit = false;
 
+	priv->viu.osd2_enabled = false;
+	priv->viu.osd2_commit = false;
+
 	priv->viu.vd1_enabled = false;
 	priv->viu.vd1_commit = false;
 
@@ -183,11 +201,14 @@ static void meson_crtc_atomic_disable(struct drm_crtc *crtc,
 	priv->viu.osd1_enabled = false;
 	priv->viu.osd1_commit = false;
 
+	priv->viu.osd2_enabled = false;
+	priv->viu.osd2_commit = false;
+
 	priv->viu.vd1_enabled = false;
 	priv->viu.vd1_commit = false;
 
 	/* Disable VPP Postblend */
-	writel_bits_relaxed(VPP_OSD1_POSTBLEND | VPP_VD1_POSTBLEND |
+	writel_bits_relaxed(VPP_OSD1_POSTBLEND | VPP_OSD2_POSTBLEND | VPP_VD1_POSTBLEND |
 			    VPP_VD1_PREBLEND | VPP_POSTBLEND_ENABLE, 0,
 			    priv->io_base + _REG(VPP_MISC));
 
@@ -223,6 +244,7 @@ static void meson_crtc_atomic_flush(struct drm_crtc *crtc,
 	struct meson_drm *priv = meson_crtc->priv;
 
 	priv->viu.osd1_commit = true;
+	priv->viu.osd2_commit = true;
 	priv->viu.vd1_commit = true;
 }
 
@@ -243,6 +265,12 @@ static const struct drm_crtc_helper_funcs meson_g12a_crtc_helper_funcs = {
 static void meson_crtc_enable_osd1(struct meson_drm *priv)
 {
 	writel_bits_relaxed(VPP_OSD1_POSTBLEND, VPP_OSD1_POSTBLEND,
+			    priv->io_base + _REG(VPP_MISC));
+}
+
+static void meson_crtc_enable_osd2(struct meson_drm *priv)
+{
+	writel_bits_relaxed(VPP_OSD2_POSTBLEND, VPP_OSD2_POSTBLEND,
 			    priv->io_base + _REG(VPP_MISC));
 }
 
@@ -274,14 +302,20 @@ static void meson_g12a_crtc_enable_osd1(struct meson_drm *priv)
 	writel_relaxed(priv->viu.osd_blend_din0_scope_v,
 		       priv->io_base +
 		       _REG(VIU_OSD_BLEND_DIN0_SCOPE_V));
-	writel_relaxed(priv->viu.osb_blend0_size,
-		       priv->io_base +
-		       _REG(VIU_OSD_BLEND_BLEND0_SIZE));
-	writel_relaxed(priv->viu.osb_blend1_size,
-		       priv->io_base +
-		       _REG(VIU_OSD_BLEND_BLEND1_SIZE));
-	writel_bits_relaxed(3 << 8, 3 << 8,
+	writel_bits_relaxed(OSD_BLEND_POSTBLD_SRC_OSD1, OSD_BLEND_POSTBLD_SRC_OSD1,
 			    priv->io_base + _REG(OSD1_BLEND_SRC_CTRL));
+}
+
+static void meson_g12a_crtc_enable_osd2(struct meson_drm *priv)
+{
+	writel_relaxed(priv->viu.osd_blend_din3_scope_h,
+		       priv->io_base +
+		       _REG(VIU_OSD_BLEND_DIN1_SCOPE_H));
+	writel_relaxed(priv->viu.osd_blend_din3_scope_v,
+		       priv->io_base +
+		       _REG(VIU_OSD_BLEND_DIN1_SCOPE_V));
+	writel_bits_relaxed(OSD_BLEND_POSTBLD_SRC_OSD2, OSD_BLEND_POSTBLD_SRC_OSD2,
+			    priv->io_base + _REG(OSD2_BLEND_SRC_CTRL));
 }
 
 static void meson_crtc_enable_vd1(struct meson_drm *priv)
@@ -386,6 +420,43 @@ void meson_crtc_irq(struct meson_drm *priv)
 		}
 
 		priv->viu.osd1_commit = false;
+	}
+
+	if (priv->viu.osd2_enabled && priv->viu.osd2_commit) {
+		writel_relaxed(priv->viu.osd2_ctrl_stat,
+				priv->io_base + _REG(VIU_OSD2_CTRL_STAT));
+		writel_relaxed(priv->viu.osd2_ctrl_stat2,
+				priv->io_base + _REG(VIU_OSD2_CTRL_STAT2));
+		writel_relaxed(priv->viu.osd2_blk0_cfg[0],
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W0));
+		writel_relaxed(priv->viu.osd2_blk0_cfg[1],
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W1));
+		writel_relaxed(priv->viu.osd2_blk0_cfg[2],
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W2));
+		writel_relaxed(priv->viu.osd2_blk0_cfg[3],
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W3));
+		writel_relaxed(priv->viu.osd2_blk0_cfg[4],
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W4));
+
+		/* vsync forced to update INTERLACE_SEL_ODD in interlace mode */
+		meson_crtc->vsync_forced = priv->viu.osd2_interlace;
+
+		meson_canvas_config(priv->canvas, priv->canvas_id_osd2,
+				priv->viu.osd2_addr,
+				priv->viu.osd2_stride,
+				priv->viu.osd2_height,
+				MESON_CANVAS_WRAP_NONE,
+				MESON_CANVAS_BLKMODE_LINEAR, 0);
+
+		/* Enable OSD2 */
+		if (meson_crtc->enable_osd2)
+			meson_crtc->enable_osd2(priv);
+
+		priv->viu.osd2_commit = false;
+	} else if (priv->viu.osd2_enabled && priv->viu.osd2_interlace) {
+		u32 reg = readl_relaxed(priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W0)) & ~BIT(0);
+		writel_relaxed(reg | meson_venci_get_field(priv) ? 1 : 0,
+				priv->io_base + _REG(VIU_OSD2_BLK0_CFG_W0));
 	}
 
 	/* Update the VD1 registers */
@@ -685,7 +756,7 @@ int meson_crtc_create(struct meson_drm *priv)
 	meson_crtc->priv = priv;
 	crtc = &meson_crtc->base;
 	ret = drm_crtc_init_with_planes(priv->drm, crtc,
-					priv->primary_plane, NULL,
+					priv->primary_plane, priv->cursor_plane,
 					&meson_crtc_funcs, "meson_crtc");
 	if (ret) {
 		dev_err(priv->drm->dev, "Failed to init CRTC\n");
@@ -694,6 +765,7 @@ int meson_crtc_create(struct meson_drm *priv)
 
 	if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_G12A)) {
 		meson_crtc->enable_osd1 = meson_g12a_crtc_enable_osd1;
+		meson_crtc->enable_osd2 = meson_g12a_crtc_enable_osd2;
 		meson_crtc->enable_vd1 = meson_g12a_crtc_enable_vd1;
 		meson_crtc->viu_offset = MESON_G12A_VIU_OFFSET;
 		meson_crtc->enable_osd1_afbc =
@@ -703,6 +775,7 @@ int meson_crtc_create(struct meson_drm *priv)
 		drm_crtc_helper_add(crtc, &meson_g12a_crtc_helper_funcs);
 	} else {
 		meson_crtc->enable_osd1 = meson_crtc_enable_osd1;
+		meson_crtc->enable_osd2 = meson_crtc_enable_osd2;
 		meson_crtc->enable_vd1 = meson_crtc_enable_vd1;
 		if (meson_vpu_is_compatible(priv, VPU_COMPATIBLE_GXM)) {
 			meson_crtc->enable_osd1_afbc =
