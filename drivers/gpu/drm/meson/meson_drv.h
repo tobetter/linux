@@ -43,12 +43,14 @@ struct meson_drm {
 
 	struct meson_canvas *canvas;
 	u8 canvas_id_osd1;
+	u8 canvas_id_osd2;
 	u8 canvas_id_vd1_0;
 	u8 canvas_id_vd1_1;
 	u8 canvas_id_vd1_2;
 
 	struct drm_device *drm;
 	struct drm_crtc *crtc;
+	struct drm_plane *cursor_plane;
 	struct drm_plane *primary_plane;
 	struct drm_plane *overlay_plane;
 
@@ -82,6 +84,21 @@ struct meson_drm {
 		uint32_t osd_blend_din0_scope_h;
 		uint32_t osd_blend_din0_scope_v;
 		uint32_t osb_blend0_size;
+
+		bool osd2_enabled;
+		bool osd2_interlace;
+		bool osd2_commit;
+		uint32_t osd2_ctrl_stat;
+		uint32_t osd2_ctrl_stat2;
+		uint32_t osd2_blk0_cfg[5];
+		uint32_t osd2_blk1_cfg4;
+		uint32_t osd2_blk2_cfg4;
+		uint32_t osd2_addr;
+		uint32_t osd2_stride;
+		uint32_t osd2_height;
+		uint32_t osd2_width;
+		uint32_t osd_blend_din3_scope_h;
+		uint32_t osd_blend_din3_scope_v;
 		uint32_t osb_blend1_size;
 
 		bool vd1_enabled;
