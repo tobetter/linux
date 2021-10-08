@@ -187,6 +187,11 @@
 	/delete-property/	reset-names;
 };
 
+&external_phy {
+	/delete-property/	interrupts;
+	/delete-property/	interrupts-parent;
+};
+
 &gpio {
 	gpio-line-names =
 		/* GPIOZ */
