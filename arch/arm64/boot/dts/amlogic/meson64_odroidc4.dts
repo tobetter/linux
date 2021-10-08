@@ -42,6 +42,11 @@
 	/delete-property/	reset-names;
 };
 
+&external_phy {
+	/delete-property/	interrupts;
+	/delete-property/	interrupts-parent;
+};
+
 &gpu_opp_table {
 	opp-999999984 {
 		opp-hz = /bits/ 64 <999999984>;
