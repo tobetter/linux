@@ -57,6 +57,11 @@
 	/delete-property/	reset-names;
 };
 
+&external_phy {
+	/delete-property/	interrupts;
+	/delete-property/	interrupts-parent;
+};
+
 &fan0 {
 	fan-supply = <&vcc_5v>;
 	interrupt-parent = <&gpio_intc>;
