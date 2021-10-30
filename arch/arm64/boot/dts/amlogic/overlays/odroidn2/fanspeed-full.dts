@@ -6,7 +6,7 @@
 		target = <&pwmfan>;
 
 		__overlay__ {
-			cooling-levels = <255 255 255 255>;
+			cooling-levels = <220 220 220 220>;
 		};
 	};
 };
