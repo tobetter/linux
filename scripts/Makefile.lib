@@ -340,7 +340,7 @@ quiet_cmd_gzip = GZIP    $@
 # DTC
 # ---------------------------------------------------------------------------
 DTC ?= $(objtree)/scripts/dtc/dtc
-DTC_FLAGS += -Wno-interrupt_provider \
+DTC_FLAGS += -Wno-interrupt_provider --symbol \
 	-Wno-unique_unit_address
 
 # Disable noisy checks by default
