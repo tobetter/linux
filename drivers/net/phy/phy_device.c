@@ -1830,8 +1830,10 @@ void phy_detach(struct phy_device *phydev)
 	    phy_driver_is_genphy_10g(phydev))
 		device_release_driver(&phydev->mdio.dev);
 
-	/* Assert the reset signal */
-	phy_device_reset(phydev, 1);
+	if (!dev->wol_enabled) {
+		/* Assert the reset signal */
+		phy_device_reset(phydev, 1);
+	}
 
 	/*
 	 * The phydev might go away on the put_device() below, so avoid
