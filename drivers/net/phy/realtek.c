@@ -12,6 +12,7 @@
 #include <linux/phy.h>
 #include <linux/module.h>
 #include <linux/delay.h>
+#include <linux/etherdevice.h>
 
 #define RTL821x_PHYSR				0x11
 #define RTL821x_PHYSR_DUPLEX			BIT(13)
@@ -228,7 +229,11 @@ static int rtl8211f_config_intr(struct phy_device *phydev)
 
 		val = RTL8211F_INER_LINK_STATUS;
 		err = phy_write_paged(phydev, 0xa42, RTL821x_INER, val);
+
+		phy_modify_paged(phydev, 0xd40, 0x16, BIT(5), 0);
 	} else {
+		phy_modify_paged(phydev, 0xd40, 0x16, 0, BIT(5));
+
 		val = 0;
 		err = phy_write_paged(phydev, 0xa42, RTL821x_INER, val);
 		if (err)
@@ -327,6 +332,34 @@ static int rtl8211c_config_init(struct phy_device *phydev)
 	/* RTL8211C has an issue when operating in Gigabit slave mode */
 	return phy_set_bits(phydev, MII_CTRL1000,
 			    CTL1000_ENABLE_MASTER | CTL1000_AS_MASTER);
+}
+
+static int rtl8211f_set_wol(struct phy_device *phydev,
+		struct ethtool_wolinfo *wol)
+{
+	struct net_device *netdev = phydev->attached_dev;
+	const u8 *mac = (const u8 *)netdev->dev_addr;
+
+	if ((wol->wolopts & (WAKE_MAGIC | WAKE_UCAST)) == 0) {
+		disable_irq_wake(phydev->irq);
+		return 0;
+	}
+
+	if ((wol->wolopts & WAKE_UCAST)
+			&& is_valid_ether_addr(mac)) {
+		phy_write_paged(phydev, 0xd8c, 0x10, (mac[1] << 8) | mac[0]);
+		phy_write_paged(phydev, 0xd8c, 0x11, (mac[3] << 8) | mac[2]);
+		phy_write_paged(phydev, 0xd8c, 0x12, (mac[5] << 8) | mac[4]);
+	}
+
+	if (wol->wolopts & WAKE_MAGIC) {
+		phy_write_paged(phydev, 0xd8a, 0x10, 0x1000);
+		phy_write_paged(phydev, 0xd8a, 0x11, 0x9fff);
+	}
+
+	enable_irq_wake(phydev->irq);
+
+	return 0;
 }
 
 static int rtl8211f_config_init(struct phy_device *phydev)
@@ -921,6 +954,7 @@ static struct phy_driver realtek_drvs[] = {
 		.handle_interrupt = rtl8211f_handle_interrupt,
 		.suspend	= genphy_suspend,
 		.resume		= rtl821x_resume,
+		.set_wol	= rtl8211f_set_wol,
 		.read_page	= rtl821x_read_page,
 		.write_page	= rtl821x_write_page,
 	}, {
