@@ -1711,6 +1711,9 @@ void phy_detach(struct phy_device *phydev)
 	if (ndev_owner != bus->owner)
 		module_put(bus->owner);
 
+	if (dev->wol_enabled)
+		return;
+
 	/* Assert the reset signal */
 	phy_device_reset(phydev, 1);
 }
