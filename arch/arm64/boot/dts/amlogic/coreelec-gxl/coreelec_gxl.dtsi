@@ -140,3 +140,9 @@
 		};
 	};
 };
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&b_i2c_master>;
+	clock-frequency = <300000>;
+};
