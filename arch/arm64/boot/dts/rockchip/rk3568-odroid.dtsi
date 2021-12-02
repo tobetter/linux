@@ -70,6 +70,12 @@
 	/delete-node/ gt1x@14;
 };
 
+&i2c2 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2m1_xfer>;
+};
+
 &i2c5 {
 	status = "disabled";
 

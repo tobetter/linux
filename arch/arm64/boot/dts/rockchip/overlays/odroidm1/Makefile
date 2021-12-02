@@ -13,7 +13,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	spi0.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
-	uart1.dtbo
+	uart1.dtbo \
+	ov5647.dtbo
 
 targets += $(dtbo-y)
 always := $(dtbo-y)
