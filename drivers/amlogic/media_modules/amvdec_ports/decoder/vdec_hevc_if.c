@@ -407,8 +407,9 @@ static void vdec_hevc_get_vf(struct vdec_hevc_inst *inst, struct vdec_v4l2_buffe
 		return;
 	}
 
+#if 0
 	atomic_set(&vf->use_cnt, 1);
-
+#endif
 	fb = (struct vdec_v4l2_buffer *)vf->v4l_mem_handle;
 	fb->vf_handle = (unsigned long)vf;
 	fb->status = FB_ST_DISPLAY;

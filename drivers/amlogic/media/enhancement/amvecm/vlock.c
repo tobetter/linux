@@ -201,22 +201,29 @@ u32 vlock_get_panel_pll_frac(void)
 
 void vlock_set_panel_pll_m(u32 val)
 {
+#if defined(CONFIG_AMLOGIC_LCD)
 	u32 m = val;
-
+#endif
 	if (vlock.dtdata->vlk_pll_sel == vlock_pll_sel_hdmi)
 		amvecm_hiu_reg_write(HHI_HDMI_PLL_CNTL, val);
+#if defined(CONFIG_AMLOGIC_LCD)
 	else
 		lcd_vlock_m_update(m);
+#endif
 }
 
 void vlock_set_panel_pll_frac(u32 val)
 {
+#if defined(CONFIG_AMLOGIC_LCD)
 	u32 frac = val;
+#endif
 
 	if (vlock.dtdata->vlk_pll_sel == vlock_pll_sel_hdmi)
 		amvecm_hiu_reg_write(HHI_HDMI_PLL_CNTL2, val);
+#if defined(CONFIG_AMLOGIC_LCD)
 	else
 		lcd_vlock_farc_update(frac);
+#endif
 }
 
 void vlock_set_panel_pll(u32 m, u32 frac)
@@ -227,10 +234,12 @@ void vlock_set_panel_pll(u32 m, u32 frac)
 
 void vlock_set_panel_ss(u32 onoff)
 {
+#if defined(CONFIG_AMLOGIC_LCD)
 	if (onoff)
 		lcd_ss_enable(1);
 	else
 		lcd_ss_enable(0);
+#endif
 }
 
 static unsigned int vlock_check_input_hz(struct vframe_s *vf)

@@ -57,7 +57,9 @@ static void vdec_vf_put(struct vframe_s *vf, void *op_arg)
 		return;
 	}
 
+#if 0
 	atomic_set(&vf->use_cnt, 1);
+#endif
 
 	vfq_push(&vfm->vf_que_recycle, vf);
 
@@ -100,7 +102,7 @@ void video_vf_put(char *receiver, struct vdec_v4l2_buffer *fb, int id)
 		fb->m.mem[1].addr, fb->m.mem[1].size,
 		fb->m.mem[2].addr, fb->m.mem[2].size);
 
-	if (vfp && vf && atomic_dec_and_test(&vf->use_cnt))
+	if (vfp && vf) /* && atomic_dec_and_test(&vf->use_cnt)) */
 		vf_put(vf, receiver);
 }
 

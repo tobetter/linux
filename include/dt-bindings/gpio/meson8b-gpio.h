@@ -29,6 +29,8 @@
 #define GPIOAO_11	11
 #define GPIOAO_12	12
 #define GPIOAO_13	13
+#define GPIO_BSD_EN	14
+#define GPIO_TEST_N	15
 
 /* Second GPIO chip */
 #define GPIOH_0		0
