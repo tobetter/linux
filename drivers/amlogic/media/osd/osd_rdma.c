@@ -697,6 +697,7 @@ void set_reset_rdma_trigger_line(void)
 	aml_write_vcbus(VPP_INT_LINE_NUM, trigger_line);
 }
 
+#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM
 struct hdr_osd_reg_s hdr_osd_shadow_reg = {
 	0x00000001, /* VIU_OSD1_MATRIX_CTRL 0x1a90 */
 	0x00ba0273, /* VIU_OSD1_MATRIX_COEF00_01 0x1a91 */
@@ -858,7 +859,7 @@ struct hdr_osd_reg_s hdr_osd_display_reg = {
 	},
 	-1
 };
-#ifdef CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM
+
 static void hdr_restore_osd_csc(void)
 {
 	u32 i = 0;

@@ -57,6 +57,7 @@
 
 #include <linux/amlogic/media/frame_provider/tvin/tvin.h>
 #include <linux/amlogic/media/vout/vdac_dev.h>
+#include <linux/amlogic/aml_dtvdemod.h>
 
 
 MODULE_PARM_DESC(debug_aml, "\n\t\t Enable frontend debug information");
@@ -1204,23 +1205,23 @@ static int Gxtv_Demod_Dvbc_Init(/*struct aml_fe_dev *dev, */int mode)
 		sys.demod_clk = Demod_Clk_200M;
 		demod_status.tmp = Adc_mode;
 	} else {
-		sys.adc_clk = Adc_Clk_24M;
+		sys.adc_clk = ADC_CLK_24M;
 		sys.demod_clk = Demod_Clk_72M;
 		demod_status.tmp = Cry_mode;
 	}
 
 	if (is_ic_ver(IC_VER_TL1)) {
-		sys.adc_clk = Adc_Clk_24M;
+		sys.adc_clk = ADC_CLK_24M;
 		/*for timeshift mosaic issue,already fixed with tm2*/
 		sys.demod_clk = Demod_Clk_167M;
 		demod_status.tmp = Cry_mode;
 	} else if (is_ic_ver(IC_VER_TM2)) {
-		sys.adc_clk = Adc_Clk_24M;
+		sys.adc_clk = ADC_CLK_24M;
 		sys.demod_clk = Demod_Clk_250M;
 		demod_status.tmp = Cry_mode;
 	}
 
-	demod_status.ch_if = Si2176_5M_If * 1000;
+	demod_status.ch_if = SI2176_5M_IF * 1000;
 	PR_DBG("[%s]adc_clk is %d,demod_clk is %d\n", __func__, sys.adc_clk,
 	       sys.demod_clk);
 	autoFlagsTrig = 0;
@@ -1404,9 +1405,9 @@ int Gxtv_Demod_Dvbt_Init(void)
 
 	/* 0 -DVBC, 1-DVBT, ISDBT, 2-ATSC*/
 	demod_status.dvb_mode = Gxtv_Dvbt_Isdbt;
-	sys.adc_clk = Adc_Clk_24M;
+	sys.adc_clk = ADC_CLK_24M;
 	sys.demod_clk = Demod_Clk_60M;
-	demod_status.ch_if = Si2176_5M_If * 1000;
+	demod_status.ch_if = SI2176_5M_IF * 1000;
 
 	demod_set_sys(&demod_status, &sys);
 	demod_mode_para = AML_DVBT;
@@ -1742,7 +1743,7 @@ static int gxtv_demod_atsc_set_frontend(struct dvb_frontend *fe)
 			else
 				atsc_write_reg_v4(ATSC_DEMOD_REG_0X56, 0x0);
 
-			if (demod_status.adc_freq == Adc_Clk_24M) {
+			if (demod_status.adc_freq == ADC_CLK_24M) {
 				atsc_write_reg_v4(ATSC_DEMOD_REG_0X54,
 					0x1aaaaa);
 
@@ -2184,7 +2185,7 @@ int Gxtv_Demod_Atsc_Init(void/*struct aml_fe_dev *dev*/)
 	memset(&demod_status, 0, sizeof(demod_status));
 	/* 0 -DVBC, 1-DVBT, ISDBT, 2-ATSC*/
 	demod_status.dvb_mode = Gxtv_Atsc;
-	sys.adc_clk = Adc_Clk_24M;    /*Adc_Clk_26M;*/
+	sys.adc_clk = ADC_CLK_24M;    /*Adc_Clk_26M;*/
 	if (is_ic_ver(IC_VER_TL1) || is_ic_ver(IC_VER_TM2))
 		sys.demod_clk = Demod_Clk_250M;
 	else
@@ -2551,6 +2552,8 @@ static int gxtv_demod_dtmb_set_frontend(struct dvb_frontend *fe)
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct aml_demod_dtmb param;
 	int times;
+	/*[0]: specturm inverse(1),normal(0); [1]:if_frequency*/
+	unsigned int tuner_freq[2] = {0};
 
 	if (!demod_thread)
 		return 0;
@@ -2565,6 +2568,17 @@ static int gxtv_demod_dtmb_set_frontend(struct dvb_frontend *fe)
 	tuner_set_params(fe);	/*aml_fe_analog_set_frontend(fe);*/
 	msleep(100);
 /* demod_power_switch(PWR_ON); */
+
+	if (cpu_after_eq(MESON_CPU_MAJOR_ID_TL1)) {
+		if (fe->ops.tuner_ops.get_if_frequency)
+			fe->ops.tuner_ops.get_if_frequency(fe, tuner_freq);
+		if (tuner_freq[0] == 0)
+			demod_status.spectrum = 0;
+		else if (tuner_freq[0] == 1)
+			demod_status.spectrum = 1;
+		else
+			pr_err("wrong specturm val get from tuner\n");
+	}
 
 	dtmb_set_ch(&demod_status, /*&demod_i2c,*/ &param);
 
@@ -2599,10 +2613,10 @@ int Gxtv_Demod_Dtmb_Init(struct amldtvdemod_device_s *dev)
 			sys.adc_clk = Adc_Clk_25M;
 			sys.demod_clk = Demod_Clk_225M;
 		} else if (is_ic_ver(IC_VER_TL1) || is_ic_ver(IC_VER_TM2)) {
-			sys.adc_clk = Adc_Clk_24M;
+			sys.adc_clk = ADC_CLK_24M;
 			sys.demod_clk = Demod_Clk_250M;
 		} else {
-			sys.adc_clk = Adc_Clk_24M;
+			sys.adc_clk = ADC_CLK_24M;
 			sys.demod_clk = Demod_Clk_225M;
 		}
 	} else {
@@ -2610,7 +2624,7 @@ int Gxtv_Demod_Dtmb_Init(struct amldtvdemod_device_s *dev)
 		return -1;
 	}
 
-	demod_status.ch_if = Si2176_5M_If;
+	demod_status.ch_if = SI2176_5M_IF;
 	demod_status.tmp = Adc_mode;
 	demod_status.spectrum = dev->spectrum;
 	/*demod_set_sys(&demod_status, &i2c, &sys);*/
@@ -4912,7 +4926,7 @@ static struct dvb_frontend_ops aml_dtvdm_tm2_ops = {
 
 };
 
-struct dvb_frontend *aml_dtvdm_attach(const struct amlfe_exp_config *config)
+struct dvb_frontend *aml_dtvdm_attach(const struct demod_config *config)
 {
 	int ic_version = get_ic_ver();
 

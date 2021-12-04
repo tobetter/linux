@@ -57,7 +57,9 @@ static void vdec_vf_put(struct vframe_s *vf, void *op_arg)
 		return;
 	}
 
+#if 0	/* tobetter */
 	atomic_set(&vf->use_cnt, 1);
+#endif
 
 	vfq_push(&vfm->vf_que_recycle, vf);
 
@@ -94,6 +96,11 @@ void video_vf_put(char *receiver, struct vdec_v4l2_buffer *fb, int id)
 
 	aml_v4l2_debug(3, "[%d] TO   (%s) vf: %p, idx: %d",
 		id, vfp->name, vf, vf->index);
+
+	aml_v4l2_debug(4, "[%d] TO   Y:(%lx, %u) C/U:(%lx, %u) V:(%lx, %u)",
+		id, fb->m.mem[0].addr, fb->m.mem[0].size,
+		fb->m.mem[1].addr, fb->m.mem[1].size,
+		fb->m.mem[2].addr, fb->m.mem[2].size);
 
 	if (vfp && vf)
 		vf_put(vf, receiver);

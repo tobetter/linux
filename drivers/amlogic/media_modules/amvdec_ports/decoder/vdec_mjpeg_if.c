@@ -352,7 +352,9 @@ static void vdec_mjpeg_get_vf(struct vdec_mjpeg_inst *inst, struct vdec_v4l2_buf
 		return;
 	}
 
+#if 0	/* tobetter */
 	atomic_set(&vf->use_cnt, 1);
+#endif
 
 	fb = (struct vdec_v4l2_buffer *)vf->v4l_mem_handle;
 	fb->vf_handle = (unsigned long)vf;

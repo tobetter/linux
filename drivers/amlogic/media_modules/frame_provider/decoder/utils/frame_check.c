@@ -122,10 +122,10 @@ static int get_frame_size(struct pic_check_mgr_t *pic,
 	}
 
 	pic->size_y = vf->width * vf->height;
-	pic->size_uv = pic->size_y >> 1;
-	pic->size_pic = pic->size_y + pic->size_uv;
+	pic->size_uv = pic->size_y >> (1 + pic->mjpeg_flag);
+	pic->size_pic = pic->size_y + (pic->size_y >> 1);
 
-	if (!(vf->type & VIDTYPE_VIU_NV21))
+	if ((!(vf->type & VIDTYPE_VIU_NV21)) && (!pic->mjpeg_flag))
 		return 0;
 
 	if ((vf->canvas0Addr == vf->canvas1Addr) &&
@@ -165,7 +165,7 @@ static int canvas_get_virt_addr(struct pic_check_mgr_t *pic,
 		(vf->canvas0Addr != 0) &&
 		(vf->canvas0Addr != -1)) {
 		phy_y_addr = canvas_get_addr(canvasY(vf->canvas0Addr));
-		phy_uv_addr = canvas_get_addr(canvasUV(vf->canvas0Addr));
+		phy_uv_addr = canvas_get_addr(canvasU(vf->canvas0Addr));
 	} else {
 		phy_y_addr = vf->canvas0_config[0].phy_addr;
 		phy_uv_addr = vf->canvas0_config[1].phy_addr;
@@ -182,6 +182,20 @@ static int canvas_get_virt_addr(struct pic_check_mgr_t *pic,
 	pic->uv_vaddr = vaddr_uv;
 	pic->y_phyaddr = phy_y_addr;
 	pic->uv_phyaddr = phy_uv_addr;
+
+	if (pic->mjpeg_flag) {
+		if ((vf->canvas0Addr == vf->canvas1Addr) &&
+		(vf->canvas0Addr != 0) &&
+		(vf->canvas0Addr != -1)) {
+			pic->extra_v_phyaddr = canvas_get_addr(canvasV(vf->canvas0Addr));
+		} else {
+			pic->extra_v_phyaddr = vf->canvas0_config[2].phy_addr;
+		}
+		pic->extra_v_vaddr = codec_mm_phys_to_virt(phy_uv_addr);
+
+		if (!pic->extra_v_vaddr && !pic->extra_v_phyaddr)
+			return -1;
+	}
 
 	return 0;
 }
@@ -365,10 +379,13 @@ static int memcpy_phy_to_virt(char *to_virt,
 	if (single_mode_vdec != NULL) {
 		unsigned int offset = phy_from & (~PAGE_MASK);
 		while (size > 0) {
+			/* flush dcache in isr. */
+			flush_dcache_page(phys_to_page(phy_from));
+
 			if (offset + size >= PAGE_SIZE) {
 				vaddr = kmap_atomic(phys_to_page(phy_from));
 				tmp_size = (PAGE_SIZE - offset);
-				phy_from += tmp_size;
+				phy_from += tmp_size; //for next loop;
 				size -= tmp_size;
 				vaddr += offset;
 			} else {
@@ -382,14 +399,9 @@ static int memcpy_phy_to_virt(char *to_virt,
 					__func__, (unsigned int)phy_from);
 				return -1;
 			}
-			/*Fixed frame error in random position of avs code stream.
-			Called in an interrupt.*/
-			flush_dcache_page(phys_to_page(phy_from));
-			/*
-			codec_mm_dma_flush(vaddr,
-				tmp_size, DMA_FROM_DEVICE);
-			*/
+
 			memcpy(to_virt, vaddr, tmp_size);
+			to_virt += tmp_size;
 
 			kunmap_atomic(vaddr - offset);
 			offset = 0;
@@ -422,16 +434,37 @@ static int memcpy_phy_to_virt(char *to_virt,
 	return 0;
 }
 
+
+static int do_yuv_unit_cp(void **addr, ulong phy, void *virt,
+	int h, int w, int stride)
+{
+	int ret = 0, i;
+	void *tmp = *addr;
+
+	if ((phy != 0) && (virt == NULL)) {
+		for (i = 0; i < h; i++) {
+			ret |= memcpy_phy_to_virt(tmp, phy, w);
+			phy += stride;
+			tmp += w;
+		}
+	} else {
+		for (i = 0; i < h; i++) {
+			memcpy(tmp, virt, w);
+			virt += stride;
+			tmp += w;
+		}
+	}
+	*addr = tmp;
+
+	return ret;
+}
+
 static int do_yuv_dump(struct pic_check_mgr_t *mgr, struct vframe_s *vf)
 {
-	int i, ret = 0;
-	void *tmp_addr, *tmp_yaddr, *tmp_uvaddr;
-	ulong y_phyaddr, uv_phyaddr;
+	int ret = 0;
+	void *tmp_addr;
 	struct pic_dump_t *dump = &mgr->pic_dump;
-	/*
-	if ((vf->type & VIDTYPE_VIU_NV21) == 0)
-		return 0;
-	*/
+
 	if (dump->start > 0) {
 		dump->start--;
 		return 0;
@@ -445,7 +478,7 @@ static int do_yuv_dump(struct pic_check_mgr_t *mgr, struct vframe_s *vf)
 			(dump->buf_size - dump->dump_cnt * mgr->size_pic)) {
 			if (dump->buf_size) {
 				dbg_print(FC_ERROR,
-					"not enough buf, force dump less\n");
+					"not enough buf for single mode, force dump less\n");
 				dump->num = dump->dump_cnt;
 				check_schedule(mgr);
 			} else
@@ -464,49 +497,37 @@ static int do_yuv_dump(struct pic_check_mgr_t *mgr, struct vframe_s *vf)
 		tmp_addr = dump->buf_addr;
 	}
 
-	if ((mgr->uv_vaddr == NULL) || (mgr->y_vaddr == NULL)) {
-		y_phyaddr = mgr->y_phyaddr;
-		uv_phyaddr = mgr->uv_phyaddr;
-		if (vf->width == mgr->canvas_w) {
-			ret |= memcpy_phy_to_virt(tmp_addr, y_phyaddr, mgr->size_y);
+	if (vf->width == mgr->canvas_w) {
+		if ((mgr->uv_vaddr == NULL) || (mgr->y_vaddr == NULL)) {
+			ret |= memcpy_phy_to_virt(tmp_addr, mgr->y_phyaddr, mgr->size_y);
 			ret |= memcpy_phy_to_virt(tmp_addr + mgr->size_y,
-				uv_phyaddr, mgr->size_uv);
+				mgr->uv_phyaddr, mgr->size_uv);
+			if (mgr->mjpeg_flag) /*mjpeg yuv420 u v is separate */
+				ret |= memcpy_phy_to_virt(tmp_addr + mgr->size_y + mgr->size_uv,
+					mgr->extra_v_phyaddr, mgr->size_uv);
 		} else {
-			for (i = 0; i < vf->height; i++) {
-				ret |= memcpy_phy_to_virt(tmp_addr, y_phyaddr, vf->width);
-				y_phyaddr += mgr->canvas_w;
-				tmp_addr += vf->width;
-			}
-			for (i = 0; i < vf->height/2; i++) {
-				ret |= memcpy_phy_to_virt(tmp_addr, uv_phyaddr, vf->width);
-				uv_phyaddr += mgr->canvas_w;
-				tmp_addr += vf->width;
-			}
-		}
-		if (ret < 0) {
-			dbg_print(0, "dump yuv failed, may codec_mm_vmap failed\n");
-			return ret;
+			memcpy(tmp_addr, mgr->y_vaddr, mgr->size_y);
+			memcpy(tmp_addr + mgr->size_y, mgr->uv_vaddr, mgr->size_uv);
+			if (mgr->mjpeg_flag) /*mjpeg u v is separate */
+				memcpy(tmp_addr + mgr->size_y + mgr->size_uv,
+					mgr->extra_v_vaddr, mgr->size_uv);
 		}
 	} else {
-		if (vf->width == mgr->canvas_w) {
-			memcpy(tmp_addr, mgr->y_vaddr, mgr->size_y);
-			memcpy(tmp_addr + mgr->size_y,
-				mgr->uv_vaddr, mgr->size_uv);
-		} else {
-			tmp_yaddr = mgr->y_vaddr;
-			tmp_uvaddr = mgr->uv_vaddr;
-			for (i = 0; i < vf->height; i++) {
-				memcpy(tmp_addr, tmp_yaddr, vf->width);
-				tmp_yaddr += mgr->canvas_w;
-				tmp_addr += vf->width;
+			u32 uv_stride, uv_cpsize;
+			ret |= do_yuv_unit_cp(&tmp_addr, mgr->y_phyaddr, mgr->y_vaddr,
+				vf->height, vf->width, mgr->canvas_w);
+
+			uv_stride = (mgr->mjpeg_flag) ? (mgr->canvas_w >> 1) : mgr->canvas_w;
+			uv_cpsize = (mgr->mjpeg_flag) ? (vf->width >> 1) : vf->width;
+			ret |= do_yuv_unit_cp(&tmp_addr, mgr->uv_phyaddr, mgr->uv_vaddr,
+					vf->height >> 1, uv_cpsize, uv_stride);
+
+			if (mgr->mjpeg_flag) {
+				ret |= do_yuv_unit_cp(&tmp_addr, mgr->extra_v_phyaddr, mgr->extra_v_vaddr,
+					vf->height >> 1, uv_cpsize, uv_stride);
 			}
-			for (i = 0; i < vf->height/2; i++) {
-				memcpy(tmp_addr, tmp_uvaddr, vf->width);
-				tmp_uvaddr += mgr->canvas_w;
-				tmp_addr += vf->width;
-			}
-		}
 	}
+
 	dump->dump_cnt++;
 	dbg_print(0, "----->dump %dst, size %x (%d x %d), dec total %d\n",
 		dump->dump_cnt, mgr->size_pic, vf->width, vf->height, mgr->frame_cnt);
@@ -610,6 +631,9 @@ static int crc32_vmap_le(unsigned int *crc32,
 	if (single_mode_vdec != NULL) {
 		unsigned int offset = phyaddr & (~PAGE_MASK);
 		while (size > 0) {
+			/*flush dcache in isr.*/
+			flush_dcache_page(phys_to_page(phyaddr));
+
 			if (offset + size >= PAGE_SIZE) {
 				vaddr = kmap_atomic(phys_to_page(phyaddr));
 				tmp_size = (PAGE_SIZE - offset);
@@ -627,13 +651,7 @@ static int crc32_vmap_le(unsigned int *crc32,
 					__func__, (unsigned int)phyaddr);
 				return -1;
 			}
-			/*Fixed frame error in random position of avs code stream.
-			Called in an interrupt.*/
-			flush_dcache_page(phys_to_page(phyaddr));
-			/*
-			codec_mm_dma_flush(vaddr,
-				tmp_size, DMA_FROM_DEVICE);
-			*/
+
 			crc = crc32_le(crc, vaddr, tmp_size);
 
 			kunmap_atomic(vaddr - offset);
@@ -878,10 +896,12 @@ int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 		single_mode_vdec = NULL;
 	}
 
-	if ((mgr == NULL) ||
-		(vf == NULL) ||
+	if ((mgr == NULL) || (vf == NULL) ||
 		(mgr->enable == 0))
 		return 0;
+
+	mgr->mjpeg_flag = ((vdec) &&
+		(vdec->format == VFORMAT_MJPEG)) ? 1 : 0;
 
 	if (get_frame_size(mgr, vf) < 0)
 		return -1;
@@ -898,17 +918,29 @@ int decoder_do_frame_check(struct vdec_s *vdec, struct vframe_s *vf)
 		resize = 0;
 	mgr->last_size_pic = mgr->size_pic;
 
-	if (vf->type & VIDTYPE_VIU_NV21) {
+	if ((vf->type & VIDTYPE_VIU_NV21) || (mgr->mjpeg_flag)) {
+		int flush_size;
+
 		if (canvas_get_virt_addr(mgr, vf) < 0)
 			return -2;
-		if ((mgr->y_vaddr) && (mgr->uv_vaddr)) {
+
+		/* flush */
+		flush_size = mgr->mjpeg_flag ?
+				((mgr->canvas_w * mgr->canvas_h) >> 2) :
+				((mgr->canvas_w * mgr->canvas_h) >> 1);
+		if (mgr->y_vaddr)
 			codec_mm_dma_flush(mgr->y_vaddr,
 				mgr->canvas_w * mgr->canvas_h, DMA_FROM_DEVICE);
+		if (mgr->uv_vaddr)
 			codec_mm_dma_flush(mgr->uv_vaddr,
-				((mgr->canvas_w * mgr->canvas_h) >> 1), DMA_FROM_DEVICE);
-		}
+				flush_size, DMA_FROM_DEVICE);
+		if ((mgr->mjpeg_flag) && (mgr->extra_v_vaddr))
+			codec_mm_dma_flush(mgr->extra_v_vaddr,
+				flush_size, DMA_FROM_DEVICE);
+
 		if (mgr->enable & CRC_MASK)
 			ret = do_check_nv21(mgr, vf);
+
 		if (mgr->enable & YUV_MASK)
 			do_yuv_dump(mgr, vf);
 
@@ -1128,11 +1160,10 @@ int vdec_frame_check_init(struct vdec_s *vdec)
 		return 0;
 
 	vdec->vfc.err_crc_block = 0;
+	single_mode_vdec = (vdec_single(vdec))? vdec : NULL;
+
 	if (!check_enable && !yuv_enable)
 		return 0;
-
-	if (vdec_single(vdec))
-		single_mode_vdec = vdec;
 
 	vdec->canvas_mode = CANVAS_BLKMODE_LINEAR;
 	id = vdec->id;

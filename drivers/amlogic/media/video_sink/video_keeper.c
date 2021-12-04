@@ -990,7 +990,6 @@ static unsigned int vf_ge2d_keep_frame_locked(struct vframe_s *cur_dispbuf)
 	u32 cur_index;
 	u32 y_index, u_index, v_index;
 	struct canvas_s cs0, cs1, cs2, cd;
-	int ret;
 
 	if (!cur_dispbuf) {
 		pr_info("keep exit without cur_dispbuf\n");
@@ -1119,7 +1118,7 @@ static unsigned int vf_keep_current_locked(
 	}
 
 #ifdef CONFIG_AMLOGIC_MEDIA_VIDEOCAPTURE
-	ext_frame_capture_poll(1); /*pull  if have capture end frame */
+	ext_frame_capture_poll(cur_dispbuf); /*pull  if have capture end frame */
 #endif
 
 	if (get_blackout_policy()) {
@@ -1173,7 +1172,7 @@ unsigned int vf_keep_pip_current_locked(
 	}
 
 #ifdef CONFIG_AMLOGIC_MEDIA_VIDEOCAPTURE
-	ext_frame_capture_poll(1); /*pull  if have capture end frame */
+	ext_frame_capture_poll(cur_dispbuf); /*pull  if have capture end frame */
 #endif
 
 	if (get_blackout_pip_policy()) {

@@ -1722,6 +1722,10 @@ static int amvdec_avs_probe(struct platform_device *pdev)
 
 static int amvdec_avs_remove(struct platform_device *pdev)
 {
+	if (stat & STAT_TIMER_ARM) {
+		del_timer_sync(&recycle_timer);
+		stat &= ~STAT_TIMER_ARM;
+	}
 	cancel_work_sync(&fatal_error_wd_work);
 	atomic_set(&error_handler_run, 0);
 
@@ -1738,10 +1742,6 @@ static int amvdec_avs_remove(struct platform_device *pdev)
 		stat &= ~STAT_ISR_REG;
 	}
 
-	if (stat & STAT_TIMER_ARM) {
-		del_timer_sync(&recycle_timer);
-		stat &= ~STAT_TIMER_ARM;
-	}
 #ifdef AVSP_LONG_CABAC
 	if (firmware_sel == 0) {
 		mutex_lock(&vavs_mutex);

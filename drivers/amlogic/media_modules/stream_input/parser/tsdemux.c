@@ -597,9 +597,11 @@ s32 tsdemux_init(u32 vid, u32 aid, u32 sid, u32 pcrid, bool is_hevc,
 	WRITE_AIU_REG(AIU_MEM_AIFIFO_BUF_CNTL, MEM_BUFCTRL_INIT);
 	CLEAR_AIU_REG_MASK(AIU_MEM_AIFIFO_BUF_CNTL, MEM_BUFCTRL_INIT);
 
-	WRITE_PARSER_REG(PARSER_SUB_START_PTR, parser_sub_start_ptr);
-	WRITE_PARSER_REG(PARSER_SUB_END_PTR, parser_sub_end_ptr);
-	WRITE_PARSER_REG(PARSER_SUB_RP, parser_sub_rp);
+	if (!enable_demux_driver()) {
+		WRITE_PARSER_REG(PARSER_SUB_START_PTR, parser_sub_start_ptr);
+		WRITE_PARSER_REG(PARSER_SUB_END_PTR, parser_sub_end_ptr);
+		WRITE_PARSER_REG(PARSER_SUB_RP, parser_sub_rp);
+	}
 	SET_PARSER_REG_MASK(PARSER_ES_CONTROL,
 			(7 << ES_SUB_WR_ENDIAN_BIT) | ES_SUB_MAN_RD_PTR);
 

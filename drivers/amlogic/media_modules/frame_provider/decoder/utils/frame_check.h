@@ -85,6 +85,10 @@ struct pic_check_mgr_t{
 	struct usr_crc_info_t *cmp_pool;
 	int usr_cmp_num;
 	int usr_cmp_result;
+	/* for mjpeg u different addr with v */
+	bool mjpeg_flag;
+	void *extra_v_vaddr;
+	ulong extra_v_phyaddr;
 };
 
 int dump_yuv_trig(struct pic_check_mgr_t *mgr,

@@ -614,7 +614,9 @@ static int cvbs_set_current_vmode(enum vmode_e mode)
 		      info->vinfo->sync_duration_num);
 
 	/*set limit range for enci*/
+#if defined(CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM)
 	amvecm_clip_range_limit(1);
+#endif
 	if (mode & VMODE_INIT_BIT_MASK) {
 		cvbs_out_vpu_power_ctrl(1);
 		cvbs_out_clk_gate_ctrl(1);

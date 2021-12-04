@@ -105,8 +105,8 @@ u32 amstream_audio_reset = 0;
 #endif
 #define NO_VDEC2_INIT 1
 
-#define DEFAULT_VIDEO_BUFFER_SIZE       (1024 * 1024 * 3)
-#define DEFAULT_VIDEO_BUFFER_SIZE_4K       (1024 * 1024 * 6)
+#define DEFAULT_VIDEO_BUFFER_SIZE       (1024 * 1024 * 10)
+#define DEFAULT_VIDEO_BUFFER_SIZE_4K       (1024 * 1024 * 15)
 #define DEFAULT_VIDEO_BUFFER_SIZE_TVP       (1024 * 1024 * 10)
 #define DEFAULT_VIDEO_BUFFER_SIZE_4K_TVP       (1024 * 1024 * 15)
 
@@ -524,6 +524,7 @@ static void amstream_change_vbufsize(struct port_priv_s *priv,
 			pvbuf->buf_size = pvbuf->buf_size >> 1;
 		}
 	} else if (pvbuf->buf_size > def_vstreambuf_sizeM * SZ_1M) {
+		pvbuf->buf_size = def_vstreambuf_sizeM * SZ_1M;
 		if (priv->vdec->port_flag & PORT_FLAG_DRM)
 			pvbuf->buf_size = DEFAULT_VIDEO_BUFFER_SIZE_TVP;
 	} else {
@@ -3951,6 +3952,117 @@ static ssize_t audio_path_store(struct class *class,
 	return size;
 }
 
+ssize_t dump_stream_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	char *p_buf = buf;
+
+	p_buf += sprintf(p_buf, "\nmdkir -p /data/tmp -m 777;setenforce 0;\n\n");
+	p_buf += sprintf(p_buf, "video:\n\t echo 0 > /sys/class/amstream/dump_stream;\n");
+	p_buf += sprintf(p_buf, "hevc :\n\t echo 4 > /sys/class/amstream/dump_stream;\n");
+
+	return p_buf - buf;
+}
+
+#define DUMP_STREAM_FILE   "/data/tmp/dump_stream.h264"
+ssize_t dump_stream_store(struct class *class,
+		struct class_attribute *attr,
+		const char *buf, size_t size)
+{
+	struct stream_buf_s *p_buf;
+	int ret = 0, id = 0;
+	unsigned int stride, remain, level, vmap_size;
+	int write_size;
+	void *stbuf_vaddr;
+	unsigned long offset;
+	struct file *fp;
+	mm_segment_t old_fs;
+	loff_t fpos;
+
+	ret = sscanf(buf, "%d", &id);
+	if (ret < 0) {
+		pr_info("paser buf id fail, default id = 0\n");
+		id = 0;
+	}
+	if (id != BUF_TYPE_VIDEO && id != BUF_TYPE_HEVC) {
+		pr_info("buf id out of range, max %d, id %d, set default id 0\n", BUF_MAX_NUM - 1, id);
+		id = 0;
+	}
+	p_buf = get_stream_buffer(id);
+	if (!p_buf) {
+		pr_info("get buf fail, id %d\n", id);
+		return size;
+	}
+	if ((!p_buf->buf_size) || (p_buf->is_secure) || (!(p_buf->flag & BUF_FLAG_IN_USE))) {
+		pr_info("buf size %d, is_secure %d, in_use %d, it can not dump\n",
+			p_buf->buf_size, p_buf->is_secure, (p_buf->flag & BUF_FLAG_IN_USE));
+		return size;
+	}
+
+	level = stbuf_level(p_buf);
+	if (!level || level > p_buf->buf_size) {
+		pr_info("stream buf level %d, buf size %d, error return\n", level, p_buf->buf_size);
+		return size;
+	}
+
+	fp = filp_open(DUMP_STREAM_FILE, O_CREAT | O_RDWR, 0666);
+	if (IS_ERR(fp)) {
+		fp = NULL;
+		pr_info("create dump stream file failed\n");
+		return size;
+	}
+
+	offset = p_buf->buf_start;
+	remain = level;
+	stride = SZ_1M;
+	vmap_size = 0;
+	fpos = 0;
+	pr_info("create file success, it will dump from addr 0x%lx, size 0x%x\n", offset, remain);
+	while (remain > 0) {
+		if (remain > stride)
+			vmap_size = stride;
+		else {
+			stride = remain;
+			vmap_size = stride;
+		}
+
+		stbuf_vaddr = codec_mm_vmap(offset, vmap_size);
+		if (stbuf_vaddr == NULL) {
+			stride >>= 1;
+			pr_info("vmap fail change vmap stide size 0x%x\n", stride);
+			continue;
+		}
+		codec_mm_dma_flush(stbuf_vaddr, vmap_size, DMA_FROM_DEVICE);
+
+		old_fs = get_fs();
+		set_fs(KERNEL_DS);
+		write_size = vfs_write(fp, stbuf_vaddr, vmap_size, &fpos);
+		if (write_size < vmap_size) {
+			write_size += vfs_write(fp, stbuf_vaddr + write_size, vmap_size - write_size, &fpos);
+			pr_info("fail write retry, total %d, write %d\n", vmap_size, write_size);
+			if (write_size < vmap_size) {
+				pr_info("retry fail, interrupt dump stream, break\n");
+				break;
+			}
+		}
+		set_fs(old_fs);
+		vfs_fsync(fp, 0);
+		pr_info("vmap_size 0x%x dump size 0x%x\n", vmap_size, write_size);
+
+		offset += vmap_size;
+		remain -= vmap_size;
+		codec_mm_unmap_phyaddr(stbuf_vaddr);
+	}
+
+	filp_close(fp, current->files);
+	pr_info("dump stream buf end\n");
+
+	return size;
+}
+
+
+
+
 static struct class_attribute amstream_class_attrs[] = {
 	__ATTR_RO(ports),
 	__ATTR_RO(bufs),
@@ -3962,6 +4074,8 @@ static struct class_attribute amstream_class_attrs[] = {
 	store_maxdelay),
 	__ATTR(reset_audio_port, S_IRUGO | S_IWUSR | S_IWGRP,
 	NULL, audio_path_store),
+	__ATTR(dump_stream, S_IRUGO | S_IWUSR | S_IWGRP,
+	dump_stream_show, dump_stream_store),
 	__ATTR_NULL
 };
 

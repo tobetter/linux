@@ -568,7 +568,7 @@ static int seq_file_vframe(struct seq_file *seq, void *v, struct vframe_s *pVfm)
 	seq_printf(seq, "%-15s:%d\n", "pixel_ratio", pVfm->pixel_ratio);
 
 	/* ready from decode on  jiffies_64 */
-	seq_printf(seq, "%-15s:%d\n", "use_cnt", atomic_read(&pVfm->use_cnt));
+//	seq_printf(seq, "%-15s:%d\n", "use_cnt", atomic_read(&pVfm->use_cnt));
 	seq_printf(seq, "%-15s:%d\n", "frame_dirty", pVfm->frame_dirty);
 	/*
 	 *prog_proc_config:

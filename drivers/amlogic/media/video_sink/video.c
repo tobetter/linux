@@ -7653,6 +7653,7 @@ SET_FILTER:
 
 	while (vf) {
 		if (!vf->frame_dirty) {
+#if defined(CONFIG_AMLOGIC_MEDIA_ENHANCEMENT_VECM)
 			if (amvecm_on_vs(
 				vf,
 				vf, CSC_FLAG_CHECK_OUTPUT,
@@ -7676,6 +7677,7 @@ SET_FILTER:
 				0,
 				VD2_PATH) == 1)
 				break;
+#endif
 			vf = pip_vf_get();
 			if (vf) {
 				videopip_get_vf_cnt++;
