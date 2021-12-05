@@ -148,5 +148,7 @@ source "drivers/amlogic/pixel_probe/Kconfig"
 
 source "drivers/amlogic/firmware/Kconfig"
 
+source "drivers/amlogic/media_modules/Kconfig"
+
 endmenu
 endif

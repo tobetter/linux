@@ -1,0 +1,13 @@
+#
+# Amlogic sw demux configuration
+#
+
+menu "Meson SW DEMUX dvbcsa2 Support"
+
+config AMLOGIC_SWDEMUX_DVBCSA
+	bool "sw demux dvbcsa"
+	default y
+	help
+		Amlogic support sw demux dvbcsa config.
+		Support for sw demux dvbcsa
+endmenu
