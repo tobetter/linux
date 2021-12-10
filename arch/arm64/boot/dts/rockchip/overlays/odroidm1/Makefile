@@ -1,4 +1,5 @@
 dtbo-y += \
+	display_vu8m.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	onewire.dtbo \
