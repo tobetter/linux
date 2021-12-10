@@ -3,6 +3,7 @@
 dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	blueled_off.dtbo \
 	dht11.dtbo \
+	display_vu8m.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
