@@ -95,6 +95,18 @@
 	/delete-node/ touch;
 	/delete-node/ wifi-enable-h;
 	/delete-node/ wireless-bluetooth;
+
+	fspi {
+		fspi_pins: fspi-pins {
+			rockchip,pins =
+				/* fspi_clk */
+				<1 RK_PD0 1 &pcfg_pull_none>,
+				/* fspi_cs0n */
+				<1 RK_PD3 1 &pcfg_pull_none>,
+				/* fspi_d0 */
+				<1 RK_PD1 1 &pcfg_pull_none>;
+		};
+	};
 };
 
 &pmu_io_domains {
