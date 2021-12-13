@@ -60,6 +60,7 @@ struct imx219_reg {
 };
 
 struct imx219_mode {
+	u32 bus_fmt;
 	u32 width;
 	u32 height;
 	struct v4l2_fract max_fps;
@@ -250,6 +251,7 @@ struct imx219 {
 
 static const struct imx219_mode supported_modes[] = {
 	{
+		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
 		.width = 1920,
 		.height = 1080,
 		.max_fps = {
@@ -261,6 +263,7 @@ static const struct imx219_mode supported_modes[] = {
 		.reg_list = imx219_init_tab_1920_1080_30fps,
 	},
 	{
+		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
 		.width = 3280,
 		.height = 2464,
 		.max_fps = {
@@ -636,9 +639,30 @@ static int imx219_enum_mbus_code(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_pad_config *cfg,
 				 struct v4l2_subdev_mbus_code_enum *code)
 {
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct imx219 *priv = to_imx219(client);
+
 	if (code->index != 0)
 		return -EINVAL;
-	code->code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	code->code = priv->cur_mode->bus_fmt;
+
+	return 0;
+}
+
+static int imx219_enum_frame_sizes(struct v4l2_subdev *sd,
+				struct v4l2_subdev_pad_config *cfg,
+				struct v4l2_subdev_frame_size_enum *fse)
+{
+	if (fse->index >= ARRAY_SIZE(supported_modes))
+		return -EINVAL;
+
+	if (fse->code != supported_modes[fse->index].bus_fmt)
+		return -EINVAL;
+
+	fse->min_width  = supported_modes[fse->index].width;
+	fse->max_width  = supported_modes[fse->index].width;
+	fse->max_height = supported_modes[fse->index].height;
+	fse->min_height = supported_modes[fse->index].height;
 
 	return 0;
 }
@@ -684,7 +708,7 @@ static int imx219_set_fmt(struct v4l2_subdev *sd,
 		return 0;
 
 	mode = imx219_find_best_fit(fmt);
-	fmt->format.code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	fmt->format.code = mode->bus_fmt;
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
 	fmt->format.field = V4L2_FIELD_NONE;
@@ -728,7 +752,7 @@ static int imx219_get_fmt(struct v4l2_subdev *sd,
 
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
-	fmt->format.code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	fmt->format.code = mode->bus_fmt;
 	fmt->format.field = V4L2_FIELD_NONE;
 
 	return 0;
@@ -855,6 +879,7 @@ static struct v4l2_subdev_core_ops imx219_subdev_core_ops = {
 
 static const struct v4l2_subdev_pad_ops imx219_subdev_pad_ops = {
 	.enum_mbus_code = imx219_enum_mbus_code,
+	.enum_frame_size = imx219_enum_frame_sizes,
 	.enum_frame_interval = imx219_enum_frame_interval,
 	.set_fmt = imx219_set_fmt,
 	.get_fmt = imx219_get_fmt,
