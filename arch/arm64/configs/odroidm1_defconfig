@@ -2974,7 +2974,7 @@ CONFIG_VIDEO_RK628_CSI=y
 # Camera sensor devices
 #
 # CONFIG_VIDEO_IMX178 is not set
-# CONFIG_VIDEO_IMX219 is not set
+CONFIG_VIDEO_IMX219=m
 # CONFIG_VIDEO_IMX258 is not set
 # CONFIG_VIDEO_IMX274 is not set
 # CONFIG_VIDEO_IMX307 is not set

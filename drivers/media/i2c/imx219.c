@@ -30,6 +30,7 @@
 
 /* IMX219 supported geometry */
 #define IMX219_TABLE_END		0xffff
+
 #define IMX219_ANALOGUE_GAIN_MULTIPLIER	256
 #define IMX219_ANALOGUE_GAIN_MIN	(1 * IMX219_ANALOGUE_GAIN_MULTIPLIER)
 #define IMX219_ANALOGUE_GAIN_MAX	(11 * IMX219_ANALOGUE_GAIN_MULTIPLIER)
@@ -46,6 +47,8 @@
 
 #define IMX219_EXP_LINES_MARGIN	4
 
+#define IMX219_VTS_MAX	0xffff
+
 #define IMX219_NAME			"imx219"
 
 #define IMX219_LANES			2
@@ -53,6 +56,9 @@
 static const s64 link_freq_menu_items[] = {
 	456000000,
 };
+
+/* Pixel rate is fixed at 182.4M for all the modes */
+#define IMX219_PIXEL_RATE		182400000
 
 struct imx219_reg {
 	u16 addr;
@@ -67,6 +73,8 @@ struct imx219_mode {
 	u32 hts_def;
 	u32 vts_def;
 	const struct imx219_reg *reg_list;
+	u32 hdr_mode;
+	u32 freq_idx;
 };
 
 /* MCLK:24MHz  3280x2464  21.2fps   MIPI LANE2 */
@@ -118,6 +126,12 @@ static const struct imx219_reg imx219_init_tab_3280_2464_21fps[] = {
 	{0x4767, 0x0F},		/* CIS Tuning */
 	{0x4750, 0x14},		/* CIS Tuning */
 	{0x47B4, 0x14},		/* CIS Tuning */
+	{0x4713, 0x30},
+	{0x478b, 0x10},
+	{0x478f, 0x10},
+	{0x4793, 0x10},
+	{0x4797, 0x0e},
+	{0x479b, 0x0e},
 	{IMX219_TABLE_END, 0x00}
 };
 
@@ -184,39 +198,24 @@ static const struct imx219_reg stop[] = {
 	{IMX219_TABLE_END, 0x00}
 };
 
+#define IMX219_TESTP_COLOUR_MIN		0
+#define IMX219_TESTP_COLOUR_MAX		0x03ff
+#define IMX219_TESTP_COLOUR_STEP	1
+
 enum {
 	TEST_PATTERN_DISABLED,
-	TEST_PATTERN_SOLID_BLACK,
-	TEST_PATTERN_SOLID_WHITE,
-	TEST_PATTERN_SOLID_RED,
-	TEST_PATTERN_SOLID_GREEN,
-	TEST_PATTERN_SOLID_BLUE,
+	TEST_PATTERN_SOLID_COLOR,
 	TEST_PATTERN_COLOR_BAR,
 	TEST_PATTERN_FADE_TO_GREY_COLOR_BAR,
 	TEST_PATTERN_PN9,
-	TEST_PATTERN_16_SPLIT_COLOR_BAR,
-	TEST_PATTERN_16_SPLIT_INVERTED_COLOR_BAR,
-	TEST_PATTERN_COLUMN_COUNTER,
-	TEST_PATTERN_INVERTED_COLUMN_COUNTER,
-	TEST_PATTERN_PN31,
-	TEST_PATTERN_MAX
 };
 
 static const char *const tp_qmenu[] = {
 	"Disabled",
-	"Solid Black",
-	"Solid White",
-	"Solid Red",
-	"Solid Green",
-	"Solid Blue",
+	"Solid Color",
 	"Color Bar",
 	"Fade to Grey Color Bar",
 	"PN9",
-	"16 Split Color Bar",
-	"16 Split Inverted Color Bar",
-	"Column Counter",
-	"Inverted Column Counter",
-	"PN31",
 };
 
 #define SIZEOF_I2C_TRANSBUF 32
@@ -233,14 +232,11 @@ struct imx219 {
 	u16 digital_gain;	/* bits 11:0 */
 	u16 exposure_time;
 	u16 test_pattern;
-	u16 test_pattern_solid_color_r;
-	u16 test_pattern_solid_color_gr;
-	u16 test_pattern_solid_color_b;
-	u16 test_pattern_solid_color_gb;
 	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *vblank;
 	struct v4l2_ctrl *pixel_rate;
 	const struct imx219_mode *cur_mode;
+	struct mutex		mutex;
 	u32 cfg_num;
 	u16 cur_vts;
 	u32 module_index;
@@ -261,6 +257,8 @@ static const struct imx219_mode supported_modes[] = {
 		.hts_def = 0x0d78 - IMX219_EXP_LINES_MARGIN,
 		.vts_def = 0x06E6,
 		.reg_list = imx219_init_tab_1920_1080_30fps,
+		.hdr_mode = NO_HDR,
+		.freq_idx = 0,
 	},
 	{
 		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
@@ -273,6 +271,8 @@ static const struct imx219_mode supported_modes[] = {
 		.hts_def = 0x0d78 - IMX219_EXP_LINES_MARGIN,
 		.vts_def = 0x09c4,
 		.reg_list = imx219_init_tab_3280_2464_21fps,
+		.hdr_mode = NO_HDR,
+		.freq_idx = 0,
 	},
 };
 
@@ -390,22 +390,6 @@ static int imx219_s_stream(struct v4l2_subdev *sd, int enable)
 	if (priv->test_pattern) {
 		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
 		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
-		ret |= reg_write(client, 0x0602,
-				 priv->test_pattern_solid_color_r >> 8);
-		ret |= reg_write(client, 0x0603,
-				 priv->test_pattern_solid_color_r & 0xff);
-		ret |= reg_write(client, 0x0604,
-				 priv->test_pattern_solid_color_gr >> 8);
-		ret |= reg_write(client, 0x0605,
-				 priv->test_pattern_solid_color_gr & 0xff);
-		ret |= reg_write(client, 0x0606,
-				 priv->test_pattern_solid_color_b >> 8);
-		ret |= reg_write(client, 0x0607,
-				 priv->test_pattern_solid_color_b & 0xff);
-		ret |= reg_write(client, 0x0608,
-				 priv->test_pattern_solid_color_gb >> 8);
-		ret |= reg_write(client, 0x0609,
-				 priv->test_pattern_solid_color_gb & 0xff);
 		ret |= reg_write(client, 0x0620, priv->crop_rect.left >> 8);
 		ret |= reg_write(client, 0x0621, priv->crop_rect.left & 0xff);
 		ret |= reg_write(client, 0x0622, priv->crop_rect.top >> 8);
@@ -432,6 +416,7 @@ static int imx219_s_power(struct v4l2_subdev *sd, int on)
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct imx219 *priv = to_imx219(client);
 
+	mutex_lock(&priv->mutex);
 	if (on)	{
 		dev_dbg(&client->dev, "imx219 power on\n");
 		clk_prepare_enable(priv->clk);
@@ -439,6 +424,7 @@ static int imx219_s_power(struct v4l2_subdev *sd, int on)
 		dev_dbg(&client->dev, "imx219 power off\n");
 		clk_disable_unprepare(priv->clk);
 	}
+	mutex_unlock(&priv->mutex);
 
 	return 0;
 }
@@ -453,40 +439,8 @@ static int imx219_s_ctrl_test_pattern(struct v4l2_ctrl *ctrl)
 	case TEST_PATTERN_DISABLED:
 		priv->test_pattern = 0x0000;
 		break;
-	case TEST_PATTERN_SOLID_BLACK:
+	case TEST_PATTERN_SOLID_COLOR:
 		priv->test_pattern = 0x0001;
-		priv->test_pattern_solid_color_r = 0x0000;
-		priv->test_pattern_solid_color_gr = 0x0000;
-		priv->test_pattern_solid_color_b = 0x0000;
-		priv->test_pattern_solid_color_gb = 0x0000;
-		break;
-	case TEST_PATTERN_SOLID_WHITE:
-		priv->test_pattern = 0x0001;
-		priv->test_pattern_solid_color_r = 0x0fff;
-		priv->test_pattern_solid_color_gr = 0x0fff;
-		priv->test_pattern_solid_color_b = 0x0fff;
-		priv->test_pattern_solid_color_gb = 0x0fff;
-		break;
-	case TEST_PATTERN_SOLID_RED:
-		priv->test_pattern = 0x0001;
-		priv->test_pattern_solid_color_r = 0x0fff;
-		priv->test_pattern_solid_color_gr = 0x0000;
-		priv->test_pattern_solid_color_b = 0x0000;
-		priv->test_pattern_solid_color_gb = 0x0000;
-		break;
-	case TEST_PATTERN_SOLID_GREEN:
-		priv->test_pattern = 0x0001;
-		priv->test_pattern_solid_color_r = 0x0000;
-		priv->test_pattern_solid_color_gr = 0x0fff;
-		priv->test_pattern_solid_color_b = 0x0000;
-		priv->test_pattern_solid_color_gb = 0x0fff;
-		break;
-	case TEST_PATTERN_SOLID_BLUE:
-		priv->test_pattern = 0x0001;
-		priv->test_pattern_solid_color_r = 0x0000;
-		priv->test_pattern_solid_color_gr = 0x0000;
-		priv->test_pattern_solid_color_b = 0x0fff;
-		priv->test_pattern_solid_color_gb = 0x0000;
 		break;
 	case TEST_PATTERN_COLOR_BAR:
 		priv->test_pattern = 0x0002;
@@ -496,21 +450,6 @@ static int imx219_s_ctrl_test_pattern(struct v4l2_ctrl *ctrl)
 		break;
 	case TEST_PATTERN_PN9:
 		priv->test_pattern = 0x0004;
-		break;
-	case TEST_PATTERN_16_SPLIT_COLOR_BAR:
-		priv->test_pattern = 0x0005;
-		break;
-	case TEST_PATTERN_16_SPLIT_INVERTED_COLOR_BAR:
-		priv->test_pattern = 0x0006;
-		break;
-	case TEST_PATTERN_COLUMN_COUNTER:
-		priv->test_pattern = 0x0007;
-		break;
-	case TEST_PATTERN_INVERTED_COLUMN_COUNTER:
-		priv->test_pattern = 0x0008;
-		break;
-	case TEST_PATTERN_PN31:
-		priv->test_pattern = 0x0009;
 		break;
 	default:
 		return -EINVAL;
@@ -526,18 +465,20 @@ static int imx219_g_frame_interval(struct v4l2_subdev *sd,
 	struct imx219 *priv = to_imx219(client);
 	const struct imx219_mode *mode = priv->cur_mode;
 
+	mutex_lock(&priv->mutex);
 	fi->interval = mode->max_fps;
+	mutex_unlock(&priv->mutex);
 
 	return 0;
 }
 
 static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
-{
-	struct imx219 *priv =
+{ struct imx219 *priv =
 	    container_of(ctrl->handler, struct imx219, ctrl_handler);
 	struct i2c_client *client = v4l2_get_subdevdata(&priv->subdev);
 	u8 reg;
 	int ret;
+	u16 value;
 	u16 gain = 256;
 	u16 a_gain = 256;
 	u16 d_gain = 1;
@@ -611,9 +552,39 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 		ret = reg_write(client, 0x015a, priv->exposure_time >> 8);
 		ret |= reg_write(client, 0x015b, priv->exposure_time & 0xff);
 		return ret;
+		break;
 
 	case V4L2_CID_TEST_PATTERN:
-		return imx219_s_ctrl_test_pattern(ctrl);
+		imx219_s_ctrl_test_pattern(ctrl);
+		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
+		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
+		return ret;
+		break;
+
+	case V4L2_CID_TEST_PATTERN_RED:
+		value = ctrl->val & 0xffff;
+		ret = reg_write(client, 0x0602, value >> 8);
+		ret |= reg_write(client, 0x0603, value  & 0xff);
+		return ret;
+		break;
+
+	case V4L2_CID_TEST_PATTERN_GREENR:
+		value = ctrl->val & 0xffff;
+		ret = reg_write(client, 0x0604, value >> 8);
+		ret |= reg_write(client, 0x0605, value  & 0xff);
+		return ret;
+
+	case V4L2_CID_TEST_PATTERN_BLUE:
+		value = ctrl->val & 0xffff;
+		ret = reg_write(client, 0x0606, value >> 8);
+		ret |= reg_write(client, 0x0607, value  & 0xff);
+		return ret;
+
+	case V4L2_CID_TEST_PATTERN_GREENB:
+		value = ctrl->val & 0xffff;
+		ret = reg_write(client, 0x0608, value >> 8);
+		ret |= reg_write(client, 0x0609, value  & 0xff);
+		return ret;
 
 	case V4L2_CID_VBLANK:
 		if (ctrl->val < priv->cur_mode->vts_def)
@@ -694,6 +665,16 @@ static const struct imx219_mode *imx219_find_best_fit(
 	return &supported_modes[cur_best_fit];
 }
 
+static void imx219_reset_colorspace(struct v4l2_mbus_framefmt *fmt)
+{
+	fmt->colorspace = V4L2_COLORSPACE_RAW;
+	fmt->ycbcr_enc = V4L2_MAP_YCBCR_ENC_DEFAULT(fmt->colorspace);
+	fmt->quantization = V4L2_MAP_QUANTIZATION_DEFAULT(true,
+							  fmt->colorspace,
+							  fmt->ycbcr_enc);
+	fmt->xfer_func = V4L2_MAP_XFER_FUNC_DEFAULT(fmt->colorspace);
+}
+
 static int imx219_set_fmt(struct v4l2_subdev *sd,
 			  struct v4l2_subdev_pad_config *cfg,
 			  struct v4l2_subdev_format *fmt)
@@ -707,18 +688,21 @@ static int imx219_set_fmt(struct v4l2_subdev *sd,
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
 		return 0;
 
+	mutex_lock(&priv->mutex);
 	mode = imx219_find_best_fit(fmt);
 	fmt->format.code = mode->bus_fmt;
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
 	fmt->format.field = V4L2_FIELD_NONE;
+
+	imx219_reset_colorspace(&fmt->format);
 	priv->cur_mode = mode;
 	h_blank = mode->hts_def - mode->width;
 	__v4l2_ctrl_modify_range(priv->hblank, h_blank,
 					h_blank, 1, h_blank);
 	v_blank = mode->vts_def - mode->height;
 	__v4l2_ctrl_modify_range(priv->vblank, v_blank,
-					v_blank,
+					IMX219_VTS_MAX - mode->height,
 					1, v_blank);
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 		mode->max_fps.numerator);
@@ -735,6 +719,7 @@ static int imx219_set_fmt(struct v4l2_subdev *sd,
 		priv->crop_rect.top = 0;
 	priv->crop_rect.width = mode->width;
 	priv->crop_rect.height = mode->height;
+	mutex_unlock(&priv->mutex);
 
 	return 0;
 }
@@ -750,10 +735,16 @@ static int imx219_get_fmt(struct v4l2_subdev *sd,
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
 		return 0;
 
-	fmt->format.width = mode->width;
-	fmt->format.height = mode->height;
-	fmt->format.code = mode->bus_fmt;
-	fmt->format.field = V4L2_FIELD_NONE;
+	mutex_lock(&priv->mutex);
+	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
+		fmt->format = *v4l2_subdev_get_try_format(sd, cfg, fmt->pad);
+	} else {
+		fmt->format.width = mode->width;
+		fmt->format.height = mode->height;
+		fmt->format.code = mode->bus_fmt;
+		fmt->format.field = V4L2_FIELD_NONE;
+	}
+	mutex_unlock(&priv->mutex);
 
 	return 0;
 }
@@ -772,11 +763,63 @@ static long imx219_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct imx219 *imx219 = to_imx219(client);
+	struct rkmodule_hdr_cfg *hdr;
+	const struct imx219_mode *mode;
+	u32 i, h, w;
 	long ret = 0;
+	s64 dst_pixel_rate = 0;
+	s32 dst_link_freq = 0;
+	u32 fps = 0;
+	u32 stream = 0;
 
 	switch (cmd) {
 	case RKMODULE_GET_MODULE_INFO:
 		imx219_get_module_inf(imx219, (struct rkmodule_inf *)arg);
+		break;
+	case RKMODULE_GET_HDR_CFG:
+		hdr = (struct rkmodule_hdr_cfg *)arg;
+		if (imx219->cur_mode->hdr_mode == NO_HDR)
+			hdr->esp.mode = HDR_NORMAL_VC;
+		else
+			hdr->esp.mode = HDR_ID_CODE;
+		hdr->hdr_mode = imx219->cur_mode->hdr_mode;
+		break;
+	case RKMODULE_SET_HDR_CFG:
+		hdr = (struct rkmodule_hdr_cfg *)arg;
+		for (i = 0; i < ARRAY_SIZE(supported_modes); i++){
+			if (supported_modes[i].hdr_mode == hdr->hdr_mode) {
+				imx219->cur_mode = &supported_modes[i];
+				break;
+			}
+		}
+		if (i == ARRAY_SIZE(supported_modes)) {
+			dev_err(&client->dev,
+					"not find hdr mode:%d config\n",
+					hdr->hdr_mode);
+			ret = -EINVAL;
+		} else {
+			mode = imx219->cur_mode;
+			w = mode->hts_def - mode->width;
+			h = mode->vts_def - mode->height;
+			__v4l2_ctrl_modify_range(imx219->hblank, w, w, 1, w);
+			__v4l2_ctrl_modify_range(imx219->vblank, h,
+				IMX219_VTS_MAX - mode->height,
+				1, h);
+			dst_link_freq = mode->freq_idx;
+			fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
+					mode->max_fps.numerator);
+			dst_pixel_rate = mode->vts_def * mode->hts_def * fps;
+			__v4l2_ctrl_s_ctrl_int64(imx219->pixel_rate,
+					dst_pixel_rate);
+			imx219->cur_vts = mode->vts_def;
+		}
+		break;
+	case RKMODULE_SET_QUICK_STREAM:
+		stream = *((u32 *)arg);
+		if (stream)
+			ret = reg_write_table(client, start);
+		else
+			ret = reg_write_table(client, stop);
 		break;
 	default:
 		ret = -ENOIOCTLCMD;
@@ -792,8 +835,9 @@ static long imx219_compat_ioctl32(struct v4l2_subdev *sd,
 {
 	void __user *up = compat_ptr(arg);
 	struct rkmodule_inf *inf;
-	struct rkmodule_awb_cfg *cfg;
+	struct rkmodule_hdr_cfg *hdr;
 	long ret;
+	u32 stream = 0;
 
 	switch (cmd) {
 	case RKMODULE_GET_MODULE_INFO:
@@ -808,17 +852,34 @@ static long imx219_compat_ioctl32(struct v4l2_subdev *sd,
 			ret = copy_to_user(up, inf, sizeof(*inf));
 		kfree(inf);
 		break;
-	case RKMODULE_AWB_CFG:
-		cfg = kzalloc(sizeof(*cfg), GFP_KERNEL);
-		if (!cfg) {
+	case RKMODULE_GET_HDR_CFG:
+		hdr = kzalloc(sizeof(*hdr), GFP_KERNEL);
+		if (!hdr) {
 			ret = -ENOMEM;
 			return ret;
 		}
 
-		ret = copy_from_user(cfg, up, sizeof(*cfg));
+		ret = imx219_ioctl(sd, cmd, hdr);
 		if (!ret)
-			ret = imx219_ioctl(sd, cmd, cfg);
-		kfree(cfg);
+			ret = copy_to_user(up, hdr, sizeof(*hdr));
+		kfree(hdr);
+		break;
+	case RKMODULE_SET_HDR_CFG:
+		hdr = kzalloc(sizeof(*hdr), GFP_KERNEL);
+		if (!hdr) {
+			ret = -ENOMEM;
+			return ret;
+		}
+
+		ret = copy_from_user(hdr, up, sizeof(*hdr));
+		if (!ret)
+			ret = imx219_ioctl(sd, cmd, hdr);
+		kfree(hdr);
+		break;
+	case RKMODULE_SET_QUICK_STREAM:
+		ret = copy_from_user(&stream, up, sizeof(*up));
+		if (!ret)
+			ret = imx219_ioctl(sd, cmd, &stream);
 		break;
 	default:
 		ret = -ENOIOCTLCMD;
@@ -842,9 +903,12 @@ static int imx219_enum_frame_interval(struct v4l2_subdev *sd,
 	if (fie->code != MEDIA_BUS_FMT_SRGGB10_1X10)
 		return -EINVAL;
 
+	mutex_lock(&priv->mutex);
 	fie->width = supported_modes[fie->index].width;
 	fie->height = supported_modes[fie->index].height;
 	fie->interval = supported_modes[fie->index].max_fps;
+	fie->reserved[0] = supported_modes[fie->index].hdr_mode;
+	mutex_unlock(&priv->mutex);
 	return 0;
 }
 
@@ -979,8 +1043,12 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	s64 pixel_rate, h_blank, v_blank;
 	int ret;
 	u32 fps = 0;
+	int i;
 
-	v4l2_ctrl_handler_init(&priv->ctrl_handler, 10);
+	v4l2_ctrl_handler_init(&priv->ctrl_handler, 12);
+
+	priv->ctrl_handler.lock = &priv->mutex;
+
 	v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
 			  V4L2_CID_HFLIP, 0, 1, 1, 0);
 	v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
@@ -1024,6 +1092,14 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 				     V4L2_CID_TEST_PATTERN,
 				     ARRAY_SIZE(tp_qmenu) - 1, 0, 0, tp_qmenu);
 
+	for (i = 0; i < 4; i++) {
+		v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
+				V4L2_CID_TEST_PATTERN_RED + i,
+				IMX219_TESTP_COLOUR_MIN,
+				IMX219_TESTP_COLOUR_MAX,
+				IMX219_TESTP_COLOUR_STEP,
+				IMX219_TESTP_COLOUR_MAX);
+	}
 	priv->subdev.ctrl_handler = &priv->ctrl_handler;
 	if (priv->ctrl_handler.error) {
 		dev_err(&client->dev, "Error %d adding controls\n",
@@ -1116,6 +1192,8 @@ static int imx219_probe(struct i2c_client *client,
 	if (ret < 0)
 		return ret;
 
+	mutex_init(&priv->mutex);
+
 	sd = &priv->subdev;
 	memset(facing, 0, sizeof(facing));
 	if (strcmp(priv->module_facing, "back") == 0)
@@ -1128,7 +1206,11 @@ static int imx219_probe(struct i2c_client *client,
 		 IMX219_NAME, dev_name(sd->dev));
 	ret = v4l2_async_register_subdev_sensor_common(sd);
 	if (ret < 0)
-		return ret;
+		goto err_destroy_mutex;
+
+	return ret;
+err_destroy_mutex:
+	mutex_destroy(&priv->mutex);
 
 	return ret;
 }
@@ -1141,6 +1223,7 @@ static int imx219_remove(struct i2c_client *client)
 	media_entity_cleanup(&priv->subdev.entity);
 	v4l2_ctrl_handler_free(&priv->ctrl_handler);
 
+	mutex_destroy(&priv->mutex);
 	return 0;
 }
 
