@@ -42,7 +42,7 @@
 		status = "okay";
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
-		simple-audio-card,hp-det-gpio = <&gpio3 RK_PC2 GPIO_ACTIVE_HIGH>;
+		simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 		simple-audio-card,name = "rockchip,rk809-codec";
 		simple-audio-card,widgets = "Headphones", "Headphones Jack";
 		simple-audio-card,mclk-fs = <256>;

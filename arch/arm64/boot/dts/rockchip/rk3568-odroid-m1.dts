@@ -169,6 +169,10 @@
 	};
 };
 
+&rk809_sound {
+	simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
+};
+
 &sata2 {
 	status = "okay";
 };
