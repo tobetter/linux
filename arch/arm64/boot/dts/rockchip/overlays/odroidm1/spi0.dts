@@ -10,7 +10,6 @@
 		__overlay__ {
 			status = "okay";
 
-			pinctrl-names = "default", "high_speed";
 			pinctrl-0 = <&spi0m1_cs0 &spi0m1_pins>;
 			pinctrl-1 = <&spi0m1_cs0 &spi0m1_pins_hs>;
 

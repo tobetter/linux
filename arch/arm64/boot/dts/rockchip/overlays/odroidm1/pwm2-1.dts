@@ -5,14 +5,13 @@
 
 / {
 	fragment@0 {
-		// uart1 aliased with serial0.
-		target = <&uart1>;
+		// pwmchip1, pwm@fdd70020
+		target = <&pwm2>;
 
 		__overlay__ {
 			status = "okay";
 
-			dma-names = "tx", "rx";
-			pinctrl-0 = <&uart1m1_xfer>;
+			pinctrl-0 = <&pwm2m1_pins>;
 		};
 	};
 };
