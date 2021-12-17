@@ -2071,8 +2071,12 @@ void rk_get_eth_addr(void *priv, unsigned char *addr)
 {
 	struct rk_priv_data *bsp_priv = priv;
 	struct device *dev = &bsp_priv->pdev->dev;
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 	unsigned char ethaddr[ETH_ALEN * MAX_ETH] = {0};
 	int ret, id = bsp_priv->bus_id;
+#else
+	int id = bsp_priv->bus_id;
+#endif
 
 	rk_devinfo_get_eth_mac(addr);
 	if (is_valid_ether_addr(addr))
@@ -2083,6 +2087,7 @@ void rk_get_eth_addr(void *priv, unsigned char *addr)
 		return;
 	}
 
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 	ret = rk_vendor_read(LAN_MAC_ID, ethaddr, ETH_ALEN * MAX_ETH);
 	if (ret <= 0 ||
 	    !is_valid_ether_addr(&ethaddr[id * ETH_ALEN])) {
@@ -2104,6 +2109,7 @@ void rk_get_eth_addr(void *priv, unsigned char *addr)
 	} else {
 		memcpy(addr, &ethaddr[id * ETH_ALEN], ETH_ALEN);
 	}
+#endif
 
 out:
 	dev_err(dev, "%s: mac address: %pM\n", __func__, addr);
@@ -2263,7 +2269,23 @@ static struct platform_driver rk_gmac_dwmac_driver = {
 		.of_match_table = rk_gmac_dwmac_match,
 	},
 };
+
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 module_platform_driver(rk_gmac_dwmac_driver);
+#else
+static int __init rk_gmac_init(void)
+{
+	return platform_driver_register(&rk_gmac_dwmac_driver);
+}
+
+static void __exit rk_gmac_exit(void)
+{
+	platform_driver_unregister(&rk_gmac_dwmac_driver);
+}
+
+late_initcall(rk_gmac_init)
+module_exit(rk_gmac_exit)
+#endif
 
 MODULE_AUTHOR("Chen-Zhi (Roger Chen) <roger.chen@rock-chips.com>");
 MODULE_DESCRIPTION("Rockchip RK3288 DWMAC specific glue layer");

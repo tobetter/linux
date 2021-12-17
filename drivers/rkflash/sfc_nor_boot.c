@@ -127,6 +127,7 @@ static int snor_write_lba(u32 sec, u32 n_sec, void *p_data)
 	return (u32)ret == n_sec ? 0 : ret;
 }
 
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 static int snor_vendor_read(u32 sec, u32 n_sec, void *p_data)
 {
 	int ret = 0;
@@ -144,6 +145,76 @@ static int snor_vendor_write(u32 sec, u32 n_sec, void *p_data)
 
 	return (u32)ret == n_sec ? 0 : ret;
 }
+#else
+extern int snor_prog(struct SFNOR_DEV *p_dev, u32 addr, void *p_data, u32 size);
+
+static int snor_secure_request(u8 cmd)
+{
+	struct rk_sfc_op op;
+
+	op.sfcmd.d32 = 0;
+	op.sfcmd.b.cmd = cmd;
+	op.sfctrl.d32 = 0;
+
+	return sfc_request(&op, 0, NULL, 0);
+}
+
+int snor_secure_enter(void)
+{
+	return snor_secure_request(0xb1);	// ENSO
+}
+
+int snor_secure_exit(void)
+{
+	return snor_secure_request(0xc1);	// EXSO
+}
+
+static int snor_vendor_read(u32 addr, u32 size, void *p_data)
+{
+	u32 nbytes = size;
+	char *buf = (char *)kmalloc(size, GFP_KERNEL);
+	unsigned char *p;
+	int ret = 0;
+
+	snor_secure_enter();
+
+	for (p = buf; nbytes; ) {
+		u32 len = min(nbytes, sfnor_dev->max_iosize);
+		ret = snor_read_data(sfnor_dev, addr, p, len);
+		if (ret != SFC_OK)
+			break;
+
+		nbytes -= len;
+		addr += len;
+		p += len;
+	}
+
+	snor_secure_exit();
+
+	if (ret == SFC_OK)
+		memcpy(p_data, buf, size);
+
+	kfree(buf);
+
+	return ret;
+}
+
+static int snor_vendor_write(u32 addr, u32 size, void *p_data)
+{
+	char *buf = kmalloc(size, GFP_KERNEL);
+	int ret;
+
+	memcpy(buf, p_data, size);
+
+	snor_secure_enter();
+	ret = snor_prog(sfnor_dev, addr, buf, size);
+	snor_secure_exit();
+
+	kfree(buf);
+
+	return ret;
+}
+#endif
 
 static int snor_gc(void)
 {

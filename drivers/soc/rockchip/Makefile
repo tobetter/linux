@@ -7,9 +7,11 @@ obj-$(CONFIG_ROCKCHIP_HW_DECOMPRESS) += rockchip_decompress.o
 obj-$(CONFIG_ROCKCHIP_PM_DOMAINS) += pm_domains.o
 obj-$(CONFIG_FIQ_DEBUGGER) += rk_fiq_debugger.o
 obj-y += rk_vendor_storage.o
+ifeq ($(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON),)
 obj-$(CONFIG_MMC_DW_ROCKCHIP)	+= sdmmc_vendor_storage.o
 obj-$(CONFIG_RK_FLASH)	+= flash_vendor_storage.o
 obj-$(CONFIG_ROCKCHIP_MTD_VENDOR_STORAGE) += mtd_vendor_storage.o
+endif
 obj-$(CONFIG_ROCKCHIP_IPA)	+= rockchip_ipa.o
 obj-$(CONFIG_ROCKCHIP_OPP)	+= rockchip_opp_select.o
 obj-$(CONFIG_ROCKCHIP_PVTM)	+= rockchip_pvtm.o

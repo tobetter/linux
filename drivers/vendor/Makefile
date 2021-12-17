@@ -1,0 +1,1 @@
+obj-$(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)	+= odroid.o

@@ -416,7 +416,11 @@ int snor_prog_page(struct SFNOR_DEV *p_dev,
 	return ret;
 }
 
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 static int snor_prog(struct SFNOR_DEV *p_dev, u32 addr, void *p_data, u32 size)
+#else
+int snor_prog(struct SFNOR_DEV *p_dev, u32 addr, void *p_data, u32 size)
+#endif
 {
 	int ret = SFC_OK;
 	u32 page_size, len;

@@ -1,0 +1,388 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2021 Hardkernel Co., Ltd.
+ *
+ */
+
+#include <linux/fs.h>
+#include <linux/ioctl.h>
+#include <linux/miscdevice.h>
+#include <linux/module.h>
+#include <linux/seq_file.h>
+#include <linux/slab.h>
+#include <linux/sysfs.h>
+#include <linux/uaccess.h>
+
+#include <linux/soc/rockchip/rk_vendor_storage.h>
+
+#define EFUSE_ODROID_MAGIC              "HKM1"
+#define EFUSE_ODROID_MAXSIZ             64
+#define EFUSE_MEMORY_SIZE		1024	/* bytes */
+#define MAX_OFFSET_UUID			96	/* bytes */
+
+#define EFUSE_INFO_PROVISION		_IO('f', 0x5073)
+#define EFUSE_DUMP			_IO('f', 0x5074)
+#define EFUSE_CLEAR			_IO('f', 0x5075)
+
+struct odroid_efuse_t {
+	u32 magic;      /* EFUSE_ODROID_MAGIC */
+	u32 offset;     /* The offset of data in eFuse */
+	u32 len;        /* The length of data buffer */
+	u8 sum;         /* The checksum of data buffer */
+	u8 data[EFUSE_ODROID_MAXSIZ];
+} __attribute__ ((__packed__));
+
+ssize_t efuse_read_usr(char *buf, size_t count, u32 offset);
+ssize_t efuse_write_usr(char *buf, size_t count, u32 offset);
+static int get_mac_offset(u8 *index);
+
+static int char2hex(u8 ch)
+{
+	if (('0' <= ch) && (ch <= '9'))
+		return ch - '0';
+	if (('a' <= ch) && (ch <= 'f'))
+		return ch - 'a' + 10;
+	if (('A' <= ch) && (ch <= 'F'))
+		return ch - 'A' + 10;
+
+	return 0;
+}
+
+static int (*read_cb)(u32 sec, u32 n_sec, void *p_data);
+static int (*write_cb)(u32 sec, u32 n_sec, void *p_data);
+
+static int vendor_read(u32 pos, char *buf, u32 size)
+{
+	if (!read_cb)
+		return -EINVAL;
+
+	return read_cb(pos, size, buf);
+}
+
+static int vendor_write(u32 pos, char *buf, u32 size)
+{
+	char *p = (char *)kmalloc(size, GFP_KERNEL);
+	int ret;
+
+	ret = vendor_read(pos, p, size);
+	if (!ret) {
+		int i;
+		for (i = 0; i < size; i++)
+			if (*(p + i) != 0xff) {
+				ret = -EBUSY;
+				break;
+			}
+	}
+
+	kfree(p);
+
+	return ret ? ret : write_cb(pos, size, buf);
+}
+
+static int vendor_clear(u32 pos)
+{
+	u8 buf[32] = {0,};
+	int ret = 0;
+
+	return ret ? ret : write_cb(pos, sizeof(buf), buf);
+}
+
+int flash_vendor_dev_ops_register(
+		int (*read)(u32 sec, u32 n_sec, void *p_data),
+		int (*write)(u32 sec, u32 n_sec, void *p_data))
+{
+	if (read_cb)
+		return -1;
+
+	read_cb = read;
+	write_cb = write;
+
+	rk_vendor_register(vendor_read, vendor_write);
+
+	return 0;
+}
+
+void rk_devinfo_get_eth_mac(u8 *mac)
+{
+	u8 bdinfo[32];
+	int ret;
+	u8 index;
+
+	ret = get_mac_offset(&index);
+
+	ret = vendor_read(index * 32, bdinfo, sizeof(bdinfo));
+	if (ret == 0) {
+		int i;
+		for (i = 0; i < 6; i++) {
+			mac[i] = (char2hex(bdinfo[20 + i * 2]) << 4)
+				| char2hex(bdinfo[21 + i * 2]);
+		}
+	}
+}
+
+ssize_t efuse_read_usr(char *buf, size_t size, u32 offset)
+{
+	return vendor_read(offset, buf, size);
+}
+
+ssize_t efuse_write_usr(char *buf, size_t size, u32 offset)
+{
+	return vendor_write(offset, buf, size);
+}
+
+static int odroid_valid(u8 *data, u32 len, u8 expected)
+{
+	u8 sum = 0;
+
+	while (len--)
+		sum += *data++;
+
+	return (sum == expected) ? 0 : -EINVAL;
+}
+
+static int odroid_provision(struct odroid_efuse_t *fuse)
+{
+	int ret;
+
+	if (memcmp((void *)&fuse->magic, EFUSE_ODROID_MAGIC,
+				sizeof(((struct odroid_efuse_t *)0)->magic))) {
+		pr_err("magic number is not matched (%08x)\n", fuse->magic);
+		return -EINVAL;
+	}
+
+	if (fuse->offset > MAX_OFFSET_UUID) {
+		pr_err("offset error - (%d > %u)\n", fuse->offset, MAX_OFFSET_UUID);
+		return -EINVAL;
+	}
+
+	if (fuse->len > sizeof((struct odroid_efuse_t *)0)->data) {
+		pr_err("data size is wrong (%d > %ld)\n",
+				fuse->len,
+				sizeof((struct odroid_efuse_t *)0)->data);
+		return -EINVAL;
+	}
+
+	/* Validate before writing */
+	ret = odroid_valid(fuse->data, fuse->len, fuse->sum);
+	if (ret < 0) {
+		pr_err("%s:%d, Invalid checksum\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	/* Write */
+	ret = efuse_write_usr(fuse->data, fuse->len, fuse->offset);
+	if (ret < 0) {
+		pr_err("failed to write efuse\n");
+		return ret;
+	}
+
+	/* Read back */
+	ret = efuse_read_usr(fuse->data, fuse->len, fuse->offset);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	/* Verify */
+	ret = odroid_valid(fuse->data, fuse->len, fuse->sum);
+	if (ret < 0) {
+		pr_err("data mismatch\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int odroid_clear(u32 offset)
+{
+	u8 in[32];
+	int ret;
+	int i, cnt = 0;
+
+	if (offset % 32 != 0) {
+		pr_err("align error %d\n", offset);
+	}
+
+	ret = efuse_read_usr(in, sizeof(in), offset);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	for (i = 0; i < sizeof(in); i++)
+		if (in[i] == 0xff)
+			cnt++;
+	if (cnt == 32) {
+		pr_err("unused area\n");
+		return -EINVAL;
+	}
+
+	ret = vendor_clear(offset);
+	if (ret < 0) {
+		pr_err("failed to clear efuse\n");
+		return ret;
+	}
+
+	memset(in, 0, sizeof(in));
+
+	/* Read back */
+	ret = efuse_read_usr(in, sizeof(in), offset);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	/* Verify */
+	ret = odroid_valid(in, sizeof(in), 0);
+	if (ret < 0) {
+		pr_err("data mismatch\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int get_mac_offset(u8 *index)
+{
+	u8 in[32];
+	int i, ret;
+	u8 idx = 0;
+
+	while (idx < 3) {
+		ret = efuse_read_usr(in, sizeof(in), idx * 32);
+		if (ret < 0) {
+			pr_err("failed to read efuse\n");
+			return ret;
+		}
+
+		for (i = 0; i < sizeof(in); i++) {
+			if (in[i] != 0x00) {
+				*index = idx;
+				return 0;
+			}
+		}
+		idx++;
+	}
+	return 0;
+}
+
+static long efuse_unlocked_ioctl(struct file *file,
+		unsigned int cmd, unsigned long arg)
+{
+	void __user *argp = (void __user *)arg;
+	struct odroid_efuse_t fuse;
+	u8 *otp;
+	int ret = 0;
+
+	switch (cmd) {
+	case EFUSE_INFO_PROVISION:
+		ret = copy_from_user(&fuse, argp, sizeof(fuse));
+		if (ret != 0) {
+			pr_err("%s:%d, copy_from_user fail\n",
+					__func__, __LINE__);
+			break;
+		}
+
+		ret = odroid_provision(&fuse);
+		if (ret < 0) {
+			pr_err("%s:%d, Failed (%d)\n",
+					__func__, __LINE__, ret);
+			break;
+		}
+		break;
+
+	case EFUSE_DUMP:
+		otp = (u8*)kmalloc(EFUSE_MEMORY_SIZE, GFP_KERNEL);
+		memset(otp, 0, EFUSE_MEMORY_SIZE);
+		ret = vendor_read(0, otp, EFUSE_MEMORY_SIZE);
+		print_hex_dump(KERN_INFO, "dump: ", DUMP_PREFIX_OFFSET,
+				16, 1, otp, EFUSE_MEMORY_SIZE, true);
+		kfree(otp);
+		break;
+
+	case EFUSE_CLEAR:
+		ret = copy_from_user(&fuse, argp, sizeof(fuse));
+		if (ret != 0) {
+			pr_err("%s:%d, copy_from_user fail\n",
+					__func__, __LINE__);
+			break;
+		}
+
+		ret = odroid_clear(fuse.offset);
+		if (ret < 0) {
+			pr_err("%s:%d, Failed (%d)\n",
+					__func__, __LINE__, ret);
+			break;
+		}
+		break;
+	}
+
+	return ret;
+}
+
+static ssize_t uuid_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	u8 in[32];
+	int ret;
+
+	ret = efuse_read_usr(in, sizeof(in), 0);
+	if (ret < 0) {
+		pr_err("failed to read efuse\n");
+		return ret;
+	}
+
+	return snprintf(buf, PAGE_SIZE,
+			/* 99999999-9999-9999-9999-999999999999 */
+			"%c%c%c%c%c%c%c%c-%c%c%c%c-%c%c%c%c-%c%c%c%c-"
+			"%c%c%c%c%c%c%c%c%c%c%c%c\n",
+			in[0], in[1], in[2], in[3], in[4], in[5], in[6], in[7],
+			in[8], in[9], in[10], in[11],
+			in[12], in[13], in[14], in[15],
+			in[16], in[17], in[18], in[19],
+			in[20], in[21], in[22], in[23], in[24], in[25],
+			in[26], in[27], in[28], in[29], in[30], in[31]);
+}
+static CLASS_ATTR_RO(uuid);
+
+static struct attribute *efuse_class_attrs[] = {
+	&class_attr_uuid.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(efuse_class);
+
+static struct class efuse_class = {
+	.name = "efuse",
+	.owner = THIS_MODULE,
+	.class_groups = efuse_class_groups,
+};
+
+static const struct file_operations efuse_fops = {
+	.owner = THIS_MODULE,
+	.unlocked_ioctl = efuse_unlocked_ioctl,
+};
+
+static struct miscdevice efuse_device = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "efuse",
+	.fops = &efuse_fops,
+};
+
+static int __init odroid_board_init(void)
+{
+	class_register(&efuse_class);
+	return misc_register(&efuse_device);
+}
+
+static void __exit odroid_board_exit(void)
+{
+	class_unregister(&efuse_class);
+	misc_deregister(&efuse_device);
+}
+
+late_initcall(odroid_board_init);
+module_exit(odroid_board_exit);
+
+MODULE_DESCRIPTION("Hardkernel board driver");
+MODULE_AUTHOR("Dongjin Kim <tobetter@gmail.com>");
+MODULE_LICENSE("GPL");

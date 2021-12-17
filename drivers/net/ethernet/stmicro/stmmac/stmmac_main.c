@@ -2156,8 +2156,10 @@ static int stmmac_get_hw_features(struct stmmac_priv *priv)
  */
 static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 {
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 	if (!is_valid_ether_addr(priv->dev->dev_addr)) {
 		stmmac_get_umac_addr(priv, priv->hw, priv->dev->dev_addr, 0);
+#endif
 		if (likely(priv->plat->get_eth_addr))
 			priv->plat->get_eth_addr(priv->plat->bsp_priv,
 				priv->dev->dev_addr);
@@ -2165,7 +2167,9 @@ static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 			eth_hw_addr_random(priv->dev);
 		dev_info(priv->device, "device MAC address %pM\n",
 			 priv->dev->dev_addr);
+#if !defined(CONFIG_ARCH_ROCKCHIP_ODROID_COMMON)
 	}
+#endif
 }
 
 /**
