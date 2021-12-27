@@ -135,6 +135,7 @@ static void vmpeg_vf_put(struct vframe_s *, void *);
 static int vmpeg_vf_states(struct vframe_states *states, void *);
 static int vmpeg_event_cb(int type, void *data, void *private_data);
 static int pre_decode_buf_level = 0x800;
+static int start_decode_buf_level = 0x4000;
 static int debug_enable;
 static unsigned int radr;
 static unsigned int rval;
@@ -144,7 +145,7 @@ static unsigned int frmbase_cont_bitlevel = 0x40;
 #define VMPEG4_DEV_NUM        9
 static unsigned int max_decode_instance_num = VMPEG4_DEV_NUM;
 static unsigned int max_process_time[VMPEG4_DEV_NUM];
-static unsigned int decode_timeout_val = 100;
+static unsigned int decode_timeout_val = 200;
 
 static u32 without_display_mode;
 
@@ -2317,6 +2318,7 @@ static int ammvdec_mpeg4_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
+	vdec_set_prepare_level(pdata, start_decode_buf_level);
 
 	if (pdata->parallel_dec == 1)
 		vdec_core_request(pdata, CORE_MASK_VDEC_1);
@@ -2446,7 +2448,11 @@ module_param_array(max_process_time, uint, &max_decode_instance_num, 0664);
 
 module_param(pre_decode_buf_level, int, 0664);
 MODULE_PARM_DESC(pre_decode_buf_level,
-		"\n ammvdec_ mpeg4 pre_decode_buf_level\n");
+		"\n ammvdec_mpeg4 pre_decode_buf_level\n");
+
+module_param(start_decode_buf_level, int, 0664);
+MODULE_PARM_DESC(start_decode_buf_level,
+		"\n ammvdec_mpeg4 start_decode_buf_level\n");
 
 module_param(udebug_flag, uint, 0664);
 MODULE_PARM_DESC(udebug_flag, "\n ammvdec_mpeg4 udebug_flag\n");

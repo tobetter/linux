@@ -696,6 +696,7 @@ void ve_set_dnlp_2(void)
 	/* init tgt & lpf */
 	for (i = 0; i < 64; i++) {
 		ve_dnlp_tgt_copy[i] = i << 2;
+		ve_dnlp_tgt_10b_copy[i] = i << 4;
 		ve_dnlp_lpf[i] = (ulong)ve_dnlp_tgt_copy[i] << ve_dnlp_rt;
 	}
 	/* calculate dnlp reg data */

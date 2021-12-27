@@ -34,20 +34,20 @@
 #include "hdmi_rx_edid.h"
 
 
-#define RX_VER0 "ver.2019/10/21"
+#define RX_VER0 "ver.2019/11/18"
 /*
  *
  *
  *
  *
  */
-#define RX_VER1 "ver.2019/10/17"
+#define RX_VER1 "ver.2019/11/05"
 /*
  *
  *
  *
  */
-#define RX_VER2 "ver.2019/11/05"
+#define RX_VER2 "ver.2019/11/18"
 
 /*print type*/
 #define	LOG_EN		0x01
@@ -390,8 +390,8 @@ struct emp_buff {
 	phys_addr_t p_addr_b;
 	/*void __iomem *v_addr_a;*/
 	/*void __iomem *v_addr_b;*/
-	void __iomem *storeA;
-	void __iomem *storeB;
+	void __iomem *store_a;
+	void __iomem *store_b;
 	void __iomem *ready;
 	unsigned long irqcnt;
 	unsigned int emppktcnt;

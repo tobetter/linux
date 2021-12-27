@@ -447,11 +447,11 @@ void *gdc_prepare_item(struct gdc_context_s *wq)
 int gdc_wq_add_work(struct gdc_context_s *wq,
 	struct gdc_queue_item_s *pitem)
 {
-	gdc_log(LOG_INFO, "gdc add work\n");
+	gdc_log(LOG_DEBUG, "gdc add work\n");
 	spin_lock(&wq->lock);
 	list_move_tail(&pitem->list, &wq->work_queue);
 	spin_unlock(&wq->lock);
-	gdc_log(LOG_INFO, "gdc add work ok\n");
+	gdc_log(LOG_DEBUG, "gdc add work ok\n");
 	/* only read not need lock */
 	if (gdc_manager.event.cmd_in_sem.count == 0)
 		up(&gdc_manager.event.cmd_in_sem);/* new cmd come in */

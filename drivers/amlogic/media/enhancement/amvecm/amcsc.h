@@ -98,8 +98,13 @@ enum output_format_e {
 #define XVY_MTX_EN_MASK  (1 << XVY_MTX_EN)
 #define OSD1_MTX_EN_MASK (1 << OSD1_MTX_EN)
 
+#define SDR_SUPPORT		(1 << 1)
 #define HDR_SUPPORT		(1 << 2)
 #define HLG_SUPPORT		(1 << 3)
+#define HDRP_SUPPORT	(1 << 4)
+#define BT2020_SUPPORT	(1 << 5)
+#define DV_SUPPORT_SHF	(6)
+#define DV_SUPPORT		(3 << DV_SUPPORT_SHF)
 
 bool is_vinfo_available(const struct vinfo_s *vinfo);
 int is_sink_cap_changed(const struct vinfo_s *vinfo,
@@ -132,6 +137,7 @@ extern unsigned int vecm_latch_flag;
 extern signed int vd1_contrast_offset;
 extern signed int saturation_offset;
 extern uint sdr_mode;
+extern uint hdr_mode;
 extern uint hdr_flag;
 extern int video_rgb_ogo_xvy_mtx_latch;
 extern int video_rgb_ogo_xvy_mtx;
@@ -139,6 +145,7 @@ extern int tx_op_color_primary;
 extern uint cur_csc_type[VD_PATH_MAX];
 
 int get_hdr_policy(void);
+void set_cur_hdr_policy(uint policy);
 enum output_format_e get_force_output(void);
 
 /* 0: hdr->hdr, 1:hdr->sdr, 2:hdr->hlg */
@@ -194,7 +201,8 @@ extern void hdr_exit(void);
 extern void hdr_set_cfg_osd_100(int val);
 extern void hdr_osd_off(void);
 extern void hdr_vd1_off(void);
-void hdr_vd2_off(void);
+extern void hdr_vd2_off(void);
+extern void hdr_vd1_iptmap(void);
 extern bool is_video_layer_on(enum vd_path_e vd_path);
 
 #define HDR_MODULE_OFF		0
@@ -206,7 +214,7 @@ extern int get_primaries_type(struct vframe_master_display_colour_s *p_mdc);
 
 #define PROC_BYPASS			0
 /* to backward compatible */
-#define PROC_MATCH			1
+#define PROC_MATCH			5
 #define PROC_OFF			4
 /* sdr */
 #define PROC_SDR_TO_HDR		1
@@ -234,6 +242,10 @@ extern void send_hdr10_plus_pkt(enum vd_path_e vd_path);
 
 void hdr10_plus_process_update(int force_source_lumin);
 extern int customer_hdr_clipping;
+
+/* api to get sink capability */
+uint32_t sink_dv_support(const struct vinfo_s *vinfo);
+uint32_t sink_hdr_support(const struct vinfo_s *vinfo);
 
 #endif /* AM_CSC_H */
 

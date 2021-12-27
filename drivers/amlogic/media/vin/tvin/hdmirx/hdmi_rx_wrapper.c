@@ -208,12 +208,13 @@ static int esd_phy_rst_cnt;
 static int esd_phy_rst_max;
 static int cec_dev_info;
 struct rx_s rx;
+static bool term_flag = 1;
 
 void hdmirx_init_params(void)
 {
 	if (rx.chip_id >= CHIP_ID_TL1) {
 		clk_unstable_max = 10;
-		esd_phy_rst_max = 20;
+		esd_phy_rst_max = 80;
 		stable_check_lvl = 0x7df;
 		pll_lock_max = 5;
 	} else {
@@ -2193,6 +2194,11 @@ void rx_main_state_machine(void)
 				hdmirx_phy_init();
 				rx.phy.cable_clk = 0;
 				esd_phy_rst_cnt++;
+			} else {
+				rx.err_code = ERR_NONE;
+				rx.state = FSM_HPD_LOW;
+				esd_phy_rst_cnt = 0;
+				break;
 			}
 			rx.err_code = ERR_CLK_UNSTABLE;
 		}
@@ -2427,7 +2433,7 @@ void rx_main_state_machine(void)
 					rx_audio_pll_sw_update();
 				}
 				if (log_level & AUDIO_LOG)
-					rx_pr("update audio-err:%d\n, aud_sts");
+					rx_pr("update audio-err:%d\n", aud_sts);
 				rx.aud_sr_unstable_cnt = 0;
 			}
 		} else
@@ -2930,6 +2936,7 @@ int hdmirx_debug(const char *buf, int size)
 		rx_pr("Hdmirx version0: %s\n", RX_VER0);
 		rx_pr("Hdmirx version1: %s\n", RX_VER1);
 		rx_pr("Hdmirx version2: %s\n", RX_VER2);
+		rx_pr("Hdmirx version2: %s\n", "ver.2019/11/18");
 		rx_pr("------------------\n");
 	} else if (strncmp(input[0], "port0", 5) == 0) {
 		hdmirx_open_port(TVIN_PORT_HDMI0);
@@ -2974,7 +2981,8 @@ int hdmirx_debug(const char *buf, int size)
 		rx.phy.err_sum = 0xffffff;
 	} else if (strncmp(tmpbuf, "audio", 5) == 0) {
 		hdmirx_audio_fifo_rst();
-	}
+	} else if (strncmp(tmpbuf, "eqcal", 5) == 0)
+		rx_phy_rt_cal();
 
 	return 0;
 }
@@ -3004,6 +3012,10 @@ void hdmirx_timer_handler(unsigned long arg)
 {
 	struct hdmirx_dev_s *devp = (struct hdmirx_dev_s *)arg;
 
+	if (term_flag && term_cal_en) {
+		rx_phy_rt_cal();
+		term_flag = 0;
+	}
 	rx_5v_monitor();
 	rx_check_repeat();
 	rx_dw_edid_monitor();

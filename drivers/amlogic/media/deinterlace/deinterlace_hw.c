@@ -435,7 +435,11 @@ static void pre_hold_block_mode_config(void)
 	if (cpu_after_eq(MESON_CPU_MAJOR_ID_G12A)) {
 		DI_Wr(DI_PRE_HOLD, 0);
 		/* go field after 2 lines */
+		#ifdef OLD_PRE_GL
 		DI_Wr(DI_PRE_GL_CTRL, (0x80000000|line_num_pre_frst));
+		#else
+		di_hpre_gl_sw(false);
+		#endif
 	} else if (is_meson_txlx_cpu()) {
 		/* setup pre process ratio to 66.6%*/
 		DI_Wr(DI_PRE_HOLD, (1 << 31) | (1 << 16) | 3);
@@ -1556,6 +1560,7 @@ static void set_di_inp_mif(struct DI_MIF_s *mif, int urgent, int hold_line)
 	unsigned int chroma0_rpt_loop_pat;
 	unsigned int vt_ini_phase = 0;
 	unsigned int reset_on_gofield;
+	unsigned int burst_len = 2;
 
 	if (mif->set_separate_en != 0 && mif->src_field_mode == 1) {
 		chro_rpt_lastl_ctrl = 1;
@@ -1638,6 +1643,11 @@ static void set_di_inp_mif(struct DI_MIF_s *mif, int urgent, int hold_line)
 		RDMA_WR_BITS(DI_INP_GEN_REG2, 0, 0, 1);
 	}
 
+	if (mif->canvas_w % 32)
+		burst_len = 0;
+	else if (mif->canvas_w % 64)
+		burst_len = 1;
+	RDMA_WR_BITS(DI_INP_GEN_REG3, burst_len & 0x3, 1, 2);
 	RDMA_WR_BITS(DI_INP_GEN_REG3, mif->bit_mode&0x3, 8, 2);
 	RDMA_WR(DI_INP_CANVAS0, (mif->canvas0_addr2 << 16) |
 				/* cntl_canvas0_addr2 */
@@ -3232,11 +3242,28 @@ void pre_frame_reset_g12(unsigned char madi_en,
 	RDMA_WR_BITS(MCVECWR_CAN_SIZE, 0, 14, 1);
 	RDMA_WR_BITS(MCINFWR_CAN_SIZE, 0, 14, 1);
 
+	#ifdef OLD_PRE_GL
 	reg_val = 0xc3200000 | line_num_pre_frst;
 	RDMA_WR(DI_PRE_GL_CTRL, reg_val);
 	reg_val = 0x83200000 | line_num_pre_frst;
 	RDMA_WR(DI_PRE_GL_CTRL, reg_val);
+	#else
+	di_hpre_gl_sw(true);
+	#endif
 }
+
+/*2019-12-25 by feijun*/
+void di_hpre_gl_sw(bool on)
+{
+	if (!cpu_after_eq(MESON_CPU_MAJOR_ID_G12A))
+		return;
+	if (on)
+		RDMA_WR(DI_PRE_GL_CTRL,
+			0x80200000 | line_num_pre_frst);
+	else
+		RDMA_WR(DI_PRE_GL_CTRL, 0xc0000000);
+}
+
 /*
  * frame + soft reset for the pre modules
  */

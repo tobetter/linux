@@ -94,6 +94,7 @@ static int vmjpeg_vf_states(struct vframe_states *states, void *);
 static int vmjpeg_event_cb(int type, void *data, void *private_data);
 static void vmjpeg_work(struct work_struct *work);
 static int pre_decode_buf_level = 0x800;
+static int start_decode_buf_level = 0x2000;
 static u32 without_display_mode;
 #undef pr_info
 #define pr_info printk
@@ -250,6 +251,22 @@ static void set_frame_info(struct vdec_mjpeg_hw_s *hw, struct vframe_s *vf)
 
 static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 {
+	struct vdec_mjpeg_hw_s *hw =
+		(struct vdec_mjpeg_hw_s *)(vdec->private);
+
+	if (!hw)
+		return IRQ_HANDLED;
+
+	if (hw->eos)
+		return IRQ_HANDLED;
+
+	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
+
+	return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t vmjpeg_isr_thread_fn(struct vdec_s *vdec, int irq)
+{
 	struct vdec_mjpeg_hw_s *hw = (struct vdec_mjpeg_hw_s *)(vdec->private);
 	u32 reg;
 	struct vframe_s *vf = NULL;
@@ -257,13 +274,7 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 	u64 pts_us64;
 	u32 frame_size;
 
-	if (!hw)
-		return IRQ_HANDLED;
-
-	if (hw->eos)
-		return IRQ_HANDLED;
 	reset_process_time(hw);
-	WRITE_VREG(ASSIST_MBOX1_CLR_REG, 1);
 	if (READ_VREG(AV_SCRATCH_D) != 0 &&
 		(debug_enable & PRINT_FLAG_UCODE_DETAIL)) {
 		pr_info("dbg%x: %x\n", READ_VREG(AV_SCRATCH_D),
@@ -349,6 +360,7 @@ static irqreturn_t vmjpeg_isr(struct vdec_s *vdec, int irq)
 	vf->mem_handle =
 		decoder_bmmu_box_get_mem_handle(
 			hw->mm_blk_handle, index);
+	decoder_do_frame_check(vdec, vf);
 	kfifo_put(&hw->display_q, (const struct vframe_s *)vf);
 	ATRACE_COUNTER(MODULE_NAME, vf->pts);
 	hw->frame_num++;
@@ -461,8 +473,11 @@ static void vmjpeg_canvas_init(struct vdec_mjpeg_hw_s *hw)
 	u32 canvas_width, canvas_height;
 	u32 decbuf_size, decbuf_y_size, decbuf_uv_size;
 	unsigned long buf_start, addr;
+	u32 endian;
 	struct vdec_s *vdec = hw_to_vdec(hw);
 
+	endian = (vdec->canvas_mode ==
+		CANVAS_BLKMODE_LINEAR) ? 7 : 0;
 	canvas_width = 1920;
 	canvas_height = 1088;
 	decbuf_y_size = 0x200000;
@@ -507,12 +522,12 @@ static void vmjpeg_canvas_init(struct vdec_mjpeg_hw_s *hw)
 			hw->buffer_spec[i].v_canvas_index = canvas_v(canvas);
 		}
 
-		canvas_config(hw->buffer_spec[i].y_canvas_index,
+		canvas_config_ex(hw->buffer_spec[i].y_canvas_index,
 			hw->buffer_spec[i].y_addr,
 			canvas_width,
 			canvas_height,
 			CANVAS_ADDR_NOWRAP,
-			CANVAS_BLKMODE_LINEAR);
+			CANVAS_BLKMODE_LINEAR, endian);
 		hw->buffer_spec[i].canvas_config[0].phy_addr =
 			hw->buffer_spec[i].y_addr;
 		hw->buffer_spec[i].canvas_config[0].width =
@@ -521,13 +536,15 @@ static void vmjpeg_canvas_init(struct vdec_mjpeg_hw_s *hw)
 			canvas_height;
 		hw->buffer_spec[i].canvas_config[0].block_mode =
 			CANVAS_BLKMODE_LINEAR;
+		hw->buffer_spec[i].canvas_config[0].endian =
+			endian;
 
-		canvas_config(hw->buffer_spec[i].u_canvas_index,
+		canvas_config_ex(hw->buffer_spec[i].u_canvas_index,
 			hw->buffer_spec[i].u_addr,
 			canvas_width / 2,
 			canvas_height / 2,
 			CANVAS_ADDR_NOWRAP,
-			CANVAS_BLKMODE_LINEAR);
+			CANVAS_BLKMODE_LINEAR, endian);
 		hw->buffer_spec[i].canvas_config[1].phy_addr =
 			hw->buffer_spec[i].u_addr;
 		hw->buffer_spec[i].canvas_config[1].width =
@@ -536,13 +553,15 @@ static void vmjpeg_canvas_init(struct vdec_mjpeg_hw_s *hw)
 			canvas_height / 2;
 		hw->buffer_spec[i].canvas_config[1].block_mode =
 			CANVAS_BLKMODE_LINEAR;
+		hw->buffer_spec[i].canvas_config[1].endian =
+			endian;
 
-		canvas_config(hw->buffer_spec[i].v_canvas_index,
+		canvas_config_ex(hw->buffer_spec[i].v_canvas_index,
 			hw->buffer_spec[i].v_addr,
 			canvas_width / 2,
 			canvas_height / 2,
 			CANVAS_ADDR_NOWRAP,
-			CANVAS_BLKMODE_LINEAR);
+			CANVAS_BLKMODE_LINEAR, endian);
 		hw->buffer_spec[i].canvas_config[2].phy_addr =
 			hw->buffer_spec[i].v_addr;
 		hw->buffer_spec[i].canvas_config[2].width =
@@ -551,6 +570,8 @@ static void vmjpeg_canvas_init(struct vdec_mjpeg_hw_s *hw)
 			canvas_height / 2;
 		hw->buffer_spec[i].canvas_config[2].block_mode =
 			CANVAS_BLKMODE_LINEAR;
+		hw->buffer_spec[i].canvas_config[2].endian =
+			endian;
 	}
 }
 
@@ -1401,8 +1422,6 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	hw = (struct vdec_mjpeg_hw_s *)devm_kzalloc(&pdev->dev,
-		sizeof(struct vdec_mjpeg_hw_s), GFP_KERNEL);
 	hw =  vzalloc(sizeof(struct vdec_mjpeg_hw_s));
 	if (hw == NULL) {
 		pr_info("\nammvdec_mjpeg device data allocation failed\n");
@@ -1418,6 +1437,7 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 	pdata->run = run;
 	pdata->run_ready = run_ready;
 	pdata->irq_handler = vmjpeg_isr;
+	pdata->threaded_irq_handler = vmjpeg_isr_thread_fn;
 	pdata->dump_state = vmjpeg_dump_state;
 
 	if (pdata->parallel_dec == 1) {
@@ -1460,6 +1480,8 @@ static int ammvdec_mjpeg_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
+	vdec_set_prepare_level(pdata, start_decode_buf_level);
+
 	if (pdata->parallel_dec == 1)
 		vdec_core_request(pdata, CORE_MASK_VDEC_1);
 	else {
@@ -1567,6 +1589,9 @@ module_param_array(max_process_time, uint, &max_decode_instance_num, 0664);
 
 module_param(radr, uint, 0664);
 MODULE_PARM_DESC(radr, "\nradr\n");
+
+module_param(start_decode_buf_level, uint, 0664);
+MODULE_PARM_DESC(start_decode_buf_level, "\nstart_decode_buf_level\n");
 
 module_param(rval, uint, 0664);
 MODULE_PARM_DESC(rval, "\nrval\n");

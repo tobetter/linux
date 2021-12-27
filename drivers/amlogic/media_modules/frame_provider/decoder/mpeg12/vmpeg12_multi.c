@@ -106,9 +106,9 @@
 #define DEFAULT_MEM_SIZE	(32*SZ_1M)
 static u32 buf_size = 32 * 1024 * 1024;
 static int pre_decode_buf_level = 0x800;
+static int start_decode_buf_level = 0x4000;
 static u32 dec_control;
 static u32 error_frame_skip_level = 2;
-static u32 stat;
 static u32 udebug_flag;
 static unsigned int radr;
 static unsigned int rval;
@@ -118,7 +118,7 @@ static u32 without_display_mode;
 #define VMPEG12_DEV_NUM        9
 static unsigned int max_decode_instance_num = VMPEG12_DEV_NUM;
 static unsigned int max_process_time[VMPEG12_DEV_NUM];
-static unsigned int decode_timeout_val = 100;
+static unsigned int decode_timeout_val = 200;
 #define INCPTR(p) ptr_atomic_wrap_inc(&p)
 
 #define DEC_CONTROL_FLAG_FORCE_2500_720_576_INTERLACE  0x0002
@@ -2854,6 +2854,8 @@ static int ammvdec_mpeg12_probe(struct platform_device *pdev)
 		pdata->dec_status = NULL;
 		return -ENODEV;
 	}
+	vdec_set_prepare_level(pdata, start_decode_buf_level);
+
 	if (pdata->parallel_dec == 1)
 		vdec_core_request(pdata, CORE_MASK_VDEC_1);
 	else {
@@ -2983,12 +2985,19 @@ static struct codec_profile_t ammvdec_mpeg12_profile = {
 };
 
 static struct mconfig mmpeg12_configs[] = {
-	MC_PU32("stat", &stat),
 	MC_PU32("radr", &radr),
 	MC_PU32("rval", &rval),
 	MC_PU32("dec_control", &dec_control),
 	MC_PU32("error_frame_skip_level", &error_frame_skip_level),
 	MC_PU32("decode_timeout_val", &decode_timeout_val),
+	MC_PU32("start_decode_buf_level", &start_decode_buf_level),
+	MC_PU32("pre_decode_buf_level", &pre_decode_buf_level),
+	MC_PU32("debug_enable", &debug_enable),
+	MC_PU32("udebug_flag", &udebug_flag),
+	MC_PU32("without_display_mode", &without_display_mode),
+#ifdef AGAIN_HAS_THRESHOLD
+	MC_PU32("again_threshold", &again_threshold),
+#endif
 };
 static struct mconfig_node mmpeg12_node;
 
@@ -3031,6 +3040,11 @@ MODULE_PARM_DESC(debug_enable,
 module_param(pre_decode_buf_level, int, 0664);
 MODULE_PARM_DESC(pre_decode_buf_level,
 		"\n ammvdec_mpeg12 pre_decode_buf_level\n");
+
+module_param(start_decode_buf_level, int, 0664);
+MODULE_PARM_DESC(start_decode_buf_level,
+		"\n ammvdec_mpeg12 start_decode_buf_level\n");
+
 module_param(decode_timeout_val, uint, 0664);
 MODULE_PARM_DESC(decode_timeout_val, "\n ammvdec_mpeg12 decode_timeout_val\n");
 

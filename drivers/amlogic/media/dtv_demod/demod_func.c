@@ -133,7 +133,7 @@ void adc_dpll_setup(int clk_a, int clk_b, int clk_sys, int dvb_mode)
 	int sts_pll;
 
 	if (is_ic_ver(IC_VER_TL1) || is_ic_ver(IC_VER_TM2)) {
-		if (clk_b == Adc_Clk_24M) {
+		if (clk_b == ADC_CLK_24M) {
 			dtvpll_init_flag(1);
 			return;
 		} else if (clk_b == Adc_Clk_25M) {

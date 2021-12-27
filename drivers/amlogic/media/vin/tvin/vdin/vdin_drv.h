@@ -48,7 +48,7 @@
 /* Ref.2019/04/25: tl1 vdin0 afbce dynamically switch support,
  *                 vpp also should support this function
  */
-#define VDIN_VER "ver:2019-1030: add dv descramble scramble feature"
+#define VDIN_VER "ver:2019-1118: 1080p 10bit afbc green screen"
 
 /*the counter of vdin*/
 #define VDIN_MAX_DEVS			2

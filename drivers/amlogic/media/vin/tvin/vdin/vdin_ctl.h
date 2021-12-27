@@ -97,8 +97,8 @@ extern void vdin_prob_get_rgb(unsigned int offset, unsigned int *r,
 extern void vdin_set_all_regs(struct vdin_dev_s *devp);
 extern void vdin_set_default_regmap(unsigned int offset);
 extern void vdin_set_def_wr_canvas(struct vdin_dev_s *devp);
-extern void vdin_hw_enable(unsigned int offset);
-extern void vdin_hw_disable(unsigned int offset);
+void vdin_hw_enable(struct vdin_dev_s *devp);
+void vdin_hw_disable(struct vdin_dev_s *devp);
 extern unsigned int vdin_get_field_type(unsigned int offset);
 extern int vdin_vsync_reset_mif(int index);
 extern bool vdin_check_vdi6_afifo_overflow(unsigned int offset);
@@ -117,7 +117,7 @@ extern void vdin_set_canvas_id(struct vdin_dev_s *devp,
 extern unsigned int vdin_get_chma_canvas_id(unsigned int offset);
 extern void vdin_set_chma_canvas_id(struct vdin_dev_s *devp,
 		unsigned int rdma_enable, unsigned int canvas_id);
-extern void vdin_enable_module(unsigned int offset, bool enable);
+void vdin_enable_module(struct vdin_dev_s *devp, bool enable);
 extern void vdin_set_matrix(struct vdin_dev_s *devp);
 extern void vdin_set_matrixs(struct vdin_dev_s *devp, unsigned char no,
 		enum vdin_format_convert_e csc);

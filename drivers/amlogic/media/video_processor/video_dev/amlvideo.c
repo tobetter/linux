@@ -78,6 +78,8 @@ AMLVIDEO_MINOR_VERSION, AMLVIDEO_RELEASE)
 #define AMLVIDEO_POOL_SIZE 16
 /*extern bool omx_secret_mode;*/
 
+static u32 omx_freerun_index = 0;
+
 #define DUR2PTS(x) ((x) - ((x) >> 4))
 #define DUR2PTS_RM(x) ((x) & 0xf)
 
@@ -194,11 +196,12 @@ static int amlvideo_vf_states(struct vframe_states *states, void *op_arg)
 	/* unsigned long flags; */
 	/* spin_lock_irqsave(&lock, flags); */
 	struct vivi_dev *dev = (struct vivi_dev *)op_arg;
+	int avail_count = vfq_level(&dev->q_ready) + vfq_level(&dev->q_omx);
 
 	states->vf_pool_size = AMLVIDEO_POOL_SIZE;
 	states->buf_recycle_num = 0;
-	states->buf_free_num = AMLVIDEO_POOL_SIZE - vfq_level(&dev->q_ready);
-	states->buf_avail_num = vfq_level(&dev->q_ready);
+	states->buf_free_num = AMLVIDEO_POOL_SIZE - avail_count;
+	states->buf_avail_num = avail_count;
 	/* spin_unlock_irqrestore(&lock, flags); */
 	return 0;
 }
@@ -245,6 +248,8 @@ static int video_receiver_event_fun(int type, void *data, void *private_data)
 		dev->first_frame = 0;
 		vfq_init(&dev->q_ready, AMLVIDEO_POOL_SIZE + 1,
 			&dev->amlvideo_pool_ready[0]);
+		vfq_init(&dev->q_omx, AMLVIDEO_POOL_SIZE + 1,
+			&dev->amlvideo_pool_omx[0]);
 		mutex_unlock(&dev->vf_mutex);
 	}
 	if (type == VFRAME_EVENT_PROVIDER_REG) {
@@ -275,11 +280,14 @@ static int video_receiver_event_fun(int type, void *data, void *private_data)
 		if (vf_get_receiver(dev->vf_provider_name)) {
 			struct vframe_receiver_s *aaa = vf_get_receiver(
 				dev->vf_provider_name);
-			AMLVIDEO_DBG("aaa->name=%s", aaa->name);
+			if (aaa)
+				AMLVIDEO_DBG("aaa->name=%s", aaa->name);
 			if (dev->inst == 0)
 				omx_secret_mode = true;
 			vfq_init(&dev->q_ready, AMLVIDEO_POOL_SIZE + 1,
 					&dev->amlvideo_pool_ready[0]);
+			vfq_init(&dev->q_omx, AMLVIDEO_POOL_SIZE + 1,
+                                        &dev->amlvideo_pool_omx[0]);
 			vf_provider_init(&dev->video_vf_prov,
 						dev->vf_provider_name,
 						&amlvideo_vf_provider, dev);
@@ -299,6 +307,8 @@ static int video_receiver_event_fun(int type, void *data, void *private_data)
 		dev->first_frame = 0;
 		vfq_init(&dev->q_ready, AMLVIDEO_POOL_SIZE + 1,
 			&dev->amlvideo_pool_ready[0]);
+		vfq_init(&dev->q_omx, AMLVIDEO_POOL_SIZE + 1,
+			&dev->amlvideo_pool_omx[0]);
 
 		vf_notify_receiver(dev->vf_provider_name,
 			VFRAME_EVENT_PROVIDER_RESET, data);
@@ -322,15 +332,12 @@ static int vidioc_g_parm(struct file *file, void *priv,
 				struct v4l2_streamparm *parms)
 {
 	struct vivi_dev *dev = video_drvdata(file);
-	struct v4l2_amlogic_parm *ap
-		= (struct v4l2_amlogic_parm *)&parms->parm.capture;
 
 	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
 
-	memset(ap, 0, sizeof(struct v4l2_amlogic_parm));
-	*ap = dev->am_parm;
-
+	memcpy(parms->parm.raw_data, (u8 *)&dev->am_parm,
+	       sizeof(struct v4l2_amlogic_parm));
 	return 0;
 }
 
@@ -541,6 +548,23 @@ static int vidioc_querybuf(struct file *file, void *priv, struct v4l2_buffer *p)
 
 static int vidioc_qbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 {
+	u32 index;
+	struct vframe_s *vf;
+	struct vivi_dev *dev = video_drvdata(file);
+	while ((vf = vfq_peek(&dev->q_omx)))
+	{
+		index = (u32)vf->pts_us64;
+		vfq_push(&dev->q_ready, vfq_pop(&dev->q_omx));
+		ATRACE_COUNTER(dev->v4l2_dev.name, vfq_level(&dev->q_omx));
+		ATRACE_COUNTER(dev->v4l2_dev.name, vfq_level(&dev->q_ready));
+		vf_notify_receiver(
+				dev->vf_provider_name,
+				VFRAME_EVENT_PROVIDER_VFRAME_READY,
+				NULL);
+
+		if (p->index == index)
+			break;
+	}
 	return 0;
 }
 
@@ -578,6 +602,9 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 	dev->am_parm.master_display_colour
 		= dev->vf->prop.master_display_colour;
 
+	if (!dev->vf->pts_us64)
+		dev->vf->pts_us64 = ((u64)dev->vf->pts * 100) / 9;
+
 	if (dev->vf->pts_us64) {
 		dev->first_frame = 1;
 		pts_us64 = dev->vf->pts_us64;
@@ -600,13 +627,14 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 	if (dev->vf->next_vf_pts_valid)
 		dev->vf->next_vf_pts = next_vf->pts;
 
-	vfq_push(&dev->q_ready, dev->vf);
-	ATRACE_COUNTER(dev->v4l2_dev.name, vfq_level(&dev->q_ready));
-	p->index = 0;
+	p->index = omx_freerun_index;
 
 	p->timestamp.tv_sec = pts_us64 >> 32;
 	p->timestamp.tv_usec = pts_us64 & 0xFFFFFFFF;
 	dev->last_pts_us64 = pts_us64;
+	dev->vf->pts_us64 = omx_freerun_index++;
+	vfq_push(&dev->q_omx, dev->vf);
+	ATRACE_COUNTER(dev->v4l2_dev.name, vfq_level(&dev->q_omx));
 
 	if ((dev->vf->type & VIDTYPE_COMPRESS) != 0) {
 		p->timecode.type = dev->vf->compWidth;
@@ -617,11 +645,6 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 	}
 	p->sequence = dev->frame_num++;
 	mutex_unlock(&dev->vf_mutex);
-
-	vf_notify_receiver(
-			dev->vf_provider_name,
-			VFRAME_EVENT_PROVIDER_VFRAME_READY,
-			NULL);
 
 	return ret;
 }
@@ -675,7 +698,6 @@ static int amlvideo_open(struct file *file)
 {
 	struct vivi_dev *dev = video_drvdata(file);
 	struct vivi_fh *fh = NULL;
-	int retval = 0;
 	struct videobuf_res_privdata *res = NULL;
 	char *bstart = NULL;
 	unsigned int bsize = 0;
@@ -691,6 +713,7 @@ static int amlvideo_open(struct file *file)
 	}
 	res = kzalloc(sizeof(*res), GFP_KERNEL);
 	if ((res == NULL) || (dev->res != NULL)) {
+		kfree(res);
 		dev->users--;
 		mutex_unlock(&dev->mutex);
 		return -ENOMEM;
@@ -700,7 +723,7 @@ static int amlvideo_open(struct file *file)
 			kfree(res);
 			dev->users--;
 			mutex_unlock(&dev->mutex);
-			retval = -ENOMEM;
+			return -ENOMEM;
 		}
 	}
 	mutex_unlock(&dev->mutex);
@@ -962,8 +985,9 @@ static int __init amlvideo_create_instance(int inst)
 
 rel_vdev: video_device_release(vfd);
 unreg_dev: v4l2_device_unregister(&dev->v4l2_dev);
-free_dev: kfree(dev);
+free_dev:
 	dev->res = NULL;
+	kfree(dev);
 	return ret;
 }
 

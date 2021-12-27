@@ -232,7 +232,8 @@ int calculation_stream_delayed_ms(u8 type, u32 *latestbitrate,
 			outtime = timestamp_pcrscr_get();
 	if (outtime == 0 || outtime == 0xffffffff)
 		outtime = pTable->last_checkout_pts;
-	timestampe_delayed = (pTable->last_checkin_pts - outtime) / 90;
+	if (pTable->last_checkin_pts > outtime)
+		timestampe_delayed = (pTable->last_checkin_pts - outtime) / 90;
 	pTable->last_pts_delay_ms = timestampe_delayed;
 	if (get_buf_by_type_cb && stbuf_level_cb && stbuf_space_cb) {
 		if ((timestampe_delayed < 10)
@@ -278,7 +279,7 @@ int calculation_stream_delayed_ms(u8 type, u32 *latestbitrate,
 						type)))
 				diff = diff2;
 		}
-		delay_ms = diff * 1000 / (1 + pTable->last_avg_bitrate / 8);
+		delay_ms = (diff * 1000) / (int)(1 + pTable->last_avg_bitrate / 8);
 		if ((timestampe_delayed < 10) ||
 			((abs
 			(timestampe_delayed - delay_ms) > (3 * 1000))
@@ -441,7 +442,8 @@ static int pts_checkin_offset_inline(u8 type, u32 offset, u32 val, u64 uS64)
 
 	if (likely((pTable->status == PTS_RUNNING) ||
 			   (pTable->status == PTS_LOADING))) {
-		struct pts_rec_s *rec;
+		struct pts_rec_s *rec = NULL;
+		struct pts_rec_s *rec_prev = NULL;
 
 		if (type == PTS_TYPE_VIDEO && pTable->first_checkin_pts == -1) {
 			pTable->first_checkin_pts = val;
@@ -495,6 +497,25 @@ static int pts_checkin_offset_inline(u8 type, u32 offset, u32 val, u64 uS64)
 				list_entry(pTable->free_list.next,
 						   struct pts_rec_s, list);
 		}
+
+		if (!list_empty(&pTable->valid_list)) {
+			rec_prev = list_entry(
+			    pTable->valid_list.prev, struct pts_rec_s, list);
+			if (rec_prev->offset == pTable->last_checkin_offset) {
+				if (offset > pTable->last_checkin_offset)
+					rec_prev->size =
+					offset - pTable->last_checkin_offset;
+				else
+					rec_prev->size = 0;
+			}
+		}
+
+		if ((pTable->last_checkin_offset > 0)
+			&& (offset > pTable->last_checkin_offset))
+			rec->size =
+				offset - pTable->last_checkin_offset;
+		else
+			rec->size = rec_prev ? rec_prev->size : 0;
 
 		rec->offset = offset;
 		rec->val = val;

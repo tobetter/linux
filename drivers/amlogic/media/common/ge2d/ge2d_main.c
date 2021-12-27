@@ -55,6 +55,7 @@
 #define MAX_GE2D_CLK 500000000
 #define HHI_MEM_PD_REG0 0x40
 #define RESET2_LEVEL    0x422
+#define GE2D_POWER_DOMAIN_CTRL
 
 struct ge2d_device_s {
 	char name[20];
@@ -1050,6 +1051,7 @@ static int ge2d_release(struct inode *inode, struct file *file)
 	return -1;
 }
 
+#ifndef GE2D_POWER_DOMAIN_CTRL
 static struct ge2d_ctrl_s default_poweron_ctrl[] = {
 			/* power up ge2d */
 			{GEN_PWR_SLEEP0, AO_RTI_GEN_PWR_SLEEP0, 0, 19, 1, 0},
@@ -1075,6 +1077,19 @@ static struct ge2d_ctrl_s default_poweroff_ctrl[] = {
 
 struct ge2d_power_table_s default_poweron_table = {5, default_poweron_ctrl};
 struct ge2d_power_table_s default_poweroff_table = {4, default_poweroff_ctrl};
+#else
+static struct ge2d_ctrl_s default_poweron_ctrl[] = {
+			/* power on */
+			{PWR_DOMAIN_CTRL, 0, 0, 0, 0, 0},
+		};
+static struct ge2d_ctrl_s default_poweroff_ctrl[] = {
+			/* power off */
+			{PWR_DOMAIN_CTRL, 0, 1, 0, 0, 0},
+		};
+
+struct ge2d_power_table_s default_poweron_table = {1, default_poweron_ctrl};
+struct ge2d_power_table_s default_poweroff_table = {1, default_poweroff_ctrl};
+#endif
 
 static struct ge2d_device_data_s ge2d_gxl = {
 	.ge2d_rate = 400000000,
@@ -1226,7 +1241,7 @@ static int ge2d_probe(struct platform_device *pdev)
 		ret = -ENOENT;
 		goto failed1;
 	}
-	ge2d_log_info("clock source clk_ge2d_gate %p\n", clk_gate);
+	ge2d_log_dbg("clock source clk_ge2d_gate %p\n", clk_gate);
 	clk_prepare_enable(clk_gate);
 
 	clk = devm_clk_get(&pdev->dev, "clk_ge2d");
@@ -1236,7 +1251,7 @@ static int ge2d_probe(struct platform_device *pdev)
 		ret = -ENOENT;
 		goto failed1;
 	}
-	ge2d_log_info("clock clk_ge2d source %p\n", clk);
+	ge2d_log_dbg("clock clk_ge2d source %p\n", clk);
 	clk_prepare_enable(clk);
 
 	clk_vapb0 = devm_clk_get(&pdev->dev, "clk_vapb_0");
@@ -1244,11 +1259,11 @@ static int ge2d_probe(struct platform_device *pdev)
 		int vapb_rate, vpu_rate;
 
 		if (!IS_ERR(clk_vapb0)) {
-			ge2d_log_info("clock source clk_vapb_0 %p\n",
-				clk_vapb0);
+			ge2d_log_dbg("clock source clk_vapb_0 %p\n",
+				     clk_vapb0);
 			vapb_rate =  ge2d_meson_dev.ge2d_rate;
 			vpu_rate = get_vpu_clk();
-			ge2d_log_info(
+			ge2d_log_dbg(
 				"ge2d init clock is %d HZ, VPU clock is %d HZ\n",
 				vapb_rate, vpu_rate);
 
@@ -1269,25 +1284,27 @@ static int ge2d_probe(struct platform_device *pdev)
 	}
 	ret = of_address_to_resource(pdev->dev.of_node, 0, &res);
 	if (ret == 0) {
-		ge2d_log_info("find address resource\n");
+		ge2d_log_dbg("find address resource\n");
 		if (res.start != 0) {
 			ge2d_reg_map =
 				ioremap(res.start, resource_size(&res));
 			if (ge2d_reg_map) {
-				ge2d_log_info("map io source 0x%p,size=%d to 0x%p\n",
-					(void *)res.start,
-					(int)resource_size(&res),
-					ge2d_reg_map);
+				ge2d_log_dbg("map io source 0x%p,size=%d to 0x%p\n",
+					     (void *)res.start,
+					     (int)resource_size(&res),
+					     ge2d_reg_map);
 			}
 		} else {
 			ge2d_reg_map = 0;
 			ge2d_log_info("ignore io source start %p,size=%d\n",
 			(void *)res.start, (int)resource_size(&res));
 		}
+	} else {
+		ge2d_log_err("register address resource is not found\n");
 	}
 	ret = of_reserved_mem_device_init(&(pdev->dev));
 	if (ret < 0)
-		ge2d_log_info("reserved mem init failed\n");
+		ge2d_log_info("reserved mem is not used\n");
 
 	ret = ge2d_wq_init(pdev, irq, clk_gate);
 
@@ -1330,7 +1347,7 @@ static int init_ge2d_device(void)
 	}
 	ge2d_device.major = ret;
 	ge2d_device.dbg_enable = 0;
-	ge2d_log_info("ge2d_dev major:%d\n", ret);
+	ge2d_log_dbg("ge2d_dev major:%d\n", ret);
 	ret = class_register(&ge2d_class);
 	if (ret < 0) {
 		ge2d_log_err("error create ge2d class\n");

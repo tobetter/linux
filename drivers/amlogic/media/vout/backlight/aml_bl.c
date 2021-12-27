@@ -742,8 +742,9 @@ static void bl_power_on(void)
 			/* step 1: power on ldim */
 			if (ldim_drv->power_on) {
 				ret = ldim_drv->power_on();
-				if (ret)
-					BLERR("ldim: power on error\n");
+				if (ret < 0)
+					BLERR("bl: power on error, ret = %d\n",
+					      ret);
 			} else {
 				BLPR("ldim: power on is null\n");
 			}
@@ -3451,20 +3452,47 @@ static const struct of_device_id bl_dt_match_table[] = {
 };
 #endif
 
+static void aml_bl_power_init(void)
+{
+	struct bl_config_s *bconf = bl_drv->bconf;
+	unsigned long m_jif;
+
+	bl_on_request = 1;
+	m_jif = msecs_to_jiffies(bconf->power_on_delay);
+	/* lcd power on sequence control */
+	if (bconf->method < BL_CTRL_MAX) {
+		if (bl_drv->workqueue) {
+			queue_delayed_work(bl_drv->workqueue,
+					   &bl_drv->bl_delayed_work,
+					   m_jif);
+		} else {
+			schedule_delayed_work(&bl_drv->bl_delayed_work, m_jif);
+		}
+	} else {
+		BLERR("wrong backlight control method\n");
+	}
+}
+
 static void aml_bl_init_status_update(void)
 {
 	struct aml_lcd_drv_s *lcd_drv = aml_lcd_get_driver();
-	struct lcd_config_s *pconf;
-	unsigned int state;
 
-	pconf = lcd_drv->lcd_config;
-
-	if (pconf->lcd_boot_ctrl->lcd_init_level)
+	if (!lcd_drv)
 		return;
 
-	state = bl_vcbus_read(ENCL_VIDEO_EN);
-	if (state == 0) /* default disable lcd & backlight */
+	/* default disable lcd & backlight */
+	if ((lcd_drv->lcd_status & LCD_STATUS_IF_ON) == 0)
 		return;
+
+	if (lcd_drv->boot_ctrl) {
+		if (lcd_drv->boot_ctrl->lcd_init_level ==
+		    LCD_INIT_LEVEL_KERNEL_ON) {
+			BLPR("power on for init_level %d\n",
+			     lcd_drv->boot_ctrl->lcd_init_level);
+			aml_bl_power_init();
+			return;
+		}
+	}
 
 	/* update bl status */
 	bl_drv->state = (BL_STATE_LCD_ON |

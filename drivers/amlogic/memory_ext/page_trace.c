@@ -367,7 +367,7 @@ static void __init dump_common_caller(void)
 
 	for (i = 0; i < COMMON_CALLER_SIZE; i++) {
 		if (common_caller[i].func_start_addr)
-			printk(KERN_DEBUG"%2d, addr:%lx + %4lx, %pf\n", i,
+			pr_debug("%2d, addr:%lx + %4lx, %pf\n", i,
 				common_caller[i].func_start_addr,
 				common_caller[i].size,
 				(void *)common_caller[i].func_start_addr);
@@ -403,7 +403,7 @@ static void __init find_static_common_symbol(void)
 			if (addr)
 				setup_common_caller(addr);
 			else
-				pr_info("can't find symbol:%s\n", s->name);
+				pr_debug("can't find symbol:%s\n", s->name);
 		} else {
 			if (!fuzzy_match(s->name))
 				pr_info("can't fuzzy match:%s\n", s->name);
@@ -589,7 +589,6 @@ static void __init set_init_page_trace(struct page *page, int order, gfp_t flag)
 		text = (unsigned long)_text;
 
 		trace.ret_ip = (ip - text) >> 2;
-		WARN_ON(trace.ret_ip > IP_RANGE_MASK);
 		trace.migrate_type = gfpflags_to_migratetype(flag);
 		trace.order = order;
 		base = find_page_base(page);
@@ -1266,9 +1265,9 @@ int slab_trace_add_page(struct page *page, int order,
 	return 0;
 
 nomem:
-	kfree(trace);
 	pr_err("%s, failed to trace obj %p for %s, trace:%p\n", __func__,
 		page_address(page), s->name, trace);
+	kfree(trace);
 	return -ENOMEM;
 }
 
@@ -1621,16 +1620,18 @@ static const struct file_operations slabtrace_file_ops = {
 
 static int __init page_trace_module_init(void)
 {
-#ifndef CONFIG_64BIT
-
+#ifdef CONFIG_64BIT
+	d_pagetrace = proc_create("pagetrace", 0444,
+				  NULL, &pagetrace_file_ops);
+#else
 	if (!page_trace_disable)
 		d_pagetrace = proc_create("pagetrace", 0444,
 					  NULL, &pagetrace_file_ops);
+#endif
 	if (IS_ERR_OR_NULL(d_pagetrace)) {
 		pr_err("%s, create sysfs failed\n", __func__);
 		return -1;
 	}
-#endif
 
 #ifdef CONFIG_AMLOGIC_SLAB_TRACE
 	if (slab_trace_en)

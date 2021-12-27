@@ -587,10 +587,10 @@ struct di_buf_s *get_di_buf_head(unsigned int channel, int queue_idx)
 
 	if (dimp_get(eDI_MP_di_log_flag) & DI_LOG_QUEUE) {
 		if (di_buf)
-			dim_print("%s: %x(%d,%d)\n", __func__, di_buf,
+			dim_print("%s: 0x%p(%d,%d)\n", __func__, di_buf,
 				  pool_idx, di_buf_idx);
 		else
-			dim_print("%s: %x\n", __func__, di_buf);
+			dim_print("%s: 0x%p\n", __func__, di_buf);
 	}
 
 	return di_buf;
@@ -626,7 +626,7 @@ void queue_out(unsigned int channel, struct di_buf_s *di_buf)
 		q = &pqueue[di_buf->queue_index];
 
 		if (dimp_get(eDI_MP_di_log_flag) & DI_LOG_QUEUE)
-			dim_print("%s:<%d:%d,%d,%d> %x\n", __func__,
+			dim_print("%s:<%d:%d,%d,%d> 0x%p\n", __func__,
 				  di_buf->queue_index, q->num, q->in_idx,
 				  q->out_idx, di_buf);
 
@@ -741,7 +741,7 @@ void queue_out_dbg(unsigned int channel, struct di_buf_s *di_buf)
 		q = &pqueue[di_buf->queue_index];
 
 		if (dimp_get(eDI_MP_di_log_flag) & DI_LOG_QUEUE)
-			dim_print("%s:<%d:%d,%d,%d> %x\n", __func__,
+			dim_print("%s:<%d:%d,%d,%d> 0x%p\n", __func__,
 				  di_buf->queue_index, q->num, q->in_idx,
 				  q->out_idx, di_buf);
 
@@ -872,7 +872,7 @@ void queue_in(unsigned int channel, struct di_buf_s *di_buf, int queue_idx)
 	}
 	q = &pqueue[queue_idx];
 	if (dimp_get(eDI_MP_di_log_flag) & DI_LOG_QUEUE)
-		dim_print("%s:<%d:%d,%d,%d> %x\n", __func__, queue_idx,
+		dim_print("%s:<%d:%d,%d,%d> 0x%p\n", __func__, queue_idx,
 			  q->num, q->in_idx, q->out_idx, di_buf);
 
 	if (q->type == 0) {

@@ -51,10 +51,10 @@ extern bool super_scaler;
 #define SPEED_CHECK_VSKIP	2
 
 enum vppfilter_state_e {
-	VppFilter_Fail = -1,
-	VppFilter_Success = 0,
-	VppFilter_Success_and_Changed,
-	VppFilter_Changed_but_Hold,
+	vppfilter_fail = -1,
+	vppfilter_success = 0,
+	vppfilter_success_and_changed,
+	vppfilter_changed_but_hold,
 };
 
 enum f2v_vphase_type_e {
@@ -192,6 +192,7 @@ struct disp_info_s {
 	u32 zorder;
 	u32 cur_sel_port;
 	u32 last_sel_port;
+	s32 display_path_id;
 
 	bool afbc_support;
 	bool pps_support;

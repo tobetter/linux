@@ -1062,7 +1062,9 @@
 
 /* tl1 HIU PHY register */
 #define HHI_HDMIRX_PHY_MISC_CNTL0		(0xd7<<2)/*0x040*/
+#define MISCI_COMMON_RST				_BIT(10)
 #define HHI_HDMIRX_PHY_MISC_CNTL1		(0xd8<<2)/*0x041*/
+#define MISCI_MANUAL_MODE				_BIT(22)
 #define HHI_HDMIRX_PHY_MISC_CNTL2		(0xe0<<2)/*0x042*/
 #define HHI_HDMIRX_PHY_MISC_CNTL3		(0xe1<<2)/*0x043*/
 #define HHI_HDMIRX_PHY_DCHA_CNTL0		(0xe2<<2)/*0x045*/
@@ -1071,7 +1073,7 @@
 #define HHI_HDMIRX_PHY_DCHD_CNTL0		(0xe5<<2)/*0x048*/
 #define HHI_HDMIRX_PHY_DCHD_CNTL1		(0xe6<<2)/*0x049*/
 #define HHI_HDMIRX_PHY_DCHD_CNTL2		(0xe7<<2)/*0x04A*/
-/*#define HHI_HDMIRX_PHY_MISC_STAT		(0xee<<2)*//*0x044*/
+#define HHI_HDMIRX_PHY_MISC_STAT		(0xee << 2)//0x044
 #define HHI_HDMIRX_PHY_DCHD_STAT		(0xef<<2)/*0x04B*/
 
 #define TMDS_CLK_MIN			(24000UL)
@@ -1116,10 +1118,13 @@ extern int pll_rst_max;
 extern int cdr_lock_level;
 extern int top_intr_maskn_value;
 extern int hbr_force_8ch;
+extern bool term_cal_en;
 extern int clock_lock_th;
 extern int scdc_force_en;
 extern bool hdcp_hpd_ctrl_en;
 extern int eq_dbg_lvl;
+extern int phy_term_lel;
+extern bool phy_tdr_en;
 
 extern void rx_get_best_eq_setting(void);
 extern void wr_reg_hhi(unsigned int offset, unsigned int val);
@@ -1307,6 +1312,9 @@ extern void rx_run_eq(void);
 extern bool rx_eq_done(void);
 extern bool is_tmds_valid(void);
 extern void hdmirx_top_irq_en(bool flag);
+void rx_phy_rt_cal(void);
+bool is_ft_trim_done(void);
+void aml_phy_get_trim_val(void);
 #endif
 
 

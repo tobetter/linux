@@ -89,6 +89,8 @@ int *blkwht_ebld_copy;
 int *dnlp_printk_copy;
 
 unsigned char *ve_dnlp_tgt_copy;
+unsigned int *ve_dnlp_tgt_10b_copy;
+
 
 unsigned int *pre_1_gamma_copy;
 unsigned int *pre_0_gamma_copy;
@@ -213,6 +215,7 @@ void dnlp_alg_param_copy(void)
 	blkwht_ebld_copy = dnlp_dbg_ro_param->blkwht_ebld;
 
 	ve_dnlp_tgt_copy = dnlp_alg_output->ve_dnlp_tgt;
+	ve_dnlp_tgt_10b_copy = dnlp_alg_output->ve_dnlp_tgt_10b;
 
 	pre_1_gamma_copy = dnlp_alg_input->pre_1_gamma;
 	pre_0_gamma_copy = dnlp_alg_input->pre_0_gamma;
@@ -838,6 +841,7 @@ void ve_set_v3_dnlp(struct ve_dnlp_curve_param_s *p)
 		/* init tgt & lpf */
 		for (i = 0; i < 64; i++) {
 			ve_dnlp_tgt_copy[i] = i << 2;
+			ve_dnlp_tgt_10b_copy[i] = i << 4;
 			ve_dnlp_lpf[i] = (ulong)(ve_dnlp_tgt_copy[i]
 				<< ve_dnlp_rt);
 		}

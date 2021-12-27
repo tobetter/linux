@@ -147,6 +147,7 @@ extern int *blkwht_ebld_copy;
 
 extern unsigned int *ve_dnlp_luma_sum_copy;
 extern unsigned char *ve_dnlp_tgt_copy;
+extern unsigned int *ve_dnlp_tgt_10b_copy;
 
 extern void dnlp_dbg_node_copy(void);
 extern bool dnlp_insmod_ok; /*0:fail, 1:ok*/

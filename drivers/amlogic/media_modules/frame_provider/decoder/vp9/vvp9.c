@@ -170,11 +170,12 @@ static u32 mv_buf_margin;
  *	3, (1/4):(1/4) ratio, with both compressed frame included
  *	4, (1/2):(1/2) ratio;
  *	0x10, double write only
- *	0x100, if > 1080p,use mode 4,else use mode 1;
- *	0x200, if > 1080p,use mode 2,else use mode 1;
- *	0x300, if > 720p, use mode 4, else use mode 1;
+ *	0x100, if > 1080p, use mode 4, else use mode 1;
+ *	0x200, if > 1080p, use mode 2, else use mode 1;
+ *	0x300, if > 720p,  use mode 4, else use mode 1;
+ *	0x900, if > 2160p, use mode 4, else use mode 0;
  */
-static u32 double_write_mode;
+static u32 double_write_mode = 0x900;
 
 #define DRIVER_NAME "amvdec_vp9"
 #define MODULE_NAME "amvdec_vp9"
@@ -1631,6 +1632,12 @@ static int get_double_write_mode(struct VP9Decoder_s *pbi)
 			if (w > 1280 && h > 720)
 				dw = 0x4; /*1:2*/
 			break;
+		case 0x900:
+			if (w > 3840 && h > 2176)
+				dw = 0x4; /*1:2*/
+			else
+				dw = 0x0; /*off*/
+			break;
 		default:
 			break;
 		}
@@ -1661,6 +1668,12 @@ static int get_double_write_mode_init(struct VP9Decoder_s *pbi)
 	case 0x300:
 		if (w > 1280 && h > 720)
 			dw = 0x4; /*1:2*/
+		break;
+	case 0x900:
+		if (w > 3840 && h > 2176)
+			dw = 0x4; /*1:2*/
+		else
+			dw = 0x0; /*off*/
 		break;
 	default:
 		dw = valid_dw_mode;

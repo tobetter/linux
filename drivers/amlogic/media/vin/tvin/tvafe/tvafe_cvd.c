@@ -2090,9 +2090,9 @@ inline bool tvafe_cvd2_no_sig(struct tvafe_cvd2_s *cvd2,
 		ret = false;
 		cvd2->cvd2_init_en = false;
 #ifdef TVAFE_CVD2_AUTO_DE_ENABLE
-		if ((!cvd2->info.scene_colorful) &&
-			((user_param->auto_adj_en & TVAFE_AUTO_DE) ||
-			(user_param->auto_adj_en & TVAFE_AUTO_VS))) {
+		if (((!cvd2->info.scene_colorful) &&
+		     (user_param->auto_adj_en & TVAFE_AUTO_DE)) ||
+		    (user_param->auto_adj_en & TVAFE_AUTO_VS)) {
 			tvafe_cvd2_auto_de(cvd2);
 			tvafe_cvd2_adj_vs(cvd2);
 		} else

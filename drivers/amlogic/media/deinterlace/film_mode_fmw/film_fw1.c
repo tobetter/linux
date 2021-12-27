@@ -247,7 +247,7 @@ static int nflagch4_th = 0;
 module_param(nflagch4_th,  int, 0644);
 MODULE_PARM_DESC(nflagch4_th, "nflagch4_th");
 
-static int nflagch5_th = 0;
+static int nflagch5_th = 1;
 module_param(nflagch5_th,  int, 0644);
 MODULE_PARM_DESC(nflagch5_th, "nflagch5_th");
 
@@ -775,7 +775,11 @@ int Flm32DetSft(struct sFlmDatSt *pRDat, int *nDif02,
 			nSM += nT1;
 		}
 	}
-	nAV11 = (nSM - nMx + nT2 / 2) / (nT2 - 1);
+	/* for coverity error,"nT2 - 1" which may be zero */
+	if (nT2 != 1)
+		nAV11 = (nSM - nMx + nT2 / 2) / (nT2 - 1);
+	else
+		pr_info("%s: Error nT2 is one\n", __func__);
 
 	nAV1 = (sFrmDifAvgRat * nAV11 + (32 - sFrmDifAvgRat) * nAV12);
 	nAV1 = ((nAV1 + 16) >> 5);
@@ -1438,8 +1442,17 @@ int Flm22DetSft(struct sFlmDatSt *pRDat, int *nDif02,
 	}
 	nFlgChk6 = nFlgChk6 / 6;
 
-	nAV21 = (nSM21 + nL21 / 2) / nL21;	/* High average */
-	nAV22 = (nSM22 + nL22 / 2) / nL22;	/* Low average */
+	/* for coverity error,"nL21/nL22" which may be zero */
+	if (nL21)
+		nAV21 = (nSM21 + nL21 / 2) / nL21;	/* High average */
+	else
+		pr_info("%s: Error nL21 is zero\n", __func__);
+
+	if (nL22)
+		nAV22 = (nSM22 + nL22 / 2) / nL22;	/* Low average */
+	else
+		pr_info("%s: Error nL22 is zero\n", __func__);
+
 	nOfst = nAV21 - nAV22;
 
 	if (prt_flg)

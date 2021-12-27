@@ -1641,7 +1641,7 @@ static ssize_t store_pcrscr(struct class *class,
 	ssize_t r;
 
 	/*r = sscanf(buf, "0x%x", &pts);*/
-	r = kstrtoint(buf, 0, &pts);
+	r = kstrtouint(buf, 0, &pts);
 
 	if (r != 0)
 		return -EINVAL;
@@ -1753,11 +1753,8 @@ static ssize_t show_discontinue(struct class *class,
 {
 	pts_discontinue = vpts_discontinue || apts_discontinue;
 	if (pts_discontinue) {
-		sprintf(buf, "1: pts_discontinue, ");
-		sprintf(buf, "%sapts_discontinue_diff=%d, ",
-				buf, apts_discontinue_diff);
-		return sprintf(buf, "%svpts_discontinue_diff=%d,\n",
-				buf, vpts_discontinue_diff);
+		return sprintf(buf, "apts diff %d, vpts diff=%d\n",
+			apts_discontinue_diff, vpts_discontinue_diff);
 	}
 
 	return sprintf(buf, "0: pts_continue\n");

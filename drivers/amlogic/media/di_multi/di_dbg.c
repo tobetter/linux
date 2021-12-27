@@ -295,6 +295,7 @@ void ddbg_reg_save(unsigned int addr, unsigned int val,
 	dbg_reg.val = val;
 	dbg_reg.st_bit = st;
 	dbg_reg.b_w = bw;
+	dbg_reg.res = 0;
 
 	plog->log[pos].reg = dbg_reg;
 	pos++;
@@ -334,6 +335,7 @@ void dim_ddbg_mod_save(unsigned int mod, unsigned int ch, unsigned int cnt)
 	dbg_mod.ch = ch;
 	dbg_mod.mod = mod;
 	dbg_mod.cnt = cnt;
+	dbg_mod.res = 0;
 
 	plog->log[pos].mod = dbg_mod;
 	pos++;
@@ -568,7 +570,6 @@ static int seq_file_vframe(struct seq_file *seq, void *v, struct vframe_s *pVfm)
 	seq_printf(seq, "%-15s:%d\n", "pixel_ratio", pVfm->pixel_ratio);
 
 	/* ready from decode on  jiffies_64 */
-	seq_printf(seq, "%-15s:%d\n", "use_cnt", atomic_read(&pVfm->use_cnt));
 	seq_printf(seq, "%-15s:%d\n", "frame_dirty", pVfm->frame_dirty);
 	/*
 	 *prog_proc_config:
@@ -1585,8 +1586,11 @@ void didbg_fs_init(void)
 #endif
 		snprintf(name, sizeof(name), "di%01d", i);
 		root_ent = dich_get_dbgroot(i);
+		if (IS_ERR_OR_NULL(root_ent))
+			continue;
 		*root_ent = debugfs_create_dir(name, NULL);
-
+		if (IS_ERR_OR_NULL(*root_ent))
+			continue;
 		*(pPlane + i) = i;
 		/*printk("plane 0x%p\n", &plane_ch[i]);*/
 		for (j = 0; j < ARRAY_SIZE(di_debugfs_files); j++) {
@@ -1600,7 +1604,11 @@ void didbg_fs_init(void)
 	}
 	/*top*/
 	root_ent = dich_get_dbgroot_top();
+	if (IS_ERR_OR_NULL(root_ent))
+		return;
 	*root_ent = debugfs_create_dir("di_top", NULL);
+	if (IS_ERR_OR_NULL(*root_ent))
+		return;
 	for (i = 0; i < ARRAY_SIZE(di_debugfs_files_top); i++) {
 		ent = debugfs_create_file(di_debugfs_files_top[i].name,
 					  di_debugfs_files_top[i].mode,

@@ -388,7 +388,9 @@ MODULE_PARM_DESC(force_filter_mode, "force_filter_mode");
 module_param(force_filter_mode, int, 0664);
 #endif
 /*temp disable sr for power test*/
-bool super_scaler = true;
+bool super_scaler = false;
+module_param(super_scaler, bool, 0664);
+MODULE_PARM_DESC(super_scaler, "super_scaler");
 struct sr_info_s sr_info;
 static unsigned int super_debug;
 module_param(super_debug, uint, 0664);
@@ -862,7 +864,7 @@ static int vpp_set_filters_internal(
 	struct vppfilter_mode_s *filter = &next_frame_par->vpp_filter;
 	u32 wide_mode;
 	s32 height_shift = 0;
-	u32 height_after_ratio;
+	u32 height_after_ratio = 0;
 	u32 aspect_factor;
 	s32 ini_vphase;
 	u32 w_in = width_in;
@@ -888,7 +890,7 @@ static int vpp_set_filters_internal(
 #ifdef TV_REVERSE
 	bool reverse = false;
 #endif
-	int ret = VppFilter_Success;
+	int ret = vppfilter_success;
 	u32 vert_chroma_filter;
 	struct filter_info_s *cur_filter;
 	s32 vpp_zoom_center_x, vpp_zoom_center_y;
@@ -900,7 +902,7 @@ static int vpp_set_filters_internal(
 	u32 min_aspect_ratio_out, max_aspect_ratio_out;
 
 	if (!input)
-		return VppFilter_Fail;
+		return vppfilter_fail;
 	/* min = 0.95 x 1024 * height / width */
 	min_aspect_ratio_out =
 		((100 - screen_ar_threshold) << 10) / 100;
@@ -1009,7 +1011,7 @@ RESTART:
 		sar_height = 1;
 	}
 
-	if (ext_sar && sar_width && sar_height) {
+	if (ext_sar && sar_width && sar_height && width_in) {
 		aspect_factor =
 			div_u64((u64)256ULL *
 			(u64)sar_height *
@@ -1085,13 +1087,14 @@ RESTART:
 		u64 tmp = (u64)((u64)(width_out * width_in) * aspect_ratio_out);
 
 		tmp = tmp >> 2;
-		height_after_ratio =
-			div_u64((u64)256ULL *
-				(u64)w_in *
-				(u64)height_out *
-				(u64)sar_height *
-				(u64)height_in,
-				(u32)tmp);
+		if (tmp != 0)
+			height_after_ratio =
+				div_u64((u64)256ULL *
+					(u64)w_in *
+					(u64)height_out *
+					(u64)sar_height *
+					(u64)height_in,
+					(u32)tmp);
 		height_after_ratio /= sar_width;
 		aspect_factor = (height_after_ratio << 8) / h_in;
 		if (super_debug)
@@ -1104,10 +1107,11 @@ RESTART:
 		u64 tmp = (u64)((u64)(width_out * h_in) * aspect_ratio_out);
 
 		tmp = tmp >> 2;
-		aspect_factor =
-			div_u64((unsigned long long)w_in * height_out *
-				(aspect_factor << 8),
-				(u32)tmp);
+		if (tmp != 0)
+			aspect_factor =
+				div_u64((unsigned long long)w_in * height_out *
+					(aspect_factor << 8),
+					(u32)tmp);
 		height_after_ratio = (h_in * aspect_factor) >> 8;
 	}
 
@@ -1704,7 +1708,7 @@ RESTART:
 		cur_filter->cur_vert_filter = filter->vpp_vert_filter;
 		cur_filter->cur_horz_filter = filter->vpp_horz_filter;
 		cur_filter->scaler_filter_cnt = scaler_filter_cnt_limit;
-		ret = VppFilter_Success_and_Changed;
+		ret = vppfilter_success_and_changed;
 	}
 
 	/* store the debug info for legacy */
@@ -1719,7 +1723,7 @@ RESTART:
 	if ((next_frame_par->vscale_skip_count > 1)
 		&& (vf->type & VIDTYPE_COMPRESS)
 		&& (vf->type & VIDTYPE_NO_DW))
-		ret = VppFilter_Changed_but_Hold;
+		ret = vppfilter_changed_but_hold;
 	return ret;
 }
 /*
@@ -2720,13 +2724,13 @@ static int vpp_set_filters_no_scaler_internal(
 #ifdef TV_REVERSE
 	bool reverse = false;
 #endif
-	int ret = VppFilter_Success;
+	int ret = vppfilter_success;
 	u32 crop_ratio = 1;
 	u32 crop_left, crop_right, crop_top, crop_bottom;
 	bool no_compress = false;
 
 	if (!input)
-		return VppFilter_Fail;
+		return vppfilter_fail;
 
 	video_layer_global_offset_x = input->global_offset_x;
 	video_layer_global_offset_y = input->global_offset_y;
@@ -3108,7 +3112,7 @@ RESTART:
 	if ((next_frame_par->vscale_skip_count > 1)
 		&& (vf->type & VIDTYPE_COMPRESS)
 		&& (vf->type & VIDTYPE_NO_DW))
-		ret = VppFilter_Changed_but_Hold;
+		ret = vppfilter_changed_but_hold;
 	return ret;
 }
 
@@ -3125,7 +3129,7 @@ int vpp_set_filters(
 	u32 aspect_ratio = 0;
 	u32 process_3d_type;
 	u32 wide_mode;
-	int ret = VppFilter_Fail;
+	int ret = vppfilter_fail;
 	struct disp_info_s local_input;
 	bool bypass_sr0 = bypass_sr;
 	bool bypass_sr1 = bypass_sr;
@@ -3295,8 +3299,10 @@ int vpp_set_filters(
 			vinfo, vpp_flags, next_frame_par, vf);
 
 	/* bypass sr since the input w/h may be wrong */
-	if (ret == VppFilter_Changed_but_Hold)
-		bypass_sr = true;
+	if (ret == vppfilter_changed_but_hold) {
+		bypass_sr0 = true;
+		bypass_sr1 = true;
+	}
 	/*config super scaler after set next_frame_par is calc ok for pps*/
 	if (is_meson_tl1_cpu()) {
 		/* disable sr0 when afbc, width >1920 and crop more than half */

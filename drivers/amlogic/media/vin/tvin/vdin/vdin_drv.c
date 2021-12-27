@@ -654,7 +654,7 @@ void vdin_start_dec(struct vdin_dev_s *devp)
 	switch_vpu_mem_pd_vmod(devp->addr_offset?VPU_VIU_VDIN1:VPU_VIU_VDIN0,
 			VPU_MEM_POWER_ON);
 
-	vdin_hw_enable(devp->addr_offset);
+	vdin_hw_enable(devp);
 	vdin_set_all_regs(devp);
 	devp->dv.de_scramble = dv_de_scramble;
 	vdin_set_dolby_ll_tunnel(devp);
@@ -764,7 +764,7 @@ void vdin_stop_dec(struct vdin_dev_s *devp)
 		((devp->flags & VDIN_FLAG_SNOW_FLAG) == 0)))
 		devp->frontend->dec_ops->stop(devp->frontend, devp->parm.port);
 
-	vdin_hw_disable(devp->addr_offset);
+	vdin_hw_disable(devp);
 
 	vdin_set_default_regmap(devp->addr_offset);
 	/*only for vdin0*/
@@ -853,6 +853,11 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 
 	if (devp->index == 1) {
 		devp->parm.reserved |= para->reserved;
+
+		/*always update buf to avoid older data be captured*/
+		if (devp->parm.reserved & PARAM_STATE_SCREENCAP)
+			devp->flags |= VDIN_FLAG_FORCE_RECYCLE;
+
 		pr_info("vdin1 add reserved = 0x%lx\n", para->reserved);
 		pr_info("vdin1 all reserved = 0x%x\n", devp->parm.reserved);
 	}
@@ -863,8 +868,6 @@ int start_tvin_service(int no, struct vdin_parm_s  *para)
 		if ((devp->parm.reserved & PARAM_STATE_SCREENCAP) &&
 			(devp->parm.reserved & PARAM_STATE_HISTGRAM) &&
 			(devp->index == 1)) {
-			/*always update buf to avoid older data be captured*/
-			devp->flags |= VDIN_FLAG_FORCE_RECYCLE;
 			mutex_unlock(&devp->fe_lock);
 			return 0;
 		} else {
@@ -1160,7 +1163,7 @@ static int vdin_func(int no, struct vdin_arg_s *arg)
 			switch_vpu_mem_pd_vmod(
 					devp->addr_offset ? VPU_VIU_VDIN1 :
 					VPU_VIU_VDIN0, VPU_MEM_POWER_DOWN);
-			vdin_hw_disable(devp->addr_offset);
+			vdin_hw_disable(devp);
 			kfree(devp->curr_wr_vfe);
 			devp->curr_wr_vfe = NULL;
 			devp->flags &= (~VDIN_FLAG_DEC_STARTED);
@@ -1188,13 +1191,13 @@ static struct vdin_v4l2_ops_s vdin_4v4l2_ops = {
 /*call vdin_hw_disable to pause hw*/
 void vdin_pause_dec(struct vdin_dev_s *devp)
 {
-	vdin_hw_disable(devp->addr_offset);
+	vdin_hw_disable(devp);
 }
 
 /*call vdin_hw_enable to resume hw*/
 void vdin_resume_dec(struct vdin_dev_s *devp)
 {
-	vdin_hw_enable(devp->addr_offset);
+	vdin_hw_enable(devp);
 }
 /*register provider & notify receiver */
 void vdin_vf_reg(struct vdin_dev_s *devp)
@@ -1320,7 +1323,7 @@ irqreturn_t vdin_isr_simple(int irq, void *dev_id)
 	unsigned int last_field_type;
 
 	if (irq_max_count >= devp->canvas_max_num) {
-		vdin_hw_disable(devp->addr_offset);
+		vdin_hw_disable(devp);
 		return IRQ_HANDLED;
 	}
 
@@ -1472,7 +1475,7 @@ irqreturn_t vdin_isr(int irq, void *dev_id)
 	}
 	if ((devp->flags & VDIN_FLAG_DEC_STOP_ISR) &&
 		(!(isr_flag & VDIN_BYPASS_STOP_CHECK))) {
-		vdin_hw_disable(offset);
+		vdin_hw_disable(devp);
 		devp->flags &= ~VDIN_FLAG_DEC_STOP_ISR;
 		devp->vdin_irq_flag = 2;
 		if (skip_frame_debug) {
@@ -2041,7 +2044,7 @@ irqreturn_t vdin_v4l2_isr(int irq, void *dev_id)
  */
 /* #if MESON_CPU_TYPE < MESON_CPU_TYPE_MESON8 */
 /* if (devp->flags & VDIN_FLAG_DEC_STOP_ISR){ */
-/* vdin_hw_disable(devp->addr_offset); */
+/* vdin_hw_disable(devp); */
 /* devp->flags &= ~VDIN_FLAG_DEC_STOP_ISR; */
 /* goto irq_handled; */
 /* } */
@@ -2102,9 +2105,11 @@ irqreturn_t vdin_v4l2_isr(int irq, void *dev_id)
 			next_wr_vfe = receiver_vf_get(devp->vfp);
 			if (next_wr_vfe)
 				receiver_vf_put(&next_wr_vfe->vf, devp->vfp);
-			else
-				pr_err("[vdin.%d]force recycle error,no buffer in ready list",
-						devp->index);
+			else {
+				pr_err("[vdin.%d]force recycle error\n",
+				       devp->index);
+				goto irq_handled;
+			}
 		} else {
 			goto irq_handled;
 		}
@@ -3402,8 +3407,8 @@ static int vdin_drv_probe(struct platform_device *pdev)
 		}
 	}
 	/*disable vdin hardware*/
-	vdin_enable_module(vdevp->addr_offset, false);
-	vdin_clk_onoff(vdevp, false);
+	vdin_enable_module(vdevp, false);
+
 	/*enable auto cutwindow for atv*/
 	if (vdevp->index == 0) {
 		vdevp->auto_cutwindow_en = 1;
@@ -3490,7 +3495,7 @@ static int vdin_drv_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 	vdevp->flags |= VDIN_FLAG_SUSPEND;
 	/*no need setting any regs*/
-	/*vdin_enable_module(vdevp->addr_offset, false);*/
+	/*vdin_enable_module(vdevp, false);*/
 
 	/* disable clock of blackbar, histogram, histogram, line fifo1, matrix,
 	 * hscaler, pre hscaler, clock0
@@ -3503,9 +3508,11 @@ static int vdin_drv_suspend(struct platform_device *pdev, pm_message_t state)
 	/* [ 5: 4]  Disable pre hscaler clock   = 01/(auto, off, on, on) */
 	/* [ 3: 2]  Disable clock0              = 01/(auto, off, on, on) */
 	/* [    0]  Enable register clock       = 00/(auto, off!!!!!!!!) */
-	switch_vpu_clk_gate_vmod(vdevp->addr_offset == 0
-		? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
-		VPU_CLK_GATE_OFF);
+	/*switch_vpu_clk_gate_vmod(vdevp->addr_offset == 0
+	 *? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
+	 *VPU_CLK_GATE_OFF);
+	 */
+	vdin_clk_onoff(vdevp, false);
 
 	pr_info("%s ok.\n", __func__);
 	return 0;
@@ -3517,7 +3524,7 @@ static int vdin_drv_resume(struct platform_device *pdev)
 
 	vdevp = platform_get_drvdata(pdev);
 	/*no need resume anything*/
-	/*vdin_enable_module(vdevp->addr_offset, true);*/
+	/*vdin_enable_module(vdevp, true);*/
 
 	/* enable clock of blackbar, histogram, histogram, line fifo1, matrix,
 	 * hscaler, pre hscaler, clock0
@@ -3530,9 +3537,11 @@ static int vdin_drv_resume(struct platform_device *pdev)
 	/* [ 5: 4]  Enable pre hscaler clock    = 00/(auto, off, on, on) */
 	/* [ 3: 2]  Enable clock0               = 00/(auto, off, on, on) */
 	/* [    0]  Enable register clock       = 00/(auto, off!!!!!!!!) */
-	switch_vpu_clk_gate_vmod(vdevp->addr_offset == 0
-		? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
-		VPU_CLK_GATE_ON);
+	/*switch_vpu_clk_gate_vmod(vdevp->addr_offset == 0
+	 *? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
+	 *VPU_CLK_GATE_ON);
+	 */
+	vdin_clk_onoff(vdevp, true);
 
 	if (vdevp->irq) {
 		if (!irq_can_set_affinity(vdevp->irq))
@@ -3567,7 +3576,7 @@ static void vdin_drv_shutdown(struct platform_device *pdev)
 	mutex_unlock(&vdevp->fe_lock);
 
 	vdevp->flags |= VDIN_FLAG_SM_DISABLE;
-	vdin_enable_module(vdevp->addr_offset, false);
+	vdin_enable_module(vdevp, false);
 	pr_info("%s ok.\n", __func__);
 	return;
 }

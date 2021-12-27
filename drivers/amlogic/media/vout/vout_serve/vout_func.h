@@ -92,8 +92,4 @@ extern int vout2_resume(void);
 extern int vout2_shutdown(void);
 #endif
 
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-extern int cvbs_cable_connected(void);
-#endif
-
 #endif

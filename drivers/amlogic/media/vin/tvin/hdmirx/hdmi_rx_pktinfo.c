@@ -127,44 +127,44 @@ void rx_pkt_debug(void)
 {
 	uint32_t data32;
 
-	rx_pr("\npktinfo size=%d\n", sizeof(union pktinfo));
-	rx_pr("infoframe_st size=%d\n", sizeof(union infoframe_u));
-	rx_pr("fifo_rawdata_st size=%d\n", sizeof(struct fifo_rawdata_st));
-	rx_pr("vsi_infoframe_st size=%d\n", sizeof(struct vsi_infoframe_st));
-	rx_pr("avi_infoframe_st size=%d\n", sizeof(struct avi_infoframe_st));
-	rx_pr("spd_infoframe_st size=%d\n", sizeof(struct spd_infoframe_st));
-	rx_pr("aud_infoframe_st size=%d\n", sizeof(struct aud_infoframe_st));
-	rx_pr("ms_infoframe_st size=%d\n", sizeof(struct ms_infoframe_st));
-	rx_pr("vbi_infoframe_st size=%d\n", sizeof(struct vbi_infoframe_st));
-	rx_pr("drm_infoframe_st size=%d\n", sizeof(struct drm_infoframe_st));
+	rx_pr("\npktinfo size=%lu\n", sizeof(union pktinfo));
+	rx_pr("infoframe_st size=%lu\n", sizeof(union infoframe_u));
+	rx_pr("fifo_rawdata_st size=%lu\n", sizeof(struct fifo_rawdata_st));
+	rx_pr("vsi_infoframe_st size=%lu\n", sizeof(struct vsi_infoframe_st));
+	rx_pr("avi_infoframe_st size=%lu\n", sizeof(struct avi_infoframe_st));
+	rx_pr("spd_infoframe_st size=%lu\n", sizeof(struct spd_infoframe_st));
+	rx_pr("aud_infoframe_st size=%lu\n", sizeof(struct aud_infoframe_st));
+	rx_pr("ms_infoframe_st size=%lu\n", sizeof(struct ms_infoframe_st));
+	rx_pr("vbi_infoframe_st size=%lu\n", sizeof(struct vbi_infoframe_st));
+	rx_pr("drm_infoframe_st size=%lu\n", sizeof(struct drm_infoframe_st));
 
-	rx_pr("acr_pkt_st size=%d\n",
-				sizeof(struct acr_pkt_st));
-	rx_pr("aud_sample_pkt_st size=%d\n",
-				sizeof(struct aud_sample_pkt_st));
-	rx_pr("gcp_pkt_st size=%d\n", sizeof(struct gcp_pkt_st));
-	rx_pr("acp_pkt_st size=%d\n", sizeof(struct acp_pkt_st));
-	rx_pr("isrc_pkt_st size=%d\n", sizeof(struct isrc_pkt_st));
-	rx_pr("onebit_aud_pkt_st size=%d\n",
-				sizeof(struct obasmp_pkt_st));
-	rx_pr("dst_aud_pkt_st size=%d\n",
-				sizeof(struct dstaud_pkt_st));
-	rx_pr("hbr_aud_pkt_st size=%d\n",
-				sizeof(struct hbraud_pkt_st));
-	rx_pr("gamut_Meta_pkt_st size=%d\n",
-				sizeof(struct gamutmeta_pkt_st));
-	rx_pr("aud_3d_smppkt_st size=%d\n",
-				sizeof(struct a3dsmp_pkt_st));
-	rx_pr("oneb3d_smppkt_st size=%d\n",
-				sizeof(struct ob3d_smppkt_st));
-	rx_pr("aud_mtdata_pkt_st size=%d\n",
-				sizeof(struct audmtdata_pkt_st));
-	rx_pr("mulstr_audsamp_pkt_st size=%d\n",
-				sizeof(struct msaudsmp_pkt_st));
-	rx_pr("onebmtstr_smaud_pkt_st size=%d\n",
-				sizeof(struct obmaudsmp_pkt_st));
-	rx_pr("emp size=%d\n",
-				sizeof(struct emp_pkt_st));
+	rx_pr("acr_pkt_st size=%lu\n",
+	      sizeof(struct acr_pkt_st));
+	rx_pr("aud_sample_pkt_st size=%lu\n",
+	      sizeof(struct aud_sample_pkt_st));
+	rx_pr("gcp_pkt_st size=%lu\n", sizeof(struct gcp_pkt_st));
+	rx_pr("acp_pkt_st size=%lu\n", sizeof(struct acp_pkt_st));
+	rx_pr("isrc_pkt_st size=%lu\n", sizeof(struct isrc_pkt_st));
+	rx_pr("onebit_aud_pkt_st size=%lu\n",
+	      sizeof(struct obasmp_pkt_st));
+	rx_pr("dst_aud_pkt_st size=%lu\n",
+	      sizeof(struct dstaud_pkt_st));
+	rx_pr("hbr_aud_pkt_st size=%lu\n",
+	      sizeof(struct hbraud_pkt_st));
+	rx_pr("gamut_Meta_pkt_st size=%lu\n",
+	      sizeof(struct gamutmeta_pkt_st));
+	rx_pr("aud_3d_smppkt_st size=%lu\n",
+	      sizeof(struct a3dsmp_pkt_st));
+	rx_pr("oneb3d_smppkt_st size=%lu\n",
+	      sizeof(struct ob3d_smppkt_st));
+	rx_pr("aud_mtdata_pkt_st size=%lu\n",
+	      sizeof(struct audmtdata_pkt_st));
+	rx_pr("mulstr_audsamp_pkt_st size=%lu\n",
+	      sizeof(struct msaudsmp_pkt_st));
+	rx_pr("onebmtstr_smaud_pkt_st size=%lu\n",
+	      sizeof(struct obmaudsmp_pkt_st));
+	rx_pr("emp size=%lu\n",
+	      sizeof(struct emp_pkt_st));
 	memset(&rxpktsts, 0, sizeof(struct rxpkt_st));
 
 	data32 = hdmirx_rd_dwc(DWC_PDEC_CTRL);
@@ -201,105 +201,105 @@ void rx_get_pd_fifo_param(enum pkt_type_e pkt_type,
 	case PKT_TYPE_INFOFRAME_VSI:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.vs_info; */
-			memcpy(&pkt_info, &rx_pkt.vs_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.vs_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_vsi_ex(&pkt_info);
 		break;
 	case PKT_TYPE_INFOFRAME_AVI:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.avi_info; */
-			memcpy(&pkt_info, &rx_pkt.avi_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.avi_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_avi_ex(&pkt_info);
 		break;
 	case PKT_TYPE_INFOFRAME_SPD:
 		/* srcbuff = &rx.spd_info; */
-		memcpy(&pkt_info, &rx_pkt.spd_info,
-			sizeof(struct pd_infoframe_s));
+		memcpy(pkt_info, &rx_pkt.spd_info,
+		       sizeof(struct pd_infoframe_s));
 		break;
 	case PKT_TYPE_INFOFRAME_AUD:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.aud_pktinfo; */
-			memcpy(&pkt_info, &rx_pkt.aud_pktinfo,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.aud_pktinfo,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_audif_ex(&pkt_info);
 		break;
 	case PKT_TYPE_INFOFRAME_MPEGSRC:
 		/* srcbuff = &rx.mpegs_info; */
-		memcpy(&pkt_info, &rx_pkt.mpegs_info,
-			sizeof(struct pd_infoframe_s));
+		memcpy(pkt_info, &rx_pkt.mpegs_info,
+		       sizeof(struct pd_infoframe_s));
 		break;
 	case PKT_TYPE_INFOFRAME_NVBI:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.ntscvbi_info; */
-			memcpy(&pkt_info, &rx_pkt.ntscvbi_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.ntscvbi_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_ntscvbi_ex(&pkt_info);
 		break;
 	case PKT_TYPE_INFOFRAME_DRM:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.drm_info; */
-			memcpy(&pkt_info, &rx_pkt.drm_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.drm_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_drm_ex(&pkt_info);
 		break;
 	case PKT_TYPE_ACR:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.acr_info; */
-			memcpy(&pkt_info, &rx_pkt.acr_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.acr_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_acr_ex(&pkt_info);
 		break;
 	case PKT_TYPE_GCP:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.gcp_info; */
-			memcpy(&pkt_info, &rx_pkt.gcp_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.gcp_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_gcp_ex(&pkt_info);
 		break;
 	case PKT_TYPE_ACP:
 		/* srcbuff = &rx.acp_info; */
-		memcpy(&pkt_info, &rx_pkt.acp_info,
-			sizeof(struct pd_infoframe_s));
+		memcpy(pkt_info, &rx_pkt.acp_info,
+		       sizeof(struct pd_infoframe_s));
 		break;
 	case PKT_TYPE_ISRC1:
 		/* srcbuff = &rx.isrc1_info; */
-		memcpy(&pkt_info, &rx_pkt.isrc1_info,
-			sizeof(struct pd_infoframe_s));
+		memcpy(pkt_info, &rx_pkt.isrc1_info,
+		       sizeof(struct pd_infoframe_s));
 		break;
 	case PKT_TYPE_ISRC2:
 		/* srcbuff = &rx.isrc2_info; */
-		memcpy(&pkt_info, &rx_pkt.isrc2_info,
-			sizeof(struct pd_infoframe_s));
+		memcpy(pkt_info, &rx_pkt.isrc2_info,
+		       sizeof(struct pd_infoframe_s));
 		break;
 	case PKT_TYPE_GAMUT_META:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.gameta_info; */
-			memcpy(&pkt_info, &rx_pkt.gameta_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.gameta_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_gmd_ex(&pkt_info);
 		break;
 	case PKT_TYPE_AUD_META:
 		if (rx_pkt_get_fifo_pri())
 			/* srcbuff = &rx.amp_info; */
-			memcpy(&pkt_info, &rx_pkt.amp_info,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, &rx_pkt.amp_info,
+			       sizeof(struct pd_infoframe_s));
 		else
 			rx_pkt_get_amp_ex(&pkt_info);
 		break;
 	default:
 		if (pd_fifo_buf != NULL)
 			/* srcbuff = pd_fifo_buf; */
-			memcpy(&pkt_info, &pd_fifo_buf,
-				sizeof(struct pd_infoframe_s));
+			memcpy(pkt_info, pd_fifo_buf,
+			       sizeof(struct pd_infoframe_s));
 		else
 			pr_err("err:pd_fifo_buf is empty\n");
 		break;

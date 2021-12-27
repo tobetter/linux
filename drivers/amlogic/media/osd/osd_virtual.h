@@ -52,6 +52,7 @@ struct virt_fb_para_s {
 	ulong screen_size;
 	u32 stride;
 	u32 offset;
+	u32 size;
 	u32 osd_fps;
 	u32 osd_fps_start;
 };

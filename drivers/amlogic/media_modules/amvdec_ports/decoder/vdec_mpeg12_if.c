@@ -344,7 +344,7 @@ static void vdec_mpeg12_get_vf(struct vdec_mpeg12_inst *inst, struct vdec_v4l2_b
 		return;
 	}
 
-	atomic_set(&vf->use_cnt, 1);
+//	atomic_set(&vf->use_cnt, 1);
 
 	fb = (struct vdec_v4l2_buffer *)vf->v4l_mem_handle;
 	fb->vf_handle = (unsigned long)vf;

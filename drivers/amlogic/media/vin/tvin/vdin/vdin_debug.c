@@ -1490,6 +1490,53 @@ static void vdin_dump_histgram_ldim(struct vdin_dev_s *devp,
 }
 #endif
 
+static void vdin_dump_regs(struct vdin_dev_s *devp)
+{
+	unsigned int reg;
+	unsigned int offset = devp->addr_offset;
+
+	pr_info("vdin%d regs start----\n", devp->index);
+	for (reg = VDIN_SCALE_COEF_IDX; reg <= VDIN_COM_STATUS3; reg++)
+		pr_info("0x%04x = 0x%08x\n", (reg + offset), rd(offset, reg));
+	pr_info("vdin%d regs end----\n\n", devp->index);
+
+	if (is_meson_tm2_cpu()) {
+		pr_info("vdin%d HDR2 regs start----\n", devp->index);
+		for (reg = VDIN_HDR2_CTRL;
+		     reg <= VDIN_HDR2_MATRIXO_EN_CTRL; reg++) {
+			pr_info("0x%04x = 0x%08x\n",
+				(reg + offset), rd(offset, reg));
+		}
+		pr_info("vdin%d HDR2 regs end----\n\n", devp->index);
+
+		pr_info("vdin descramble scramble----start\n");
+		for (reg = VDIN_DSC_CTRL; reg <= VDIN_DSC_TUNNEL_SEL; reg++) {
+			pr_info("0x%04x = 0x%08x\n",
+				(reg + offset), rd(offset, reg));
+		}
+		pr_info("vdin descramble scramble----end\n\n");
+
+		pr_info("vdin%d h/v shrk regs start----\n", devp->index);
+		reg = VDIN_VSHRK_SIZE_M1;
+		pr_info("0x%04x = 0x%08x\n", (reg + offset), rd(offset, reg));
+		for (reg = VDIN_HSK_CTRL; reg <= HSK_COEF_15; reg++) {
+			pr_info("0x%04x = 0x%08x\n",
+				(reg + offset), rd(offset, reg));
+		}
+		pr_info("vdin%d h/v sk regs end----\n\n", devp->index);
+	}
+
+	if (devp->afbce_flag & VDIN_AFBCE_EN) {
+		pr_info("vdin%d afbce regs start----\n", devp->index);
+		for (reg = AFBCE_ENABLE; reg <= AFBCE_MMU_RMIF_RO_STAT;
+			reg++) {
+			pr_info("0x%04x = 0x%08x\n", (reg), R_VCBUS(reg));
+		}
+		pr_info("vdin%d afbce regs end----\n\n", devp->index);
+	}
+	reg = VDIN_MISC_CTRL;
+	pr_info("0x%04x = 0x%08x\n\n", (reg), R_VCBUS(reg));
+}
 /*
 * 1.show the current frame rate
 * echo fps >/sys/class/vdin/vdinx/attr
@@ -1877,34 +1924,7 @@ start_chk:
 		else
 			pr_err("miss parameters .\n");
 	} else if (!strcmp(parm[0], "dump_reg")) {
-		unsigned int reg;
-		unsigned int offset = devp->addr_offset;
-		pr_info("vdin%d addr offset:0x%x regs start----\n",
-				devp->index, offset);
-		for (reg = VDIN_SCALE_COEF_IDX; reg <= 0x1273; reg++) {
-			pr_info("0x%04x = 0x%08x\n",
-				(reg+offset), rd(offset, reg));
-		}
-		pr_info("vdin%d regs end----\n", devp->index);
-		pr_info("vdin descramble scramble----start\n");
-		for (reg = VDIN_DSC_CTRL; reg <= VDIN_DSC_TUNNEL_SEL;
-			reg++) {
-			pr_info("0x%04x = 0x%08x\n",
-				(reg), R_VCBUS(reg));
-		}
-		pr_info("vdin descramble scramble----end\n");
-		if (devp->afbce_flag & VDIN_AFBCE_EN) {
-			pr_info("vdin%d afbce regs start----\n", devp->index);
-			for (reg = AFBCE_ENABLE; reg <= AFBCE_MMU_RMIF_RO_STAT;
-				reg++) {
-				pr_info("0x%04x = 0x%08x\n",
-					(reg), R_VCBUS(reg));
-			}
-			pr_info("vdin%d afbce regs end----\n", devp->index);
-		}
-		reg = VDIN_MISC_CTRL;
-		pr_info("0x%04x = 0x%08x\n", (reg), R_VCBUS(reg));
-		pr_info("\n");
+		vdin_dump_regs(devp);
 	} else if (!strcmp(parm[0], "prob_xy")) {
 		unsigned int x = 0, y = 0;
 #ifdef CONFIG_AMLOGIC_PIXEL_PROBE

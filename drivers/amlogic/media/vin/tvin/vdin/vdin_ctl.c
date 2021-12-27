@@ -29,6 +29,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/dma-contiguous.h>
 #include <linux/amlogic/media/video_sink/video.h>
+#include <linux/amlogic/media/amdolbyvision/dolby_vision.h>
 #include "../tvin_global.h"
 #include "../tvin_format_table.h"
 #include "vdin_ctl.h"
@@ -36,6 +37,7 @@
 #include "vdin_drv.h"
 #include "vdin_vf.h"
 #include "vdin_canvas.h"
+#include "vdin_afbce.h"
 
 #define VDIN_VSHRINK_HLIMIT 1280
 #define TVIN_MAX_PIXCLK 20000
@@ -2830,7 +2832,8 @@ void vdin_set_dolby_ll_tunnel(struct vdin_dev_s *devp)
 		return;
 
 	if ((devp->dv.dv_flag) && is_dolby_vision_enable()
-		&& (devp->dv.low_latency)
+		&& !(is_dolby_vision_stb_mode()	&& is_meson_tm2_cpu())
+		/*&& (devp->dv.low_latency)*/
 		&& (devp->prop.color_format == TVIN_YUV422)) {
 		offset = devp->addr_offset;
 		/*channel map*/
@@ -3175,8 +3178,10 @@ void vdin_set_default_regmap(unsigned int offset)
 	wr(offset, VDIN_WIN_V_START_END, 0x00000000);
 }
 
-void vdin_hw_enable(unsigned int offset)
+void vdin_hw_enable(struct vdin_dev_s *devp)
 {
+	unsigned int offset = devp->addr_offset;
+
 	/* enable video data input */
 	/* [    4]  top.datapath_en  = 1 */
 	wr_bits(offset, VDIN_COM_CTRL0, 1,
@@ -3197,13 +3202,16 @@ void vdin_hw_enable(unsigned int offset)
 	/* [ 5: 4]  Enable pre hscaler clock    = 00/(auto, off, on, on) */
 	/* [ 3: 2]  Enable clock0               = 00/(auto, off, on, on) */
 	/* [    0]  Enable register clock       = 00/(auto, off!!!!!!!!) */
-	switch_vpu_clk_gate_vmod(offset == 0 ? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
-		VPU_CLK_GATE_ON);
+	/*switch_vpu_clk_gate_vmod(offset == 0 ? VPU_VIU_VDIN0 : VPU_VIU_VDIN1,
+	 *VPU_CLK_GATE_ON);
+	 */
+	vdin_clk_onoff(devp, true);
 	/* wr(offset, VDIN_COM_GCLK_CTRL, 0x0); */
 }
 
-void vdin_hw_disable(unsigned int offset)
+void vdin_hw_disable(struct vdin_dev_s *devp)
 {
+	unsigned int offset = devp->addr_offset;
 	unsigned int def_canvas;
 
 	def_canvas = offset ? vdin_canvas_ids[1][0] : vdin_canvas_ids[0][0];
@@ -3234,8 +3242,10 @@ void vdin_hw_disable(unsigned int offset)
 	/* [ 5: 4]  Disable pre hscaler clock   = 01/(auto, off, on, on) */
 	/* [ 3: 2]  Disable clock0              = 01/(auto, off, on, on) */
 	/* [    0]  Enable register clock       = 00/(auto, off!!!!!!!!) */
-	switch_vpu_clk_gate_vmod(offset == 0 ? VPU_VIU_VDIN0:VPU_VIU_VDIN1,
-		VPU_CLK_GATE_OFF);
+	/*switch_vpu_clk_gate_vmod(offset == 0 ? VPU_VIU_VDIN0:VPU_VIU_VDIN1,
+	 *VPU_CLK_GATE_OFF);
+	 */
+	vdin_clk_onoff(devp, false);
 	/* wr(offset, VDIN_COM_GCLK_CTRL, 0x5554); */
 }
 
@@ -3343,15 +3353,17 @@ inline int vdin_vsync_reset_mif(int index)
 	return vsync_reset_mask & 0x08;
 }
 
-void vdin_enable_module(unsigned int offset, bool enable)
+void vdin_enable_module(struct vdin_dev_s *devp, bool enable)
 {
+	unsigned int offset = devp->addr_offset;
+
 	if (enable)	{
 		/* set VDIN_MEAS_CLK_CNTL, select XTAL clock */
 		/* if (is_meson_gxbb_cpu()) */
 		/* ; */
 		/* else */
 		/* aml_write_cbus(HHI_VDIN_MEAS_CLK_CNTL, 0x00000100); */
-		/* vdin_hw_enable(offset); */
+		/* vdin_hw_enable(devp); */
 		/* todo: check them */
 	} else {
 		/* set VDIN_MEAS_CLK_CNTL, select XTAL clock */
@@ -3359,7 +3371,7 @@ void vdin_enable_module(unsigned int offset, bool enable)
 		/* ; */
 		/* else */
 		/* aml_write_cbus(HHI_VDIN_MEAS_CLK_CNTL, 0x00000000); */
-		vdin_hw_disable(offset);
+		vdin_hw_disable(devp);
 		vdin_dobly_mdata_write_en(offset, false);
 	}
 }
@@ -3488,13 +3500,13 @@ void vdin_calculate_duration(struct vdin_dev_s *devp)
 #endif
 }
 
-/*
- *just for horizontal down scale src_w is origin width,
- *just dst_w is width after scale down
+/* just for horizontal down scale src_w is origin width,
+ * dst_w is width after scale down
  */
-static void vdin_set_hscale(unsigned int offset, unsigned int src_w,
-		unsigned int dst_w)
+static void vdin_set_hscale(struct vdin_dev_s *devp, unsigned int dst_w)
 {
+	unsigned int offset = devp->addr_offset;
+	unsigned int src_w = devp->h_active;
 
 	unsigned int filt_coef0[] =  { /* bicubic */
 		0x00800000, 0x007f0100, 0xff7f0200, 0xfe7f0300, 0xfd7e0500,
@@ -3566,16 +3578,20 @@ static void vdin_set_hscale(unsigned int offset, unsigned int src_w,
 			(0 << PHASE0_ALWAYS_EN_BIT) |/* phase0_always_en */
 			(4 << HSCL_BANK_LEN_BIT)/* hsc_bank_length */
 		      );
+	devp->h_active = dst_w;
 }
 
 /*
  *just for veritical scale src_w is origin height,
  *just dst_h is the height after scale
  */
-static void vdin_set_vscale(unsigned int offset, unsigned int src_h,
-		unsigned int dst_h)
+static void vdin_set_vscale(struct vdin_dev_s *devp)
 {
 	int veri_phase_step, tmp;
+	unsigned int offset = devp->addr_offset;
+	unsigned int src_h = devp->v_active;
+	unsigned int dst_h = devp->prop.scaling4h;
+
 	if (!dst_h) {
 		pr_err("[vdin..]%s parameter dst_h error.\n", __func__);
 		return;
@@ -3613,90 +3629,187 @@ static void vdin_set_vscale(unsigned int offset, unsigned int src_h,
 	wr(offset, VDIN_DUMMY_DATA, 0x008080);
 	/* enable vscale */
 	wr_bits(offset, VDIN_VSC_INI_CTRL, 1, VSC_EN_BIT, VSC_EN_WID);
-
+	devp->v_active = dst_h;
 }
 
 /* new add pre_hscale module
- *do hscaler down when scaling4w is smaller than half of h_avtive
- *which is closed by default
+ * do hscaler down when scaling4w is smaller than half of h_active
+ * which is closed by default
  */
-static void vdin_set_prehscale(unsigned int offset)
+static void vdin_set_prehscale(struct vdin_dev_s *devp)
 {
-	wr_bits(offset, VDIN_SC_MISC_CTRL, 0, PRE_HSCL_MODE_BIT,
+	wr_bits(devp->addr_offset, VDIN_SC_MISC_CTRL, 0, PRE_HSCL_MODE_BIT,
 		PRE_HSCL_MODE_WID);
-	wr_bits(offset, VDIN_SC_MISC_CTRL, 1, PRE_HSCL_EN_BIT, PRE_HSCL_EN_WID);
+	wr_bits(devp->addr_offset, VDIN_SC_MISC_CTRL, 1, PRE_HSCL_EN_BIT,
+		PRE_HSCL_EN_WID);
+	devp->h_active >>= 1;
 	pr_info("set_prehsc done!\n");
 }
+
+/*tm2 new add*/
+static void vdin_set_hshrink(struct vdin_dev_s *devp)
+{
+	unsigned int offset = devp->addr_offset;
+	unsigned int src_w = devp->h_active;
+	unsigned int dst_w = devp->prop.scaling4w;
+	unsigned int hshrk_mode = 0;
+	unsigned int i = 0;
+	unsigned int coef = 0;
+
+	if (!is_meson_tm2_cpu()) {
+		pr_err("vdin.%d only tm2 supports hshrink\n", devp->index);
+		return;
+	}
+
+	hshrk_mode = src_w / dst_w;
+
+	/*check maximum value*/
+	if ((hshrk_mode < 2) || (hshrk_mode > 64)) {
+		pr_err("vdin.%d hshrink: size is out of range\n", devp->index);
+		return;
+	}
+
+	/*check legality, valid is 2,4,8,16,32,64*/
+	switch (hshrk_mode) {
+	case 2:
+	case 4:
+	case 8:
+	case 16:
+	case 32:
+	case 64:
+		break;
+
+	default:
+		pr_err("vdin.%d invalid hshrink mode : %d\n", devp->index,
+		       hshrk_mode);
+		return;
+	}
+
+	coef = 64 / hshrk_mode;
+	coef = (coef << 24) | (coef << 16) | (coef << 8) | coef;
+
+	/*hshrk_mode: 2->1/2, 4->1/4... 64->1/64(max)*/
+	wr_bits(offset, VDIN_HSK_CTRL, hshrk_mode, HSK_MD_BIT, HSK_MD_WID);
+	wr_bits(offset, VDIN_HSK_CTRL, src_w, HSK_HSIZE_IN_BIT,
+		HSK_HSIZE_IN_WID);
+
+	/*h shrink coef*/
+	for (i = HSK_COEF_0; i <= HSK_COEF_15; i++)
+		wr(offset, i, coef);
+
+	/*h shrink enable*/
+	wr_bits(offset, VDIN_VSHRK_CTRL, 1, VDIN_HSHRK_EN_BIT,
+		VDIN_HSHRK_EN_WID);
+	devp->h_active /= hshrk_mode;
+	pr_info("vdin.%d set_hshrink done! hshk mode = %d\n", devp->index,
+		hshrk_mode);
+}
+
 /*new add vshrink module
- *do vscaler down,when scaling4h is smaller than half of v_avtive
+ *do vscaler down,when scaling4h is smaller than half of v_active
  *which is closed by default
  *vshrk_mode:0-->1:2; 1-->1:4; 2-->1:8
- *attention:only vdin1 have this module!!
+ *chip <= TL1, only vdin1 has this module.
+ *chip >= TM2, both vdin0 and vdin1 are supported.
  */
-static void vdin_set_vshrink(unsigned int offset, unsigned int src_h,
-	unsigned int vshrk_mode)
+static void vdin_set_vshrink(struct vdin_dev_s *devp)
 {
-	wr_bits(offset, VDIN_SCIN_HEIGHTM1, src_h - 1,
-		VSHRK_INPUT_HEIGHT_BIT, VSHRK_INPUT_HEIGHT_WID);
+	unsigned int offset = devp->addr_offset;
+	unsigned int src_w = devp->h_active;
+	unsigned int src_h = devp->v_active;
+	unsigned int vshrk_mode = 0;
+
+	if (!is_meson_tm2_cpu() && devp->index == 0) {
+		pr_err("vdin.%d vshrink: only tm2 support vdin0\n",
+		       devp->index);
+		return;
+	}
+
+	if (src_w > VDIN_VSHRINK_HLIMIT) {
+		pr_err("vdin.%d vshrink: only support h_active <= %d\n",
+		       devp->index, VDIN_VSHRINK_HLIMIT);
+		return;
+	}
+
+	vshrk_mode = src_h / devp->prop.scaling4h;
+
+	if (vshrk_mode >= 8)
+		vshrk_mode = 2;
+	else if (vshrk_mode >= 4)
+		vshrk_mode = 1;
+	else if (vshrk_mode >= 2)
+		vshrk_mode = 0;
+
+	pr_info("debug vshrk mode = %d\n", vshrk_mode);
+
+	if (is_meson_tm2_cpu()) {
+		/*v shrink input h size*/
+		wr_bits(offset, VDIN_VSHRK_SIZE_M1, src_w - 1,
+			VSHRK_IN_HSIZE_BIT, VSHRK_IN_HSIZE_WID);
+		/*v shrink input v size*/
+		wr_bits(offset, VDIN_VSHRK_SIZE_M1, src_h - 1,
+			VSHRK_IN_VSIZE_BIT, VSHRK_IN_VSIZE_WID);
+		/*v shrink output height*/
+		wr_bits(offset, VDIN_SCIN_HEIGHTM1,
+			(src_h >> (vshrk_mode + 1)) - 1,
+			VSHRK_INPUT_HEIGHT_BIT, VSHRK_INPUT_HEIGHT_WID);
+		/*dummy data 0x8080*/
+		wr_bits(offset, VDIN_VSHRK_CTRL, 0x8080,
+			VDIN_VSHRK_DYMMY_BIT, VDIN_VSHRK_DYMMY_WID);
+	} else
+		wr_bits(offset, VDIN_SCIN_HEIGHTM1, src_h - 1,
+			VSHRK_INPUT_HEIGHT_BIT, VSHRK_INPUT_HEIGHT_WID);
+
 	wr_bits(offset, VDIN_VSHRK_CTRL, 1,
 		VDIN_VSHRK_LPF_MODE_BIT, VDIN_VSHRK_LPF_MODE_WID);
 	wr_bits(offset, VDIN_VSHRK_CTRL, vshrk_mode,
 		VDIN_VSHRK_MODE_BIT, VDIN_VSHRK_MODE_WID);
 	wr_bits(offset, VDIN_VSHRK_CTRL, 1,
 		VDIN_VSHRK_EN_BIT, VDIN_VSHRK_EN_WID);
-	pr_info("set_vshrink done!\n");
+	devp->v_active >>= (vshrk_mode + 1);
+	pr_info("vdin.%d set_vshrink done! vshk mode = %d\n", devp->index,
+		vshrk_mode);
 }
 
 /*function:set horizontal and veritical scale
  *vdin scaler path:
  *	vdin0:prehsc-->hscaler-->vscaler;
  *	vdin1:prehsc-->hscaler-->vshrink-->vscaler
+ *for tm2, scalar path, both vdin are same:
+ *	prehsc-->hscaler-->vscaler-->optional h/v shrink;
  */
 void vdin_set_hvscale(struct vdin_dev_s *devp)
 {
-	unsigned int offset = devp->addr_offset;
-	unsigned int vshrk_mode = 0;
-
 	/*backup current h v size*/
 	devp->h_active_org = devp->h_active;
 	devp->v_active_org = devp->v_active;
+
 	if ((devp->prop.scaling4w < devp->h_active) &&
 		(devp->prop.scaling4w > 0)) {
 		if (devp->prehsc_en && (devp->prop.scaling4w <=
-			(devp->h_active >> 1))) {
-			vdin_set_prehscale(offset);
-			devp->h_active = devp->h_active >> 1;
-		}
+		    (devp->h_active >> 1)))
+			vdin_set_prehscale(devp);
+
 		if (devp->prop.scaling4w < devp->h_active)
-			vdin_set_hscale(offset, devp->h_active,
-				devp->prop.scaling4w);
-		devp->h_active = devp->prop.scaling4w;
-	} else if (devp->h_active > VDIN_MAX_HACTIVE) {
-		vdin_set_hscale(offset, devp->h_active, VDIN_MAX_HACTIVE);
-		devp->h_active = VDIN_MAX_HACTIVE;
-	}
+			vdin_set_hscale(devp, devp->prop.scaling4w);
+
+		if (devp->prop.scaling4w <= (devp->h_active >> 1))
+			vdin_set_hshrink(devp);
+	} else if (devp->h_active > VDIN_MAX_HACTIVE)
+		vdin_set_hscale(devp, VDIN_MAX_HACTIVE);
+
 	if (vdin_ctl_dbg)
 		pr_info("[vdin.%d] dst hactive:%u,",
 			devp->index, devp->h_active);
 	if ((devp->prop.scaling4h < devp->v_active) &&
 		(devp->prop.scaling4h > 0)) {
-		if (devp->vshrk_en && (devp->h_active <= VDIN_VSHRINK_HLIMIT) &&
-			(devp->index == 1) && (devp->prop.scaling4h <=
-			(devp->v_active >> 1))) {
-			vshrk_mode = devp->v_active/devp->prop.scaling4h;
-			if (vshrk_mode >= 8)
-				vshrk_mode = 2;
-			else if (vshrk_mode >= 4)
-				vshrk_mode = 1;
-			else if (vshrk_mode >= 2)
-				vshrk_mode = 0;
-			vdin_set_vshrink(offset, devp->v_active, vshrk_mode);
-			devp->v_active = devp->v_active >> (vshrk_mode + 1);
+		if (devp->vshrk_en &&
+		    (devp->prop.scaling4h <= (devp->v_active >> 1))) {
+			vdin_set_vshrink(devp);
 		}
+
 		if (devp->prop.scaling4h < devp->v_active)
-			vdin_set_vscale(offset, devp->v_active,
-				devp->prop.scaling4h);
-		devp->v_active = devp->prop.scaling4h;
+			vdin_set_vscale(devp);
 	}
 	if (vdin_ctl_dbg)
 		pr_info(" dst vactive:%u.\n", devp->v_active);
@@ -4721,8 +4834,8 @@ u32 vdin_get_curr_field_type(struct vdin_dev_s *devp)
 	if ((format_convert == VDIN_FORMAT_CONVERT_YUV_YUV444) ||
 			(format_convert == VDIN_FORMAT_CONVERT_RGB_YUV444)) {
 		type |= VIDTYPE_VIU_444;
-		if (devp->afbce_mode_pre)
-			type |= VIDTYPE_COMB_MODE;
+		/*if (devp->afbce_mode_pre)*/
+		/*	type |= VIDTYPE_COMB_MODE;*/
 	} else if ((format_convert == VDIN_FORMAT_CONVERT_YUV_YUV422) ||
 			(format_convert == VDIN_FORMAT_CONVERT_RGB_YUV422)) {
 		type |= VIDTYPE_VIU_422;
@@ -4745,6 +4858,8 @@ u32 vdin_get_curr_field_type(struct vdin_dev_s *devp)
 		type |= VIDTYPE_SCATTER;
 		if (devp->afbce_flag & VDIN_AFBCE_EN_LOOSY)
 			type |= VIDTYPE_COMPRESS_LOSS;
+		if (vdin_chk_is_comb_mode(devp))
+			type |= VIDTYPE_COMB_MODE;
 	}
 
 	return type;

@@ -531,6 +531,7 @@ int vreal_dec_status(struct vdec_s *vdec, struct vdec_info *vstatus)
 		vstatus->frame_rate = 96000 / vreal_amstream_dec_info.rate;
 	else
 		vstatus->frame_rate = 96000;
+	vstatus->frame_dur = frame_dur;
 	vstatus->error_count = real_err_count;
 	vstatus->status =
 		((READ_VREG(STATUS_AMRISC) << 16) | fatal_flag) | stat;

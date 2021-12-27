@@ -1837,7 +1837,7 @@ static long amvecm_ioctl(struct file *file,
 			/*saturation_hue_post*/
 			int sat_post, hue_post, sat_hue_post;
 
-			sat_hue_post = vdj_mode_s.saturation_hue;
+			sat_hue_post = vdj_mode_s.saturation_hue_post;
 			sat_post = (((sat_hue_post >> 16) & 0xffff) / 2) - 128;
 			hue_post = sat_hue_post & 0xffff;
 			if (hue_post >= 0 && hue_post <= 150)
@@ -2260,6 +2260,18 @@ static ssize_t amvecm_dnlp_debug_store(struct class *cla,
 				for (i = 0; i < 65; i++)
 					d_convert_str(ve_dnlp_tgt_copy[i],
 						i, stemp, 4, 10);
+					pr_info("%s\n", stemp);
+			} else
+				pr_info("error cmd\n");
+		} else if (!strcmp(parm[1], "ve_dnlp_tgt_10b")) {
+			/*read only curve*/
+			if (!parm[2]) {
+				pr_info("error cmd\n");
+				goto free_buf;
+			} else if (!strcmp(parm[2], "all")) {
+				for (i = 0; i < 65; i++)
+					d_convert_str(ve_dnlp_tgt_10b_copy[i],
+						      i, stemp, 4, 10);
 					pr_info("%s\n", stemp);
 			} else
 				pr_info("error cmd\n");
@@ -6724,34 +6736,10 @@ free_buf:
 	return -EINVAL;
 }
 
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON) && !defined(MODULE)
-static int __sdrmode = 2;
-
-static int __init sdrmode_setup(char *str)
-{
-	if (strncmp(str, "sdr", 3) == 0)
-		__sdrmode = 0;	/* sdr -> sdr */
-	else if (strncmp(str, "hdr", 3) == 0)
-		__sdrmode = 1;	/* sdr -> hdr */
-	else
-		__sdrmode = 2;	/* auto */
-
-	return 1;
-}
-__setup("sdrmode=", sdrmode_setup);
-
 static void def_hdr_sdr_mode(void)
 {
-	sdr_mode = __sdrmode;
+	sdr_mode = 0;
 }
-#else
-static void def_hdr_sdr_mode(void)
-{
-	if (((READ_VPP_REG(VD1_HDR2_CTRL) >> 13) & 0x1) &&
-		((READ_VPP_REG(OSD1_HDR2_CTRL) >> 13) & 0x1))
-		sdr_mode = 2;
-}
-#endif
 
 void hdr_hist_config_int(void)
 {
@@ -7147,22 +7135,22 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 	if (node) {
 		ret = of_property_read_u32(node, "gamma_en", &val);
 		if (ret)
-			pr_info("Can't find  gamma_en.\n");
+			pr_amvecm_dbg("Can't find  gamma_en.\n");
 		else
 			gamma_en = val;
 		ret = of_property_read_u32(node, "wb_en", &val);
 		if (ret)
-			pr_info("Can't find  wb_en.\n");
+			pr_amvecm_dbg("Can't find  wb_en.\n");
 		else
 			wb_en = val;
 		ret = of_property_read_u32(node, "cm_en", &val);
 		if (ret)
-			pr_info("Can't find  cm_en.\n");
+			pr_amvecm_dbg("Can't find  cm_en.\n");
 		else
 			cm_en = val;
 		ret = of_property_read_u32(node, "detect_colorbar", &val);
 		if (ret) {
-			pr_info("Can't find  detect_colorbar.\n");
+			pr_amvecm_dbg("Can't find  detect_colorbar.\n");
 		} else {
 			if (val == 0)
 				pattern_mask =
@@ -7175,7 +7163,7 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 		}
 		ret = of_property_read_u32(node, "detect_face", &val);
 		if (ret) {
-			pr_info("Can't find  detect_face.\n");
+			pr_amvecm_dbg("Can't find  detect_face.\n");
 		} else {
 			if (val == 0)
 				pattern_mask =
@@ -7188,7 +7176,7 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 		}
 		ret = of_property_read_u32(node, "detect_corn", &val);
 		if (ret) {
-			pr_info("Can't find  detect_corn.\n");
+			pr_amvecm_dbg("Can't find  detect_corn.\n");
 		} else {
 			if (val == 0)
 				pattern_mask =
@@ -7201,32 +7189,32 @@ static void aml_vecm_dt_parse(struct platform_device *pdev)
 		}
 		ret = of_property_read_u32(node, "wb_sel", &val);
 		if (ret)
-			pr_info("Can't find  wb_sel.\n");
+			pr_amvecm_dbg("Can't find  wb_sel.\n");
 		else
 			video_rgb_ogo_xvy_mtx = val;
 		/*hdr:cfg:osd_100*/
 		ret = of_property_read_u32(node, "cfg_en_osd_100", &val);
 		if (ret) {
 			hdr_set_cfg_osd_100(0);
-			pr_info("hdr:Can't find  cfg_en_osd_100.\n");
+			pr_amvecm_dbg("hdr:Can't find  cfg_en_osd_100.\n");
 
 		} else {
 			hdr_set_cfg_osd_100((int)val);
 		}
 		ret = of_property_read_u32(node, "tx_op_color_primary", &val);
 		if (ret)
-			pr_info("Can't find  tx_op_color_primary.\n");
+			pr_amvecm_dbg("Can't find  tx_op_color_primary.\n");
 		else
 			tx_op_color_primary = val;
 
 		/*get compatible matched device, to get chip related data*/
 		of_id = of_match_device(aml_vecm_dt_match, &pdev->dev);
 		if (of_id != NULL) {
-			pr_info("%s", of_id->compatible);
+			pr_amvecm_dbg("%s", of_id->compatible);
 			matchdata = (struct vecm_match_data_s *)of_id->data;
 		} else {
 			matchdata = (struct vecm_match_data_s *)&vecm_dt_xxx;
-			pr_info("unable to get matched device\n");
+			pr_amvecm_dbg("unable to get matched device\n");
 		}
 		vlock_dt_match_init(matchdata);
 
@@ -7311,7 +7299,7 @@ static int aml_vecm_probe(struct platform_device *pdev)
 	struct amvecm_dev_s *devp = &amvecm_dev;
 
 	memset(devp, 0, (sizeof(struct amvecm_dev_s)));
-	pr_info("\n VECM probe start\n");
+	pr_info("VECM probe start\n");
 	ret = alloc_chrdev_region(&devp->devno, 0, 1, AMVECM_NAME);
 	if (ret < 0)
 		goto fail_alloc_region;

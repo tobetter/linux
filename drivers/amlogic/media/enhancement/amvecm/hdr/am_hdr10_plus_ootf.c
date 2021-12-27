@@ -951,14 +951,14 @@ u64 curvex[POINTS], curvey[POINTS];
 
 /*input o->10000, should adaptive scale by shift and gamut*/
 static int match_ootf_output(
-	struct scene2094metadata metadata,
+	struct scene2094metadata *metadata,
 	struct hdr10pgen_param_s *p_hdr10pgen_param,
 	int panel_lumin)
 {
 	unsigned int scale_float;
 	unsigned int maxl;
 
-	maxl = metadata.maxscenesourceluminance;
+	maxl = metadata->maxscenesourceluminance;
 	if (!maxl)
 		maxl = 1000;
 	if (maxl < panel_lumin)
@@ -968,7 +968,10 @@ static int match_ootf_output(
 	scale_float = 10000 * 1024 / maxl;
 
 	p_hdr10pgen_param->shift = _log2(scale_float) - 10;
-	p_hdr10pgen_param->scale_gmt = scale_float >> p_hdr10pgen_param->shift;
+	/* right shifting by more than 31 bits has undefined behavior. */
+	if (p_hdr10pgen_param->shift < 32)
+		p_hdr10pgen_param->scale_gmt =
+			scale_float >> p_hdr10pgen_param->shift;
 	memcpy(p_hdr10pgen_param->gain, gain, sizeof(unsigned int) * POINTS);
 
 	if (hdr10_plus_printk & 4)
@@ -1080,7 +1083,7 @@ int hdr10_plus_ootf_gen(
 		}
 	}
 
-	match_ootf_output(metadata, p_hdr10pgen_param, panel_lumin);
+	match_ootf_output(&metadata, p_hdr10pgen_param, panel_lumin);
 	hdr10_plus_printk = 0;
 
 	return 0;

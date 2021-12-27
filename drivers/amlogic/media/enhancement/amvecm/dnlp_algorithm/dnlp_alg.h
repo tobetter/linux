@@ -109,6 +109,7 @@ struct dnlp_alg_input_param_s {
 
 struct dnlp_alg_output_param_s {
 	unsigned char *ve_dnlp_tgt;
+	unsigned int *ve_dnlp_tgt_10b;
 };
 
 struct dnlp_dbg_ro_param_s {

@@ -174,6 +174,7 @@ static void dtmb_25m_coeff(void)
 void dtmb_all_reset(void)
 {
 	int temp_data = 0;
+	unsigned int reg_val;
 
 	if (is_ic_ver(IC_VER_TXL)) {
 		/*fix bug 139044: DTMB lost sync*/
@@ -216,9 +217,9 @@ void dtmb_all_reset(void)
 		/*fix agc problem,skip warm_up status*/
 		dtmb_write_reg(DTMB_FRONT_46_CONFIG, 0x1a000f0f);
 		dtmb_write_reg(DTMB_FRONT_ST_FREQ, 0xf2400000);
-		dtmb_clk_set(Adc_Clk_24M);
+		dtmb_clk_set(ADC_CLK_24M);
 	} else if (is_ic_ver(IC_VER_TL1) || is_ic_ver(IC_VER_TM2)) {
-		if (demod_get_adc_clk() == Adc_Clk_24M) {
+		if (demod_get_adc_clk() == ADC_CLK_24M) {
 			dtmb_write_reg(DTMB_FRONT_DDC_BYPASS, 0x6aaaaa);
 			dtmb_write_reg(DTMB_FRONT_SRC_CONFIG1, 0x13196596);
 			dtmb_write_reg(0x5b << 2, 0x50a30a25);
@@ -241,6 +242,16 @@ void dtmb_all_reset(void)
 		dtmb_write_reg(DTMB_FRONT_DEBUG_CFG, 0x5480000);
 		/*reduce fec lost timeout*/
 		dtmb_write_reg(DTMB_FRONT_19_CONFIG, 0x30);
+
+		reg_val = dtmb_read_reg(DTMB_TOP_CTRL_TPS);
+		/* for Task 19:Switch mode and modulation parameters test
+		 * dtmb_spectrum: 0=normal, 1=inverted
+		 */
+		if (dtmb_spectrum == 0)
+			reg_val |= 0x4;
+		else if (dtmb_spectrum == 1)
+			reg_val &= ~0x4;
+		dtmb_write_reg(DTMB_TOP_CTRL_TPS, reg_val);
 	} else {
 		dtmb_write_reg(DTMB_FRONT_AGC_CONFIG1, 0x10127);
 		dtmb_write_reg(DTMB_CHE_IBDFE_CONFIG6, 0x943228cc);

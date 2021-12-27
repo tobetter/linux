@@ -407,7 +407,7 @@ static void vdec_hevc_get_vf(struct vdec_hevc_inst *inst, struct vdec_v4l2_buffe
 		return;
 	}
 
-	atomic_set(&vf->use_cnt, 1);
+//	atomic_set(&vf->use_cnt, 1);
 
 	fb = (struct vdec_v4l2_buffer *)vf->v4l_mem_handle;
 	fb->vf_handle = (unsigned long)vf;

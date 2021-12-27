@@ -54,6 +54,7 @@
 #include <linux/amlogic/media/old_cpu_version.h>
 #include "common/vm.h"
 #include "ov5640_firmware.h"
+#include "common/cam_expbuf.h"
 
 #define OV5640_CAMERA_MODULE_NAME   "ov5640"
 
@@ -312,6 +313,15 @@ static struct v4l2_queryctrl ov5640_qctrl[] = {
 		.maximum       = ((2000) << 16) | 2000,
 		.step          = 1,
 		.default_value = (1000 << 16) | 1000,
+		.flags         = V4L2_CTRL_FLAG_SLIDER,
+	}, {
+		.id            = V4L2_CID_SCENE_MODE,
+		.type          = V4L2_CTRL_TYPE_INTEGER,
+		.name          = "test mode",
+		.minimum       = 0,
+		.maximum       = 8,
+		.step          = 1,
+		.default_value = 0,
 		.flags         = V4L2_CTRL_FLAG_SLIDER,
 	}
 };
@@ -2013,6 +2023,24 @@ static int set_focus_zone(struct ov5640_device *dev, int value)
 	return ret;
 }
 
+static int set_camera_pattern(struct ov5640_device *dev, int value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(&dev->sd);
+	unsigned int temp = 0;
+
+	temp = i2c_get_byte(client, 0x503d);
+	if (value == 0)
+		temp &= 0x7f;
+	else
+		temp |= 0x80;
+	if ((i2c_put_byte(client, 0x503d, temp)) < 0) {
+		pr_info("fail in set sensor color bar\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 unsigned char v4l_2_ov5640(int val)
 {
 	int ret = val / 0x20;
@@ -2160,10 +2188,17 @@ static int ov5640_setting(struct ov5640_device *dev, int PROP_ID, int value)
 		}
 		break;
 	case V4L2_CID_FOCUS_ABSOLUTE:
-		if (ov5640_qctrl[12].default_value != value) {
-			ov5640_qctrl[12].default_value = value;
+		if (ov5640_qctrl[13].default_value != value) {
+			ov5640_qctrl[13].default_value = value;
 			dprintk(dev, 3, "set camera focus zone =%d\n", value);
 			set_focus_zone(dev, value);
+		}
+		break;
+	case V4L2_CID_SCENE_MODE:
+		if (ov5640_qctrl[14].default_value != value) {
+			ov5640_qctrl[14].default_value = value;
+			dprintk(dev, 3, "set camera test pattern =%d\n", value);
+			set_camera_pattern(dev, value);
 		}
 		break;
 	default:
@@ -2999,6 +3034,20 @@ static int vidioc_s_ctrl(struct file *file, void *priv,
 	return -EINVAL;
 }
 
+static int vidioc_expbuf(struct file *file, void *priv,
+			 struct v4l2_exportbuffer *ex_buf)
+{
+	struct ov5640_fh  *fh = priv;
+	struct videobuf_queue *q = &fh->vb_vidq;
+	struct videobuf_buffer *vb = q->bufs[ex_buf->index];
+
+	ex_buf->fd = vb_expbuf(vb, ex_buf->flags);
+	if (ex_buf->fd < 0)
+		return ex_buf->fd;
+
+	return 0;
+}
+
 static int ov5640_open(struct file *file)
 {
 	struct ov5640_device *dev = video_drvdata(file);
@@ -3048,8 +3097,10 @@ static int ov5640_open(struct file *file)
 	}
 	mutex_unlock(&dev->mutex);
 
-	if (retval)
+	if (retval) {
+		kfree(fh);
 		return retval;
+	}
 
 #ifdef CONFIG_HAS_WAKELOCK
 	wake_lock(&(dev->wake_lock));
@@ -3216,6 +3267,7 @@ static const struct v4l2_ioctl_ops ov5640_ioctl_ops = {
 	.vidioc_enum_framesizes = vidioc_enum_framesizes,
 	.vidioc_g_parm = vidioc_g_parm,
 	.vidioc_enum_frameintervals = vidioc_enum_frameintervals,
+	.vidioc_expbuf = vidioc_expbuf,
 #ifdef CONFIG_VIDEO_V4L1_COMPAT
 	.vidiocgmbuf          = vidiocgmbuf,
 #endif

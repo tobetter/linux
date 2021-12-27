@@ -101,11 +101,19 @@ int eq_try_cnt = 20;
 int pll_rst_max = 5;
 /* cdr lock threshold */
 int cdr_lock_level;
+u32 term_cal_val;
+bool term_cal_en;
 int clock_lock_th = 2;
 int scdc_force_en = 1;
 /* for hdcp_hpd debug, disable by default */
 bool hdcp_hpd_ctrl_en;
 int eq_dbg_lvl;
+u32 phy_trim_val;
+/* bit 4: tdr enable bit
+ * bit [3:0]: tdr level control
+ */
+int phy_term_lel;
+bool phy_tdr_en;
 
 /*------------------------variable define end------------------------------*/
 
@@ -2629,9 +2637,7 @@ void rx_aud_pll_ctl(bool en)
 			/*External_Mute(0);*/
 		} else{
 			/* disable pll, into reset mode */
-#ifdef CONFIG_AMLOGIC_AMAUDIO2
 			External_Mute(1);
-#endif
 			wr_reg_hhi(HHI_AUD_PLL_CNTL, 0x20000000);
 		}
 	}
@@ -3230,9 +3236,9 @@ void dump_edid_reg(void)
 		for (i = 0; i < 16; i++) {
 			rx_pr("[%2d] ", i);
 			for (j = 0; j < 16; j++) {
-				rx_pr("0x%02lx, ",
-					   hdmirx_rd_top(TOP_EDID_OFFSET +
-							 (i * 16 + j)));
+				rx_pr("0x%02x, ",
+				      hdmirx_rd_top(TOP_EDID_OFFSET +
+							(i * 16 + j)));
 			}
 			rx_pr("\n");
 		}
@@ -3240,9 +3246,9 @@ void dump_edid_reg(void)
 		for (i = 0; i < 16; i++) {
 			rx_pr("[%2d] ", i);
 			for (j = 0; j < 16; j++) {
-				rx_pr("0x%02lx, ",
-					   hdmirx_rd_top(TOP_EDID_ADDR_S +
-							 (i * 16 + j)));
+				rx_pr("0x%02x, ",
+				      hdmirx_rd_top(TOP_EDID_ADDR_S +
+							(i * 16 + j)));
 			}
 			rx_pr("\n");
 		}
@@ -3250,27 +3256,27 @@ void dump_edid_reg(void)
 		for (i = 0; i < 16; i++) {
 			rx_pr("[%2d] ", i);
 			for (j = 0; j < 16; j++) {
-				rx_pr("0x%02lx, ",
-					   hdmirx_rd_top(TOP_EDID_ADDR_S +
-							 (i * 16 + j)));
+				rx_pr("0x%02x, ",
+				      hdmirx_rd_top(TOP_EDID_ADDR_S +
+							(i * 16 + j)));
 			}
 			rx_pr("\n");
 		}
 		for (i = 0; i < 16; i++) {
 			rx_pr("[%2d] ", i);
 			for (j = 0; j < 16; j++) {
-				rx_pr("0x%02lx, ",
-					   hdmirx_rd_top(TOP_EDID_PORT2_ADDR_S +
-							 (i * 16 + j)));
+				rx_pr("0x%02x, ",
+				      hdmirx_rd_top(TOP_EDID_PORT2_ADDR_S +
+							(i * 16 + j)));
 			}
 			rx_pr("\n");
 		}
 		for (i = 0; i < 16; i++) {
 			rx_pr("[%2d] ", i);
 			for (j = 0; j < 16; j++) {
-				rx_pr("0x%02lx, ",
-					   hdmirx_rd_top(TOP_EDID_PORT3_ADDR_S +
-							 (i * 16 + j)));
+				rx_pr("0x%02x, ",
+				      hdmirx_rd_top(TOP_EDID_PORT3_ADDR_S +
+							(i * 16 + j)));
 			}
 			rx_pr("\n");
 		}
@@ -3677,6 +3683,28 @@ void aml_phy_init_1(void)
 	wr_reg_hhi(HHI_HDMIRX_PHY_DCHD_CNTL1, data32);/*398*/
 }
 
+bool is_ft_trim_done(void)
+{
+	int ret = phy_trim_val & 0x1;
+
+	rx_pr("ft trim=%d\n", ret);
+	return ret;
+}
+
+void aml_phy_get_trim_val(void)
+{
+	u32 data32;
+
+	if (rx.chip_id < CHIP_ID_TL1)
+		return;
+	phy_tdr_en = (phy_term_lel >> 4) & 0x1;
+	phy_term_lel = phy_term_lel & 0xf;
+	phy_trim_val = rd_reg_hhi(HHI_HDMIRX_PHY_MISC_CNTL1);
+	data32 = (phy_trim_val >> 12) & 0x3ff;
+	data32 = (~((~data32) << phy_term_lel) | (1 << phy_term_lel));
+	phy_trim_val = ((phy_trim_val & (~(0x3ff << 12)))
+		| (data32 << 12));
+}
 void aml_phy_init(void)
 {
 	uint32_t idx = rx.phy.phy_bw;
@@ -3705,8 +3733,15 @@ void aml_phy_init(void)
 	udelay(2);
 
 	data32 = phy_misci[idx][1];
+	if ((idx < phy_frq_band_5) && phy_tdr_en) {
+		if (term_cal_en) {
+			data32 = (((data32 & (~(0x3ff << 12))) |
+				(term_cal_val << 12)) | (1 << 22));
+		} else {
+			data32 = phy_trim_val;
+		}
+	}
 	wr_reg_hhi(HHI_HDMIRX_PHY_MISC_CNTL1, data32);
-
 	wr_reg_hhi(HHI_HDMIRX_PHY_MISC_CNTL2, phy_misci[idx][2]);
 
 	/* reset and select data port */
@@ -3900,11 +3935,16 @@ struct apll_param apll_tab[] = {
 	/*od for tmds: 2/4/8/16/32*/
 	/*od2 for audio: 1/2/4/8/16*/
 	/* bw M, N, od, od_div, od2, od2_div, aud_div */
-	{pll_frq_band_0, 160, 1, 0x5, 32,	0x2, 8, 2},/*tmdsx4*/
-	{pll_frq_band_1, 80, 1, 0x4,	16, 0x2, 8, 1},/*tmdsx2*/
-	{pll_frq_band_2, 40, 1, 0x3, 8,	0x2, 8, 0},/*tmds*/
-	{pll_frq_band_3, 40, 2, 0x2, 4,	0x1, 4, 0},/*tmds*/
-	{pll_frq_band_4, 40, 1, 0x1, 2,	0x0, 2, 0},/*tmds*/
+	/* {pll_frq_band_0, 160, 1, 0x5, 32,0x2, 8, 2}, */
+	{pll_frq_band_0, 160, 1, 0x5, 32, 0x1, 8, 3},/* 16 x 27 */
+	/* {pll_frq_band_1, 80, 1, 0x4,	16, 0x2, 8, 1}, */
+	{pll_frq_band_1, 80, 1, 0x4, 16, 0x0, 8, 3},/* 8 x 74 */
+	/* {pll_frq_band_2, 40, 1, 0x3, 8,	0x2, 8, 0}, */
+	{pll_frq_band_2, 40, 1, 0x3, 8,	 0x0, 8, 2}, /* 4 x 148 */
+	/* {pll_frq_band_3, 40, 2, 0x2, 4,	0x1, 4, 0}, */
+	{pll_frq_band_3, 40, 2, 0x2, 4,	 0x0, 4, 1},/* 2 x 297 */
+	/* {pll_frq_band_4, 40, 1, 0x1, 2,	0x0, 2, 0}, */
+	{pll_frq_band_4, 40, 1, 0x1, 2,	 0x0, 2, 0},/* 594 */
 	{pll_frq_null, 40, 1, 0x3, 8,	0x2, 8, 0},
 };
 
@@ -4206,9 +4246,9 @@ void rx_emp_field_done_irq(void)
 	recv_pagenum = (recv_byte_cnt >> PAGE_SHIFT) + 1;
 
 	if (rx.empbuff.irqcnt & 0x1)
-		dts_addr = rx.empbuff.storeB;
+		dts_addr = rx.empbuff.store_b;
 	else
-		dts_addr = rx.empbuff.storeA;
+		dts_addr = rx.empbuff.store_a;
 
 	if (recv_pkt_cnt >= EMP_BUFF_MAX_PKT_CNT) {
 		recv_pkt_cnt = EMP_BUFF_MAX_PKT_CNT - 1;
@@ -4265,11 +4305,11 @@ void rx_emp_field_done_irq(void)
 
 void rx_emp_status(void)
 {
-	rx_pr("p_addr_a=0x%x\n", rx.empbuff.p_addr_a);
-	rx_pr("p_addr_b=0x%x\n", rx.empbuff.p_addr_b);
-	rx_pr("storeA=0x%x\n", rx.empbuff.storeB);
-	rx_pr("storeB=0x%x\n", rx.empbuff.storeB);
-	rx_pr("irq cnt =0x%x\n", rx.empbuff.irqcnt);
+	rx_pr("p_addr_a=0x%p\n", (void *)rx.empbuff.p_addr_a);
+	rx_pr("p_addr_b=0x%p\n", (void *)rx.empbuff.p_addr_b);
+	rx_pr("store_a=0x%p\n", rx.empbuff.store_a);
+	rx_pr("store_b=0x%p\n", rx.empbuff.store_b);
+	rx_pr("irq cnt =0x%x\n", (unsigned int)rx.empbuff.irqcnt);
 	rx_pr("ready=0x%p\n", rx.empbuff.ready);
 	rx_pr("dump_mode =0x%x\n", rx.empbuff.dump_mode);
 	rx_pr("recv tmp pkt cnt=0x%x\n", rx.empbuff.emppktcnt);
@@ -4313,7 +4353,8 @@ void rx_tmds_to_ddr_init(void)
 				rx.empbuff.p_addr_a);
 			hdmirx_wr_top(TOP_EMP_DDR_START_B,
 				rx.empbuff.p_addr_a);
-			rx_pr("cfg hw addr=0x%x\n", rx.empbuff.p_addr_a);
+			rx_pr("cfg hw addr=0x%p\n",
+			      (void *)rx.empbuff.p_addr_a);
 		}
 
 		/* max pkt count to avoid buffer overflow */
@@ -4422,3 +4463,51 @@ void rx_get_audio_N_CTS(uint32_t *N, uint32_t *CTS)
 	*CTS = hdmirx_rd_top(TOP_ACR_CTS_STAT);
 }
 
+/* termination calibration */
+void rx_phy_rt_cal(void)
+{
+	int i = 0, j = 0;
+	u32 x_val[100][2];
+	u32 temp;
+	int val_cnt = 1;
+
+	rx_pr("360=0x%x\n", rd_reg_hhi(HHI_HDMIRX_PHY_MISC_CNTL1));
+	for (; i < 100; i++) {
+		wr_reg_hhi_bits(HHI_HDMIRX_PHY_MISC_CNTL0, MISCI_COMMON_RST, 0);
+		wr_reg_hhi_bits(HHI_HDMIRX_PHY_MISC_CNTL0, MISCI_COMMON_RST, 1);
+		udelay(1);
+		temp = (rd_reg_hhi(HHI_HDMIRX_PHY_MISC_STAT) >> 1) & 0x3ff;
+		rx_pr("temp=%x\n", temp);
+		if (i == 0) {
+			x_val[0][0] = temp;
+			x_val[0][1] = 1;
+		}
+
+		for (; j < i; j++) {
+			rx_pr("j=%d\n", j);
+			if (temp == x_val[j][0]) {
+				x_val[j][1]	+= 1;
+				rx_pr("++,val=%x\n", x_val[j][0]);
+				goto todo;
+			}
+		}
+todo:
+		if (j == (val_cnt + 1)) {
+			x_val[j][0] = temp;
+			x_val[j][1] = 1;
+			val_cnt++;
+			rx_pr("new\n");
+		}
+		rx_pr("x_val=0x%x,cnt=%d,val_cnt=%d\n",
+		      x_val[j][0], x_val[j][1], val_cnt);
+
+		if (x_val[j][1] == 10) {
+			term_cal_val = (~((x_val[j][0]) << 1)) & 0x3ff;
+			for (; j < val_cnt; j++)
+				rx_pr("val=%x,cnt=%d\n",
+				      x_val[j][0], x_val[j][1]);
+			return;
+		}
+		j = 0;
+	}
+}

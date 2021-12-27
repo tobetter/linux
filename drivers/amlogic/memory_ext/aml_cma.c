@@ -238,11 +238,13 @@ static struct page *get_migrate_page(struct page *page, unsigned long private,
 					    next_node_in(page_to_nid(page),
 							 node_online_map));
 	#ifdef CONFIG_AMLOGIC_PAGE_TRACE
+	#ifdef CONFIG_HUGETLB_PAGE
 		if (new) {
 			old_trace = find_page_base(page);
 			new_trace = find_page_base(new);
 			*new_trace = *old_trace;
 		}
+	#endif
 	#endif
 		return new;
 	}

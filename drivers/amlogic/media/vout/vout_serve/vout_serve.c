@@ -64,9 +64,7 @@ static char vout_mode_uboot[VMODE_NAME_LEN_MAX] = "null";
 static char vout_mode[VMODE_NAME_LEN_MAX] __nosavedata;
 static char local_name[VMODE_NAME_LEN_MAX] = {0};
 static u32 vout_init_vmode = VMODE_INIT_NULL;
-#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 static int uboot_display;
-#endif
 static unsigned int bist_mode;
 
 static char vout_axis[64] __nosavedata;
@@ -291,36 +289,20 @@ static int set_vout_init_mode(void)
 	char init_mode_str[VMODE_NAME_LEN_MAX];
 	int ret = 0;
 
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	strncpy(vout_mode_uboot,
-			(vout_get_hpd_state() || !cvbs_cable_connected()) ?
-			hdmimode : cvbsmode,
-			sizeof(vout_mode_uboot));
-#endif
-
 	snprintf(init_mode_str, VMODE_NAME_LEN_MAX, "%s", vout_mode_uboot);
 	vout_init_vmode = validate_vmode(vout_mode_uboot);
 	if (vout_init_vmode >= VMODE_MAX) {
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 		VOUTERR("no matched vout mode %s, force to set 1080p60hz\n",
 			vout_mode_uboot);
 		snprintf(init_mode_str, VMODE_NAME_LEN_MAX, "%s", "1080p60hz");
 		vout_init_vmode = validate_vmode("1080p60hz");
-#else
-		VOUTERR("no matched vout_init mode %s, force to invalid\n",
-			vout_mode_uboot);
-		nulldisp_index = 1;
-		vout_init_vmode = nulldisp_vinfo[nulldisp_index].mode;
-		snprintf(init_mode_str, VMODE_NAME_LEN_MAX, "%s",
-			nulldisp_vinfo[nulldisp_index].name);
-#endif
 	}
 	last_vmode = vout_init_vmode;
 
-	vmode = vout_init_vmode;
-#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	vmode |= VMODE_INIT_BIT_MASK;
-#endif
+	if (uboot_display)
+		vmode = vout_init_vmode | VMODE_INIT_BIT_MASK;
+	else
+		vmode = vout_init_vmode;
 
 	memset(local_name, 0, sizeof(local_name));
 	snprintf(local_name, VMODE_NAME_LEN_MAX, "%s", init_mode_str);
@@ -377,20 +359,26 @@ static void set_vout_axis(char *para)
 {
 	static struct disp_rect_s disp_rect[OSD_COUNT];
 	/* char count = OSD_COUNT * 4; */
-	int *pt = &disp_rect[0].x;
+	int *pt;
 	int parsed[MAX_NUMBER_PARA] = {};
 
 	/* parse window para */
-	if (parse_para(para, 8, parsed) >= 4)
-		memcpy(pt, parsed, sizeof(struct disp_rect_s) * OSD_COUNT);
+	if (parse_para(para, 8, parsed) >= 4) {
+		pt = &disp_rect[0].x;
+		memcpy(pt, &parsed[0], sizeof(struct disp_rect_s));
+		pt = &disp_rect[1].x;
+		memcpy(pt, &parsed[4], sizeof(struct disp_rect_s));
+	}
 	/* if ((count >= 4) && (count < 8))
 	 *	disp_rect[1] = disp_rect[0];
 	 */
 
 	VOUTPR("osd0=> x:%d,y:%d,w:%d,h:%d\n"
 		"osd1=> x:%d,y:%d,w:%d,h:%d\n",
-			*pt, *(pt + 1), *(pt + 2), *(pt + 3),
-			*(pt + 4), *(pt + 5), *(pt + 6), *(pt + 7));
+			disp_rect[0].x, disp_rect[0].y,
+			disp_rect[0].w, disp_rect[0].h,
+			disp_rect[1].x, disp_rect[1].y,
+			disp_rect[1].w, disp_rect[1].h);
 	vout_notifier_call_chain(VOUT_EVENT_OSD_DISP_AXIS, &disp_rect[0]);
 }
 
@@ -591,13 +579,27 @@ static ssize_t vout_vinfo_show(struct class *class,
 	return len;
 }
 
+static ssize_t vout_vinfo_name_show(struct class *class,
+		struct class_attribute *attr, char *buf)
+{
+	const struct vinfo_s *info = NULL;
+	int ret = 0;
+
+	info = get_current_vinfo();
+	if (info == NULL)
+		return sprintf(buf, "null");
+	ret = sprintf(buf, "%s\n", info->name);
+	return(ret);
+}
+
 static struct class_attribute vout_class_attrs[] = {
-	__ATTR(mode,      0644, vout_mode_show, vout_mode_store),
-	__ATTR(axis,      0644, vout_axis_show, vout_axis_store),
-	__ATTR(fr_policy, 0644,
+	__ATTR(mode,       0644, vout_mode_show, vout_mode_store),
+	__ATTR(axis,       0644, vout_axis_show, vout_axis_store),
+	__ATTR(fr_policy,  0644,
 		vout_fr_policy_show, vout_fr_policy_store),
-	__ATTR(bist,      0644, vout_bist_show, vout_bist_store),
-	__ATTR(vinfo,     0444, vout_vinfo_show, NULL),
+	__ATTR(bist,       0644, vout_bist_show, vout_bist_store),
+	__ATTR(vinfo,      0444, vout_vinfo_show, NULL),
+	__ATTR(vinfo_name, 0444, vout_vinfo_name_show, NULL),
 };
 
 static int vout_attr_create(void)
@@ -906,19 +908,16 @@ static int refresh_tvout_mode(void)
 	char cur_mode_str[VMODE_NAME_LEN_MAX];
 	int hpd_state = 0;
 	struct vinfo_s *info = get_current_vinfo();
+	static int last_hpd_state;
 
 	if (tvout_monitor_flag == 0)
 		return 0;
 
-	hpd_state = vout_get_hpd_state();
-
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
-	/* Unless CVBS cable is not attached, we assumed that HDMI cable is attached */
-	if (!cvbs_cable_connected())
-		hpd_state = 1;
-#endif
+       hpd_state = 1;
 
 	if (hpd_state) {
+		if (hpd_state == last_hpd_state)
+			return 0;
 		/* Vout will check the checksum of EDID of uboot and kernel.
 		 * If checksum is different. Vout will set null to display/mode.
 		 * When systemcontrol bootup, it will set the correct mode and
@@ -947,20 +946,12 @@ static int refresh_tvout_mode(void)
 
 	strncpy(vout_mode, cur_mode_str, VMODE_NAME_LEN_MAX);
 
+	last_hpd_state = hpd_state;
 	if (cur_vmode >= VMODE_MAX) {
-#if defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 		VOUTERR("%s: no matched vmode: %s, force to set 1080p60hz\n",
 			__func__, cur_mode_str);
 		cur_vmode = validate_vmode("1080p60hz");
 		snprintf(cur_mode_str, VMODE_NAME_LEN_MAX, "%s", "1080p60hz");
-#else
-		VOUTERR("%s: no matched cur_mode: %s, force to invalid\n",
-			__func__, cur_mode_str);
-		nulldisp_index = 1;
-		cur_vmode = nulldisp_vinfo[nulldisp_index].mode;
-		snprintf(cur_mode_str, VMODE_NAME_LEN_MAX, "%s",
-			nulldisp_vinfo[nulldisp_index].name);
-#endif
 	}
 
 	/* not box platform */
@@ -1168,7 +1159,6 @@ static __exit void vout_exit_module(void)
 subsys_initcall(vout_init_module);
 module_exit(vout_exit_module);
 
-#if !defined(CONFIG_ARCH_MESON64_ODROID_COMMON)
 static int str2lower(char *str)
 {
 	while (*str != '\0') {
@@ -1238,7 +1228,6 @@ static int __init get_vout_init_mode(char *str)
 	return 0;
 }
 __setup("vout=", get_vout_init_mode);
-#endif
 
 static int __init get_hdmi_mode(char *str)
 {

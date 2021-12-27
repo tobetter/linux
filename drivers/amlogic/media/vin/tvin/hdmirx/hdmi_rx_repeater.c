@@ -350,7 +350,8 @@ bool rx_set_repeat_aksv(unsigned char *data, int len, int depth,
 	if (ksvlist_ready)
 		rx_poll_dwc(DWC_HDCP_RPT_CTRL, FIFO_READY,
 						FIFO_READY, KSV_V_WR_TH);
-	rx_pr("[RX]write Ready signal!\n", ksvlist_ready);
+	rx_pr("[RX]write Ready signal! ready:%u\n",
+	      (unsigned int)ksvlist_ready);
 
 	return true;
 }

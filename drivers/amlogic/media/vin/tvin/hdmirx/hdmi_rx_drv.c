@@ -269,13 +269,29 @@ static unsigned int first_bit_set(uint32_t data)
  */
 unsigned int rx_get_bits(unsigned int data, unsigned int mask)
 {
-	return (data & mask) >> first_bit_set(mask);
+	unsigned int fstbs_rtn;
+	unsigned int rtn_val;
+
+	fstbs_rtn = first_bit_set(mask);
+	if (fstbs_rtn < 32)
+		rtn_val = (data & mask) >> fstbs_rtn;
+	else
+		rtn_val = 0;
+	return rtn_val;
 }
 
 unsigned int rx_set_bits(unsigned int data,
 	unsigned int mask, unsigned int value)
 {
-	return ((value << first_bit_set(mask)) & mask) | (data & ~mask);
+	unsigned int fstbs_rtn;
+	unsigned int rtn_val;
+
+	fstbs_rtn = first_bit_set(mask);
+	if (fstbs_rtn < 32)
+		rtn_val = ((value << fstbs_rtn) & mask) | (data & ~mask);
+	else
+		rtn_val = 0;
+	return rtn_val;
 }
 
 bool hdmirx_repeat_support(void)
@@ -1515,7 +1531,7 @@ static ssize_t ksvlist_store(struct device *dev,
 	/* unsigned char t_tmp[3]; */
 	cnt = count;
 	/* t_tmp[2] = '\0'; */
-	rx_pr("dw hdcp %d,%d\n", cnt, sizeof(struct hdcp14_topo_s));
+	rx_pr("dw hdcp %d,%lu\n", cnt, sizeof(struct hdcp14_topo_s));
 	/*for(i = 0;i < count/2;i++) {
 	 *	memcpy(t_tmp, buf + i*2, 2);
 	 *	if (kstrtoul(t_tmp, 16, &tmp))
@@ -1836,19 +1852,19 @@ void rx_emp_resource_allocate(struct device *dev)
 {
 	if (rx.chip_id >= CHIP_ID_TL1) {
 		/* allocate buffer */
-		if (!rx.empbuff.storeA)
-			rx.empbuff.storeA =
+		if (!rx.empbuff.store_a)
+			rx.empbuff.store_a =
 				kmalloc(EMP_BUFFER_SIZE, GFP_KERNEL);
 		else
 			rx_pr("malloc emp buffer err\n");
 
-		if (rx.empbuff.storeA)
-			rx.empbuff.storeB =
-				rx.empbuff.storeA + (EMP_BUFFER_SIZE >> 1);
+		if (rx.empbuff.store_a)
+			rx.empbuff.store_b =
+				rx.empbuff.store_a + (EMP_BUFFER_SIZE >> 1);
 		else
 			rx_pr("emp buff err-0\n");
-		rx_pr("pktbuffa=0x%p\n", rx.empbuff.storeA);
-		rx_pr("pktbuffb=0x%p\n", rx.empbuff.storeB);
+		rx_pr("pktbuffa=0x%p\n", rx.empbuff.store_a);
+		rx_pr("pktbuffb=0x%p\n", rx.empbuff.store_b);
 		rx.empbuff.dump_mode = DUMP_MODE_EMP;
 		/* allocate buffer for hw access*/
 		rx.empbuff.pg_addr =
@@ -1862,8 +1878,10 @@ void rx_emp_resource_allocate(struct device *dev)
 			rx.empbuff.p_addr_b =
 				rx.empbuff.p_addr_a + (EMP_BUFFER_SIZE >> 1);
 			//page_address
-			rx_pr("buffa paddr=0x%x\n", rx.empbuff.p_addr_a);
-			rx_pr("buffb paddr=0x%x\n", rx.empbuff.p_addr_b);
+			rx_pr("buffa paddr=0x%p\n",
+			      (void *)rx.empbuff.p_addr_a);
+			rx_pr("buffb paddr=0x%p\n",
+			      (void *)rx.empbuff.p_addr_b);
 		} else {
 			rx_pr("emp buff err-1\n");
 		}
@@ -1909,7 +1927,7 @@ void rx_tmds_resource_allocate(struct device *dev)
 		else
 			rx_pr("allocate tmds data buff fail\n");
 		rx.empbuff.dump_mode = DUMP_MODE_TMDS;
-		rx_pr("buffa paddr=0x%x\n", rx.empbuff.p_addr_a);
+		rx_pr("buffa paddr=0x%p\n", (void *)rx.empbuff.p_addr_a);
 		#if 0
 		/*clear buffer for test*/
 		for (i = 0; i < 10; i++) {
@@ -2375,6 +2393,14 @@ static int hdmirx_probe(struct platform_device *pdev)
 			clk_prepare_enable(hdevp->axi_clk);
 			clk_rate = clk_get_rate(hdevp->axi_clk);
 		}
+		/* */
+		ret = of_property_read_u32(pdev->dev.of_node,
+					   "term_lvl",
+							&phy_term_lel);
+		if (ret) {
+			rx_pr("term_lvl not found.\n");
+			phy_term_lel = 0;
+		}
 	} else {
 		hdevp->audmeas_clk = clk_get(&pdev->dev, "hdmirx_audmeas_clk");
 		if (IS_ERR(hdevp->audmeas_clk))
@@ -2444,7 +2470,10 @@ static int hdmirx_probe(struct platform_device *pdev)
 	if (ret != 0)
 		rx_pr("warning: no rev cmd mem\n");
 	rx_emp_resource_allocate(&(pdev->dev));
+	aml_phy_get_trim_val();
 	hdmirx_hw_probe();
+	if ((rx.chip_id >= CHIP_ID_TL1) && phy_tdr_en)
+		term_cal_en = (!is_ft_trim_done());
 	hdmirx_init_params();
 	hdmirx_switch_pinmux(&(pdev->dev));
 #ifdef CONFIG_AMLOGIC_LEGACY_EARLY_SUSPEND

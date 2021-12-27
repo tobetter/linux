@@ -91,7 +91,7 @@ static unsigned int clk_config;
    &2: always reload firmware.
    &4: vdec canvas debug enable
   */
-static unsigned int debug;
+static unsigned int debug = 2;
 
 static int hevc_max_reset_count;
 
@@ -191,6 +191,43 @@ static const char * const vdec_status_string[] = {
 };
 
 static int debugflags;
+
+static char vfm_path[VDEC_MAP_NAME_SIZE] = {"disable"};
+static const char vfm_path_node[][VDEC_MAP_NAME_SIZE] =
+{
+	"video_render.0",
+	"video_render.1",
+	"amvideo",
+	"videopip",
+	"deinterlace",
+	"dimulti.1",
+	"amlvideo",
+	"aml_video.1",
+	"amlvideo2.0",
+	"amlvideo2.1",
+	"ppmgr",
+	"ionvideo",
+	"ionvideo.1",
+	"ionvideo.2",
+	"ionvideo.3",
+	"ionvideo.4",
+	"ionvideo.5",
+	"ionvideo.6",
+	"ionvideo.7",
+	"ionvideo.8",
+	"videosync.0",
+	"v4lvideo.0",
+	"v4lvideo.1",
+	"v4lvideo.2",
+	"v4lvideo.3",
+	"v4lvideo.4",
+	"v4lvideo.5",
+	"v4lvideo.6",
+	"v4lvideo.7",
+	"v4lvideo.8",
+	"disable",
+	"reserved",
+};
 
 static struct canvas_status_s canvas_stat[AMVDEC_CANVAS_MAX1 - AMVDEC_CANVAS_START_INDEX + 1 + AMVDEC_CANVAS_MAX2 + 1];
 
@@ -2142,7 +2179,14 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 
 			goto error;
 		}
-		if (p->frame_base_video_path == FRAME_BASE_PATH_IONVIDEO) {
+
+		if (strncmp("disable", vfm_path, strlen("disable"))) {
+			snprintf(vdec->vfm_map_chain, VDEC_MAP_NAME_SIZE,
+				"%s %s", vdec->vf_provider_name, vfm_path);
+			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
+				"vdec-map-%d", vdec->id);
+#ifdef CONFIG_AMLOGIC_IONVIDEO
+		} else if (p->frame_base_video_path == FRAME_BASE_PATH_IONVIDEO) {
 #if 1
 			r = ionvideo_assign_map(&vdec->vf_receiver_name,
 					&vdec->vf_receiver_inst);
@@ -2173,6 +2217,7 @@ s32 vdec_init(struct vdec_s *vdec, int is_4k)
 				vdec->vf_receiver_name);
 			snprintf(vdec->vfm_map_id, VDEC_MAP_NAME_SIZE,
 				"vdec-map-%d", vdec->id);
+#endif
 		} else if (p->frame_base_video_path ==
 				FRAME_BASE_PATH_AMLVIDEO_AMVIDEO) {
 			if (vdec_secure(vdec)) {
@@ -3744,7 +3789,7 @@ void vdec_reset_core(struct vdec_s *vdec)
 	 */
 	if ((get_cpu_major_id() >= AM_MESON_CPU_MAJOR_ID_SM1) &&
 		(get_cpu_major_id() != AM_MESON_CPU_MAJOR_ID_TL1)) {
-		WRITE_VREG(DOS_SW_RESET0, (1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9));
+		WRITE_VREG(DOS_SW_RESET0, (1<<3)|(1<<4)|(1<<5)|(1<<7)|(1<<8)|(1<<9));
 	} else {
 		WRITE_VREG(DOS_SW_RESET0,
 			(1<<3)|(1<<4)|(1<<5));
@@ -4249,6 +4294,79 @@ static ssize_t show_debug(struct class *class,
 
 }
 #endif
+
+static ssize_t store_vdec_vfm_path(struct class *class,
+		 struct class_attribute *attr,
+		 const char *buf, size_t count)
+{
+	char *buf_dup, *ps, *token;
+	char str[VDEC_MAP_NAME_SIZE] = "\0";
+	bool found = false;
+	int i;
+
+	if (strlen(buf) >= VDEC_MAP_NAME_SIZE) {
+		pr_info("parameter is overflow\n");
+		return -1;
+	}
+
+	buf_dup = kstrdup(buf, GFP_KERNEL);
+	ps = buf_dup;
+	while (1) {
+		token = strsep(&ps, "\n ");
+		if (token == NULL)
+			break;
+		if (*token == '\0')
+			continue;
+
+		for (i = 0; strcmp("reserved", vfm_path_node[i]) != 0; i++) {
+			if (!strncmp (vfm_path_node[i], token, strlen(vfm_path_node[i]))) {
+			        break;
+			}
+		}
+
+		if (strcmp("reserved", vfm_path_node[i]) == 0 ||
+			strncmp("help", buf, strlen("help")) == 0) {
+			if (strncmp("help", buf, strlen("help")) != 0) {
+				pr_info("warnning! Input parameter is invalid. set failed!\n");
+			}
+			pr_info("\nusage for example: \n");
+			pr_info("echo help > /sys/class/vdec/vfm_path \n");
+			pr_info("echo disable > /sys/class/vdec/vfm_path \n");
+			pr_info("echo amlvideo ppmgr amvideo > /sys/class/vdec/vfm_path \n");
+			found = false;
+
+			break;
+		} else {
+			strcat(str, vfm_path_node[i]);
+			strcat(str, " ");
+			found = true;
+		}
+	}
+
+	if (found == true) {
+		memset(vfm_path, 0, sizeof(vfm_path));
+		strncpy(vfm_path, str, strlen(str));
+		vfm_path[VDEC_MAP_NAME_SIZE - 1] = '\0';
+		pr_info("cfg path success: decoder %s\n", vfm_path);
+	}
+	kfree(buf_dup);
+
+	return count;
+}
+
+static ssize_t show_vdec_vfm_path(struct class *class,
+	struct class_attribute *attr, char *buf)
+{
+	int len = 0;
+	int i;
+	len += sprintf(buf + len, "cfg vfm path: decoder %s\n", vfm_path);
+	len += sprintf(buf + len, "\nvfm path node list: \n");
+	for (i = 0; strcmp("reserved", vfm_path_node[i]) != 0; i++) {
+		len += sprintf(buf + len, "\t%s \n", vfm_path_node[i]);
+	}
+
+	return len;
+}
 
 /*irq num as same as .dts*/
 /*
@@ -4755,6 +4873,8 @@ static struct class_attribute vdec_class_attrs[] = {
 	frame_check_show, frame_check_store),
 #endif
 	__ATTR_RO(dump_fps),
+	__ATTR(vfm_path, S_IRUGO | S_IWUSR | S_IWGRP,
+	show_vdec_vfm_path, store_vdec_vfm_path),
 	__ATTR_NULL
 };
 

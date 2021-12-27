@@ -65,6 +65,8 @@ static bool scaler_pos_reset;
 #endif
 
 static struct ppmgr_dev_reg_s ppmgr_dev_reg;
+int ppmgr_secure_debug;
+int ppmgr_secure_mode;
 
 enum platform_type_t get_platform_type(void)
 {
@@ -242,7 +244,8 @@ static int parse_para(const char *para, int para_num, int *result)
 	char *token = NULL;
 	char *params, *params_base;
 	int *out = result;
-	int len = 0, count = 0;
+	ssize_t len;
+	int count = 0;
 	int res = 0;
 	int ret = 0;
 
@@ -490,27 +493,152 @@ static ssize_t debug_first_frame_write(struct class *cla,
 	return count;
 }
 
-static ssize_t debug_10bit_frame_read(struct class *cla,
-		struct class_attribute *attr, char *buf)
+static ssize_t debug_ppmgr_flag_read(struct class *cla,
+				     struct class_attribute *attr, char *buf)
 {
 	return snprintf(buf,
 		80,
-		"current debug_10bit_frame is %d\n",
-		ppmgr_device.debug_10bit_frame);
+		"debug_ppmgr_flag %d\n",
+		ppmgr_device.debug_ppmgr_flag);
 }
 
-static ssize_t debug_10bit_frame_write(struct class *cla,
-		struct class_attribute *attr, const char *buf, size_t count)
+static ssize_t debug_ppmgr_flag_write(struct class *cla,
+				      struct class_attribute *attr,
+				      const char *buf, size_t count)
 {
 	long tmp;
 
 	int ret = kstrtol(buf, 0, &tmp);
 
 	if (ret != 0) {
-		PPMGRDRV_ERR("ERROR converting %s to long int!\n", buf);
+		PPMGRDRV_ERR("ERROR %s debug_ppmgr_flag\n", buf);
 		return ret;
 	}
-	ppmgr_device.debug_10bit_frame = tmp;
+	ppmgr_device.debug_ppmgr_flag = tmp;
+	return count;
+}
+
+static ssize_t get_count_read(struct class *cla,
+			      struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf,
+		80,
+		"get_count %d\n",
+		ppmgr_device.get_count);
+}
+
+static ssize_t get_count_write(struct class *cla,
+			       struct class_attribute *attr,
+			       const char *buf, size_t count)
+{
+	long tmp;
+
+	int ret = kstrtol(buf, 0, &tmp);
+
+	if (ret != 0) {
+		PPMGRDRV_ERR("ERROR %s  get_count\n", buf);
+		return ret;
+	}
+	ppmgr_device.get_count = tmp;
+	return count;
+}
+
+static ssize_t put_count_read(struct class *cla,
+			      struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf,
+		80,
+		"get_count %d\n",
+		ppmgr_device.put_count);
+}
+
+static ssize_t put_count_write(struct class *cla,
+			       struct class_attribute *attr,
+			       const char *buf, size_t count)
+{
+	long tmp;
+
+	int ret = kstrtol(buf, 0, &tmp);
+
+	if (ret != 0) {
+		PPMGRDRV_ERR("ERROR %s put_count\n", buf);
+		return ret;
+	}
+	ppmgr_device.put_count = tmp;
+	return count;
+}
+
+static ssize_t get_dec_count_read(struct class *cla,
+				  struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf,
+		80,
+		"get_dec_count %d\n",
+		ppmgr_device.get_dec_count);
+}
+
+static ssize_t get_dec_count_write(struct class *cla,
+				   struct class_attribute *attr,
+				   const char *buf, size_t count)
+{
+	long tmp;
+
+	int ret = kstrtol(buf, 0, &tmp);
+
+	if (ret != 0) {
+		PPMGRDRV_ERR("ERROR %s get_dec_count\n", buf);
+		return ret;
+	}
+	return count;
+}
+
+static ssize_t put_dec_count_read(struct class *cla,
+				  struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf,
+		80,
+		"put_dec_count %d\n",
+		ppmgr_device.put_dec_count);
+}
+
+static ssize_t put_dec_count_write(struct class *cla,
+				   struct class_attribute *attr,
+				   const char *buf, size_t count)
+{
+	long tmp;
+
+	int ret = kstrtol(buf, 0, &tmp);
+
+	if (ret != 0) {
+		PPMGRDRV_ERR("ERROR converting %s put_dec_count\n", buf);
+		return ret;
+	}
+	ppmgr_device.put_dec_count = tmp;
+	return count;
+}
+
+static ssize_t peek_dec_read(struct class *cla,
+			     struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf,
+		80,
+		"peek_dec %d\n",
+		ppmgr_device.peek_dec);
+}
+
+static ssize_t peek_dec_write(struct class *cla,
+			      struct class_attribute *attr,
+			      const char *buf, size_t count)
+{
+	long tmp;
+
+	int ret = kstrtol(buf, 0, &tmp);
+
+	if (ret != 0) {
+		PPMGRDRV_ERR("ERROR %s peek_dec\n", buf);
+		return ret;
+	}
+	ppmgr_vf_peek_dec_debug();
 	return count;
 }
 
@@ -530,7 +658,7 @@ static ssize_t rect_write(struct class *cla, struct class_attribute *attr,
 	char *strp = (char *)buf;
 	char *endp = NULL;
 	int value_array[4];
-	static int buflen;
+	static ssize_t buflen;
 	static char *tokenlen;
 	int i;
 	long tmp;
@@ -594,7 +722,14 @@ static ssize_t dump_path_write(struct class *cla, struct class_attribute *attr,
 		PPMGRDRV_INFO("buf kstrdup failed\n");
 		return 0;
 	}
-	strcpy(ppmgr_device.dump_path, tmp);
+	if (strlen(tmp) >= sizeof(ppmgr_device.dump_path) - 1) {
+		memcpy(ppmgr_device.dump_path, tmp,
+		       sizeof(ppmgr_device.dump_path) - 1);
+		ppmgr_device.dump_path[
+			sizeof(ppmgr_device.dump_path) - 1] = '\0';
+	} else {
+		strcpy(ppmgr_device.dump_path, tmp);
+	}
 
 	return count;
 
@@ -630,7 +765,7 @@ static void set_disp_para(const char *para)
 static ssize_t disp_write(struct class *cla, struct class_attribute *attr,
 				const char *buf, size_t count)
 {
-	int buflen;
+	ssize_t buflen;
 
 	buflen = strlen(buf);
 	if (buflen <= 0)
@@ -721,7 +856,7 @@ static ssize_t ppscaler_rect_write(struct class *cla,
 					struct class_attribute *attr,
 					const char *buf, size_t count)
 {
-	int buflen;
+	ssize_t buflen;
 
 	buflen = strlen(buf);
 	if (buflen <= 0)
@@ -934,6 +1069,29 @@ static ssize_t tb_status_read(struct class *cla,
 {
 	get_tb_detect_status();
 	return snprintf(buf, 80, "#################\n");
+}
+
+static ssize_t secure_mode_read(struct class *cla,
+				struct class_attribute *attr, char *buf)
+{
+	return snprintf(buf, 80, "secure_debug is %d secure_mode is %d\n",
+		ppmgr_secure_debug, ppmgr_secure_mode);
+}
+
+static ssize_t secure_mode_write(struct class *cla,
+				 struct class_attribute *attr,
+				 const char *buf, size_t count)
+{
+	int parsed[2];
+
+	if (parse_para(buf, 2, parsed) == 2) {
+		ppmgr_secure_debug = parsed[0];
+		ppmgr_secure_mode = parsed[1];
+	} else {
+		PPMGRDRV_ERR("echo <secure_debug> <secure_mode> > secure_mode");
+		return -1;
+	}
+	return count;
 }
 
 #ifdef CONFIG_AMLOGIC_POST_PROCESS_MANAGER_3D_PROCESS
@@ -1402,10 +1560,35 @@ __ATTR(debug_first_frame,
 	debug_first_frame_read,
 	debug_first_frame_write),
 
-__ATTR(debug_10bit_frame,
+__ATTR(debug_ppmgr_flag,
 	0644,
-	debug_10bit_frame_read,
-	debug_10bit_frame_write),
+	debug_ppmgr_flag_read,
+	debug_ppmgr_flag_write),
+
+__ATTR(get_count,
+	0644,
+	get_count_read,
+	get_count_write),
+
+__ATTR(put_count,
+	0644,
+	put_count_read,
+	put_count_write),
+
+__ATTR(get_dec_count,
+	0644,
+	get_dec_count_read,
+	get_dec_count_write),
+
+__ATTR(put_dec_count,
+	0644,
+	put_dec_count_read,
+	put_dec_count_write),
+
+__ATTR(peek_dec,
+	0644,
+	peek_dec_read,
+	peek_dec_write),
 
 __ATTR(dump_path,
 	0644,
@@ -1516,6 +1699,10 @@ __ATTR(orientation,
 		0644,
 		tb_status_read,
 		NULL),
+	__ATTR(secure_mode,
+	       0644,
+	       secure_mode_read,
+	       secure_mode_write),
 	__ATTR_NULL };
 
 static struct class ppmgr_class = {.name = PPMGR_CLASS_NAME, .class_attrs =
@@ -1566,6 +1753,7 @@ void get_ppmgr_buf_info(unsigned int *start, unsigned int *size)
 	*start = ppmgr_device.buffer_start;
 	*size = ppmgr_device.buffer_size;
 }
+EXPORT_SYMBOL(get_ppmgr_buf_info);
 
 static int ppmgr_open(struct inode *inode, struct file *file)
 {
@@ -1743,7 +1931,14 @@ int init_ppmgr_device(void)
 	ppmgr_device.tb_detect_init_mute = 0;
 	ppmgr_device.ppmgr_debug = 0;
 	ppmgr_device.debug_first_frame = 0;
-	ppmgr_device.debug_10bit_frame = 0;
+	ppmgr_device.debug_ppmgr_flag = 0;
+	ppmgr_device.get_count = 0;
+	ppmgr_device.put_count = 0;
+	ppmgr_device.get_dec_count = 0;
+	ppmgr_device.put_dec_count = 0;
+	sema_init(&ppmgr_device.ppmgr_sem, 1);
+	sema_init(&ppmgr_device.tb_sem, 1);
+
 	PPMGRDRV_INFO("ppmgr_dev major:%d\n", ret);
 
 	ppmgr_device.cla = init_ppmgr_cls();

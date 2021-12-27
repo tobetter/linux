@@ -201,28 +201,22 @@ u32 vlock_get_panel_pll_frac(void)
 
 void vlock_set_panel_pll_m(u32 val)
 {
-#if defined(CONFIG_AMLOGIC_LCD)
 	u32 m = val;
-#endif
+
 	if (vlock.dtdata->vlk_pll_sel == vlock_pll_sel_hdmi)
 		amvecm_hiu_reg_write(HHI_HDMI_PLL_CNTL, val);
-#if defined(CONFIG_AMLOGIC_LCD)
 	else
 		lcd_vlock_m_update(m);
-#endif
 }
 
 void vlock_set_panel_pll_frac(u32 val)
 {
-#if defined(CONFIG_AMLOGIC_LCD)
 	u32 frac = val;
-#endif
+
 	if (vlock.dtdata->vlk_pll_sel == vlock_pll_sel_hdmi)
 		amvecm_hiu_reg_write(HHI_HDMI_PLL_CNTL2, val);
-#if defined(CONFIG_AMLOGIC_LCD)
 	else
 		lcd_vlock_farc_update(frac);
-#endif
 }
 
 void vlock_set_panel_pll(u32 m, u32 frac)
@@ -233,12 +227,10 @@ void vlock_set_panel_pll(u32 m, u32 frac)
 
 void vlock_set_panel_ss(u32 onoff)
 {
-#if defined(CONFIG_AMLOGIC_LCD)
 	if (onoff)
 		lcd_ss_enable(1);
 	else
 		lcd_ss_enable(0);
-#endif
 }
 
 static unsigned int vlock_check_input_hz(struct vframe_s *vf)
@@ -1768,8 +1760,8 @@ void vlock_status_init(void)
 	/*enc mode initial val*/
 	pre_enc_max_line = READ_VPP_REG(enc_max_line_addr);
 	pre_enc_max_pixel = READ_VPP_REG(enc_max_pixel_addr);
-	pr_info("vlock: maxLine %d,maxPixel %d\n",
-		pre_enc_max_line, pre_enc_max_pixel);
+	//pr_info("vlock: maxLine %d,maxPixel %d\n",
+	//pre_enc_max_line, pre_enc_max_pixel);
 	vlock.fsm_sts = VLOCK_STATE_NULL;
 	vlock.fsm_prests = VLOCK_STATE_NULL;
 	vlock.vf_sts = false;
@@ -1792,10 +1784,10 @@ void vlock_dt_match_init(struct vecm_match_data_s *pdata)
 {
 	vlock.dtdata = pdata;
 	/*vlock_en = vlock.dtdata.vlk_support;*/
-	pr_info("vlock dt support: %d\n", vlock.dtdata->vlk_support);
-	pr_info("vlock dt new_fsm: %d\n", vlock.dtdata->vlk_new_fsm);
-	pr_info("vlock dt hwver: %d\n", vlock.dtdata->vlk_hwver);
-	pr_info("vlock dt phlock_en: %d\n", vlock.dtdata->vlk_phlock_en);
+	// pr_info("vlock dt support: %d\n", vlock.dtdata->vlk_support);
+	// pr_info("vlock dt new_fsm: %d\n", vlock.dtdata->vlk_new_fsm);
+	// pr_info("vlock dt hwver: %d\n", vlock.dtdata->vlk_hwver);
+	// pr_info("vlock dt phlock_en: %d\n", vlock.dtdata->vlk_phlock_en);
 }
 
 void vlock_set_phase(u32 percent)
@@ -2648,25 +2640,17 @@ void vlock_param_config(struct device_node *node)
 	int ret;
 
 	ret = of_property_read_u32(node, "vlock_en", &val);
-	if (ret)
-		pr_info("Can't find  vlock_en.\n");
-	else
+	if (!ret)
 		vlock_en = val;
 	ret = of_property_read_u32(node, "vlock_mode", &val);
-	if (ret)
-		pr_info("Can't find  vlock_mode.\n");
-	else
+	if (!ret)
 		vlock_mode = val;
 	ret = of_property_read_u32(node, "vlock_pll_m_limit", &val);
-	if (ret)
-		pr_info("Can't find  vlock_pll_m_limit.\n");
-	else
+	if (!ret)
 		vlock_pll_m_limit = val;
 
 	ret = of_property_read_u32(node, "vlock_line_limit", &val);
-	if (ret)
-		pr_info("Can't find  vlock_line_limit.\n");
-	else
+	if (!ret)
 		vlock_line_limit = val;
 
 #ifdef CONFIG_AMLOGIC_LCD
@@ -2678,7 +2662,7 @@ void vlock_param_config(struct device_node *node)
 		vlock_mode &= ~VLOCK_MODE_MANUAL_MIX_PLL_ENC;
 		vlock_mode |= VLOCK_MODE_MANUAL_PLL;
 	}
-	pr_info("param_config vlock_en:%d md=0x%x\n", vlock_en, vlock_mode);
+
 }
 
 int vlock_notify_callback(struct notifier_block *block, unsigned long cmd,

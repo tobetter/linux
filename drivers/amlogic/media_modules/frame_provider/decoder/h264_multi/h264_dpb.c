@@ -1057,14 +1057,14 @@ static void init_picture(struct h264_dpb_stru *p_H264_Dpb,
 			currSlice->picture_structure_mmco);
 	}
 
-	if (currSlice->pic_struct >= 3)
-		dec_picture->pic_struct = currSlice->pic_struct + 2;
-	else if (currSlice->pic_struct == 1)
-		dec_picture->pic_struct = PIC_TOP_BOT;
-	else if (currSlice->pic_struct >= 2)
-		dec_picture->pic_struct = PIC_BOT_TOP;
-	else
+	if (currSlice->pic_struct < PIC_INVALID) {
+		dec_picture->pic_struct = currSlice->pic_struct;
+	} else {
 		dec_picture->pic_struct = PIC_INVALID;
+	}
+
+	dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
+			  "%s pic_struct = %d\n", __func__, dec_picture->pic_struct);
 }
 
 void dump_pic(struct h264_dpb_stru *p_H264_Dpb)
@@ -2238,16 +2238,19 @@ int output_frames(struct h264_dpb_stru *p_H264_Dpb, unsigned char flush_flag)
 				(!p_Dpb->fs[i]->pre_output) &&((p_Dpb->fs[i]->is_used == 3
 				||p_Dpb->fs[i]->data_flag & ERROR_FLAG )))  {
 				none_displayed_num++;
-				if ((p_H264_Dpb->first_insert_frame == FirstInsertFrm_IDLE)
+				if ((p_H264_Dpb->first_insert_frame == FirstInsertFrm_IDLE ||
+					p_H264_Dpb->first_insert_frame == FirstInsertFrm_RESET)
 					&&  (p_Dpb->fs[i]->is_used == 3)
 					&& (p_Dpb->last_output_poc == INT_MIN)) {
+					if (p_H264_Dpb->first_insert_frame == FirstInsertFrm_IDLE)
+						fast_output_flag = 1;
 					p_H264_Dpb->first_insert_frame = FirstInsertFrm_OUT;
 					p_H264_Dpb->first_output_poc = p_Dpb->fs[i]->poc;
-					fast_output_flag = 1;
 					dpb_print(p_H264_Dpb->decoder_index, PRINT_FLAG_DPB_DETAIL,
 						"%s first insert frame i %d  poc %d frame_num %x\n",
 						__func__, i, p_Dpb->fs[i]->poc,  p_Dpb->fs[i]->frame_num);
 				}
+
 				/*check poc even/odd*/
 				if (p_H264_Dpb->poc_even_odd_flag == 0 &&
 					p_H264_Dpb->decode_pic_count >= 3)

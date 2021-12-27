@@ -30,11 +30,6 @@
 #define DSC_DEV_COUNT     2
 #define FE_DEV_COUNT 	  2
 
-struct aml_tuner {
-	struct tuner_config cfg;
-	unsigned int i2c_adapter_id;
-	struct i2c_adapter *i2c_adp;
-};
 
 struct aml_dvb {
 	struct dvb_device    dvb_dev;

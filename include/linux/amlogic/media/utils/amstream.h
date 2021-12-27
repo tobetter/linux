@@ -94,6 +94,12 @@
 #define AMSTREAM_IOC_CLEAR_VIDEOPIP _IOW((_A_M), 0x24, int)
 #define AMSTREAM_IOC_CLEAR_PIP_VBUF _IO((_A_M), 0x25)
 
+#define AMSTREAM_IOC_GET_DISPLAYPATH  _IOW((_A_M), 0x26, int)
+#define AMSTREAM_IOC_SET_DISPLAYPATH  _IOW((_A_M), 0x27, int)
+
+#define AMSTREAM_IOC_GET_PIP_DISPLAYPATH  _IOW((_A_M), 0x28, int)
+#define AMSTREAM_IOC_SET_PIP_DISPLAYPATH  _IOW((_A_M), 0x29, int)
+
 #define AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT  _IOR((_A_M), 0x2b, int)
 #define AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT  _IOW((_A_M), 0x2c, int)
 #define AMSTREAM_IOC_GET_VIDEOPIP_DISABLE  _IOR((_A_M), 0x2d, int)
@@ -224,13 +230,14 @@
 #define AMSTREAM_IOC_SET_PTR _IOW((_A_M), 0xc6, struct am_ioctl_parm_ptr)
 #define AMSTREAM_IOC_GET_AVINFO _IOR((_A_M), 0xc7, struct av_param_info_t)
 #define AMSTREAM_IOC_GET_QOSINFO _IOR((_A_M), 0xc8, struct av_param_qosinfo_t)
-
 #define AMSTREAM_IOC_SET_CRC _IOW((_A_M), 0xc9, struct usr_crc_info_t)
 #define AMSTREAM_IOC_GET_CRC_CMP_RESULT _IOWR((_A_M), 0xca, int)
+#define AMSTREAM_IOC_GET_MVDECINFO _IOR((_A_M), 0xcb, int)
 
 
 #define TRICKMODE_NONE       0x00
 #define TRICKMODE_I          0x01
+#define TRICKMODE_I_HEVC     0x07
 #define TRICKMODE_FFFB       0x02
 
 #define TRICK_STAT_DONE     0x01
@@ -272,6 +279,8 @@ enum FRAME_BASE_VIDEO_PATH {
 	FRAME_BASE_PATH_V4L_VIDEO,
 	FRAME_BASE_PATH_TUNNEL_MODE,
 	FRAME_BASE_PATH_V4L_OSD,
+	FRAME_BASE_PATH_DI_V4LVIDEO,
+	FRAME_BASE_PATH_PIP_TUNNEL_MODE,
 	FRAME_BASE_PATH_MAX
 };
 
@@ -307,6 +316,9 @@ struct buf_status {
 #define DECODER_FATAL_ERROR_NO_MEM		(0x400<<16)
 
 #define DECODER_ERROR_MASK	(0xffff<<16)
+/* The total slot number for fifo_buf */
+#define NUM_FRAME_VDEC  128  //This must be 2^n
+#define QOS_FRAME_NUM 8
 
 
 enum E_ASPECT_RATIO {
@@ -705,10 +717,10 @@ struct am_ioctl_parm_ptr {
 };
 
 struct vframe_qos_s {
-	int num;
-	int type;
-	int size;
-	int pts;
+	u32 num;
+	u32 type;
+	u32 size;
+	u32 pts;
 	int max_qp;
 	int avg_qp;
 	int min_qp;
@@ -718,8 +730,50 @@ struct vframe_qos_s {
 	int max_mv;
 	int min_mv;
 	int avg_mv;
-	int decode_buffer;
+	int decode_buffer;//For padding currently
 } /*vframe_qos */;
+
+
+struct vframe_comm_s {
+	int vdec_id;
+	char vdec_name[16];
+	u32 vdec_type;
+};
+
+
+struct vframe_counter_s {
+	struct vframe_qos_s qos;
+	u32  decode_time_cost;/*us*/
+	u32 frame_width;
+	u32 frame_height;
+	u32 frame_rate;
+	u32 bit_depth_luma;//original bit_rate;
+	u32 frame_dur;
+	u32 bit_depth_chroma;//original frame_data;
+	u32 error_count;
+	u32 status;
+	u32 frame_count;
+	u32 error_frame_count;
+	u32 drop_frame_count;
+	u64 total_data;//this member must be 8 bytes alignment
+	u32 double_write_mode;//original samp_cnt;
+	u32 offset;
+	u32 ratio_control;
+	u32 vf_type;
+	u32 signal_type;
+	u32 pts;
+	u64 pts_us64;
+};
+
+struct vdec_frames_s {
+	u64 hw_decode_start;
+	u64 hw_decode_time;
+	u32 frame_size;
+	u32 rd;
+	u32 wr;
+	struct vframe_comm_s comm;
+	struct vframe_counter_s fifo_buf[NUM_FRAME_VDEC];
+};
 
 enum FRAME_FORMAT {
 	FRAME_FORMAT_UNKNOWN,
@@ -727,7 +781,7 @@ enum FRAME_FORMAT {
 	FRAME_FORMAT_INTERLACE,
 };
 
-#define QOS_FRAME_NUM 60
+
 struct av_info_t {
 	/*auido info*/
 	int sample_rate;
@@ -760,6 +814,25 @@ struct av_param_info_t {
 };
 struct av_param_qosinfo_t {
 	struct vframe_qos_s vframe_qos[QOS_FRAME_NUM];
+};
+
+/*This is a versioning structure, the key member is the struct_size.
+ *In the 1st version it is not used,but will have its role in fureture.
+ *https://bytes.com/topic/c/answers/811125-struct-versioning
+ */
+struct av_param_mvdec_t {
+	int vdec_id;
+
+	/*This member is used for versioning this structure.
+	 *When passed from userspace, its value must be
+	 *sizeof(struct av_param_mvdec_t)
+	 */
+	int struct_size;
+
+	int slots;
+
+	struct vframe_comm_s comm;
+	struct vframe_counter_s minfo[QOS_FRAME_NUM];
 };
 
 #define SUPPORT_VDEC_NUM	(64)

@@ -53,16 +53,6 @@
 */
 #define IGNORE_PARAM_FROM_CONFIG      0x8000000
 
-
-#define PIC_SINGLE_FRAME			0
-#define PIC_TOP_BOT_TOP				1
-#define PIC_BOT_TOP_BOT				2
-#define PIC_DOUBLE_FRAME			3
-#define PIC_TRIPLE_FRAME			4
-#define PIC_TOP_BOT					5
-#define PIC_BOT_TOP					6
-#define PIC_INVALID					7
-
 #define MVC_EXTENSION_ENABLE 0
 #define PRINTREFLIST  0
 
@@ -430,6 +420,19 @@ enum PictureStructure {
 	BOTTOM_FIELD
 };
 
+typedef enum {
+	PIC_SINGLE_FRAME = 0,
+	PIC_TOP,
+	PIC_BOT,
+	PIC_TOP_BOT,
+	PIC_BOT_TOP,
+	PIC_TOP_BOT_TOP = 5,
+	PIC_BOT_TOP_BOT,
+	PIC_DOUBLE_FRAME,
+	PIC_TRIPLE_FRAME,
+	PIC_INVALID,
+} PicStruct_E;
+
 #define I_Slice                               2
 #define P_Slice                               5
 #define B_Slice                               6
@@ -462,7 +465,8 @@ enum ProfileIDC {
 enum FirstInsertFrm_State {
 	FirstInsertFrm_IDLE = 0,
 	FirstInsertFrm_OUT = 1,
-	FirstInsertFrm_SKIPDONE = 2,
+	FirstInsertFrm_RESET = 2,
+	FirstInsertFrm_SKIPDONE = 3,
 };
 
 

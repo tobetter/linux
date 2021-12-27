@@ -306,8 +306,23 @@ static void lcd_lvds_control_set(struct lcd_config_s *pconf)
 	switch (lcd_drv->data->chip_type) {
 	case LCD_CHIP_TL1:
 	case LCD_CHIP_TM2:
-		lcd_vcbus_write(P2P_CH_SWAP0, 0x76543210);
-		lcd_vcbus_write(P2P_CH_SWAP1, 0xba98);
+		if (port_swap) {
+			if (lane_reverse) {
+				lcd_vcbus_write(P2P_CH_SWAP0, 0x456789ab);
+				lcd_vcbus_write(P2P_CH_SWAP1, 0x0123);
+			} else {
+				lcd_vcbus_write(P2P_CH_SWAP0, 0x10ba9876);
+				lcd_vcbus_write(P2P_CH_SWAP1, 0x5432);
+			}
+		} else {
+			if (lane_reverse) {
+				lcd_vcbus_write(P2P_CH_SWAP0, 0xab012345);
+				lcd_vcbus_write(P2P_CH_SWAP1, 0x6789);
+			} else {
+				lcd_vcbus_write(P2P_CH_SWAP0, 0x76543210);
+				lcd_vcbus_write(P2P_CH_SWAP1, 0xba98);
+			}
+		}
 		break;
 	default:
 		lcd_vcbus_setb(LCD_PORT_SWAP, port_swap, 12, 1);
@@ -761,7 +776,8 @@ void lcd_vbyone_interrupt_enable(int flag)
 			lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0, 0, 9);
 
 			/* set hold in FSM_ACQ */
-			if (vx1_conf->vsync_intr_en == 3)
+			if ((vx1_conf->vsync_intr_en == 3) |
+				(vx1_conf->vsync_intr_en == 4))
 				lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0, 0, 16);
 			else
 				lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0xffff, 0, 16);
@@ -774,7 +790,8 @@ void lcd_vbyone_interrupt_enable(int flag)
 			if (vx1_conf->vsync_intr_en) {
 				/* keep holder for vsync monitor enabled */
 				/* set hold in FSM_ACQ */
-				if (vx1_conf->vsync_intr_en == 3)
+				if ((vx1_conf->vsync_intr_en == 3) |
+					(vx1_conf->vsync_intr_en == 4))
 					lcd_vcbus_setb(VBO_FSM_HOLDER_L,
 						0, 0, 16);
 				else
@@ -812,10 +829,11 @@ static void lcd_vbyone_interrupt_init(struct aml_lcd_drv_s *lcd_drv)
 	lcd_vbyone_hw_filter(1);
 
 	/* set hold in FSM_ACQ */
-	if (vx1_conf->vsync_intr_en == 3)
+	if ((vx1_conf->vsync_intr_en == 3) |
+		(vx1_conf->vsync_intr_en == 4))
 		lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0, 0, 16);
 	else
-	lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0xffff, 0, 16);
+		lcd_vcbus_setb(VBO_FSM_HOLDER_L, 0xffff, 0, 16);
 	/* set hold in FSM_CDR */
 	lcd_vcbus_setb(VBO_FSM_HOLDER_H, 0, 0, 16);
 	/* not wait lockn to 1 in FSM_ACQ */
@@ -1040,7 +1058,27 @@ static irqreturn_t lcd_vbyone_vsync_isr(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	if (vx1_conf->vsync_intr_en == 3) {
+	if (vx1_conf->vsync_intr_en == 4) {
+		if (vsync_cnt == 3) {
+			lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0x3ff, 0, 10);
+			lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0, 0, 10);
+			vsync_cnt++;
+		} else if (vsync_cnt >= 5) {
+			vsync_cnt = 0;
+			if ((lcd_vcbus_read(VBO_INTR_STATE) & 0x40)) {
+				lcd_vbyone_hw_filter(0);
+				lcd_vbyone_sw_reset();
+				LCDPR("vx1 sw_reset 4\n");
+				while (lcd_vcbus_read(VBO_STATUS_L) & 0x4)
+					break;
+				lcd_vcbus_setb(VBO_INTR_STATE_CTRL,
+					       0x3ff, 0, 10);
+				lcd_vcbus_setb(VBO_INTR_STATE_CTRL, 0, 0, 10);
+				lcd_vbyone_hw_filter(1);
+			}
+		} else
+			vsync_cnt++;
+	} else if (vx1_conf->vsync_intr_en == 3) {
 		if (vsync_cnt < VSYNC_CNT_VX1_RESET)
 			vsync_cnt++;
 		else if (vsync_cnt == VSYNC_CNT_VX1_RESET) {
@@ -1115,6 +1153,9 @@ static irqreturn_t lcd_vbyone_interrupt_handler(int irq, void *dev_id)
 	struct vbyone_config_s *vx1_conf;
 
 	vx1_conf = lcd_drv->lcd_config->lcd_control.vbyone_config;
+	if ((vx1_conf->vsync_intr_en == 2) |
+		(vx1_conf->vsync_intr_en == 4))
+		return IRQ_HANDLED;
 
 	lcd_vcbus_write(VBO_INTR_UNMASK, 0x0);  /* mask interrupt */
 

@@ -14,7 +14,7 @@
  * more details.
  *
  */
-
+#define SKIP_IO_TRACE
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>

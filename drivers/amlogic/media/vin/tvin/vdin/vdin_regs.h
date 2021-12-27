@@ -630,11 +630,25 @@
 /* Bit 3:2 vshrk_clk2_ctrl */
 /* Bit 1:0 vshrk_clk1_ctrl */
 #define VDIN_COM_GCLK_CTRL2      ((0x1270))/* + 0xd0100000) */
-/* Bit 27 vshrk_en */
-/* Bit 26:25 vshrk_mode */
-/* Bit 24 vshrk_lpf_mode */
-/* Bit 23:0 vshrk_dummy */
+
+/* Bit 30 hshrk en(tm2 new add)
+ * Bit 27 vshrk_en
+ * Bit 26:25 vshrk_mode
+ * Bit 24 vshrk_lpf_mode
+ * Bit 23:0 vshrk_dummy
+ */
 #define VDIN_VSHRK_CTRL          ((0x1271))/* + 0xd0100000) */
+#define VDIN_VSHRK_EN_BIT	27
+#define VDIN_VSHRK_EN_WID	1
+#define VDIN_VSHRK_LPF_MODE_BIT	24
+#define VDIN_VSHRK_LPF_MODE_WID	1
+#define VDIN_VSHRK_MODE_BIT	25
+#define VDIN_VSHRK_MODE_WID	2
+#define VDIN_HSHRK_EN_BIT	30
+#define VDIN_HSHRK_EN_WID	1
+#define VDIN_VSHRK_DYMMY_BIT	0
+#define VDIN_VSHRK_DYMMY_WID	24
+
 #define VDIN_DNLP_HIST32         ((0x1272))/* + 0xd0100000) */
 /* Read only */
 /* Bit 7, vdi9 fifo overflow */
@@ -732,6 +746,23 @@
 #define HSK_MD_WID	7
 #define HSK_HSIZE_IN_BIT	0
 #define HSK_HSIZE_IN_WID	13
+
+#define HSK_COEF_0	0x12f0
+#define HSK_COEF_1	0x12f1
+#define HSK_COEF_2	0x12f2
+#define HSK_COEF_3	0x12f3
+#define HSK_COEF_4	0x12f4
+#define HSK_COEF_5	0x12f5
+#define HSK_COEF_6	0x12f6
+#define HSK_COEF_7	0x12f7
+#define HSK_COEF_8	0x12f8
+#define HSK_COEF_9	0x12f9
+#define HSK_COEF_10	0x12fa
+#define HSK_COEF_11	0x12fb
+#define HSK_COEF_12	0x12fc
+#define HSK_COEF_13	0x12fd
+#define HSK_COEF_14	0x12fe
+#define HSK_COEF_15	0x12ff
 
 #define VDIN2_WR_CTRL	0x4101
 #define VDIN2_WR_CVS_ADDR_BIT	0
@@ -1833,26 +1864,10 @@
 #define VDI6_ASFIFO_CTRL_BIT            0
 #define VDI6_ASFIFO_CTRL_WID            8
 
-#define VDIN_VSHRK_EN_BIT	27
-#define VDIN_VSHRK_EN_WID	1
-#define VDIN_VSHRK_LPF_MODE_BIT	24
-#define VDIN_VSHRK_LPF_MODE_WID	1
-#define VDIN_VSHRK_MODE_BIT	25
-#define VDIN_VSHRK_MODE_WID	2
-
 /* Bit 3:2 vshrk_clk2_ctrl */
 /* Bit 1:0 vshrk_clk1_ctrl */
 /* #define VDIN_COM_GCLK_CTRL2    ((0x1270  << 2) + 0xd0100000) */
-/* Bit 27 vshrk_en */
-/* Bit 26:25 vshrk_mode */
-/* Bit 24 vshrk_lpf_mode */
-/* Bit 23:0 vshrk_dummy */
-/* #define VDIN_VSHRK_CTRL    ((0x1271  << 2) + 0xd0100000) */
 /* #define VDIN_DNLP_HIST32    ((0x1272  << 2) + 0xd0100000) */
-/* Read only */
-/* Bit 7, vdi9 fifo overflow */
-/* Bit 5:0, vdi9_asfifo_cnt */
-/* #define VDIN_COM_STATUS3    ((0x1273  << 2) + 0xd0100000) */
 
 #define VDIN_FORCEGOLINE_EN_BIT		28
 #define VDIN_WRREQUEST_EN_BT		8

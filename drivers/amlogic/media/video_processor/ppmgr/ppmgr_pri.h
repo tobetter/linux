@@ -34,7 +34,7 @@ extern void set_ppmgr_buf_info(unsigned int start, unsigned int size);
 extern void get_ppmgr_buf_info(unsigned int *start, unsigned int *size);
 
 /*  ppmgr buffer op. */
-extern int ppmgr_buffer_init(int vout_mode);
+extern int ppmgr_buffer_init(int vout_mode, int secure_mode);
 extern int ppmgr_buffer_uninit(void);
 extern void vf_ppmgr_reset(int type);
 extern int ppmgr_register(void);
@@ -43,5 +43,6 @@ extern int ppmgr_register(void);
 extern int start_tb_task(void);
 extern void stop_tb_task(void);
 extern void get_tb_detect_status(void);
+void ppmgr_vf_peek_dec_debug(void);
 
 #endif /* _PPMGR_PRI_INCLUDE__ */

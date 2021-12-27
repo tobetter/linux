@@ -840,10 +840,10 @@ struct di_buf_s *dim_get_buf(unsigned int channel, int queue_idx,
 
 	if (dimp_get(eDI_MP_di_log_flag) & DI_LOG_QUEUE) {
 		if (di_buf)
-			dim_print("%s: %x(%d,%d)\n", __func__, di_buf,
+			dim_print("%s: 0x%p(%d,%d)\n", __func__, di_buf,
 				  pool_idx, di_buf_idx);
 		else
-			dim_print("%s: %x\n", __func__, di_buf);
+			dim_print("%s: 0x%p\n", __func__, di_buf);
 	}
 
 	return di_buf;
@@ -4445,14 +4445,14 @@ int dim_check_recycle_buf(unsigned int channel)
 					pw_vf_notify_provider(channel,
 						VFRAME_EVENT_RECEIVER_PUT,
 						NULL);
-			dim_print(
-				"%s: ch[%d],vf_put(%d) %x, %u ms\n",
-				__func__,
-				channel,
-				ppre->recycle_seq,
-				pvframe_in[di_buf->index],
-				jiffies_to_msecs(jiffies_64 -
-				pvframe_in[di_buf->index]->ready_jiffies64));
+					dim_print(
+						  "%sch[%d]vfpt(%d)0x%p,%ums\n",
+						  __func__, channel,
+						  ppre->recycle_seq,
+						  pvframe_in[di_buf->index],
+						  jiffies_to_msecs(jiffies_64 -
+						  pvframe_in[di_buf->index]->
+						  ready_jiffies64));
 					pvframe_in[di_buf->index] = NULL;
 				}
 				di_buf->invert_top_bot_flag = 0;
@@ -6061,7 +6061,7 @@ static void drop_frame(int check_drop, int throw_flag, struct di_buf_s *di_buf,
 			di_que_in(channel, QUE_POST_READY, di_buf);
 
 		dim_tr_ops.post_do(di_buf->vframe->omx_index);
-		dim_print("di:ch[%]:%dth %s[%d] => post ready %u ms.\n",
+		dim_print("di:ch[%d]:%dth %s[%d] => post ready %u ms.\n",
 			  channel,
 			  frame_count,
 			  vframe_type_name[di_buf->type], di_buf->index,
@@ -7709,7 +7709,7 @@ get_vframe:
 		dim_log_buffer_state("get", channel);
 	}
 	if (vframe_ret) {
-		dim_print("%s: %s[%d]:%x %u ms\n", __func__,
+		dim_print("%s: %s[%d]:0x%p %u ms\n", __func__,
 			  vframe_type_name[di_buf->type],
 			  di_buf->index,
 			  vframe_ret,
