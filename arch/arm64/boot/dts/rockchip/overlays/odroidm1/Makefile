@@ -2,6 +2,7 @@
 
 dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	display-vu8m.dtbo \
+	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	pwm1-0.dtbo \
