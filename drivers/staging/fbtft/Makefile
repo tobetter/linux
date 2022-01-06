@@ -36,6 +36,7 @@ obj-$(CONFIG_FB_TFT_UC1611)      += fb_uc1611.o
 obj-$(CONFIG_FB_TFT_UC1701)      += fb_uc1701.o
 obj-$(CONFIG_FB_TFT_UPD161704)   += fb_upd161704.o
 obj-$(CONFIG_FB_TFT_WATTEROTT)   += fb_watterott.o
+obj-$(CONFIG_FB_TFT_HKTFT32)     += fb_hktft32.o
 obj-$(CONFIG_FB_FLEX)            += flexfb.o
 
 # Device modules

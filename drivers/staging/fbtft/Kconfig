@@ -199,6 +199,13 @@ config FB_TFT_WATTEROTT
 	help
 	  Generic Framebuffer support for WATTEROTT
 
+config FB_TFT_HKTFT32
+	tristate "FB driver for the Hardkernel 3.2 inch TFT LCD"
+	depends on FB_TFT
+	help
+	  Generic Framebuffer support for the Hardkernel 3.2 inch TFT LCD
+	  that uses the ILI9340 LCD Controller
+
 config FB_FLEX
 	tristate "Generic FB driver for TFT LCD displays"
 	depends on FB_TFT
