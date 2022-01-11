@@ -181,4 +181,10 @@
 			status = "okay";
 		};
 	};
+	fragment@11 {
+		target = <&chosen>;
+		__overlay__ {
+			disable-vop2-fixup;
+		};
+	};
 };
