@@ -25,8 +25,12 @@
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-image-sizes.h>
 #include <media/v4l2-mediabus.h>
+#include <asm/unaligned.h>
 
 #define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 0x2)
+
+#define REG_VALUE_08BIT		1
+#define REG_VALUE_16BIT		2
 
 /* IMX219 supported geometry */
 #define IMX219_TABLE_END		0xffff
@@ -45,10 +49,41 @@
 #define IMX219_DIGITAL_EXPOSURE_MAX	4095
 #define IMX219_DIGITAL_EXPOSURE_DEFAULT	1575
 
+/* IMX219 Register address */
+#define IMX219_REG_MODEL_ID	0x0000
+#define IMX219_REG_LOT_ID_H	0x0004
+#define IMX219_REG_LOT_ID_M	0x0005
+#define IMX219_REG_LOT_ID_L	0x0006
+#define IMX219_REG_CHIP_ID	0x000D
+#define IMX219_REG_MODE_SELECT	0x0100
+#define IMX219_REG_EXPOSURE	0x015A
+
+#define IMX219_REG_ANA_GAIN_GLOBAL_A	0x0157
+#define IMX219_REG_DIG_GAIN_GLOBAL_A	0x0158
+#define IMX219_REG_FRM_LENGTH_A	0x0160
+
+#define IMX219_REG_HORIZONTAL_START	0x0164
+#define IMX219_REG_HORIZONTAL_END	0x0166
+#define IMX219_REG_VERTICAL_START	0x0168
+#define IMX219_REG_VERTICAL_END	0x016A
+#define IMX219_REG_HORIZONTAL_OUTPUT_SIZE	0x016C
+#define IMX219_REG_VERTICAL_OUTPUT_SIZE	0x016E
+
+#define IMX219_REG_IMG_ORIENTATION	0x0172
+
+#define IMX219_REG_TP	0x0600
+#define IMX219_REG_TD_R	0x0602
+#define IMX219_REG_TD_GR	0x0604
+#define IMX219_REG_TD_B	0x0606
+#define IMX219_REG_TD_GB	0x0608
+#define IMX219_REG_TP_WINDOW_WIDTH	0x0624
+#define IMX219_REG_TP_WINDOW_HEIGHT	0x0626
+
 #define IMX219_EXP_LINES_MARGIN	4
 
 #define IMX219_VTS_MAX	0xffff
 
+#define IMX219_MODEL_ID	0x0219
 #define IMX219_NAME			"imx219"
 
 #define IMX219_LANES			2
@@ -287,52 +322,58 @@ static struct imx219 *to_imx219(const struct i2c_client *client)
 	return container_of(i2c_get_clientdata(client), struct imx219, subdev);
 }
 
-static int reg_write(struct i2c_client *client, const u16 addr, const u8 data)
+/* Write registers up to 2 at a time */
+static int reg_write(struct i2c_client *client, const u16 addr, const u32 len, const u32 data)
 {
-	struct i2c_adapter *adap = client->adapter;
-	struct i2c_msg msg;
-	u8 tx[3];
-	int ret;
+	u8 buf[6];
 
-	msg.addr = client->addr;
-	msg.buf = tx;
-	msg.len = 3;
-	msg.flags = 0;
-	tx[0] = addr >> 8;
-	tx[1] = addr & 0xff;
-	tx[2] = data;
-	ret = i2c_transfer(adap, &msg, 1);
-	mdelay(2);
+	if (len > 4)
+		return -EINVAL;
 
-	return ret == 1 ? 0 : -EIO;
+	put_unaligned_be16(addr, buf);
+	put_unaligned_be32(data << (8 * (4 - len)), buf + 2);
+	if (i2c_master_send(client, buf, len + 2) != len + 2)
+		return -EIO;
+
+	return 0;
 }
 
-static int reg_read(struct i2c_client *client, const u16 addr)
+/* Read registers up to 2 at a time */
+static int reg_read(struct i2c_client *client, const u16 addr, const u32 len, u32 *val)
 {
-	u8 buf[2] = {addr >> 8, addr & 0xff};
+	u8 addr_buf[2] = {addr >> 8, addr & 0xff};
+	u8 data_buf[4] = { 0, };
+	struct i2c_msg msgs[2];
 	int ret;
-	struct i2c_msg msgs[] = {
-		{
-			.addr  = client->addr,
-			.flags = 0,
-			.len   = 2,
-			.buf   = buf,
-		}, {
-			.addr  = client->addr,
-			.flags = I2C_M_RD,
-			.len   = 1,
-			.buf   = buf,
-		},
-	};
+	if (len > 4)
+		return -EINVAL;
+
+	/* Write register address */
+	msgs[0].addr  = client->addr;
+	msgs[0].flags = 0;
+	msgs[0].len   = ARRAY_SIZE(addr_buf);
+	msgs[0].buf   = addr_buf;
+
+	/* Read data from register */
+	msgs[1].addr  = client->addr,
+	msgs[1].flags = I2C_M_RD,
+	msgs[1].len   = len,
+	msgs[1].buf   = &data_buf[4 - len],
 
 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
+
+	if (ret != ARRAY_SIZE(msgs))
+		return -EIO;
+
 	if (ret < 0) {
 		dev_warn(&client->dev, "Reading register %x from %x failed\n",
 			 addr, client->addr);
-		return ret;
+		return -EIO;
 	}
 
-	return buf[0];
+	*val = get_unaligned_be32(data_buf);
+
+	return 0;
 }
 
 static int reg_write_table(struct i2c_client *client,
@@ -342,7 +383,7 @@ static int reg_write_table(struct i2c_client *client,
 	int ret;
 
 	for (reg = table; reg->addr != IMX219_TABLE_END; reg++) {
-		ret = reg_write(client, reg->addr, reg->val);
+		ret = reg_write(client, reg->addr, REG_VALUE_08BIT, reg->val);
 		if (ret < 0)
 			return ret;
 	}
@@ -366,18 +407,18 @@ static int imx219_s_stream(struct v4l2_subdev *sd, int enable)
 		return ret;
 
 	/* Handle crop */
-	ret = reg_write(client, 0x0164, priv->crop_rect.left >> 8);
-	ret |= reg_write(client, 0x0165, priv->crop_rect.left & 0xff);
-	ret |= reg_write(client, 0x0166, (priv->crop_rect.left + priv->crop_rect.width - 1) >> 8);
-	ret |= reg_write(client, 0x0167, (priv->crop_rect.left + priv->crop_rect.width - 1) & 0xff);
-	ret |= reg_write(client, 0x0168, priv->crop_rect.top >> 8);
-	ret |= reg_write(client, 0x0169, priv->crop_rect.top & 0xff);
-	ret |= reg_write(client, 0x016A, (priv->crop_rect.top + priv->crop_rect.height - 1) >> 8);
-	ret |= reg_write(client, 0x016B, (priv->crop_rect.top + priv->crop_rect.height - 1) & 0xff);
-	ret |= reg_write(client, 0x016C, priv->crop_rect.width >> 8);
-	ret |= reg_write(client, 0x016D, priv->crop_rect.width & 0xff);
-	ret |= reg_write(client, 0x016E, priv->crop_rect.height >> 8);
-	ret |= reg_write(client, 0x016F, priv->crop_rect.height & 0xff);
+	ret = reg_write(client, IMX219_REG_HORIZONTAL_START,
+			REG_VALUE_16BIT, priv->crop_rect.left);
+	ret |= reg_write(client, IMX219_REG_HORIZONTAL_END,
+			REG_VALUE_16BIT, priv->crop_rect.left + priv->crop_rect.width - 1);
+	ret |= reg_write(client, IMX219_REG_VERTICAL_START,
+			REG_VALUE_16BIT, priv->crop_rect.top);
+	ret |= reg_write(client, IMX219_REG_VERTICAL_END,
+			REG_VALUE_16BIT, priv->crop_rect.top + priv->crop_rect.height - 1);
+	ret |= reg_write(client, IMX219_REG_HORIZONTAL_OUTPUT_SIZE,
+			REG_VALUE_16BIT, priv->crop_rect.width);
+	ret |= reg_write(client, IMX219_REG_VERTICAL_OUTPUT_SIZE,
+			REG_VALUE_16BIT, priv->crop_rect.height);
 
 	if (ret)
 		return ret;
@@ -388,21 +429,20 @@ static int imx219_s_stream(struct v4l2_subdev *sd, int enable)
 	if (priv->vflip)
 		reg |= 0x2;
 
-	ret = reg_write(client, 0x0172, reg);
+	ret = reg_write(client, IMX219_REG_IMG_ORIENTATION, REG_VALUE_08BIT, reg);
 	if (ret)
 		return ret;
 
 	/* Handle test pattern */
 	if (priv->test_pattern) {
-		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
-		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
-		ret |= reg_write(client, 0x0624, priv->crop_rect.width >> 8);
-		ret |= reg_write(client, 0x0625, priv->crop_rect.width & 0xff);
-		ret |= reg_write(client, 0x0626, priv->crop_rect.height >> 8);
-		ret |= reg_write(client, 0x0627, priv->crop_rect.height & 0xff);
+		ret = reg_write(client, IMX219_REG_TP,
+				REG_VALUE_16BIT, priv->test_pattern);
+		ret |= reg_write(client, IMX219_REG_TP_WINDOW_WIDTH,
+				REG_VALUE_16BIT, priv->crop_rect.width);
+		ret |= reg_write(client, IMX219_REG_TP_WINDOW_HEIGHT,
+				REG_VALUE_16BIT, priv->crop_rect.height);
 	} else {
-		ret = reg_write(client, 0x0600, 0x00);
-		ret |= reg_write(client, 0x0601, 0x00);
+		ret = reg_write(client, IMX219_REG_TP, REG_VALUE_16BIT, 0x0);
 	}
 
 	priv->cur_vts = priv->cur_mode->vts_def - IMX219_EXP_LINES_MARGIN;
@@ -449,7 +489,7 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 { struct imx219 *priv =
 	    container_of(ctrl->handler, struct imx219, ctrl_handler);
 	struct i2c_client *client = v4l2_get_subdevdata(&priv->subdev);
-	u8 reg;
+	u32 reg;
 	int ret;
 	u16 value;
 	u16 gain = 256;
@@ -513,50 +553,43 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 		 * so the exposure & gain can reflect at the same frame
 		 */
 
-		ret = reg_write(client, 0x0157, priv->analogue_gain);
-		ret |= reg_write(client, 0x0158, priv->digital_gain >> 8);
-		ret |= reg_write(client, 0x0159, priv->digital_gain & 0xff);
+		ret = reg_write(client, IMX219_REG_ANA_GAIN_GLOBAL_A, REG_VALUE_08BIT, priv->analogue_gain);
+		ret |= reg_write(client, IMX219_REG_DIG_GAIN_GLOBAL_A, REG_VALUE_16BIT, priv->digital_gain);
 
 		return ret;
 
 	case V4L2_CID_EXPOSURE:
 		priv->exposure_time = ctrl->val;
 
-		ret = reg_write(client, 0x015a, priv->exposure_time >> 8);
-		ret |= reg_write(client, 0x015b, priv->exposure_time & 0xff);
+		ret = reg_write(client, IMX219_REG_EXPOSURE, REG_VALUE_16BIT, priv->exposure_time);
 		return ret;
 		break;
 
 	case V4L2_CID_TEST_PATTERN:
 		priv->test_pattern = test_pattern_val[ctrl->val];
-		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
-		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
+		ret = reg_write(client, IMX219_REG_TP, REG_VALUE_16BIT, priv->test_pattern);
 		return ret;
 		break;
 
 	case V4L2_CID_TEST_PATTERN_RED:
 		value = ctrl->val & 0xffff;
-		ret = reg_write(client, 0x0602, value >> 8);
-		ret |= reg_write(client, 0x0603, value  & 0xff);
+		ret = reg_write(client, IMX219_REG_TD_R, REG_VALUE_16BIT, value);
 		return ret;
 		break;
 
 	case V4L2_CID_TEST_PATTERN_GREENR:
 		value = ctrl->val & 0xffff;
-		ret = reg_write(client, 0x0604, value >> 8);
-		ret |= reg_write(client, 0x0605, value  & 0xff);
+		ret = reg_write(client, IMX219_REG_TD_GR, REG_VALUE_16BIT, value);
 		return ret;
 
 	case V4L2_CID_TEST_PATTERN_BLUE:
 		value = ctrl->val & 0xffff;
-		ret = reg_write(client, 0x0606, value >> 8);
-		ret |= reg_write(client, 0x0607, value  & 0xff);
+		ret = reg_write(client, IMX219_REG_TD_B, REG_VALUE_16BIT, value);
 		return ret;
 
 	case V4L2_CID_TEST_PATTERN_GREENB:
 		value = ctrl->val & 0xffff;
-		ret = reg_write(client, 0x0608, value >> 8);
-		ret |= reg_write(client, 0x0609, value  & 0xff);
+		ret = reg_write(client, IMX219_REG_TD_GB, REG_VALUE_16BIT, value);
 		return ret;
 
 	case V4L2_CID_VBLANK:
@@ -564,15 +597,21 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 			ctrl->val = priv->cur_mode->vts_def;
 		if ((ctrl->val - IMX219_EXP_LINES_MARGIN) != priv->cur_vts)
 			priv->cur_vts = ctrl->val - IMX219_EXP_LINES_MARGIN;
-		ret = reg_write(client, 0x0160, ((priv->cur_vts >> 8) & 0xff));
-		ret |= reg_write(client, 0x0161, (priv->cur_vts & 0xff));
+		ret = reg_write(client, IMX219_REG_FRM_LENGTH_A, REG_VALUE_16BIT, priv->cur_vts);
 		return ret;
 
 	default:
 		return -EINVAL;
 	}
 	/* If enabled, apply settings immediately */
-	reg = reg_read(client, 0x0100);
+	ret = reg_read(client, IMX219_REG_MODE_SELECT,
+			REG_VALUE_08BIT, &reg);
+
+	if (ret) {
+		dev_err(&client->dev, "failed to read mode select\n");
+		return ret;
+	}
+
 	if ((reg & 0x1f) == 0x01)
 		imx219_s_stream(&priv->subdev, 1);
 
@@ -935,9 +974,7 @@ static const struct v4l2_ctrl_ops imx219_ctrl_ops = {
 static int imx219_video_probe(struct i2c_client *client)
 {
 	struct v4l2_subdev *subdev = i2c_get_clientdata(client);
-	u16 model_id;
-	u32 lot_id;
-	u16 chip_id;
+	u32 model_id, lot_id, chip_id, val;
 	int ret;
 
 	ret = imx219_s_power(subdev, 1);
@@ -945,56 +982,51 @@ static int imx219_video_probe(struct i2c_client *client)
 		return ret;
 
 	/* Check and show model, lot, and chip ID. */
-	ret = reg_read(client, 0x0000);
-	if (ret < 0) {
-		dev_err(&client->dev, "Failure to read Model ID (high byte)\n");
+	ret = reg_read(client, IMX219_REG_MODEL_ID,
+			REG_VALUE_16BIT, &model_id);
+
+	if (ret) {
+		dev_err(&client->dev, "Failure to read Model ID %x\n",
+				0x0000);
 		goto done;
 	}
-	model_id = ret << 8;
 
-	ret = reg_read(client, 0x0001);
-	if (ret < 0) {
-		dev_err(&client->dev, "Failure to read Model ID (low byte)\n");
-		goto done;
-	}
-	model_id |= ret;
+	ret = reg_read(client, IMX219_REG_LOT_ID_H,
+			REG_VALUE_08BIT, &val);
 
-	ret = reg_read(client, 0x0004);
-	if (ret < 0) {
+	if (ret) {
 		dev_err(&client->dev, "Failure to read Lot ID (high byte)\n");
 		goto done;
 	}
-	lot_id = ret << 16;
+	lot_id = val << 16;
 
-	ret = reg_read(client, 0x0005);
-	if (ret < 0) {
+	ret = reg_read(client, IMX219_REG_LOT_ID_M,
+			REG_VALUE_08BIT, &val);
+
+	if (ret) {
 		dev_err(&client->dev, "Failure to read Lot ID (mid byte)\n");
 		goto done;
 	}
-	lot_id |= ret << 8;
+	lot_id |= val << 8;
 
-	ret = reg_read(client, 0x0006);
-	if (ret < 0) {
+	ret = reg_read(client, IMX219_REG_LOT_ID_L,
+			REG_VALUE_08BIT, &val);
+
+	if (ret) {
 		dev_err(&client->dev, "Failure to read Lot ID (low byte)\n");
 		goto done;
 	}
-	lot_id |= ret;
+	lot_id |= val;
 
-	ret = reg_read(client, 0x000D);
-	if (ret < 0) {
-		dev_err(&client->dev, "Failure to read Chip ID (high byte)\n");
+	ret = reg_read(client, IMX219_REG_CHIP_ID,
+			REG_VALUE_16BIT, &chip_id);
+
+	if (ret) {
+		dev_err(&client->dev, "Failure to read Chip ID\n");
 		goto done;
 	}
-	chip_id = ret << 8;
 
-	ret = reg_read(client, 0x000E);
-	if (ret < 0) {
-		dev_err(&client->dev, "Failure to read Chip ID (low byte)\n");
-		goto done;
-	}
-	chip_id |= ret;
-
-	if (model_id != 0x0219) {
+	if (model_id != IMX219_MODEL_ID) {
 		dev_err(&client->dev, "Model ID: %x not supported!\n",
 			model_id);
 		ret = -ENODEV;
