@@ -202,7 +202,13 @@ static const struct imx219_reg stop[] = {
 #define IMX219_TESTP_COLOUR_MAX		0x03ff
 #define IMX219_TESTP_COLOUR_STEP	1
 
-enum {
+#define TEST_PATTERN_DISABLED	0
+#define TEST_PATTERN_SOLID_COLOR	1
+#define TEST_PATTERN_COLOR_BAR	2
+#define TEST_PATTERN_FADE_TO_GREY_COLOR_BAR	3
+#define TEST_PATTERN_PN9	4
+
+static const int test_pattern_val[] = {
 	TEST_PATTERN_DISABLED,
 	TEST_PATTERN_SOLID_COLOR,
 	TEST_PATTERN_COLOR_BAR,
@@ -210,7 +216,7 @@ enum {
 	TEST_PATTERN_PN9,
 };
 
-static const char *const tp_qmenu[] = {
+static const char *const test_pattern_menu[] = {
 	"Disabled",
 	"Solid Color",
 	"Color Bar",
@@ -390,10 +396,6 @@ static int imx219_s_stream(struct v4l2_subdev *sd, int enable)
 	if (priv->test_pattern) {
 		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
 		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
-		ret |= reg_write(client, 0x0620, priv->crop_rect.left >> 8);
-		ret |= reg_write(client, 0x0621, priv->crop_rect.left & 0xff);
-		ret |= reg_write(client, 0x0622, priv->crop_rect.top >> 8);
-		ret |= reg_write(client, 0x0623, priv->crop_rect.top & 0xff);
 		ret |= reg_write(client, 0x0624, priv->crop_rect.width >> 8);
 		ret |= reg_write(client, 0x0625, priv->crop_rect.width & 0xff);
 		ret |= reg_write(client, 0x0626, priv->crop_rect.height >> 8);
@@ -425,35 +427,6 @@ static int imx219_s_power(struct v4l2_subdev *sd, int on)
 		clk_disable_unprepare(priv->clk);
 	}
 	mutex_unlock(&priv->mutex);
-
-	return 0;
-}
-
-/* V4L2 ctrl operations */
-static int imx219_s_ctrl_test_pattern(struct v4l2_ctrl *ctrl)
-{
-	struct imx219 *priv =
-	    container_of(ctrl->handler, struct imx219, ctrl_handler);
-
-	switch (ctrl->val) {
-	case TEST_PATTERN_DISABLED:
-		priv->test_pattern = 0x0000;
-		break;
-	case TEST_PATTERN_SOLID_COLOR:
-		priv->test_pattern = 0x0001;
-		break;
-	case TEST_PATTERN_COLOR_BAR:
-		priv->test_pattern = 0x0002;
-		break;
-	case TEST_PATTERN_FADE_TO_GREY_COLOR_BAR:
-		priv->test_pattern = 0x0003;
-		break;
-	case TEST_PATTERN_PN9:
-		priv->test_pattern = 0x0004;
-		break;
-	default:
-		return -EINVAL;
-	}
 
 	return 0;
 }
@@ -555,7 +528,7 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 
 	case V4L2_CID_TEST_PATTERN:
-		imx219_s_ctrl_test_pattern(ctrl);
+		priv->test_pattern = test_pattern_val[ctrl->val];
 		ret = reg_write(client, 0x0600, priv->test_pattern >> 8);
 		ret |= reg_write(client, 0x0601, priv->test_pattern & 0xff);
 		return ret;
@@ -1045,7 +1018,7 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	u32 fps = 0;
 	int i;
 
-	v4l2_ctrl_handler_init(&priv->ctrl_handler, 12);
+	v4l2_ctrl_handler_init(&priv->ctrl_handler, 14);
 
 	priv->ctrl_handler.lock = &priv->mutex;
 
@@ -1085,12 +1058,13 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 		mode->max_fps.numerator);
 	pixel_rate = mode->vts_def * mode->hts_def * fps;
-	priv->pixel_rate = v4l2_ctrl_new_std(&priv->ctrl_handler, NULL, V4L2_CID_PIXEL_RATE,
-			  0, pixel_rate, 1, pixel_rate);
+	priv->pixel_rate = v4l2_ctrl_new_std(&priv->ctrl_handler, NULL,
+			     V4L2_CID_PIXEL_RATE,
+			     0, pixel_rate, 1, pixel_rate);
 
 	v4l2_ctrl_new_std_menu_items(&priv->ctrl_handler, &imx219_ctrl_ops,
 				     V4L2_CID_TEST_PATTERN,
-				     ARRAY_SIZE(tp_qmenu) - 1, 0, 0, tp_qmenu);
+				     ARRAY_SIZE(test_pattern_menu) - 1, 0, 0, test_pattern_menu);
 
 	for (i = 0; i < 4; i++) {
 		v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
