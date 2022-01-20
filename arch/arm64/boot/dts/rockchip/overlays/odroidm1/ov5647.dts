@@ -112,10 +112,6 @@
 				power-domains = <&power RK3568_PD_VI>;
 				pinctrl-names = "default";
 
-				/*reset-gpios = <&gpio3 RK_PA5 GPIO_ACTIVE_LOW>;*/
-				pwdn-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
-				/*power-gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;*/
-
 				rockchip,camera-module-index = <0>;
 				rockchip,camera-module-facing = "back";
 				rockchip,camera-module-name = "TongJu";
@@ -127,6 +123,26 @@
 						data-lanes = <1 2>;
 					};
 				};
+			};
+		};
+	};
+
+	fragment@7 {
+		target-path = "/";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		__overlay__ {
+			vcc_cam: vcc-camera {
+				compatible = "regulator-fixed";
+				regulator-name = "vcc_cam";
+				pinctrl-names = "default";
+				pinctrl-0 = <&cam_pwdn>;
+				enable-active-high;
+				gpio = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+				regulator-always-on;
+				regulator-boot-on;
 			};
 		};
 	};
