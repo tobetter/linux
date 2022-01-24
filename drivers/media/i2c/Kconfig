@@ -1487,4 +1487,11 @@ config VIDEO_LM3646
 	  flash, torch LEDs.
 endmenu
 
+config LT8619C
+	tristate "LT8619c HDMI to LVDS Converter"
+	depends on OF
+	select REGMAP_I2C
+	help
+	  lt8619c chip driver.
+
 endif # VIDEO_V4L2
