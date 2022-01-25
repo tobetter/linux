@@ -11,6 +11,10 @@
 / {
 	aliases {
 		serial0 = &uart_AO;
+		serial1 = &uart_A;
+		serial2 = &uart_B;
+		serial2 = &uart_C;
+		serial3 = &uart_AO_B;
 		ethernet0 = &ethmac;
 	};
 
