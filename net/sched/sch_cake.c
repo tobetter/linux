@@ -720,7 +720,7 @@ static u32 cake_hash(struct cake_tin_data *q, const struct sk_buff *skb,
 skip_hash:
 	if (flow_override)
 		flow_hash = flow_override - 1;
-	else if (use_skbhash)
+	else if (use_skbhash && (flow_mode & CAKE_FLOW_FLOWS))
 		flow_hash = skb->hash;
 	if (host_override) {
 		dsthost_hash = host_override - 1;
@@ -2736,7 +2736,7 @@ static int cake_init(struct Qdisc *sch, struct nlattr *opt,
 	q->tins = kvcalloc(CAKE_MAX_TINS, sizeof(struct cake_tin_data),
 			   GFP_KERNEL);
 	if (!q->tins)
-		goto nomem;
+		return -ENOMEM;
 
 	for (i = 0; i < CAKE_MAX_TINS; i++) {
 		struct cake_tin_data *b = q->tins + i;
@@ -2766,10 +2766,6 @@ static int cake_init(struct Qdisc *sch, struct nlattr *opt,
 	q->min_netlen = ~0;
 	q->min_adjlen = ~0;
 	return 0;
-
-nomem:
-	cake_destroy(sch);
-	return -ENOMEM;
 }
 
 static int cake_dump(struct Qdisc *sch, struct sk_buff *skb)

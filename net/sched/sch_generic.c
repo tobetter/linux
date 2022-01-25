@@ -886,7 +886,7 @@ struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,
 
 	/* seqlock has the same scope of busylock, for NOLOCK qdisc */
 	spin_lock_init(&sch->seqlock);
-	lockdep_set_class(&sch->busylock,
+	lockdep_set_class(&sch->seqlock,
 			  dev->qdisc_tx_busylock ?: &qdisc_tx_busylock);
 
 	seqcount_init(&sch->running);
@@ -1301,6 +1301,15 @@ static int qdisc_change_tx_queue_len(struct net_device *dev,
 	if (ops->change_tx_queue_len)
 		return ops->change_tx_queue_len(qdisc, dev->tx_queue_len);
 	return 0;
+}
+
+void dev_qdisc_change_real_num_tx(struct net_device *dev,
+				  unsigned int new_real_tx)
+{
+	struct Qdisc *qdisc = dev->qdisc;
+
+	if (qdisc->ops->change_real_num_tx)
+		qdisc->ops->change_real_num_tx(qdisc, new_real_tx);
 }
 
 int dev_qdisc_change_tx_queue_len(struct net_device *dev)

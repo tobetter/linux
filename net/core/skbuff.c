@@ -769,7 +769,7 @@ void skb_dump(const char *level, const struct sk_buff *skb, bool full_pkt)
 	       ntohs(skb->protocol), skb->pkt_type, skb->skb_iif);
 
 	if (dev)
-		printk("%sdev name=%s feat=0x%pNF\n",
+		printk("%sdev name=%s feat=%pNF\n",
 		       level, dev->name, &dev->features);
 	if (sk)
 		printk("%ssk family=%hu type=%u proto=%u\n",
@@ -2922,8 +2922,11 @@ skb_zerocopy_headlen(const struct sk_buff *from)
 
 	if (!from->head_frag ||
 	    skb_headlen(from) < L1_CACHE_BYTES ||
-	    skb_shinfo(from)->nr_frags >= MAX_SKB_FRAGS)
+	    skb_shinfo(from)->nr_frags >= MAX_SKB_FRAGS) {
 		hlen = skb_headlen(from);
+		if (!hlen)
+			hlen = from->len;
+	}
 
 	if (skb_has_frag_list(from))
 		hlen = from->len;
