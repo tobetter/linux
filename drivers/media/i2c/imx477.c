@@ -15,6 +15,8 @@
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
+#include <linux/rk-camera-module.h>
+#include <linux/version.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
@@ -28,6 +30,11 @@ MODULE_PARM_DESC(dpc_enable, "Enable on-sensor DPC");
 static int trigger_mode;
 module_param(trigger_mode, int, 0644);
 MODULE_PARM_DESC(trigger_mode, "Set vsync trigger mode: 1=source, 2=sink");
+
+#define DRIVER_VERSION			KERNEL_VERSION(0, 0x01, 1)
+#define IMX477_NAME			"imx477"
+
+#define IMX477_LANES		2
 
 #define IMX477_REG_VALUE_08BIT		1
 #define IMX477_REG_VALUE_16BIT		2
@@ -461,7 +468,7 @@ static const struct imx477_reg mode_common_regs[] = {
 	{0x0114, 0x01},
 	{0x0350, 0x00},
 	{0xbcf1, 0x02},
-	{0x3ff9, 0x01},
+	{0x3ff9, 0x01},	/* DPGA_USE_GLOBAL_GAIN, All color */
 };
 
 /* 12 mpix 10fps */
@@ -1083,6 +1090,13 @@ struct imx477_compatible_data {
 	struct imx477_reg_list extra_regs;
 };
 
+struct rk_module {
+	u32 module_index;
+	const char *module_facing;
+	const char *module_name;
+	const char *len_name;
+};
+
 struct imx477 {
 	struct v4l2_subdev sd;
 	struct media_pad pad;
@@ -1125,6 +1139,8 @@ struct imx477 {
 
 	/* Any extra information related to different compatible sensors */
 	const struct imx477_compatible_data *compatible_data;
+
+	const struct rk_module *rkmodule;
 };
 
 static inline struct imx477 *to_imx477(struct v4l2_subdev *_sd)
@@ -1408,11 +1424,11 @@ static int imx477_enum_mbus_code(struct v4l2_subdev *sd,
 {
 	struct imx477 *imx477 = to_imx477(sd);
 
-	if (code->index >= (ARRAY_SIZE(codes) / 4))
+	if (code->index >= (ARRAY_SIZE(codes) / 2))
 		return -EINVAL;
 
 	code->code = imx477_get_format_code(imx477,
-			codes[code->index * 4]);
+			codes[code->index % 4]);
 
 	return 0;
 }
@@ -1437,6 +1453,41 @@ static int imx477_enum_frame_size(struct v4l2_subdev *sd,
 	fse->max_width = fse->min_width;
 	fse->min_height = mode_list[fse->index].height;
 	fse->max_height = fse->min_height;
+
+	return 0;
+}
+
+static int imx477_enum_frame_interval(struct v4l2_subdev *sd,
+				       struct v4l2_subdev_pad_config *cfg,
+				       struct v4l2_subdev_frame_interval_enum *fie)
+{
+	struct imx477 *imx477 = to_imx477(sd);
+	const struct imx477_mode *mode_list;
+	unsigned int num_modes;
+
+	if (!fie->code) {
+		fie->code = (fie->index < ARRAY_SIZE(supported_modes_12bit)) ?
+			MEDIA_BUS_FMT_SRGGB12_1X12 :
+			MEDIA_BUS_FMT_SRGGB10_1X10;
+
+		get_mode_table(fie->code, &mode_list, &num_modes);
+
+		if (fie->index >=
+				ARRAY_SIZE(supported_modes_12bit) + ARRAY_SIZE(supported_modes_10bit))
+			return -EINVAL;
+	} else {
+		get_mode_table(fie->code, &mode_list, &num_modes);
+
+		if (fie->index >= num_modes)
+			return -EINVAL;
+
+		if (fie->code != imx477_get_format_code(imx477, fie->code))
+			return -EINVAL;
+	}
+
+	fie->width = mode_list[fie->index % num_modes].width;
+	fie->height = mode_list[fie->index % num_modes].height;
+	fie->interval = mode_list[fie->index % num_modes].timeperframe_min;
 
 	return 0;
 }
@@ -1741,6 +1792,33 @@ err_unlock:
 	return ret;
 }
 
+static int imx477_g_frame_interval(struct v4l2_subdev *sd,
+				   struct v4l2_subdev_frame_interval *fi)
+{
+	struct imx477 *imx477 = to_imx477(sd);
+	const struct imx477_mode *mode = imx477->mode;
+
+	mutex_lock(&imx477->mutex);
+	fi->interval = mode->timeperframe_min;
+	mutex_unlock(&imx477->mutex);
+
+	return 0;
+}
+
+static int imx477_g_mbus_config(struct v4l2_subdev *sd,
+				   struct v4l2_mbus_config *config)
+{
+	u32 val = 0;
+
+	val = 1 << (IMX477_LANES - 1) |
+	      V4L2_MBUS_CSI2_CHANNEL_0 |
+	      V4L2_MBUS_CSI2_CONTINUOUS_CLOCK;
+	config->type = V4L2_MBUS_CSI2;
+	config->flags = val;
+
+	return 0;
+}
+
 /* Power/clock management functions */
 static int imx477_power_on(struct device *dev)
 {
@@ -1862,13 +1940,91 @@ static int imx477_identify_module(struct imx477 *imx477, u32 expected_id)
 	return 0;
 }
 
+static void imx477_get_module_inf(struct imx477 *imx477,
+				  struct rkmodule_inf *inf)
+{
+	const struct rk_module *rk = imx477->rkmodule;
+
+	memset(inf, 0, sizeof(*inf));
+	strlcpy(inf->base.sensor, IMX477_NAME, sizeof(inf->base.sensor));
+	strlcpy(inf->base.module, rk->module_name,
+		sizeof(inf->base.module));
+	strlcpy(inf->base.lens, rk->len_name, sizeof(inf->base.lens));
+}
+
+static long imx477_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
+{
+	struct imx477 *imx477 = to_imx477(sd);
+	long ret = 0;
+
+	switch (cmd) {
+	case RKMODULE_GET_MODULE_INFO:
+		imx477_get_module_inf(imx477, (struct rkmodule_inf *)arg);
+		break;
+	default:
+		ret = -ENOIOCTLCMD;
+		break;
+	}
+
+	return ret;
+}
+
+#ifdef CONFIG_COMPAT
+static long imx477_compat_ioctl32(struct v4l2_subdev *sd,
+				  unsigned int cmd, unsigned long arg)
+{
+	void __user *up = compat_ptr(arg);
+	struct rkmodule_inf *inf;
+	struct rkmodule_awb_cfg *awb_cfg;
+	long ret;
+
+	switch (cmd) {
+	case RKMODULE_GET_MODULE_INFO:
+		inf = kzalloc(sizeof(*inf), GFP_KERNEL);
+		if (!inf) {
+			ret = -ENOMEM;
+			return ret;
+		}
+
+		ret = imx477_ioctl(sd, cmd, inf);
+		if (!ret)
+			ret = copy_to_user(up, inf, sizeof(*inf));
+		kfree(inf);
+		break;
+	case RKMODULE_AWB_CFG:
+		awb_cfg = kzalloc(sizeof(*awb_cfg), GFP_KERNEL);
+		if (!awb_cfg) {
+			ret = -ENOMEM;
+			return ret;
+		}
+
+		ret = copy_from_user(awb_cfg, up, sizeof(*awb_cfg));
+		if (!ret)
+			ret = imx477_ioctl(sd, cmd, awb_cfg);
+		kfree(awb_cfg);
+		break;
+	default:
+		ret = -ENOIOCTLCMD;
+		break;
+	}
+
+	return ret;
+}
+#endif
+
 static const struct v4l2_subdev_core_ops imx477_core_ops = {
 	.subscribe_event = v4l2_ctrl_subdev_subscribe_event,
 	.unsubscribe_event = v4l2_event_subdev_unsubscribe,
+	.ioctl = imx477_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl32 = imx477_compat_ioctl32,
+#endif
 };
 
 static const struct v4l2_subdev_video_ops imx477_video_ops = {
 	.s_stream = imx477_set_stream,
+	.g_frame_interval = imx477_g_frame_interval,
+	.g_mbus_config = imx477_g_mbus_config,
 };
 
 static const struct v4l2_subdev_pad_ops imx477_pad_ops = {
@@ -1877,6 +2033,7 @@ static const struct v4l2_subdev_pad_ops imx477_pad_ops = {
 	.set_fmt = imx477_set_pad_format,
 	.get_selection = imx477_get_selection,
 	.enum_frame_size = imx477_enum_frame_size,
+	.enum_frame_interval = imx477_enum_frame_interval,
 };
 
 static const struct v4l2_subdev_ops imx477_subdev_ops = {
@@ -1888,6 +2045,55 @@ static const struct v4l2_subdev_ops imx477_subdev_ops = {
 static const struct v4l2_subdev_internal_ops imx477_internal_ops = {
 	.open = imx477_open,
 };
+
+/* Initialize rkmodule */
+static int imx477_init_rkmodule(struct device *dev)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+	struct imx477 *imx477 = to_imx477(sd);
+	struct device_node *node = dev->of_node;
+
+	struct rk_module *rkmodule;
+	char facing[2];
+	int ret;
+
+	rkmodule =
+		devm_kzalloc(dev, sizeof(struct rk_module), GFP_KERNEL);
+
+	dev_info(dev, "driver version: %02x.%02x.%02x",
+		DRIVER_VERSION >> 16,
+		(DRIVER_VERSION & 0xff00) >> 8,
+		DRIVER_VERSION & 0x00ff);
+
+	ret = of_property_read_u32(node, RKMODULE_CAMERA_MODULE_INDEX,
+				   &rkmodule->module_index);
+	ret |= of_property_read_string(node, RKMODULE_CAMERA_MODULE_FACING,
+				       &rkmodule->module_facing);
+	ret |= of_property_read_string(node, RKMODULE_CAMERA_MODULE_NAME,
+				       &rkmodule->module_name);
+	ret |= of_property_read_string(node, RKMODULE_CAMERA_LENS_NAME,
+				       &rkmodule->len_name);
+
+	if (ret) {
+		dev_err(dev, "could not get module information!\n");
+		return -EINVAL;
+	}
+
+	memset(facing, 0, sizeof(facing));
+	if (strcmp(rkmodule->module_facing, "back") == 0)
+		facing[0] = 'b';
+	else
+		facing[0] = 'f';
+
+	snprintf(sd->name, sizeof(sd->name), "m%02d_%s_%s %s",
+		 rkmodule->module_index, facing,
+		 IMX477_NAME, dev_name(sd->dev));
+
+	imx477->rkmodule = rkmodule;
+
+	return 0;
+}
 
 /* Initialize control handlers */
 static int imx477_init_controls(struct imx477 *imx477)
@@ -2061,7 +2267,7 @@ static const struct imx477_compatible_data imx477_compatible = {
 static const struct imx477_reg imx378_regs[] = {
 	{0x3e35, 0x01},
 	{0x4421, 0x08},
-	{0x3ff9, 0x00},
+	{0x3ff9, 0x00},	/* DPGA_USE_GLOBAL_GAIN, By color */
 };
 
 static const struct imx477_compatible_data imx378_compatible = {
@@ -2090,6 +2296,12 @@ static int imx477_probe(struct i2c_client *client)
 		return -ENOMEM;
 
 	v4l2_i2c_subdev_init(&imx477->sd, client, &imx477_subdev_ops);
+
+	ret = imx477_init_rkmodule(&client->dev);
+	if (ret) {
+		dev_err(dev, "could not init rk module\n");
+		return -EINVAL;
+	}
 
 	match = of_match_device(imx477_dt_ids, dev);
 	if (!match)
@@ -2213,7 +2425,7 @@ static const struct dev_pm_ops imx477_pm_ops = {
 
 static struct i2c_driver imx477_i2c_driver = {
 	.driver = {
-		.name = "imx477",
+		.name = IMX477_NAME,
 		.of_match_table	= imx477_dt_ids,
 		.pm = &imx477_pm_ops,
 	},
