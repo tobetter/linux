@@ -109,6 +109,8 @@ void rk_devinfo_get_eth_mac(u8 *mac)
 	u8 index;
 
 	ret = get_mac_offset(&index);
+	if (ret < 0)
+		pr_err("failed to read MAC offset\n");
 
 	ret = vendor_read(index * 32, bdinfo, sizeof(bdinfo));
 	if (ret == 0) {
@@ -263,6 +265,8 @@ static int get_mac_offset(u8 *index)
 		}
 		idx++;
 	}
+	*index = idx;
+
 	return 0;
 }
 
@@ -324,9 +328,16 @@ static ssize_t uuid_show(struct class *class,
 		struct class_attribute *attr, char *buf)
 {
 	u8 in[32];
+	u8 index;
 	int ret;
 
-	ret = efuse_read_usr(in, sizeof(in), 0);
+	ret = get_mac_offset(&index);
+	if (ret < 0) {
+		pr_err("failed to read MAC offset\n");
+		return ret;
+	}
+
+	ret = efuse_read_usr(in, sizeof(in), index*32);
 	if (ret < 0) {
 		pr_err("failed to read efuse\n");
 		return ret;
