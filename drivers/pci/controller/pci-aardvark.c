@@ -32,7 +32,6 @@
 #define PCIE_CORE_DEV_ID_REG					0x0
 #define PCIE_CORE_CMD_STATUS_REG				0x4
 #define PCIE_CORE_DEV_REV_REG					0x8
-#define PCIE_CORE_EXP_ROM_BAR_REG				0x30
 #define PCIE_CORE_PCIEXP_CAP					0xc0
 #define PCIE_CORE_ERR_CAPCTL_REG				0x118
 #define     PCIE_CORE_ERR_CAPCTL_ECRC_CHK_TX			BIT(5)
@@ -774,10 +773,6 @@ advk_pci_bridge_emul_base_conf_read(struct pci_bridge_emul *bridge,
 		*value = advk_readl(pcie, PCIE_CORE_CMD_STATUS_REG);
 		return PCI_BRIDGE_EMUL_HANDLED;
 
-	case PCI_ROM_ADDRESS1:
-		*value = advk_readl(pcie, PCIE_CORE_EXP_ROM_BAR_REG);
-		return PCI_BRIDGE_EMUL_HANDLED;
-
 	case PCI_INTERRUPT_LINE: {
 		/*
 		 * From the whole 32bit register we support reading from HW only
@@ -808,10 +803,6 @@ advk_pci_bridge_emul_base_conf_write(struct pci_bridge_emul *bridge,
 	switch (reg) {
 	case PCI_COMMAND:
 		advk_writel(pcie, new, PCIE_CORE_CMD_STATUS_REG);
-		break;
-
-	case PCI_ROM_ADDRESS1:
-		advk_writel(pcie, new, PCIE_CORE_EXP_ROM_BAR_REG);
 		break;
 
 	case PCI_INTERRUPT_LINE:
@@ -881,7 +872,6 @@ advk_pci_bridge_emul_pcie_conf_read(struct pci_bridge_emul *bridge,
 		return PCI_BRIDGE_EMUL_HANDLED;
 	}
 
-	case PCI_CAP_LIST_ID:
 	case PCI_EXP_DEVCAP:
 	case PCI_EXP_DEVCTL:
 		*value = advk_readl(pcie, PCIE_CORE_PCIEXP_CAP + reg);
@@ -961,6 +951,9 @@ static int advk_sw_pci_bridge_init(struct advk_pcie *pcie)
 
 	/* Support interrupt A for MSI feature */
 	bridge->conf.intpin = PCIE_CORE_INT_A_ASSERT_ENABLE;
+
+	/* Aardvark HW provides PCIe Capability structure in version 2 */
+	bridge->pcie_conf.cap = cpu_to_le16(2);
 
 	/* Indicates supports for Completion Retry Status */
 	bridge->pcie_conf.rootcap = cpu_to_le16(PCI_EXP_RTCAP_CRSVIS);
