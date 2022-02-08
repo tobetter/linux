@@ -460,6 +460,12 @@
 	pinctrl-names = "default";
 };
 
+&uart_AO_B {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart_ao_b_pins>;
+};
+
 &uart_A {
 	status = "disabled";
 	pinctrl-names = "default";
