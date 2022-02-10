@@ -7,6 +7,8 @@ dtbo-y += \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	pcf8563.dtbo \
+	pps-gpio_p11.dtbo \
+	pps-gpio_p12.dtbo \
 	pwm_ab.dtbo \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
