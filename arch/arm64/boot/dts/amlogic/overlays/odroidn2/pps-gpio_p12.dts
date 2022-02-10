@@ -1,0 +1,19 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			pps: pps {
+				compatible = "pps-gpio";
+				gpios = <&gpio GPIOX_16 GPIO_ACTIVE_HIGH>;
+				status = "okay";
+			};
+		};
+	};
+};

@@ -2,6 +2,8 @@ dtbo-y += \
 	fanspeed-full.dtbo \
 	hktft35.dtbo \
 	spi0.dtbo \
+	pps-gpio_p11.dtbo \
+	pps-gpio_p12.dtbo \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
 	pwmfan-lowtemp.dtbo \
