@@ -82,7 +82,7 @@
 		compatible = "simple-audio-card";
 		pinctrl-names = "default";
 		pinctrl-0 = <&hp_det_pin>;
-		simple-audio-card,name = "Analog RK817";
+		simple-audio-card,name = "ODROID-M1-FRONT";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 		simple-audio-card,mclk-fs = <256>;
@@ -238,6 +238,7 @@
 };
 
 &hdmi_sound {
+	simple-audio-card,name = "ODROID-M1-HDMI";
 	status = "okay";
 };
 
@@ -476,6 +477,10 @@
 					regulator-off-in-suspend;
 				};
 			};
+		};
+
+		codec {
+			mic-in-differential;
 		};
 	};
 };
