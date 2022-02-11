@@ -5107,7 +5107,7 @@ CONFIG_RK_SFC_NOR_MTD=y
 #
 # RKNPU
 #
-# CONFIG_ROCKCHIP_RKNPU is not set
+CONFIG_ROCKCHIP_RKNPU=m
 
 #
 # File systems
