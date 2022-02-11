@@ -1,0 +1,173 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/rk3568-cru.h>
+#include <dt-bindings/power/rk3568-power.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include "../../rk3568-pinctrl.dtsi"
+
+/ {
+	fragment@0 {
+		target = <&csi2_dphy_hw>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&csi2_dphy0>;
+
+		__overlay__ {
+			status = "okay";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@0 {
+					reg = <0>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					mipi_in_ucam2: endpoint@3 {
+						reg = <3>;
+						remote-endpoint = <&imx477_out>;
+						data-lanes = <1 2>;
+						clock-lanes = <0>;
+						clock-noncontinuous;
+					};
+				};
+				port@1 {
+					reg = <1>;
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					csidphy_out: endpoint@0 {
+						reg = <0>;
+						remote-endpoint = <&isp0_in>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&rkisp>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@3 {
+		target = <&rkisp_mmu>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@4 {
+		target = <&rkisp_vir0>;
+
+		__overlay__ {
+			status = "okay";
+
+			port {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				isp0_in: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&csidphy_out>;
+				};
+			};
+		};
+	};
+
+	fragment@5 {
+		target = <&pinctrl>;
+
+		__overlay__ {
+			cam_pins {
+				cam_pwr: cam-pwr {
+					rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+				};
+			};
+		};
+	};
+
+	fragment@6 {
+		// i2c2, i2c@fe5b0000
+		target = <&i2c2>;
+
+		__overlay__ {
+			status = "okay";
+
+			imx477: imx477@1a {
+				status = "okay";
+				compatible = "sony,imx477";
+				reg = <0x1a>;
+				clocks = <&pmucru CLK_WIFI>;
+				clock-names = "xclk";
+				power-domains = <&power RK3568_PD_VI>;
+				pinctrl-names = "default";
+
+				VANA-supply = <&imx477_vana>;	/* 2.8v */
+				VDIG-supply = <&imx477_vdig>;	/* 1.05v */
+				VDDL-supply = <&imx477_vddl>;	/* 1.8v */
+
+				rockchip,camera-module-index = <0>;
+				rockchip,camera-module-facing = "back";
+				rockchip,camera-module-name = "TongJu";
+				rockchip,camera-module-lens-name = "CHT842-MD";
+
+				port {
+					imx477_out: endpoint {
+						remote-endpoint = <&mipi_in_ucam2>;
+						data-lanes = <1 2>;
+						clock-lanes = <0>;
+						clock-noncontinuous;
+						link-frequencies =
+							/bits/ 64 <450000000>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@7 {
+		target-path = "/";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		__overlay__ {
+			imx477_vana: vcc-camera {
+				compatible = "regulator-fixed";
+				pinctrl-names = "default";
+				pinctrl-0 = <&cam_pwr>;
+				enable-active-high;
+				gpio = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+
+				regulator-name = "imx477_vana";
+				startup-delay-us = <300000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+			};
+			imx477_vdig: fixedregulator@0 {
+				compatible = "regulator-fixed";
+				regulator-name = "imx477_vdig";
+				regulator-min-microvolt = <1050000>;
+				regulator-max-microvolt = <1050000>;
+			};
+			imx477_vddl: fixedregulator@1 {
+				compatible = "regulator-fixed";
+				regulator-name = "imx477_vddl";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+			};
+		};
+	};
+};
