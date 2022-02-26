@@ -174,6 +174,7 @@ static const struct of_device_id of_dwc3_simple_match[] = {
 	{ .compatible = "hisilicon,hi3798mv200-dwc3" },
 	{ .compatible = "intel,keembay-dwc3" },
 	{ .compatible = "rockchip,rk3399-dwc3" },
+	{ .compatible = "rockchip,rk3568-dwc3" },
 	{ .compatible = "sprd,sc9860-dwc3" },
 	{ /* Sentinel */ }
 };
