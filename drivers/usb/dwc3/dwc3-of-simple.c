@@ -196,6 +196,10 @@ static const struct of_device_id of_dwc3_simple_match[] = {
 		.data = &dwc3_of_simple_data_rk3399,
 	},
 	{
+		.compatible = "rockchip,rk3568-dwc3",
+		.data = &dwc3_of_simple_data_rk3399,
+	},
+	{
 		.compatible = "sprd,sc9860-dwc3",
 	},
 	{ /* Sentinel */ }
