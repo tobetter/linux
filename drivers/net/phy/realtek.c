@@ -11,8 +11,6 @@
 #include <linux/phy.h>
 #include <linux/module.h>
 #include <linux/delay.h>
-#include <linux/etherdevice.h>
-#include <linux/netdevice.h>
 
 #define RTL821x_PHYSR				0x11
 #define RTL821x_PHYSR_DUPLEX			BIT(13)
@@ -260,51 +258,6 @@ static irqreturn_t rtl8211f_handle_interrupt(struct phy_device *phydev)
 	phy_trigger_machine(phydev);
 
 	return IRQ_HANDLED;
-}
-
-static int rtl8211f_set_wol(struct phy_device *phydev,
-		struct ethtool_wolinfo *wol)
-{
-	struct net_device *ndev = phydev->attached_dev;
-	const u8 *mac;
-	int val;
-
-	if (wol->wolopts & WAKE_MAGIC) {
-		mac = (const u8 *)ndev->dev_addr;
-
-		if (!is_valid_ether_addr(mac))
-			return -EINVAL;
-
-		/* Set MAC address */
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0xd8c);
-		phy_write(phydev, 0x10, (mac[1] << 8) | mac[0]);
-		phy_write(phydev, 0x11, (mac[3] << 8) | mac[2]);
-		phy_write(phydev, 0x12, (mac[5] << 8) | mac[4]);
-
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0xd8a);
-
-		/* Set magic packet for WOL */
-		phy_write(phydev, 0x10, 0x1000);
-		phy_write(phydev, 0x11, 0x9fff);
-
-		/* PIN31 - pull high */
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0xd40);
-		val = phy_read(phydev, 0x16);
-		phy_write(phydev, 0x16, val | BIT(5));
-
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0);
-	} else {
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0xd8a);
-
-		/* Reset magic packet for WOL */
-		phy_write(phydev, 0x10, 0x0);
-		val = phy_read(phydev, 0x11);
-		phy_write(phydev, 0x11, val & ~BIT(15));
-
-		phy_write(phydev, RTL821x_PAGE_SELECT, 0);
-	}
-
-	return 0;
 }
 
 static int rtl8211_config_aneg(struct phy_device *phydev)
@@ -902,7 +855,6 @@ static struct phy_driver realtek_drvs[] = {
 		.handle_interrupt = rtl821x_handle_interrupt,
 		.suspend	= genphy_suspend,
 		.resume		= genphy_resume,
-		.set_wol	= rtl8211f_set_wol,
 		.read_page	= rtl821x_read_page,
 		.write_page	= rtl821x_write_page,
 	}, {

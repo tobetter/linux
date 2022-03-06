@@ -684,8 +684,6 @@ static int stmmac_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
 		disable_irq_wake(priv->wol_irq);
 	}
 
-	phylink_ethtool_set_wol(priv->phylink, wol);
-
 	mutex_lock(&priv->lock);
 	priv->wolopts = wol->wolopts;
 	mutex_unlock(&priv->lock);
