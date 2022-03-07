@@ -1411,4 +1411,11 @@ config TOUCHSCREEN_FT5436
 
 source "drivers/input/touchscreen/cyttsp5/Kconfig"
 
+config TOUCHSCREEN_DWAV_USB_MT
+	tristate "ODROID-Vu5/Vu7+ series multi touch driver"
+	depends on USB_ARCH_HAS_HCD
+	select USB
+	help
+	  Say Y here if you have ODROID-Vu5 or ODROID-Vu7+.
+
 endif
