@@ -1,8 +1,6 @@
 /dts-v1/;
 /plugin/;
 
-#include "../../rk3568-pinctrl.dtsi"
-
 / {
 	fragment@0 {
 		// i2c3 aliased with i2c0.
@@ -11,9 +9,6 @@
 
 		__overlay__ {
 			status = "okay";
-
-			pinctrl-names = "default";
-			pinctrl-0 = <&i2c3m1_xfer>;
 		};
 	};
 };
