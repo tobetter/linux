@@ -153,6 +153,10 @@
 		"", "", "", "", "", "", "", "";
 };
 
+&hdmi_sound {
+	/delete-property/ rockchip,jack-det;
+};
+
 &pcie30phy {
 	status = "okay";
 };
@@ -167,10 +171,6 @@
 	pcie3x2@80900000{
 		reg = <0x0 0x80900000 0x0 0x100000>;
 	};
-};
-
-&rk809_sound {
-	simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 };
 
 &sata2 {
