@@ -204,3 +204,58 @@
 &video_phy0 {
 	status = "okay";
 };
+
+&hdmi_sound {
+	compatible = "simple-audio-card";
+	simple-audio-card,format = "i2s";
+	simple-audio-card,mclk-fs = <128>;
+	simple-audio-card,name = "rockchip,hdmi";
+	status = "okay";
+
+	simple-audio-card,cpu {
+		sound-dai = <&i2s0_8ch>;
+	};
+	simple-audio-card,codec {
+		sound-dai = <&hdmi>;
+	};
+};
+
+&rk809_sound {
+	status = "okay";
+	compatible = "simple-audio-card";
+	simple-audio-card,format = "i2s";
+	simple-audio-card,mclk-fs = <256>;
+	simple-audio-card,name = "rockchip,rk809-codec";
+	simple-audio-card,hp-det-gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
+	simple-audio-card,widgets = "Headphones", "Headphone Jack";
+
+	simple-audio-card,cpu {
+		sound-dai = <&i2s1_8ch>;
+	};
+	simple-audio-card,codec {
+		sound-dai = <&rk809_codec>;
+	};
+};
+
+&rk809_codec {
+	#sound-dai-cells = <0>;
+	compatible = "rockchip,rk809-codec", "rockchip,rk817-codec";
+	clocks = <&cru I2S1_MCLKOUT>;
+	clock-names = "mclk";
+	assigned-clocks = <&cru I2S1_MCLKOUT>, <&cru I2S1_MCLK_TX_IOE>;
+	assigned-clock-rates = <12288000>;
+	assigned-clock-parents = <&cru I2S1_MCLKOUT_TX>, <&cru I2S1_MCLKOUT_TX>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s1m0_mclk &hp_det>;
+	hp-volume = <3>;
+	spk-volume = <3>;
+	status = "okay";
+};
+
+&spdif_8ch {
+	status = "disabled";
+};
+
+&spdif_out {
+	status = "disabled";
+};
