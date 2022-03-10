@@ -1,4 +1,5 @@
 dtbo-y += \
+	display_vu7c.dtbo \
 	hktft32.dtbo \
 	hktft35.dtbo \
 	pcf8563.dtbo \
