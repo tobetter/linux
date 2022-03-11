@@ -1020,6 +1020,9 @@ retry_get_irq_gpio:
 			ts->reset_controller_at_probe = true;
 			ts->load_cfg_from_disk = true;
 			ts->irq_pin_access_method = IRQ_PIN_ACCESS_GPIO;
+
+			ts->client->irq = gpiod_to_irq(ts->gpiod_int);
+			dev_info(dev, "IRQ number=%d\n", ts->client->irq);
 		}
 	}
 
