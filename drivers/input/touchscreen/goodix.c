@@ -1339,6 +1339,10 @@ reset:
 			return error;
 	}
 
+	client->irq = gpiod_to_irq(ts->gpiod_int);
+	if (client->irq)
+		dev_info(&client->dev, "GT911 irq number=%d\n", client->irq);
+
 	error = goodix_i2c_test(client);
 	if (error) {
 		if (!ts->reset_controller_at_probe &&
