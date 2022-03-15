@@ -1,8 +1,6 @@
 /dts-v1/;
 /plugin/;
 
-#include "../../rk3568-pinctrl.dtsi"
-
 / {
 	fragment@0 {
 		// uart1 aliased with serial0.
@@ -10,9 +8,6 @@
 
 		__overlay__ {
 			status = "okay";
-
-			dma-names = "tx", "rx";
-			pinctrl-0 = <&uart1m1_xfer>;
 		};
 	};
 };

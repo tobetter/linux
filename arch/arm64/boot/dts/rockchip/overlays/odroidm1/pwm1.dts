@@ -1,8 +1,6 @@
 /dts-v1/;
 /plugin/;
 
-#include "../../rk3568-pinctrl.dtsi"
-
 / {
 	fragment@0 {
 		// pwmchip0, pwm@fdd70010
@@ -10,8 +8,6 @@
 
 		__overlay__ {
 			status = "okay";
-
-			pinctrl-0 = <&pwm1m1_pins>;
 		};
 	};
 };

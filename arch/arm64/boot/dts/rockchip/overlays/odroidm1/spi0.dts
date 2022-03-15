@@ -13,9 +13,6 @@
 			pinctrl-0 = <&spi0m1_cs0 &spi0m1_pins>;
 			pinctrl-1 = <&spi0m1_cs0 &spi0m1_pins_hs>;
 
-			#address-cells = <1>;
-			#size-cells = <0>;
-
 			spidev: spidev@0 {
 				status = "okay";
 				compatible = "rockchip,spidev";

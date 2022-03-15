@@ -5,10 +5,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
-	pwm1-0.dtbo \
-	pwm1-1.dtbo \
-	pwm2-0.dtbo \
-	pwm2-1.dtbo \
+	pwm1.dtbo \
+	pwm2.dtbo \
 	pwm9.dtbo \
 	spi0.dtbo \
 	uart0-with-ctsrts.dtbo \
