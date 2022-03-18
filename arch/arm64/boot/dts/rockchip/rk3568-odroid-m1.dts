@@ -51,6 +51,12 @@
 	};
 };
 
+&can0 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&can0m0_pins>;
+};
+
 &combphy0_us {
 	status = "okay";
 };
