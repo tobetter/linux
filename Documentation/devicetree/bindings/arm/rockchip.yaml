@@ -952,6 +952,11 @@ properties:
               - rockchip,rv1126
               - rockchip,rv1109
 
+      - description: Rockchip RK3568 Hardkernel ODROID-M1
+        items:
+          - const: hardkernel,rk3568-odroid-m1
+          - const: rockchip,rk3568
+
 additionalProperties: true
 
 ...
