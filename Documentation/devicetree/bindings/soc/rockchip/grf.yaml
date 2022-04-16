@@ -14,6 +14,8 @@ properties:
     oneOf:
       - items:
           - enum:
+              - rockchip,pcie30-phy-grf
+              - rockchip,pcie30-pipe-grf
               - rockchip,rk3288-sgrf
               - rockchip,rk3566-pipe-grf
               - rockchip,rk3568-pcie3-phy-grf
