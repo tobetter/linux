@@ -8,6 +8,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	i2c1.dtbo \
 	imx219.dtbo \
 	imx477.dtbo \
+	onewire.dtbo \
 	ov5647.dtbo \
 	pwm1.dtbo \
 	pwm2.dtbo \
