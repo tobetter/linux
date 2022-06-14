@@ -4,12 +4,12 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	can0.dtbo \
 	display_vu8m.dtbo \
 	dht11.dtbo \
-	ttyfiq0_115200.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	imx219.dtbo \
 	imx477.dtbo \
+	mcp2515.dtbo \
 	onewire.dtbo \
 	ov5647.dtbo \
 	pwm1.dtbo \
@@ -17,6 +17,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP_ODROIDM1) += \
 	pwm9.dtbo \
 	rknpu.dtbo \
 	spi0.dtbo \
+	ttyfiq0_115200.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \
 	uart1.dtbo
