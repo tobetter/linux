@@ -4847,7 +4847,7 @@ CONFIG_ROCKCHIP_SARADC=y
 # Humidity sensors
 #
 # CONFIG_AM2315 is not set
-# CONFIG_DHT11 is not set
+CONFIG_DHT11=y
 # CONFIG_HDC100X is not set
 # CONFIG_HTS221 is not set
 # CONFIG_HTU21 is not set
