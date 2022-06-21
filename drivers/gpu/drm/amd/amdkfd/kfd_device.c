@@ -156,7 +156,9 @@ static void kfd_device_info_init(struct kfd_dev *kfd,
 
 		if (gc_version < IP_VERSION(11, 0, 0)) {
 			/* Navi2x+, Navi1x+ */
-			if (gc_version >= IP_VERSION(10, 3, 0))
+			if (gc_version == IP_VERSION(10, 3, 6))
+				kfd->device_info.no_atomic_fw_version = 14;
+			else if (gc_version >= IP_VERSION(10, 3, 0))
 				kfd->device_info.no_atomic_fw_version = 92;
 			else if (gc_version >= IP_VERSION(10, 1, 1))
 				kfd->device_info.no_atomic_fw_version = 145;
@@ -574,6 +576,8 @@ bool kgd2kfd_device_init(struct kfd_dev *kfd,
 
 	if (kfd_resume(kfd))
 		goto kfd_resume_error;
+
+	amdgpu_amdkfd_get_local_mem_info(kfd->adev, &kfd->local_mem_info);
 
 	if (kfd_topology_add_device(kfd)) {
 		dev_err(kfd_device, "Error adding device to topology\n");
