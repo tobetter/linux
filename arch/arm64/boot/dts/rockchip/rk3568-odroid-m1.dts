@@ -52,9 +52,10 @@
 };
 
 &can0 {
-	status = "disabled";
+	compatible = "rockchip,can-1.0";
 	pinctrl-names = "default";
 	pinctrl-0 = <&can0m0_pins>;
+	status = "disabled";
 };
 
 &combphy0_us {
