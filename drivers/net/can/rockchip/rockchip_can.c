@@ -810,3 +810,4 @@ module_platform_driver(rockchip_can_driver);
 
 MODULE_AUTHOR("Andy Yan <andy.yan@rock-chips.com>");
 MODULE_DESCRIPTION("Rockchip CAN Drivers");
+MODULE_LICENSE("GPL v2");
