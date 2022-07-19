@@ -5,6 +5,8 @@ dtbo-y += \
 	pwm1.dtbo \
 	pwm2.dtbo \
 	pwm9.dtbo \
+	uart0-with-ctsrts.dtbo \
+	uart0.dtbo \
 	uart1.dtbo
 
 targets += $(dtbo-y)
