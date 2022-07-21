@@ -8,8 +8,6 @@
 		__overlay__ {
 			status = "okay";
 
-			pinctrl-0 = <&spi0m1_cs0 &spi0m1_pins>;
-
 			spidev: spidev@0 {
 				status = "okay";
 				compatible = "odroid,spi-dev";
