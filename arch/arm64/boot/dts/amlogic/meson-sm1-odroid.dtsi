@@ -21,6 +21,7 @@
 		serial3 = &uart_C;
 		serial4 = &uart_AO_B;
 		ethernet0 = &ethmac;
+		spi0 = &spicc0;
 	};
 
 	chosen {
@@ -445,6 +446,16 @@
 	mmc-pwrseq = <&emmc_pwrseq>;
 	vmmc-supply = <&vcc_3v3>;
 	vqmmc-supply = <&flash_1v8>;
+};
+
+&spicc0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spicc0_x_pins>;
+	status = "disabled";
+	num_chipselect = <2>;
+
+	cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>,
+	    <&gpio GPIOH_6 GPIO_ACTIVE_LOW>;
 };
 
 &tdmif_b {
