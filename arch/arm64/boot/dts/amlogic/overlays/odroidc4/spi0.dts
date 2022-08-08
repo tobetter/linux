@@ -10,7 +10,9 @@
 
 		__overlay__ {
 			status = "okay";
-			pinctrl-0 = <&spicc0_x_pins>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num_chipselect = <1>;
 			cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>;
 
 			spidev: spidev@0 {
