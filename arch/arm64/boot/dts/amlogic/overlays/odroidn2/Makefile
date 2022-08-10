@@ -1,4 +1,5 @@
 dtbo-y += \
+	can0.dtbo \
 	fanspeed-full.dtbo \
 	hktft35.dtbo \
 	i2c0.dtbo \
