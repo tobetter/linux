@@ -4,36 +4,18 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/rockchip.h>
 #include <dt-bindings/interrupt-controller/irq.h>
-#include "../../rk3568-pinctrl.dtsi"
 
 / {
 	fragment@0 {
 		target = <&spi0>;
 
 		__overlay__ {
-			pinctrl-0 = <&spi0m1_cs0 &spi0m1_pins>;
-			pinctrl-1 = <&spi0m1_cs0 &spi0m1_pins_hs>;
-			num_chipselect = <2>;
-
-			cs-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_LOW>,
-				<&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
-			status = "okay";
+			num_chipselect = <1>;
+			cs-gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_LOW>;
 		};
 	};
 
 	fragment@1 {
-		target = <&pinctrl>;
-
-		__overlay__ {
-			can_pins {
-				mcp2515_can0: mcp2515_can0 {
-					rockchip,pins = <RK_GPIO0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
-				};
-			};
-		};
-	};
-
-	fragment@2 {
 		target-path = "/";
 
 		__overlay__ {
@@ -45,11 +27,12 @@
 		};
 	};
 
-	fragment@3 {
+	fragment@2 {
 		target = <&spi0>;
 
 		__overlay__ {
 			/* needed to avoid dtc warning */
+		        status = "okay";
 			#address-cells = <1>;
 			#size-cells = <0>;
 
@@ -57,7 +40,7 @@
 				compatible = "microchip,mcp2515";
 				pinctrl-names = "default";
 				pinctrl-0 = <&mcp2515_can0>;
-				reg = <1>;
+				reg = <0>;
 				clocks = <&can0_clk>;
 				interrupt-parent = <&gpio0>;
 				interrupts = <RK_PC0 IRQ_TYPE_EDGE_FALLING>;
