@@ -16,11 +16,13 @@
 #include <linux/iopoll.h>
 #include <linux/mdio.h>
 #include <linux/pci.h>
+#include <linux/time.h>
 #include "felix.h"
 
 #define VSC9959_NUM_PORTS		6
 
 #define VSC9959_TAS_GCL_ENTRY_MAX	63
+#define VSC9959_TAS_MIN_GATE_LEN_NS	33
 #define VSC9959_VCAP_POLICER_BASE	63
 #define VSC9959_VCAP_POLICER_MAX	383
 #define VSC9959_SWITCH_PCI_BAR		4
@@ -280,19 +282,23 @@ static const u32 vsc9959_sys_regmap[] = {
 	REG(SYS_COUNT_RX_64,			0x000024),
 	REG(SYS_COUNT_RX_65_127,		0x000028),
 	REG(SYS_COUNT_RX_128_255,		0x00002c),
-	REG(SYS_COUNT_RX_256_1023,		0x000030),
-	REG(SYS_COUNT_RX_1024_1526,		0x000034),
-	REG(SYS_COUNT_RX_1527_MAX,		0x000038),
-	REG(SYS_COUNT_RX_LONGS,			0x000044),
+	REG(SYS_COUNT_RX_256_511,		0x000030),
+	REG(SYS_COUNT_RX_512_1023,		0x000034),
+	REG(SYS_COUNT_RX_1024_1526,		0x000038),
+	REG(SYS_COUNT_RX_1527_MAX,		0x00003c),
+	REG(SYS_COUNT_RX_PAUSE,			0x000040),
+	REG(SYS_COUNT_RX_CONTROL,		0x000044),
+	REG(SYS_COUNT_RX_LONGS,			0x000048),
 	REG(SYS_COUNT_TX_OCTETS,		0x000200),
 	REG(SYS_COUNT_TX_COLLISION,		0x000210),
 	REG(SYS_COUNT_TX_DROPS,			0x000214),
 	REG(SYS_COUNT_TX_64,			0x00021c),
 	REG(SYS_COUNT_TX_65_127,		0x000220),
-	REG(SYS_COUNT_TX_128_511,		0x000224),
-	REG(SYS_COUNT_TX_512_1023,		0x000228),
-	REG(SYS_COUNT_TX_1024_1526,		0x00022c),
-	REG(SYS_COUNT_TX_1527_MAX,		0x000230),
+	REG(SYS_COUNT_TX_128_255,		0x000224),
+	REG(SYS_COUNT_TX_256_511,		0x000228),
+	REG(SYS_COUNT_TX_512_1023,		0x00022c),
+	REG(SYS_COUNT_TX_1024_1526,		0x000230),
+	REG(SYS_COUNT_TX_1527_MAX,		0x000234),
 	REG(SYS_COUNT_TX_AGING,			0x000278),
 	REG(SYS_RESET_CFG,			0x000e00),
 	REG(SYS_SR_ETYPE_CFG,			0x000e04),
@@ -546,100 +552,379 @@ static const struct reg_field vsc9959_regfields[REGFIELD_MAX] = {
 	[SYS_PAUSE_CFG_PAUSE_ENA] = REG_FIELD_ID(SYS_PAUSE_CFG, 0, 1, 7, 4),
 };
 
-static const struct ocelot_stat_layout vsc9959_stats_layout[] = {
-	{ .offset = 0x00,	.name = "rx_octets", },
-	{ .offset = 0x01,	.name = "rx_unicast", },
-	{ .offset = 0x02,	.name = "rx_multicast", },
-	{ .offset = 0x03,	.name = "rx_broadcast", },
-	{ .offset = 0x04,	.name = "rx_shorts", },
-	{ .offset = 0x05,	.name = "rx_fragments", },
-	{ .offset = 0x06,	.name = "rx_jabbers", },
-	{ .offset = 0x07,	.name = "rx_crc_align_errs", },
-	{ .offset = 0x08,	.name = "rx_sym_errs", },
-	{ .offset = 0x09,	.name = "rx_frames_below_65_octets", },
-	{ .offset = 0x0A,	.name = "rx_frames_65_to_127_octets", },
-	{ .offset = 0x0B,	.name = "rx_frames_128_to_255_octets", },
-	{ .offset = 0x0C,	.name = "rx_frames_256_to_511_octets", },
-	{ .offset = 0x0D,	.name = "rx_frames_512_to_1023_octets", },
-	{ .offset = 0x0E,	.name = "rx_frames_1024_to_1526_octets", },
-	{ .offset = 0x0F,	.name = "rx_frames_over_1526_octets", },
-	{ .offset = 0x10,	.name = "rx_pause", },
-	{ .offset = 0x11,	.name = "rx_control", },
-	{ .offset = 0x12,	.name = "rx_longs", },
-	{ .offset = 0x13,	.name = "rx_classified_drops", },
-	{ .offset = 0x14,	.name = "rx_red_prio_0", },
-	{ .offset = 0x15,	.name = "rx_red_prio_1", },
-	{ .offset = 0x16,	.name = "rx_red_prio_2", },
-	{ .offset = 0x17,	.name = "rx_red_prio_3", },
-	{ .offset = 0x18,	.name = "rx_red_prio_4", },
-	{ .offset = 0x19,	.name = "rx_red_prio_5", },
-	{ .offset = 0x1A,	.name = "rx_red_prio_6", },
-	{ .offset = 0x1B,	.name = "rx_red_prio_7", },
-	{ .offset = 0x1C,	.name = "rx_yellow_prio_0", },
-	{ .offset = 0x1D,	.name = "rx_yellow_prio_1", },
-	{ .offset = 0x1E,	.name = "rx_yellow_prio_2", },
-	{ .offset = 0x1F,	.name = "rx_yellow_prio_3", },
-	{ .offset = 0x20,	.name = "rx_yellow_prio_4", },
-	{ .offset = 0x21,	.name = "rx_yellow_prio_5", },
-	{ .offset = 0x22,	.name = "rx_yellow_prio_6", },
-	{ .offset = 0x23,	.name = "rx_yellow_prio_7", },
-	{ .offset = 0x24,	.name = "rx_green_prio_0", },
-	{ .offset = 0x25,	.name = "rx_green_prio_1", },
-	{ .offset = 0x26,	.name = "rx_green_prio_2", },
-	{ .offset = 0x27,	.name = "rx_green_prio_3", },
-	{ .offset = 0x28,	.name = "rx_green_prio_4", },
-	{ .offset = 0x29,	.name = "rx_green_prio_5", },
-	{ .offset = 0x2A,	.name = "rx_green_prio_6", },
-	{ .offset = 0x2B,	.name = "rx_green_prio_7", },
-	{ .offset = 0x80,	.name = "tx_octets", },
-	{ .offset = 0x81,	.name = "tx_unicast", },
-	{ .offset = 0x82,	.name = "tx_multicast", },
-	{ .offset = 0x83,	.name = "tx_broadcast", },
-	{ .offset = 0x84,	.name = "tx_collision", },
-	{ .offset = 0x85,	.name = "tx_drops", },
-	{ .offset = 0x86,	.name = "tx_pause", },
-	{ .offset = 0x87,	.name = "tx_frames_below_65_octets", },
-	{ .offset = 0x88,	.name = "tx_frames_65_to_127_octets", },
-	{ .offset = 0x89,	.name = "tx_frames_128_255_octets", },
-	{ .offset = 0x8B,	.name = "tx_frames_256_511_octets", },
-	{ .offset = 0x8C,	.name = "tx_frames_1024_1526_octets", },
-	{ .offset = 0x8D,	.name = "tx_frames_over_1526_octets", },
-	{ .offset = 0x8E,	.name = "tx_yellow_prio_0", },
-	{ .offset = 0x8F,	.name = "tx_yellow_prio_1", },
-	{ .offset = 0x90,	.name = "tx_yellow_prio_2", },
-	{ .offset = 0x91,	.name = "tx_yellow_prio_3", },
-	{ .offset = 0x92,	.name = "tx_yellow_prio_4", },
-	{ .offset = 0x93,	.name = "tx_yellow_prio_5", },
-	{ .offset = 0x94,	.name = "tx_yellow_prio_6", },
-	{ .offset = 0x95,	.name = "tx_yellow_prio_7", },
-	{ .offset = 0x96,	.name = "tx_green_prio_0", },
-	{ .offset = 0x97,	.name = "tx_green_prio_1", },
-	{ .offset = 0x98,	.name = "tx_green_prio_2", },
-	{ .offset = 0x99,	.name = "tx_green_prio_3", },
-	{ .offset = 0x9A,	.name = "tx_green_prio_4", },
-	{ .offset = 0x9B,	.name = "tx_green_prio_5", },
-	{ .offset = 0x9C,	.name = "tx_green_prio_6", },
-	{ .offset = 0x9D,	.name = "tx_green_prio_7", },
-	{ .offset = 0x9E,	.name = "tx_aged", },
-	{ .offset = 0x100,	.name = "drop_local", },
-	{ .offset = 0x101,	.name = "drop_tail", },
-	{ .offset = 0x102,	.name = "drop_yellow_prio_0", },
-	{ .offset = 0x103,	.name = "drop_yellow_prio_1", },
-	{ .offset = 0x104,	.name = "drop_yellow_prio_2", },
-	{ .offset = 0x105,	.name = "drop_yellow_prio_3", },
-	{ .offset = 0x106,	.name = "drop_yellow_prio_4", },
-	{ .offset = 0x107,	.name = "drop_yellow_prio_5", },
-	{ .offset = 0x108,	.name = "drop_yellow_prio_6", },
-	{ .offset = 0x109,	.name = "drop_yellow_prio_7", },
-	{ .offset = 0x10A,	.name = "drop_green_prio_0", },
-	{ .offset = 0x10B,	.name = "drop_green_prio_1", },
-	{ .offset = 0x10C,	.name = "drop_green_prio_2", },
-	{ .offset = 0x10D,	.name = "drop_green_prio_3", },
-	{ .offset = 0x10E,	.name = "drop_green_prio_4", },
-	{ .offset = 0x10F,	.name = "drop_green_prio_5", },
-	{ .offset = 0x110,	.name = "drop_green_prio_6", },
-	{ .offset = 0x111,	.name = "drop_green_prio_7", },
-	OCELOT_STAT_END
+static const struct ocelot_stat_layout vsc9959_stats_layout[OCELOT_NUM_STATS] = {
+	[OCELOT_STAT_RX_OCTETS] = {
+		.name = "rx_octets",
+		.offset = 0x00,
+	},
+	[OCELOT_STAT_RX_UNICAST] = {
+		.name = "rx_unicast",
+		.offset = 0x01,
+	},
+	[OCELOT_STAT_RX_MULTICAST] = {
+		.name = "rx_multicast",
+		.offset = 0x02,
+	},
+	[OCELOT_STAT_RX_BROADCAST] = {
+		.name = "rx_broadcast",
+		.offset = 0x03,
+	},
+	[OCELOT_STAT_RX_SHORTS] = {
+		.name = "rx_shorts",
+		.offset = 0x04,
+	},
+	[OCELOT_STAT_RX_FRAGMENTS] = {
+		.name = "rx_fragments",
+		.offset = 0x05,
+	},
+	[OCELOT_STAT_RX_JABBERS] = {
+		.name = "rx_jabbers",
+		.offset = 0x06,
+	},
+	[OCELOT_STAT_RX_CRC_ALIGN_ERRS] = {
+		.name = "rx_crc_align_errs",
+		.offset = 0x07,
+	},
+	[OCELOT_STAT_RX_SYM_ERRS] = {
+		.name = "rx_sym_errs",
+		.offset = 0x08,
+	},
+	[OCELOT_STAT_RX_64] = {
+		.name = "rx_frames_below_65_octets",
+		.offset = 0x09,
+	},
+	[OCELOT_STAT_RX_65_127] = {
+		.name = "rx_frames_65_to_127_octets",
+		.offset = 0x0A,
+	},
+	[OCELOT_STAT_RX_128_255] = {
+		.name = "rx_frames_128_to_255_octets",
+		.offset = 0x0B,
+	},
+	[OCELOT_STAT_RX_256_511] = {
+		.name = "rx_frames_256_to_511_octets",
+		.offset = 0x0C,
+	},
+	[OCELOT_STAT_RX_512_1023] = {
+		.name = "rx_frames_512_to_1023_octets",
+		.offset = 0x0D,
+	},
+	[OCELOT_STAT_RX_1024_1526] = {
+		.name = "rx_frames_1024_to_1526_octets",
+		.offset = 0x0E,
+	},
+	[OCELOT_STAT_RX_1527_MAX] = {
+		.name = "rx_frames_over_1526_octets",
+		.offset = 0x0F,
+	},
+	[OCELOT_STAT_RX_PAUSE] = {
+		.name = "rx_pause",
+		.offset = 0x10,
+	},
+	[OCELOT_STAT_RX_CONTROL] = {
+		.name = "rx_control",
+		.offset = 0x11,
+	},
+	[OCELOT_STAT_RX_LONGS] = {
+		.name = "rx_longs",
+		.offset = 0x12,
+	},
+	[OCELOT_STAT_RX_CLASSIFIED_DROPS] = {
+		.name = "rx_classified_drops",
+		.offset = 0x13,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_0] = {
+		.name = "rx_red_prio_0",
+		.offset = 0x14,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_1] = {
+		.name = "rx_red_prio_1",
+		.offset = 0x15,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_2] = {
+		.name = "rx_red_prio_2",
+		.offset = 0x16,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_3] = {
+		.name = "rx_red_prio_3",
+		.offset = 0x17,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_4] = {
+		.name = "rx_red_prio_4",
+		.offset = 0x18,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_5] = {
+		.name = "rx_red_prio_5",
+		.offset = 0x19,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_6] = {
+		.name = "rx_red_prio_6",
+		.offset = 0x1A,
+	},
+	[OCELOT_STAT_RX_RED_PRIO_7] = {
+		.name = "rx_red_prio_7",
+		.offset = 0x1B,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_0] = {
+		.name = "rx_yellow_prio_0",
+		.offset = 0x1C,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_1] = {
+		.name = "rx_yellow_prio_1",
+		.offset = 0x1D,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_2] = {
+		.name = "rx_yellow_prio_2",
+		.offset = 0x1E,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_3] = {
+		.name = "rx_yellow_prio_3",
+		.offset = 0x1F,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_4] = {
+		.name = "rx_yellow_prio_4",
+		.offset = 0x20,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_5] = {
+		.name = "rx_yellow_prio_5",
+		.offset = 0x21,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_6] = {
+		.name = "rx_yellow_prio_6",
+		.offset = 0x22,
+	},
+	[OCELOT_STAT_RX_YELLOW_PRIO_7] = {
+		.name = "rx_yellow_prio_7",
+		.offset = 0x23,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_0] = {
+		.name = "rx_green_prio_0",
+		.offset = 0x24,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_1] = {
+		.name = "rx_green_prio_1",
+		.offset = 0x25,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_2] = {
+		.name = "rx_green_prio_2",
+		.offset = 0x26,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_3] = {
+		.name = "rx_green_prio_3",
+		.offset = 0x27,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_4] = {
+		.name = "rx_green_prio_4",
+		.offset = 0x28,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_5] = {
+		.name = "rx_green_prio_5",
+		.offset = 0x29,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_6] = {
+		.name = "rx_green_prio_6",
+		.offset = 0x2A,
+	},
+	[OCELOT_STAT_RX_GREEN_PRIO_7] = {
+		.name = "rx_green_prio_7",
+		.offset = 0x2B,
+	},
+	[OCELOT_STAT_TX_OCTETS] = {
+		.name = "tx_octets",
+		.offset = 0x80,
+	},
+	[OCELOT_STAT_TX_UNICAST] = {
+		.name = "tx_unicast",
+		.offset = 0x81,
+	},
+	[OCELOT_STAT_TX_MULTICAST] = {
+		.name = "tx_multicast",
+		.offset = 0x82,
+	},
+	[OCELOT_STAT_TX_BROADCAST] = {
+		.name = "tx_broadcast",
+		.offset = 0x83,
+	},
+	[OCELOT_STAT_TX_COLLISION] = {
+		.name = "tx_collision",
+		.offset = 0x84,
+	},
+	[OCELOT_STAT_TX_DROPS] = {
+		.name = "tx_drops",
+		.offset = 0x85,
+	},
+	[OCELOT_STAT_TX_PAUSE] = {
+		.name = "tx_pause",
+		.offset = 0x86,
+	},
+	[OCELOT_STAT_TX_64] = {
+		.name = "tx_frames_below_65_octets",
+		.offset = 0x87,
+	},
+	[OCELOT_STAT_TX_65_127] = {
+		.name = "tx_frames_65_to_127_octets",
+		.offset = 0x88,
+	},
+	[OCELOT_STAT_TX_128_255] = {
+		.name = "tx_frames_128_255_octets",
+		.offset = 0x89,
+	},
+	[OCELOT_STAT_TX_256_511] = {
+		.name = "tx_frames_256_511_octets",
+		.offset = 0x8A,
+	},
+	[OCELOT_STAT_TX_512_1023] = {
+		.name = "tx_frames_512_1023_octets",
+		.offset = 0x8B,
+	},
+	[OCELOT_STAT_TX_1024_1526] = {
+		.name = "tx_frames_1024_1526_octets",
+		.offset = 0x8C,
+	},
+	[OCELOT_STAT_TX_1527_MAX] = {
+		.name = "tx_frames_over_1526_octets",
+		.offset = 0x8D,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_0] = {
+		.name = "tx_yellow_prio_0",
+		.offset = 0x8E,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_1] = {
+		.name = "tx_yellow_prio_1",
+		.offset = 0x8F,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_2] = {
+		.name = "tx_yellow_prio_2",
+		.offset = 0x90,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_3] = {
+		.name = "tx_yellow_prio_3",
+		.offset = 0x91,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_4] = {
+		.name = "tx_yellow_prio_4",
+		.offset = 0x92,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_5] = {
+		.name = "tx_yellow_prio_5",
+		.offset = 0x93,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_6] = {
+		.name = "tx_yellow_prio_6",
+		.offset = 0x94,
+	},
+	[OCELOT_STAT_TX_YELLOW_PRIO_7] = {
+		.name = "tx_yellow_prio_7",
+		.offset = 0x95,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_0] = {
+		.name = "tx_green_prio_0",
+		.offset = 0x96,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_1] = {
+		.name = "tx_green_prio_1",
+		.offset = 0x97,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_2] = {
+		.name = "tx_green_prio_2",
+		.offset = 0x98,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_3] = {
+		.name = "tx_green_prio_3",
+		.offset = 0x99,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_4] = {
+		.name = "tx_green_prio_4",
+		.offset = 0x9A,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_5] = {
+		.name = "tx_green_prio_5",
+		.offset = 0x9B,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_6] = {
+		.name = "tx_green_prio_6",
+		.offset = 0x9C,
+	},
+	[OCELOT_STAT_TX_GREEN_PRIO_7] = {
+		.name = "tx_green_prio_7",
+		.offset = 0x9D,
+	},
+	[OCELOT_STAT_TX_AGED] = {
+		.name = "tx_aged",
+		.offset = 0x9E,
+	},
+	[OCELOT_STAT_DROP_LOCAL] = {
+		.name = "drop_local",
+		.offset = 0x100,
+	},
+	[OCELOT_STAT_DROP_TAIL] = {
+		.name = "drop_tail",
+		.offset = 0x101,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_0] = {
+		.name = "drop_yellow_prio_0",
+		.offset = 0x102,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_1] = {
+		.name = "drop_yellow_prio_1",
+		.offset = 0x103,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_2] = {
+		.name = "drop_yellow_prio_2",
+		.offset = 0x104,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_3] = {
+		.name = "drop_yellow_prio_3",
+		.offset = 0x105,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_4] = {
+		.name = "drop_yellow_prio_4",
+		.offset = 0x106,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_5] = {
+		.name = "drop_yellow_prio_5",
+		.offset = 0x107,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_6] = {
+		.name = "drop_yellow_prio_6",
+		.offset = 0x108,
+	},
+	[OCELOT_STAT_DROP_YELLOW_PRIO_7] = {
+		.name = "drop_yellow_prio_7",
+		.offset = 0x109,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_0] = {
+		.name = "drop_green_prio_0",
+		.offset = 0x10A,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_1] = {
+		.name = "drop_green_prio_1",
+		.offset = 0x10B,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_2] = {
+		.name = "drop_green_prio_2",
+		.offset = 0x10C,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_3] = {
+		.name = "drop_green_prio_3",
+		.offset = 0x10D,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_4] = {
+		.name = "drop_green_prio_4",
+		.offset = 0x10E,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_5] = {
+		.name = "drop_green_prio_5",
+		.offset = 0x10F,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_6] = {
+		.name = "drop_green_prio_6",
+		.offset = 0x110,
+	},
+	[OCELOT_STAT_DROP_GREEN_PRIO_7] = {
+		.name = "drop_green_prio_7",
+		.offset = 0x111,
+	},
 };
 
 static const struct vcap_field vsc9959_vcap_es0_keys[] = {
@@ -1127,6 +1412,23 @@ static void vsc9959_mdio_bus_free(struct ocelot *ocelot)
 	mdiobus_free(felix->imdio);
 }
 
+/* The switch considers any frame (regardless of size) as eligible for
+ * transmission if the traffic class gate is open for at least 33 ns.
+ * Overruns are prevented by cropping an interval at the end of the gate time
+ * slot for which egress scheduling is blocked, but we need to still keep 33 ns
+ * available for one packet to be transmitted, otherwise the port tc will hang.
+ * This function returns the size of a gate interval that remains available for
+ * setting the guard band, after reserving the space for one egress frame.
+ */
+static u64 vsc9959_tas_remaining_gate_len_ps(u64 gate_len_ns)
+{
+	/* Gate always open */
+	if (gate_len_ns == U64_MAX)
+		return U64_MAX;
+
+	return (gate_len_ns - VSC9959_TAS_MIN_GATE_LEN_NS) * PSEC_PER_NSEC;
+}
+
 /* Extract shortest continuous gate open intervals in ns for each traffic class
  * of a cyclic tc-taprio schedule. If a gate is always open, the duration is
  * considered U64_MAX. If the gate is always closed, it is considered 0.
@@ -1188,6 +1490,65 @@ static void vsc9959_tas_min_gate_lengths(struct tc_taprio_qopt_offload *taprio,
 			min_gate_len[tc] = 0;
 }
 
+/* ocelot_write_rix is a macro that concatenates QSYS_MAXSDU_CFG_* with _RSZ,
+ * so we need to spell out the register access to each traffic class in helper
+ * functions, to simplify callers
+ */
+static void vsc9959_port_qmaxsdu_set(struct ocelot *ocelot, int port, int tc,
+				     u32 max_sdu)
+{
+	switch (tc) {
+	case 0:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_0,
+				 port);
+		break;
+	case 1:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_1,
+				 port);
+		break;
+	case 2:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_2,
+				 port);
+		break;
+	case 3:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_3,
+				 port);
+		break;
+	case 4:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_4,
+				 port);
+		break;
+	case 5:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_5,
+				 port);
+		break;
+	case 6:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_6,
+				 port);
+		break;
+	case 7:
+		ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_7,
+				 port);
+		break;
+	}
+}
+
+static u32 vsc9959_port_qmaxsdu_get(struct ocelot *ocelot, int port, int tc)
+{
+	switch (tc) {
+	case 0: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_0, port);
+	case 1: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_1, port);
+	case 2: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_2, port);
+	case 3: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_3, port);
+	case 4: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_4, port);
+	case 5: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_5, port);
+	case 6: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_6, port);
+	case 7: return ocelot_read_rix(ocelot, QSYS_QMAXSDU_CFG_7, port);
+	default:
+		return 0;
+	}
+}
+
 /* Update QSYS_PORT_MAX_SDU to make sure the static guard bands added by the
  * switch (see the ALWAYS_GUARD_BAND_SCH_Q comment) are correct at all MTU
  * values (the default value is 1518). Also, for traffic class windows smaller
@@ -1244,11 +1605,16 @@ static void vsc9959_tas_guard_bands_update(struct ocelot *ocelot, int port)
 
 	vsc9959_tas_min_gate_lengths(ocelot_port->taprio, min_gate_len);
 
+	mutex_lock(&ocelot->fwd_domain_lock);
+
 	for (tc = 0; tc < OCELOT_NUM_TC; tc++) {
+		u64 remaining_gate_len_ps;
 		u32 max_sdu;
 
-		if (min_gate_len[tc] == U64_MAX /* Gate always open */ ||
-		    min_gate_len[tc] * 1000 > needed_bit_time_ps) {
+		remaining_gate_len_ps =
+			vsc9959_tas_remaining_gate_len_ps(min_gate_len[tc]);
+
+		if (remaining_gate_len_ps > needed_bit_time_ps) {
 			/* Setting QMAXSDU_CFG to 0 disables oversized frame
 			 * dropping.
 			 */
@@ -1261,9 +1627,15 @@ static void vsc9959_tas_guard_bands_update(struct ocelot *ocelot, int port)
 			/* If traffic class doesn't support a full MTU sized
 			 * frame, make sure to enable oversize frame dropping
 			 * for frames larger than the smallest that would fit.
+			 *
+			 * However, the exact same register, QSYS_QMAXSDU_CFG_*,
+			 * controls not only oversized frame dropping, but also
+			 * per-tc static guard band lengths, so it reduces the
+			 * useful gate interval length. Therefore, be careful
+			 * to calculate a guard band (and therefore max_sdu)
+			 * that still leaves 33 ns available in the time slot.
 			 */
-			max_sdu = div_u64(min_gate_len[tc] * 1000,
-					  picos_per_byte);
+			max_sdu = div_u64(remaining_gate_len_ps, picos_per_byte);
 			/* A TC gate may be completely closed, which is a
 			 * special case where all packets are oversized.
 			 * Any limit smaller than 64 octets accomplishes this
@@ -1286,47 +1658,14 @@ static void vsc9959_tas_guard_bands_update(struct ocelot *ocelot, int port)
 				 max_sdu);
 		}
 
-		/* ocelot_write_rix is a macro that concatenates
-		 * QSYS_MAXSDU_CFG_* with _RSZ, so we need to spell out
-		 * the writes to each traffic class
-		 */
-		switch (tc) {
-		case 0:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_0,
-					 port);
-			break;
-		case 1:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_1,
-					 port);
-			break;
-		case 2:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_2,
-					 port);
-			break;
-		case 3:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_3,
-					 port);
-			break;
-		case 4:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_4,
-					 port);
-			break;
-		case 5:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_5,
-					 port);
-			break;
-		case 6:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_6,
-					 port);
-			break;
-		case 7:
-			ocelot_write_rix(ocelot, max_sdu, QSYS_QMAXSDU_CFG_7,
-					 port);
-			break;
-		}
+		vsc9959_port_qmaxsdu_set(ocelot, port, tc, max_sdu);
 	}
 
 	ocelot_write_rix(ocelot, maxlen, QSYS_PORT_MAX_SDU, port);
+
+	ocelot->ops->cut_through_fwd(ocelot);
+
+	mutex_unlock(&ocelot->fwd_domain_lock);
 }
 
 static void vsc9959_sched_speed_set(struct ocelot *ocelot, int port,
@@ -1353,12 +1692,12 @@ static void vsc9959_sched_speed_set(struct ocelot *ocelot, int port,
 		break;
 	}
 
+	mutex_lock(&ocelot->tas_lock);
+
 	ocelot_rmw_rix(ocelot,
 		       QSYS_TAG_CONFIG_LINK_SPEED(tas_speed),
 		       QSYS_TAG_CONFIG_LINK_SPEED_M,
 		       QSYS_TAG_CONFIG, port);
-
-	mutex_lock(&ocelot->tas_lock);
 
 	if (ocelot_port->taprio)
 		vsc9959_tas_guard_bands_update(ocelot, port);
@@ -2172,7 +2511,7 @@ static void vsc9959_psfp_sgi_table_del(struct ocelot *ocelot,
 static void vsc9959_psfp_counters_get(struct ocelot *ocelot, u32 index,
 				      struct felix_stream_filter_counters *counters)
 {
-	mutex_lock(&ocelot->stats_lock);
+	spin_lock(&ocelot->stats_lock);
 
 	ocelot_rmw(ocelot, SYS_STAT_CFG_STAT_VIEW(index),
 		   SYS_STAT_CFG_STAT_VIEW_M,
@@ -2189,7 +2528,7 @@ static void vsc9959_psfp_counters_get(struct ocelot *ocelot, u32 index,
 		     SYS_STAT_CFG_STAT_CLEAR_SHOT(0x10),
 		     SYS_STAT_CFG);
 
-	mutex_unlock(&ocelot->stats_lock);
+	spin_unlock(&ocelot->stats_lock);
 }
 
 static int vsc9959_psfp_filter_add(struct ocelot *ocelot, int port,
@@ -2426,7 +2765,7 @@ static void vsc9959_cut_through_fwd(struct ocelot *ocelot)
 {
 	struct felix *felix = ocelot_to_felix(ocelot);
 	struct dsa_switch *ds = felix->ds;
-	int port, other_port;
+	int tc, port, other_port;
 
 	lockdep_assert_held(&ocelot->fwd_domain_lock);
 
@@ -2470,9 +2809,17 @@ static void vsc9959_cut_through_fwd(struct ocelot *ocelot)
 				min_speed = other_ocelot_port->speed;
 		}
 
-		/* Enable cut-through forwarding for all traffic classes. */
-		if (ocelot_port->speed == min_speed)
+		/* Enable cut-through forwarding for all traffic classes that
+		 * don't have oversized dropping enabled, since this check is
+		 * bypassed in cut-through mode.
+		 */
+		if (ocelot_port->speed == min_speed) {
 			val = GENMASK(7, 0);
+
+			for (tc = 0; tc < OCELOT_NUM_TC; tc++)
+				if (vsc9959_port_qmaxsdu_get(ocelot, port, tc))
+					val &= ~BIT(tc);
+		}
 
 set:
 		tmp = ocelot_read_rix(ocelot, ANA_CUT_THRU_CFG, port);
@@ -2480,9 +2827,9 @@ set:
 			continue;
 
 		dev_dbg(ocelot->dev,
-			"port %d fwd mask 0x%lx speed %d min_speed %d, %s cut-through forwarding\n",
+			"port %d fwd mask 0x%lx speed %d min_speed %d, %s cut-through forwarding on TC mask 0x%x\n",
 			port, mask, ocelot_port->speed, min_speed,
-			val ? "enabling" : "disabling");
+			val ? "enabling" : "disabling", val);
 
 		ocelot_write_rix(ocelot, val, ANA_CUT_THRU_CFG, port);
 	}
