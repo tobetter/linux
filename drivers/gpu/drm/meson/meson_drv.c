@@ -432,12 +432,15 @@ static int __maybe_unused meson_drv_pm_resume(struct device *dev)
 	return drm_mode_config_helper_resume(priv->drm);
 }
 
-static int compare_of(struct device *dev, void *data)
+static void meson_drv_shutdown(struct platform_device *pdev)
 {
-	DRM_DEBUG_DRIVER("Comparing of node %pOF with %pOF\n",
-			 dev->of_node, data);
+	struct meson_drm *priv = dev_get_drvdata(&pdev->dev);
 
-	return dev->of_node == data;
+	if (!priv)
+		return;
+
+	drm_kms_helper_poll_fini(priv->drm);
+	drm_atomic_helper_shutdown(priv->drm);
 }
 
 /* Possible connectors nodes to ignore */
