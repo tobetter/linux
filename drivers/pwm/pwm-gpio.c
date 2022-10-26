@@ -134,12 +134,44 @@ static void gpio_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 		gpio_pwm_off(gpio_data);
 }
 
+static int gpio_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+                          const struct pwm_state *state)
+{
+        int err;
+        bool enabled = pwm->state.enabled;
+
+        if (state->polarity != pwm->state.polarity) {
+                if (enabled) {
+                        gpio_pwm_disable(chip, pwm);
+                        enabled = false;
+                }
+
+                err = gpio_pwm_set_polarity(chip, pwm, state->polarity);
+                if (err)
+                        return err;
+        }
+
+        if (!state->enabled) {
+                if (enabled)
+                        gpio_pwm_disable(chip, pwm);
+
+                return 0;
+        }
+
+        err = gpio_pwm_config(pwm->chip, pwm,
+                              state->duty_cycle, state->period);
+        if (err)
+                return err;
+
+        if (!enabled)
+                err = gpio_pwm_enable(chip, pwm);
+
+        return err;
+}
+
 static const struct pwm_ops gpio_pwm_ops = {
-	.config = gpio_pwm_config,
-	.set_polarity = gpio_pwm_set_polarity,
-	.enable = gpio_pwm_enable,
-	.disable = gpio_pwm_disable,
-	.owner = THIS_MODULE,
+        .apply = gpio_pwm_apply,
+        .owner = THIS_MODULE,
 };
 
 static int gpio_pwm_probe(struct platform_device *pdev)
