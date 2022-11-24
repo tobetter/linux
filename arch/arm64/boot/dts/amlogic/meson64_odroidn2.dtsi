@@ -259,6 +259,22 @@
 	};
 };
 
+&periphs_pinctrl {
+	pwmcd_to_gpios: pwmcd_gpio {
+		mux {
+			groups = "GPIOX_5", "GPIOX_6";
+			function = "gpio_periphs";
+		};
+	};
+
+	pwmef_to_gpios: pwmef_gpio {
+		mux {
+			groups = "GPIOX_16", "GPIOX_7";
+			function = "gpio_periphs";
+		};
+	};
+};
+
 &spdifout {
 	pinctrl-0 = <&spdif_out_a13_pins>;
 	pinctrl-names = "default";

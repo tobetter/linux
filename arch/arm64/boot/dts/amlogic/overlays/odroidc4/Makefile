@@ -6,6 +6,9 @@ dtbo-y += \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	pcf8563.dtbo \
+	pwm_ab.dtbo \
+	pwm_cd.dtbo \
+	pwm_ef.dtbo \
 	spi0.dtbo \
 	sx865x-i2c1.dtbo \
 	uart0.dtbo \

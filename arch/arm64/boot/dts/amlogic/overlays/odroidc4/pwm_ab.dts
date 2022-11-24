@@ -1,0 +1,28 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// pwm_ab
+		// This activates pwm_ab.
+		target = <&pwm_ab>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default", "gpio_periphs";
+			pinctrl-0 = <&pwm_a_pins &pwm_b_x19_pins>;
+			pinctrl-1 = <&pwmab_to_gpios>;
+			clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+			clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
+			/* default xtal 24m  clkin0-clkin2 and
+			 * clkin1-clkin3 should be set the same
+			 */
+		};
+	};
+};

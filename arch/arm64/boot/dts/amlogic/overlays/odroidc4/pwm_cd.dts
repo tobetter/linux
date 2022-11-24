@@ -1,0 +1,28 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		// pwm_cd
+		// This activates pwm_cd.
+		target = <&pwm_cd>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default", "gpio_periphs";
+			pinctrl-0 = <&pwm_c_x5_pins &pwm_d_x3_pins>;
+			pinctrl-1 = <&pwmcd_to_gpios>;
+			clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+			clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
+			/* default xtal 24m  clkin0-clkin2 and
+			 * clkin1-clkin3 should be set the same
+			 */
+		};
+	};
+};
