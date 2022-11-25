@@ -47,3 +47,5 @@ obj-$(CONFIG_XILLYBUS_CLASS)	+= xillybus/
 obj-$(CONFIG_POWERNV_OP_PANEL)	+= powernv-op-panel.o
 obj-$(CONFIG_ADI)		+= adi.o
 obj-$(CONFIG_EXYNOS_GPIOMEM)	+= exynos-gpiomem.o
+
+obj-$(CONFIG_AMLOGIC_GPIOMEM)	+= aml-gpiomem.o

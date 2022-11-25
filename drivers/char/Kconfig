@@ -473,4 +473,15 @@ config EXYNOS_GPIOMEM
 	  page to the user's pointer. This drvier can allow to access gpio
 	  memory area in user account.
 
+source "drivers/char/xillybus/Kconfig"
+
+config AMLOGIC_GPIOMEM
+	tristate "/dev/gpiomem rootless GPIO access via mmap() on the Amlogic"
+	default m
+	help
+	  Provides users with root-free access to the GPIO registers
+	  on Meson g12 platform. Calling mmap(/dev/gpiomem) will map the GPIO
+	  register page to the user's pointer. This drvier can allow to access
+	  gpio memory area in user account.
+
 endmenu
