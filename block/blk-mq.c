@@ -1183,6 +1183,7 @@ static void blk_add_rq_to_plug(struct blk_plug *plug, struct request *rq)
 		   (!blk_queue_nomerges(rq->q) &&
 		    blk_rq_bytes(last) >= BLK_PLUG_FLUSH_SIZE)) {
 		blk_mq_flush_plug_list(plug, false);
+		last = NULL;
 		trace_block_plug(rq->q);
 	}
 
@@ -3955,9 +3956,14 @@ EXPORT_SYMBOL(__blk_mq_alloc_disk);
 struct gendisk *blk_mq_alloc_disk_for_queue(struct request_queue *q,
 		struct lock_class_key *lkclass)
 {
+	struct gendisk *disk;
+
 	if (!blk_get_queue(q))
 		return NULL;
-	return __alloc_disk_node(q, NUMA_NO_NODE, lkclass);
+	disk = __alloc_disk_node(q, NUMA_NO_NODE, lkclass);
+	if (!disk)
+		blk_put_queue(q);
+	return disk;
 }
 EXPORT_SYMBOL(blk_mq_alloc_disk_for_queue);
 
