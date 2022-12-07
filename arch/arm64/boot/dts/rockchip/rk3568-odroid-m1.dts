@@ -163,10 +163,12 @@
 };
 
 &combphy0 {
+	phy-supply = <&vcc5v0_usb_host>;
 	status = "okay";
 };
 
 &combphy1 {
+	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
@@ -527,7 +529,7 @@
 		vcc5v0_usb_host_en: vcc5v0_usb_host_en {
 			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
-		vcc5v0_usb_otg_en: vcc5v0_usb_otg_en {
+		vcc5v0_usb_otg_en: vcc5v0_usb_dr_en {
 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
@@ -598,7 +600,8 @@
 };
 
 &usb_host0_xhci {
-	extcon = <&usb2phy0>;
+	dr_mode = "host";
+	status = "okay";
 };
 
 &usb_host1_ehci {
