@@ -115,12 +115,18 @@ void odroid_card_reset(void)
 	}
 }
 
-static void do_odroid_restart(enum reboot_mode reboot_mode, const char *cmd)
+static int do_odroid_restart(struct notifier_block *this, unsigned long mode, void *cmd)
 {
 	odroid_card_reset();
 	__invoke_psci_fn_smc(psci_function_id_restart,
 				0, 0, 0);
+	return NOTIFY_DONE;
 }
+
+static struct notifier_block odroid_restart_handler = {
+	.notifier_call = do_odroid_restart,
+	.priority = 127,
+};
 
 static void do_odroid_poweroff(void)
 {
@@ -138,7 +144,7 @@ static int odroid_restart_probe(struct platform_device *pdev)
 
 	if (!of_property_read_u32(pdev->dev.of_node, "sys_reset", &id)) {
 		psci_function_id_restart = id;
-		arm_pm_restart = do_odroid_restart;
+		register_restart_handler(&odroid_restart_handler);
 	}
 
 	if (!of_property_read_u32(pdev->dev.of_node, "sys_poweroff", &id)) {
