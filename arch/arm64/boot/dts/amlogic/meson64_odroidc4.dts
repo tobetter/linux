@@ -66,6 +66,29 @@
 	};
 };
 
+&periphs_pinctrl {
+	pwmab_to_gpios: pwmab_gpio {
+		mux {
+			groups = "GPIOX_6", "GPIOX_19";
+			function = "gpio_periphs";
+		};
+	};
+
+	pwmcd_to_gpios: pwmcd_gpio {
+		mux {
+			groups = "GPIOX_5", "GPIOX_3";
+			function = "gpio_periphs";
+		};
+	};
+
+	pwmef_to_gpios: pwmef_gpio {
+		mux {
+			groups = "GPIOX_16", "GPIOX_7";
+			function = "gpio_periphs";
+		};
+	};
+};
+
 &vddcpu {
 	regulator-max-microvolt = <1030000>;
 };

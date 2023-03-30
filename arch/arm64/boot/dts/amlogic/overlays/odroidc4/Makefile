@@ -8,6 +8,9 @@ dtbo-y += \
 	pcf8563.dtbo \
 	pps-gpio_p11.dtbo \
 	pps-gpio_p12.dtbo \
+	pwm_ab.dtbo \
+	pwm_cd.dtbo \
+	pwm_ef.dtbo \
 	spi0.dtbo \
 	sx865x-i2c1.dtbo \
 	uart0.dtbo \
