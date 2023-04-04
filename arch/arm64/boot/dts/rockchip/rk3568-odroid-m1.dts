@@ -103,6 +103,12 @@
 		};
 	};
 
+	rk3568-gpiomem {
+		compatible = "rockchip,rk3568-gpiomem";
+		reg= <0x0 0xfd660000 0x0 0x1000>;
+		status = "okay";
+	};
+
 	vcc3v3_pcie: vcc3v3-pcie-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_pcie";
