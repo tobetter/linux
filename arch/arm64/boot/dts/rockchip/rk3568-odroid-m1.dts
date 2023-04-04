@@ -77,6 +77,12 @@
 		};
 	};
 
+	rk3568-gpiomem {
+		compatible = "rockchip,rk3568-gpiomem";
+		reg= <0x0 0xfd660000 0x0 0x1000>;
+		status = "okay";
+	};
+
 	pcie30_avdd0v9: pcie30-avdd0v9 {
 		compatible = "regulator-fixed";
 		regulator-name = "pcie30_avdd0v9";
