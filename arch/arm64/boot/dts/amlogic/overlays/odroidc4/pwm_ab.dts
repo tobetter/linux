@@ -3,8 +3,6 @@
 
 / {
 	fragment@0 {
-		// pwm_ab
-		// This activates pwm_ab.
 		target = <&pwm_ab>;
 
 		__overlay__ {
@@ -20,9 +18,6 @@
 					"clkin1",
 					"clkin2",
 					"clkin3";
-			/* default xtal 24m  clkin0-clkin2 and
-			 * clkin1-clkin3 should be set the same
-			 */
 		};
 	};
 };
