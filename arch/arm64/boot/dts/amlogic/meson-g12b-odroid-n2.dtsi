@@ -712,8 +712,17 @@
 
 &spicc0 {
 	status = "disabled";
+
 	pinctrl-names = "default";
-	pinctrl-0 = <&spicc0_ss0_x_pins &spicc0_x_pins>;
+	pinctrl-0 = <&spicc0_x_pins>;
+
+	spidev@0 {
+		status = "okay";
+
+		compatible = "linux,spidev";
+		reg = <0>;
+		spi-max-frequency = <100000000>;
+	};
 };
 
 &uart_A {
