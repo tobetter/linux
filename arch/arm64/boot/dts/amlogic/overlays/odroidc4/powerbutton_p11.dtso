@@ -1,0 +1,24 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			gpio-keys-polled {
+				compatible = "gpio-keys-polled";
+				poll-interval = <100>;
+
+				button@11 {
+					label = "Power button";
+					linux,code = <116>;
+					gpios = <&gpio GPIOX_3 GPIO_ACTIVE_LOW>;
+				};
+			};
+		};
+	};
+};

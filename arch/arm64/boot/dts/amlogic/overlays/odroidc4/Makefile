@@ -2,6 +2,7 @@ dtbo-y += \
 	hktft32.dtbo \
 	hktft35.dtbo \
 	pcf8563.dtbo \
+	powerbutton_p11.dtbo \
 	pps-gpio_p11.dtbo \
 	pps-gpio_p12.dtbo \
 	spi0.dtbo \
