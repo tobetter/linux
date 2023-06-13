@@ -5,6 +5,7 @@ dtbo-y += \
 	hktft35.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	powerbutton_p11.dtbo \
 	pps-gpio_p11.dtbo \
 	pps-gpio_p12.dtbo \
 	pwm_cd.dtbo \
