@@ -17,6 +17,7 @@ properties:
     items:
       - enum:
           - bananapi,lhr050h41
+          - elida,hj080be31ia1
           - feixin,k101-im2byl02
           - tdo,tl050hdv35
           - wanchanglong,w552946aba
