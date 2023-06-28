@@ -16,8 +16,8 @@
 	model = "SEI Robotics SEI610";
 
 	aliases {
-		serial0 = &uart_AO;
 		ethernet0 = &ethmac;
+		serial0 = &uart_AO;
 	};
 
 	mono_dac: audio-codec-0 {
