@@ -17,8 +17,8 @@
 	model = "Hardkernel ODROID-GO-Ultra";
 
 	aliases {
-		serial0 = &uart_AO;
 		rtc0 = &vrtc;
+		serial0 = &uart_AO;
 	};
 
 	adc-joystick-left {

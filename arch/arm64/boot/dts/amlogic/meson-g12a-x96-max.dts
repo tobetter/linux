@@ -15,8 +15,8 @@
 	model = "Shenzhen Amediatech Technology Co., Ltd X96 Max";
 
 	aliases {
-		serial0 = &uart_AO;
 		ethernet0 = &ethmac;
+		serial0 = &uart_AO;
 	};
 
 	spdif_dit: audio-codec-1 {

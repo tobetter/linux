@@ -8,8 +8,8 @@
 
 / {
 	aliases {
-		serial0 = &uart_AO;
 		rtc1 = &vrtc;
+		serial0 = &uart_AO;
 	};
 
 	chosen {

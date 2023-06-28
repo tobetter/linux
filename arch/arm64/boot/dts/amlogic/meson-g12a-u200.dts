@@ -14,8 +14,8 @@
 	model = "Amlogic Meson G12A U200 Development Board";
 
 	aliases {
-		serial0 = &uart_AO;
 		ethernet0 = &ethmac;
+		serial0 = &uart_AO;
 	};
 
 	chosen {
