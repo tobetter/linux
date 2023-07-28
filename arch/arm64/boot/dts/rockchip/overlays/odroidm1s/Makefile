@@ -7,6 +7,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	board_multiio_oled.dtbo \
 	board_stepper.dtbo \
 	dht11.dtbo \
+	display_vu8s.dtbo \
 	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
