@@ -1,0 +1,104 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&{/} {
+	key_pad: key_pad {
+		compatible = "gpio-keys";
+		autorepeat;
+
+		left { /* SW 3 */
+		label = "GPIO Key LEFT";
+			linux,code = <105>;
+			gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
+		};
+
+		enter { /* SW 4 */
+		label = "GPIO Key ENTER";
+			linux,code = <28>;
+			gpios = <&gpio2 RK_PB6 GPIO_ACTIVE_LOW>;
+		};
+
+		right { /* SW 5 */
+		label = "GPIO Key RIGHT";
+			linux,code = <106>;
+			gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_LOW>;
+		};
+
+		up { /* SW 6 */
+		label = "GPIO Key UP";
+			linux,code = <103>;
+			gpios = <&gpio2 RK_PB2 GPIO_ACTIVE_LOW>;
+		};
+
+		down { /* SW 7 */
+		label = "GPIO Key DOWN";
+			linux,code = <108>;
+			gpios = <&gpio2 RK_PA6 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	multiio_fan0: pwm-fan {
+		status = "okay";
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-min-state = <0>;
+		cooling-max-state = <3>;
+		cooling-levels = <0 128 180 240>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC5 IRQ_TYPE_EDGE_FALLING>;
+		pulses-per-revolution = <2>;
+		pwms = <&pwm1 0 40000 0>;
+		rockchip,temp-trips = <
+								  50000	1
+								  60000	2
+								  70000	3
+							  >;
+	};
+};
+
+&spi1 {
+	num-cs = <1>;
+	cs-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	multiio_spidev: spidev@0 {
+		compatible = "rockchip,spidev";
+		reg = <0>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <RK_PA7 IRQ_TYPE_EDGE_FALLING>;
+		spi-max-frequency = <100000000>;
+		status = "okay";
+	};
+};
+
+&pwm1 {
+	status = "okay";
+};
+
+&pwm3 {
+	status = "okay";
+};
+
+&uart6 {
+	status = "okay";
+	pinctrl-names = "not_use_it", "default";
+};
+
+&i2c3 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	multiio_pcf8563: rtc@51 {
+		status = "okay";
+		compatible = "nxp,pcf8563";
+		reg = <0x51>;
+	};
+};

@@ -1,0 +1,7 @@
+/dts-v1/;
+/plugin/;
+
+&uart6 {
+	status = "okay";
+	pinctrl-0 = <&uart6m0_xfer &uart6m0_ctsn &uart6m0_rtsn>;
+};
