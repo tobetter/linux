@@ -1,0 +1,8 @@
+/dts-v1/;
+/plugin/;
+
+// I2C3_M1, #3 SDA, #5 SCL
+
+&i2c3 {
+	status = "okay";
+};

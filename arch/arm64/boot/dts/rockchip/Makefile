@@ -333,5 +333,7 @@ rk3588-tiger-haikou-haikou-video-demo-dtbs := rk3588-tiger-haikou.dtb \
 	rk3588-tiger-haikou-video-demo.dtbo
 
 DTC_FLAGS_rk3568-odroid-m1 := -@
+DTC_FLAGS_rk3566-odroid-m1s := -@
 
 subdir-$(CONFIG_ARCH_ROCKCHIP) += overlays/odroidm1
+subdir-$(CONFIG_ARCH_ROCKCHIP) += overlays/odroidm1s
