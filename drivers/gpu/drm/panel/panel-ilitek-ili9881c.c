@@ -2699,6 +2699,7 @@ static const struct of_device_id ili9881c_of_match[] = {
 	{ .compatible = "raspberrypi,dsi-5inch", &rpi_5inch_desc },
 	{ .compatible = "raspberrypi,dsi-7inch", &rpi_7inch_desc },
 	{ .compatible = "odroid,hj080be31ia1", .data = &odroid_hj080be31ia1_desc },
+	{ .compatible = "odroid,vu8m", .data = &odroid_hj080be31ia1_desc },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, ili9881c_of_match);
