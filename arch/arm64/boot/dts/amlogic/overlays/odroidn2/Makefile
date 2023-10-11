@@ -1,5 +1,6 @@
 dtbo-y += \
 	can0.dtbo \
+	canfd0.dtbo \
 	fanspeed-full.dtbo \
 	hktft32.dtbo \
 	hktft35.dtbo \
