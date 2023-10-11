@@ -7,8 +7,7 @@
 
 		__overlay__ {
 			status = "okay";
-
-			pinctrl-names = "default";
+			pinctrl-names = "default","gpio_periphs";
 			pinctrl-0 = <&pwm_e_pins &pwm_f_x_pins>;
 			pinctrl-1 = <&pwmef_to_gpios>;
 			clocks = <&xtal>,
