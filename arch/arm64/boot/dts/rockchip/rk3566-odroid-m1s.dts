@@ -6,6 +6,7 @@
 
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/rockchip.h>
 #include <dt-bindings/soc/rockchip,vop2.h>
 
@@ -13,6 +14,17 @@
 
 / {
 	model = "Hardkernel ODROID-M1S";
+	compatible = "rockchip,rk3566-odroid-m1", "rockchip,rk3566";
+
+	aliases {
+		ethernet1 = &gmac1;
+		i2c0 = &i2c3;
+		i2c3 = &i2c0;
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc0;
+		serial0 = &uart1;
+		serial1 = &uart0;
+	};
 
 	chosen: chosen {
 		stdout-path = "serial2:1500000n8";
@@ -41,12 +53,20 @@
 		status = "okay";
 
 		red_led: red {
-			gpios = <&gpio0 RK_PC6 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 RK_PC6 GPIO_ACTIVE_LOW>;
 			linux,default-trigger = "default-on";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&led_power_en>;
 		};
 		blue_led: blue {
 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "heartbeat";
+			function = LED_FUNCTION_HEARTBEAT;
+			color = <LED_COLOR_ID_BLUE>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&led_work_en>;
 		};
 	};
 
@@ -670,6 +690,15 @@
 		};
 	};
 
+	leds {
+		led_power_en: led_power_en {
+			rockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		led_work_en: led_work_en {
+			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	pcie {
 		pcie20_3v3_en: pcie20-3v3-en {
 			rockchip,pins = <2 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -747,6 +776,14 @@
 
 &tsadc {
 	status = "okay";
+};
+
+&uart1 {
+	dma-names = "tx", "rx";
+	/* uart1 uart1-with-ctsrts */
+	pinctrl-0 = <&uart1m1_xfer>;
+	pinctrl-1 = <&uart1m1_xfer &uart1m1_ctsn &uart1m1_rtsn>;
+	status = "disabled";
 };
 
 &uart2 {
