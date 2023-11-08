@@ -70,7 +70,6 @@
 		default-brightness-level = <200>;
 	};
 
-
 	chosen: chosen {
 		stdout-path = "serial2:1500000n8";
 	};
