@@ -452,6 +452,9 @@
 				};
 			};
 		};
+		codec {
+			mic-in-differential;
+		};
 	};
 };
 
