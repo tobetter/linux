@@ -76,3 +76,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-odroid-m1.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3a.dtb
 
 subdir-y += overlays/odroidm1
+subdir-y += overlays/odroidm1s
