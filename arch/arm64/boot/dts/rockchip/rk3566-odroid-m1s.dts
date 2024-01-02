@@ -444,8 +444,17 @@
 };
 
 &hdmi_in {
-	hdmi_in_vp0: endpoint {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	hdmi_in_vp0: endpoint@0 {
+		reg = <0>;
 		remote-endpoint = <&vp0_out_hdmi>;
+	};
+
+	hdmi_in_vp1: endpoint@1 {
+		reg = <1>;
+		remote-endpoint = <&vp1_out_hdmi>;
 	};
 };
 
@@ -982,6 +991,7 @@
 };
 
 &vop {
+	compatible = "rockchip,rk3568-vop", "rockchip,rk3566-vop";
 	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
 	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
 	status = "okay";
@@ -1002,5 +1012,32 @@
 	vp1_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
 		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
 		remote-endpoint = <&dsi0_in_vp1>;
+	};
+
+	vp1_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
+		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
+		remote-endpoint = <&hdmi_in_vp1>;
+	};
+};
+
+&display_subsystem {
+	route {
+		route_dsi0: route-dsi0 {
+			status = "disabled";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp1_out_dsi0>;
+		};
+
+		route_hdmi: route-hdmi {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp1_out_hdmi>;
+		};
 	};
 };
