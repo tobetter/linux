@@ -24,6 +24,8 @@
 		mmc1 = &sdmmc0;
 		serial0 = &uart1;
 		serial1 = &uart0;
+		spi0 = &spi1;
+		spi1 = &spi0;
 	};
 
 	chosen: chosen {
@@ -794,6 +796,10 @@
 	vmmc-supply = <&vcc3v3_sys>;
 	vqmmc-supply = <&vccio_sd>;
 	status = "okay";
+};
+
+&spi1 {
+	pinctrl-0 = <&spi1m1_cs0 &spi1m1_pins>;
 };
 
 &tsadc {
