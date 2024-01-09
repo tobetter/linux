@@ -1,0 +1,62 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target = <&i2c2>;
+
+		__overlay__ {
+			status = "okay";
+			clock-frequency = <100000>;
+		};
+	};
+
+	fragment@1 {
+		target = <&spicc0>;
+
+		__overlay__ {
+			status = "okay";
+			#address-cells =<1>;
+			#size-cells = <0>;
+			num_chipselect = <1>;
+			cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>;
+
+			spidev: spidev@0 {
+				status = "okay";
+				compatible = "odroid,spidev";
+				reg = <0>;
+				spi-max-frequency = <100000000>;
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&uart_A>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@3 {
+		target = <&pwm_ef>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default","gpio_periphs";
+			pinctrl-0 = <&pwm_e_pins &pwm_f_x_pins>;
+			pinctrl-1 = <&pwmef_to_gpios>;
+			clocks = <&xtal>,
+				<&xtal>,
+				<&xtal>,
+				<&xtal>;
+			clock-names = "clkin0",
+				"clkin1",
+				"clkin2",
+				"clkin3";
+		};
+	};
+};

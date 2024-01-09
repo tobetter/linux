@@ -1,6 +1,7 @@
 dtbo-y += \
 	can0.dtbo \
 	canfd0.dtbo \
+	circuitpython.dtbo \
 	fanspeed-full.dtbo \
 	hktft32.dtbo \
 	hktft35.dtbo \
