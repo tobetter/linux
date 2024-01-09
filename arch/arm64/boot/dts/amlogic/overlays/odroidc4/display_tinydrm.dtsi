@@ -1,0 +1,41 @@
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@0 {
+		target = <&spicc0>;
+
+		__overlay__ {
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			num_chipselect = <1>;
+			cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>;
+
+			tinydrm: lcd@0 {
+				status = "okay";
+				reg = <0>;
+				spi-max-frequency = <100000000>;
+
+				backlight = <&backlight_gpio>;
+				dc-gpios = <&gpio GPIOX_2 GPIO_ACTIVE_HIGH>;
+				reset-gpios = <&gpio GPIOX_4 GPIO_ACTIVE_HIGH>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			backlight_gpio: backlight-gpio {
+				status = "okay";
+				compatible = "gpio-backlight";
+
+				gpios = <&gpio GPIOX_16 GPIO_ACTIVE_HIGH>;
+			};
+		};
+	};
+};
