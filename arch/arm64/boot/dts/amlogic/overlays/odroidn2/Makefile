@@ -1,6 +1,7 @@
 dtbo-y += \
 	can0.dtbo \
 	canfd0.dtbo \
+	display_waveshare_1inch47.dtbo \
 	display_waveshare_1inch69.dtbo \
 	fanspeed-full.dtbo \
 	hktft32.dtbo \
