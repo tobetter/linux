@@ -1,4 +1,5 @@
 dtbo-y += \
+	display_vu5s.dtbo \
 	display_vu8s.dtbo \
 	display_waveshare_1inch47.dtbo \
 	display_waveshare_1inch69.dtbo \
