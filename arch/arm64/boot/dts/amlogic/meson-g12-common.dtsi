@@ -2304,6 +2304,14 @@
 				compatible = "amlogic,meson-g12a-ee-pwm";
 				reg = <0x0 0x19000 0x0 0x20>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
@@ -2311,6 +2319,14 @@
 				compatible = "amlogic,meson-g12a-ee-pwm";
 				reg = <0x0 0x1a000 0x0 0x20>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
@@ -2318,6 +2334,14 @@
 				compatible = "amlogic,meson-g12a-ee-pwm";
 				reg = <0x0 0x1b000 0x0 0x20>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
