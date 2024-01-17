@@ -2317,6 +2317,14 @@
 					 <&clkc CLKID_FCLK_DIV4>,
 					 <&clkc CLKID_FCLK_DIV3>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
@@ -2329,6 +2337,14 @@
 					 <&clkc CLKID_FCLK_DIV4>,
 					 <&clkc CLKID_FCLK_DIV3>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
@@ -2341,6 +2357,14 @@
 					 <&clkc CLKID_FCLK_DIV4>,
 					 <&clkc CLKID_FCLK_DIV3>;
 				#pwm-cells = <3>;
+				clocks = <&xtal>,
+					<&xtal>,
+					<&xtal>,
+					<&xtal>;
+				clock-names = "clkin0",
+					"clkin1",
+					"clkin2",
+					"clkin3";
 				status = "disabled";
 			};
 
