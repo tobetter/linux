@@ -10,14 +10,6 @@
 			pinctrl-names = "default", "gpio_periphs";
 			pinctrl-0 = <&pwm_a_pins &pwm_b_x19_pins>;
 			pinctrl-1 = <&pwmab_to_gpios>;
-			clocks = <&xtal>,
-					<&xtal>,
-					<&xtal>,
-					<&xtal>;
-			clock-names = "clkin0",
-					"clkin1",
-					"clkin2",
-					"clkin3";
 		};
 	};
 };

@@ -11,14 +11,6 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&pwm_c_x5_pins &pwm_d_x6_pins>;
 			pinctrl-1 = <&pwmcd_to_gpios>;
-			clocks = <&xtal>,
-				<&xtal>,
-				<&xtal>,
-				<&xtal>;
-			clock-names = "clkin0",
-				"clkin1",
-				"clkin2",
-				"clkin3";
 		};
 	};
 };
