@@ -1,0 +1,10 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	target = <&pwm2>;
+
+	__overlay__ {
+		status = "okay";
+	};
+};
