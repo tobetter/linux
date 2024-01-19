@@ -1,4 +1,5 @@
 dtbo-y += \
+	circuitpython.dtbo \
 	display_vu8m.dtbo \
 	display_waveshare_1inch47.dtbo \
 	display_waveshare_1inch69.dtbo \
