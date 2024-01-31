@@ -54,6 +54,7 @@
 #include <linux/pagemap.h>
 #include <linux/io.h>
 #include <linux/of.h>
+#include <asm/pgtable.h>
 #include <asm/io.h>
 
 #define DEVICE_NAME "aml-gpiomem"
