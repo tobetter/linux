@@ -62,7 +62,7 @@
 			status = "okay";
 			compatible = "odroid,vu8s";
 
-			dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST)>;
+			dsi,flags = <MIPI_DSI_MODE_VIDEO_SYNC_PULSE>;
 			dsi,format = <MIPI_DSI_FMT_RGB888>;
 			dsi,lanes = <4>;
 		};
