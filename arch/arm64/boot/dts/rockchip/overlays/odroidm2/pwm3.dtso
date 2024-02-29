@@ -1,0 +1,6 @@
+/dts-v1/;
+/plugin/;
+
+&pwm3 {
+	status = "okay";
+};

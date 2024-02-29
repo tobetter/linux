@@ -1,0 +1,41 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&spi0 {
+	num-cs = <1>;
+	cs-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_LOW>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	mcp2515: can@0 {
+		compatible = "microchip,mcp2515";
+		pinctrl-names = "default";
+		pinctrl-0 = <&mcp251x_int_pins>;
+		reg = <0>;
+		clocks = <&can0_clk>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PD4 IRQ_TYPE_EDGE_FALLING>;
+		spi-max-frequency = <10000000>;
+		status = "okay";
+	};
+};
+
+&{/} {
+	can0_clk: can0_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <8000000>;
+	};
+};
+&pinctrl {
+	can {
+		mcp251x_int_pins: mcp251x-int-pins {
+			rockchip,pins = <3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};

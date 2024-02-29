@@ -1,0 +1,8 @@
+/dts-v1/;
+/plugin/;
+
+#include "mcp2515.dtsi"
+
+&can0_clk {
+	clock-frequency = <8000000>;
+};
