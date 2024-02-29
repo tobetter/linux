@@ -1,0 +1,7 @@
+/dts-v1/;
+/plugin/;
+
+&uart9 {
+	status = "okay";
+	pinctrl-names = "not_use_it", "default";
+};
