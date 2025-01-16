@@ -188,6 +188,11 @@
 		     &gmac1m1_rgmii_clk
 		     &gmac1m1_rgmii_bus
 		     &gmac1m1_clkinout>;
+	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 20000 100000>;
+	tx_delay = <0x4f>;
+	rx_delay = <0x2d>;
 	status = "okay";
 };
 
@@ -476,9 +481,6 @@
 	rgmii_phy1: ethernet-phy@1 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <1>;
-		reset-assert-us = <20000>;
-		reset-deassert-us = <100000>;
-		reset-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
 	};
 };
 
