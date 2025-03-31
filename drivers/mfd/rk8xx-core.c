@@ -591,6 +591,50 @@ void rk8xx_shutdown(struct device *dev)
 }
 EXPORT_SYMBOL_GPL(rk8xx_shutdown);
 
+static void rk817_of_property_prepare(struct rk808 *rk808, struct device *dev)
+{
+	int ret;
+	int low_voltage_threshold;
+	int shutdown_voltage_threshold;
+
+	ret = device_property_read_u32(dev,
+			"low_voltage_threshold", &low_voltage_threshold);
+	if (ret < 0) {
+		low_voltage_threshold = 0;
+		dev_info(dev, "low_voltage_threshold missing!\n");
+	} else {
+		if ((low_voltage_threshold > 3500) ||
+				(low_voltage_threshold < 2800)) {
+			dev_err(dev, "low_voltage_threshold out [2800 3500]!\n");
+			low_voltage_threshold = 2800;
+		}
+	}
+
+	if (low_voltage_threshold) {
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), BIT(3), BIT(3));
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), 0x07,
+				(low_voltage_threshold - 2800) / 100);
+	}
+
+	ret = device_property_read_u32(dev,
+			"shutdown_voltage_threshold", &shutdown_voltage_threshold);
+	if (ret < 0) {
+		shutdown_voltage_threshold = 0;
+		dev_info(dev, "shutdown_voltage_threshold missing!\n");
+	}
+
+	if ((shutdown_voltage_threshold > 3400) ||
+			(shutdown_voltage_threshold < 2700)) {
+		dev_err(dev, "shutdown_voltage_threshold out [2700 3400]!\n");
+		shutdown_voltage_threshold = 2700;
+	}
+
+	if (shutdown_voltage_threshold) {
+		regmap_update_bits(rk808->regmap, RK817_SYS_CFG(0), 0x7 << 4,
+				((shutdown_voltage_threshold - 2700) / 100) << 4);
+	}
+}
+
 int rk8xx_probe(struct device *dev, int variant, unsigned int irq, struct regmap *regmap)
 {
 	struct rk808 *rk808;
@@ -647,6 +691,7 @@ int rk8xx_probe(struct device *dev, int variant, unsigned int irq, struct regmap
 		nr_pre_init_regs = ARRAY_SIZE(rk817_pre_init_reg);
 		cells = rk817s;
 		nr_cells = ARRAY_SIZE(rk817s);
+		rk817_of_property_prepare(rk808, dev);
 		break;
 	default:
 		dev_err(dev, "Unsupported RK8XX ID %lu\n", rk808->variant);
