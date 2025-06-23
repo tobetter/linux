@@ -23,6 +23,25 @@
 		stdout-path = "serial2:1500000n8";
 	};
 
+	analog_sound: sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "HDMI";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,bitclock-master = <&daicpu>;
+		simple-audio-card,frame-master = <&daicpu>;
+
+		daicpu: simple-audio-card,cpu {
+			sound-dai = <&i2s0_8ch>;
+			system-clock-frequency = <12288000>;
+		};
+
+		daicodec: simple-audio-card,codec {
+			sound-dai = <&es8388>;
+			system-clock-frequency = <12288000>;
+		};
+	};
+
 	hdmi-con {
 		compatible = "hdmi-connector";
 		type = "a";
@@ -32,6 +51,12 @@
 				remote-endpoint = <&hdmi0_out_con>;
 			};
 		};
+	};
+
+	sound {
+		compatible = "audio-graph-card";
+		label = "rockchip,es8388";
+		dais = <&i2s0_8ch_p0>;
 	};
 
 	leds {
@@ -251,6 +276,9 @@
 };
 
 &hdmi0 {
+	pinctrl-0 = <&hdmim0_tx0_scl>, <&hdmim0_tx0_sda>,
+		    <&hdmim0_tx0_hpd>, <&hdmim0_tx0_cec>;
+	pinctrl-names = "default";
 	status = "okay";
 };
 
@@ -264,6 +292,10 @@
 	hdmi0_out_con: endpoint {
 		remote-endpoint = <&hdmi_con_in>;
 	};
+};
+
+&hdmi0_sound {
+	status = "okay";
 };
 
 &hdptxphy0 {
@@ -327,6 +359,30 @@
 
 		regulator-state-mem {
 			regulator-off-in-suspend;
+		};
+	};
+};
+
+&i2c7 {
+	pinctrl-0 = <&i2c7m0_xfer>;
+	status = "okay";
+
+	es8388: audio-codec@11 {
+		compatible = "everest,es8388", "everest,es8328";
+		reg = <0x11>;
+		assigned-clock-rates = <12288000>;
+		assigned-clocks = <&cru I2S0_8CH_MCLKOUT>;
+		AVDD-supply = <&vcc_3v3_s3>;
+		clocks = <&cru I2S0_8CH_MCLKOUT>;
+		DVDD-supply = <&vcc_1v8_s3>;
+		HPVDD-supply = <&vcc_3v3_s3>;
+		PVDD-supply = <&vcc_1v8_s3>;
+		#sound-dai-cells = <0>;
+
+		port {
+			es8388_p0_0: endpoint {
+				remote-endpoint = <&i2s0_8ch_p0_0>;
+			};
 		};
 	};
 };
@@ -396,6 +452,28 @@
 		pinctrl-0 = <&pcf8563_int>;
 		wakeup-source;
 	};
+};
+
+&i2s0_8ch {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s0_lrck
+		     &i2s0_mclk
+		     &i2s0_sclk
+		     &i2s0_sdi0
+		     &i2s0_sdo0>;
+	status = "okay";
+
+	i2s0_8ch_p0: port {
+		i2s0_8ch_p0_0: endpoint {
+			dai-format = "i2s";
+			mclk-fs = <256>;
+			remote-endpoint = <&es8388_p0_0>;
+		};
+	};
+};
+
+&i2s5_8ch {
+	status = "okay";
 };
 
 &mdio1 {
