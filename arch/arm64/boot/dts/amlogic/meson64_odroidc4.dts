@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2026 Hardkernel Co., Ltd.
+ *
+ */
+
+#include "meson-sm1-odroid-c4.dts"
