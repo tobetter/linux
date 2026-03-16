@@ -15,8 +15,24 @@
 
 	aliases {
 		ethernet0 = &gmac1;
+		i2c0 = &i2c5;
+		i2c1 = &i2c6;
+		i2c2 = &i2c1;
+		i2c5 = &i2c0;
+		i2c6 = &i2c2;
 		mmc0 = &sdhci;
 		mmc1 = &sdmmc;
+		serial0 = &uart7;
+		serial1 = &uart9;
+		serial2 = &uart4;
+		serial3 = &uart8;
+		serial4 = &uart1;
+		serial5 = &uart5;
+		serial7 = &uart2;
+		serial8 = &uart0;
+		serial9 = &uart3;
+		spi1 = &spi3;
+		spi3 = &spi1;
 	};
 
 	chosen {
@@ -312,6 +328,11 @@
 	};
 };
 
+&i2c1 {
+	pinctrl-0 = <&i2c1m2_xfer>;
+	status = "disabled";
+};
+
 &i2c2 {
 	status = "okay";
 
@@ -331,6 +352,16 @@
 			regulator-off-in-suspend;
 		};
 	};
+};
+
+&i2c5 {
+	pinctrl-0 = <&i2c5m2_xfer>;
+	status = "disabled";
+};
+
+&i2c6 {
+	pinctrl-0 = <&i2c6m3_xfer>;
+	status = "disabled";
 };
 
 &i2c8 {
@@ -514,6 +545,51 @@
 	status = "okay";
 };
 
+&pwm3 {
+	pinctrl-0 = <&pwm3m1_pins>;
+	status = "disabled";
+};
+
+&pwm7 {
+	pinctrl-0 = <&pwm7m0_pins>;
+	status = "disabled";
+};
+
+&pwm8 {
+	pinctrl-0 = <&pwm8m2_pins>;
+	status = "disabled";
+};
+
+&pwm9 {
+	pinctrl-0 = <&pwm9m2_pins>;
+	status = "disabled";
+};
+
+&pwm10 {
+	pinctrl-0 = <&pwm10m2_pins>;
+	status = "disabled";
+};
+
+&pwm11 {
+	pinctrl-0 = <&pwm11m3_pins>;
+	status = "disabled";
+};
+
+&pwm12 {
+	pinctrl-0 = <&pwm12m1_pins>;
+	status = "disabled";
+};
+
+&pwm13 {
+	pinctrl-0 = <&pwm13m2_pins>;
+	status = "disabled";
+};
+
+&pwm15 {
+	pinctrl-0 = <&pwm15m1_pins>;
+	status = "disabled";
+};
+
 &saradc {
 	vref-supply = <&vcca_1v8_s0>;
 	status = "okay";
@@ -543,6 +619,13 @@
 	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vccio_sd_s0>;
 	status = "okay";
+};
+
+&spi0 {
+	pinctrl-0 = <&spi0m3_pins>;
+	num-cs = <1>;
+	cs-gpios = <&gpio0 RK_PD5 GPIO_ACTIVE_LOW>;
+	status = "disabled";
 };
 
 &spi2 {
@@ -858,6 +941,13 @@
 	};
 };
 
+&spi3 {
+	pinctrl-0 = <&spi3m3_pins>;
+	num-cs = <1>;
+	cs-gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_LOW>;
+	status = "disabled";
+};
+
 &tsadc {
 	status = "okay";
 };
@@ -888,10 +978,46 @@
 	status = "okay";
 };
 
+&uart1 {
+	dma-names = "tx", "rx";
+	pinctrl-0 = <&uart1m1_xfer>;
+	status = "disabled";
+};
+
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart2m0_xfer>;
 	status = "okay";
+};
+
+&uart4 {
+	pinctrl-0 = <&uart4m2_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart5 {
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart7 {
+	pinctrl-0 = <&uart7m1_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart8 {
+	pinctrl-0 = <&uart8m0_xfer>;
+	dma-names = "tx", "rx";
+	status = "disabled";
+};
+
+&uart9 {
+	pinctrl-0 = <&uart9m2_xfer>;
+	pinctrl-1 = <&uart9m2_xfer &uart9m2_ctsn &uart9m2_rtsn>;
+	dma-names = "tx", "rx";
+	status = "disabled";
 };
 
 &usb_host0_ehci {
