@@ -659,7 +659,7 @@
 &spi1 {
 	pinctrl-0 = <&spi1m1_pins>;
 	pinctrl-1 = <&spi1m1_pins_hs>;
-	num_chipselect = <1>;
+	num-cs = <1>;
 
 	cs-gpios = <&gpio3 RK_PA1 GPIO_ACTIVE_LOW>;
 };
