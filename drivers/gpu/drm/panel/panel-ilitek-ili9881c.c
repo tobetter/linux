@@ -2902,6 +2902,9 @@ static const struct ili9881c_desc odroid_vu8s_desc = {
 	.init = odroid_vu8s_init,
 	.init_length = ARRAY_SIZE(odroid_vu8s_init),
 	.mode = &odroid_hj080be31ia1_default_mode,
+	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
+		      MIPI_DSI_MODE_NO_EOT_PACKET,
+	.lanes = 4,
 };
 
 static const struct of_device_id ili9881c_of_match[] = {
