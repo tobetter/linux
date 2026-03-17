@@ -2893,6 +2893,9 @@ static const struct ili9881c_desc odroid_hj080be31ia1_desc = {
 	.init = odroid_hj080be31ia1_init,
 	.init_length = ARRAY_SIZE(odroid_hj080be31ia1_init),
 	.mode = &odroid_hj080be31ia1_default_mode,
+	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
+		      MIPI_DSI_MODE_NO_EOT_PACKET,
+	.lanes = 4,
 };
 
 static const struct ili9881c_desc odroid_vu8s_desc = {
