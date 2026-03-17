@@ -18,6 +18,8 @@
 	aliases {
 		ethernet0 = &gmac0;
 		i2c0 = &i2c3;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
 		i2c3 = &i2c0;
 		mmc0 = &sdhci;
 		mmc1 = &sdmmc0;
@@ -498,6 +500,18 @@
 	};
 };
 
+&i2c2 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2m0_xfer>;
+};
+
+&i2c3 {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m1_xfer>;
+};
+
 &pcie30phy {
 	status = "okay";
 };
@@ -588,6 +602,31 @@
 &saradc {
 	vref-supply = <&vcca_1v8>;
 	status = "okay";
+};
+
+&pwm1 {
+	status = "disabled";
+	pinctrl-0 = <&pwm1m1_pins>;
+};
+
+&pwm2 {
+	status = "disabled";
+	pinctrl-0 = <&pwm2m1_pins>;
+};
+
+&pwm9 {
+	status = "disabled";
+	pinctrl-0 = <&pwm9m0_pins>;
+};
+
+&pwm10 {
+	status = "disabled";
+	pinctrl-0 = <&pwm10m0_pins>;
+};
+
+&pwm11 {
+	status = "disabled";
+	pinctrl-0 = <&pwm11m0_pins>;
 };
 
 &sata2 {
@@ -740,4 +779,25 @@
 		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
 		remote-endpoint = <&hdmi_in_vp0>;
 	};
+};
+
+&spi0 {
+	status = "disabled";
+
+	pinctrl-0 = <&spi0m1_pins>;
+	pinctrl-1 = <&spi0m1_pins_hs>;
+	num_chipselect = <1>;
+
+	cs-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_LOW>;
+};
+
+&uart0 {
+	status = "disabled";
+	dma-names = "tx", "rx";
+};
+
+&uart1 {
+	status = "disabled";
+	dma-names = "tx", "rx";
+	pinctrl-0 = <&uart1m1_xfer>;
 };
