@@ -261,8 +261,6 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	connect = <&vp1_out_dsi0>;
-
 	lcd: panel@0 {
 		reg = <0>;
 		backlight = <&backlight>;
@@ -280,19 +278,22 @@
 			};
 		};
 	};
+};
 
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		port@1 {
-			reg = <1>;
-
-			dsi0_out_panel: endpoint {
-				remote-endpoint = <&panel_in_dsi>;
-			};
-		};
+&dsi0_in {
+	dsi0_in_vp1: endpoint {
+		remote-endpoint = <&vp1_out_dsi0>;
 	};
+};
+
+&dsi0_out {
+	dsi0_out_panel: endpoint {
+		remote-endpoint = <&panel_in_dsi>;
+	};
+};
+
+&dsi_dphy0 {
+	status = "disabled";
 };
 
 &gmac0 {
@@ -703,8 +704,7 @@
 
 &i2c4 {
 	status = "disabled";
-
-	clock-frequency = <400000>;
+	clock-frequency = <100000>;
 
 	touchscreen: touchscreen {
 		status = "disabled";
@@ -712,11 +712,14 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&touch_gpios>;
 
-		interrupt-parent = <&gpio0>;
-		interrupts = <RK_PC4 IRQ_TYPE_LEVEL_LOW>;
+		AVDD28-supply = <&vcc3v3_lcd>;
+		VDDIO-supply = <&vcc3v3_lcd>;
 
-		irq-gpios = <&gpio0 RK_PC4 IRQ_TYPE_LEVEL_LOW>;
-		reset-gpios = <&gpio4 RK_PB0 GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PC4 IRQ_TYPE_EDGE_FALLING>;
+
+		irq-gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio4 RK_PB0 GPIO_ACTIVE_HIGH>;
 	};
 };
 
@@ -1002,6 +1005,13 @@
 	vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
 		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
 		remote-endpoint = <&hdmi_in_vp0>;
+	};
+};
+
+&vp1 {
+	vp1_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
+		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
+		remote-endpoint = <&dsi0_in_vp1>;
 	};
 };
 
