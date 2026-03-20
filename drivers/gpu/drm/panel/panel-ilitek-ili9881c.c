@@ -2691,8 +2691,8 @@ static const struct drm_display_mode odroid_hj080be31ia1_default_mode = {
 	.vsync_end	= 1280 + 8 + 4,
 	.vtotal		= 1280 + 8 + 4 + 8,
 
-	.width_mm	= 135,
-	.height_mm	= 217,
+	.width_mm	= 108,
+	.height_mm	= 172,
 };
 
 static int ili9881c_get_modes(struct drm_panel *panel,
