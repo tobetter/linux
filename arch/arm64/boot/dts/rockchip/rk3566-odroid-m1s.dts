@@ -110,6 +110,26 @@
 		};
 	};
 
+	spdif_dit: spdif-dit {
+		compatible = "linux,spdif-dit";
+		status = "disabled";
+		#sound-dai-cells = <0>;
+	};
+
+	spdif_sound: spdif-sound {
+		compatible = "simple-audio-card";
+		status = "disabled";
+		simple-audio-card,name = "SPDIF";
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdif>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&spdif_dit>;
+		};
+	};
+
 	vcc3v3_lcd: regulator-3v3-vcc-lcd {
 		compatible = "regulator-fixed";
 		enable-active-high;
