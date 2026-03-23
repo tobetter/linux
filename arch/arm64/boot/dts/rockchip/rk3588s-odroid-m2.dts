@@ -122,6 +122,26 @@
 		pwms = <&pwm0 0 22222 0>;
 	};
 
+	spdif_dit: spdif-dit {
+		compatible = "linux,spdif-dit";
+		status = "disabled";
+		#sound-dai-cells = <0>;
+	};
+
+	spdif_sound: spdif-sound {
+		compatible = "simple-audio-card";
+		status = "disabled";
+		simple-audio-card,name = "SPDIF";
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdif_tx0>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&spdif_dit>;
+		};
+	};
+
 	vcc_1v1_nldo_s3: regulator-1v1-vcc-nldo-s3 {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_1v1_nldo_s3";
@@ -1167,6 +1187,12 @@
 			};
 		};
 	};
+};
+
+&spdif_tx0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&spdif0m1_tx>;
+	status = "disabled";
 };
 
 &spi3 {
