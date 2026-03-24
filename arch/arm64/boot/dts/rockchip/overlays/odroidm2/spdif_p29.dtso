@@ -1,0 +1,17 @@
+/dts-v1/;
+/plugin/;
+
+&spdif_dit {
+	status = "okay";
+};
+
+&spdif_sound {
+	status = "okay";
+	simple-audio-card,cpu {
+			sound-dai = <&spdif_tx1>;
+	};
+};
+
+&spdif_tx1 {
+	status = "okay";
+};
