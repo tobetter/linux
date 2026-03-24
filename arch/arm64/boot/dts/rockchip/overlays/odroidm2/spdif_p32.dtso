@@ -1,0 +1,14 @@
+/dts-v1/;
+/plugin/;
+
+&spdif_dit {
+	status = "okay";
+};
+
+&spdif_sound {
+	status = "okay";
+};
+
+&spdif_tx0 {
+	status = "okay";
+};
