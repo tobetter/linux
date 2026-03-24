@@ -21,6 +21,8 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	pwm12.dtbo \
 	pwm13.dtbo \
 	pwm15.dtbo \
+	spdif_p29.dtbo \
+	spdif_p32.dtbo \
 	spi0.dtbo \
 	spi1.dtbo \
 	uart0.dtbo \
