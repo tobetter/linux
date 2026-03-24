@@ -24,6 +24,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += \
 	pwm3.dtbo \
 	pwm11.dtbo \
 	pwm14.dtbo \
+	spdif_sound.dtbo \
 	spi0.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart0.dtbo \

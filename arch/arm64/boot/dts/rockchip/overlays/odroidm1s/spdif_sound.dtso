@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+&spdif {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&spdifm1_tx>;
+};
+
+&spdif_dit {
+	status = "okay";
+};
+
+&spdif_sound {
+	status = "okay";
+};
