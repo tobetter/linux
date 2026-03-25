@@ -5,3 +5,12 @@
  */
 
 #include "meson-sm1-odroid-c4.dts"
+#include <dt-bindings/leds/common.h>
+
+&{/} {
+	leds {
+		led-blue {
+			function = LED_FUNCTION_HEARTBEAT;
+		};
+	};
+};
