@@ -32,3 +32,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pwm_e_pins &pwm_f_x_pins>;
 };
+
+&spicc0 {
+	status = "disabled";
+	cs-gpios = <&gpio GPIOX_10 GPIO_ACTIVE_LOW>;
+	num-cs = <1>;
+	pinctrl-0 = <&spicc0_x_pins>;
+	pinctrl-names = "default";
+};
