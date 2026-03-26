@@ -8,11 +8,30 @@
 #include <dt-bindings/leds/common.h>
 
 &{/} {
+	aliases {
+		i2c0 = &i2c2;
+		i2c1 = &i2c3;
+		i2c2 = &i2c0;
+		i2c3 = &i2c1;
+	};
+
 	leds {
 		led-blue {
 			function = LED_FUNCTION_HEARTBEAT;
 		};
 	};
+};
+
+&i2c2 {
+	status = "disabled";
+	pinctrl-0 = <&i2c2_sda_x_pins>, <&i2c2_sck_x_pins>;
+	pinctrl-names = "default";
+};
+
+&i2c3 {
+	status = "disabled";
+	pinctrl-0 = <&i2c3_sda_a_pins>, <&i2c3_sck_a_pins>;
+	pinctrl-names = "default";
 };
 
 &pwm_ab {
