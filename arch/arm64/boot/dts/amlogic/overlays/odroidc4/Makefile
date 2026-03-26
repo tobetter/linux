@@ -1,8 +1,10 @@
 # Overlays for the Odroid platform
 
 dtb-$(CONFIG_ARCH_MESON) += \
+	dht11.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	onewire.dtbo \
 	pcf8563.dtbo \
 	pwm_ab.dtbo \
 	pwm_cd.dtbo \
