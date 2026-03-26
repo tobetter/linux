@@ -8,3 +8,8 @@ dtb-$(CONFIG_ARCH_MESON) += \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
 	spi0.dtbo \
+	uart0.dtbo \
+	uart0-with-ctsrts.dtbo \
+	uart1.dtbo \
+	uart2.dtbo \
+	uart3.dtbo \
