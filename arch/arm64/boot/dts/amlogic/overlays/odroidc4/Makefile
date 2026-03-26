@@ -13,3 +13,4 @@ dtb-$(CONFIG_ARCH_MESON) += \
 	uart1.dtbo \
 	uart2.dtbo \
 	uart3.dtbo \
+	weather_board_zero.dtbo \
