@@ -2,6 +2,7 @@
 
 dtb-$(CONFIG_ARCH_MESON) += \
 	dht11.dtbo \
+	hktft32.dtbo \
 	i2c0.dtbo \
 	i2c1.dtbo \
 	mcp2515.dtbo \
