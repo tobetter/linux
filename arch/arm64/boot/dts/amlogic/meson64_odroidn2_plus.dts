@@ -5,3 +5,14 @@
  */
 
 #include "meson-g12b-odroid-n2-plus.dts"
+#include <dt-bindings/leds/common.h>
+
+&{/} {
+	leds {
+		led-blue {
+			/delete-property/ label;
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_HEARTBEAT;
+		};
+	};
+};
