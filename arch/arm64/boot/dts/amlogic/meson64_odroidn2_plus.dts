@@ -16,3 +16,15 @@
 		};
 	};
 };
+
+&pwm_cd {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm_c_x5_pins &pwm_d_x6_pins>;
+};
+
+&pwm_ef {
+	status = "disabled";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm_e_pins &pwm_f_x_pins>;
+};
