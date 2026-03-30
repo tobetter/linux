@@ -10,6 +10,7 @@ dtb-$(CONFIG_ARCH_MESON) += \
 	mcp2515_16mhz.dtbo \
 	mcp2517fd.dtbo \
 	onewire.dtbo \
+	pcf8563.dtbo \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
 	spi0.dtbo \
