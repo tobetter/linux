@@ -1,0 +1,13 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/meson-g12a-gpio.h>
+#include <dt-bindings/gpio/gpio.h>
+
+&{/} {
+	humidity_sensor {
+		compatible = "dht11";
+		gpios = <&gpio GPIOX_7 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
