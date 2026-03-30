@@ -3,6 +3,10 @@
 dtb-$(CONFIG_ARCH_MESON) += \
 	i2c0.dtbo \
 	i2c1.dtbo \
+	mcp2515.dtbo \
+	mcp2515_12mhz.dtbo \
+	mcp2515_16mhz.dtbo \
+	mcp2517fd.dtbo \
 	pwm_cd.dtbo \
 	pwm_ef.dtbo \
 	spi0.dtbo \
