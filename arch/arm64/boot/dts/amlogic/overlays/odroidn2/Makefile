@@ -16,3 +16,4 @@ dtb-$(CONFIG_ARCH_MESON) += \
 	uart0.dtbo \
 	uart0-with-ctsrts.dtbo \
 	uart1.dtbo \
+	weather_board_zero.dtbo \
