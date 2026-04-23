@@ -38,6 +38,18 @@ endif
 # We need this, in case the user has it in its environment
 unexport CONFIG_
 
+define kconfig_auto
+$(if $(wildcard $(srctree)/$(1)/$(2)/Kconfig),
+	$(Q)echo 'source "$(1)/$(2)/Kconfig"' >> $(srctree)/$(1)/Kconfig.auto
+)
+endef
+
+kconfig_submodules:
+	$(Q)echo '# Auto-generated Kconfig' > $(srctree)/drivers/net/wireless/realtek/Kconfig.auto
+	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8192fu)
+	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821au)
+	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821cu)
+
 config-prog	:= conf
 menuconfig-prog	:= mconf
 nconfig-prog	:= nconf
@@ -46,7 +58,7 @@ xconfig-prog	:= qconf
 
 define config_rule
 PHONY += $(1)
-$(1): $(obj)/$($(1)-prog)
+$(1): $(obj)/$($(1)-prog) kconfig_submodules
 	$(Q)$$< $(silent) $(Kconfig)
 
 PHONY += build_$(1)
@@ -81,7 +93,7 @@ simple-targets := oldconfig allnoconfig allyesconfig allmodconfig \
 
 PHONY += $(simple-targets)
 
-$(simple-targets): $(obj)/conf
+$(simple-targets): $(obj)/conf kconfig_submodules
 	$(Q)$< $(silent) --$@ $(Kconfig)
 
 PHONY += savedefconfig defconfig
