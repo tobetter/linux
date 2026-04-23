@@ -30,6 +30,17 @@ KCONFIG_DEFCONFIG_LIST += arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG)
 # We need this, in case the user has it in its environment
 unexport CONFIG_
 
+define kconfig_auto
+$(if $(wildcard $(1)/$(2)/Kconfig),
+	$(Q)echo 'source "$(1)/$(2)/Kconfig"' >> $(1)/Kconfig.auto
+)
+endef
+
+kconfig_submodules:
+	$(Q)echo '# Auto-generated Kconfig' > drivers/net/wireless/realtek/Kconfig.auto
+	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821au)
+	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821cu)
+
 config-prog	:= conf
 menuconfig-prog	:= mconf
 nconfig-prog	:= nconf
@@ -38,7 +49,7 @@ xconfig-prog	:= qconf
 
 define config_rule
 PHONY += $(1)
-$(1): $(obj)/$($(1)-prog)
+$(1): $(obj)/$($(1)-prog) kconfig_submodules
 	$(Q)$$< $(silent) $(Kconfig)
 
 PHONY += build_$(1)

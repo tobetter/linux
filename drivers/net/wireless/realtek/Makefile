@@ -10,3 +10,10 @@ obj-$(CONFIG_RTL8XXXU)		+= rtl8xxxu/
 obj-$(CONFIG_RTW88)		+= rtw88/
 obj-$(CONFIG_RTW89)		+= rtw89/
 
+ifneq ($(wildcard $(srctree)/$(src)/rtl8821au),)
+	obj-$(CONFIG_RTL8821AU)	+= rtl8821au/
+endif
+
+ifneq ($(wildcard $(srctree)/$(src)/rtl8821cu),)
+	obj-$(CONFIG_RTL8821CU)	+= rtl8821cu/
+endif
