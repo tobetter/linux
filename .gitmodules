@@ -1,0 +1,12 @@
+[submodule "drivers/net/wireless/realtek/rtl8821au"]
+	path = drivers/net/wireless/realtek/rtl8821au
+	url = https://github.com/tobetter/rtl8821au.git
+	branch = rtl8821au-odroid-arm64
+[submodule "drivers/net/wireless/realtek/rtl8821cu"]
+	path = drivers/net/wireless/realtek/rtl8821cu
+	url = https://github.com/tobetter/rtl8821cu.git
+	branch = rtl8821cu-odroid-arm64
+[submodule "drivers/net/wireless/realtek/rtl8192fu"]
+	path = drivers/net/wireless/realtek/rtl8192fu
+	url = https://github.com/tobetter/rtl8192fu-dkms.git
+	branch = rtl8192fu-odroid-arm64
