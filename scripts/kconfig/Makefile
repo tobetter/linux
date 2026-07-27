@@ -37,9 +37,9 @@ $(if $(wildcard $(1)/$(2)/Kconfig),
 endef
 
 kconfig_submodules:
-	$(Q)echo '# Auto-generated Kconfig' > drivers/net/wireless/realtek/Kconfig.auto
-	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821au)
-	$(call kconfig_auto,drivers/net/wireless/realtek,rtl8821cu)
+	$(Q)echo '# Auto-generated Kconfig' > $(srctree)/drivers/net/wireless/realtek/Kconfig.auto
+	$(call kconfig_auto,$(srctree)/drivers/net/wireless/realtek,rtl8821au)
+	$(call kconfig_auto,$(srctree)/drivers/net/wireless/realtek,rtl8821cu)
 
 config-prog	:= conf
 menuconfig-prog	:= mconf
@@ -84,7 +84,7 @@ simple-targets := oldconfig allnoconfig allyesconfig allmodconfig \
 
 PHONY += $(simple-targets)
 
-$(simple-targets): $(obj)/conf
+$(simple-targets): $(obj)/conf kconfig_submodules
 	$(Q)$< $(silent) --$@ $(Kconfig)
 
 PHONY += savedefconfig defconfig
@@ -92,7 +92,7 @@ PHONY += savedefconfig defconfig
 savedefconfig: $(obj)/conf
 	$(Q)$< $(silent) --$@=defconfig $(Kconfig)
 
-defconfig: $(obj)/conf
+defconfig: $(obj)/conf kconfig_submodules
 ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG)),)
 	@$(kecho) "*** Default configuration is based on '$(KBUILD_DEFCONFIG)'"
 	$(Q)$< $(silent) --defconfig=arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG) $(Kconfig)
@@ -101,12 +101,12 @@ else
 	$(Q)$(MAKE) -f $(srctree)/Makefile $(KBUILD_DEFCONFIG)
 endif
 
-%_defconfig: $(obj)/conf
+%_defconfig: $(obj)/conf kconfig_submodules
 	$(Q)$< $(silent) --defconfig=arch/$(SRCARCH)/configs/$@ $(Kconfig)
 
 configfiles=$(wildcard $(srctree)/kernel/configs/$@ $(srctree)/arch/$(SRCARCH)/configs/$@)
 
-%.config: $(obj)/conf
+%.config: $(obj)/conf kconfig_submodules
 	$(if $(call configfiles),, $(error No configuration exists for this target on this architecture))
 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/kconfig/merge_config.sh -m .config $(configfiles)
 	$(Q)$(MAKE) -f $(srctree)/Makefile olddefconfig
